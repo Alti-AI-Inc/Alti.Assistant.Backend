@@ -32,8 +32,146 @@ import {
 } from './explorium.service.js';
 import { withCache } from './explorium.cache.js';
 
+// ─── Type Definitions ─────────────────────────────────────────────────────────
+
+/**
+ * @typedef {object} ExploriumAgent.ResearchCompanyResult
+ * @property {string} domain - The company domain that was researched.
+ * @property {string|null} business_id - The unique identifier for the business in Explorium, if matched.
+ * @property {string} answer - The AI-generated answer to the question.
+ * @property {object|null} sources - Raw intelligence data used to generate the answer, categorized by type.
+ * @property {object|null} [sources.firmographics] - Firmographic data.
+ * @property {object|null} [sources.strategic_insights] - Strategic insights data.
+ * @property {object|null} [sources.competitive_landscape] - Competitive landscape data.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.ICPFilters
+ * @property {object} [country_code] - ISO alpha-2 country codes, e.g., `{ values: ["us", "gb"] }`.
+ * @property {object} [company_size] - Company size ranges, e.g., `{ values: ["51-200", "201-500"] }`.
+ * @property {object} [company_revenue] - Company revenue ranges, e.g., `{ values: ["1M-5M", "5M-10M"] }`.
+ * @property {object} [company_age] - Company age ranges, e.g., `{ values: ["3-6", "6-10"] }`.
+ * @property {object} [linkedin_category] - LinkedIn industry categories, e.g., `{ values: ["software development"] }`.
+ * @property {object} [naics_category] - NAICS codes, e.g., `{ values: ["541512"] }`.
+ * @property {object} [google_category] - Google business categories, e.g., `{ values: ["Software company"] }`.
+ * @property {object} [company_tech_stack_tech] - Specific technologies, e.g., `{ values: ["Salesforce", "HubSpot"] }`.
+ * @property {object} [company_tech_stack_category] - Technology categories, e.g., `{ values: ["CRM", "Marketing"] }`.
+ * @property {object} [has_website] - Whether the company has a website, e.g., `{ values: [true] }`.
+ * @property {object} [is_public_company] - Whether the company is public, e.g., `{ values: [true] }`.
+ * @property {object} [website_keywords] - Keywords found on the company website, e.g., `{ values: ["AI", "SaaS"] }`.
+ * @property {object} [number_of_locations] - Number of company locations, e.g., `{ values: ["2-5", "6-20"] }`.
+ * @property {object} [business_intent_topics] - Business intent topics with an optional intent level.
+ * @property {Array<string>} [business_intent_topics.values] - List of intent topics.
+ * @property {string} [business_intent_topics.topic_intent_level] - Intent level, e.g., "high_intent".
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.ICPBuilderResult
+ * @property {string} description - The original natural language ICP description.
+ * @property {ExploriumAgent.ICPFilters} filters - The generated Explorium API filter object.
+ * @property {string} explanation - A brief reasoning for the chosen filters.
+ * @property {number} estimated_count - The estimated number of businesses matching the filters.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.ProspectAnalysisResult
+ * @property {string} email - The email address of the prospect.
+ * @property {boolean} matched - True if Explorium data was found for the prospect, false otherwise.
+ * @property {string} brief - The AI-generated pre-meeting sales intelligence brief.
+ * @property {string|null} prospect_id - The unique identifier for the prospect in Explorium, if matched.
+ * @property {object|null} raw_intel - The raw intelligence data from Explorium for the prospect.
+ * @property {string} [meeting_context] - The context provided for the meeting.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.LeadScore
+ * @property {string} id - The unique identifier of the business.
+ * @property {number} score - The ICP fit score (0-100).
+ * @property {('A'|'B'|'C'|'D')} tier - The lead tier based on the score.
+ * @property {string} reasoning - A 2-sentence explanation for the score.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.ProspectData
+ * @property {string} [first_name] - Prospect's first name.
+ * @property {string} [full_name] - Prospect's full name.
+ * @property {string} [email] - Prospect's email.
+ * @property {string} [job_title] - Prospect's job title.
+ * @property {string} [company_name] - Prospect's company name.
+ * @property {string} [job_department_main] - Prospect's main job department.
+ * @property {string} [job_level_main] - Prospect's main job level.
+ * @property {string} [city] - Prospect's city.
+ * @property {string} [region_name] - Prospect's region/state.
+ * @property {Array<object>} [experience] - Array of past work experiences.
+ * @property {Array<string>} [skills] - Array of skills.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.SenderData
+ * @property {string} name - Sender's name.
+ * @property {string} company - Sender's company name.
+ * @property {string} product - Name of the product/service being offered.
+ * @property {string} value_prop - A concise value proposition of the product/service.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.OutreachEmailResult
+ * @property {string} subject - The AI-generated email subject line.
+ * @property {string} body - The AI-generated email body.
+ * @property {string} ps - An optional AI-generated postscript.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.NLSearchResult
+ * @property {string} query - The original natural language search query.
+ * @property {ExploriumAgent.ICPFilters} filters_used - The Explorium API filters derived from the query.
+ * @property {string} explanation - A brief explanation of how the query was translated into filters.
+ * @property {number} total_available - The total estimated number of businesses matching the filters.
+ * @property {Array<object>} results - An array of business objects matching the query.
+ * @property {number} returned - The number of businesses returned in the current result set.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.CompanySummaryResult
+ * @property {string} domain - The company domain that was summarized.
+ * @property {string|null} business_id - The unique identifier for the business in Explorium, if matched.
+ * @property {string} summary - A 2-3 sentence executive overview of the company.
+ * @property {Array<string>} key_facts - A list of key factual bullet points about the company.
+ * @property {object} raw_data - Raw intelligence data used for the summary.
+ * @property {object|null} [raw_data.firmographics] - Firmographic data.
+ * @property {object|null} [raw_data.funding_and_acquisitions] - Funding and acquisitions data.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.CompanyEvent
+ * @property {string} event_type - Type of event, e.g., "funding", "acquisition", "news".
+ * @property {string} occurred_at - Date of the event in ISO format.
+ * @property {string} summary - A brief summary of the event.
+ * @property {object} [event_data] - Additional detailed data about the event.
+ */
+
+/**
+ * @typedef {object} ExploriumAgent.CompanyTimelineResult
+ * @property {string} domain - The company domain for which the timeline was generated.
+ * @property {string|null} business_id - The unique identifier for the business in Explorium, if matched.
+ * @property {string} narrative - An AI-generated narrative summarizing the company's recent events.
+ * @property {Array<ExploriumAgent.CompanyEvent>} events - A list of raw event objects.
+ * @property {number} event_count - The total number of events found.
+ * @property {number} [lookback_days] - The number of days looked back for events.
+ */
+
 // ─── LLM Helper ───────────────────────────────────────────────────────────────
 
+/**
+ * Calls the Gemini LLM with a given prompt and optional system prompt.
+ * Configures the model for JSON output if `jsonMode` is true.
+ *
+ * @async
+ * @param {string} prompt - The main prompt for the LLM.
+ * @param {string} [systemPrompt=''] - An optional system prompt to guide the LLM's persona or instructions.
+ * @param {boolean} [jsonMode=false] - If true, configures the LLM to return a JSON response.
+ * @returns {Promise<string|null>} A promise that resolves to the LLM's text response, or null if an error occurs.
+ */
 async function callLLM(prompt, systemPrompt = '', jsonMode = false) {
   try {
     const apiKey = (
@@ -65,6 +203,14 @@ async function callLLM(prompt, systemPrompt = '', jsonMode = false) {
   }
 }
 
+/**
+ * Safely parses a JSON string, attempting to clean common LLM output formatting (e.g., markdown code blocks).
+ * If parsing fails, it returns a specified fallback object.
+ *
+ * @param {string} raw - The raw string potentially containing JSON.
+ * @param {object} [fallback={}] - The object to return if JSON parsing fails.
+ * @returns {object} The parsed JSON object or the fallback object.
+ */
 function safeParseJson(raw, fallback = {}) {
   try {
     const cleaned = (raw || '').replace(/```json\n?|```\n?/g, '').trim();
@@ -77,11 +223,15 @@ function safeParseJson(raw, fallback = {}) {
 // ─── Company Research ─────────────────────────────────────────────────────────
 
 /**
- * Answer a natural-language question about any company using Explorium data.
+ * Answer a natural-language question about any company using Explorium's extensive B2B data.
+ * This function leverages AI to synthesize information from various intelligence categories
+ * (firmographics, strategic insights, competitive landscape, workforce trends, funding)
+ * to provide a data-driven answer.
  *
- * @param {string} domain    - Company domain, e.g. "stripe.com"
- * @param {string} question  - Any question about the company
- * @returns {Promise<{answer, business_id, domain, sources}>}
+ * @async
+ * @param {string} domain - The company domain, e.g., "stripe.com".
+ * @param {string} question - The natural language question about the company.
+ * @returns {Promise<ExploriumAgent.ResearchCompanyResult>} A promise that resolves to an object containing the AI-generated answer, business ID, domain, and raw data sources.
  */
 export async function researchCompany(domain, question) {
   logger.info(`[Explorium Agent] Research: ${domain} — "${question}"`);
@@ -129,11 +279,13 @@ export async function researchCompany(domain, question) {
 // ─── ICP Builder ──────────────────────────────────────────────────────────────
 
 /**
- * Convert a natural language ICP description into valid Explorium API filters.
- * Includes live audience count validation.
+ * Converts a natural language Ideal Customer Profile (ICP) description into valid Explorium API filters.
+ * It includes a post-processing step to semantically map business intent topics to verified taxonomy topics
+ * and validates the generated filters against a live audience count.
  *
- * @param {string} description - e.g. "Series B SaaS companies in the US with 50-500 employees using Salesforce"
- * @returns {Promise<{filters, explanation, estimated_count, description}>}
+ * @async
+ * @param {string} description - A natural language description of the ICP, e.g., "Series B SaaS companies in the US with 50-500 employees using Salesforce".
+ * @returns {Promise<ExploriumAgent.ICPBuilderResult>} A promise that resolves to an object containing the generated filters, an explanation, and the estimated audience count.
  */
 export async function buildICP(description) {
   logger.info(`[Explorium Agent] Build ICP: "${description}"`);
@@ -226,11 +378,14 @@ Output format:
 // ─── Prospect Intelligence ────────────────────────────────────────────────────
 
 /**
- * Generate a pre-meeting sales intelligence brief for a prospect by email.
+ * Generates a comprehensive pre-meeting sales intelligence brief for a prospect.
+ * It uses Explorium's contact intelligence to synthesize information about the prospect's
+ * professional profile, company, and potential pain points, tailored to a given meeting context.
  *
- * @param {string} email    - Prospect's work email
- * @param {string} context  - Meeting context ("selling CRM", "partnership discussion")
- * @returns {Promise<{email, matched, brief, prospect_id, raw_intel}>}
+ * @async
+ * @param {string} email - The prospect's work email address.
+ * @param {string} [context=''] - Optional context for the meeting (e.g., "selling CRM", "partnership discussion").
+ * @returns {Promise<ExploriumAgent.ProspectAnalysisResult>} A promise that resolves to an object containing the prospect's email, match status, the AI-generated brief, prospect ID, and raw intelligence data.
  */
 export async function analyzeProspect(email, context = '') {
   logger.info(`[Explorium Agent] Analyze prospect: ${email}`);
@@ -298,12 +453,17 @@ Be specific. Reference actual data values.`;
 // ─── AI Lead Scoring ──────────────────────────────────────────────────────────
 
 /**
- * Score a list of businesses on ICP fit (0-100) using AI reasoning.
- * Processes in batches of 10 to stay within LLM token limits.
+ * Scores a list of businesses based on their fit with a natural language Ideal Customer Profile (ICP).
+ * The function processes businesses in batches to optimize LLM token usage and provides a score (0-100),
+ * a tier (A, B, C, D), and a brief reasoning for each lead.
  *
- * @param {Array<object>} businesses   - Business objects from fetchBusinesses
- * @param {string}        icpDescription - Natural language ICP
- * @returns {Promise<Array<{id, score, tier, reasoning}>>}
+ * @async
+ * @param {Array<object>} businesses - An array of business objects, typically from `fetchBusinessesService`.
+ *                                     Each object should ideally contain `business_id` (or `id`), `name` (or `company_name`),
+ *                                     `company_size`, `linkedin_category` (or `google_category`, `naics_category`),
+ *                                     `company_revenue`, `country_code`, `tech_stack` (or `technologies`), `founded_year`, `domain` (or `website`).
+ * @param {string} icpDescription - A natural language description of the Ideal Customer Profile.
+ * @returns {Promise<Array<ExploriumAgent.LeadScore>>} A promise that resolves to an array of lead score objects, sorted by score in descending order.
  */
 export async function scoreLeads(businesses, icpDescription) {
   logger.info(`[Explorium Agent] Scoring ${businesses.length} leads`);
@@ -360,12 +520,14 @@ Return JSON array: [{"id":"...","score":85,"tier":"A","reasoning":"2-sentence sp
 // ─── Outreach Email Generation ────────────────────────────────────────────────
 
 /**
- * Generate a hyper-personalized cold outreach email using Explorium contact data.
+ * Generates a hyper-personalized cold outreach email using Explorium contact data and sender information.
+ * The AI crafts a subject line, body, and an optional postscript, adhering to best practices for high reply rates.
  *
- * @param {object} prospect  - Prospect data (from enrichProspectSingle or fetchProspects)
- * @param {object} sender    - { name, company, product, value_prop }
- * @param {string} context   - Additional context (why reaching out now)
- * @returns {Promise<{subject, body, ps}>}
+ * @async
+ * @param {ExploriumAgent.ProspectData} prospect - An object containing detailed prospect data (e.g., from `enrichProspectSingle` or `fetchProspects`).
+ * @param {ExploriumAgent.SenderData} sender - An object containing sender's details: `name`, `company`, `product`, and `value_prop`.
+ * @param {string} [context=''] - Additional context for the email, explaining the specific reason for reaching out now.
+ * @returns {Promise<ExploriumAgent.OutreachEmailResult>} A promise that resolves to an object containing the generated subject, body, and PS of the email.
  */
 export async function generateOutreachEmail(prospect, sender, context = '') {
   logger.info(`[Explorium Agent] Outreach: ${prospect?.full_name || prospect?.email}`);
@@ -386,7 +548,7 @@ export async function generateOutreachEmail(prospect, sender, context = '') {
 - First sentence MUST reference something SPECIFIC about the prospect (their title, company, recent role, specific skill)
 - Body is max 4 sentences, conversational tone, no fluff
 - ONE clear low-friction CTA (15-min call, quick question, feedback)
-- Never mention "I came across your profile" or "hope this email finds you well"
+- Never mention "I came across your profile" or "hope this email finds me well"
 - PS line is optional but must be clever or genuinely curious
 - Return ONLY valid JSON`;
 
@@ -409,12 +571,14 @@ Generate the email. Return JSON: {"subject":"...","body":"...","ps":"..."}`;
 // ─── Natural Language Search ──────────────────────────────────────────────────
 
 /**
- * Discover businesses using a natural language query.
- * Converts query → Explorium filters → results in one shot.
+ * Discovers businesses by converting a natural language query into Explorium API filters
+ * and then fetching matching business results. This provides a powerful way to find
+ * companies without needing to manually construct complex filter objects.
  *
- * @param {string} query  - e.g. "fast-growing AI startups in NYC under 200 employees"
- * @param {number} limit  - Max results (default 20)
- * @returns {Promise<{query, filters_used, explanation, total_available, results, returned}>}
+ * @async
+ * @param {string} query - The natural language query for business discovery, e.g., "fast-growing AI startups in NYC under 200 employees".
+ * @param {number} [limit=20] - The maximum number of business results to return (default is 20, max 100).
+ * @returns {Promise<ExploriumAgent.NLSearchResult>} A promise that resolves to an object containing the original query, filters used, an explanation, total available count, and the list of matching businesses.
  */
 export async function naturalLanguageSearch(query, limit = 20) {
   logger.info(`[Explorium Agent] NL Search: "${query}"`);
@@ -441,10 +605,13 @@ export async function naturalLanguageSearch(query, limit = 20) {
 // ─── Company Summary ──────────────────────────────────────────────────────────
 
 /**
- * Generate an executive-ready one-paragraph company summary + key facts.
+ * Generates an executive-ready one-paragraph company summary along with key factual bullet points.
+ * It synthesizes information from various Explorium intelligence categories like firmographics,
+ * funding, workforce trends, and strategic insights.
  *
- * @param {string} domain
- * @returns {Promise<{domain, business_id, summary, key_facts}>}
+ * @async
+ * @param {string} domain - The company domain, e.g., "google.com".
+ * @returns {Promise<ExploriumAgent.CompanySummaryResult>} A promise that resolves to an object containing the domain, business ID, AI-generated summary, key facts, and raw data used.
  */
 export async function summarizeCompany(domain) {
   logger.info(`[Explorium Agent] Summarize: ${domain}`);
@@ -499,12 +666,13 @@ Return JSON:
 // ─── Company Event Timeline ───────────────────────────────────────────────────
 
 /**
- * Fetch and narrate a company's recent event timeline.
- * Returns both raw events and an AI-generated narrative of what's happening.
+ * Fetches a company's recent events and generates an AI-powered narrative summarizing
+ * what's been happening and what it signals about the company's direction.
  *
- * @param {string} domain
- * @param {number} lastDays  - Lookback window (30-90)
- * @returns {Promise<{domain, business_id, narrative, events, event_count}>}
+ * @async
+ * @param {string} domain - The company domain, e.g., "microsoft.com".
+ * @param {number} [lastDays=30] - The lookback window in days for fetching events (typically 30-90).
+ * @returns {Promise<ExploriumAgent.CompanyTimelineResult>} A promise that resolves to an object containing the domain, business ID, AI-generated narrative, raw event list, and event count.
  */
 export async function getCompanyTimeline(domain, lastDays = 30) {
   logger.info(`[Explorium Agent] Timeline: ${domain} (last ${lastDays} days)`);
@@ -562,6 +730,25 @@ export async function getCompanyTimeline(domain, lastDays = 30) {
 
 // ─── Named Export ─────────────────────────────────────────────────────────────
 
+/**
+ * @typedef {object} ExploriumAgent
+ * @property {function(string, string): Promise<ExploriumAgent.ResearchCompanyResult>} researchCompany - NL Q&A about any company.
+ * @property {function(string): Promise<ExploriumAgent.ICPBuilderResult>} buildICP - Converts NL to Explorium filter JSON.
+ * @property {function(string, string): Promise<ExploriumAgent.ProspectAnalysisResult>} analyzeProspect - Generates pre-meeting sales intelligence.
+ * @property {function(Array<object>, string): Promise<Array<ExploriumAgent.LeadScore>>} scoreLeads - AI lead scoring (0-100).
+ * @property {function(ExploriumAgent.ProspectData, ExploriumAgent.SenderData, string): Promise<ExploriumAgent.OutreachEmailResult>} generateOutreachEmail - Generates hyper-personalized cold emails.
+ * @property {function(string, number): Promise<ExploriumAgent.NLSearchResult>} naturalLanguageSearch - NL business discovery.
+ * @property {function(string): Promise<ExploriumAgent.CompanySummaryResult>} summarizeCompany - Executive one-paragraph briefing.
+ * @property {function(string, number): Promise<ExploriumAgent.CompanyTimelineResult>} getCompanyTimeline - Key events chronology.
+ */
+
+/**
+ * An exported constant object containing all the AI-powered Explorium agent functions.
+ * This serves as the primary interface for interacting with the Explorium intelligence agent.
+ *
+ * @constant
+ * @type {ExploriumAgent}
+ */
 export const ExploriumAgent = {
   researchCompany,
   buildICP,

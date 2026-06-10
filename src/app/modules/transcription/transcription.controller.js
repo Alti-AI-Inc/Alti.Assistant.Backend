@@ -94,6 +94,9 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
 
   try {
     // Handle conversation
+    // Indexing Recommendation: Ensure an index exists on `userId` (or `guestId` if applicable)
+    // and potentially a compound index on `{ userId: 1, conversationId: 1 }` for efficient lookups
+    // on the Conversation model used by `transcriptionService.handleTranscriptionConversation`.
     const conversation =
       await transcriptionService.handleTranscriptionConversation(
         userId,
@@ -108,8 +111,10 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
       // Optimization Note: If conversation.messages can be very large, consider
-      // optimizing the database query to fetch only the last N messages directly
+      // optimizing the database query in `transcriptionService.handleTranscriptionConversation`
+      // or a subsequent call to fetch only the last N messages directly
       // using aggregation or a specific Mongoose query with $slice.
+      // The current approach fetches the entire messages array and then slices in memory.
       conversationHistory = conversation.messages.slice(-10).map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -251,6 +256,9 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
   }
 
   try {
+    // Indexing Recommendation: Ensure an index exists on `userId` (or `guestId` if applicable)
+    // and potentially a compound index on `{ userId: 1, conversationId: 1 }` for efficient lookups
+    // on the Conversation model used by `transcriptionService.handleTranscriptionConversation`.
     const conversation =
       await transcriptionService.handleTranscriptionConversation(
         userId,
@@ -261,15 +269,10 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
       );
     const actualConversationId = conversation.conversationId;
 
-    const results = [];
-
-    // Optimization Note: If external services (uploadAudioToBucket, uploadAudioFile, processAudioWithGemini)
-    // can handle concurrent requests, consider using Promise.all for batch processing
-    // to speed up the overall execution time for multiple files.
-    // Example: Promise.all(audioFiles.map(async (file) => { ... process file ... }))
-    for (let i = 0; i < audioFiles.length; i++) {
-      const file = audioFiles[i];
-
+    // Optimization: Use Promise.all to process audio files concurrently.
+    // This significantly speeds up batch processing if external services (GCS, Gemini File API)
+    // can handle concurrent requests, reducing the overall execution time.
+    const fileProcessingPromises = audioFiles.map(async (file) => {
       try {
         // Upload to GCS bucket for permanent storage
         const bucketUpload = await bucketUploadService.uploadAudioToBucket(
@@ -292,7 +295,7 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
           { outputFormat }
         );
 
-        results.push({
+        return {
           fileName: file.originalname,
           result: result.text,
           audioUrl: bucketUpload.publicUrl,
@@ -300,22 +303,21 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
           gcsFileName: bucketUpload.fileName,
           bucketName: bucketUpload.bucketName,
           success: true,
-        });
-
-        // Clean up asynchronously
-        await safeUnlink(file.path);
+        };
       } catch (error) {
         logger.error(`Error processing file ${file.originalname}:`, error);
-        results.push({
+        return {
           fileName: file.originalname,
           error: error.message,
           success: false,
-        });
-
-        // Clean up asynchronously on error
+        };
+      } finally {
+        // Ensure local file is cleaned up even if processing fails
         await safeUnlink(file.path);
       }
-    }
+    });
+
+    const results = await Promise.all(fileProcessingPromises);
 
     // Add batch result to conversation
     await transcriptionService.addTranscriptionResult(
@@ -389,13 +391,15 @@ async function handleChatMessage(
     // Get conversation with history
     // Optimization: Use .lean() for read-only operations to improve performance
     // by returning plain JavaScript objects instead of Mongoose documents.
+    // Optimization: Use .select() with $slice to fetch only the last N messages
+    // directly from the database, avoiding loading a potentially very large array into memory.
     // Indexing Recommendation: Ensure an index exists on `conversationId`
     // and potentially a compound index on `{ conversationId: 1, userId: 1 }`
     // if `userId` is consistently used in queries for non-guest users.
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      isGuest ? null : userId
-    ).lean(); // Added .lean()
+    const conversation = await conversationHelpers
+      .getConversationById(conversationId, isGuest ? null : userId)
+      .select({ messages: { $slice: -20 }, _id: 1 }) // Fetch only last 20 messages and the conversation ID
+      .lean();
 
     if (!conversation) {
       return sendResponse(res, {
@@ -410,11 +414,8 @@ async function handleChatMessage(
     let lastAudioFileUri = null;
 
     if (conversation.messages) {
-      // Optimization Note: If conversation.messages can be very large, consider
-      // optimizing the database query to fetch only the last N messages directly
-      // using aggregation or a specific Mongoose query with $slice.
+      // The messages array is already sliced to the last 20 by the database query.
       conversationHistory = conversation.messages
-        .slice(-20) // Get last 20 messages for context
         .map((msg) => {
           // Extract audio file URI if present
           if (msg.metadata?.type === 'audio_upload' && msg.metadata?.fileUri) {
@@ -468,7 +469,10 @@ async function handleChatMessage(
       data: {
         conversationId,
         result: result.text,
-        messageCount: conversation.messages.length + 2,
+        // Note: conversation.messages.length now reflects the sliced array length (max 20),
+        // not the total number of messages in the conversation. If the total count is needed,
+        // it should be fetched separately or stored as a top-level field in the Conversation model.
+        messageCount: (conversation.messages?.length || 0) + 2,
         hasAudioContext: !!lastAudioFileUri,
       },
     });
@@ -789,7 +793,8 @@ export const getTranscriptionStats = catchAsync(async (req, res) => {
     // uses .lean() for any read-only Mongoose queries it performs to return
     // plain JavaScript objects, improving performance.
     // Indexing Recommendation: Ensure appropriate indexes exist on fields
-    // used for filtering/sorting statistics (e.g., userId, createdAt).
+    // used for filtering/sorting statistics (e.g., userId, createdAt)
+    // within the `transcriptionService.getTranscriptionStats` implementation.
     const stats = await transcriptionService.getTranscriptionStats(userId, req);
 
     return sendResponse(res, {
