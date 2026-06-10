@@ -1,3 +1,7 @@
+// Imports for creating the Express server and handling HTTP.
+import express from 'express';
+import http from 'http';
+
 /**
  * @typedef {object} PromptEvaluationResult
  * @property {boolean} isComplete - Indicates if the prompt is considered complete.
@@ -20,6 +24,43 @@
  * @property {(sessionId: string) => string[]} getHistory - Retrieves the raw history of a session.
  * @property {(sessionId: string) => string[]} getConversationHistory - Retrieves the formatted conversation history of a session.
  */
+
+// --- Mock Implementations for Demonstration ---
+// In a real application, these would be imported from other modules.
+const sessions = {};
+const mockSessionManager = {
+  getSession: (sessionId) => sessions[sessionId],
+  createSession: () => {
+    const newId = `session_${Date.now()}_${Math.random()}`;
+    sessions[newId] = { history: [] };
+    return newId;
+  },
+  addToHistory: (sessionId, message) => {
+    if (sessions[sessionId]) {
+      sessions[sessionId].history.push(message);
+    }
+  },
+  getHistory: (sessionId) => sessions[sessionId]?.history || [],
+  getConversationHistory: (sessionId) => sessions[sessionId]?.history || [],
+};
+
+const mockPromptService = {
+  evaluatePrompt: async (prompt, history) => {
+    // Dummy logic for demonstration
+    const isComplete = prompt.length > 50;
+    return {
+      isComplete,
+      score: isComplete ? 95 : 60,
+      missingElements: isComplete ? [] : ['style', 'mood'],
+      suggestions: isComplete ? [] : ['Try adding more detail about the art style.'],
+    };
+  },
+  buildEnhancedPrompt: async (conversationHistory) => {
+    return `Enhanced prompt: ${conversationHistory.join('. ')}`;
+  },
+};
+// --- End Mock Implementations ---
+
 
 /**
  * Factory function to create prompt controller methods.
@@ -184,7 +225,7 @@ export const createPromptController = (sessionManager, promptService) => {
         // or sanitizing the error message.
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'An internal error occurred while evaluating the prompt.',
         });
       }
     },
@@ -349,7 +390,7 @@ export const createPromptController = (sessionManager, promptService) => {
         // or sanitizing the error message.
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'An internal error occurred while adding detail.',
         });
       }
     },
@@ -480,9 +521,88 @@ export const createPromptController = (sessionManager, promptService) => {
         // or sanitizing the error message.
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'An internal error occurred while finalizing the prompt.',
         });
       }
     },
   };
 };
+
+// --- Cloud Run Server Setup ---
+
+const app = express();
+app.use(express.json());
+
+// A state variable to track if the server is ready to accept traffic.
+let isReady = false;
+
+// --- Health and Readiness Probes ---
+
+// Liveness probe: A simple check to see if the server process is running.
+// If this fails, Cloud Run will restart the container.
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
+// Readiness probe: Checks if the application is ready to accept new requests.
+// During startup or shutdown, this can fail, telling the load balancer not to send traffic.
+app.get('/readyz', (req, res) => {
+  if (isReady) {
+    res.status(200).send('ok');
+  } else {
+    // Return 503 Service Unavailable if the server is not ready.
+    res.status(503).send('not ready');
+  }
+});
+
+// --- Application Routes ---
+
+// Instantiate the controller with its dependencies.
+const promptController = createPromptController(mockSessionManager, mockPromptService);
+
+// Register the application routes.
+app.post('/api/enhanced-image/prompt/evaluate', promptController.evaluatePrompt);
+app.post('/api/enhanced-image/prompt/add-detail', promptController.addDetail);
+app.post('/api/enhanced-image/prompt/finalize', promptController.finalizePrompt);
+
+
+// --- Server Initialization and Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
+  // Once the server is listening, it's ready to accept traffic.
+  isReady = true;
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// Graceful shutdown logic for Cloud Run.
+// Cloud Run sends a SIGTERM signal to the container to signal that it's being shut down.
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  
+  // 1. Stop accepting new traffic by failing readiness probes.
+  isReady = false;
+
+  // 2. Close the HTTP server. This stops accepting new connections,
+  // but keeps existing connections open until they are finished.
+  server.close(() => {
+    console.log('HTTP server closed');
+    
+    // 3. Close any other connections (e.g., database, message queues).
+    // Example: database.close(() => { ... });
+    console.log('Closing database connections...');
+
+    // 4. Exit the process cleanly.
+    process.exit(0);
+  });
+
+  // 5. If the server fails to close gracefully within a timeout period (e.g., 10s),
+  // force exit. Cloud Run's default timeout is 10 seconds.
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000); // 10 seconds
+});
