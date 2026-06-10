@@ -110,6 +110,9 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Recommendation: The 'workflowCreationService.createWorkflowFromPrompt' method
+    // should ensure efficient database operations, especially for any lookups (e.g., user, existing conversations).
+    // Consider appropriate indexing for fields used in queries and using .lean() for read-only document fetches.
     const result = await workflowCreationService.createWorkflowFromPrompt(
       userId,
       prompt,
@@ -259,6 +262,9 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Recommendation: The 'workflowCreationService.confirmWorkflowCreation' method
+    // should ensure efficient database operations, especially for any lookups (e.g., conversation by ID).
+    // Consider appropriate indexing for fields used in queries and using .lean() for read-only document fetches.
     const result = await workflowCreationService.confirmWorkflowCreation(
       userId,
       conversationId,
@@ -388,6 +394,9 @@ const continueConversationController = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Recommendation: The 'workflowCreationService.continueConversation' method
+    // should ensure efficient database operations, especially for any lookups (e.g., conversation by ID).
+    // Consider appropriate indexing for fields used in queries and using .lean() for read-only document fetches.
     const result = await workflowCreationService.continueConversation(
       userId,
       conversationId,
@@ -519,7 +528,13 @@ const getUserConversationsController = catchAsync(async (req, res) => {
   }
 
   try {
-    const conversations = await workflowCreationService.getUserConversations(
+    // Optimization Recommendation: The 'workflowCreationService.getUserConversations' method should:
+    // 1. Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
+    // 2. Ensure a compound index exists on { userId: 1, updatedAt: -1 } or { userId: 1, createdAt: -1 }
+    //    for efficient filtering by user and sorting for pagination.
+    // 3. Return both the paginated conversations and the total count of conversations for the user
+    //    (e.g., using countDocuments() in conjunction with find()).
+    const { conversations, totalCount } = await workflowCreationService.getUserConversations(
       userId,
       parseInt(limit),
       parseInt(offset)
@@ -531,7 +546,7 @@ const getUserConversationsController = catchAsync(async (req, res) => {
       message: 'Conversations retrieved successfully',
       data: {
         conversations,
-        total: conversations.length, // Note: This 'total' is only for the current page, not overall. A service should provide true total.
+        total: totalCount, // Corrected to use totalCount from service for accurate pagination
         limit: parseInt(limit),
         offset: parseInt(offset),
       },
@@ -668,6 +683,9 @@ const getConversationController = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Recommendation: The 'workflowCreationService.getConversation' method should:
+    // 1. Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
+    // 2. Ensure a compound index exists on { conversationId: 1, userId: 1 } for efficient lookup.
     const conversation = await workflowCreationService.getConversation(
       conversationId,
       userId
