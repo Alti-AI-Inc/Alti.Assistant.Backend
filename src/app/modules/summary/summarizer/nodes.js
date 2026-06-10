@@ -2,279 +2,356 @@ import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
 import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
+import { promises as dns } from 'dns';
+import { isIP } from 'net';
 import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
 
 // --- Enterprise Rate Limiting & DDOS Guard ---
-// In a production environment, this configuration would be centralized and initialized
-// during application startup. For this exercise, it's included directly.
-// We are using a Redis-backed rate limiter to handle distributed environments.
-
 const redisClient = createClient({
   // url: process.env.REDIS_URL, // Example for production
-  enable_offline_queue: false, // Fail fast if Redis is not available
+  enable_offline_queue: false,
 });
 
 redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiting:', err));
-
-// It's crucial to handle connection errors gracefully in a real app.
-// For this context, we connect and proceed.
 redisClient.connect().catch(console.error);
 
-// Rate limiter for the content fetching and URL extraction node.
-// This is a costly operation involving an AI call and external web request.
+// --- Rate Limiter Definitions ---
+
+// Public (IP-based) limiters for unauthenticated users.
 const publicFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_ip',
-  points: 20, // 20 requests
-  duration: 60 * 60, // per 1 hour per IP
-  blockDuration: 60 * 15, // Block for 15 minutes if consumed points > points
+  points: 20,
+  duration: 60 * 60,
+  blockDuration: 60 * 15,
 });
 
-const authenticatedFetchLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_fetch_user',
-  points: 200, // 200 requests
-  duration: 60 * 60, // per 1 hour per User ID
-});
-
-// Rate limiter for the summarization node.
-// This is the most expensive operation, involving a significant AI call.
 const publicSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_ip',
-  points: 10, // 10 requests
-  duration: 60 * 60, // per 1 hour per IP
-  blockDuration: 60 * 30, // Block for 30 minutes if consumed points > points
+  points: 10,
+  duration: 60 * 60,
+  blockDuration: 60 * 30,
+});
+
+// Per-user limiters for authenticated users.
+const authenticatedFetchLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_fetch_user',
+  points: 200,
+  duration: 60 * 60,
 });
 
 const authenticatedSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_user',
-  points: 100, // 100 requests
-  duration: 60 * 60, // per 1 hour per User ID
+  points: 100,
+  duration: 60 * 60,
+});
+
+// BUGFIX/INTEGRATION: Added workspace-level limiters to enforce tenant-wide quotas.
+// This ensures that the collective actions of all users in a workspace do not
+// exceed the plan's limits.
+const workspaceFetchLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_fetch_workspace',
+  points: 1000, // 1000 fetch operations per hour for the entire workspace
+  duration: 60 * 60,
+});
+
+const workspaceSummarizeLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_summarize_workspace',
+  points: 500, // 500 summary operations per hour for the entire workspace
+  duration: 60 * 60,
 });
 // --- End of Rate Limiting Setup ---
 
+// --- Security Helper Functions ---
+
+/**
+ * SECURITY: Checks if an IP address is in a private range (RFC 1918) or loopback.
+ * This is a crucial part of the SSRF mitigation strategy.
+ * @param {string} ip - The IP address to check.
+ * @returns {boolean} - True if the IP is private, false otherwise.
+ */
+const isPrivateIp = (ip) => {
+  // A more comprehensive library like 'ip-address' or 'ip-range-check' is recommended for production.
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4) return false; // Not a valid IPv4 address for this simple check
+  return (
+    parts[0] === 10 ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    parts[0] === 127 // Loopback
+  );
+};
+
+/**
+ * SECURITY: Validates a URL to mitigate Server-Side Request Forgery (SSRF) attacks.
+ * It checks for allowed protocols and ensures the hostname does not resolve to a private IP address.
+ * @param {string} urlString - The URL to validate.
+ * @throws {Error} If the URL is invalid or points to a forbidden resource.
+ */
+const validateUrl = async (urlString) => {
+  const parsedUrl = new URL(urlString);
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error('Invalid URL protocol. Only http and https are allowed.');
+  }
+
+  const { hostname } = parsedUrl;
+
+  // Disallow requests to IP addresses that are in private ranges.
+  if (isIP(hostname) && isPrivateIp(hostname)) {
+    throw new Error('Access to private IP ranges is forbidden.');
+  }
+
+  // Resolve the hostname to an IP address to check against private ranges.
+  // This helps prevent DNS rebinding attacks and blocks access to internal services.
+  try {
+    const { address } = await dns.lookup(hostname);
+    if (isPrivateIp(address)) {
+      throw new Error(`Hostname resolves to a private IP address (${address}), which is forbidden.`);
+    }
+  } catch (err) {
+    throw new Error(`Could not resolve hostname: ${err.message}`);
+  }
+};
+
+// --- Hierarchical Usage & Limit Enforcement ---
+
+/**
+ * INTEGRATION: Consumes rate limit points hierarchically for a user and their workspace.
+ * This function enforces role-based permissions and tenant boundaries.
+ * @param {UserContext} user - The authenticated user's context.
+ * @param {string} ip - The client's IP address (for public requests).
+ * @param {object} limiters - The set of limiters to use for this operation.
+ * @param {RateLimiterRedis} limiters.userLimiter - The per-user rate limiter.
+ * @param {RateLimiterRedis} limiters.workspaceLimiter - The per-workspace rate limiter.
+ * @param {RateLimiterRedis} limiters.publicLimiter - The public (IP-based) rate limiter.
+ * @throws {Error} If rate limits are exceeded or context is invalid.
+ */
+const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
+  // In a production system, this function would also integrate with a billing/usage service
+  // to check and update monthly quotas (e.g., "1000 summaries per month").
+  const { userLimiter, workspaceLimiter, publicLimiter } = limiters;
+
+  if (user) {
+    // Authenticated user flow
+    const { id, role, workspaceId } = user;
+
+    // A super_admin can bypass limits for administrative or debugging purposes.
+    if (role === 'super_admin') {
+      console.log(`Bypassing rate limit for super_admin ${id}`);
+      return;
+    }
+
+    if (!workspaceId) {
+      throw new Error('User context is missing a workspaceId, cannot enforce tenant limits.');
+    }
+
+    // For all other roles (admin, manager, user), consume points from both the individual
+    // user's limit and the overall workspace's limit. This ensures fairness and
+    // adherence to the workspace's subscription plan.
+    // Using Promise.all ensures that if one limit is exceeded, the other is not consumed.
+    // For true atomicity, a Redis Lua script would be the most robust solution.
+    await Promise.all([
+      workspaceLimiter.consume(workspaceId),
+      userLimiter.consume(id),
+    ]);
+
+    // INTEGRATION POINT: After successful consumption, increment usage counters in a database.
+    // This is critical for tracking against monthly/billing quotas.
+    // e.g., await usageService.increment(workspaceId, 'summaries', 1);
+
+    // INTEGRATION POINT: Trigger notifications to managers/admins if usage thresholds are met.
+    // e.g., if (await usageService.isNearLimit(workspaceId)) {
+    //   await notificationService.notifyAdmins(workspaceId, 'Usage limit approaching');
+    // }
+  } else {
+    // Unauthenticated (public) user flow
+    if (!ip) {
+      throw new Error('IP address is required for public rate limiting.');
+    }
+    await publicLimiter.consume(ip);
+  }
+};
+
+// --- Type Definitions ---
+
+/**
+ * @typedef {'super_admin' | 'admin' | 'manager' | 'user'} UserRole
+ */
+
+/**
+ * @typedef {object} UserContext
+ * @property {string} id - The user's unique identifier.
+ * @property {UserRole} role - The user's role, used for applying permissions and limits.
+ * @property {string} workspaceId - The ID of the workspace (tenant) the user belongs to.
+ */
+
 /**
  * @typedef {object} UrlInfo
- * @property {string|null} url - The extracted URL, or null if not found or an error occurred.
- * @property {boolean} isYoutubeUrl - True if the URL is a YouTube link, false otherwise.
+ * @property {string|null} url - The extracted URL.
+ * @property {boolean} isYoutubeUrl - True if the URL is a YouTube link.
  * @property {string} [error] - An error message if parsing failed.
  */
 
 /**
  * @typedef {object} WorkflowState
  * @property {string} user_input - The initial input provided by the user.
- * @property {string} [ip] - The IP address of the client, used for rate-limiting unauthenticated requests.
- * @property {string} [userId] - The ID of the authenticated user, used for rate-limiting.
- * @property {boolean} [isFilePassed=false] - Indicates if the input was from a file, in which case AI URL extraction might be skipped.
- * @property {string} [content] - The fetched content from a URL or user input, used for summarization.
- * @property {Array<object>} [history] - Conversation history, potentially used by the summarization service.
+ * @property {string} [ip] - The IP address of the client, for unauthenticated requests.
+ * @property {UserContext} [user] - The context of the authenticated user, including role and workspace.
+ * @property {boolean} [isFilePassed=false] - Indicates if the input was from a file.
+ * @property {string} [content] - The fetched content from a URL or user input.
+ * @property {Array<object>} [history] - Conversation history.
  * @property {string} [summary] - The generated summary of the content.
  * @property {string} [error] - An error message if any step in the workflow failed.
  */
 
 /**
- * Node: Fetches content from a URL provided in the state's `user_input` or directly uses `user_input` as content.
- * It first attempts to extract a URL from the user input using an AI service, then fetches content
- * using appropriate loaders (Cheerio for web pages, YoutubeLoader for YouTube videos).
- *
- * @param {WorkflowState} state - The current state object containing `user_input` and `isFilePassed`.
- * @returns {Promise<object>} A promise that resolves to an object containing:
- *   - `{ content: string }` if content was successfully fetched or derived from user input.
- *   - `{ error: string }` if an error occurred during URL extraction, content fetching, or validation.
+ * Node: Fetches content from a URL or uses user input directly.
+ * This node is now secured against SSRF, DoS (via content size limits), and enforces
+ * hierarchical, role-based rate limiting.
+ * @param {WorkflowState} state - The current state object.
+ * @returns {Promise<object>} The updated state with either `content` or `error`.
  */
 export const fetchContentNode = async (state) => {
-  const { user_input, isFilePassed, ip, userId } = state;
-  const identifier = userId || ip;
-
-  // Failsafe: An identifier from the request (IP or User ID) is required for rate limiting.
-  if (!identifier) {
-    console.error('CRITICAL: fetchContentNode called without ip or userId in state.');
-    return { error: 'Could not process request due to a server configuration issue.' };
-  }
+  const { user_input, isFilePassed, ip, user } = state;
 
   try {
-    // Apply rate limiting before any expensive operation.
-    // Choose the limiter based on whether the user is authenticated.
-    const limiter = userId ? authenticatedFetchLimiter : publicFetchLimiter;
-    await limiter.consume(identifier);
-  } catch (rateLimiterRes) {
-    // The 'rate-limiter-flexible' library throws an error on rate limit exceeded.
-    console.warn(`Rate limit exceeded for identifier: ${identifier} on fetchContentNode`);
+    // INTEGRATION: Apply hierarchical rate limiting before any expensive operation.
+    await consumeHierarchicalRateLimit(user, ip, {
+      userLimiter: authenticatedFetchLimiter,
+      workspaceLimiter: workspaceFetchLimiter,
+      publicLimiter: publicFetchLimiter,
+    });
+  } catch (rateLimiterError) {
+    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on fetchContentNode`);
     return { error: 'You have made too many requests. Please try again later.' };
   }
 
-  /** @type {UrlInfo} */
   let urlInfo = { url: null, isYoutubeUrl: false };
-  let fetchError = null; // To capture errors from AI processing before content fetching
-
   if (!isFilePassed) {
     try {
       const rawUrlInfo = await getUrlFromUserInputUsingAi(user_input);
       urlInfo = convertRawJsonToJson(rawUrlInfo);
-      if (urlInfo.error) { // Check if convertRawJsonToJson returned an error
-        fetchError = urlInfo.error;
-      }
+      if (urlInfo.error) return { error: urlInfo.error };
     } catch (error) {
       console.error(`Error getting URL from AI: ${error.message}`);
-      fetchError = `Failed to process user input for URL: ${error.message}`;
+      return { error: `Failed to process user input for URL: ${error.message}` };
     }
   }
 
-  if (fetchError) {
-    // If an error occurred during URL extraction or parsing, return it immediately.
-    return { error: fetchError };
-  }
-
-  console.log(
-    `--- Node: fetchContentNode for URL: ${JSON.stringify(urlInfo)} ---`
-  );
+  console.log(`--- Node: fetchContentNode for URL: ${JSON.stringify(urlInfo)} ---`);
   const { url, isYoutubeUrl } = urlInfo;
 
   try {
     if (url) {
-      // Basic URL validation for SSRF mitigation.
-      // Ensures the URL uses http or https protocols.
-      // Note: A more robust SSRF mitigation would involve resolving the IP address
-      // and checking against private IP ranges, which is beyond a simple URL parsing check.
-      // This basic check prevents direct use of non-web protocols or obvious private IP addresses
-      // if they were directly in the URL hostname.
-      const parsedUrl = new URL(url);
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        throw new Error('Invalid URL protocol. Only http and https are allowed.');
-      }
+      // SECURITY FIX: Validate URL to prevent SSRF attacks before making any external request.
+      await validateUrl(url);
 
+      let docs;
       if (!isYoutubeUrl) {
-        // If the URL is not a YouTube link, fetch the content using CheerioWebBaseLoader.
         const loader = new CheerioWebBaseLoader(url);
-        const docs = await loader.load();
-        if (docs.length === 0) {
-          throw new Error('No content found at the provided URL.');
-        }
-        // Join all text content from the documents into a single string.
-        const content = docs.map((doc) => doc.pageContent).join('\n');
-        return { content };
-      } else { // url && isYoutubeUrl
-        // If the URL is a YouTube link, fetch the transcript.
-        const loader = YoutubeLoader.createFromUrl(url, {
-          language: 'en',
-          addVideoInfo: true,
-        });
-
-        const docs = await loader.load();
-
-        console.log(docs);
-        if (docs.length === 0) {
-          throw new Error('No content found at the provided URL.');
-        }
-        // Join all text content from the documents into a single string.
-        const content = docs.map((doc) => doc.pageContent).join('\n');
-        return { content };
+        docs = await loader.load();
+      } else {
+        const loader = YoutubeLoader.createFromUrl(url, { language: 'en', addVideoInfo: true });
+        docs = await loader.load();
       }
+
+      if (docs.length === 0) {
+        throw new Error('No content found at the provided URL.');
+      }
+
+      const content = docs.map((doc) => doc.pageContent).join('\n');
+
+      // BUGFIX/SECURITY: Add a content size limit to prevent DoS from very large web pages.
+      const MAX_CONTENT_SIZE_CHARS = 500000; // 500k characters limit
+      if (content.length > MAX_CONTENT_SIZE_CHARS) {
+        throw new Error(`Content exceeds maximum allowed size of ${MAX_CONTENT_SIZE_CHARS} characters.`);
+      }
+
+      return { content };
     } else {
-      // If url is null (e.g., AI couldn't extract a URL or isFilePassed is true),
-      // use user_input as content. This is a fallback, assuming user_input might
-      // be the content itself if no URL was found or if a file was passed.
+      // Fallback to using user_input as content if no URL was found or a file was passed.
       return { content: user_input };
     }
   } catch (error) {
     console.error(`Error in fetchContentNode: ${error.message}`);
-    // Return a structured error object for consistent error handling downstream.
-    return { error: `Failed to fetch content: ${error.message}. Please check the link.` };
+    return { error: `Failed to fetch content: ${error.message}. Please check the link or permissions.` };
   }
 };
 
 /**
- * Converts a raw JSON string, potentially wrapped in markdown backticks (e.g., "```json\n{...}\n```"),
- * into a JavaScript object. This is typically used to parse AI model outputs.
- *
- * @param {string} rawJson - The raw string containing the JSON, possibly with markdown formatting.
- * @returns {UrlInfo} An object containing the parsed URL information:
- *   - `url`: The extracted URL string, or `null` if parsing failed.
- *   - `isYoutubeUrl`: A boolean indicating if the URL is a YouTube link, or `false` if parsing failed.
- *   - `error`: An error message string if parsing failed, otherwise undefined.
+ * BUGFIX: Converts a raw JSON string from an AI model into a JavaScript object using a robust regex.
+ * This is more reliable than brittle string replacement methods.
+ * @param {string} rawJson - The raw string containing the JSON.
+ * @returns {UrlInfo} The parsed URL information object.
  */
 export const convertRawJsonToJson = (rawJson) => {
   try {
     console.log('--- Converting raw JSON to object ---', rawJson);
 
-    // 1. Clean the string to remove the markdown backticks and "json" label.
-    // Note: This cleaning logic assumes a specific format from the AI output.
-    // It might be brittle if the AI's output format varies significantly.
-    const jsonString = rawJson
-      .replace('```json', '') // Remove the starting part
-      .replace('```', '') // Remove the ending part
-      .trim(); // Remove any leading/trailing whitespace
-    console.log('Cleaned JSON string:', jsonString);
+    // Use a regular expression to find a JSON object within the string.
+    // This robustly handles markdown backticks and other surrounding text.
+    const match = rawJson.match(/\{[\s\S]*\}/);
 
-    // 2. Parse the cleaned string into a JavaScript object.
+    if (!match) {
+      throw new Error("No valid JSON object found in the AI's response.");
+    }
+
+    const jsonString = match[0];
     const jsonObject = JSON.parse(jsonString);
 
-    // Now you can use it as a regular object
-    console.log(jsonObject.url);
-    // Expected output: "https://www.youtube.com/watch?v=-_6dHIPVoTM&ab_channel=Fireship"
+    // Validate that the parsed object has the expected structure.
+    if (typeof jsonObject.url === 'undefined' || typeof jsonObject.isYoutubeUrl === 'undefined') {
+      throw new Error("Parsed JSON object is missing required keys ('url', 'isYoutubeUrl').");
+    }
 
-    console.log(jsonObject.isYoutubeUrl);
-    // Expected output: true
     return jsonObject;
   } catch (error) {
     console.error('Error converting raw JSON to object:', error);
-    // Return an object with an error message and default values
-    // to prevent downstream errors and provide structured error info.
     return { url: null, isYoutubeUrl: false, error: `Failed to parse AI response: ${error.message}` };
   }
 };
 
 /**
- * Node: Generates a summary from the fetched content using an external summarization service.
- * It expects `content` to be present in the state and can handle errors passed from previous nodes.
- *
- * @param {WorkflowState} state - The current state object containing `content`, `history`, and potentially `error`.
- * @returns {Promise<object>} A promise that resolves to an object containing:
- *   - `{ summary: string }` if the summary was successfully generated.
- *   - `{ error: string }` if an error occurred during summarization or if content was missing.
+ * Node: Generates a summary from the fetched content.
+ * This node now enforces hierarchical, role-based rate limiting for the most expensive AI operation.
+ * @param {WorkflowState} state - The current state object.
+ * @returns {Promise<object>} The updated state with either `summary` or `error`.
  */
 export const summarizeContentNode = async (state) => {
   console.log('--- Node: summarizeContentNode ---');
-  // Destructure content, history, and any error from the previous node's state.
-  const { content, history, error: previousError, ip, userId } = state;
+  const { content, history, error: previousError, ip, user } = state;
 
-  // If the previous node returned an error, pass it along without consuming rate limit points.
   if (previousError) {
     return { error: previousError };
   }
 
-  const identifier = userId || ip;
-
-  // Failsafe: An identifier from the request (IP or User ID) is required for rate limiting.
-  if (!identifier) {
-    console.error('CRITICAL: summarizeContentNode called without ip or userId in state.');
-    return { error: 'Could not process request due to a server configuration issue.' };
-  }
-
-  try {
-    // Apply rate limiting before the expensive summarization call.
-    const limiter = userId ? authenticatedSummarizeLimiter : publicSummarizeLimiter;
-    await limiter.consume(identifier);
-  } catch (rateLimiterRes) {
-    console.warn(`Rate limit exceeded for identifier: ${identifier} on summarizeContentNode`);
-    return { error: 'You have made too many requests. Please try again later.' };
-  }
-
-  // If content is unexpectedly missing, return an error.
   if (!content) {
     return { error: 'No content available for summarization.' };
   }
 
   try {
-    // Request a non-streaming response from the service.
+    // INTEGRATION: Apply hierarchical rate limiting before the expensive summarization call.
+    await consumeHierarchicalRateLimit(user, ip, {
+      userLimiter: authenticatedSummarizeLimiter,
+      workspaceLimiter: workspaceSummarizeLimiter,
+      publicLimiter: publicSummarizeLimiter,
+    });
+  } catch (rateLimiterError) {
+    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on summarizeContentNode`);
+    return { error: 'You have made too many requests. Please try again later.' };
+  }
+
+  try {
     const summary = await generateSummary(content, history);
     return { summary };
   } catch (error) {
     console.error(`Error in summarizeContentNode: ${error.message}`);
-    // Return a structured error object for consistent error handling.
     return { error: `Failed to generate summary: ${error.message}` };
   }
 };

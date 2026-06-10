@@ -67,14 +67,28 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     });
 
     const chain = new ConversationChain({ llm: model, memory });
-    logger.info('Memory Initialized with history:', memory.chatHistory.messages.length, 'messages');
+    // GCP-compliant structured log.
+    logger.info({
+      message: 'Memory Initialized with history',
+      component: 'QwenService',
+      sessionId,
+      userId,
+      historyLength: memory.chatHistory.messages.length,
+    });
 
     // Store user message in chat history (Langchain memory)
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
     // Invoke model
     const res1 = await chain.invoke({ input: prompt });
-    logger.info('Model Response:', res1);
+    // GCP-compliant structured log.
+    logger.info({
+      message: 'Model Response received',
+      component: 'QwenService',
+      sessionId,
+      userId,
+      response: res1,
+    });
 
     const reply = res1?.response || 'No reply generated';
 
@@ -86,7 +100,19 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
         throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
       }
     } catch (error) {
-      logger.error('Error in incrementPromptsUsed:', error);
+      // GCP-compliant structured error log.
+      logger.error({
+        message: 'Error in incrementPromptsUsed',
+        component: 'QwenService',
+        sessionId,
+        userId,
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          ...(error instanceof ApiError && { statusCode: error.statusCode }),
+        },
+      });
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
         error.message || 'An error occurred while updating prompt usage.'
@@ -104,7 +130,6 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
       total_time: res1?.usage?.total_time || 0,
     };
 
-    let currentChatSession;
     // Optimization: Use findOneAndUpdate with $push for existing sessions.
     // This is more efficient than fetching the entire document, modifying it in memory,
     // and then saving it back, especially for documents with large arrays.
@@ -116,19 +141,31 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     );
 
     if (updatedSession) {
-      logger.info('Chat Session Updated or Created:', updatedSession._id);
-      currentChatSession = updatedSession;
+      // GCP-compliant structured log.
+      logger.info({
+        message: 'Chat Session Updated or Created',
+        component: 'QwenService',
+        chatHistoryId: updatedSession._id.toString(),
+        sessionId,
+        userId,
+      });
 
       // If a new session was created by upsert (i.e., no existingChatSession was found),
       // ensure UserModel is updated to link this new session.
       if (!existingChatSession) {
         await UserModel.findByIdAndUpdate(userId, {
-          $addToSet: { llamaAiSessions: currentChatSession._id }, // Use $addToSet to prevent duplicate session IDs in the array
+          $addToSet: { llamaAiSessions: updatedSession._id }, // Use $addToSet to prevent duplicate session IDs in the array
         });
       }
     } else {
       // This block should ideally not be reached with upsert: true, but as a fallback for unexpected issues.
-      logger.error('Failed to update or create chat session.');
+      // GCP-compliant structured error log.
+      logger.error({
+        message: 'Failed to update or create chat session.',
+        component: 'QwenService',
+        sessionId,
+        userId,
+      });
       throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to save chat history.');
     }
 
@@ -143,7 +180,19 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
 
     return payload;
   } catch (error) {
-    logger.error('Error in _getAiResponseService:', error);
+    // GCP-compliant structured error log.
+    logger.error({
+      message: 'Error in _getAiResponseService',
+      component: 'QwenService',
+      sessionId,
+      userId,
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...(error instanceof ApiError && { statusCode: error.statusCode }),
+      },
+    });
     // Re-throw ApiError directly, or wrap generic errors
     if (error instanceof ApiError) {
       throw error;

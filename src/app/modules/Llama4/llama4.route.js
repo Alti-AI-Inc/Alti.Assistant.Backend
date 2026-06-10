@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { Llama4AiController } from './llama4.controller.js';
+import catchAsync from '../../../shared/catchAsync.js';
 
 /**
  * @constant {express.Router} router - Express router for Llama4 AI routes.
@@ -124,7 +125,8 @@ const router = express.Router();
 router.post(
   '/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  Llama4AiController.Llama4AiGetResponse
+  // Wrap the async controller to ensure any uncaught exceptions are passed to the global error handler.
+  catchAsync(Llama4AiController.Llama4AiGetResponse)
 );
 
 /**
