@@ -52,14 +52,43 @@ export let deepResearchAgentApp = workflow.compile({
 
 // Deferred MongoDB checkpointer upgrade (non-blocking)
 if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
-  MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints')
+  // GCP Resiliency: Define MongoDB connection options for robust performance in a cloud environment.
+  // These settings optimize connection pooling, timeouts, and keep-alive mechanisms to handle
+  // transient network issues, scaling events, and long-lived connections through proxies or firewalls.
+  const mongoResiliencyOptions = {
+    // Connection Pooling: Optimize for serverless/containerized environments
+    maxPoolSize: 50, // Increased pool size for concurrent serverless functions
+    minPoolSize: 5, // Keep a few connections warm to reduce cold start latency
+    maxIdleTimeMS: 60000, // Aggressively close idle connections to manage resources
+
+    // Timeouts: Prevent indefinite hangs on network partitions or slow responses
+    connectTimeoutMS: 30000, // Fail fast if a connection cannot be established
+    socketTimeoutMS: 45000, // Timeout for individual socket operations
+    serverSelectionTimeoutMS: 30000, // Time to find a suitable server before failing
+
+    // KeepAlive: Essential for stable connections through GCP firewalls, NATs, or proxies
+    keepAlive: true,
+    keepAliveInitialDelay: 300000, // Send keep-alive pings every 5 minutes
+  };
+
+  // Construct the full connection URI with resiliency parameters.
+  // This ensures that even if the base URI from config doesn't have these, they are applied.
+  // It uses URLSearchParams to correctly format the query string.
+  const baseUri = config.database_url; // Use production database URL from config
+  const uri = new URL(baseUri);
+  Object.entries(mongoResiliencyOptions).forEach(([key, value]) => {
+    uri.searchParams.set(key, value.toString());
+  });
+  const resilientMongoUri = uri.toString();
+
+  MongoDBSaver.fromUri(resilientMongoUri, 'deep_research_agent_checkpoints')
     .then((mongoCheckpointer) => {
       checkpointer = mongoCheckpointer;
       // Recompile and reassign the deepResearchAgentApp with the MongoDB checkpointer.
       // Using Object.assign on a const export might not correctly update the internal checkpointer
       // of a LangGraph Runnable. Reassigning the exported variable (now `let`) is more robust.
       deepResearchAgentApp = workflow.compile({ checkpointer, debug: true });
-      console.log('✅ Deep research: MongoDB checkpointer connected');
+      console.log('✅ Deep research: MongoDB checkpointer connected with resiliency settings');
     })
     .catch((err) => {
       console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
