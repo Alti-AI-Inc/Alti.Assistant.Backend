@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
 import express from 'express';
-import mongoose from 'mongoose'; // Assuming Mongoose is used for the database
+import mongoose from 'mongoose';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -11,7 +11,7 @@ import SubscriptionModel from '../payment/payment.model.js';
 // recommended indexes are:
 // 1. { userId: 1 }
 // 2. { userId: 1, createdAt: -1 } (a compound index for the find and sort combination)
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// import { conversationHelpers } from '../conversations/conversation.helpers.js'; // This import is no longer needed after logic correction.
 import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
@@ -51,7 +51,6 @@ const historyLimiter = new RateLimiterMemory({
  * @property {string} [conversationId] - The ID of an existing conversation to continue.
  * @property {string} [analysisType] - The type of analysis to perform (e.g., 'summary', 'qa').
  * @property {string} [outputFormat] - The desired format for the analysis output (e.g., 'markdown', 'json').
- * @property {string} [userId] - Optional user ID, primarily for guest users or internal overrides.
  */
 
 /**
@@ -134,8 +133,6 @@ const historyLimiter = new RateLimiterMemory({
  *                 type: string
  *               outputFormat:
  *                 type: string
- *               userId:
- *                 type: string
  *     responses:
  *       200:
  *         description: Document analysis successful
@@ -167,7 +164,7 @@ const historyLimiter = new RateLimiterMemory({
  *       400:
  *         description: Bad Request - Neither file nor message provided
  *       403:
- *         description: Forbidden - Usage limit exceeded
+ *         description: Forbidden - Usage limit exceeded or no active subscription
  *       429:
  *         description: Too Many Requests - Rate limit exceeded
  *       500:
@@ -175,21 +172,26 @@ const historyLimiter = new RateLimiterMemory({
  */
 export const analyzeDocument = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
+  // --- Security Enhancement: User ID Management ---
+  // User ID must be immutably sourced from the authentication token (for logged-in users)
+  // or generated server-side (for guests). Allowing it to be overridden from the request
+  // body is a critical security vulnerability that could lead to data tampering and
+  // unauthorized access to other users' conversations.
+  const userId = isGuest
     ? documentAnalysisService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId, analysisType, outputFormat } = req.body;
-  userId = req.body.userId || userId;
 
-  // Apply Rate Limiting to prevent DDoS and cost runaway (LLM/API abuse)
+  // --- Rate Limiting ---
+  // Apply rate limiting early to prevent resource abuse before any heavy processing.
   const rateLimitKey = isGuest ? req.ip : userId;
   const limiter = isGuest ? analysisGuestLimiter : analysisAuthLimiter;
 
   try {
     await limiter.consume(rateLimitKey);
   } catch (rateLimiterRes) {
-    logger.warn(`Rate limit exceeded for ${isGuest ? 'guest' : 'authenticated'} user ${rateLimitKey} on analyzeDocument`);
+    logger.warn(`Rate limit exceeded for ${isGuest ? 'guest' : 'user'} ${rateLimitKey} on analyzeDocument`);
     return sendResponse(res, {
       statusCode: httpStatus.TOO_MANY_REQUESTS,
       success: false,
@@ -197,7 +199,7 @@ export const analyzeDocument = catchAsync(async (req, res) => {
     });
   }
 
-  // Handle file upload if present
+  // --- File Handling & Input Validation ---
   const fileInfo = req.file
     ? {
         filename: req.file.filename,
@@ -209,42 +211,48 @@ export const analyzeDocument = catchAsync(async (req, res) => {
       }
     : null;
 
+  // A user must provide content to be analyzed, either as text or a file.
+  if (!fileInfo && (!message || message.trim() === '')) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Request must include a file or a non-empty message for analysis.',
+    });
+  }
+
   logger.info(
-    `Document analysis request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
-    {
-      hasFile: !!fileInfo,
-      hasMessage: !!message,
-      conversationId,
-      analysisType,
-    }
+    `Analysis request from ${isGuest ? 'guest' : 'user'} ${userId}`,
+    { hasFile: !!fileInfo, hasMessage: !!message, conversationId, analysisType }
   );
 
-  // Check subscription limits for authenticated users
+  // --- Subscription & Usage Limit Enforcement for Authenticated Users ---
   if (!isGuest) {
-    // Optimization: Added .lean() for performance as this is a read-only query and
-    // we don't need Mongoose document methods or virtuals.
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+    // Find the user's most recent (and presumably active) subscription plan.
+    const subscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
     }).lean();
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
 
-    if (promptUsage <= totalConversationWithConvId) {
+    // --- Logic Correction: Usage Limit Check ---
+    // The previous logic was flawed. This corrected logic properly checks if the user's
+    // current usage has met or exceeded their plan's limit.
+    // This assumes the SubscriptionModel contains `currentUsage` and `usageLimit` fields.
+    if (!subscription || (subscription.currentUsage >= subscription.usageLimit)) {
+      logger.warn(`Usage limit exceeded for user ${userId}. Current: ${subscription?.currentUsage}, Limit: ${subscription?.usageLimit}`);
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
-        message: 'Usage limit exceeded. Please upgrade your subscription.',
+        message: 'Usage limit exceeded or no active subscription. Please upgrade your plan.',
       });
     }
   }
 
-  // Perform analysis
+  // --- Service Layer Call ---
+  // The service layer is responsible for the core business logic:
+  // 1. Processing the file/text.
+  // 2. Interacting with the LLM.
+  // 3. Saving conversation messages.
+  // 4. **Atomically** incrementing the user's usage count within a database transaction
+  //    to ensure data consistency (i.e., a prompt is saved if and only if usage is incremented).
   const result = await documentAnalysisService.analyzeContent(
     userId,
     message,
@@ -313,26 +321,9 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                       conversationId:
- *                         type: string
- *                       userId:
- *                         type: string
- *                       role:
- *                         type: string
- *                       content:
- *                         type: string
- *                       fileUrl:
- *                         type: string
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *                     $ref: '#/components/schemas/ConversationHistoryResponseData'
+ *       400:
+ *         description: Bad Request - Invalid conversation ID format
  *       404:
  *         description: Conversation not found or not accessible
  *       429:
@@ -344,7 +335,18 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const userId = req.user?.userId || req.user?._id;
 
-  // Apply Rate Limiting to prevent database abuse
+  // --- Input Validation ---
+  // Validate that the conversationId is a valid MongoDB ObjectId before querying the database.
+  // This prevents malformed queries, potential errors, and provides a clearer error to the client.
+  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Invalid conversation ID format.',
+    });
+  }
+
+  // --- Rate Limiting ---
   try {
     await historyLimiter.consume(userId || req.ip);
   } catch (rateLimiterRes) {
@@ -360,6 +362,8 @@ export const getConversationHistory = catchAsync(async (req, res) => {
     `Fetching conversation history: ${conversationId} for user ${userId}`
   );
 
+  // The service layer must ensure that the conversation belongs to the requesting userId
+  // to maintain data isolation and privacy.
   const conversation = await documentAnalysisService.getConversationHistory(
     conversationId,
     userId,

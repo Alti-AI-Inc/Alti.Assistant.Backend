@@ -1,5 +1,19 @@
+import { Storage } from '@google-cloud/storage';
+import stream from 'stream';
 import { logger } from '../../../shared/logger.js';
 import { planGeneratorService } from './plan_generator.service.js';
+
+// --- GCS Configuration ---
+// Initialize GCS client.
+// When running on GCP (e.g., GKE, Cloud Run), Application Default Credentials (ADC) will be used automatically.
+// For local development, ensure you have authenticated via `gcloud auth application-default login`.
+const storage = new Storage();
+
+// Get bucket names from environment variables.
+// These must be configured in your deployment environment (e.g., .env file, Kubernetes secrets).
+const uploadBucketName = process.env.GCS_UPLOAD_BUCKET;
+const resultsBucketName = process.env.GCS_RESULTS_BUCKET;
+// --- End GCS Configuration ---
 
 /**
  * @typedef {object} Task
@@ -10,7 +24,7 @@ import { planGeneratorService } from './plan_generator.service.js';
  * @property {TASK_STAGES[keyof TASK_STAGES]} stage - The current stage of the plan generation process.
  * @property {number} progress - The progress percentage of the task (0-100).
  * @property {string} message - A human-readable message describing the current state or progress.
- * @property {any | null} result - The final result of the task upon completion.
+ * @property {{ gcsUri: string } | any | null} result - The final result of the task. On successful completion, this will be an object containing the GCS URI of the result file.
  * @property {string | null} error - An error message if the task failed.
  * @property {Date} createdAt - Timestamp when the task was created.
  * @property {Date | null} startedAt - Timestamp when the task started processing.
@@ -50,6 +64,94 @@ export const TASK_STAGES = {
   CREATING_PLAN: 'creating_plan',
   FINALIZING: 'finalizing',
   COMPLETED: 'completed',
+};
+
+/**
+ * Generates a v4 signed URL for uploading a file directly to GCS.
+ * This allows the client to upload a file without the backend ever handling the file stream,
+ * which is crucial for a stateless, scalable architecture.
+ *
+ * @param {string} fileName - The original name of the file to be uploaded.
+ * @param {string} contentType - The MIME type of the file (e.g., 'application/pdf').
+ * @param {string} userId - The ID of the user uploading the file, used for organizing storage.
+ * @returns {Promise<{uploadUrl: string, gcsUri: string, fileName: string}>} An object containing the signed URL for the PUT request, the resulting GCS URI, and the original filename.
+ */
+export const generateUploadSignedUrl = async (fileName, contentType, userId) => {
+  if (!uploadBucketName) {
+    logger.error('GCS_UPLOAD_BUCKET environment variable not set.');
+    throw new Error('Server configuration error: GCS upload bucket is not configured.');
+  }
+
+  // Create a unique path for the file to avoid collisions and organize by user.
+  const gcsObjectName = `uploads/${userId}/${Date.now()}-${fileName}`;
+  const gcsUri = `gs://${uploadBucketName}/${gcsObjectName}`;
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // URL is valid for 15 minutes
+    contentType: contentType,
+  };
+
+  try {
+    // Get a v4 signed URL for uploading a file
+    const [url] = await storage
+      .bucket(uploadBucketName)
+      .file(gcsObjectName)
+      .getSignedUrl(options);
+
+    logger.info(`Generated signed URL for ${gcsObjectName} in bucket ${uploadBucketName}`);
+    return { uploadUrl: url, gcsUri, fileName };
+  } catch (error) {
+    logger.error('Failed to generate signed URL', { error: error.message, bucket: uploadBucketName, file: gcsObjectName });
+    throw new Error('Could not create file upload URL.');
+  }
+};
+
+/**
+ * Generates a v4 signed URL for downloading a result file from GCS.
+ * This is used to grant temporary, secure access to a result file stored in a private bucket.
+ *
+ * @param {string} gcsUri - The GCS URI of the file to download (e.g., 'gs://your-bucket-name/your-object-name').
+ * @returns {Promise<string>} The signed URL for the GET request, valid for 1 hour.
+ */
+export const generateDownloadSignedUrl = async (gcsUri) => {
+  if (!gcsUri || !gcsUri.startsWith('gs://')) {
+    logger.error('Invalid GCS URI provided for download URL generation.', { gcsUri });
+    throw new Error('Invalid file identifier provided.');
+  }
+
+  // Parse the bucket and file name from the GCS URI
+  const [bucketName, ...filePathParts] = gcsUri.replace('gs://', '').split('/');
+  const objectName = filePathParts.join('/');
+
+  if (!bucketName || !objectName) {
+    logger.error('Could not parse bucket and file name from GCS URI.', { gcsUri });
+    throw new Error('Invalid file identifier format.');
+  }
+
+  const options = {
+    version: 'v4',
+    action: 'read',
+    expires: Date.now() + 60 * 60 * 1000, // URL is valid for 1 hour
+  };
+
+  try {
+    const [url] = await storage
+      .bucket(bucketName)
+      .file(objectName)
+      .getSignedUrl(options);
+
+    logger.info(`Generated download signed URL for ${objectName} in bucket ${bucketName}`);
+    return url;
+  } catch (error) {
+    logger.error('Failed to generate download signed URL', { error: error.message, bucket: bucketName, file: objectName });
+    // Check if the error is because the file doesn't exist
+    if (error.code === 404) {
+      throw new Error('The requested file does not exist.');
+    }
+    throw new Error('Could not create file download URL.');
+  }
 };
 
 /**
@@ -141,16 +243,16 @@ export const updateTaskProgress = (taskId, updates, expectedUserId = null) => {
 /**
  * Asynchronously processes a plan generation task through various stages.
  * This function orchestrates the call to the `planGeneratorService` and updates the task's
- * status, stage, and progress in real-time.
+ * status, stage, and progress in real-time. The final result is streamed to GCS.
  *
  * @param {string} taskId - The unique identifier of the task to process.
  * @param {string} userId - The ID of the user who owns the task and initiated the process. Used for initial authorization.
  * @param {string} message - The user's input message or prompt for plan generation.
  * @param {string} conversationId - The ID of the conversation context.
  * @param {boolean} isGuest - Boolean indicating if the user is a guest.
- * @param {object | null} fileInfo - Optional object containing information about an uploaded file.
- * @param {string} [fileInfo.fileName] - The name of the uploaded file.
- * @param {string} [fileInfo.fileContent] - The extracted content of the uploaded file.
+ * @param {object | null} fileInfo - Optional object containing information about a file uploaded to GCS.
+ * @param {string} [fileInfo.gcsUri] - The GCS URI of the uploaded file (e.g., 'gs://your-bucket-name/your-object-name').
+ * @param {string} [fileInfo.fileName] - The original name of the file.
  * @returns {Promise<void>} A promise that resolves when the task processing is complete (success or failure).
  */
 export const processTask = async (
@@ -187,7 +289,7 @@ export const processTask = async (
       updateTaskProgress(taskId, {
         stage: TASK_STAGES.EXTRACTING_FILE,
         progress: 15,
-        message: 'Extracting text from uploaded file...',
+        message: 'Processing uploaded file...',
       });
     }
 
@@ -213,19 +315,49 @@ export const processTask = async (
     });
 
     // Execute the actual plan generation
-    const result = await planGeneratorService.conversationalAssistant(
+    const resultData = await planGeneratorService.conversationalAssistant(
       userId,
       message,
       conversationId,
       isGuest,
-      fileInfo
+      fileInfo // Pass the fileInfo object with GCS URI to the service layer
     );
 
     // Stage 5: Finalizing
     updateTaskProgress(taskId, {
       stage: TASK_STAGES.FINALIZING,
       progress: 95,
-      message: 'Finalizing plan...',
+      message: 'Finalizing and saving plan...',
+    });
+
+    // Instead of storing the large result in memory, stream it to GCS and store the URI.
+    if (!resultsBucketName) {
+      logger.error('GCS_RESULTS_BUCKET environment variable not set.');
+      // Fail the task gracefully if the server is misconfigured
+      throw new Error('Server configuration error: GCS results bucket is not configured.');
+    }
+    const resultObjectName = `results/${userId}/${taskId}-result.json`;
+    const resultFile = storage.bucket(resultsBucketName).file(resultObjectName);
+    const resultGcsUri = `gs://${resultsBucketName}/${resultObjectName}`;
+
+    // Use a PassThrough stream to pipe the JSON string to the GCS write stream.
+    // This is efficient for converting in-memory data to a stream without temporary files.
+    const passthroughStream = new stream.PassThrough();
+    passthroughStream.end(JSON.stringify(resultData, null, 2));
+
+    await new Promise((resolve, reject) => {
+      passthroughStream.pipe(resultFile.createWriteStream({
+        resumable: false, // Use a simple upload for potentially smaller JSON results. For very large files, 'true' might be better.
+        contentType: 'application/json',
+      }))
+      .on('error', (err) => {
+        logger.error('Failed to upload result to GCS', { taskId, gcsUri: resultGcsUri, error: err.message });
+        reject(new Error('Failed to save the generated plan.')); // Propagate a user-friendly error
+      })
+      .on('finish', () => {
+        logger.info('Successfully uploaded result to GCS', { taskId, gcsUri: resultGcsUri });
+        resolve();
+      });
     });
 
     // Task completed
@@ -234,13 +366,13 @@ export const processTask = async (
       stage: TASK_STAGES.COMPLETED,
       progress: 100,
       message: 'Plan generation completed successfully!',
-      result,
+      result: { gcsUri: resultGcsUri }, // Store the GCS URI instead of the full object
       completedAt: new Date(),
     });
 
     logger.info('Task completed successfully:', {
       taskId,
-      conversationId: result.conversationId,
+      conversationId: resultData.conversationId,
     });
   } catch (error) {
     logger.error('Task failed:', { taskId, error: error.message });
@@ -248,7 +380,7 @@ export const processTask = async (
     updateTaskProgress(taskId, {
       status: TASK_STATUS.FAILED,
       progress: 0,
-      message: 'Plan generation failed',
+      message: error.message || 'Plan generation failed', // Provide a more specific error message if available
       error: error.message,
       completedAt: new Date(),
     });
@@ -290,6 +422,8 @@ setInterval(() => cleanupOldTasks(60), 30 * 60 * 1000);
 /**
  * An object exporting all task management functions for easy access.
  * @namespace taskManager
+ * @property {function(string, string, string): Promise<{uploadUrl: string, gcsUri: string, fileName: string}>} generateUploadSignedUrl - Function to generate a GCS signed URL for file uploads.
+ * @property {function(string): Promise<string>} generateDownloadSignedUrl - Function to generate a GCS signed URL for downloading a result file.
  * @property {function(string, string): Task} createTask - Function to create a new task.
  * @property {function(string, string=): (Task | null)} getTask - Function to retrieve a task by ID with optional authorization.
  * @property {function(string, Partial<Task>, string=): (Task | null)} updateTaskProgress - Function to update task progress with optional authorization.
@@ -297,6 +431,8 @@ setInterval(() => cleanupOldTasks(60), 30 * 60 * 1000);
  * @property {function(number=): void} cleanupOldTasks - Function to clean up old tasks from memory.
  */
 export const taskManager = {
+  generateUploadSignedUrl,
+  generateDownloadSignedUrl,
   createTask,
   getTask,
   updateTaskProgress,
