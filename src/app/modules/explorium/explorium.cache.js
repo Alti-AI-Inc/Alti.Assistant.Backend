@@ -38,8 +38,43 @@
  */
 
 import { createHash } from 'crypto';
-import { RedisClient } from '../../../shared/redis.js';
+import { createClient } from 'redis'; // Use the 'redis' library to create a client
 import { logger } from '../../../shared/logger.js';
+
+// ─── GCP Optimized Redis Connection ───────────────────────────────────────────
+// This configuration ensures resiliency and performance on Google Cloud Platform,
+// especially when using services like MemoryStore with VPC peering or connecting
+// through proxies like the Cloud SQL Auth Proxy.
+
+const RedisClient = createClient({
+  // It is critical to use environment variables for connection strings in production.
+  // Example: 'redis://<host>:<port>' or 'rediss://<user>:<password>@<host>:<port>' for Redis Cloud with TLS.
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+
+  socket: {
+    // For GCP network routing (VPC, proxies, etc.), longer keep-alives are beneficial
+    // to prevent intermediate network devices (firewalls, NATs) from closing idle connections
+    // that they no longer track. A 60-second keepAlive is a robust setting.
+    keepAlive: 1000 * 60, // 60 seconds in milliseconds
+
+    // A reasonable timeout for establishing the initial connection.
+    connectTimeout: 10000, // 10 seconds
+  },
+  // The 'redis' v4 library enables automatic reconnection with an exponential
+  // backoff strategy by default, which is ideal for handling transient network issues
+  // common in cloud environments. No extra configuration is needed for this behavior.
+});
+
+// It is crucial to handle connection errors to prevent the application from crashing
+// and to log issues for monitoring and alerting.
+RedisClient.on('error', (err) => logger.error('[Redis Cache] Connection Error', err));
+
+// Asynchronously connect to the Redis server. The client will queue commands
+// issued before the connection is established, preventing race conditions on startup.
+RedisClient.connect().catch(err => {
+    logger.error('[Redis Cache] Failed to connect to Redis on startup:', err);
+});
+
 
 // ─── TTL registry ─────────────────────────────────────────────────────────────
 export const TTL = {

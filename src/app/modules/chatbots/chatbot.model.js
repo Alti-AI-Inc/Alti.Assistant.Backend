@@ -17,8 +17,11 @@ import mongoose from 'mongoose';
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this chatbot. Required.
  * @property {mongoose.Schema.Types.ObjectId[]} [knowledgebaseIds=[]] - An array of IDs of knowledge bases linked to this chatbot.
  * @property {boolean} [isActive=true] - Indicates if the chatbot is active and available for use.
+ * @property {number} [conversationCount=0] - Total number of conversations with this chatbot. For workspace metrics.
+ * @property {number} [messageCount=0] - Total number of messages processed by this chatbot. For workspace metrics and plan limits.
+ * @property {Date} [lastActivityAt=null] - Timestamp of the last interaction. For identifying active/dormant bots.
  * @property {mongoose.Schema.Types.Mixed} [metadata={}] - A flexible field for storing additional, unstructured data.
- * @property {mongoose.Schema.Types.ObjectId} [tenantId=null] - The ID of the tenant this chatbot belongs to. Can be null for personal chatbots.
+ * @property {mongoose.Schema.Types.ObjectId} [tenantId=null] - The ID of the tenant (workspace) this chatbot belongs to. Can be null for personal chatbots.
  * @property {boolean} [isShared=false] - Indicates if the chatbot is shared across the tenant or publicly.
  */
 
@@ -132,6 +135,44 @@ const ChatbotSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // START: Manager Platform Optimizations
+    /**
+     * The total number of conversations initiated with this chatbot.
+     * Useful for manager dashboard metrics.
+     * @type {number}
+     * @default 0
+     * @min 0
+     */
+    conversationCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    /**
+     * The total number of messages processed by this chatbot.
+     * Useful for manager dashboard metrics and plan limit tracking.
+     * @type {number}
+     * @default 0
+     * @min 0
+     */
+    messageCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    /**
+     * Timestamp of the last interaction with the chatbot.
+     * Helps managers identify active or dormant chatbots in their workspace.
+     * @type {Date}
+     * @default null
+     * @index
+     */
+    lastActivityAt: {
+      type: Date,
+      default: null,
+      index: true, // Index for sorting/filtering by recent activity.
+    },
+    // END: Manager Platform Optimizations
     /**
      * A flexible field for storing additional, unstructured data related to the chatbot.
      * @type {mongoose.Schema.Types.Mixed}
@@ -142,8 +183,8 @@ const ChatbotSchema = new mongoose.Schema(
       default: {},
     },
     /**
-     * The ID of the tenant this chatbot belongs to.
-     * Can be null for personal chatbots not associated with a specific tenant.
+     * The ID of the tenant (workspace) this chatbot belongs to.
+     * This is crucial for scoping all manager-level access and features.
      * References the 'Tenant' model.
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref 'Tenant'

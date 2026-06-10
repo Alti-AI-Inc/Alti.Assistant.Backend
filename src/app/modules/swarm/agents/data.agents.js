@@ -1,8 +1,32 @@
 /**
+ * @file Defines the configuration for data-centric AI agents within the swarm.
+ * These agents specialize in various aspects of data processing, database management,
+ * and document analysis.
+ *
+ * @module modules/swarm/agents/data.agents
+ */
+
+/**
  * High-Performance Data Processing and Database Specialists
  */
 
-// Existing: OmniData Synthesizer
+/**
+ * Represents the configuration for a specialized AI agent.
+ * @typedef {object} AgentDefinition
+ * @property {string} id - The unique identifier for the agent.
+ * @property {string} name - The display name of the agent.
+ * @property {string} description - A brief summary of the agent's capabilities.
+ * @property {string} systemInstruction - The detailed system prompt defining the agent's persona, rules, and objectives.
+ * @property {string} model - The identifier for the underlying AI model (e.g., 'gemini-2.5-flash').
+ * @property {Array<object>} tools - A list of tools the agent is equipped with.
+ * @property {Array<string>} keywords - Keywords used for agent discovery, routing, and suggestion.
+ */
+
+/**
+ * Agent specializing in high-performance data parsing, mapping, formatting,
+ * and converting between complex JSON, CSV, and XML structures.
+ * @type {AgentDefinition}
+ */
 export const dataProcessorAgent = {
   id: 'data_processor_agent',
   name: 'OmniData Synthesizer',
@@ -24,7 +48,11 @@ CRITICAL LAWS:
   ]
 };
 
-// Existing: Data ETL Synthesizer
+/**
+ * Agent specializing in ETL (Extract, Transform, Load) processes.
+ * It formats, parses, and converts between highly complex JSON and CSV schemas.
+ * @type {AgentDefinition}
+ */
 export const dataEtlSynthesizer = {
   id: 'data_etl_synthesizer',
   name: 'Data ETL Synthesizer',
@@ -37,7 +65,11 @@ Always output valid, clean data structures.`,
   keywords: ['json parser', 'csv converter', 'data conversion', 'etl', 'format data', 'schema validation', 'parse json', 'flat array']
 };
 
-// Existing: Database Performance Specialist
+/**
+ * Agent specializing in database performance optimization.
+ * It can analyze and improve Postgres, MySQL, and NoSQL query plans, indexes, and schemas.
+ * @type {AgentDefinition}
+ */
 export const dbOptimizer = {
   id: 'db_optimizer',
   name: 'Database Performance Specialist',
@@ -50,7 +82,11 @@ Provide clear explanation of indexing and write optimizations.`,
   keywords: ['explain analyze', 'indexing', 'query optimization', 'sql tuning', 'postgres tuning', 'database index', 'slow query', 'nosql schema']
 };
 
-// Existing: PostgreSQL Database Administrator
+/**
+ * Agent acting as a senior PostgreSQL Database Administrator.
+ * It handles advanced configurations for high-availability, replication, maintenance, and connection pooling.
+ * @type {AgentDefinition}
+ */
 export const postgresDba = {
   id: 'postgres_dba',
   name: 'PostgreSQL Database Administrator',
@@ -63,7 +99,11 @@ Focus on enterprise-grade failover and reliability.`,
   keywords: ['postgres dba', 'repmgr', 'patroni', 'pgbouncer', 'autovacuum', 'replication', 'failover', 'clustering', 'db tuning']
 };
 
-// Existing: Document Layout Analyst (PDF Ingestion Analyst)
+/**
+ * Agent specializing in document analysis and data extraction from PDF and other document formats.
+ * It extracts structured data, table schemas, and metadata from files.
+ * @type {AgentDefinition}
+ */
 export const pdfIngestionAnalyst = {
   id: 'pdf_ingestion_analyst',
   name: 'Document Layout Analyst',
@@ -76,7 +116,11 @@ Highlight crucial legal, financial, or architectural data points with zero omiss
   keywords: ['read pdf', 'parse document', 'extract from file', 'pdf tables', 'document metadata', 'analyze report']
 };
 
-// Existing: Real Estate & Lease Analyst
+/**
+ * Agent acting as a real estate and lease analyst.
+ * It compares property deals, audits commercial lease agreements, and projects financial metrics like ROI.
+ * @type {AgentDefinition}
+ */
 export const realEstateAdvisor = {
   id: 'real_estate_advisor',
   name: 'Real Estate & Lease Analyst',
@@ -89,7 +133,12 @@ Provide structured calculations and warnings.`,
   keywords: ['real estate', 'cap rate calculation', 'lease agreement review', 'property analysis', 'roi calculation property', 'mortgage advisor']
 };
 
-// NEW: Schema Architect & SQL Prover (Schema Mapper Specialist)
+/**
+ * Agent specializing in database schema architecture.
+ * It formulates relational models, generates DDL for tables, designs indexes,
+ * and maps partitioning strategies.
+ * @type {AgentDefinition}
+ */
 export const schemaMapperAgent = {
   id: 'schema_mapper_agent',
   name: 'Schema Architect & SQL Prover',
@@ -111,7 +160,12 @@ CRITICAL LAWS:
   ]
 };
 
-// NEW: ETL Stream Sanitizer (Payload Transformer Specialist)
+/**
+ * Agent specializing in cleaning and transforming raw data payloads.
+ * It ingests dirty data streams, cleans syntax anomalies, flattens hierarchies,
+ * and sanitizes complex nested JSON.
+ * @type {AgentDefinition}
+ */
 export const payloadTransformerAgent = {
   id: 'payload_transformer_agent',
   name: 'ETL Stream Sanitizer',
@@ -133,7 +187,14 @@ CRITICAL LAWS:
   ]
 };
 
-// NEW: Platform Owner & Super Admin Agent (Global System Administrator)
+/**
+ * A super-administrator agent with global system-wide permissions.
+ * This agent is intended for platform owners to perform high-level administrative tasks.
+ *
+ * @permission PlatformOwner - This agent's capabilities are restricted to users with the 'PlatformOwner' or 'SuperAdmin' role.
+ * @context Global - Operates outside the context of a single tenant, with access to all system resources.
+ * @type {AgentDefinition}
+ */
 export const platformOwnerAgent = {
   id: 'platform_owner_agent',
   name: 'Platform Owner & Super Admin Agent',
