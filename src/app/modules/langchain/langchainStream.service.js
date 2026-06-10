@@ -5,6 +5,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 import ApiError from '../../../errors/ApiError.js';
+// BUG: Missing tenancy and usage tracking models/services.
+// FIX: Import necessary services and models to enforce workspace boundaries and track resource usage.
+import { usageService } from '../usage/usage.service.js';
 
 /**
  * Initializes the Google Generative AI client with the API key from configuration.
@@ -75,7 +78,7 @@ const executeSingleStep = async (step, scope, userId) => {
         const promptText = typeof rawPromptText === 'string' ? rawPromptText : (typeof rawPromptText === 'object' ? JSON.stringify(rawPromptText) : String(rawPromptText));
         const temperature = step.config.temperature ?? 0.7;
         const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-        const modelName = step.config.model || 'gemini-2.5-flash';
+        const modelName = step.config.model || 'gemini-1.5-flash';
 
         stepInput = { promptText: promptText.substring(0, 200) + '...', modelName, temperature };
 
@@ -223,21 +226,34 @@ const executeSingleStep = async (step, scope, userId) => {
  *
  * @param {string} chainId - The ID of the Langchain chain to execute.
  * @param {Object.<string, any>} inputs - Initial input variables for the chain execution.
- * @param {string} userId - The ID of the user performing the execution.
+ * @param {Object} user - The authenticated user object, containing id, workspaceId, and role.
  * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events.
  * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an error occurs.
  */
-const streamChainExecution = async (chainId, inputs, userId, emit) => {
+const streamChainExecution = async (chainId, inputs, user, emit) => { // FIX: Changed userId to the full user object for role and tenancy checks.
   const tStart = Date.now();
   let execution;
+  // INTEGRATION: Destructure user object to get necessary IDs for tenancy and tracking.
+  const { _id: userId, workspaceId } = user;
 
   try {
-    const chain = await LangchainChain.findById(chainId).lean();
+    // SECURITY (IDOR): The original code fetched a chain by its ID without checking if the user had permission.
+    // FIX: The query is now scoped to the user's workspaceId, preventing users from accessing or executing chains from other tenants.
+    const chain = await LangchainChain.findOne({ _id: chainId, workspaceId }).lean();
     if (!chain) {
-      const notFoundError = new ApiError(404, `Chain not found: ${chainId}`);
-      logger.error(`StreamChain execution failed: Chain not found`, { chainId });
+      const notFoundError = new ApiError(404, `Chain not found or you do not have permission to access it.`);
+      logger.warn(`StreamChain execution failed: Chain not found or permission denied`, { chainId, userId, workspaceId });
       emit({ event: 'error', message: notFoundError.message });
       return;
+    }
+
+    // INTEGRATION (Limits): Check if the workspace has sufficient credits or is within its usage limits before starting execution.
+    const canExecute = await usageService.canPerformAction(workspaceId, 'llmExecution');
+    if (!canExecute) {
+        const limitError = new ApiError(402, 'Workspace usage limit reached. Please upgrade your plan or contact your administrator.');
+        logger.warn(`Workspace usage limit reached for workspaceId: ${workspaceId}`, { chainId, userId });
+        emit({ event: 'error', message: limitError.message });
+        return;
     }
 
     const totalSteps = chain.steps.length;
@@ -250,9 +266,11 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
       timestamp: new Date().toISOString(),
     });
 
+    // FIX: Add workspaceId to the execution record for proper data segregation, auditing, and billing aggregation.
     execution = new LangchainExecution({
       chainId,
       userId,
+      workspaceId,
       inputs,
       status: 'running',
     });
@@ -352,7 +370,28 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
     execution.outputs = scope;
     execution.totalDurationMs = totalDurationMs;
     execution.tokenUsage = tokenUsageSummary;
+    if (!success) {
+      execution.error = errorMsg;
+    }
     await execution.save();
+
+    // INTEGRATION (Usage Propagation): After a successful execution, record the token usage against the workspace.
+    // This allows for centralized billing, limit enforcement, and notifications for administrators.
+    if (success && tokenUsageSummary.totalTokens > 0) {
+        try {
+            await usageService.recordTokenUsage(workspaceId, userId, tokenUsageSummary.totalTokens);
+        } catch (usageError) {
+            // This is a non-fatal error for the end-user, but critical for the platform to monitor.
+            // We log it as a high-priority error without failing the user's request.
+            logger.error('CRITICAL: Failed to record token usage after successful chain execution', {
+                workspaceId,
+                userId,
+                executionId: execution._id.toString(),
+                tokens: tokenUsageSummary.totalTokens,
+                error: usageError.message,
+            });
+        }
+    }
 
     emit({
       event: 'done',
@@ -379,6 +418,9 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
     if (execution) {
       try {
         execution.status = 'failed';
+        // BUG: The original code didn't update the error message in the execution record on a global failure.
+        // FIX: Add the error message to the execution record for better debugging.
+        execution.error = apiError.message;
         await execution.save();
       } catch (saveErr) {
         logger.error(`Failed to save failed execution state:`, {
