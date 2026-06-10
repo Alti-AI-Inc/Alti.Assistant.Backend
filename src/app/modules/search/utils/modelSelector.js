@@ -4,22 +4,66 @@
  */
 
 /**
+ * @typedef {Object} QueryContext
+ * @property {Array<string>} [conversationHistory=[]] - An array of previous conversation turns or messages.
+ * @property {'standard'|'deep'} [searchDepth='standard'] - Indicates the desired depth of search or information retrieval. 'standard' for quick lookups, 'deep' for comprehensive research.
+ * @property {number} [previousToolCalls=0] - The number of tools that have been invoked in the current conversational turn or session.
+ * @property {number} [responseLength=0] - An estimated or requested length of the expected response in characters or tokens.
+ * @property {boolean} [requiresReasoning=false] - Explicitly indicates if the query requires complex reasoning or analytical thought.
+ */
+
+/**
+ * @typedef {Object} ModelAnalysisResult
+ * @property {string} recommendedModel - The identifier of the recommended Gemini model (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro').
+ * @property {string} modelName - A human-readable name for the recommended model (e.g., 'Gemini 3.5 Flash', 'Gemini 3.1 Pro').
+ * @property {QueryCategory} category - The primary category identified for the user query.
+ * @property {number} complexityScore - A numerical score indicating the estimated complexity of the query, higher means more complex.
+ * @property {Array<string>} reasoning - A list of factors that contributed to the model selection decision.
+ * @property {string} modelReason - A concise explanation for why the specific model was chosen.
+ * @property {boolean} useFlash - True if 'gemini-2.5-flash' is recommended.
+ * @property {boolean} usePro - True if 'gemini-2.5-pro' is recommended.
+ * @property {Object} analysis - Detailed breakdown of query characteristics.
+ * @property {number} analysis.queryLength - The word count of the input query.
+ * @property {number} analysis.conversationLength - The number of turns in the conversation history.
+ * @property {'standard'|'deep'} analysis.searchDepth - The search depth setting from the context.
+ * @property {number} analysis.previousToolCalls - The number of previous tool calls from the context.
+ * @property {boolean} analysis.isSimpleFactual - True if the query appears to be a simple factual lookup.
+ * @property {boolean} analysis.hasAnalyticalKeywords - True if analytical keywords were detected in the query.
+ * @property {boolean} analysis.hasTechnicalContext - True if technical or programming-related keywords were detected.
+ * @property {boolean} analysis.hasCreativeContext - True if creative writing keywords were detected.
+ */
+
+/**
  * Query Analysis Categories
+ * Defines different types of queries based on their characteristics and the cognitive demands they place on a language model.
+ * Each category helps in guiding the model selection process.
+ * @readonly
+ * @enum {string}
  */
 export const QueryCategory = {
-  SIMPLE_FACTUAL: 'simple_factual', // Quick facts, dates, simple lookups
-  COMPLEX_ANALYTICAL: 'complex_analytical', // Analysis, reasoning, comparisons
-  CREATIVE_WRITING: 'creative_writing', // Content generation, creative tasks
-  TECHNICAL_CODE: 'technical_code', // Programming, technical questions
-  CONVERSATIONAL: 'conversational', // Chat, follow-up questions
-  MULTI_STEP_RESEARCH: 'multi_step_research', // Deep research, multiple sources
+  /** Quick facts, dates, simple lookups, direct answers. */
+  SIMPLE_FACTUAL: 'simple_factual',
+  /** Analysis, reasoning, comparisons, synthesis of information, problem-solving. */
+  COMPLEX_ANALYTICAL: 'complex_analytical',
+  /** Content generation, creative tasks, storytelling, drafting. */
+  CREATIVE_WRITING: 'creative_writing',
+  /** Programming, technical questions, debugging, code generation, system design. */
+  TECHNICAL_CODE: 'technical_code',
+  /** Chat, follow-up questions, maintaining context, general dialogue. */
+  CONVERSATIONAL: 'conversational',
+  /** Deep research, requiring multiple steps, information gathering from various sources, comprehensive understanding. */
+  MULTI_STEP_RESEARCH: 'multi_step_research',
 };
 
 /**
- * Analyze query characteristics to determine optimal model
- * @param {string} query - The user query
- * @param {Object} context - Additional context
- * @returns {Object} Analysis result with model recommendation
+ * Analyzes query characteristics and additional context to determine the optimal Gemini model
+ * (e.g., Flash for speed, Pro for complexity) to use for generating a response.
+ * It scores the query based on various indicators like length, keywords, conversation history,
+ * and explicit user requirements to recommend the most suitable model.
+ *
+ * @param {string} query - The user's input query string.
+ * @param {QueryContext} [context={}] - An object containing additional contextual information to aid in model selection.
+ * @returns {ModelAnalysisResult} An object containing the recommended model, its name, category, complexity score, and detailed reasoning.
  */
 export const analyzeQueryForModel = (query, context = {}) => {
   const {
@@ -298,10 +342,12 @@ export const analyzeQueryForModel = (query, context = {}) => {
 };
 
 /**
- * Quick model selection shorthand
- * @param {string} query - The user query
- * @param {Object} context - Additional context
- * @returns {string} Model identifier ('gemini-2.5-flash' or 'gemini-2.5-pro')
+ * Provides a quick shorthand for selecting the optimal Gemini model based on a query and context.
+ * This function internally calls `analyzeQueryForModel` and directly returns the recommended model identifier.
+ *
+ * @param {string} query - The user's input query string.
+ * @param {QueryContext} [context={}] - An object containing additional contextual information.
+ * @returns {string} The identifier of the recommended Gemini model (e.g., 'gemini-2.5-flash' or 'gemini-2.5-pro').
  */
 export const selectOptimalModel = (query, context = {}) => {
   const analysis = analyzeQueryForModel(query, context);
@@ -309,10 +355,13 @@ export const selectOptimalModel = (query, context = {}) => {
 };
 
 /**
- * Get detailed analysis with logging
- * @param {string} query - The user query
- * @param {Object} context - Additional context
- * @returns {Object} Analysis result
+ * Performs model selection analysis for a given query and context, then logs the detailed
+ * analysis results to the console for debugging or monitoring purposes.
+ * This function is useful for understanding why a particular model was chosen.
+ *
+ * @param {string} query - The user's input query string.
+ * @param {QueryContext} [context={}] - An object containing additional contextual information.
+ * @returns {ModelAnalysisResult} The full analysis result object, including the recommended model and reasoning.
  */
 export const analyzeAndLogModelSelection = (query, context = {}) => {
   const analysis = analyzeQueryForModel(query, context);
