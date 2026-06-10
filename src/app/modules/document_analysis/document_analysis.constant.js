@@ -109,9 +109,11 @@ export const RESPONSE_MESSAGES = {
   SUCCESS: 'Analysis completed successfully',
   NO_CONTENT:
     'No content provided for analysis. Please provide text or upload a file.',
-  FILE_TOO_LARGE: 'File size exceeds the maximum limit of 10MB',
+  // BUG FIX: Updated the unsupported file type message to include all supported extensions
+  // as defined in DOCUMENT_ANALYSIS_CONFIG.SUPPORTED_FILE_EXTENSIONS for accuracy.
   UNSUPPORTED_FILE_TYPE:
-    'Unsupported file type. Please upload PDF, DOCX, TXT, XLSX, or PPTX files.',
+    'Unsupported file type. Please upload PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, or PPT files.',
+  FILE_TOO_LARGE: 'File size exceeds the maximum limit of 10MB',
   PROCESSING_ERROR: 'Error processing document',
   ANALYSIS_ERROR: 'Error analyzing content',
   CONVERSATION_ERROR: 'Error handling conversation',
