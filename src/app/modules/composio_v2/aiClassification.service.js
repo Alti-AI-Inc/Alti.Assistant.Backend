@@ -287,7 +287,7 @@ export const getUserConnectedAccountsService = async (
     // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
     // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
     // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, status: 1, updatedAt: -1 }`
-    // to optimize queries filtering by userId and status, and sorting by updatedAt.
+    // in the ComposioAuth schema to optimize queries filtering by userId and status, and sorting by updatedAt.
     const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 }).lean();
 
     // Replaced console.log with logger.info
@@ -325,10 +325,10 @@ export const checkUserConnectionsService = async (
 
     // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
     // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
-    // Indexing Recommendation: Consider adding indexes on `{ userId: 1, status: 1 }`,
-    // `{ 'toolkit.slug': 1 }`, and `{ authConfigId: 1 }` to optimize this query.
-    // A compound index like `{ userId: 1, status: 1, 'toolkit.slug': 1 }` and
-    // `{ userId: 1, status: 1, authConfigId: 1 }` might be beneficial depending on query patterns.
+    // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, status: 1 }` in the ComposioAuth schema.
+    // Additionally, indexes on `{ 'toolkit.slug': 1 }` and `{ authConfigId: 1 }` would optimize the `$or` clauses.
+    // For maximum performance on this specific query, compound indexes like `{ userId: 1, status: 1, 'toolkit.slug': 1 }`
+    // and `{ userId: 1, status: 1, authConfigId: 1 }` would be most beneficial.
     const connectedAccounts = await ComposioAuth.find({
       userId: userId,
       status: 'ACTIVE',
@@ -370,7 +370,7 @@ export const getComposioConversationHistoryService = async (
   try {
     const { conversationId = null } = options;
 
-    // Security: Sanitize and validate the 'limit' parameter to prevent potential abuse (e.g., requesting huge datasets).
+    // Security & Performance: Sanitize and validate the 'limit' parameter to prevent potential abuse (e.g., requesting huge datasets).
     // We parse it as an integer, provide a default, and clamp it to a safe range (1-100).
     const parsedLimit = parseInt(options.limit, 10);
     const validatedLimit = isNaN(parsedLimit) ? 20 : Math.max(1, Math.min(100, parsedLimit));
@@ -378,7 +378,7 @@ export const getComposioConversationHistoryService = async (
     if (conversationId) {
       // Get specific conversation history
       // Optimization Note: The actual database query is within composioConversationService.getComposioHistory.
-      // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
+      // Ensure that method uses .lean() for this read-only operation to avoid Mongoose document overhead.
       const history = await composioConversationService.getComposioHistory(
         conversationId,
         userId,
@@ -396,7 +396,7 @@ export const getComposioConversationHistoryService = async (
     } else {
       // Get conversation stats
       // Optimization Note: The actual database query is within composioConversationService.getComposioStats.
-      // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
+      // Ensure that method uses efficient aggregation pipelines or indexed queries with `.lean()` where applicable.
       const stats = await composioConversationService.getComposioStats(
         userId,
         req
