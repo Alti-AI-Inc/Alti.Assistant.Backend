@@ -14,18 +14,29 @@ const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) =>
       throw new Error('Google Search API Key is not configured.');
     }
 
-    logger.info(`GCP Knowledge Graph: Querying entity "${query}" (limit: ${limit}, types: ${JSON.stringify(types)})...`);
+    // Ensure limit is a number and within acceptable range (Google API default 20, max 500).
+    // Default to 5 if parsing fails or if the value is out of bounds.
+    const effectiveLimit = Math.max(1, Math.min(500, parseInt(limit, 10) || 5));
+
+    // Ensure types is an array to prevent errors with .join() if a non-array is passed.
+    const effectiveTypes = Array.isArray(types) ? types : [];
+
+    // Ensure languages is an array to prevent errors with .join() if a non-array is passed.
+    // Re-apply default ['en'] if the provided languages is not an array.
+    const effectiveLanguages = Array.isArray(languages) ? languages : ['en'];
+
+    logger.info(`GCP Knowledge Graph: Querying entity "${query}" (limit: ${effectiveLimit}, types: ${JSON.stringify(effectiveTypes)})...`);
 
     const params = {
       query: query,
       key: apiKey,
-      limit: limit,
-      languages: languages.join(',')
+      limit: effectiveLimit, // Use the validated and clamped limit
+      languages: effectiveLanguages.join(',') // Use the validated languages array
     };
 
-    if (types && types.length > 0) {
+    if (effectiveTypes.length > 0) { // Use the validated types array
       // Types can be specified multiple times or as a comma-separated list
-      params.types = types.join(',');
+      params.types = effectiveTypes.join(','); // Use the validated types array
     }
 
     const response = await axios.get('https://kgsearch.googleapis.com/v1/entities:search', { params });
