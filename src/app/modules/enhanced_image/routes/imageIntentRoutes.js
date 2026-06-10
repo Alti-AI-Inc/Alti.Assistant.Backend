@@ -7,6 +7,31 @@ import { createImageIntentController } from '../controllers/imageIntentControlle
  */
 
 /**
+ * Utility function to wrap async Express route handlers.
+ * Catches any errors from async functions and passes them to the Express error handling middleware.
+ * This prevents unhandled promise rejections from crashing the Node.js process.
+ * @param {Function} fn - The async Express route handler function (req, res, next).
+ * @returns {Function} A new function that executes the handler and catches errors.
+ */
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+/**
+ * Middleware to validate the request body for the /analyze-intent endpoint.
+ * Ensures that the 'prompt' field is present and is a non-empty string.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {Function} next - The Express next middleware function.
+ */
+const validateAnalyzeIntentBody = (req, res, next) => {
+  if (!req.body || typeof req.body.prompt !== 'string' || req.body.prompt.trim().length === 0) {
+    return res.status(400).json({ message: 'Prompt is required and must be a non-empty string.' });
+  }
+  next();
+};
+
+/**
  * Creates and configures an Express router for image intent analysis.
  * This router handles API endpoints related to processing user prompts to determine
  * their intent for image-related actions.
@@ -89,7 +114,7 @@ export const createImageIntentRoutes = (sessionManager) => {
    *                   type: string
    *                   example: "Failed to analyze image intent."
    */
-  router.post('/analyze-intent', controller.analyzeIntent);
+  router.post('/analyze-intent', validateAnalyzeIntentBody, catchAsync(controller.analyzeIntent));
 
   return router;
 };
