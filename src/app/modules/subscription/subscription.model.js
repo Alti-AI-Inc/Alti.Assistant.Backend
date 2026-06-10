@@ -1,11 +1,18 @@
 import mongoose from 'mongoose';
 import Stripe from 'stripe';
+import { PubSub } from '@google-cloud/pubsub';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
+
+// GCP Pub/Sub client for offloading background tasks
+const pubSubClient = new PubSub({ projectId: config.gcp.projectId });
+const subscriptionTopic = pubSubClient.topic(
+  config.gcp.pubsub.subscriptionTopic
+);
 
 /**
  * Subscription Model Schema
@@ -282,7 +289,7 @@ SubscriptionSchema.methods.canInviteTeam = function () {
   return this.limits.canInviteTeam;
 };
 
-// Add seat to subscription (updates Stripe)
+// Add seat to subscription (offloads Stripe update to a background worker)
 SubscriptionSchema.methods.addSeat = async function () {
   if (this.plan === 'free') {
     throw new Error('Free plan does not support multiple seats');
@@ -293,29 +300,35 @@ SubscriptionSchema.methods.addSeat = async function () {
   }
 
   try {
-    // Increment used seats
+    // 1. Optimistically update the local database state for immediate UI feedback.
     this.seats.used += 1;
     this.seats.total = this.seats.used; // Keep total in sync
-
-    // Update Stripe subscription quantity
-    await stripe.subscriptionItems.update(this.stripeSubscriptionItemId, {
-      quantity: this.seats.used,
-      proration_behavior: 'always_invoice', // Charge immediately
-    });
-
     await this.save();
 
+    // 2. Offload the external Stripe API call to a background worker via Pub/Sub.
+    // This prevents blocking the request and makes the API more resilient.
+    const payload = {
+      subscriptionId: this._id.toString(),
+      stripeSubscriptionItemId: this.stripeSubscriptionItemId,
+      newQuantity: this.seats.used,
+      tenantId: this.tenantId ? this.tenantId.toString() : null,
+      action: 'ADD_SEAT',
+    };
+    await subscriptionTopic.publishMessage({ json: payload });
+
     logger.info(
-      `Added seat to subscription ${this._id}. New quantity: ${this.seats.used}`
+      `Added seat to subscription ${this._id} locally. New quantity: ${this.seats.used}. Offloaded Stripe update to background worker.`
     );
     return this;
   } catch (error) {
     logger.error('Error adding seat to subscription:', error);
+    // In a production system, consider a compensating transaction if the DB save succeeds
+    // but the message publish fails, to avoid inconsistent state.
     throw error;
   }
 };
 
-// Remove seat from subscription (updates Stripe)
+// Remove seat from subscription (offloads Stripe update to a background worker)
 SubscriptionSchema.methods.removeSeat = async function () {
   if (this.plan === 'free') {
     throw new Error('Free plan does not support seat management');
@@ -330,39 +343,24 @@ SubscriptionSchema.methods.removeSeat = async function () {
   }
 
   try {
-    // Decrement used seats
+    // 1. Optimistically update the local database state for immediate UI feedback.
     this.seats.used -= 1;
     this.seats.total = this.seats.used; // Keep total in sync
-    const idempotencyKey = `seat-remove-${this._id}-${this.seats.used}`;
-
-    // Update Stripe subscription quantity
-    await stripe.subscriptionItems.update(
-      this.stripeSubscriptionItemId,
-      {
-        quantity: this.seats.used,
-        proration_behavior: 'create_prorations', // Credit on next invoice
-      },
-      {
-        idempotencyKey,
-      }
-    );
-
-    // Synchronize Tenant limits dynamically
-    if (this.tenantId) {
-      const Tenant = (await import('../tenant/tenant.model.js')).default;
-      await Tenant.findByIdAndUpdate(this.tenantId, {
-        'limits.maxUsers': this.seats.used,
-        'settings.maxMembers': this.seats.used,
-      });
-      logger.info(
-        `Synchronized Tenant limits for tenant ${this.tenantId} to ${this.seats.used} seats.`
-      );
-    }
-
     await this.save();
 
+    // 2. Offload the external Stripe API call and any subsequent DB updates (like Tenant limits)
+    // to a background worker. This ensures the main request thread is not blocked.
+    const payload = {
+      subscriptionId: this._id.toString(),
+      stripeSubscriptionItemId: this.stripeSubscriptionItemId,
+      newQuantity: this.seats.used,
+      tenantId: this.tenantId ? this.tenantId.toString() : null,
+      action: 'REMOVE_SEAT',
+    };
+    await subscriptionTopic.publishMessage({ json: payload });
+
     logger.info(
-      `Removed seat from subscription ${this._id}. New quantity: ${this.seats.used}`
+      `Removed seat from subscription ${this._id} locally. New quantity: ${this.seats.used}. Offloaded Stripe/Tenant update to background worker.`
     );
     return this;
   } catch (error) {
