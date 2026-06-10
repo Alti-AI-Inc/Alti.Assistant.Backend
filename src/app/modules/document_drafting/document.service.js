@@ -22,8 +22,18 @@ import {
   LENGTH_OPTIONS,
 } from './document.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+
+/**
+ * @constant {object} model - Configured Gemini generative model for document drafting.
+ * @property {string} model.model - The specific Gemini model ID to use.
+ * @property {object} model.generationConfig - Configuration for content generation.
+ * @property {number} model.generationConfig.temperature - Controls the randomness of the output.
+ * @property {number} model.generationConfig.maxOutputTokens - The maximum number of tokens to generate.
+ */
 const model = genAI.getGenerativeModel({
   model: DOCUMENT_CONFIG.MODEL,
   generationConfig: {
@@ -33,21 +43,37 @@ const model = genAI.getGenerativeModel({
 });
 
 /**
- * Generate unique guest user ID
+ * @function generateGuestUserId
+ * @description Generates a unique guest user ID using a new Mongoose ObjectId.
+ * @returns {string} A unique string representation of a Mongoose ObjectId.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * @function generateConversationId
+ * @description Generates a unique conversation ID with a 'doc_' prefix, timestamp, and random string.
+ * @returns {string} A unique string identifier for a new conversation.
  */
 const generateConversationId = () => {
   return `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle document conversation (create or retrieve)
+ * @function handleDocumentConversation
+ * @description Handles the creation or retrieval of a document drafting conversation.
+ * If a `conversationId` is provided, it attempts to retrieve it. If not found or not provided,
+ * a new conversation is created.
+ *
+ * @param {string} userId - The ID of the user initiating or continuing the conversation.
+ * @param {string | null | undefined} conversationId - The ID of an existing conversation, or null/undefined to create a new one.
+ * @param {string} userMessage - The initial message from the user, used for new conversation title.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, if available, for context/tracing.
+ * @returns {Promise<object>} A promise that resolves to the conversation object (either retrieved or newly created).
+ * @throws {ApiError} If the conversation ID was provided but not found or not accessible (HTTP 404).
+ * @throws {ApiError} For other internal server errors during conversation handling (HTTP 500).
  */
 const handleDocumentConversation = async (
   userId,
@@ -123,7 +149,18 @@ const handleDocumentConversation = async (
 };
 
 /**
- * Add message to conversation
+ * @function addMessage
+ * @description Adds a new message to an existing conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The content of the message.
+ * @param {object} [metadata={}] - Optional metadata to associate with the message.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, if available.
+ * @returns {Promise<object>} A promise that resolves to the updated conversation object.
+ * @throws {ApiError} If adding the message to the conversation fails (HTTP 500).
  */
 const addMessage = async (
   conversationId,
@@ -158,7 +195,15 @@ const addMessage = async (
 };
 
 /**
- * Update conversation metadata
+ * @function updateConversationMetadata
+ * @description Updates specific metadata parameters within a conversation.
+ * This is typically used to store collected parameters for document generation.
+ *
+ * @param {string} conversationId - The ID of the conversation to update.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {object} params - The parameters to update in the conversation's `collectedParams` metadata.
+ * @param {object} [req=null] - The Express request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the metadata is updated.
  */
 const updateConversationMetadata = async (
   conversationId,
@@ -181,7 +226,15 @@ const updateConversationMetadata = async (
 };
 
 /**
- * Save conversation summary
+ * @function saveConversationSummary
+ * @description Saves a generated summary to the conversation's metadata.
+ * This helps in managing long conversations by providing a concise context.
+ *
+ * @param {string} conversationId - The ID of the conversation to summarize.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string} summary - The generated summary of the conversation.
+ * @param {object} [req=null] - The Express request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the summary is saved.
  */
 const saveConversationSummary = async (
   conversationId,
@@ -213,7 +266,20 @@ const saveConversationSummary = async (
 };
 
 /**
- * Generate document content using AI
+ * @function generateDocumentContent
+ * @description Generates document content using the configured AI model based on provided parameters.
+ * It constructs a detailed prompt to guide the AI in creating a high-quality document.
+ *
+ * @param {object} params - Parameters for document generation.
+ * @param {string} params.content - The main content or topic for the document.
+ * @param {string} [params.documentType=DEFAULT_PARAMS.documentType] - The type of document to generate (e.g., 'email', 'report').
+ * @param {string} [params.tone=DEFAULT_PARAMS.tone] - The desired tone of the document (e.g., 'formal', 'friendly').
+ * @param {string} [params.length=DEFAULT_PARAMS.length] - The desired length of the document (e.g., 'short', 'medium', 'long').
+ * @param {number} [params.wordCount] - An approximate word count for the document.
+ * @param {string} [params.language=DEFAULT_PARAMS.language] - The language of the document.
+ * @param {string} [params.additionalInstructions=''] - Any additional instructions for the AI.
+ * @returns {Promise<string>} A promise that resolves to the generated document content as a string.
+ * @throws {ApiError} If the AI content generation fails (HTTP 500).
  */
 const generateDocumentContent = async (params) => {
   try {
@@ -272,7 +338,21 @@ Generate the complete document content now:`;
 };
 
 /**
- * Handle draft intent
+ * @function handleDraftIntent
+ * @description Handles the 'DRAFT' intent, which involves generating a document, exporting it,
+ * uploading it to GCS, and responding to the user with the document details and refinement options.
+ *
+ * @param {object} analysis - The intent analysis result from `conversationAnalyzer`.
+ * @param {boolean} analysis.canProceed - Indicates if enough information is available to proceed with drafting.
+ * @param {string} analysis.suggestedResponse - A response message for the user, especially if `canProceed` is false.
+ * @param {string[]} [analysis.improvementQuestions] - An array of questions to ask the user for potential refinements.
+ * @param {object} updatedParams - The merged and updated parameters for document generation, including `content`, `documentType`, `tone`, `length`, `outputFormat`, etc.
+ * @param {string} conversationId - The ID of the current conversation.
+ * @param {string} userId - The ID of the user.
+ * @param {boolean} isGuest - Indicates if the user is a guest.
+ * @returns {Promise<object>} A promise that resolves to an object containing the draft result,
+ * including document content, format, URL, and refinement questions.
+ * @throws {ApiError} If document generation, export, or upload fails.
  */
 const handleDraftIntent = async (
   analysis,
@@ -387,7 +467,22 @@ const handleDraftIntent = async (
 };
 
 /**
- * Handle export intent
+ * @function handleExportIntent
+ * @description Handles the 'EXPORT' intent, which involves taking existing document content
+ * and exporting it to a specified format, then uploading it to GCS.
+ *
+ * @param {object} analysis - The intent analysis result (though not fully used here, kept for consistency).
+ * @param {object} updatedParams - The merged and updated parameters for document export.
+ * @param {string} updatedParams.content - The document content to be exported.
+ * @param {string} updatedParams.outputFormat - The desired output format (e.g., 'pdf', 'docx', 'txt', 'html', 'md').
+ * @param {string} [updatedParams.title] - The title for the exported document.
+ * @param {string} [updatedParams.documentType] - The type of document.
+ * @param {string} conversationId - The ID of the current conversation.
+ * @param {string} userId - The ID of the user.
+ * @param {boolean} isGuest - Indicates if the user is a guest.
+ * @returns {Promise<object>} A promise that resolves to an object containing the export result,
+ * including the format and URL of the exported document.
+ * @throws {ApiError} If document export or upload fails.
  */
 const handleExportIntent = async (
   analysis,
@@ -491,7 +586,18 @@ const handleExportIntent = async (
 };
 
 /**
- * Main conversational handler
+ * @function processConversationalRequest
+ * @description The main entry point for handling conversational document drafting requests.
+ * It manages conversation state, analyzes user intent, collects parameters,
+ * generates/exports documents, and provides conversational responses.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} userMessage - The message from the user.
+ * @param {string | null | undefined} conversationId - The ID of an existing conversation, or null/undefined for a new one.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<object>} A promise that resolves to the conversational response object,
+ * which may include generated document details, messages, or questions for more info.
+ * @throws {ApiError} For any internal server errors during the conversational process (HTTP 500).
  */
 const processConversationalRequest = async (
   userId,
@@ -656,7 +762,29 @@ const processConversationalRequest = async (
 };
 
 /**
- * Direct document generation (non-conversational)
+ * @function generateDocument
+ * @description Provides a direct, non-conversational way to generate and export a document.
+ * This function takes all necessary parameters upfront, generates the content,
+ * exports it to a specified format, and uploads it to GCS.
+ *
+ * @param {object} params - Parameters for document generation and export.
+ * @param {string} params.content - The main content or topic for the document.
+ * @param {string} [params.documentType=DEFAULT_PARAMS.documentType] - The type of document to generate.
+ * @param {string} [params.tone=DEFAULT_PARAMS.tone] - The desired tone.
+ * @param {string} [params.length=DEFAULT_PARAMS.length] - The desired length.
+ * @param {number} [params.wordCount] - An approximate word count.
+ * @param {string} [params.language=DEFAULT_PARAMS.language] - The language.
+ * @param {string} [params.additionalInstructions=''] - Any additional instructions.
+ * @param {string} [params.title] - Optional title for the document.
+ * @param {boolean} [params.includeDate=true] - Whether to include the date in the document metadata.
+ * @param {boolean} [params.includeTitle=true] - Whether to include the title in the document metadata.
+ * @param {string} [params.outputFormat=DEFAULT_PARAMS.outputFormat] - The desired output format (e.g., 'pdf', 'docx').
+ * @param {string} userId - The ID of the user requesting the document.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, if available.
+ * @returns {Promise<object>} A promise that resolves to an object containing the generated document details,
+ * including content, format, and a public URL.
+ * @throws {ApiError} If document generation, export, or upload fails (HTTP 500).
  */
 const generateDocument = async (
   params,
@@ -714,6 +842,18 @@ const generateDocument = async (
   }
 };
 
+/**
+ * @constant {object} documentService
+ * @description Provides a collection of functions for document drafting, generation, and conversational handling.
+ * This service encapsulates the core logic for interacting with AI models, managing conversations,
+ * and handling document output.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
+ * @property {function(): string} generateConversationId - Generates a unique ID for new conversations.
+ * @property {function(string, string, string, boolean): Promise<object>} processConversationalRequest - Handles the main conversational flow for document drafting.
+ * @property {function(object, string, boolean, object): Promise<object>} generateDocument - Generates a document directly based on provided parameters.
+ * @property {function(object): Promise<string>} generateDocumentContent - Generates the raw text content of a document using AI.
+ * @property {function(string, string, object): Promise<object>} exportDocument - Exports document content to a specified file format.
+ */
 export const documentService = {
   generateGuestUserId,
   generateConversationId,
