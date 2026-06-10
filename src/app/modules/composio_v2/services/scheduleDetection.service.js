@@ -1,11 +1,35 @@
 import { runGeminiTask } from '../services/aiClassificationService.js';
 
 /**
- * Schedule Detection Service - Detects scheduling requirements from user input
+ * @module ScheduleDetectionService
+ * @description Provides services for detecting scheduling requirements, parsing schedule expressions,
+ * and generating workflow metadata using AI models, with fallback mechanisms.
  */
 
 /**
- * Detect if user wants to schedule a workflow instead of immediate execution
+ * Detects if a user's input implies a need for scheduling a workflow, immediate execution,
+ * or manual triggering. It leverages an AI model for sophisticated analysis and includes
+ * a keyword-based fallback mechanism.
+ *
+ * @async
+ * @function detectSchedulingRequirements
+ * @param {string} userInput - The natural language input from the user.
+ * @param {Array<Object>} [conversationContext=[]] - Optional. An array of previous conversation turns to provide context.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the detection result.
+ * @returns {boolean} returns.success - Indicates if the detection was successful.
+ * @returns {Object} returns.data - The parsed scheduling detection data.
+ * @returns {boolean} returns.data.requiresScheduling - True if scheduling is required, false otherwise.
+ * @returns {'immediate'|'manual'|'scheduled'|'recurring'} returns.data.triggerType - The type of trigger detected.
+ * @returns {string|null} returns.data.scheduleExpression - The natural language schedule expression detected, or null.
+ * @returns {Object} returns.data.scheduleConfig - Configuration details for the schedule.
+ * @returns {string|null} returns.data.scheduleConfig.triggerDate - ISO date string for a specific trigger date, or null.
+ * @returns {string|null} returns.data.scheduleConfig.cronExpression - Cron expression for recurring schedules, or null.
+ * @returns {'daily'|'weekly'|'monthly'|'custom'|'hourly'|null} returns.data.scheduleConfig.recurrencePattern - Detected recurrence pattern, or null.
+ * @returns {string} returns.data.scheduleConfig.timezone - The timezone for the schedule (e.g., 'UTC').
+ * @returns {number} returns.data.confidence - A confidence score for the detection.
+ * @returns {string} returns.data.reasoning - An explanation of the detection.
+ * @returns {string|null} returns.data.workflowTitle - A suggested title for the workflow, or null.
+ * @returns {string|null} returns.data.workflowDescription - A suggested description for the workflow, or null.
  */
 export const detectSchedulingRequirements = async (
   userInput,
@@ -97,7 +121,22 @@ Respond with a JSON object:
 };
 
 /**
- * Parse natural language schedule expressions into cron format
+ * Converts a natural language schedule expression into a cron expression using an AI model.
+ * It also provides a human-readable description and an estimated next execution date.
+ *
+ * @async
+ * @function parseScheduleExpression
+ * @param {string} scheduleExpression - The natural language schedule expression (e.g., "every Monday at 9 AM").
+ * @param {string} [timezone='UTC'] - Optional. The timezone to consider for the schedule.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the parsed cron expression.
+ * @returns {boolean} returns.success - Indicates if the parsing was successful.
+ * @returns {Object} returns.data - The parsed schedule data.
+ * @returns {string|null} returns.data.cronExpression - The generated cron expression, or null if parsing failed.
+ * @returns {string} returns.data.description - A human-readable description of the cron expression.
+ * @returns {string|null} returns.data.nextExecution - An estimated ISO date string for the next execution, or null.
+ * @returns {boolean} returns.data.isValid - True if the cron expression is considered valid, false otherwise.
+ * @returns {string} returns.data.timezone - The timezone used for parsing.
+ * @returns {string} [returns.error] - An error message if parsing failed.
  */
 export const parseScheduleExpression = async (
   scheduleExpression,
@@ -174,7 +213,21 @@ Respond with a JSON object:
 };
 
 /**
- * Generate workflow title and description from user input
+ * Generates a title, description, and tags for a workflow based on user input,
+ * an execution plan, and the applications required. It uses an AI model for
+ * intelligent naming and description generation.
+ *
+ * @async
+ * @function generateWorkflowMetadata
+ * @param {string} userInput - The original natural language input from the user.
+ * @param {Array<Object>} executionPlan - The structured plan of actions for the workflow.
+ * @param {Array<string>} requiredApps - An array of application names required for the workflow.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the generated metadata.
+ * @returns {boolean} returns.success - Indicates if the metadata generation was successful.
+ * @returns {Object} returns.data - The generated workflow metadata.
+ * @returns {string} returns.data.title - A descriptive title for the workflow.
+ * @returns {string} returns.data.description - A detailed description of the workflow.
+ * @returns {Array<string>} returns.data.tags - An array of relevant tags for categorization.
  */
 export const generateWorkflowMetadata = async (
   userInput,
@@ -256,7 +309,25 @@ Respond with a JSON object:
 };
 
 /**
- * Fallback schedule detection using keyword matching
+ * Provides a basic, keyword-based fallback for schedule detection when AI parsing fails.
+ * It checks for common keywords related to immediate, manual, scheduled, and recurring triggers.
+ *
+ * @private
+ * @function fallbackScheduleDetection
+ * @param {string} userInput - The natural language input from the user.
+ * @returns {Object} An object containing the fallback schedule detection result.
+ * @returns {boolean} returns.requiresScheduling - True if scheduling is required, false otherwise.
+ * @returns {'immediate'|'manual'|'scheduled'|'recurring'} returns.triggerType - The type of trigger detected.
+ * @returns {string|null} returns.scheduleExpression - The natural language schedule expression detected, or null.
+ * @returns {Object} returns.scheduleConfig - Configuration details for the schedule.
+ * @returns {string|null} returns.scheduleConfig.triggerDate - ISO date string for a specific trigger date, or null.
+ * @returns {string|null} returns.scheduleConfig.cronExpression - Cron expression for recurring schedules, or null.
+ * @returns {'daily'|'weekly'|'monthly'|'custom'|'hourly'|null} returns.scheduleConfig.recurrencePattern - Detected recurrence pattern, or null.
+ * @returns {string} returns.scheduleConfig.timezone - The timezone for the schedule (e.g., 'UTC').
+ * @returns {number} returns.confidence - A confidence score for the detection.
+ * @returns {string} returns.reasoning - An explanation of the detection.
+ * @returns {string|null} returns.workflowTitle - A suggested title for the workflow, or null.
+ * @returns {string|null} returns.workflowDescription - A suggested description for the workflow, or null.
  */
 const fallbackScheduleDetection = (userInput) => {
   const input = userInput.toLowerCase();
@@ -328,7 +399,13 @@ const fallbackScheduleDetection = (userInput) => {
 };
 
 /**
- * Extract schedule expression from input text
+ * Extracts a natural language schedule expression from the input text using regex patterns.
+ * This is a helper function for fallback detection.
+ *
+ * @private
+ * @function extractScheduleFromInput
+ * @param {string} input - The lowercased user input string.
+ * @returns {string|null} The extracted schedule expression (e.g., "tomorrow", "at 3 PM") or null if none is found.
  */
 const extractScheduleFromInput = (input) => {
   const timePatterns = [
@@ -346,7 +423,13 @@ const extractScheduleFromInput = (input) => {
 };
 
 /**
- * Detect recurrence pattern from input
+ * Detects a recurrence pattern (daily, weekly, monthly, hourly) from the input string
+ * based on specific keywords. This is a helper function for fallback detection.
+ *
+ * @private
+ * @function detectRecurrencePattern
+ * @param {string} input - The lowercased user input string.
+ * @returns {'daily'|'weekly'|'monthly'|'hourly'|'custom'} The detected recurrence pattern. Defaults to 'custom' if no specific pattern is found.
  */
 const detectRecurrencePattern = (input) => {
   if (input.includes('daily') || input.includes('every day')) return 'daily';
@@ -358,7 +441,14 @@ const detectRecurrencePattern = (input) => {
 };
 
 /**
- * Generate fallback workflow title
+ * Generates a simple fallback title for a workflow based on the first few words
+ * of the user input and the required applications.
+ *
+ * @private
+ * @function generateFallbackTitle
+ * @param {string} userInput - The original natural language input from the user.
+ * @param {Array<string>} requiredApps - An array of application names required for the workflow.
+ * @returns {string} The generated fallback workflow title, truncated to 50 characters.
  */
 const generateFallbackTitle = (userInput, requiredApps) => {
   const action = userInput.split(' ').slice(0, 4).join(' ');
