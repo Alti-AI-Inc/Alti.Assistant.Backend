@@ -1,7 +1,60 @@
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { createClient } from 'redis';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
 import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
 import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
+
+// --- Enterprise Rate Limiting & DDOS Guard ---
+// In a production environment, this configuration would be centralized and initialized
+// during application startup. For this exercise, it's included directly.
+// We are using a Redis-backed rate limiter to handle distributed environments.
+
+const redisClient = createClient({
+  // url: process.env.REDIS_URL, // Example for production
+  enable_offline_queue: false, // Fail fast if Redis is not available
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiting:', err));
+
+// It's crucial to handle connection errors gracefully in a real app.
+// For this context, we connect and proceed.
+redisClient.connect().catch(console.error);
+
+// Rate limiter for the content fetching and URL extraction node.
+// This is a costly operation involving an AI call and external web request.
+const publicFetchLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_fetch_ip',
+  points: 20, // 20 requests
+  duration: 60 * 60, // per 1 hour per IP
+  blockDuration: 60 * 15, // Block for 15 minutes if consumed points > points
+});
+
+const authenticatedFetchLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_fetch_user',
+  points: 200, // 200 requests
+  duration: 60 * 60, // per 1 hour per User ID
+});
+
+// Rate limiter for the summarization node.
+// This is the most expensive operation, involving a significant AI call.
+const publicSummarizeLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_summarize_ip',
+  points: 10, // 10 requests
+  duration: 60 * 60, // per 1 hour per IP
+  blockDuration: 60 * 30, // Block for 30 minutes if consumed points > points
+});
+
+const authenticatedSummarizeLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_summarize_user',
+  points: 100, // 100 requests
+  duration: 60 * 60, // per 1 hour per User ID
+});
+// --- End of Rate Limiting Setup ---
 
 /**
  * @typedef {object} UrlInfo
@@ -13,6 +66,8 @@ import { generateSummary } from '../summarizerService.js';
 /**
  * @typedef {object} WorkflowState
  * @property {string} user_input - The initial input provided by the user.
+ * @property {string} [ip] - The IP address of the client, used for rate-limiting unauthenticated requests.
+ * @property {string} [userId] - The ID of the authenticated user, used for rate-limiting.
  * @property {boolean} [isFilePassed=false] - Indicates if the input was from a file, in which case AI URL extraction might be skipped.
  * @property {string} [content] - The fetched content from a URL or user input, used for summarization.
  * @property {Array<object>} [history] - Conversation history, potentially used by the summarization service.
@@ -31,7 +86,26 @@ import { generateSummary } from '../summarizerService.js';
  *   - `{ error: string }` if an error occurred during URL extraction, content fetching, or validation.
  */
 export const fetchContentNode = async (state) => {
-  const { user_input, isFilePassed } = state;
+  const { user_input, isFilePassed, ip, userId } = state;
+  const identifier = userId || ip;
+
+  // Failsafe: An identifier from the request (IP or User ID) is required for rate limiting.
+  if (!identifier) {
+    console.error('CRITICAL: fetchContentNode called without ip or userId in state.');
+    return { error: 'Could not process request due to a server configuration issue.' };
+  }
+
+  try {
+    // Apply rate limiting before any expensive operation.
+    // Choose the limiter based on whether the user is authenticated.
+    const limiter = userId ? authenticatedFetchLimiter : publicFetchLimiter;
+    await limiter.consume(identifier);
+  } catch (rateLimiterRes) {
+    // The 'rate-limiter-flexible' library throws an error on rate limit exceeded.
+    console.warn(`Rate limit exceeded for identifier: ${identifier} on fetchContentNode`);
+    return { error: 'You have made too many requests. Please try again later.' };
+  }
+
   /** @type {UrlInfo} */
   let urlInfo = { url: null, isYoutubeUrl: false };
   let fetchError = null; // To capture errors from AI processing before content fetching
@@ -165,11 +239,28 @@ export const convertRawJsonToJson = (rawJson) => {
 export const summarizeContentNode = async (state) => {
   console.log('--- Node: summarizeContentNode ---');
   // Destructure content, history, and any error from the previous node's state.
-  const { content, history, error: previousError } = state;
+  const { content, history, error: previousError, ip, userId } = state;
 
-  // If the previous node returned an error, pass it along as the summary.
+  // If the previous node returned an error, pass it along without consuming rate limit points.
   if (previousError) {
     return { error: previousError };
+  }
+
+  const identifier = userId || ip;
+
+  // Failsafe: An identifier from the request (IP or User ID) is required for rate limiting.
+  if (!identifier) {
+    console.error('CRITICAL: summarizeContentNode called without ip or userId in state.');
+    return { error: 'Could not process request due to a server configuration issue.' };
+  }
+
+  try {
+    // Apply rate limiting before the expensive summarization call.
+    const limiter = userId ? authenticatedSummarizeLimiter : publicSummarizeLimiter;
+    await limiter.consume(identifier);
+  } catch (rateLimiterRes) {
+    console.warn(`Rate limit exceeded for identifier: ${identifier} on summarizeContentNode`);
+    return { error: 'You have made too many requests. Please try again later.' };
   }
 
   // If content is unexpectedly missing, return an error.

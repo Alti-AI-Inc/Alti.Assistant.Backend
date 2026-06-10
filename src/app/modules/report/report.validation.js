@@ -20,8 +20,12 @@ const conversationalRequestSchema = z.object({
       .min(1, 'Message cannot be empty')
       .max(10000, 'Message too long')
       .optional(),
-    conversationId: z.string().optional(),
-    userId: z.string().optional(), // For guest users
+    // SECURITY: conversationId should be a valid UUID if provided to prevent potential enumeration issues.
+    conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
+    // VULNERABILITY FIX: Removed `userId` from the request body.
+    // User identity MUST be determined from the authenticated session (e.g., JWT) on the server-side
+    // to prevent impersonation vulnerabilities. Guest user handling should be managed by the backend,
+    // not by trusting a client-provided ID.
     outputFormat: z.enum(SUPPORTED_OUTPUT_FORMATS).optional(),
     reportType: z.enum(REPORT_TYPES).optional(),
   }),
@@ -61,8 +65,11 @@ const analyzeFilesSchema = z.object({
       .enum(['summary', 'detailed', 'comparison', 'extraction'])
       .optional(),
     instructions: z.string().max(2000).optional(),
-    conversationId: z.string().optional(),
-    userId: z.string().optional(),
+    // SECURITY: conversationId should be a valid UUID if provided.
+    conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
+    // VULNERABILITY FIX: Removed `userId` from the request body.
+    // User identity MUST be determined from the authenticated session.
+    // Allowing clients to specify a user ID is a severe security risk (impersonation).
   }),
 });
 
@@ -72,9 +79,14 @@ const analyzeFilesSchema = z.object({
  */
 const exportReportSchema = z.object({
   body: z.object({
-    reportId: z.string({
-      required_error: 'Report ID is required',
-    }),
+    // SECURITY (IDOR): Enforce UUID format for reportId as a defense-in-depth measure.
+    // The controller/service layer MUST still verify that the authenticated user
+    // has permission to access this specific report within their tenant context.
+    reportId: z
+      .string({
+        required_error: 'Report ID is required',
+      })
+      .uuid('Invalid Report ID format'),
     outputFormat: z.enum(SUPPORTED_OUTPUT_FORMATS, {
       required_error: 'Valid output format is required',
     }),
@@ -86,9 +98,13 @@ const exportReportSchema = z.object({
  */
 const checkStatusSchema = z.object({
   params: z.object({
-    taskId: z.string({
-      required_error: 'Task ID is required',
-    }),
+    // SECURITY (IDOR): Enforce UUID format for taskId.
+    // The controller/service layer MUST verify the authenticated user has permission to view this task.
+    taskId: z
+      .string({
+        required_error: 'Task ID is required',
+      })
+      .uuid('Invalid Task ID format'),
   }),
 });
 
@@ -97,9 +113,13 @@ const checkStatusSchema = z.object({
  */
 const getReportSchema = z.object({
   params: z.object({
-    reportId: z.string({
-      required_error: 'Report ID is required',
-    }),
+    // SECURITY (IDOR): Enforce UUID format for reportId.
+    // The controller/service layer MUST verify ownership of the report to prevent IDOR.
+    reportId: z
+      .string({
+        required_error: 'Report ID is required',
+      })
+      .uuid('Invalid Report ID format'),
   }),
 });
 
@@ -108,14 +128,21 @@ const getReportSchema = z.object({
  */
 const modifyReportSchema = z.object({
   body: z.object({
-    reportId: z.string({
-      required_error: 'Report ID is required',
-    }),
-    modifications: z.string({
-      required_error: 'Modification instructions are required',
-    }),
+    // SECURITY (IDOR): Enforce UUID format for reportId.
+    // The controller/service layer MUST verify ownership of the report to prevent IDOR.
+    reportId: z
+      .string({
+        required_error: 'Report ID is required',
+      })
+      .uuid('Invalid Report ID format'),
+    modifications: z
+      .string({
+        required_error: 'Modification instructions are required',
+      })
+      .min(1, 'Modification instructions cannot be empty')
+      .max(5000, 'Modification instructions are too long'),
     sections: z.array(z.enum(Object.values(REPORT_SECTIONS))).optional(),
-    conversationId: z.string().optional(),
+    conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
   }),
 });
 
@@ -128,10 +155,21 @@ const listReportsSchema = z.object({
     // Using z.coerce.number() to automatically convert string inputs (from query params) to numbers,
     // and ensuring they are integers and at least 1.
     page: z.coerce.number().int().min(1, 'Page must be at least 1').optional(),
-    limit: z.coerce.number().int().min(1, 'Limit must be at least 1').optional(),
+    // BUGFIX (DoS): Add a max limit to prevent resource exhaustion attacks via pagination.
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1, 'Limit must be at least 1')
+      .max(100, 'Limit cannot exceed 100')
+      .optional(),
     reportType: z.enum(REPORT_TYPES).optional(),
     sortBy: z.enum(['createdAt', 'title', 'reportType']).optional(),
     sortOrder: z.enum(['asc', 'desc']).optional(),
+    // INTEGRATION (HIERARCHY): Added authorId to allow privileged roles (admin, manager) to filter reports by user.
+    // The authorization middleware/controller MUST ensure that only users with appropriate permissions
+    // (e.g., 'admin' or 'manager' of the same workspace/tenant) can use this filter.
+    // Regular 'user' roles should not be able to specify an authorId.
+    authorId: z.string().uuid('Invalid Author ID format').optional(),
   }),
 });
 
