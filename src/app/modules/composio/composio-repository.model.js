@@ -23,7 +23,10 @@ const ComposioRepositorySchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      index: true
+      index: true,
+      trim: true, // SECURITY: Trim whitespace to ensure data consistency.
+      // SECURITY: Sanitize input to prevent stored XSS by stripping any potential HTML tags.
+      set: (v) => (typeof v === 'string' ? v.replace(/<[^>]*>?/gm, '') : v)
     },
     /**
      * A brief description of the repository's purpose.
@@ -32,7 +35,10 @@ const ComposioRepositorySchema = new mongoose.Schema(
      */
     description: {
       type: String,
-      default: ''
+      default: '',
+      trim: true, // SECURITY: Trim whitespace to ensure data consistency.
+      // SECURITY: Sanitize input to prevent stored XSS by stripping any potential HTML tags.
+      set: (v) => (typeof v === 'string' ? v.replace(/<[^>]*>?/gm, '') : v)
     },
     /**
      * The software license under which the repository is distributed.
@@ -56,7 +62,10 @@ const ComposioRepositorySchema = new mongoose.Schema(
      */
     html_url: {
       type: String,
-      required: true
+      required: true,
+      trim: true, // SECURITY: Trim whitespace from URL.
+      // SECURITY: Add validation to ensure the input conforms to a URL format.
+      match: [/^(https|http):\/\/[^ "]+$/, 'Please provide a valid URL for html_url']
     },
     /**
      * The URL used to clone the repository via Git.
@@ -65,7 +74,10 @@ const ComposioRepositorySchema = new mongoose.Schema(
      */
     clone_url: {
       type: String,
-      required: true
+      required: true,
+      trim: true, // SECURITY: Trim whitespace from URL.
+      // SECURITY: Add validation to ensure the input conforms to a URL format (git, ssh, http, https).
+      match: [/^(https|http|git|ssh):\/\/[^ "]+$/, 'Please provide a valid URL for clone_url']
     },
     /**
      * The number of stars the repository has received.
@@ -74,7 +86,8 @@ const ComposioRepositorySchema = new mongoose.Schema(
      */
     stars: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0 // SECURITY: Add validation to ensure star count is a non-negative number.
     },
     /**
      * The number of times the repository has been forked.
@@ -83,7 +96,8 @@ const ComposioRepositorySchema = new mongoose.Schema(
      */
     forks: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0 // SECURITY: Add validation to ensure fork count is a non-negative number.
     },
     /**
      * The primary programming language of the repository.
@@ -94,7 +108,8 @@ const ComposioRepositorySchema = new mongoose.Schema(
     language: {
       type: String,
       default: 'Unknown',
-      index: true
+      index: true,
+      trim: true // SECURITY: Trim whitespace to ensure data consistency.
     },
 
     // HIERARCHY & TENANCY FIX: Added fields to support multi-tenancy and ownership.

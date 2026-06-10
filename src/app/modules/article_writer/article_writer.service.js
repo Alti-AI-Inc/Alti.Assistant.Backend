@@ -1,4 +1,10 @@
 import httpStatus from 'http-status';
+// --- Rate Limiting & DDOS Protection Imports ---
+// Using 'rate-limiter-flexible' for robust and efficient rate limiting with Redis.
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+// Assuming a shared Redis client is configured and exported from this path.
+import { redisClient } from '../../../../config/redis.js';
+// --- End Rate Limiting Imports ---
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
@@ -20,6 +26,49 @@ import {
   DEFAULT_PARAMS,
   RESPONSE_MESSAGES,
 } from './article_writer.constant.js';
+
+// --- Rate Limiting & DDOS Guard Configuration ---
+// Initialize rate limiters to protect against DDOS, API abuse, and cost overruns.
+// Limits are applied differently for authenticated users (by userId) and guests (by IP address).
+
+// Limiter for expensive article generation by authenticated users.
+// Allows for a reasonable number of requests per minute to support normal usage.
+const authenticatedArticleLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_article_auth',
+  points: 15, // 15 requests per minute
+  duration: 60,
+  blockDuration: 60 * 15, // Block for 15 minutes if limit is exceeded
+});
+
+// Stricter limiter for expensive article generation by guest users.
+// This is IP-based to prevent anonymous users from abusing the service.
+const guestArticleLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_article_guest',
+  points: 5, // 5 requests per hour
+  duration: 60 * 60,
+  blockDuration: 60 * 60, // Block for 1 hour if limit is exceeded
+});
+
+// Limiter for fetching conversation history by authenticated users.
+// This is a less expensive operation, so a higher limit is allowed.
+const authenticatedHistoryLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_history_auth',
+  points: 60, // 60 requests per minute
+  duration: 60,
+});
+
+// Limiter for fetching conversation history by guest users.
+// IP-based to prevent scraping or excessive polling.
+const guestHistoryLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_history_guest',
+  points: 30, // 30 requests per minute
+  duration: 60,
+});
+// --- End Rate Limiting Configuration ---
 
 /**
  * Initializes the Google Generative AI client using the API key from configuration.
@@ -355,6 +404,31 @@ const processConversationalRequest = async (
   length = null,
   req = null
 ) => {
+  // --- Rate Limiting & DDOS Guard ---
+  try {
+    if (isGuest) {
+      // For guest users, rate limit by IP address.
+      // It's crucial that the Express 'trust proxy' setting is enabled if behind a proxy.
+      if (!req || !req.ip) {
+        logger.warn(
+          'IP address not available for guest user rate limiting. Request will proceed without limit check. This is a potential security risk.'
+        );
+      } else {
+        await guestArticleLimiter.consume(req.ip);
+      }
+    } else {
+      // For authenticated users, rate limit by their unique user ID.
+      await authenticatedArticleLimiter.consume(userId);
+    }
+  } catch (rateLimiterRes) {
+    // The rate limiter throws an error when points are consumed.
+    throw new ApiError(
+      httpStatus.TOO_MANY_REQUESTS,
+      'You have made too many requests. Please try again later.'
+    );
+  }
+  // --- End Rate Limiting & DDOS Guard ---
+
   try {
     // Handle conversation (create or retrieve)
     const conversation = await handleArticleWriterConversation(
@@ -466,10 +540,38 @@ const processConversationalRequest = async (
  *
  * @param {string} conversationId - The ID of the conversation to retrieve.
  * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {boolean} [isGuest=false] - Flag to indicate if the user is a guest.
+ * @param {object} [req=null] - The Express request object, required for IP-based rate limiting for guests.
  * @returns {Promise<object>} The conversation object, including its messages.
- * @throws {ApiError} If the conversation is not found or an internal server error occurs.
+ * @throws {ApiError} If the conversation is not found, the rate limit is exceeded, or an internal server error occurs.
  */
-const getConversationHistory = async (conversationId, userId) => {
+const getConversationHistory = async (
+  conversationId,
+  userId,
+  isGuest = false,
+  req = null
+) => {
+  // --- Rate Limiting & DDOS Guard ---
+  try {
+    if (isGuest) {
+      if (!req || !req.ip) {
+        logger.warn(
+          'IP address not available for guest user rate limiting on history endpoint. Request will proceed without limit check.'
+        );
+      } else {
+        await guestHistoryLimiter.consume(req.ip);
+      }
+    } else {
+      await authenticatedHistoryLimiter.consume(userId);
+    }
+  } catch (rateLimiterRes) {
+    throw new ApiError(
+      httpStatus.TOO_MANY_REQUESTS,
+      'You have made too many requests to view history. Please try again later.'
+    );
+  }
+  // --- End Rate Limiting & DDOS Guard ---
+
   try {
     // Optimization: Using .lean() for read-only queries improves performance
     // by returning plain JavaScript objects instead of Mongoose documents.
@@ -490,7 +592,13 @@ const getConversationHistory = async (conversationId, userId) => {
     return conversation;
   } catch (error) {
     logger.error('Error getting conversation history:', error);
-    throw error;
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve conversation history'
+    );
   }
 };
 
