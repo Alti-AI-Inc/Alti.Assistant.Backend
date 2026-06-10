@@ -112,9 +112,18 @@ const handleAnalysisConversation = async (
         );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
-        );
+        // BUG FIX: Only create a new conversation if the existing one is explicitly not found (404).
+        // Other errors (e.g., database connection issues, permission errors) should be re-thrown.
+        if (error instanceof ApiError && error.statusCode === httpStatus.NOT_FOUND) {
+          logger.warn(
+            `Conversation ${conversationId} not found for user ${userId}, creating new one`
+          );
+          // 'conversation' remains undefined, allowing the next 'if (!conversation)' block to execute.
+        } else {
+          logger.error(`Error fetching conversation ${conversationId} for user ${userId}:`, error);
+          // Re-throw the error to prevent silent failure or incorrect new conversation creation.
+          throw error;
+        }
       }
     }
 
@@ -145,6 +154,10 @@ const handleAnalysisConversation = async (
     return conversation;
   } catch (error) {
     logger.error('Error handling analysis conversation:', error);
+    // Re-throw ApiError directly, wrap other errors in a generic ApiError
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       RESPONSE_MESSAGES.CONVERSATION_ERROR
@@ -236,17 +249,8 @@ const analyzeContent = async (
     }
 
     // Combine file content and message
-    let contentToAnalyze = '';
-    if (fileContent && message) {
-      // Both file and message provided
-      contentToAnalyze = fileContent;
-    } else if (fileContent) {
-      // Only file provided
-      contentToAnalyze = fileContent;
-    } else {
-      // Only message provided
-      contentToAnalyze = message;
-    }
+    // Optimization: Simplified contentToAnalyze assignment.
+    const contentToAnalyze = fileContent || message;
 
     // Handle conversation
     const displayMessage =
