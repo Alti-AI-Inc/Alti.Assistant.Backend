@@ -20,6 +20,7 @@ if (config.gcp_project_id && config.gcp_location) {
 } else {
   // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
   logger.error({
+    severity: 'ERROR',
     message: 'GCP_PROJECT_ID or GCP_LOCATION is not configured. Vertex AI services will not function.',
     component: 'LangchainEvaluatorService'
   });
@@ -99,6 +100,7 @@ const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
   if (!vertexAIClient) {
     // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
     logger.warn({
+      severity: 'WARNING',
       message: 'Attempted to grade output, but Vertex AI is not initialized due to missing configuration. Returning default scores.',
       component: 'LangchainEvaluatorService'
     });
@@ -181,6 +183,7 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
       const safetyRatings = response.candidates?.[0]?.safetyRatings;
       // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
       logger.error({
+        severity: 'ERROR',
         message: `Invalid or empty response structure from Vertex AI. Finish Reason: ${finishReason || 'UNKNOWN'}`,
         component: 'LangchainEvaluatorService',
         context: { safetyRatings }
@@ -204,6 +207,7 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
       // rather than attempting an unreliable partial parse.
       // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
       logger.warn({
+        severity: 'WARNING',
         message: 'Failed to parse Gemini grader output JSON.',
         component: 'LangchainEvaluatorService',
         context: {
@@ -220,6 +224,7 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
   } catch (err) {
     // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
     logger.error({
+      severity: 'ERROR',
       message: 'Gemini grader failed',
       component: 'LangchainEvaluatorService',
       error: {
@@ -310,6 +315,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
   try {
     // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
     logger.info({
+      severity: 'INFO',
       message: 'Starting chain benchmark.',
       component: 'LangchainEvaluatorService',
       context: {
@@ -394,6 +400,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
         resultA = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
         // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
         logger.error({
+          severity: 'ERROR',
           message: `Error executing version A for test case ${i}`,
           component: 'LangchainEvaluatorService',
           context: { chainId, version: String(versionA), testCaseIndex: i },
@@ -414,6 +421,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
         resultB = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
         // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
         logger.error({
+          severity: 'ERROR',
           message: `Error executing version B for test case ${i}`,
           component: 'LangchainEvaluatorService',
           context: { chainId, version: String(versionB), testCaseIndex: i },
@@ -545,6 +553,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
 
     // PLATFORM-OWNER-OPTIMIZATION: Add a structured summary log upon completion for better global oversight and auditing of benchmark runs.
     logger.info({
+      severity: 'INFO',
       message: 'Chain benchmark completed successfully.',
       component: 'LangchainEvaluatorService',
       context: {
@@ -569,6 +578,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
   } catch (error) {
     // GCP-LOGGING-AUDIT: Log any unexpected errors during the benchmark process.
     logger.error({
+      severity: 'ERROR',
       message: 'Benchmark versions failed with an unexpected error.',
       component: 'LangchainEvaluatorService',
       context: {
