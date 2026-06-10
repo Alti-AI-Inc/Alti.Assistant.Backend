@@ -84,9 +84,9 @@ router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext, // Extract tenant context after auth
-  checkDeepResearchLimit,
-  createRateLimiter(10, 15), // 10 deep research requests per 15 minutes (due to heavy computational cost)
-  validateRequest(DeepResearchValidation.deepResearchQuerySchema),
+  createRateLimiter(10, 15), // Rate limit first to prevent DB load/abuse from spam requests
+  validateRequest(DeepResearchValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
+  checkDeepResearchLimit, // Check subscription limits only after passing rate limiting and validation
   deepResearchController.performDeepResearch
 );
 
@@ -125,6 +125,7 @@ router.get(
   '/telemetry',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(30, 15), // Rate limit telemetry connections to prevent SSE abuse/resource exhaustion
   deepResearchController.telemetryStream
 );
 
@@ -186,7 +187,7 @@ router.get(
  */
 router.get(
   '/stats',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Include SUPER_ADMIN for comprehensive administrative access
   extractTenantContext, // Extract tenant context after auth
   deepResearchController.getDeepResearchStats
 );
@@ -239,6 +240,7 @@ router.get(
   '/download-pdf/:savedId',
   optionalAuth(), // Allow guest access to download PDFs
   extractTenantContext, // Extract tenant context after auth
+  createRateLimiter(20, 15), // Rate limit downloads to prevent heavy PDF generation/bandwidth abuse
   deepResearchController.downloadPDF
 );
 
@@ -290,6 +292,7 @@ router.get(
   '/download-pptx/:savedId',
   optionalAuth(), // Allow guest access to download PPTX
   extractTenantContext, // Extract tenant context after auth
+  createRateLimiter(20, 15), // Rate limit downloads to prevent heavy PPTX generation/bandwidth abuse
   deepResearchController.downloadPPTX
 );
 
