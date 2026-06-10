@@ -1,4 +1,6 @@
 import express from 'express';
+// AI-Guard: Import enterprise-grade rate limiters for DDOS and abuse protection.
+import { startSessionLimiter, deleteSessionLimiter } from '../../../../middleware/rateLimiters.js';
 import { createSessionController } from '../controllers/sessionController.js';
 
 /**
@@ -41,10 +43,14 @@ export const createSessionRoutes = (sessionManager) => {
    *                   example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
    *       '401':
    *         $ref: '#/components/responses/UnauthorizedError'
+   *       '429':
+   *         $ref: '#/components/responses/TooManyRequestsError'
    *       '500':
    *         $ref: '#/components/responses/InternalServerError'
    */
-  router.post('/start', controller.startSession);
+  // AI-Guard: Apply a strict rate limit to session creation per user.
+  // This prevents authenticated users from spamming session creation, which could exhaust server resources (e.g., memory, database connections).
+  router.post('/start', startSessionLimiter, controller.startSession);
 
   /**
    * @openapi
@@ -80,10 +86,14 @@ export const createSessionRoutes = (sessionManager) => {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/Error'
+   *       '429':
+   *         $ref: '#/components/responses/TooManyRequestsError'
    *       '500':
    *         $ref: '#/components/responses/InternalServerError'
    */
-  router.delete('/:sessionId', controller.deleteSession);
+  // AI-Guard: Apply a rate limit to session deletion per user.
+  // While less critical than creation, this prevents abuse and unnecessary load from rapid deletion requests.
+  router.delete('/:sessionId', deleteSessionLimiter, controller.deleteSession);
 
   return router;
 };
