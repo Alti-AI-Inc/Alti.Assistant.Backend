@@ -1,38 +1,32 @@
-/**
- * @file Defines the API routes for the Groq AI module.
- * This router handles all endpoints related to interacting with the Groq AI,
- * including generating responses and managing conversation history.
- * @module routes/groq
- */
 import express from 'express';
+// PLATFORM OWNER UPGRADE: Added SUPER_ADMIN role for global oversight and management capabilities.
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 // BUG FIX: Aliased LlamaAiController to GroqAiController for consistency with the file path (groq.route.js)
 // and Swagger documentation (Groq AI). This allows the route file to use a consistent name
 // without requiring changes to the groq.controller.js file's export name.
 import { LlamaAiController as GroqAiController } from './groq.controller.js';
-
-/**
- * The main router for Groq AI related routes.
- * Handles operations such as getting AI responses, retrieving conversation history,
- * and managing AI sessions in the database.
- * @type {import('express').Router}
- */
 const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: Groq AI
- *   description: API for interacting with the Groq AI model and managing AI responses.
+ *   - name: Groq AI
+ *     description: API for interacting with the Groq AI model and managing AI responses for authenticated users and admins.
+ *   - name: Platform Owner - Groq AI Management
+ *     description: APIs for Super Admins to perform global oversight and management of all AI interactions and tenant data across the platform.
  */
+
+// =================================================================
+// ==                 USER & TENANT ADMIN ROUTES                  ==
+// =================================================================
 
 /**
  * @swagger
  * /api/v1/groq/get-response:
  *   post:
  *     summary: Get a response from the Groq AI model.
- *     description: Sends a user message to the Groq AI model and retrieves a response. Requires user authentication.
+ *     description: Sends a user message to the Groq AI model and retrieves a response. Requires user or admin authentication.
  *     tags: [Groq AI]
  *     security:
  *       - BearerAuth: [admin, user]
@@ -205,15 +199,6 @@ router.post(
  *                         content: "Hi there! How can I help you today?"
  *                     createdAt: "2024-03-05T10:00:00.000Z"
  *                     updatedAt: "2024-03-05T10:05:00.000Z"
- *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b4"
- *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
- *                     messages:
- *                       - role: "user"
- *                         content: "Tell me a joke."
- *                       - role: "assistant"
- *                         content: "Why don't scientists trust atoms? Because they make up everything!"
- *                     createdAt: "2024-03-05T11:00:00.000Z"
- *                     updatedAt: "2024-03-05T11:02:00.000Z"
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -233,7 +218,7 @@ router.get(
  * /api/v1/groq/get-response-by-sessionid/{sessionId}:
  *   get:
  *     summary: Retrieve a specific AI response session by its ID.
- *     description: Fetches a single AI conversation session from the database using its unique session ID.
+ *     description: Fetches a single AI conversation session from the database using its unique session ID. The user must be the owner of the session.
  *     tags: [Groq AI]
  *     security:
  *       - BearerAuth: [admin, user]
@@ -300,7 +285,7 @@ router.get(
  * /api/v1/groq/delete-single-response/{objectId}:
  *   delete:
  *     summary: Delete a single AI response session by its ID.
- *     description: Deletes a specific AI conversation session from the database using its unique object ID.
+ *     description: Deletes a specific AI conversation session from the database using its unique object ID. The user must be the owner of the session.
  *     tags: [Groq AI]
  *     security:
  *       - BearerAuth: [admin, user]
@@ -410,6 +395,197 @@ router.delete(
   GroqAiController.deleteAllAiSessions
 );
 
+// =================================================================
+// ==            PLATFORM OWNER / SUPER ADMIN ROUTES              ==
+// =================================================================
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/all-sessions:
+ *   get:
+ *     summary: '[Super Admin] Retrieve all AI sessions from all users'
+ *     description: Fetches a paginated list of all AI conversation sessions across the entire platform. This is a global oversight tool for platform owners.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     responses:
+ *       200:
+ *         description: A list of all AI sessions retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AiSession'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/all-sessions',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.getAllAiSessionsForSuperAdmin
+);
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/user-sessions/{userId}:
+ *   get:
+ *     summary: '[Super Admin] Retrieve all AI sessions for a specific user'
+ *     description: Fetches all AI conversation sessions for a single user, identified by their user ID. Essential for tenant-specific auditing and support.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: The unique ID of the user whose sessions are to be retrieved.
+ *     responses:
+ *       200:
+ *         description: A list of AI sessions for the specified user retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AiSession'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/user-sessions/:userId',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.getUserAiSessionsForSuperAdmin
+);
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/session/{sessionId}:
+ *   delete:
+ *     summary: '[Super Admin] Delete any single AI session by its ID'
+ *     description: Allows a Super Admin to delete any specific AI conversation session from the database, regardless of ownership. Used for moderation or data correction.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: The ID of the AI session to delete.
+ *     responses:
+ *       200:
+ *         description: AI session deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.delete(
+  '/admin/session/:sessionId',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.deleteAiSessionForSuperAdmin
+);
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/user-sessions/{userId}:
+ *   delete:
+ *     summary: '[Super Admin] Delete all AI sessions for a specific user'
+ *     description: Permanently deletes all AI conversation sessions associated with a specific user ID. This is a critical tool for tenant offboarding or handling data privacy requests.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectId
+ *         description: The unique ID of the user whose sessions are to be deleted.
+ *     responses:
+ *       200:
+ *         description: All AI sessions for the user deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedCount:
+ *                       type: number
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.delete(
+  '/admin/user-sessions/:userId',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.deleteUserAiSessionsForSuperAdmin
+);
+
 /**
  * @swagger
  * components:
@@ -453,7 +629,9 @@ router.delete(
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
- *       description: Enter JWT Bearer token **_only_**
+ *       description: |
+ *         Enter JWT Bearer token **_only_**.
+ *         Available roles: `super_admin`, `admin`, `user`
  *   responses:
  *     Unauthorized:
  *       description: Unauthorized - Authentication token is missing or invalid.
@@ -522,8 +700,14 @@ router.delete(
  */
 
 /**
- * The exported router for all Groq AI module routes.
- * @type {import('express').Router}
+ * @typedef {import('express').Router} Router
+ */
+
+/**
+ * @type {Router}
+ * @description The main router for Groq/Llama AI related routes.
+ *   Handles operations such as getting AI responses, retrieving conversation history,
+ *   and managing AI sessions in the database.
  */
 // BUG FIX: Renamed exported router from llamaAiRoutes to groqAiRoutes for consistency with the module's context.
 export const groqAiRoutes = router;

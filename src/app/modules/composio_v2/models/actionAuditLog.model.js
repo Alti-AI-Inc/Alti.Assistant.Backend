@@ -1,5 +1,18 @@
 import mongoose from 'mongoose';
 
+// Security Patch: Helper function to sanitize string inputs by escaping HTML characters.
+// This helps prevent Stored Cross-Site Scripting (XSS) vulnerabilities if this data
+// is ever displayed in a web interface without proper frontend escaping.
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string' || !unsafe) return unsafe;
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 /**
  * Action Audit Log Model
  *
@@ -279,6 +292,46 @@ const ActionAuditLogSchema = new mongoose.Schema(
   }
 );
 
+// Security Patch: Mongoose middleware to sanitize string fields before saving.
+// This provides a layer of defense against Stored XSS by escaping HTML entities.
+ActionAuditLogSchema.pre('save', function(next) {
+  // List of top-level string fields to sanitize.
+  const fieldsToSanitize = [
+    'conversationId', 'executionId', 'app', 'action',
+    'toolName', 'toolSlug', 'stepId'
+  ];
+
+  for (const field of fieldsToSanitize) {
+    // Using this.get() to access the value is safer as it bypasses Mongoose's internal getters if any.
+    const value = this.get(field);
+    if (value && typeof value === 'string') {
+      this.set(field, escapeHtml(value));
+    }
+  }
+
+  // Sanitize fields within the nested 'error' object.
+  if (this.error) {
+    if (this.error.message) {
+      this.error.message = escapeHtml(this.error.message);
+    }
+    if (this.error.code) {
+      this.error.code = escapeHtml(this.error.code);
+    }
+    if (this.error.stack) {
+      // Note: Escaping the stack trace can make it harder to read for debugging,
+      // but it's safer if displayed directly in an HTML context.
+      this.error.stack = escapeHtml(this.error.stack);
+    }
+  }
+
+  // Note: The 'parameters' and 'result' fields are of type Object and are not sanitized here.
+  // They are intended to store structured JSON data. Sanitizing them could corrupt the data's integrity.
+  // The 'redacted' flag should be used to handle sensitive information within these objects,
+  // and any consumer (e.g., a frontend application) is responsible for safely rendering their contents.
+
+  next();
+});
+
 /**
  * Compound index for querying audit logs by user and creation time (descending).
  * @index {userId: 1, createdAt: -1}
@@ -302,13 +355,15 @@ ActionAuditLogSchema.index({ executionId: 1, stepIndex: 1 });
 
 /**
  * TTL (Time-To-Live) index for automatic deletion of old audit logs.
- * Logs older than 90 days (configurable) will be automatically removed from the collection.
+ * Logs older than a configurable number of days will be automatically removed.
  * @index {createdAt: 1}
- * @options {expireAfterSeconds: 90 * 24 * 60 * 60}
  */
+// Security Patch: Use an environment variable for the TTL configuration instead of a hardcoded value.
+// This allows for flexibility across different environments (dev, staging, prod) without code changes.
+const AUDIT_LOG_TTL_DAYS = parseInt(process.env.AUDIT_LOG_TTL_DAYS, 10) || 90;
 ActionAuditLogSchema.index(
   { createdAt: 1 },
-  { expireAfterSeconds: 90 * 24 * 60 * 60 }
+  { expireAfterSeconds: AUDIT_LOG_TTL_DAYS * 24 * 60 * 60 }
 );
 
 /**
