@@ -1,10 +1,10 @@
 import { Storage } from '@google-cloud/storage';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+// import path from 'path'; // Not used in this file
+// import { fileURLToPath } from 'url'; // Not used in this file
+// import fs from 'fs'; // Not used in this file
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url); // Not used in this file
+// const __dirname = path.dirname(__filename); // Not used in this file
 
 export class GCPStorageService {
   constructor(bucketName, keyFilePath) {
@@ -17,7 +17,7 @@ export class GCPStorageService {
 
   /**
    * Upload a file to GCP bucket
-   * @param {string} localFilePath - Local file path
+   * @param {string} localFilePath - Local file path. WARNING: Ensure this path is not user-controlled to prevent path traversal vulnerabilities.
    * @param {string} destinationFileName - Destination file name in bucket
    * @returns {Promise<string>} - Public URL of uploaded file
    */
@@ -68,7 +68,7 @@ export class GCPStorageService {
 
   /**
    * Delete a file from GCP bucket
-   * @param {string} fileName - File name to delete
+   * @param {string} fileName - File name to delete. WARNING: Ensure proper authorization checks are performed by the caller to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
    */
   async deleteFile(fileName) {
     try {
