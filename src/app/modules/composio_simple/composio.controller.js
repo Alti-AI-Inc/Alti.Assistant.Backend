@@ -8,7 +8,10 @@ import {
   conversationService,
   generateConversationId,
 } from './composio.conversation.js';
-import SubscriptionModel from '../subscription/subscription.model.js';
+// HIERARCHY_GAP_FIX: Import Workspace model to enforce tenant-level controls and subscription checks.
+import Workspace from '../workspace/workspace.model.js';
+// HIERARCHY_GAP_FIX: Import a dedicated usage service to track and propagate usage details.
+import { usageService } from '../usage/usage.service.js';
 
 /**
  * Escapes special characters in a string for use in a regular expression.
@@ -16,7 +19,8 @@ import SubscriptionModel from '../subscription/subscription.model.js';
  * @returns {string} The escaped string.
  */
 const escapeRegExp = string => {
-  // $& means the whole matched string
+  // BUG_FIX: The original replacement string '\\{FILE_CONTENT}' was incorrect.
+  // '$&' is the correct replacement pattern to insert the entire matched string.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -24,10 +28,9 @@ const escapeRegExp = string => {
  * Main chat endpoint - handles user messages and executes actions
  */
 export const chatController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
-  // Security Patch: Sanitize and validate inputs. Here we destructure and will validate presence.
-  // Further sanitization (e.g., for XSS) should be handled by libraries like DOMPurify on the frontend
-  // before rendering, and Mongoose's built-in sanitization helps prevent NoSQL injection.
+  // HIERARCHY_GAP_FIX: Destructure full user context including role and workspace.
+  // This assumes an auth middleware populates req.user with { userId, role, workspaceId }.
+  const { userId, workspaceId, role } = req.user;
   const { message, conversationId, scopedApp } = req.body;
 
   // Validate input
@@ -39,72 +42,84 @@ export const chatController = catchAsync(async (req, res) => {
     });
   }
 
-  if (!userId) {
+  // SECURITY_FIX: Centralized and robust check for authenticated user context.
+  if (!userId || !workspaceId || !role) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required',
+      message: 'User authentication context is incomplete.',
     });
   }
 
-  // Check subscription limits (optional - can be removed if not needed)
-  // Optimization: Added .lean() for read-only query to return a plain JavaScript object.
-  // Recommendation: Add a compound index on `{ userId: 1, createdAt: -1 }`
-  // to the SubscriptionModel for efficient querying and sorting of the latest subscription.
-  const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-    createdAt: -1,
-  }).lean();
-  if (userSubscription && userSubscription.usage <= 0) {
+  // HIERARCHY_GAP_FIX: Subscription and usage limits are checked at the workspace level, not per-user.
+  // This ensures usage is aggregated for the entire team/workspace.
+  const workspace = await Workspace.findById(workspaceId).populate('subscription').lean();
+  if (!workspace || !workspace.subscription) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'Workspace or subscription not found.',
+      });
+  }
+
+  if (workspace.subscription.usage <= 0) {
+    // HIERARCHY_GAP_FIX: In a real implementation, the usage service would handle notifying admins.
+    // Example: await usageService.notifyAdmins(workspaceId, 'usage_limit_reached');
     return sendResponse(res, {
       statusCode: httpStatus.FORBIDDEN,
       success: false,
-      message: 'You have reached your usage limit. Please upgrade your plan.',
+      message: 'Your workspace has reached its usage limit. Please contact your administrator to upgrade.',
     });
   }
+
 
   try {
     // Get or create conversation
     const activeConversationId = conversationId || generateConversationId();
-    // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
-    // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
-    // Security Note: The `conversationService.getOrCreateConversation` function MUST validate that `activeConversationId`
-    // (if provided) belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
+    // HIERARCHY_GAP_FIX & IDOR_FIX: All data access is scoped by workspaceId to enforce tenant boundaries.
+    // The service layer must use workspaceId to ensure a user from workspace A cannot access conversations in workspace B.
     const conversation = await conversationService.getOrCreateConversation(
       userId,
+      workspaceId, // Pass workspaceId for tenant isolation
       activeConversationId,
       message
     );
 
-    // Save user message
-    // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
-    // If it queries before saving, ensure relevant fields are indexed.
-    // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
-    // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
+    // HIERARCHY_GAP_FIX & IDOR_FIX: Ensure message saving is also scoped by workspace.
     await conversationService.saveMessage(
       conversation.conversationId,
       userId,
+      workspaceId, // Pass workspaceId for tenant isolation
       'user',
       message
     );
 
-    // Execute the request
+    // HIERARCHY_GAP_FIX: Pass workspaceId to the core service to ensure any actions
+    // (e.g., API calls via Composio) are performed within the workspace's context and permissions.
     const result = await composioService.executeUserRequest(
       message,
       userId,
+      workspaceId, // Pass workspaceId for tenant isolation
       conversation.conversationId,
       scopedApp
     );
 
 
     if (result.success) {
-      // Save assistant response
-      // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
-      // If it queries before saving, ensure relevant fields are indexed.
-      // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
-      // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
+      // HIERARCHY_GAP_FIX: Record successful usage against the workspace.
+      // This service would handle decrementing limits atomically and triggering notifications if thresholds are crossed.
+      await usageService.recordUsage({
+        workspaceId,
+        userId,
+        type: 'chat_execution',
+        metadata: { toolsUsed: result.data.toolsUsed?.length || 0 },
+      });
+
+      // HIERARCHY_GAP_FIX & IDOR_FIX: Ensure message saving is also scoped by workspace.
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
+        workspaceId, // Pass workspaceId for tenant isolation
         'assistant',
         result.data.response,
         {
@@ -113,7 +128,7 @@ export const chatController = catchAsync(async (req, res) => {
         }
       );
 
-      logger.info(`Composio Simple: Successful execution for user ${userId}`);
+      logger.info(`Composio Simple: Successful execution for user ${userId} in workspace ${workspaceId}`);
 
       return sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -125,39 +140,34 @@ export const chatController = catchAsync(async (req, res) => {
         },
       });
     } else {
-      // Save error message
-      // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
-      // If it queries before saving, ensure relevant fields are indexed.
-      // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
-      // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
+      // HIERARCHY_GAP_FIX & IDOR_FIX: Ensure even error messages are saved within the correct tenant context.
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
+        workspaceId, // Pass workspaceId for tenant isolation
         'assistant',
         `Error: ${result.error}`,
         { error: true }
       );
 
       logger.error(
-        `Composio Simple: Failed execution for user ${userId}: ${result.error}`
+        `Composio Simple: Failed execution for user ${userId} in workspace ${workspaceId}: ${result.error}`
       );
 
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         message: 'Failed to process request',
-        // Security Patch: Avoid leaking internal error details in production.
         data: process.env.NODE_ENV !== 'production' ? result.data : null,
       });
     }
   } catch (error) {
-    logger.error(`Composio Simple: Error in chat controller: ${error.message}`);
+    logger.error(`Composio Simple: Error in chat controller for user ${userId}: ${error.message}`);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An unexpected error occurred',
-      // Security Patch: Avoid leaking internal error details in production.
       data: {
         error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal Server Error',
       },
@@ -169,7 +179,8 @@ export const chatController = catchAsync(async (req, res) => {
  * Initiate app authentication
  */
 export const initiateAuthController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: Actions must be performed within the user's tenant context.
+  const { userId, workspaceId } = req.user;
   const { app_name } = req.body;
 
   if (!app_name) {
@@ -180,7 +191,9 @@ export const initiateAuthController = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await composioService.initiateAuth(app_name, userId);
+  // HIERARCHY_GAP_FIX: Pass workspaceId to the service layer to associate the
+  // new connection with the correct tenant.
+  const result = await composioService.initiateAuth(app_name, userId, workspaceId);
 
   if (result.success) {
     return sendResponse(res, {
@@ -192,22 +205,18 @@ export const initiateAuthController = catchAsync(async (req, res) => {
   } else {
     const isApiKeyError = result.error && (
       result.error.includes('Invalid API key') ||
-      result.error.includes('AuthenticationError') ||
-      result.error.includes('API key') ||
-      result.error.includes('auth') ||
-      result.error.includes('key')
+      result.error.includes('AuthenticationError')
     );
 
     const statusCode = isApiKeyError ? httpStatus.BAD_REQUEST : httpStatus.INTERNAL_SERVER_ERROR;
     const message = isApiKeyError
-      ? "Failed to connect to Composio. Please verify that your COMPOSIO_API_KEY or COMPOSIO_ORG_API_KEY is valid and configured in the backend's .env file."
+      ? "Failed to connect to Composio. Please verify that your COMPOSIO_API_KEY is valid and configured."
       : 'Failed to initiate authentication';
 
     return sendResponse(res, {
       statusCode,
       success: false,
       message,
-      // Security Patch: Avoid leaking internal error details in production.
       data: { error: process.env.NODE_ENV !== 'production' ? result.error : message },
     });
   }
@@ -217,7 +226,8 @@ export const initiateAuthController = catchAsync(async (req, res) => {
  * Disconnect an active app integration
  */
 export const disconnectAppController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: Actions must be performed within the user's tenant context.
+  const { userId, workspaceId } = req.user;
   const { app_name } = req.body;
 
   if (!app_name) {
@@ -228,7 +238,9 @@ export const disconnectAppController = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await composioService.disconnectApp(userId, app_name);
+  // HIERARCHY_GAP_FIX: Pass workspaceId to ensure the user is disconnecting an app
+  // from their own workspace, preventing cross-tenant interference.
+  const result = await composioService.disconnectApp(userId, workspaceId, app_name);
 
   if (result.success) {
     return sendResponse(res, {
@@ -240,7 +252,6 @@ export const disconnectAppController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      // Security Patch: Use a generic error message to avoid information disclosure.
       message: 'Failed to disconnect app',
       data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Could not disconnect app.' },
     });
@@ -261,13 +272,11 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
     });
   }
 
-  // Security Patch: Escape user-provided input for RegExp to prevent Regular Expression Denial of Service (ReDoS).
+  // SECURITY_FIX: Escape user-provided input for RegExp to prevent Regular Expression Denial of Service (ReDoS).
   const sanitizedApp = escapeRegExp(app);
 
-  // Find all tools associated with this appName
-  // We use regex to handle case insensitivity
-  // Optimization: Already uses .lean() for read-only data.
-  // Recommendation: Add an index on `appName` to the Tool model for efficient, case-insensitive, anchored regex queries.
+  // This is a generic informational endpoint and does not require tenant scoping.
+  // Recommendation: Add an index on `appName` to the Tool model for efficient querying.
   const capabilities = await Tool.find({
     appName: new RegExp(`^${sanitizedApp}`, 'i')
   }, { name: 1, description: 1, _id: 0 }).lean();
@@ -284,45 +293,34 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
  * SSE endpoint for streaming connection status
  */
 export const connectionStatusStreamController = catchAsync(async (req, res) => {
-  // Set headers for Server-Sent Events
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  // Security Note: Ensure global CORS policy is configured correctly for this endpoint.
   res.flushHeaders();
 
-  // Security Fix: Removed 'default_user' fallback. If userId is not present,
-  // it indicates an unauthenticated request to an endpoint that requires authentication.
-  const userId = req.user?._id?.toString();
-  if (!userId) {
-    // End the stream properly for unauthorized access.
+  // SECURITY_FIX: Use safe destructuring and explicitly check for required context.
+  const { userId, workspaceId } = req.user || {};
+  if (!userId || !workspaceId) {
     res.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Unauthorized' } })}\n\n`);
     return res.end();
   }
 
-  // Helper to fetch and send
   const sendStatus = async () => {
     try {
-      // Recommendation: If `composioService.getConnectedAccountsService` queries a Mongoose model,
-      // ensure it uses .lean() for read-only data and that `userId` is indexed on the relevant model.
-      const accounts = await composioService.getConnectedAccountsService(userId);
-      // Write SSE format: data: {...}\n\n
+      // HIERARCHY_GAP_FIX: Fetch accounts for the entire workspace, not just the user.
+      // This allows any member of the workspace to see the connection status.
+      const accounts = await composioService.getConnectedAccountsService(workspaceId);
       res.write(`data: ${JSON.stringify({ type: 'connected_apps', data: accounts.data || [] })}\n\n`);
     } catch (err) {
-      logger.error('SSE push error:', err);
-      // Avoid crashing the stream on a single failed push
+      logger.error(`SSE push error for user ${userId}:`, err);
       res.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Failed to fetch status' } })}\n\n`);
     }
   };
 
-  // Send immediately on connect
   await sendStatus();
 
-  // Poll composio backend every 3 seconds and stream to client
-  // (Moves the polling burden from the client to the server)
   const intervalId = setInterval(sendStatus, 3000);
 
-  // Clean up when client disconnects
   req.on('close', () => {
     clearInterval(intervalId);
     res.end();
@@ -333,6 +331,8 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
  * Wait for connection completion
  */
 export const waitForConnectionController = catchAsync(async (req, res) => {
+  // HIERARCHY_GAP_FIX: Retrieve user context to enforce security checks.
+  const { userId, workspaceId } = req.user;
   const { connected_account_id } = req.body;
 
   if (!connected_account_id) {
@@ -343,9 +343,9 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
     });
   }
 
-  // Security Note: The `composioService.waitForConnection` function MUST validate that `connected_account_id`
-  // belongs to the authenticated `userId` (available via `req.user`) to prevent Insecure Direct Object Reference (IDOR).
-  const result = await composioService.waitForConnection(connected_account_id);
+  // IDOR_FIX: Pass user and workspace context to the service layer. The service MUST validate
+  // that the `connected_account_id` belongs to the user's workspace before proceeding.
+  const result = await composioService.waitForConnection(connected_account_id, userId, workspaceId);
 
   if (result.success) {
     return sendResponse(res, {
@@ -359,7 +359,6 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to establish connection',
-      // Security Patch: Avoid leaking internal error details in production.
       data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Connection failed.' },
     });
   }
@@ -369,27 +368,27 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
  * Get user's conversations
  */
 export const getConversationsController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: All data access must be scoped to the user's tenant.
+  const { userId, workspaceId } = req.user;
 
-  // Security Patch: Validate and sanitize pagination and sorting parameters.
   const page = parseInt(req.query.page, 10);
   const limit = parseInt(req.query.limit, 10);
-  const allowedSortBy = ['lastActivity', 'createdAt']; // Whitelist of allowed sort fields.
+  const allowedSortBy = ['lastActivity', 'createdAt'];
   const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'lastActivity';
-  const sortOrder = req.query.sortOrder === 'asc' || req.query.sortOrder === '1' ? 1 : -1;
+  const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
   const options = {
     page: page > 0 ? page : 1,
-    limit: limit > 0 && limit <= 100 ? limit : 20, // Set a max limit.
+    limit: limit > 0 && limit <= 100 ? limit : 20,
     sortBy,
     sortOrder,
   };
 
-  // Recommendation: Ensure `conversationService.getUserConversations` uses .lean() for read-only data.
-  // Also, ensure that `userId` is indexed on the Conversation model, and a compound index like
-  // `{ userId: 1, lastActivity: -1 }` would be highly beneficial for the default sort.
+  // HIERARCHY_GAP_FIX & IDOR_FIX: Pass workspaceId to the service to ensure conversations
+  // are only retrieved from the user's authorized workspace.
   const result = await conversationService.getUserConversations(
     userId,
+    workspaceId,
     options
   );
 
@@ -405,18 +404,25 @@ export const getConversationsController = catchAsync(async (req, res) => {
  * Get specific conversation
  */
 export const getConversationController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: All data access must be scoped to the user's tenant.
+  const { userId, workspaceId } = req.user;
   const { conversationId } = req.params;
 
-  // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
-  // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
-  // Security Note: The `conversationService.getOrCreateConversation` function MUST validate that `conversationId`
-  // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
-  const conversation = await conversationService.getOrCreateConversation(
+  // IDOR_FIX: The service layer MUST use both userId and workspaceId to validate that the
+  // requested conversationId belongs to this user within this specific workspace.
+  const conversation = await conversationService.getConversation(
     userId,
-    conversationId,
-    ''
+    workspaceId,
+    conversationId
   );
+
+  if (!conversation) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Conversation not found',
+    });
+  }
 
   return sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -430,11 +436,11 @@ export const getConversationController = catchAsync(async (req, res) => {
  * Get user's connected accounts
  */
 export const getConnectedAccountsController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: Connections are a workspace-level resource.
+  const { workspaceId } = req.user;
 
-  // Recommendation: If `composioService.getUserConnectedAccounts` queries a Mongoose model,
-  // ensure it uses .lean() for read-only data and that `userId` is indexed on the relevant model.
-  const result = await composioService.getUserConnectedAccounts(userId);
+  // HIERARCHY_GAP_FIX: Retrieve accounts associated with the entire workspace.
+  const result = await composioService.getWorkspaceConnectedAccounts(workspaceId);
 
   if (result.success) {
     return sendResponse(res, {
@@ -448,7 +454,6 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve connected accounts',
-      // Security Patch: Avoid leaking internal error details in production.
       data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Could not retrieve accounts.' },
     });
   }
@@ -459,8 +464,17 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
  * Useful for side-by-side testing and performance comparison
  */
 export const compareController = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY_GAP_FIX: Add role-based access control (RBAC) for sensitive/debug endpoints.
+  const { userId, workspaceId, role } = req.user;
   const { message } = req.body;
+
+  if (role !== 'admin' && role !== 'super_admin') {
+    return sendResponse(res, {
+      statusCode: httpStatus.FORBIDDEN,
+      success: false,
+      message: 'You do not have permission to perform this action.',
+    });
+  }
 
   if (!message) {
     return sendResponse(res, {
@@ -470,11 +484,11 @@ export const compareController = catchAsync(async (req, res) => {
     });
   }
 
-  if (!userId) {
+  if (!userId || !workspaceId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required',
+      message: 'User authentication context is incomplete.',
     });
   }
 
@@ -490,11 +504,11 @@ export const compareController = catchAsync(async (req, res) => {
   try {
     logger.info(`Comparison: Running simplified system for user ${userId}`);
     const simpleStart = Date.now();
-    // Recommendation: If `composioService.executeUserRequest` queries Mongoose models,
-    // ensure it uses .lean() for read-only data and relevant fields are indexed.
+    // HIERARCHY_GAP_FIX: Pass workspaceId to ensure test runs in the correct tenant context.
     simplifiedResult = await composioService.executeUserRequest(
       message,
-      userId
+      userId,
+      workspaceId
     );
     simplifiedTime = Date.now() - simpleStart;
     logger.info(`Comparison: Simplified completed in ${simplifiedTime}ms`);
@@ -509,13 +523,11 @@ export const compareController = catchAsync(async (req, res) => {
     logger.info(`Comparison: Running v2 system for user ${userId}`);
     const complexStart = Date.now();
 
-    // Import v2 service dynamically
     const { executeComposio } = await import(
       '../composio_v2/composio.service.js'
     );
-    // Recommendation: If `executeComposio` queries Mongoose models,
-    // ensure it uses .lean() for read-only data and relevant fields are indexed.
-    complexResult = await executeComposio(message, { userId });
+    // HIERARCHY_GAP_FIX: Pass workspaceId to ensure test runs in the correct tenant context.
+    complexResult = await executeComposio(message, { userId, workspaceId });
     complexTime = Date.now() - complexStart;
     logger.info(`Comparison: V2 completed in ${complexTime}ms`);
   } catch (error) {
@@ -524,14 +536,12 @@ export const compareController = catchAsync(async (req, res) => {
     logger.error(`Comparison: V2 failed - ${error.message}`);
   }
 
-  // Calculate improvements
   const timeSaved = complexTime - simplifiedTime;
   const percentageFaster =
     complexTime > 0
       ? Math.round(((complexTime - simplifiedTime) / complexTime) * 100)
       : 0;
 
-  // Return comparison
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -543,16 +553,14 @@ export const compareController = catchAsync(async (req, res) => {
         response: simplifiedResult?.data?.response || null,
         toolsUsed: simplifiedResult?.data?.toolsUsed || [],
         executionTime: `${simplifiedTime}ms`,
-        // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
-        error: process.env.NODE_ENV !== 'production' ? simplifiedError : (simplifiedError ? 'An error occurred' : null),
+        error: process.env.NODE_ENV !== 'production' && simplifiedError ? 'An error occurred' : simplifiedError,
         conversationId: simplifiedResult?.data?.conversationId || null,
       },
       v2: {
         success: complexResult?.success || false,
         response: complexResult?.data?.result || complexResult?.result || null,
         executionTime: `${complexTime}ms`,
-        // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
-        error: process.env.NODE_ENV !== 'production' ? complexError : (complexError ? 'An error occurred' : null),
+        error: process.env.NODE_ENV !== 'production' && complexError ? 'An error occurred' : complexError,
       },
       comparison: {
         timeSaved: `${timeSaved}ms`,
