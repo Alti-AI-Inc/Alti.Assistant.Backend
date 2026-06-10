@@ -8,6 +8,8 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+// PERFORMANCE OPTIMIZATION: Import fs.promises for non-blocking file system operations.
+import { promises as fsPromises } from 'fs';
 import { fileURLToPath } from 'url';
 
 // Safely determine the current directory path, compatible with both ES Modules and CommonJS.
@@ -29,43 +31,54 @@ try {
  */
 const uploadDir = path.join(currentDir, '..', '..', '..', '..', '..', 'uploads', 'article_files');
 
-// Ensure the base upload directory exists synchronously on application start.
+// Ensure the base upload directory exists synchronously on application start. This is acceptable
+// as it runs only once and not during a request-response cycle.
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 /**
- * Synchronously and recursively calculates the total size of all files within a given directory.
+ * Asynchronously and recursively calculates the total size of all files within a given directory.
  * This is a helper function used to enforce workspace-level storage quotas before an upload.
  * It iterates through directory contents and sums the size of each file,
  * silently ignoring any subdirectories or files that cannot be accessed.
+ * This non-blocking version prevents the event loop from being stalled during I/O operations.
  * @param {string} dirPath - The absolute path to the directory.
- * @returns {number} The total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
+ * @returns {Promise<number>} A promise that resolves to the total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
  */
-const getDirSize = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    return 0;
-  }
-
-  let size = 0;
-  const items = fs.readdirSync(dirPath);
-
-  for (const item of items) {
-    const itemPath = path.join(dirPath, item);
-    try {
-      const stats = fs.statSync(itemPath);
-      if (stats.isFile()) {
-        size += stats.size;
-      } else if (stats.isDirectory()) {
-        // BUG FIX: Added recursion to correctly calculate total size of nested directories (e.g., all user folders within a workspace).
-        size += getDirSize(itemPath);
-      }
-    } catch (err) {
-      // Ignore files/directories that cannot be read (e.g., due to permissions).
-      console.error(`Could not read stats for ${itemPath}:`, err);
+const getDirSizeAsync = async (dirPath) => {
+  try {
+    const items = await fsPromises.readdir(dirPath);
+    const sizes = await Promise.all(
+      items.map(async (item) => {
+        const itemPath = path.join(dirPath, item);
+        try {
+          const stats = await fsPromises.stat(itemPath);
+          if (stats.isFile()) {
+            return stats.size;
+          }
+          if (stats.isDirectory()) {
+            // Recursively calculate size of subdirectory.
+            return await getDirSizeAsync(itemPath);
+          }
+        } catch (err) {
+          // Ignore files/directories that cannot be read (e.g., due to permissions).
+          console.error(`Could not read stats for ${itemPath}:`, err);
+          return 0;
+        }
+        return 0;
+      })
+    );
+    return sizes.reduce((acc, size) => acc + size, 0);
+  } catch (err) {
+    // If the directory doesn't exist, readdir will throw an ENOENT error. This is not a failure, just means size is 0.
+    if (err.code === 'ENOENT') {
+      return 0;
     }
+    // For other errors, re-throw to be caught by the caller.
+    console.error(`Error calculating directory size for ${dirPath}:`, err);
+    throw err;
   }
-  return size;
 };
 
 /**
@@ -84,7 +97,7 @@ const storage = multer.diskStorage({
    * @param {Express.Multer.File} file - The file object being uploaded.
    * @param {function(Error | null, string): void} cb - The callback function. Called with an error on filesystem issues, or with the destination path on success.
    */
-  destination: function (req, file, cb) {
+  destination: async function (req, file, cb) {
     // INTEGRATION FIX: Switched from user-only directory to a workspace/tenant-based structure.
     // This ensures that all files for a given workspace are stored together, respecting tenant boundaries.
     if (!req.user?.workspaceId) {
@@ -103,8 +116,9 @@ const storage = multer.diskStorage({
     const userUploadDir = path.join(uploadDir, safeWorkspaceId, safeUserId);
 
     try {
-      // Ensure the user-specific directory exists.
-      fs.mkdirSync(userUploadDir, { recursive: true });
+      // PERFORMANCE OPTIMIZATION: Switched from synchronous fs.mkdirSync to asynchronous fsPromises.mkdir.
+      // This prevents blocking the Node.js event loop during file system operations, improving server responsiveness under load.
+      await fsPromises.mkdir(userUploadDir, { recursive: true });
       cb(null, userUploadDir);
     } catch (err) {
       console.error('Failed to create upload directory:', err);
@@ -137,7 +151,7 @@ const storage = multer.diskStorage({
  * @param {Express.Multer.File} file - The file object being uploaded.
  * @param {function(Error | null, boolean): void} cb - The callback function. Called with an error to reject the file, or with `(null, true)` to accept it.
  */
-const fileFilter = (req, file, cb) => {
+const fileFilter = async (req, file, cb) => {
   try {
     // INTEGRATION: Role and authentication validation.
     const user = req.user;
@@ -187,7 +201,12 @@ const fileFilter = (req, file, cb) => {
 
     // Default workspace limit is 500MB, can be overridden by workspace-specific settings from the user object.
     const workspaceMaxStorage = user.workspace?.maxStorageLimit || 500 * 1024 * 1024; // 500MB
-    const currentWorkspaceStorageSize = getDirSize(workspaceUploadDir);
+
+    // PERFORMANCE OPTIMIZATION: Replaced a synchronous, blocking directory size calculation with an asynchronous version.
+    // The original implementation would block the entire Node.js event loop while scanning the file system,
+    // causing all other concurrent requests to hang. This async approach ensures the server remains responsive
+    // during the I/O-intensive size check.
+    const currentWorkspaceStorageSize = await getDirSizeAsync(workspaceUploadDir);
     const incomingFileSize = file.size;
 
     if (currentWorkspaceStorageSize + incomingFileSize > workspaceMaxStorage) {
@@ -201,6 +220,10 @@ const fileFilter = (req, file, cb) => {
     cb(null, true);
   } catch (err) {
     console.error('Error in multer fileFilter:', err);
+    // Ensure a proper error object is passed to the callback for multer to handle.
+    if (err.statusCode) {
+      return cb(err);
+    }
     const error = new Error('An unexpected error occurred during file validation.');
     // @ts-ignore
     error.statusCode = 500;
