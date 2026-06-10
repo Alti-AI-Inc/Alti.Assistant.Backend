@@ -64,6 +64,94 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
   }
 };
 
+/**
+ * Logs billing and payment method updates for audit trails.
+ * 
+ * @param {string} workspaceId - The ID of the workspace
+ * @param {string} adminUserId - The ID of the admin performing the action
+ * @param {string} action - The billing action (e.g., 'payment_method_updated', 'invoice_paid')
+ * @param {object} [details] - Additional metadata
+ * @returns {Promise<object>} Log write report
+ */
+const logBillingEvent = async (workspaceId, adminUserId, action, details = {}) => {
+  const message = `Billing Event [${action}] by Admin ${adminUserId} for Workspace ${workspaceId}`;
+  return writeLogEntry('alti-billing-audit-log', message, 'INFO', {
+    workspaceId,
+    adminUserId,
+    action,
+    eventType: 'billing',
+    ...details
+  });
+};
+
+/**
+ * Logs subscription changes (Stripe events, plan upgrades/downgrades).
+ * 
+ * @param {string} workspaceId - The ID of the workspace
+ * @param {string} adminUserId - The ID of the admin or system trigger
+ * @param {string} plan - The subscription plan name
+ * @param {string} status - The subscription status (e.g., 'active', 'canceled')
+ * @param {string} stripeSubscriptionId - Stripe subscription ID
+ * @returns {Promise<object>} Log write report
+ */
+const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stripeSubscriptionId) => {
+  const message = `Subscription updated to plan "${plan}" (Status: ${status}) for Workspace ${workspaceId}`;
+  return writeLogEntry('alti-subscription-audit-log', message, 'NOTICE', {
+    workspaceId,
+    adminUserId,
+    plan,
+    status,
+    stripeSubscriptionId,
+    eventType: 'subscription'
+  });
+};
+
+/**
+ * Logs workspace configuration updates (name, slug, settings).
+ * 
+ * @param {string} workspaceId - The ID of the workspace
+ * @param {string} adminUserId - The ID of the admin performing the update
+ * @param {object} [oldData] - Previous configuration
+ * @param {object} [newData] - Updated configuration
+ * @returns {Promise<object>} Log write report
+ */
+const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, newData = {}) => {
+  const message = `Workspace ${workspaceId} configuration updated by Admin ${adminUserId}`;
+  return writeLogEntry('alti-workspace-audit-log', message, 'INFO', {
+    workspaceId,
+    adminUserId,
+    oldSlug: oldData.slug || '',
+    newSlug: newData.slug || '',
+    oldName: oldData.name || '',
+    newName: newData.name || '',
+    eventType: 'workspace_update'
+  });
+};
+
+/**
+ * Logs workspace limit breaches or warnings (e.g., API limits, member limits).
+ * 
+ * @param {string} workspaceId - The ID of the workspace
+ * @param {string} limitType - The type of limit (e.g., 'member_limit', 'api_usage')
+ * @param {number} currentUsage - Current usage value
+ * @param {number} maxLimit - Maximum allowed limit
+ * @returns {Promise<object>} Log write report
+ */
+const logLimitBreachEvent = async (workspaceId, limitType, currentUsage, maxLimit) => {
+  const message = `Workspace ${workspaceId} breached limit for ${limitType} (${currentUsage}/${maxLimit})`;
+  return writeLogEntry('alti-limits-audit-log', message, 'WARNING', {
+    workspaceId,
+    limitType,
+    currentUsage: String(currentUsage),
+    maxLimit: String(maxLimit),
+    eventType: 'limit_breach'
+  });
+};
+
 export const GcpLoggingService = {
-  writeLogEntry
+  writeLogEntry,
+  logBillingEvent,
+  logSubscriptionEvent,
+  logWorkspaceUpdateEvent,
+  logLimitBreachEvent
 };

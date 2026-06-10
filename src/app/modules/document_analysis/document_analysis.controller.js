@@ -60,40 +60,93 @@ import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
  * It supports optional conversation context and different analysis types and output formats.
  * It also enforces subscription limits for authenticated users.
  *
+ * @security Guest Access / Authenticated User
+ * @permission Multi-tenant / User-isolated. Authenticated users are restricted by their subscription limits. Guests have auto-generated temporary IDs.
+ *
  * @param {import('express').Request & { file?: FileInfo, isGuest?: boolean, user?: { userId: string, _id: string } }} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
- * @api {post} /api/v1/document-analysis/analyze Analyze Document/Text
- * @apiName AnalyzeDocument
- * @apiGroup DocumentAnalysis
- * @apiDescription Analyze document or text content.
- *
- * @apiHeader {String} [Authorization] Bearer token for authenticated users.
- * @apiHeader {String} Content-Type multipart/form-data or application/json
- *
- * @apiBody {String} [message] The text content to analyze. Required if no file is uploaded.
- * @apiBody {String} [conversationId] The ID of an existing conversation to continue.
- * @apiBody {String} [analysisType] The type of analysis to perform (e.g., 'summary', 'qa').
- * @apiBody {String} [outputFormat] The desired format for the analysis output (e.g., 'markdown', 'json').
- * @apiBody {File} [file] The document file to upload for analysis. Required if no message is provided.
- *
- * @apiSuccess (200 OK) {Number} statusCode 200
- * @apiSuccess (200 OK) {Boolean} success true
- * @apiSuccess (200 OK) {String} message "Document analysis successful"
- * @apiSuccess (200 OK) {AnalyzeDocumentResponseData} data The analysis result and conversation details.
- *
- * @apiError (400 Bad Request) {Number} statusCode 400
- * @apiError (400 Bad Request) {Boolean} success false
- * @apiError (400 Bad Request) {String} message "Neither file nor message provided for analysis."
- *
- * @apiError (403 Forbidden) {Number} statusCode 403
- * @apiError (403 Forbidden) {Boolean} success false
- * @apiError (403 Forbidden) {String} message "Usage limit exceeded. Please upgrade your subscription."
- *
- * @apiError (500 Internal Server Error) {Number} statusCode 500
- * @apiError (500 Internal Server Error) {Boolean} success false
- * @apiError (500 Internal Server Error) {String} message "Internal Server Error"
+ * @openapi
+ * /api/v1/document-analysis/analyze:
+ *   post:
+ *     summary: Analyze document or text content
+ *     description: Processes either an uploaded document file or a text message for analysis. Enforces subscription limits for authenticated users.
+ *     tags:
+ *       - Document Analysis
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The text content to analyze. Required if no file is uploaded.
+ *               conversationId:
+ *                 type: string
+ *                 description: The ID of an existing conversation to continue.
+ *               analysisType:
+ *                 type: string
+ *                 description: The type of analysis to perform (e.g., 'summary', 'qa').
+ *               outputFormat:
+ *                 type: string
+ *                 description: The desired format for the analysis output (e.g., 'markdown', 'json').
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The document file to upload for analysis. Required if no message is provided.
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *               conversationId:
+ *                 type: string
+ *               analysisType:
+ *                 type: string
+ *               outputFormat:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Document analysis successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Document analysis successful"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversationId:
+ *                       type: string
+ *                     messageId:
+ *                       type: string
+ *                     response:
+ *                       type: string
+ *                     fileUrl:
+ *                       type: string
+ *       400:
+ *         description: Bad Request - Neither file nor message provided
+ *       403:
+ *         description: Forbidden - Usage limit exceeded
+ *       500:
+ *         description: Internal Server Error
  */
 export const analyzeDocument = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -177,31 +230,73 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  * @summary Retrieve the history of a specific conversation.
  * @description Fetches all messages and analysis results associated with a given conversation ID for the authenticated user.
  *
+ * @security Authenticated User
+ * @permission Multi-tenant / User-isolated. Users can only access conversations belonging to their own `userId`.
+ *
  * @param {import('express').Request & { user?: { userId: string, _id: string } }} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
- * @api {get} /api/v1/document-analysis/conversations/:conversationId Get Conversation History
- * @apiName GetConversationHistory
- * @apiGroup DocumentAnalysis
- * @apiDescription Retrieve the history of a specific conversation.
- *
- * @apiHeader {String} Authorization Bearer token for authenticated users.
- *
- * @apiParam {String} conversationId The unique identifier of the conversation.
- *
- * @apiSuccess (200 OK) {Number} statusCode 200
- * @apiSuccess (200 OK) {Boolean} success true
- * @apiSuccess (200 OK) {String} message "Conversation history retrieved successfully"
- * @apiSuccess (200 OK) {ConversationHistoryResponseData[]} data An array of conversation messages/turns.
- *
- * @apiError (404 Not Found) {Number} statusCode 404
- * @apiError (404 Not Found) {Boolean} success false
- * @apiError (404 Not Found) {String} message "Conversation not found or not accessible."
- *
- * @apiError (500 Internal Server Error) {Number} statusCode 500
- * @apiError (500 Internal Server Error) {Boolean} success false
- * @apiError (500 Internal Server Error) {String} message "Internal Server Error"
+ * @openapi
+ * /api/v1/document-analysis/conversations/{conversationId}:
+ *   get:
+ *     summary: Retrieve the history of a specific conversation
+ *     description: Fetches all messages and analysis results associated with a given conversation ID for the authenticated user.
+ *     tags:
+ *       - Document Analysis
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the conversation.
+ *     responses:
+ *       200:
+ *         description: Conversation history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Conversation history retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       conversationId:
+ *                         type: string
+ *                       userId:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       fileUrl:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *       404:
+ *         description: Conversation not found or not accessible
+ *       500:
+ *         description: Internal Server Error
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
