@@ -18,7 +18,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_SECRET_KEY });
 const AGENT_TYPE = process.env.AGENT_TYPE || 'fixer'; // fixer, tester, optimizer, documenter
 const ZONE_ID = process.env.ZONE_ID || '1';
 const ASSIGNED_MODULES = JSON.parse(process.env.ASSIGNED_MODULES || '[]');
-const MODEL_NAME = 'gemini-3.5-flash'; // Optimized cost model requested by user
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-pro'; // Upgrade to Pro model to leverage user's Ultra subscription plan
 
 console.log(`Starting Swarm Worker - Type: ${AGENT_TYPE.toUpperCase()}, Zone: ${ZONE_ID}, Modules: ${ASSIGNED_MODULES.join(', ')}`);
 
