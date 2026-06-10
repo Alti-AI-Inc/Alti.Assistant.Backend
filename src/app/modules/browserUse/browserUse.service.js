@@ -49,7 +49,9 @@ const validateUserAndTenantContext = async (userId, req) => {
   if (!req || !req.user) return;
 
   const actor = req.user; // The authenticated user making the request
-  const targetUser = await User.findById(userId);
+  // OPTIMIZATION: Added .lean() for a small performance boost on read-only operations.
+  // This returns a plain JavaScript object instead of a full Mongoose document, reducing memory overhead.
+  const targetUser = await User.findById(userId).lean();
 
   if (!targetUser) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found');
@@ -86,12 +88,16 @@ const validateUserAndTenantContext = async (userId, req) => {
  * @throws {ApiError} Throws a `PAYMENT_REQUIRED` error if the user's usage limit is exceeded.
  */
 const propagateUsageAndCheckLimits = async (userId, tenantId) => {
-  const user = await User.findById(userId);
+  // OPTIMIZATION: Added .lean() for a small performance boost on read-only operations.
+  const user = await User.findById(userId).lean();
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   // 1. Check Limits based on role
+  // OPTIMIZATION: For this query to be performant, an index on the 'user' field
+  // in the 'BrowserSession' collection is recommended.
+  // Example: `BrowserSession.collection.createIndex({ user: 1 })`
   const sessionCount = await BrowserSession.countDocuments({ user: userId });
   let limit = 100; // Default limit
   if (user.role === 'user') limit = 10;
@@ -107,32 +113,44 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
   }
 
   // 2. Propagate usage details and notifications up the hierarchy
+  // OPTIMIZATION: For this query to be performant, a compound index on '{ tenantId: 1, role: 1 }'
+  // in the 'User' collection is recommended.
+  // Example: `User.collection.createIndex({ tenantId: 1, role: 1 })`
   const managersAndAdmins = await User.find({
     tenantId: tenantId || user.tenantId,
     role: { $in: ['manager', 'admin'] },
     _id: { $ne: userId } // Don't notify self
-  });
+  }).lean(); // OPTIMIZATION: Added .lean() to fetch plain JS objects, reducing memory overhead.
 
   logger.info(
     `[Usage Propagation] User ${userId} (${user.role}) initiated a browser session. Current count: ${sessionCount + 1}/${limit}.`
   );
 
-  for (const supervisor of managersAndAdmins) {
-    logger.info(
-      `[Notification] Sent to ${supervisor.role} (ID: ${supervisor._id}): User ${userId} has consumed 1 browser session unit.`
+  // OPTIMIZATION: N+1 query problem fixed.
+  // The original code executed one update query per supervisor inside a loop.
+  // This has been replaced with a single `updateMany` operation,
+  // drastically reducing database round-trips and improving performance.
+  const supervisorIds = managersAndAdmins.map(s => s._id);
+
+  if (supervisorIds.length > 0) {
+    // Log notifications before the bulk update
+    managersAndAdmins.forEach(supervisor => {
+      logger.info(
+        `[Notification] Sent to ${supervisor.role} (ID: ${supervisor._id}): User ${userId} has consumed 1 browser session unit.`
+      );
+    });
+
+    // Perform a single bulk update for all supervisors who track managed usage
+    await User.updateMany(
+      { _id: { $in: supervisorIds }, managedUsage: { $exists: true } },
+      { $inc: { 'managedUsage.browserSessionsCount': 1 } }
     );
-    
-    // Safely increment managed usage if tracked on the supervisor
-    if (supervisor.managedUsage) {
-      await User.findByIdAndUpdate(supervisor._id, {
-        $inc: { 'managedUsage.browserSessionsCount': 1 }
-      });
-    }
   }
 
   // Also notify direct manager if specified on the user document
   if (user.managerId && user.managerId.toString() !== userId) {
-    const directManager = await User.findById(user.managerId);
+    // OPTIMIZATION: Added .lean() for a small performance boost on read-only operations.
+    const directManager = await User.findById(user.managerId).lean();
     if (directManager) {
       logger.info(
         `[Notification] Direct Manager (ID: ${directManager._id}) notified of user ${userId} activity.`
@@ -258,6 +276,9 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
     ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
     : { _id: sessionId, 'responses.taskId': taskId };
 
+  // OPTIMIZATION: For this query to be performant, especially if the 'responses' array can grow,
+  // an index on the 'responses.taskId' field is recommended.
+  // Example: `BrowserSession.collection.createIndex({ 'responses.taskId': 1 })`
   const session = await BrowserSession.findOne(query);
   if (!session) {
     throw new ApiError(
@@ -313,6 +334,9 @@ const getSessionsForUserService = async (userId, req = null) => {
     await validateUserAndTenantContext(userId, req);
   }
   const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
+  // OPTIMIZATION: For this query to be performant (covering both filter and sort),
+  // a compound index on '{ user: 1, updatedAt: -1 }' is recommended.
+  // Example: `BrowserSession.collection.createIndex({ user: 1, updatedAt: -1 })`
   const sessions = await BrowserSession.find(query)
     .select({
       'responses.prompt': { $slice: 1 },
