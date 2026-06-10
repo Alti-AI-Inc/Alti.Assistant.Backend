@@ -95,6 +95,7 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
   }
 
   // 2. Verify dataset count limit
+  // --- PERFORMANCE: Ensure an index exists on { 'workspace': 1 } in the 'datasets' collection for this query. A compound index on { 'workspace': 1, 'datasetId': 1 } would also cover this. ---
   const currentDatasetCount = await Dataset.countDocuments({ workspace: workspaceId });
   if (currentDatasetCount >= (workspace.plan?.limits?.maxDatasets ?? 5)) { // Default to 5 if no plan is set
     throw new Error(`Workspace ${workspaceId} has reached its maximum dataset limit of ${workspace.plan.limits.maxDatasets}.`);
@@ -103,6 +104,7 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
 
   try {
     const info = await DatasetsService.getHFDatasetInfo(datasetId);
+    // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     let dataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
 
     if (!dataset) {
@@ -165,6 +167,7 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
   } catch (error) {
     logger.error(`[Temporal Activity] Failed to archive dataset ${datasetId} for workspace ${workspaceId}: ${error.message}`);
     // Ensure dataset is marked as failed on any error during this critical step
+    // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     const failedDataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
     if (failedDataset && failedDataset.status !== 'failed') {
       failedDataset.status = 'failed';
@@ -188,13 +191,15 @@ export async function indexRAGActivity(datasetId, workspaceId) {
   logger.info(`[Temporal Activity] Indexing dataset into pgvector RAG: ${datasetId} for Workspace: ${workspaceId}`);
   try {
     // --- IMPROVEMENT: Query dataset with workspaceId to ensure data tenancy ---
+    // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     const dataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
     if (!dataset) {
       throw new Error(`Dataset ${datasetId} not found in catalog for workspace ${workspaceId}.`);
     }
     
+    // --- PERFORMANCE: Use .lean() for read-only queries to bypass Mongoose document hydration, improving speed. ---
     // A lightweight check to ensure the workspace is still active before compute-intensive indexing
-    const workspace = await Workspace.findById(workspaceId, 'subscription.status');
+    const workspace = await Workspace.findById(workspaceId, 'subscription.status').lean();
     if (workspace?.subscription?.status !== 'active') {
         throw new Error(`Workspace ${workspaceId} subscription is no longer active. Indexing aborted.`);
     }
@@ -217,6 +222,7 @@ export async function indexRAGActivity(datasetId, workspaceId) {
   } catch (error) {
     logger.error(`[Temporal Activity] Failed to index dataset ${datasetId} for workspace ${workspaceId}: ${error.message}`);
     // Ensure dataset is marked as failed on any error during indexing
+    // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     const failedDataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
     if (failedDataset) {
       failedDataset.status = 'failed';
@@ -262,6 +268,7 @@ export async function purgeCorruptDatasetActivity(datasetId, workspaceId) {
     }
 
     // 2. Mark queue item as failed (if applicable)
+    // --- PERFORMANCE: Ensure a compound index on { 'workspaceId': 1, 'datasetId': 1 } exists for the 'datasetqueues' collection. ---
     const queueItem = await DatasetQueue.findOne({ datasetId, workspaceId });
     if (queueItem) {
       queueItem.status = 'failed';
@@ -270,6 +277,7 @@ export async function purgeCorruptDatasetActivity(datasetId, workspaceId) {
     }
 
     // 3. Update dataset catalog entry and roll back workspace usage stats
+    // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     const dataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
     if (dataset) {
       const storageBytesToReclaim = dataset.sizeBytes ?? 0;
@@ -281,19 +289,17 @@ export async function purgeCorruptDatasetActivity(datasetId, workspaceId) {
       dataset.sizeBytes = 0;
       await dataset.save();
 
-      // --- IMPROVEMENT: Roll back workspace usage stats to maintain accurate limits/billing ---
+      // --- IMPROVEMENT & PERFORMANCE: Roll back workspace usage stats to maintain accurate limits/billing. ---
+      // The findById check is removed as updateOne is atomic and will safely do nothing if the workspace doesn't exist, saving a DB query.
       if (workspaceId && wasSuccessfullyArchived) {
-        const workspace = await Workspace.findById(workspaceId);
-        if (workspace) {
-          logger.info(`[Temporal Saga] Rolling back usage stats for workspace ${workspaceId}.`);
-          // Use $inc to prevent race conditions
-          await Workspace.updateOne({ _id: workspaceId }, {
-            $inc: {
-              'usage.datasetCount': -1,
-              'usage.storageBytes': -storageBytesToReclaim
-            }
-          });
-        }
+        logger.info(`[Temporal Saga] Attempting to roll back usage stats for workspace ${workspaceId}.`);
+        // Use $inc to prevent race conditions. This is an atomic operation.
+        await Workspace.updateOne({ _id: workspaceId }, {
+          $inc: {
+            'usage.datasetCount': -1,
+            'usage.storageBytes': -storageBytesToReclaim
+          }
+        });
       }
     }
 
