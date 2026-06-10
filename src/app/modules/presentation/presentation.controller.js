@@ -14,7 +14,7 @@ import { uploadPresentationToGCS } from './services/gcsUploadService.js'; // Mov
  * @typedef {object} PresentationAssistantRequest
  * @property {string} message - The user's natural language message for presentation generation.
  * @property {string} [conversationId] - Optional ID of an existing conversation to continue.
- * @property {string} [userId] - Optional user ID, primarily for guest users or overriding.
+ * @property {string} [userId] - Optional user ID, used to maintain session for guest users. Authenticated users' ID is taken from their session.
  */
 
 /**
@@ -288,7 +288,7 @@ export const generatePresentation = catchAsync(async (req, res) => {
  * @apiGroup Presentation
  * @apiParam {string} [taskId] - The ID of the task to check. Required if `conversationId` is not provided.
  * @apiQuery {string} [conversationId] - Optional. If provided, the `taskId` will be retrieved from the conversation's metadata.
- * @apiQuery {string} [userId] - Optional. User ID for guest users or overriding.
+ * @apiQuery {string} [userId] - Optional. User ID for guest users to maintain their session. Ignored for authenticated users.
  * @apiSuccess {number} statusCode 200 - Task status retrieved successfully.
  * @apiSuccess {boolean} success true - Indicates success.
  * @apiSuccess {string} message 'Task status retrieved successfully'
@@ -474,20 +474,23 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
 
 /**
  * Edit existing presentation
- * @description This endpoint allows for editing an existing presentation by providing its ID and an array of slide modifications.
+ * @description This endpoint allows for editing an existing presentation by providing its ID and an array of slide modifications. Requires user authentication.
  * @summary Edit Existing Presentation
  * @tags Presentation
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  * @api {post} /api/v1/presentation/edit Edit Presentation
- * @apiDescription Edits an existing presentation based on provided slide modifications.
+ * @apiDescription Edits an existing presentation based on provided slide modifications. The user must be authenticated and own the presentation.
  * @apiGroup Presentation
+ * @apiPermission authenticated
  * @apiBody {EditPresentationRequest} body - The request body containing presentation ID, slide changes, and export format.
  * @apiSuccess {number} statusCode 200 - Presentation edited successfully.
  * @apiSuccess {boolean} success true - Indicates success.
  * @apiSuccess {string} message 'Presentation edited successfully'
  * @apiSuccess {EditPresentationResponse} data - The response data, including download and edit URLs.
+ * @apiError {number} statusCode 401 - Unauthorized. User is not authenticated.
+ * @apiError {number} statusCode 403 - Forbidden. User does not have permission to edit this presentation.
  * @apiError {number} statusCode 500 - An error occurred while editing the presentation.
  * @apiError {boolean} success false - Indicates failure.
  * @apiError {string} message 'Failed to edit presentation'
@@ -543,20 +546,23 @@ export const editPresentation = catchAsync(async (req, res) => {
 
 /**
  * Derive new presentation from existing one
- * @description This endpoint allows creating a new presentation based on an existing one, potentially with modifications to slides.
+ * @description This endpoint allows creating a new presentation based on an existing one, potentially with modifications to slides. Requires user authentication.
  * @summary Derive New Presentation
  * @tags Presentation
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  * @api {post} /api/v1/presentation/derive Derive Presentation
- * @apiDescription Creates a new presentation by deriving content from an existing one.
+ * @apiDescription Creates a new presentation by deriving content from an existing one. The user must be authenticated and have access to the source presentation.
  * @apiGroup Presentation
+ * @apiPermission authenticated
  * @apiBody {DerivePresentationRequest} body - The request body containing the source presentation ID, new slide content, and export format.
  * @apiSuccess {number} statusCode 200 - New presentation created successfully.
  * @apiSuccess {boolean} success true - Indicates success.
  * @apiSuccess {string} message 'New presentation created successfully'
  * @apiSuccess {DerivePresentationResponse} data - The response data, including download and edit URLs for the new presentation.
+ * @apiError {number} statusCode 401 - Unauthorized. User is not authenticated.
+ * @apiError {number} statusCode 403 - Forbidden. User does not have permission to access the source presentation.
  * @apiError {number} statusCode 500 - An error occurred while deriving the presentation.
  * @apiError {boolean} success false - Indicates failure.
  * @apiError {string} message 'Failed to create new presentation'
@@ -607,20 +613,23 @@ export const derivePresentation = catchAsync(async (req, res) => {
 
 /**
  * Get presentation details
- * @description This endpoint retrieves the full details of a specific presentation using its ID.
+ * @description This endpoint retrieves the full details of a specific presentation using its ID. Requires user authentication.
  * @summary Get Presentation Details
  * @tags Presentation
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  * @api {get} /api/v1/presentation/:presentationId Get Presentation
- * @apiDescription Retrieves the details of a specific presentation.
+ * @apiDescription Retrieves the details of a specific presentation. The user must be authenticated and have access to the presentation.
  * @apiGroup Presentation
+ * @apiPermission authenticated
  * @apiParam {string} presentationId - The ID of the presentation to retrieve.
  * @apiSuccess {number} statusCode 200 - Presentation retrieved successfully.
  * @apiSuccess {boolean} success true - Indicates success.
  * @apiSuccess {string} message 'Presentation retrieved successfully'
  * @apiSuccess {GetPresentationResponse} data - The presentation details.
+ * @apiError {number} statusCode 401 - Unauthorized. User is not authenticated.
+ * @apiError {number} statusCode 403 - Forbidden. User does not have permission to view this presentation.
  * @apiError {number} statusCode 500 - An error occurred while retrieving the presentation.
  * @apiError {boolean} success false - Indicates failure.
  * @apiError {string} message 'Failed to retrieve presentation'

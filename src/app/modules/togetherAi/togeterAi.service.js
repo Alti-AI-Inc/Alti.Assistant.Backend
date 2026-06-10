@@ -6,9 +6,22 @@
  * and include PII masking.
  */
 
+import winston from 'winston';
 // Use the official Google Cloud Vertex AI SDK for enterprise features and security
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
+
+// Create a Winston logger configured for GCP Cloud Logging (Stackdriver).
+// When logs are output as JSON to stdout/stderr, GCP Cloud Logging automatically
+// parses them. It recognizes the 'level' property (e.g., 'info', 'error') and
+// correctly maps it to the 'severity' field in the log entry.
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console(),
+  ],
+});
 
 // Initialize Vertex AI with project and location.
 // It will use Application Default Credentials (ADC) for authentication.
@@ -81,31 +94,86 @@ const maskPII = (text) => {
  */
 const TogetherAiImgGenerationService = async (data) => {
   const { user, sessionId, prompt } = data;
-  if (!prompt) throw new Error('Prompt is required for image generation.');
 
-  // IMPORTANT: Sanitize the prompt to remove PII before sending it to the model.
-  const sanitizedPrompt = maskPII(prompt);
+  // Log the start of the service call with structured data for traceability.
+  logger.info({
+    message: 'Image generation service invoked.',
+    component: 'TogetherAiImgGenerationService',
+    user,
+    sessionId,
+  });
 
-  const request = {
-    prompt: sanitizedPrompt,
-    number_of_images: 1,
-    aspect_ratio: '1:1',
-  };
+  try {
+    if (!prompt) {
+      // Log validation failures as warnings.
+      logger.warn({
+        message: 'Validation failed: Prompt is required.',
+        component: 'TogetherAiImgGenerationService',
+        user,
+        sessionId,
+      });
+      throw new Error('Prompt is required for image generation.');
+    }
 
-  // Call the Vertex AI Imagen model with the sanitized prompt and safety settings applied.
-  const response = await imagenModel.generateImages(request);
+    // IMPORTANT: Sanitize the prompt to remove PII before sending it to the model.
+    const sanitizedPrompt = maskPII(prompt);
 
-  // Return in compatible format
-  const generatedImage = response.generatedImages?.[0];
-  if (!generatedImage?.imageBytes) {
-    throw new Error('Imagen returned no image data.');
+    const request = {
+      prompt: sanitizedPrompt,
+      number_of_images: 1,
+      aspect_ratio: '1:1',
+    };
+
+    // Call the Vertex AI Imagen model with the sanitized prompt and safety settings applied.
+    const response = await imagenModel.generateImages(request);
+
+    // Return in compatible format
+    const generatedImage = response.generatedImages?.[0];
+    if (!generatedImage?.imageBytes) {
+      // Log errors when the external API call does not return the expected data.
+      logger.error({
+        message: 'Vertex AI Imagen API returned no image data.',
+        component: 'TogetherAiImgGenerationService',
+        user,
+        sessionId,
+        apiResponse: response, // Include API response for debugging.
+      });
+      throw new Error('Imagen returned no image data.');
+    }
+
+    // Log successful completion of the operation.
+    logger.info({
+      message: 'Image generation successful.',
+      component: 'TogetherAiImgGenerationService',
+      user,
+      sessionId,
+    });
+
+    return {
+      data: [{
+        url: `data:image/png;base64,${Buffer.from(generatedImage.imageBytes).toString('base64')}`,
+      }],
+    };
+  } catch (error) {
+    // Catch and log any unexpected errors that were not handled above.
+    // This check prevents double-logging errors that are explicitly thrown and logged.
+    if (error.message !== 'Prompt is required for image generation.' && error.message !== 'Imagen returned no image data.') {
+      logger.error({
+        message: 'An unexpected error occurred during image generation.',
+        component: 'TogetherAiImgGenerationService',
+        user,
+        sessionId,
+        // Including the error message and stack provides crucial debugging information.
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+      });
+    }
+    // Re-throw the error to allow upstream error handlers to process it.
+    throw error;
   }
-
-  return {
-    data: [{
-      url: `data:image/png;base64,${Buffer.from(generatedImage.imageBytes).toString('base64')}`,
-    }],
-  };
 };
 
 /**
