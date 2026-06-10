@@ -103,6 +103,8 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
     // Centralized error handling for the entire workflow.
     // This block handles failures from setup (imports) and all subsequent activities.
     logger.error({
+      // GCP Cloud Logging: Added 'severity' key for automatic parsing.
+      severity: 'ERROR',
       message: `[Temporal RAG Ingestion Orchestrator] Critical ingestion failure. Initiating rollback compensation.`,
       docId,
       userId,
@@ -124,6 +126,8 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
       } catch (purgeError) {
         // Log the failure of the cleanup activity itself, as this is a critical state.
         logger.error({
+          // GCP Cloud Logging: Added 'severity' key for automatic parsing.
+          severity: 'ERROR',
           message: `[Temporal RAG Ingestion Orchestrator] FATAL: Failed to execute compensating rollback activity. Manual cleanup may be required.`,
           docId,
           userId,
