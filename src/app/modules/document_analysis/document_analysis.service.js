@@ -17,21 +17,37 @@ import {
 } from './document_analysis.constant.js';
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using Mongoose's ObjectId.
+ * This ID can be used for unauthenticated users to track their analysis sessions.
+ *
+ * @returns {string} A unique guest user ID.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for document analysis sessions.
+ * The ID is a combination of a timestamp and a random string to ensure uniqueness.
+ *
+ * @returns {string} A unique conversation ID string.
  */
 const generateConversationId = () => {
   return `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Add a message to a conversation
+ * Adds a new message (either from the user or the assistant) to an existing conversation.
+ * This function interacts with the `conversationService` to persist the message.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the message sender ('user' or 'assistant').
+ * @param {string} content - The actual content of the message.
+ * @param {object} [metadata={}] - Optional metadata associated with the message.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object | null} [req=null] - Optional Express request object, potentially for context or logging.
+ * @returns {Promise<object>} The updated conversation object after adding the message.
  */
 const addMessage = async (
   conversationId,
@@ -57,7 +73,17 @@ const addMessage = async (
 };
 
 /**
- * Handle document analysis conversation (create or retrieve)
+ * Handles the creation or retrieval of a document analysis conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
+ *
+ * @param {string} userId - The ID of the user initiating the analysis.
+ * @param {string | null} conversationId - The ID of an existing conversation, or `null` to create a new one.
+ * @param {string} userMessage - The initial user message or prompt for the analysis, used for the conversation title.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object | null} [req=null] - Optional Express request object.
+ * @returns {Promise<object>} The conversation object (either newly created or retrieved).
+ * @throws {ApiError} If there's an internal server error during conversation handling.
  */
 const handleAnalysisConversation = async (
   userId,
@@ -127,7 +153,34 @@ const handleAnalysisConversation = async (
 };
 
 /**
- * Main analysis service - processes text or file content
+ * The main service function for processing text or file content, performing analysis,
+ * and managing the conversation flow. It handles file validation, content extraction,
+ * conversation creation/retrieval, AI analysis (with or without context), and
+ * saving messages and metadata to the conversation.
+ *
+ * @param {string} userId - The ID of the user performing the analysis.
+ * @param {string | null} message - The user's text message for analysis. Can be `null` if `fileInfo` is provided.
+ * @param {object | null} fileInfo - Information about an uploaded file, if any.
+ *   - `fileInfo.path` {string} The temporary path where the file is stored.
+ *   - `fileInfo.originalname` {string} The original name of the uploaded file.
+ *   - `fileInfo.filename` {string} The unique filename assigned to the uploaded file.
+ * @param {string | null} conversationId - The ID of an existing conversation, or `null` to start a new one.
+ * @param {string} analysisType - The type of analysis to perform (e.g., 'summary', 'keywords').
+ * @param {string} outputFormat - The desired output format for the analysis (e.g., 'text', 'json').
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object | null} [req=null] - Optional Express request object.
+ * @returns {Promise<object>} An object containing the analysis result, conversation ID, and metadata.
+ * @returns {boolean} return.success - Always `true` if the analysis was successful.
+ * @returns {string} return.conversationId - The ID of the conversation where the analysis took place.
+ * @returns {string} return.analysis - The actual analysis result from the AI.
+ * @returns {string} [return.userId] - (Only for guest users) The ID of the guest user.
+ * @returns {object} return.metadata - Additional metadata about the analysis.
+ * @returns {string} return.metadata.analysisType - The type of analysis performed.
+ * @returns {string} return.metadata.outputFormat - The format of the analysis output.
+ * @returns {string} return.metadata.model - The AI model used for analysis.
+ * @returns {boolean} return.metadata.fileProcessed - `true` if a file was processed, `false` otherwise.
+ * @returns {string | null} return.metadata.fileName - The original name of the processed file, if any.
+ * @throws {ApiError} If no content is provided, file validation fails, file processing fails, or analysis fails.
  */
 const analyzeContent = async (
   userId,
@@ -325,7 +378,19 @@ const analyzeContent = async (
 };
 
 /**
- * Get conversation history
+ * Retrieves the complete history of a specific conversation, including its title, messages, and metadata.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {object | null} [req=null] - Optional Express request object.
+ * @returns {Promise<object>} An object containing the conversation details and messages.
+ * @returns {string} return.conversationId - The ID of the conversation.
+ * @returns {string} return.title - The title of the conversation.
+ * @returns {Array<object>} return.messages - An array of message objects in the conversation.
+ * @returns {object} return.metadata - Additional metadata associated with the conversation.
+ * @returns {Date} return.createdAt - The creation timestamp of the conversation.
+ * @returns {Date} return.updatedAt - The last update timestamp of the conversation.
+ * @throws {ApiError} If the conversation is not found or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
@@ -368,6 +433,20 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
   }
 };
 
+/**
+ * @typedef {object} DocumentAnalysisService
+ * @property {function(string, string | null, object | null, string | null, string, string, boolean, object | null): Promise<object>} analyzeContent - Main service function to analyze content.
+ * @property {function(string, string, object | null): Promise<object>} getConversationHistory - Retrieves the history of a specific conversation.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
+ * @property {function(): string} generateConversationId - Generates a unique ID for new conversations.
+ */
+
+/**
+ * Provides a collection of services related to document analysis and conversation management.
+ * This includes functions for content analysis, conversation history retrieval, and ID generation.
+ *
+ * @type {DocumentAnalysisService}
+ */
 export const documentAnalysisService = {
   analyzeContent,
   getConversationHistory,
