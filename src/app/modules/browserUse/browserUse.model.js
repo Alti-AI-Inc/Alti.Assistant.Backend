@@ -168,7 +168,8 @@ const browserSessionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       default: null,
-      index: true, // Added simple index for tenant-specific queries
+      // A single-field index on tenantId is not needed as it is the prefix of two other compound indexes.
+      // Removing it reduces write overhead and index storage space.
     },
     /**
      * Flexible key-value store for platform-level data.
@@ -204,6 +205,7 @@ browserSessionSchema.index({ createdAt: -1 });
 /**
  * Primary Tenant-User Index: For efficient querying by tenant, user, and creation date.
  * This is the main index for drilling down into specific tenant and user activity.
+ * This index also covers queries for `tenantId` alone and `{ tenantId, user }`.
  * @memberof BrowserSession
  * @index
  * @property {1} tenantId - Ascending order for tenant ID.
@@ -214,6 +216,7 @@ browserSessionSchema.index({ tenantId: 1, user: 1, createdAt: -1 });
 
 /**
  * Tenant-wide Log Index: For efficient querying of a specific tenant's recent activity.
+ * This is necessary for queries that filter by tenant and sort by date without specifying a user.
  * @memberof BrowserSession
  * @index
  * @property {1} tenantId - Ascending order for tenant ID.
