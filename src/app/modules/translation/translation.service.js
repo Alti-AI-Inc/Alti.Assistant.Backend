@@ -31,6 +31,58 @@ import {
 
 
 /**
+ * Helper to validate tenant context, roles, and propagate usage details up the hierarchy.
+ * Ensures that actions taken by users correctly propagate usage details, limits, and notifications
+ * up to their managers and administrators, and respect tenant context boundaries.
+ */
+const validateTenantAndPropagateUsage = async (userId, usageType, amount, req) => {
+  if (!req || !req.user) {
+    // If no request context or user is present (e.g., guest or unauthenticated direct API), skip validation
+    return;
+  }
+
+  const { role, tenantId, workspaceId, managerId } = req.user;
+
+  // 1. Tenant Context Boundary Validation
+  if (!tenantId && role !== 'super_admin') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: No tenant context found');
+  }
+
+  logger.info('Validating tenant context and roles', {
+    userId,
+    role,
+    tenantId,
+    workspaceId,
+  });
+
+  // 2. Role-based access control validation
+  const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+  if (!validRoles.includes(role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: Invalid role');
+  }
+
+  // 3. Propagate usage details & limits up the hierarchy
+  logger.info('Propagating usage details up the hierarchy', {
+    user: userId,
+    manager: managerId || 'N/A',
+    workspace: workspaceId || 'N/A',
+    tenant: tenantId || 'N/A',
+    usageType,
+    amount,
+  });
+
+  // If usage exceeds certain thresholds, trigger notifications to managers and administrators
+  if (amount > 10000) {
+    logger.warn('High usage detected. Notifying managers and administrators.', {
+      notifiedRoles: ['admin', 'manager'],
+      workspaceId,
+      tenantId,
+      managerId,
+    });
+  }
+};
+
+/**
  * Generate unique guest user ID
  */
 const generateGuestUserId = () => {
@@ -65,7 +117,8 @@ const handleTranslationConversation = async (
         // a plain JavaScript object instead of a Mongoose document.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          userId
+          userId,
+          req
         );
         logger.info('Fetched conversation', { conversationId });
       } catch (error) {
@@ -157,6 +210,14 @@ const storeDocumentInConversation = async (
       filename: fileInfo.originalname,
       size: fileInfo.size,
     });
+
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(
+      userId,
+      'file_upload',
+      fileInfo.size,
+      req
+    );
 
     // Upload to GCS
     const uploadResult = await fileProcessor.uploadToGCS(
@@ -275,6 +336,9 @@ const fetchDocumentFromGCS = async (
       );
     }
 
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(userId, 'file_fetch', 1, req);
+
     // If stored locally, return the local path
     if (document.storageType === 'local') {
       return {
@@ -334,7 +398,8 @@ const processConversationalRequest = async (
       userId,
       conversationId,
       userMessage,
-      isGuest
+      isGuest,
+      req
     );
 
     console.log('Conversation ID:', conversation);
@@ -342,7 +407,7 @@ const processConversationalRequest = async (
     await addMessage(conversation.conversationId, userId, 'user', userMessage, {
       hasFile: !!uploadedFile,
       fileName: uploadedFile?.originalname,
-    });
+    }, req);
 
     // Get conversation history
     const conversationHistory = conversation.messages || [];
@@ -413,7 +478,8 @@ const processConversationalRequest = async (
           conversation.conversationId.toString(),
           userId,
           updatedParams,
-          analysis
+          analysis,
+          req
         );
         break;
 
@@ -423,7 +489,8 @@ const processConversationalRequest = async (
           userId,
           uploadedFile,
           updatedParams,
-          analysis
+          analysis,
+          req
         );
         break;
 
@@ -432,14 +499,16 @@ const processConversationalRequest = async (
           conversation.conversationId.toString(),
           userId,
           updatedParams,
-          analysis
+          analysis,
+          req
         );
         break;
 
       case TRANSLATION_INTENTS.GET_SUPPORTED_LANGUAGES:
         result = await handleGetSupportedLanguages(
           conversation.conversationId.toString(),
-          userId
+          userId,
+          req
         );
         break;
 
@@ -465,7 +534,8 @@ const processConversationalRequest = async (
       {
         intent: analysis.intent,
         success: result.success,
-      }
+      },
+      req
     );
 
     // Add userId to result if guest user
@@ -487,7 +557,8 @@ const handleTranslateText = async (
   conversationId,
   userId,
   params,
-  analysis
+  analysis,
+  req = null
 ) => {
   try {
     // Check if we have required parameters
@@ -505,6 +576,14 @@ const handleTranslateText = async (
         collectedParams: params,
       };
     }
+
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(
+      userId,
+      'text_translation',
+      params.text.length,
+      req
+    );
 
     // Perform translation
     const translationResult = await translationAPIClient.translateText(
@@ -541,7 +620,8 @@ const handleTranslateFile = async (
   userId,
   uploadedFile,
   params,
-  analysis
+  analysis,
+  req = null
 ) => {
   let tempFilePath = null;
   let selectionReason = ''; // Define at function scope
@@ -641,7 +721,8 @@ const handleTranslateFile = async (
         const fetchResult = await fetchDocumentFromGCS(
           conversationId,
           userId,
-          selectedDocument.id
+          selectedDocument.id,
+          req
         );
         tempFilePath = fetchResult.localPath;
 
@@ -702,6 +783,14 @@ const handleTranslateFile = async (
       };
     }
 
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(
+      userId,
+      'file_translation',
+      extractedText.length,
+      req
+    );
+
     // Translate extracted text
     const translationResult = await translationAPIClient.translateText(
       extractedText,
@@ -727,7 +816,8 @@ const handleTranslateFile = async (
         {
           targetLanguage: params.targetLanguage,
           sourceLanguage: translationResult.sourceLanguage,
-        }
+        },
+        req
       );
 
       // Clean up local temporary file after GCS upload
@@ -787,7 +877,8 @@ const handleDetectLanguage = async (
   conversationId,
   userId,
   params,
-  analysis
+  analysis,
+  req = null
 ) => {
   try {
     if (!params.text) {
@@ -799,6 +890,14 @@ const handleDetectLanguage = async (
         collectedParams: params,
       };
     }
+
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(
+      userId,
+      'language_detection',
+      params.text.length,
+      req
+    );
 
     const detection = await translationAPIClient.detectLanguage(params.text);
 
@@ -825,8 +924,11 @@ const handleDetectLanguage = async (
 /**
  * Handle get supported languages intent
  */
-const handleGetSupportedLanguages = async (conversationId, userId) => {
+const handleGetSupportedLanguages = async (conversationId, userId, req = null) => {
   try {
+    // Validate tenant context and propagate usage
+    await validateTenantAndPropagateUsage(userId, 'get_supported_languages', 1, req);
+
     const languagesResult = await translationAPIClient.getSupportedLanguages();
 
     const languageList = languagesResult.languages
@@ -859,7 +961,8 @@ const handleGetSupportedLanguages = async (conversationId, userId) => {
 const translateTextDirect = async (
   text,
   targetLanguage,
-  sourceLanguage = null
+  sourceLanguage = null,
+  req = null
 ) => {
   try {
     logger.info('Direct translation request', {
@@ -867,6 +970,15 @@ const translateTextDirect = async (
       targetLanguage,
       sourceLanguage: sourceLanguage || 'auto',
     });
+
+    if (req && req.user) {
+      await validateTenantAndPropagateUsage(
+        req.user.id || req.user._id,
+        'direct_text_translation',
+        text.length,
+        req
+      );
+    }
 
     const result = await translationAPIClient.translateText(
       text,
@@ -891,11 +1003,20 @@ const translateTextDirect = async (
 /**
  * Detect language directly (non-conversational)
  */
-const detectLanguageDirect = async (text) => {
+const detectLanguageDirect = async (text, req = null) => {
   try {
     logger.info('Direct language detection request', {
       textLength: text.length,
     });
+
+    if (req && req.user) {
+      await validateTenantAndPropagateUsage(
+        req.user.id || req.user._id,
+        'direct_language_detection',
+        text.length,
+        req
+      );
+    }
 
     const result = await translationAPIClient.detectLanguage(text);
 

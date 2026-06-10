@@ -24,6 +24,7 @@ const STOPWORDS = new Set([
  * Converts text to lowercase, removes non-alphanumeric characters, splits by whitespace,
  * and filters out short words (length <= 2) and common stopwords.
  *
+ * @function tokenize
  * @param {string} text - The input text to tokenize.
  * @returns {string[]} An array of filtered tokens.
  */
@@ -40,6 +41,7 @@ const tokenize = (text) => {
  * Computes the Jaccard similarity coefficient between two token arrays.
  * Jaccard similarity is calculated as the size of the intersection divided by the size of the union.
  *
+ * @function jaccardSimilarity
  * @param {string[]} tokensA - The first array of tokens.
  * @param {string[]} tokensB - The second array of tokens.
  * @returns {number} The similarity score between 0 and 1.
@@ -59,8 +61,11 @@ const jaccardSimilarity = (tokensA, tokensB) => {
 /**
  * Records a successful query-answer pair into cross-session memory.
  * Deduplicates queries by checking Jaccard similarity against recent entries.
+ * Strictly scopes records by `userId` to ensure multi-tenant data isolation.
  *
- * @param {string} userId - The unique identifier of the user.
+ * @async
+ * @function recordQuery
+ * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
  * @param {string} query - The user's query.
  * @param {string} answer - The generated answer.
  * @param {string} [engine='vector'] - The engine that produced the answer.
@@ -108,8 +113,11 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
 /**
  * Retrieves the top-N semantically relevant prior query-answer pairs for a new query.
  * Uses Jaccard similarity to rank and filter candidates from the user's history.
+ * Strictly scopes queries by `userId` to ensure multi-tenant data isolation.
  *
- * @param {string} userId - The unique identifier of the user.
+ * @async
+ * @function getRelevantHistory
+ * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
  * @param {string} currentQuery - The current user query to match against.
  * @param {number} [limit=3] - Maximum number of results to return.
  * @param {number} [minSimilarity=0.2] - Minimum Jaccard similarity threshold.
@@ -151,8 +159,11 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
 /**
  * Builds a context injection block from relevant history entries.
  * Prepends prior Q&A pairs to the current query to provide the LLM with persistent memory context.
+ * Strictly scopes history retrieval by `userId` to ensure multi-tenant data isolation.
  *
- * @param {string} userId - The unique identifier of the user.
+ * @async
+ * @function buildMemoryEnrichedQuery
+ * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
  * @param {string} currentQuery - The current user query.
  * @returns {Promise<string>} The enriched query with prior context prepended, or the original query if no relevant history is found.
  */
@@ -186,8 +197,11 @@ ${currentQuery}`;
 
 /**
  * Retrieves a summary of stored memory for a user, useful for debugging and analytics.
+ * Strictly scopes aggregation by `userId` to ensure multi-tenant data isolation.
  *
- * @param {string} userId - The unique identifier of the user.
+ * @async
+ * @function getMemorySummary
+ * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
  * @returns {Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>} Summary object containing memory statistics.
  */
 const getMemorySummary = async (userId) => {
@@ -217,11 +231,13 @@ const getMemorySummary = async (userId) => {
 
 /**
  * Service object containing methods for managing and querying cross-session query memory.
+ * All operations are scoped by `userId` to maintain strict multi-tenant data isolation.
+ * 
  * @type {{
- *   recordQuery: Function,
- *   getRelevantHistory: Function,
- *   buildMemoryEnrichedQuery: Function,
- *   getMemorySummary: Function
+ *   recordQuery: (userId: string, query: string, answer: string, engine?: string, confidence?: number) => Promise<void>,
+ *   getRelevantHistory: (userId: string, currentQuery: string, limit?: number, minSimilarity?: number) => Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>,
+ *   buildMemoryEnrichedQuery: (userId: string, currentQuery: string) => Promise<string>,
+ *   getMemorySummary: (userId: string) => Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>
  * }}
  */
 export const queryMemoryService = {
