@@ -3,9 +3,25 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { llm } from './llm.js';
 
 /**
+ * @typedef {Object} HistoryItem
+ * @property {string} type - The type of the message sender (e.g., 'user', 'assistant').
+ * @property {string} message - The content of the message.
+ */
+
+/**
+ * @typedef {Object} ExtractedUrlResult
+ * @property {string|null} url - The extracted URL, or null if none found.
+ * @property {boolean} isYoutubeUrl - True if the extracted URL is from YouTube, false otherwise.
+ */
+
+/**
  * Analyzes the user's initial prompt and generates clarifying questions.
- * @param {string} initialPrompt - The user's first input.
- * @returns {Promise<string[]>} - An array of questions.
+ * Uses LangChain's PromptTemplate and JsonOutputParser to prompt the LLM
+ * for 3 to 5 open-ended questions to help build a more detailed image prompt.
+ *
+ * @async
+ * @param {string} initialPrompt - The user's first input describing their image idea.
+ * @returns {Promise<string[]>} An array of clarifying questions. Returns a default set of questions on failure.
  */
 export const generateClarifyingQuestions = async (initialPrompt) => {
   const parser = new JsonOutputParser();
@@ -42,8 +58,11 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
 
 /**
  * Analyzes the user's response to see if they are finished providing details.
+ * Evaluates whether the user's message indicates completion (e.g., "that's it", "I'm done").
+ *
+ * @async
  * @param {string} userResponse - The latest message from the user.
- * @returns {Promise<boolean>} - True if the user is finished, false otherwise.
+ * @returns {Promise<boolean>} True if the user indicates they are finished, false otherwise.
  */
 export const isUserFinished = async (userResponse) => {
   if (!userResponse) return false;
@@ -72,11 +91,15 @@ export const isUserFinished = async (userResponse) => {
 };
 
 /**
- * **NEW**: Updates the image prompt with new details from the user. This is the core of the memory.
+ * Updates the image prompt with new details from the user.
+ * This acts as the core memory mechanism, integrating new details into the existing prompt
+ * while maintaining context from the conversation history.
+ *
+ * @async
  * @param {string} currentPrompt - The current version of the detailed prompt.
- * @param {string} userResponse - The new information from the user.
- * @param {Array<{type: string, message: string}>} history - The conversation history for context.
- * @returns {Promise<string>} - The new, updated prompt.
+ * @param {string} userResponse - The new information or answer from the user.
+ * @param {HistoryItem[]} history - The conversation history for context.
+ * @returns {Promise<string>} The updated, cohesive prompt paragraph.
  */
 export const updateRefinedPrompt = async (
   currentPrompt,
@@ -125,8 +148,11 @@ export const updateRefinedPrompt = async (
 
 /**
  * Compiles all gathered details into a final, rich prompt for image generation.
+ * Currently returns the refined prompt directly, but serves as a placeholder for final polishing.
+ *
+ * @async
  * @param {string} finalRefinedPrompt - The final version of the refined prompt.
- * @returns {Promise<string>} - The final, detailed prompt.
+ * @returns {Promise<string>} The final, detailed prompt.
  */
 export const compileFinalPrompt = async (finalRefinedPrompt) => {
   // The refined prompt is already well-structured, so we can often use it directly.
@@ -136,8 +162,11 @@ export const compileFinalPrompt = async (finalRefinedPrompt) => {
 
 /**
  * Extracts a URL from user input using AI and checks if it's a YouTube URL.
- * @param {string} userInput - The user's input string.
- * @returns {Promise<{url: string|null, isYoutubeUrl: boolean}>} - An object containing the extracted URL and a flag indicating if it's a YouTube URL.
+ * Uses LangChain's JsonOutputParser to parse the structured JSON response from the LLM.
+ *
+ * @async
+ * @param {string} userInput - The raw input string from the user.
+ * @returns {Promise<ExtractedUrlResult>} An object containing the extracted URL and a flag indicating if it's a YouTube URL.
  */
 export const getUrlFromUserInputUsingAi = async (userInput) => {
   const parser = new JsonOutputParser(); // Add JsonOutputParser to parse the LLM's JSON string output
