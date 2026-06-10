@@ -34,7 +34,7 @@ const createPaymentIntentService = async (amount, currency, customerId) => {
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
     // Handle Stripe API errors or network issues to prevent unhandled promise rejections.
-    throw new Error('Failed to create payment intent.');
+    throw new Error(`Failed to create payment intent: ${error.message}`);
   }
 };
 
@@ -54,7 +54,7 @@ const getAllPaymentMethodsService = async (customerId) => {
     return paymentMethods.data;
   } catch (error) {
     // Handle Stripe API errors or network issues to prevent unhandled promise rejections.
-    throw new Error('Failed to retrieve payment methods.');
+    throw new Error(`Failed to retrieve payment methods: ${error.message}`);
   }
 };
 
@@ -71,7 +71,6 @@ const getAllPaymentMethodsService = async (customerId) => {
 const savePaymentMethodService = async (customerId, paymentMethodId) => {
   try {
     // Attach the payment method to the customer
-    // Removed console.log for production readiness and performance.
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: customerId,
     });
@@ -82,7 +81,42 @@ const savePaymentMethodService = async (customerId, paymentMethodId) => {
     return true;
   } catch (error) {
     // Handle Stripe API errors or network issues to prevent unhandled promise rejections.
-    throw new Error('Failed to save payment method.');
+    throw new Error(`Failed to save payment method: ${error.message}`);
+  }
+};
+
+/**
+ * Detaches a payment method from a customer. This is crucial for workspace owners to manage and delete old payment methods.
+ *
+ * @param {string} paymentMethodId - The ID of the Payment Method to detach.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the payment method is successfully detached.
+ * @throws {Error} If detaching the payment method fails due to Stripe API errors or network issues.
+ */
+const detachPaymentMethodService = async (paymentMethodId) => {
+  try {
+    await stripe.paymentMethods.detach(paymentMethodId);
+    return true;
+  } catch (error) {
+    throw new Error(`Failed to detach payment method: ${error.message}`);
+  }
+};
+
+/**
+ * Sets an existing payment method as the default payment method for a customer's invoices.
+ *
+ * @param {string} customerId - The ID of the Stripe customer.
+ * @param {string} paymentMethodId - The ID of the Payment Method to set as default.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the default payment method is successfully updated.
+ * @throws {Error} If updating the customer's default payment method fails.
+ */
+const setDefaultPaymentMethodService = async (customerId, paymentMethodId) => {
+  try {
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+    return true;
+  } catch (error) {
+    throw new Error(`Failed to set default payment method: ${error.message}`);
   }
 };
 
@@ -90,4 +124,6 @@ export {
   createPaymentIntentService,
   getAllPaymentMethodsService,
   savePaymentMethodService,
+  detachPaymentMethodService,
+  setDefaultPaymentMethodService,
 };

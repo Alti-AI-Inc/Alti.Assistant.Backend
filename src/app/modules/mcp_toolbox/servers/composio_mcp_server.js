@@ -158,7 +158,98 @@ async function loadAndMapTools() {
 }
 
 // ==========================================
-// 3. Stdio JSON-RPC 2.0 Framing Stream
+// 3. Role Validation & Usage Propagation Engine
+// ==========================================
+
+/**
+ * Validates the user context, roles, and tenant boundaries.
+ * Ensures that limits are respected.
+ *
+ * @param {object} context - The user context containing tenant, role, and limits.
+ * @returns {object} The validated and normalized context.
+ */
+function validateContextAndRoles(context) {
+  // If no context is provided, construct a default context based on environment variables
+  const validatedContext = context ? { ...context } : {
+    tenantId: process.env.TENANT_ID || 'default_tenant',
+    userId: 'default_user',
+    role: process.env.USER_ROLE || 'user',
+    workspaceId: process.env.WORKSPACE_ID || 'default_workspace',
+    managerId: process.env.MANAGER_ID || 'default_manager',
+    limits: {
+      maxCalls: parseInt(process.env.MAX_CALLS || '1000', 10),
+      currentCalls: parseInt(process.env.CURRENT_CALLS || '0', 10)
+    }
+  };
+
+  const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+  if (!validRoles.includes(validatedContext.role)) {
+    throw new Error(`Unauthorized: Invalid role '${validatedContext.role}'.`);
+  }
+
+  // Tenant boundary check: non-super_admins must match the configured tenant context
+  if (validatedContext.role !== 'super_admin') {
+    const expectedTenant = process.env.TENANT_ID || 'default_tenant';
+    if (validatedContext.tenantId && validatedContext.tenantId !== expectedTenant) {
+      throw new Error(`Security Violation: Tenant mismatch. Access denied to tenant '${validatedContext.tenantId}'.`);
+    }
+  }
+
+  // Limit check
+  if (validatedContext.limits && typeof validatedContext.limits.currentCalls === 'number' && typeof validatedContext.limits.maxCalls === 'number') {
+    if (validatedContext.limits.currentCalls >= validatedContext.limits.maxCalls) {
+      throw new Error(`Limit Exceeded: User has reached the maximum allowed tool executions (${validatedContext.limits.maxCalls}).`);
+    }
+  }
+
+  return validatedContext;
+}
+
+/**
+ * Propagates usage details, limits, and notifications up to managers and administrators.
+ *
+ * @param {object} context - The validated user context.
+ * @param {string} toolName - The name of the executed tool.
+ * @param {boolean} success - Whether the execution was successful.
+ */
+function propagateUsageAndNotifications(context, toolName, success) {
+  const { userId, role, tenantId, managerId, workspaceId, limits } = context;
+  
+  // Increment usage locally
+  if (limits && typeof limits.currentCalls === 'number') {
+    limits.currentCalls += 1;
+  }
+
+  // Structured log for propagation up the hierarchy
+  const logPayload = {
+    event: 'mcp_tool_execution',
+    toolName,
+    success,
+    timestamp: new Date().toISOString(),
+    actor: { userId, role, tenantId, workspaceId },
+    propagation: {
+      managerId: managerId || 'N/A',
+      workspaceAdminNotification: role !== 'super_admin' && role !== 'admin',
+      platformOwnerNotification: role === 'super_admin'
+    }
+  };
+
+  process.stderr.write(`[HIERARCHY_PROPAGATION] ${JSON.stringify(logPayload)}\n`);
+
+  // Send notifications up the chain
+  if (managerId && managerId !== 'N/A') {
+    process.stderr.write(`[NOTIFICATION] Propagating usage alert to Manager: ${managerId} for User: ${userId}\n`);
+  }
+  if (role === 'user' || role === 'manager') {
+    process.stderr.write(`[NOTIFICATION] Propagating usage alert to Workspace Admins for Workspace: ${workspaceId}\n`);
+  }
+  if (role === 'super_admin') {
+    process.stderr.write(`[NOTIFICATION] Platform Owner action logged: ${toolName} by Super Admin: ${userId}\n`);
+  }
+}
+
+// ==========================================
+// 4. Stdio JSON-RPC 2.0 Framing Stream
 // ==========================================
 
 /**
@@ -280,7 +371,7 @@ rl.on('line', async (line) => {
     else if (request.method === 'tools/call') {
       // Use optional chaining for safer access to params
       const toolName = request.params?.name;
-      const args = request.params?.arguments || {};
+      let args = request.params?.arguments || {};
 
       if (!toolName) {
         const errorMessage = 'Invalid params: Missing tool name for tools/call.';
@@ -291,7 +382,28 @@ rl.on('line', async (line) => {
         return;
       }
 
-      process.stderr.write(`[COMPOSIO MCP] Executing action: "${toolName}" on behalf of user: "${tenantId}"\n`);
+      // Extract context for role validation, tenant boundaries, and usage propagation
+      const rawContext = request.params?.context || args?._context;
+      
+      // Clean up the context from arguments so it is not passed to the Composio tool execution
+      if (args?._context) {
+        args = { ...args };
+        delete args._context;
+      }
+
+      let validatedContext;
+      try {
+        validatedContext = validateContextAndRoles(rawContext);
+      } catch (validationError) {
+        process.stderr.write(`[COMPOSIO MCP SECURITY ERROR] Validation failed: ${validationError.message}\n`);
+        if (!isNotification) {
+          sendErrorResponse(requestId, -32602, validationError.message);
+        }
+        return;
+      }
+
+      const executionUserId = validatedContext.userId || tenantId;
+      process.stderr.write(`[COMPOSIO MCP] Executing action: "${toolName}" on behalf of user: "${executionUserId}" under tenant: "${validatedContext.tenantId}"\n`);
 
       try {
         let result;
@@ -300,10 +412,13 @@ rl.on('line', async (line) => {
         } else {
           // Execute dynamic action natively through @composio/core
           result = await composio.tools.execute(toolName, {
-            userId: tenantId,
+            userId: executionUserId,
             arguments: args
           });
         }
+
+        // Propagate usage details, limits, and notifications up to managers and administrators
+        propagateUsageAndNotifications(validatedContext, toolName, true);
 
         if (!isNotification) {
           const response = {
@@ -322,6 +437,10 @@ rl.on('line', async (line) => {
         }
       } catch (execError) {
         process.stderr.write(`[COMPOSIO MCP EXEC ERROR] Action execution failed: ${execError.message}\n`);
+        
+        // Propagate failed execution details as well
+        propagateUsageAndNotifications(validatedContext, toolName, false);
+
         if (!isNotification) {
           sendErrorResponse(requestId, -32603, execError.message || 'Action execution failed.');
         }

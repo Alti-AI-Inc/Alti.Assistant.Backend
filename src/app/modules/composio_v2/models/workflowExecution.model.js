@@ -73,6 +73,7 @@ import mongoose from 'mongoose';
  * Represents a single execution instance of a workflow, tracking its progress, status, results, and resources.
  *
  * @property {string} executionId - Unique identifier for this specific workflow execution.
+ * @property {mongoose.Schema.Types.ObjectId} [workspaceId] - The ID of the workspace where this execution belongs.
  * @property {string} workflowId - The ID of the workflow definition that was executed.
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who initiated or owns this execution.
  * @property {'manual'|'scheduled'|'retry'} executionType - The type of execution (e.g., manual, scheduled, retry).
@@ -111,6 +112,17 @@ const WorkflowExecutionSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    /**
+     * The ID of the workspace where this execution belongs.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @index
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
       index: true,
     },
     /**
@@ -512,6 +524,11 @@ WorkflowExecutionSchema.index({ executionType: 1, triggerSource: 1 });
  * @index
  */
 WorkflowExecutionSchema.index({ nextRetryTime: 1, status: 1 });
+/**
+ * Index for efficient lookup of workflow executions by workspace ID and sorted by start time.
+ * @index
+ */
+WorkflowExecutionSchema.index({ workspaceId: 1, executionStartTime: -1 });
 
 // Virtuals
 /**
@@ -709,7 +726,7 @@ WorkflowExecutionSchema.methods.addLog = function (
  * @param {string} [reason='User cancelled'] - The reason for cancellation.
  * @returns {Promise<WorkflowExecution>} The saved WorkflowExecution document.
  */
-WorkflowExecutionSchema.methods.cancel = async function (reason = 'User cancelled') {
+WorkflowExecutionSchema.methods.cancel = function (reason = 'User cancelled') {
   this.status = 'cancelled';
   this.executionEndTime = new Date();
   // Ensure executionStartTime is available before calculating duration
@@ -719,8 +736,13 @@ WorkflowExecutionSchema.methods.cancel = async function (reason = 'User cancelle
   } else {
     this.executionDuration = 0; // Default to 0 if start time is missing
   }
-  // Await the log addition to ensure it's saved before the main document save
-  await this.addLog('info', reason);
+  
+  // Push directly to logs array to avoid double-saving the document
+  this.logs.push({
+    timestamp: new Date(),
+    level: 'info',
+    message: reason,
+  });
 
   return this.save();
 };
@@ -831,6 +853,30 @@ WorkflowExecutionSchema.statics.generateExecutionId = function () {
 WorkflowExecutionSchema.statics.getExecutionStats = function (workflowId) {
   return this.aggregate([
     { $match: { workflowId } },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+        avgDuration: { $avg: '$executionDuration' },
+        lastExecution: { $max: '$executionStartTime' },
+      },
+    },
+  ]);
+};
+
+/**
+ * Aggregates statistics for workflow executions of a specific workspace.
+ * Groups by status and calculates count, average duration, and last execution time for each status.
+ * Useful for workspace metrics dashboards.
+ * @memberof WorkflowExecution
+ * @static
+ * @param {mongoose.Schema.Types.ObjectId|string} workspaceId - The ID of the workspace.
+ * @returns {mongoose.Aggregate<Array<Object>>} A Mongoose aggregation pipeline.
+ */
+WorkflowExecutionSchema.statics.getWorkspaceExecutionStats = function (workspaceId) {
+  const oid = typeof workspaceId === 'string' ? new mongoose.Types.ObjectId(workspaceId) : workspaceId;
+  return this.aggregate([
+    { $match: { workspaceId: oid } },
     {
       $group: {
         _id: '$status',
