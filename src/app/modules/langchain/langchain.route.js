@@ -371,4 +371,207 @@ router.post('/chains/:chainId/benchmark', LangchainController.benchmarkChain);
  */
 router.post('/chains/:chainId/stream', LangchainController.streamChain);
 
+// ─── Platform Owner / Super Admin Endpoints ───────────────────────────────────
+// These endpoints are designed for platform-level administration and oversight.
+// Access should be strictly limited to users with the 'platform-owner' or 'super-admin' role.
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/stats:
+ *   get:
+ *     summary: Get global Langchain usage statistics
+ *     description: Retrieves aggregated performance metrics, execution counts, and system stats for Langchain operations across ALL tenants. This provides a platform-wide overview.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved global statistics.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/platform/stats', LangchainController.getGlobalStats);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/logs:
+ *   get:
+ *     summary: View global Langchain execution logs
+ *     description: Fetches a stream of all Langchain execution logs, errors, and audit trails from all tenants. Supports filtering by tenant, chain ID, or time range.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Optional. Filter logs by a specific tenant ID.
+ *       - in: query
+ *         name: chainId
+ *         schema:
+ *           type: string
+ *         description: Optional. Filter logs by a specific chain ID.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Number of log entries to return.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved global logs.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/platform/logs', LangchainController.getGlobalLogs);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/config:
+ *   get:
+ *     summary: Get system-wide Langchain configuration
+ *     description: Retrieves the global configuration for the Langchain module, such as default model providers, enabled features, and platform-wide rate limits.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved global configuration.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/platform/config', LangchainController.getGlobalConfig);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/config:
+ *   put:
+ *     summary: Update system-wide Langchain configuration
+ *     description: Modifies the global configuration for the Langchain module. This can be used to override tenant limits, change default models, or toggle features for all users.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               defaultModel:
+ *                 type: string
+ *                 description: The default LLM provider and model for the platform.
+ *               maxTokensOverride:
+ *                 type: integer
+ *                 description: A global override for the maximum tokens allowed per request.
+ *               enableVectorStores:
+ *                 type: boolean
+ *                 description: Globally enable or disable vector store functionality.
+ *     responses:
+ *       200:
+ *         description: Global configuration updated successfully.
+ *       400:
+ *         description: Invalid configuration body.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       500:
+ *         description: Internal server error.
+ */
+router.put('/platform/config', LangchainController.updateGlobalConfig);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/tenants/{tenantId}/chains:
+ *   get:
+ *     summary: List all chains for a specific tenant
+ *     description: Allows a Platform Owner to view all LCEL chains belonging to a specific tenant, bypassing standard tenant isolation.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved tenant's chains.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/platform/tenants/:tenantId/chains', LangchainController.getTenantChains);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/tenants/{tenantId}/chains/{chainId}/toggle:
+ *   patch:
+ *     summary: Enable or disable a specific tenant's chain
+ *     description: Allows a Platform Owner to forcefully enable or disable a specific chain for a tenant. This is useful for managing problematic or resource-intensive chains.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant.
+ *       - in: path
+ *         name: chainId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the chain to toggle.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enabled
+ *             properties:
+ *               enabled:
+ *                 type: boolean
+ *                 description: Set to `false` to disable the chain, `true` to enable it.
+ *     responses:
+ *       200:
+ *         description: Chain status updated successfully.
+ *       400:
+ *         description: Invalid request body.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       404:
+ *         description: Tenant or chain not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.patch('/platform/tenants/:tenantId/chains/:chainId/toggle', LangchainController.toggleTenantChain);
+
 export const langchainRoutes = router;
