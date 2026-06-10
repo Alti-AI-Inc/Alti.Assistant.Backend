@@ -38,8 +38,11 @@ const drawExecutiveDashboardPage = (doc, query, metadata, quantitativeFacts) => 
   let bulletY = currentY + 30;
   briefs.forEach(b => {
     doc.rect(64, bulletY + 3, 3, 3).fillColor('#0f766e').fill();
-    doc.fontSize(8).font('Helvetica').fillColor('#334155').text(b, 72, bulletY, { width: colWidth - 30, lineGap: 1.5 });
-    bulletY += 48;
+    const textOptions = { width: colWidth - 30, lineGap: 1.5 };
+    doc.fontSize(8).font('Helvetica').fillColor('#334155').text(b, 72, bulletY, textOptions);
+    // Dynamically calculate the next bulletY based on the height of the text just drawn
+    const textHeight = doc.heightOfString(b, textOptions);
+    bulletY += textHeight + 10; // Add some padding after the text block
   });
 
   // Column 2: Rigor & Quality Scorecard (Right Column)
@@ -96,7 +99,8 @@ const drawExecutiveDashboardPage = (doc, query, metadata, quantitativeFacts) => 
   );
 
   // Footer branding
-  doc.fontSize(7).font('Helvetica').fillColor('#94a3b8').text('CONFIDENTIAL | GOOGLE CLOUD ENTERPRISE AI STRATEGY BRIEFING', 50, doc.page.height - 35, { align: 'center' });
+  // To truly center text across the page, set x to 0 and provide the page width.
+  doc.fontSize(7).font('Helvetica').fillColor('#94a3b8').text('CONFIDENTIAL | GOOGLE CLOUD ENTERPRISE AI STRATEGY BRIEFING', 0, doc.page.height - 35, { align: 'center', width: doc.page.width });
 
   // Add page separator bottom bar
   doc.rect(0, doc.page.height - 10, doc.page.width, 10).fillColor('#0f766e').fill();
@@ -123,7 +127,7 @@ const drawQualityMetricsChart = (doc, x, y, metrics) => {
     doc.roundedRect(x + 120, y - 2, 200, 10, 4).fillColor('#e2e8f0').fill();
     
     // Draw fill track based on value (0-10)
-    const fillWidth = Math.min((value) => (m.value / 10) * 200, 200);
+    // Removed incorrect 'fillWidth' function definition. 'calculatedWidth' is correctly used.
     const calculatedWidth = Math.min((m.value / 10) * 200, 200);
     doc.roundedRect(x + 120, y - 2, calculatedWidth, 10, 4).fillColor('#0f766e').fill();
     
@@ -141,6 +145,7 @@ const drawQualityMetricsChart = (doc, x, y, metrics) => {
  */
 const drawQuantitativeTable = (doc, x, y, width, tableData) => {
   const data = Array.isArray(tableData) ? tableData : [];
+  // Removed .slice(0, 10) to ensure all quantitative facts are included and paginated.
   if (data.length === 0) return y;
 
   doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e293b').text('Verified Quantitative Fact Matrix', x, y);
@@ -165,11 +170,13 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
   y += 22;
 
   // Draw rows
-  data.slice(0, 10).forEach((row, rowIdx) => {
-    // Check if page overflow
-    if (y > 720) {
+  data.forEach((row, rowIdx) => { // Iterate over all data, not just sliced
+    // Check if page overflow, using dynamic page height calculation
+    const rowHeight = 24; // Fixed row height
+    const bottomMarginBuffer = 50; // Buffer for footer and next content
+    if (y + rowHeight > doc.page.height - doc.page.margins.bottom - bottomMarginBuffer) {
       doc.addPage();
-      y = 50;
+      y = doc.page.margins.top; // Reset y to top margin for new page
       
       // Redraw header
       doc.rect(x, y, width, 22).fillColor('#1e293b').fill();
@@ -185,7 +192,7 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
 
     // Row zebra background
     const bg = rowIdx % 2 === 0 ? '#f8fafc' : '#ffffff';
-    doc.rect(x, y, width, 24).fillColor(bg).fill();
+    doc.rect(x, y, width, rowHeight).fillColor(bg).fill();
 
     // Metric text
     doc.fillColor('#334155').fontSize(7.5).font('Helvetica');
@@ -220,9 +227,9 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
     doc.text(scoreText, x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 6, y + 8, { width: colWidths[4] - 12, align: 'center' });
 
     // Draw bottom border line
-    doc.moveTo(x, y + 24).lineTo(x + width, y + 24).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+    doc.moveTo(x, y + rowHeight).lineTo(x + width, y + rowHeight).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
 
-    y += 24;
+    y += rowHeight;
   });
 
   return y + 10;
@@ -311,7 +318,9 @@ export const generatePDFReport = async (reportData) => {
       doc.y = nextY + 25;
 
       // Ensure we add a clean page break before the comprehensive text if there's very little space
-      if (doc.y > 600) {
+      // Use dynamic calculation for page break threshold
+      const contentBuffer = 100; // Buffer for remaining content and footer
+      if (doc.y > doc.page.height - doc.page.margins.bottom - contentBuffer) {
         doc.addPage();
       }
 
@@ -377,8 +386,8 @@ export const generatePDFReport = async (reportData) => {
 
             doc.moveDown(0.5);
 
-            // Add page break if needed
-            if (doc.y > 720) {
+            // Add page break if needed, using dynamic page height calculation
+            if (doc.y > doc.page.height - doc.page.margins.bottom - 50) { // 50 as buffer for next source/footer
               doc.addPage();
             }
           } catch (sourceError) {
@@ -399,15 +408,16 @@ export const generatePDFReport = async (reportData) => {
         for (let i = 0; i < pageCount; i++) {
           const pageIndex = startPage + i;
           doc.switchToPage(pageIndex);
+          // To truly center text across the page, set x to 0 and provide the page width.
           doc
             .fontSize(8)
             .font('Helvetica')
             .fillColor('#94a3b8')
             .text(
               `Page ${i + 1} of ${pageCount} | Google-Powered Premium AI Deep Research Strategy Module`,
-              50,
+              0, // x-coordinate set to 0
               doc.page.height - 30,
-              { align: 'center' }
+              { align: 'center', width: doc.page.width } // width set to page width
             );
         }
       } catch (footerError) {
