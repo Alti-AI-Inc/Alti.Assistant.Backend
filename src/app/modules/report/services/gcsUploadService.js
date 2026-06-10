@@ -1,7 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
@@ -35,41 +33,26 @@ const getContentType = (filePath) => {
 };
 
 /**
- * Upload report file to Google Cloud Storage
- * @param {string} localFilePath - Local path of the generated report
- * @param {string} fileName - Name for the file in GCS
- * @param {string} userId - User ID for organizing files
- * @param {string} conversationId - Conversation ID for organizing files
- * @returns {Promise<Object>} - Upload result with public URL
+ * Upload report file buffer to Google Cloud Storage.
+ * This is suitable for files generated in memory and avoids local filesystem writes.
+ * @param {Buffer} fileBuffer - The file content as a buffer.
+ * @param {string} fileName - Name for the file in GCS.
+ * @param {string} userId - User ID for organizing files.
+ * @param {string} conversationId - Conversation ID for organizing files.
+ * @returns {Promise<Object>} - Upload result with GCS path information.
  */
 export const uploadReportToGCS = async (
-  localFilePath,
+  fileBuffer,
   fileName,
   userId,
   conversationId
 ) => {
   try {
-    logger.info(`Uploading report to GCS: ${fileName}`);
-
-    // Read file from local file system
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const projectRoot = path.resolve(__dirname, '../../../../../');
-
-    // Handle paths - ensure we have absolute path
-    let filePath;
-    if (path.isAbsolute(localFilePath)) {
-      filePath = localFilePath;
-    } else {
-      // Remove leading slash if present
-      const relativePath = localFilePath.startsWith('/')
-        ? localFilePath.substring(1)
-        : localFilePath;
-      filePath = path.join(projectRoot, relativePath);
+    logger.info(`Uploading report to GCS from buffer: ${fileName}`);
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new Error('File buffer is empty or invalid.');
     }
-
-    logger.info(`Reading report from: ${filePath}`);
-    const fileBuffer = await fs.readFile(filePath);
-    logger.info(`File read successfully, size: ${fileBuffer.length}`);
+    logger.info(`File buffer received, size: ${fileBuffer.length}`);
 
     const contentType = getContentType(fileName);
 
@@ -89,16 +72,11 @@ export const uploadReportToGCS = async (
 
     logger.info(`File uploaded to GCS: ${gcsPath}`);
 
-    // Make file public
-    // await file.makePublic();
-    logger.info(`File made public: ${gcsPath}`);
-
-    // Get public URL
-    const publicUrl = `https://storage.googleapis.com/${REPORT_BUCKET}/${gcsPath}`;
+    // The file is kept private. Access is granted via signed URLs.
+    // A public URL is not returned for security reasons.
 
     return {
       success: true,
-      publicUrl,
       gcsPath,
       bucket: REPORT_BUCKET,
       size: fileBuffer.length,
@@ -106,6 +84,107 @@ export const uploadReportToGCS = async (
   } catch (error) {
     logger.error('Error uploading report to GCS:', error);
     throw new Error(`Failed to upload report to GCS: ${error.message}`);
+  }
+};
+
+/**
+ * Get a writable stream to upload a report to GCS.
+ * This allows for streaming large files without buffering them entirely in memory.
+ * The caller is responsible for piping a readable stream to the returned writable stream
+ * and handling 'error' and 'finish' events.
+ * @param {string} fileName - Name for the file in GCS.
+ * @param {string} userId - User ID for organizing files.
+ * @param {string} conversationId - Conversation ID for organizing files.
+ * @returns {{stream: import('stream').Writable, gcsPath: string}} - An object containing the GCS Writable stream and the file's GCS path.
+ */
+export const getGCSReportUploadStream = (fileName, userId, conversationId) => {
+  const contentType = getContentType(fileName);
+  const gcsPath = `${userId}/${conversationId}/${fileName}`;
+
+  const bucket = storage.bucket(REPORT_BUCKET);
+  const file = bucket.file(gcsPath);
+
+  const stream = file.createWriteStream({
+    metadata: {
+      contentType,
+    },
+    resumable: false, // Set to true for large files to enable resumable uploads
+  });
+
+  stream.on('error', (err) => {
+    logger.error(`Error streaming report to GCS at ${gcsPath}:`, err);
+  });
+
+  stream.on('finish', () => {
+    logger.info(`Successfully streamed report to GCS at ${gcsPath}`);
+  });
+
+  return { stream, gcsPath };
+};
+
+/**
+ * Generates a v4 signed URL for uploading a file directly to GCS from a client.
+ * This offloads the upload traffic from the backend server.
+ * The client should use this URL to make a PUT request with the file content.
+ * @param {string} fileName - The name the file will have in GCS.
+ * @param {string} contentType - The MIME type of the file being uploaded (e.g., 'image/jpeg').
+ * @param {string} userId - User ID for organizing files.
+ * @param {string} conversationId - Conversation ID for organizing files.
+ * @returns {Promise<{url: string, gcsPath: string}>} - The signed URL for PUT requests and the GCS path.
+ */
+export const generateV4UploadSignedUrl = async (
+  fileName,
+  contentType,
+  userId,
+  conversationId
+) => {
+  try {
+    const gcsPath = `${userId}/${conversationId}/${fileName}`;
+
+    const options = {
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      contentType: contentType,
+    };
+
+    const [url] = await storage
+      .bucket(REPORT_BUCKET)
+      .file(gcsPath)
+      .getSignedUrl(options);
+
+    logger.info(`Generated v4 signed URL for uploading to ${gcsPath}`);
+    return { url, gcsPath };
+  } catch (error) {
+    logger.error(`Error generating v4 upload signed URL for ${fileName}:`, error);
+    throw new Error(`Failed to generate upload signed URL: ${error.message}`);
+  }
+};
+
+/**
+ * Generates a signed URL for securely downloading a report from GCS.
+ * This provides temporary, secure access to a private GCS object.
+ * @param {string} gcsPath - Path of the file in GCS.
+ * @returns {Promise<string>} - The signed URL for GET requests.
+ */
+export const getGCSReportSignedUrl = async (gcsPath) => {
+  try {
+    const options = {
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    };
+
+    const [url] = await storage
+      .bucket(REPORT_BUCKET)
+      .file(gcsPath)
+      .getSignedUrl(options);
+
+    logger.info(`Generated signed URL for ${gcsPath}`);
+    return url;
+  } catch (error) {
+    logger.error(`Error generating signed URL for ${gcsPath}:`, error);
+    throw new Error(`Failed to generate signed URL: ${error.message}`);
   }
 };
 
