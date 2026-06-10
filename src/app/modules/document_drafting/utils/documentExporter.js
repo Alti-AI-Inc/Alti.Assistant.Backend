@@ -23,20 +23,20 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
  * @returns {number} .size - The size of the generated PDF file in bytes.
  * @throws {Error} If there is an error during PDF creation or file writing.
  */
-const exportToPDF = async (content, metadata = {}) => {
-  try {
-    const outputDir = path.join(process.cwd(), 'output', 'documents');
-
-    // Create output directory if it doesn't exist
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const fileName = `document_${Date.now()}.pdf`;
-    const filePath = path.join(outputDir, fileName);
-
-    return new Promise((resolve, reject) => {
+const exportToPDF = (content, metadata = {}) => {
+  // This function returns a Promise to correctly handle the stream-based nature of PDF generation.
+  return new Promise((resolve, reject) => {
+    // Use an async IIFE (Immediately Invoked Function Expression) to allow `await` inside the Promise constructor.
+    (async () => {
       try {
+        const outputDir = path.join(process.cwd(), 'output', 'documents');
+
+        // OPTIMIZATION: Use asynchronous file system operations to avoid blocking the event loop.
+        await fs.promises.mkdir(outputDir, { recursive: true });
+
+        const fileName = `document_${Date.now()}.pdf`;
+        const filePath = path.join(outputDir, fileName);
+
         const doc = new PDFDocument({
           size: 'A4',
           margins: {
@@ -93,14 +93,21 @@ const exportToPDF = async (content, metadata = {}) => {
         // Finalize PDF
         doc.end();
 
-        stream.on('finish', () => {
-          logger.info(`PDF document created successfully: ${filePath}`);
-          resolve({
-            filePath,
-            fileName,
-            format: OUTPUT_FORMATS.PDF,
-            size: fs.statSync(filePath).size,
-          });
+        stream.on('finish', async () => {
+          try {
+            logger.info(`PDF document created successfully: ${filePath}`);
+            // OPTIMIZATION: Use asynchronous stat to get file size without blocking the event loop.
+            const stats = await fs.promises.stat(filePath);
+            resolve({
+              filePath,
+              fileName,
+              format: OUTPUT_FORMATS.PDF,
+              size: stats.size,
+            });
+          } catch (statError) {
+            logger.error('Error getting stats for PDF file:', statError);
+            reject(statError);
+          }
         });
 
         stream.on('error', (error) => {
@@ -111,11 +118,8 @@ const exportToPDF = async (content, metadata = {}) => {
         logger.error('Error creating PDF document:', error);
         reject(error);
       }
-    });
-  } catch (error) {
-    logger.error('Error in exportToPDF:', error);
-    throw error;
-  }
+    })();
+  });
 };
 
 /**
@@ -140,9 +144,8 @@ const exportToDocx = async (content, metadata = {}) => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'documents');
 
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // OPTIMIZATION: Use asynchronous file system operations to avoid blocking the event loop.
+    await fs.promises.mkdir(outputDir, { recursive: true });
 
     const fileName = `document_${Date.now()}.docx`;
     const filePath = path.join(outputDir, fileName);
@@ -226,15 +229,19 @@ const exportToDocx = async (content, metadata = {}) => {
     });
 
     const buffer = await Packer.toBuffer(doc);
-    fs.writeFileSync(filePath, buffer);
+    // OPTIMIZATION: Use asynchronous file write to avoid blocking the event loop.
+    await fs.promises.writeFile(filePath, buffer);
 
     logger.info(`DOCX document created successfully: ${filePath}`);
+
+    // OPTIMIZATION: Use asynchronous stat to get file size without blocking the event loop.
+    const stats = await fs.promises.stat(filePath);
 
     return {
       filePath,
       fileName,
       format: OUTPUT_FORMATS.DOCX,
-      size: fs.statSync(filePath).size,
+      size: stats.size,
     };
   } catch (error) {
     logger.error('Error in exportToDocx:', error);
@@ -264,9 +271,8 @@ const exportToTxt = async (content, metadata = {}) => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'documents');
 
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // OPTIMIZATION: Use asynchronous file system operations to avoid blocking the event loop.
+    await fs.promises.mkdir(outputDir, { recursive: true });
 
     const fileName = `document_${Date.now()}.txt`;
     const filePath = path.join(outputDir, fileName);
@@ -293,15 +299,19 @@ const exportToTxt = async (content, metadata = {}) => {
 
     documentContent += content;
 
-    fs.writeFileSync(filePath, documentContent, 'utf8');
+    // OPTIMIZATION: Use asynchronous file write to avoid blocking the event loop.
+    await fs.promises.writeFile(filePath, documentContent, 'utf8');
 
     logger.info(`TXT document created successfully: ${filePath}`);
+
+    // OPTIMIZATION: Use asynchronous stat to get file size without blocking the event loop.
+    const stats = await fs.promises.stat(filePath);
 
     return {
       filePath,
       fileName,
       format: OUTPUT_FORMATS.TXT,
-      size: fs.statSync(filePath).size,
+      size: stats.size,
     };
   } catch (error) {
     logger.error('Error in exportToTxt:', error);
@@ -332,9 +342,8 @@ const exportToHtml = async (content, metadata = {}) => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'documents');
 
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // OPTIMIZATION: Use asynchronous file system operations to avoid blocking the event loop.
+    await fs.promises.mkdir(outputDir, { recursive: true });
 
     const fileName = `document_${Date.now()}.html`;
     const filePath = path.join(outputDir, fileName);
@@ -384,15 +393,19 @@ const exportToHtml = async (content, metadata = {}) => {
 </body>
 </html>`;
 
-    fs.writeFileSync(filePath, htmlContent, 'utf8');
+    // OPTIMIZATION: Use asynchronous file write to avoid blocking the event loop.
+    await fs.promises.writeFile(filePath, htmlContent, 'utf8');
 
     logger.info(`HTML document created successfully: ${filePath}`);
+
+    // OPTIMIZATION: Use asynchronous stat to get file size without blocking the event loop.
+    const stats = await fs.promises.stat(filePath);
 
     return {
       filePath,
       fileName,
       format: OUTPUT_FORMATS.HTML,
-      size: fs.statSync(filePath).size,
+      size: stats.size,
     };
   } catch (error) {
     logger.error('Error in exportToHtml:', error);
@@ -422,9 +435,8 @@ const exportToMarkdown = async (content, metadata = {}) => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'documents');
 
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // OPTIMIZATION: Use asynchronous file system operations to avoid blocking the event loop.
+    await fs.promises.mkdir(outputDir, { recursive: true });
 
     const fileName = `document_${Date.now()}.md`;
     const filePath = path.join(outputDir, fileName);
@@ -453,15 +465,19 @@ const exportToMarkdown = async (content, metadata = {}) => {
 
     markdownContent += content;
 
-    fs.writeFileSync(filePath, markdownContent, 'utf8');
+    // OPTIMIZATION: Use asynchronous file write to avoid blocking the event loop.
+    await fs.promises.writeFile(filePath, markdownContent, 'utf8');
 
     logger.info(`Markdown document created successfully: ${filePath}`);
+
+    // OPTIMIZATION: Use asynchronous stat to get file size without blocking the event loop.
+    const stats = await fs.promises.stat(filePath);
 
     return {
       filePath,
       fileName,
       format: OUTPUT_FORMATS.MD,
-      size: fs.statSync(filePath).size,
+      size: stats.size,
     };
   } catch (error) {
     logger.error('Error in exportToMarkdown:', error);

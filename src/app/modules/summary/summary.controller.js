@@ -6,6 +6,8 @@ import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 // Fix: Correct import path for csv-parse in a Node.js environment.
 import { parse } from 'csv-parse';
+import { v4 as uuidv4 } from 'uuid';
+import { Storage } from '@google-cloud/storage';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -13,6 +15,15 @@ import { summaryService } from './summary.service.js';
 import { summarizerApp } from './summarizer/workflow.js';
 import SubscriptionModel from '../subscription/subscription.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+
+// --- GCS Configuration ---
+// Initialize the Google Cloud Storage client.
+// The GCS bucket name should be configured via environment variables for security and flexibility.
+const GCS_BUCKET_NAME =
+  process.env.GCS_SUMMARY_UPLOADS_BUCKET || 'your-gcs-bucket-name'; // TODO: Replace with actual env var
+const storage = new Storage();
+const bucket = storage.bucket(GCS_BUCKET_NAME);
+// --- End GCS Configuration ---
 
 /**
  * @swagger
@@ -28,10 +39,11 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *     summary: Summarize content from a URL, text, or uploaded file.
  *     description: |
  *       Processes user input (a URL, raw text, or an uploaded file) to generate a summary.
+ *       Uploaded files are streamed directly to a secure Google Cloud Storage bucket, ensuring statelessness and scalability.
  *       Supports PDF, DOCX, CSV, and TXT file types.
  *       Manages conversation history, allowing users to continue previous summarization threads.
  *       Handles both authenticated and guest users, generating a unique ID for guests.
- *       The response includes the generated summary, conversation ID, and metadata.
+ *       The response includes the generated summary, conversation ID, and metadata, including a secure, temporary signed URL to the uploaded file in GCS.
  *     tags: [Summary]
  *     requestBody:
  *       required: true
@@ -103,11 +115,14 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *                           example: "file"
  *                         fileMetadata:
  *                           type: object
- *                           description: Metadata about the summarized file, if applicable.
+ *                           description: Metadata about the summarized file, including GCS storage details.
  *                           properties:
  *                             fileName: { type: string, example: "report.pdf" }
  *                             fileType: { type: string, example: "application/pdf" }
  *                             fileSize: { type: number, example: 102400 }
+ *                             gcsPath: { type: string, example: "uploads/user123/uuid-report.pdf" }
+ *                             gcsUrl: { type: string, example: "gs://your-bucket/uploads/user123/uuid-report.pdf" }
+ *                             gcsSignedUrl: { type: string, format: uri, description: "A temporary, secure URL to access the uploaded file." }
  *                         metadata:
  *                           type: object
  *                           description: Additional message metadata.
@@ -145,10 +160,11 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  * This function handles the entire summarization workflow, including:
  * - Identifying user type (guest or authenticated) and managing user IDs.
  * - Creating or retrieving conversation threads.
- * - Parsing various file types (PDF, DOCX, CSV, TXT) if a file is uploaded.
+ * - **GCS Integration**: Uploading any provided files directly to Google Cloud Storage to maintain a stateless architecture.
+ * - Parsing various file types (PDF, DOCX, CSV, TXT) from the in-memory buffer after GCS upload.
  * - Invoking the summarization AI workflow.
  * - Storing user queries and AI responses in the conversation history.
- * - Returning the summary and relevant conversation metadata.
+ * - Returning the summary, a temporary signed URL to the GCS file, and relevant conversation metadata.
  *
  * @param {import('express').Request} req - The Express request object.
  *   - `req.user`: Authenticated user information (if available).
@@ -231,16 +247,53 @@ const summarizeContent = catchAsync(async (req, res) => {
       console.log(
         `Processing uploaded file: ${req.file.originalname} (MIME type: ${req.file.mimetype})`
       );
+
+      // --- GCS Integration: Stateless File Upload ---
+      // The user's uploaded file is written directly to a GCS bucket.
+      // This avoids using the local ephemeral filesystem, ensuring the service is stateless and scalable.
+      const gcsFileName = `uploads/${userId}/${uuidv4()}-${req.file.originalname}`;
+      const gcsFile = bucket.file(gcsFileName);
+
+      try {
+        // Upload the file buffer received from multer to GCS.
+        await gcsFile.save(req.file.buffer, {
+          contentType: req.file.mimetype,
+          resumable: false, // Use simple upload for in-memory buffers
+        });
+        logger.info(
+          `File ${req.file.originalname} successfully uploaded to GCS as ${gcsFileName}`
+        );
+
+        // Generate a v4 signed URL for secure, temporary read access to the uploaded file.
+        // This URL can be used for auditing, debugging, or providing a download link to the user.
+        const [signedUrl] = await gcsFile.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 60 * 60 * 1000, // URL is valid for 1 hour
+          version: 'v4',
+        });
+
+        // Populate file metadata with GCS information for the response.
+        fileMetadata = {
+          fileName: req.file.originalname,
+          fileType: req.file.mimetype,
+          fileSize: req.file.size,
+          gcsPath: gcsFile.name,
+          gcsUrl: `gs://${GCS_BUCKET_NAME}/${gcsFileName}`,
+          gcsSignedUrl: signedUrl,
+        };
+      } catch (gcsError) {
+        logger.error('GCS Upload Error:', gcsError);
+        // If the GCS upload fails, we must not proceed.
+        // Throw a new error that will be caught by the main try-catch block.
+        throw new Error('Failed to upload file to cloud storage.');
+      }
+      // --- End GCS Integration ---
+
       userMessageForHistory = `Summarize the uploaded file: ${req.file.originalname}`;
-      fileMetadata = {
-        fileName: req.file.originalname,
-        fileType: req.file.mimetype,
-        fileSize: req.file.size,
-      };
 
       // File parsing logic
-      // Optimization Recommendation: For very large files, especially CSV, synchronous parsing (like `parse` and `JSON.stringify`) can be CPU-intensive and block the event loop.
-      // Consider using stream-based parsing or offloading to worker threads for improved scalability with large inputs.
+      // The parsing logic continues to operate on the in-memory buffer (`req.file.buffer`),
+      // which is efficient as the file is already loaded in memory for the GCS upload.
       switch (req.file.mimetype) {
         case 'application/pdf':
           // Bug Fix: Correct usage of pdf-parse. It's a function that returns a promise,
@@ -268,22 +321,25 @@ const summarizeContent = catchAsync(async (req, res) => {
           // by formatting the data into a plain string, which is often more suitable for summarization models.
           const records = await new Promise((resolve, reject) => {
             const parsedRecords = [];
-            parse(req.file.buffer, { // csv-parse can directly accept a Buffer
+            parse(req.file.buffer, {
+              // csv-parse can directly accept a Buffer
               columns: true,
               skip_empty_lines: true,
             })
-            .on('data', (record) => parsedRecords.push(record))
-            .on('end', () => resolve(parsedRecords))
-            .on('error', (err) => reject(err));
+              .on('data', (record) => parsedRecords.push(record))
+              .on('end', () => resolve(parsedRecords))
+              .on('error', (err) => reject(err));
           });
 
           if (records.length > 0) {
             const headers = Object.keys(records[0]);
             // Format into a readable string, e.g., "Header1, Header2\nValue1A, Value2A\nValue1B, Value2B"
             let formattedContent = headers.join(', ') + '\n';
-            formattedContent += records.map(record =>
-              headers.map(header => record[header]).join(', ')
-            ).join('\n');
+            formattedContent += records
+              .map((record) =>
+                headers.map((header) => record[header]).join(', ')
+              )
+              .join('\n');
             contentToSummarize = formattedContent;
           } else {
             contentToSummarize = '';
@@ -378,7 +434,9 @@ const summarizeContent = catchAsync(async (req, res) => {
     // then fall back to the initial conversationId from req.body,
     // and only generate a new one as a last resort.
     const errorConversationId =
-      actualConversationId || conversationId || summaryService.generateSummaryConversationId();
+      actualConversationId ||
+      conversationId ||
+      summaryService.generateSummaryConversationId();
     try {
       if (errorConversationId && userId) {
         await summaryService.addErrorMessage(

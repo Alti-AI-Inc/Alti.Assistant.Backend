@@ -69,11 +69,26 @@ const geminiComplexLLM = new ChatGoogleGenerativeAI({
  */
 const ragConfig = {
   database: {
+    // --- GCP Database Resiliency Configuration ---
+    // Standard connection details
     host: RAG_DATABASE_CONFIG.HOST,
     port: RAG_DATABASE_CONFIG.PORT,
     database: RAG_DATABASE_CONFIG.DATABASE,
-    username: RAG_DATABASE_CONFIG.USERNAME,
+    user: RAG_DATABASE_CONFIG.USERNAME, // 'user' is the standard property name for node-postgres
     password: RAG_DATABASE_CONFIG.PASSWORD,
+
+    // Connection Pooling: Essential for production to manage connections efficiently and prevent exhaustion.
+    max: 20, // Max number of clients in the pool
+    min: 2, // Min number of clients in the pool
+    idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+    
+    // Network Resiliency: Optimized for GCP networking (VPC Peering, Cloud SQL Auth Proxy).
+    connectionTimeoutMillis: 5000, // Timeout for establishing a connection.
+    keepAlive: true, // Enables TCP Keep-Alive to prevent intermediate firewalls/proxies from dropping idle connections.
+    keepAliveInitialDelayMillis: 30000, // How long to wait before sending the first keep-alive probe.
+
+    // Query Resiliency: Prevents long-running or hung queries from holding connections indefinitely.
+    statement_timeout: 15000, // Aborts any statement that takes more than 15 seconds.
   },
   embeddings: embeddings,
   llm: geminiLLM,
