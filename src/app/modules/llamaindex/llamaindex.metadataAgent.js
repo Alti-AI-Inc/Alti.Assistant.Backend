@@ -1,17 +1,38 @@
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Use the enterprise-grade Vertex AI SDK for Node.js
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import * as llama from './llamaindex.indexer.js';
 
 /**
- * Initializes the Google Generative AI client with the API key from the configuration.
- * @type {GoogleGenerativeAI}
+ * Initializes the Vertex AI client for enterprise-grade features and safety controls.
+ * Assumes GCP project ID and location are available in the config.
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+const vertex_ai = new VertexAI({
+  project: config.gcp_project_id,
+  location: config.gcp_location,
+});
+
+/**
+ * Filters or masks Personally Identifiable Information (PII) from a given text.
+ * NOTE: This is a placeholder implementation. For production, integrate a robust PII detection
+ * service like the Google Cloud DLP API to prevent sensitive data from being sent to the model.
+ * @param {string} text The input text to be sanitized.
+ * @returns {string} The sanitized text.
+ */
+const filterPII = (text) => {
+  // Placeholder: Simple regex for emails and phone numbers. NOT comprehensive.
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const phoneRegex = /(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g;
+  // Add more PII patterns as needed (e.g., SSNs, addresses).
+  return text
+    .replace(emailRegex, '[REDACTED_EMAIL]')
+    .replace(phoneRegex, '[REDACTED_PHONE]');
+};
 
 /**
  * Cleans markdown backticks and optional language specifiers from a given text string.
@@ -60,6 +81,9 @@ const enrichDocument = async (filePath, fileName, docId, userId) => {
       fileContentPreview = `Document file name: ${fileName}. Online/remote asset.`;
     }
 
+    // Sanitize the content preview to remove PII before sending it to the model.
+    const sanitizedPreview = filterPII(fileContentPreview);
+
     const systemPrompt = `You are a high-fidelity document profiler. Your job is to analyze the following document snippet and generate a highly accurate, structured JSON summary matching this schema:
 {
   "summary": "A concise, single-paragraph summary of the document purpose and findings.",
@@ -73,9 +97,32 @@ const enrichDocument = async (filePath, fileName, docId, userId) => {
 Ensure your response is raw JSON only, with no markdown formatting or comments.
 
 Document Preview:
-${fileContentPreview}`;
+${sanitizedPreview}`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Use the Vertex AI model with explicit safety settings.
+    const model = vertex_ai.getGenerativeModel({
+      model: 'gemini-1.5-flash-preview-0514', // Use a valid Vertex AI model identifier
+      // Configure Google's safety filters to block harmful content.
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
       generationConfig: {
@@ -84,7 +131,11 @@ ${fileContentPreview}`;
       },
     });
 
-    const text = cleanJSONResponse(result.response.text());
+    // The Vertex AI SDK response structure differs slightly from the consumer SDK.
+    if (!result.response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid or empty response from Vertex AI model.');
+    }
+    const text = cleanJSONResponse(result.response.candidates[0].content.parts[0].text);
     const parsed = JSON.parse(text);
 
     // Save to database
