@@ -2,19 +2,46 @@ import { logger } from '../../../../shared/logger.js';
 import { RedisClient } from '../../../../shared/redis.js';
 
 /**
+ * @module WorkflowResilienceService
+ * @description
  * Workflow Resilience Service
- * 
+ *
  * Provides configurable retry policies with exponential backoff and jitter,
- * plus a rollback registry for reversible Composio actions.
- * 
+ * plus a rollback registry for reversible Composio actions. It also includes
+ * a distributed rate-limiting mechanism using Redis to manage outgoing API calls
+ * to third-party services.
+ *
  * Usage:
- *   const result = await resilienceService.executeWithRetry(
+ *   const result = await workflowResilienceService.executeWithRetry(
  *     () => composioTool.execute(params),
- *     { maxAttempts: 3, baseDelayMs: 1000, stepId: 'step_1' }
+ *     { maxAttempts: 3, baseDelayMs: 1000, stepId: 'step_1', app: 'gmail', actionType: 'network' }
+ *   );
+ *
+ *   workflowResilienceService.registerCompletedStep(executionId, stepInfo, stepResult);
+ *
+ *   const rollbackSummary = await workflowResilienceService.rollbackExecution(
+ *     executionId,
+ *     async (rollbackStep) => {
+ *       // Logic to execute the rollback action, e.g., call Composio tool
+ *       await composioTool.execute(rollbackStep.app, rollbackStep.action, rollbackStep.parameters);
+ *     }
  *   );
  */
 
-// Default retry policies per action type
+/**
+ * @typedef {Object} RetryPolicy
+ * @property {number} maxAttempts - Maximum number of attempts for an operation.
+ * @property {number} baseDelayMs - Base delay in milliseconds for exponential backoff.
+ * @property {number} maxDelayMs - Maximum delay in milliseconds between retries.
+ * @property {boolean} jitter - Whether to add randomized jitter to the delay.
+ */
+
+/**
+ * @constant {Object.<string, RetryPolicy>} DEFAULT_POLICIES
+ * @description Default retry policies configured for different action types.
+ * These policies define the `maxAttempts`, `baseDelayMs`, `maxDelayMs`, and `jitter`
+ * settings for network-heavy, read, write, and general actions.
+ */
 const DEFAULT_POLICIES = {
   // Network-heavy actions (email, API calls) get more retries
   network: { maxAttempts: 3, baseDelayMs: 1000, maxDelayMs: 30000, jitter: true },
@@ -26,7 +53,12 @@ const DEFAULT_POLICIES = {
   default: { maxAttempts: 3, baseDelayMs: 1000, maxDelayMs: 30000, jitter: true },
 };
 
-// Actions known to be reversible (app → action → undo action)
+/**
+ * @constant {Object.<string, Object.<string, string|null>>} ROLLBACK_REGISTRY
+ * @description A registry mapping Composio application actions to their corresponding
+ * rollback (undo) actions. If an action cannot be rolled back, its value is `null`.
+ * This is crucial for maintaining data consistency in case of workflow failures.
+ */
 const ROLLBACK_REGISTRY = {
   gmail: {
     send_email: null, // Cannot unsend
@@ -60,7 +92,12 @@ const ROLLBACK_REGISTRY = {
   },
 };
 
-// Errors that are retryable (transient)
+/**
+ * @constant {RegExp[]} RETRYABLE_ERROR_PATTERNS
+ * @description An array of regular expressions used to identify transient errors
+ * that are considered retryable. These patterns are matched against error messages
+ * and codes to determine if an operation should be re-attempted.
+ */
 const RETRYABLE_ERROR_PATTERNS = [
   /rate limit/i,
   /429/,
@@ -80,7 +117,17 @@ const RETRYABLE_ERROR_PATTERNS = [
   /temporarily unavailable/i,
 ];
 
-// Predefined outgoing rate limits per third-party provider/service
+/**
+ * @typedef {Object} RateLimitConfig
+ * @property {number} limit - The maximum number of requests allowed within the window.
+ * @property {number} windowMs - The time window in milliseconds during which the limit applies.
+ */
+
+/**
+ * @constant {Object.<string, RateLimitConfig>} DEFAULT_RATE_LIMITS
+ * @description Predefined outgoing rate limits for various third-party providers/services.
+ * These limits are used by the `throttle` method to prevent exceeding API quotas.
+ */
 const DEFAULT_RATE_LIMITS = {
   gmail: { limit: 15, windowMs: 60000 },
   slack: { limit: 20, windowMs: 60000 },
@@ -90,24 +137,53 @@ const DEFAULT_RATE_LIMITS = {
   default: { limit: 30, windowMs: 60000 }
 };
 
+/**
+ * @class WorkflowResilienceService
+ * @description
+ * Manages workflow resilience by providing retry mechanisms with exponential backoff
+ * and jitter, a rollback registry for failed workflow executions, and distributed
+ * rate limiting for outgoing API calls.
+ */
 class WorkflowResilienceService {
+  /**
+   * Creates an instance of WorkflowResilienceService.
+   * Initializes internal registries for completed steps and throttle locks.
+   */
   constructor() {
-    /** @type {Map<string, Array<Object>>} Completed steps per execution for rollback */
+    /**
+     * @private
+     * @type {Map<string, Array<Object>>}
+     * A registry storing details of successfully completed steps for each workflow execution.
+     * This map is keyed by `executionId` and stores an array of step objects,
+     * each containing `stepId`, `app`, `action`, `parameters`, `result`, `completedAt`,
+     * and `rollbackAction`. This allows for potential rollback operations.
+     */
     this.completedStepRegistry = new Map();
+    /**
+     * @private
+     * @type {Map<string, boolean>}
+     * A local mutex map used to prevent race conditions in the `throttle` method
+     * when multiple concurrent calls attempt to update Redis rate limit counters.
+     * Keys are rate limit keys (e.g., `ratelimit:wf:gmail`), values indicate if a lock is held.
+     */
     this.throttleLocks = new Map(); // Local mutex map to prevent concurrent tick race conditions
   }
 
   /**
-   * Check and enforce rate limits for a given target service or token.
-   * If the limit is exceeded, blocks/sleeps until the rate limit resets or a token becomes available.
-   * 
-   * @param {string} service - Service name, e.g. 'gmail', 'slack'
-   * @param {number} limit - Max requests in the window
-   * @param {number} windowMs - Window duration in milliseconds
+   * Checks and enforces rate limits for a given target service.
+   * This method uses Redis to maintain a distributed counter of requests within a time window.
+   * If the limit is exceeded, the execution is blocked (sleeps) until the rate limit resets
+   * or a token becomes available. A local mutex is used to prevent race conditions during Redis updates.
+   *
+   * @param {string} service - The name of the service or provider, e.g., 'gmail', 'slack'.
+   * @param {number} [limit=30] - The maximum number of requests allowed within the `windowMs`.
+   * @param {number} [windowMs=60000] - The duration of the rate limit window in milliseconds.
+   * @returns {Promise<void>} A promise that resolves when the request is allowed to proceed.
+   * @throws {Error} If an error occurs during Redis operations or throttle lock management.
    */
   async throttle(service, limit = 30, windowMs = 60000) {
     const key = `ratelimit:wf:${service?.toLowerCase() || 'default'}`;
-    
+
     while (true) {
       // 1. Acquire execution lock to prevent parallel ticks from reading stale data
       while (this.throttleLocks.get(key)) {
@@ -126,21 +202,21 @@ class WorkflowResilienceService {
             currentRequests = [];
           }
         }
-        
+
         // Filter out requests older than the window
         currentRequests = currentRequests.filter(timestamp => timestamp > now - windowMs);
-        
+
         if (currentRequests.length < limit) {
           // Record this request
           currentRequests.push(now);
           await RedisClient.set(key, JSON.stringify(currentRequests), { EX: Math.ceil(windowMs / 1000) });
-          
+
           this.throttleLocks.set(key, false); // Release lock
           break; // Allowed to run!
         } else {
           // Release lock *before* sleeping to allow other concurrent calls to queue up and wait too
           this.throttleLocks.set(key, false);
-          
+
           const oldestTimestamp = currentRequests[0];
           const waitTime = (oldestTimestamp + windowMs) - now + 50; // Add 50ms buffer
           logger.info(`[Rate Limiting] Outgoing limit exceeded for service "${service}". Throttling execution. Pausing for ${waitTime}ms...`);
@@ -154,17 +230,29 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Execute a function with retry logic and exponential backoff.
-   * 
-   * @param {Function} fn - Async function to execute
-   * @param {Object} options - Retry configuration
-   * @param {number} [options.maxAttempts=3] - Maximum number of attempts
-   * @param {number} [options.baseDelayMs=1000] - Base delay between retries
-   * @param {number} [options.maxDelayMs=30000] - Maximum delay cap
-   * @param {boolean} [options.jitter=true] - Add randomized jitter
-   * @param {string} [options.stepId] - Step identifier for logging
-   * @param {string} [options.actionType='default'] - Action type for policy lookup
-   * @returns {Object} Result with attempt count and timing info
+   * Executes an asynchronous function with configurable retry logic, exponential backoff, and jitter.
+   * It also applies outgoing rate limiting if an `app` is specified in the options.
+   *
+   * @param {Function} fn - The asynchronous function to execute. This function should return a Promise.
+   * @param {Object} [options={}] - Configuration options for the retry mechanism.
+   * @param {number} [options.maxAttempts=3] - The maximum number of times to attempt the function execution.
+   * @param {number} [options.baseDelayMs=1000] - The base delay in milliseconds for the exponential backoff.
+   * @param {number} [options.maxDelayMs=30000] - The maximum delay in milliseconds between retries.
+   * @param {boolean} [options.jitter=true] - If `true`, adds a random jitter to the calculated delay.
+   * @param {string} [options.stepId='unknown'] - An identifier for the current step, used for logging.
+   * @param {string} [options.actionType='default'] - The type of action (e.g., 'network', 'read', 'write')
+   *   to resolve a predefined retry policy from `DEFAULT_POLICIES`.
+   * @param {string} [options.app] - The name of the application/service (e.g., 'gmail', 'slack')
+   *   to apply outgoing rate limiting based on `DEFAULT_RATE_LIMITS`.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the execution result and metadata.
+   * @property {boolean} success - `true` if the function executed successfully, `false` otherwise.
+   * @property {*} [result] - The return value of `fn()` if successful.
+   * @property {string} [error] - The error message if the function failed after all retries.
+   * @property {number} attempts - The total number of attempts made.
+   * @property {number} totalDurationMs - The total time taken for all attempts, in milliseconds.
+   * @property {boolean} retried - `true` if the function was retried at least once.
+   * @property {boolean} [exhaustedRetries] - `true` if all retry attempts were exhausted without success.
+   * @throws {Error} If the function fails and the error is not retryable, or if all retries are exhausted.
    */
   async executeWithRetry(fn, options = {}) {
     const policy = this._resolvePolicy(options);
@@ -184,7 +272,7 @@ class WorkflowResilienceService {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         logger.info(`Resilience: executing step ${stepId}, attempt ${attempt}/${maxAttempts}`);
-        
+
         const result = await fn();
 
         return {
@@ -224,11 +312,19 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Register a completed step for potential rollback.
-   * 
-   * @param {string} executionId - The workflow execution ID
-   * @param {Object} step - The completed step info
-   * @param {Object} result - The step's execution result
+   * Registers a successfully completed workflow step for a given execution.
+   * This information is stored in the `completedStepRegistry` and can be used
+   * later for rollback operations if the workflow fails downstream.
+   *
+   * @param {string} executionId - The unique identifier for the workflow execution.
+   * @param {Object} step - An object containing details about the completed step.
+   * @param {string} step.stepId - The unique ID of the step within the workflow.
+   * @param {string} step.app - The name of the application/service involved (e.g., 'gmail').
+   * @param {string} step.action - The specific action performed (e.g., 'send_email').
+   * @param {Object} step.parameters - The parameters used to execute the step.
+   * @param {Object} result - The result object returned by the successful execution of the step.
+   *   This typically includes data like `id`, `messageId`, `eventId`, etc., which might be
+   *   needed for rollback.
    */
   registerCompletedStep(executionId, step, result) {
     if (!this.completedStepRegistry.has(executionId)) {
@@ -247,22 +343,34 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Rollback all completed steps for a failed execution.
-   * Executes rollbacks in reverse order.
-   * 
-   * @param {string} executionId - The workflow execution ID
-   * @param {Function} executeRollbackFn - Function to execute a rollback step
-   * @returns {Object} Rollback summary
+   * Initiates a rollback for all registered completed steps of a failed workflow execution.
+   * Steps are rolled back in reverse order of their completion (most recent first).
+   * Only steps with a defined `rollbackAction` in the `ROLLBACK_REGISTRY` will be attempted.
+   *
+   * @param {string} executionId - The unique identifier of the workflow execution to rollback.
+   * @param {Function} executeRollbackFn - An asynchronous function responsible for executing
+   *   a single rollback step. It receives an object with `app`, `action`, `parameters`, and `stepId`.
+   *   Example: `async ({ app, action, parameters, stepId }) => { await composioTool.execute(app, action, parameters); }`
+   * @returns {Promise<Object>} A promise that resolves to a summary of the rollback operation.
+   * @property {boolean} success - `true` if all attempted rollbacks were successful, `false` otherwise.
+   * @property {string} [message] - A descriptive message, e.g., 'No steps to rollback'.
+   * @property {number} rolledBack - The count of steps successfully rolled back.
+   * @property {number} skipped - The count of steps skipped (e.g., no rollback action defined).
+   * @property {number} failed - The count of rollback attempts that failed.
+   * @property {Array<Object>} details - An array of objects detailing the outcome for each step.
+   * @throws {Error} If `executeRollbackFn` throws an unhandled error during a rollback attempt.
    */
   async rollbackExecution(executionId, executeRollbackFn) {
     const completedSteps = this.completedStepRegistry.get(executionId);
-    
+
     if (!completedSteps || completedSteps.length === 0) {
       return {
         success: true,
         message: 'No steps to rollback',
         rolledBack: 0,
         skipped: 0,
+        failed: 0,
+        details: [],
       };
     }
 
@@ -288,7 +396,7 @@ class WorkflowResilienceService {
 
       try {
         logger.info(`Resilience: rolling back ${step.stepId} via ${step.app}.${step.rollbackAction}`);
-        
+
         // Build rollback parameters from the original result
         const rollbackParams = this._buildRollbackParams(step);
 
@@ -329,8 +437,16 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Get the retry policy for a given action type.
+   * Resolves the final retry policy by merging default policies with any provided options.
+   *
    * @private
+   * @param {Object} options - User-provided retry options.
+   * @param {string} [options.actionType='default'] - The type of action to look up in `DEFAULT_POLICIES`.
+   * @param {number} [options.maxAttempts] - Overrides the `maxAttempts` from the resolved policy.
+   * @param {number} [options.baseDelayMs] - Overrides the `baseDelayMs` from the resolved policy.
+   * @param {number} [options.maxDelayMs] - Overrides the `maxDelayMs` from the resolved policy.
+   * @param {boolean} [options.jitter] - Overrides the `jitter` from the resolved policy.
+   * @returns {RetryPolicy} The resolved retry policy object.
    */
   _resolvePolicy(options) {
     const policyName = options.actionType || 'default';
@@ -346,8 +462,11 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Check if an error is retryable.
+   * Determines if a given error is considered retryable based on predefined patterns.
+   *
    * @private
+   * @param {Error} error - The error object to check.
+   * @returns {boolean} `true` if the error's message or code matches any retryable pattern, `false` otherwise.
    */
   _isRetryable(error) {
     const message = error.message || '';
@@ -358,8 +477,15 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Calculate exponential backoff delay with optional jitter.
+   * Calculates the delay for the next retry attempt using exponential backoff
+   * and optional jitter.
+   *
    * @private
+   * @param {number} attempt - The current attempt number (1-indexed).
+   * @param {number} baseDelayMs - The base delay in milliseconds.
+   * @param {number} maxDelayMs - The maximum allowed delay in milliseconds.
+   * @param {boolean} jitter - If `true`, adds a random jitter to the delay.
+   * @returns {number} The calculated delay in milliseconds before the next retry.
    */
   _calculateDelay(attempt, baseDelayMs, maxDelayMs, jitter) {
     // Exponential backoff: base * 2^(attempt-1)
@@ -376,8 +502,12 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Look up the rollback action for an app+action combination.
+   * Looks up the corresponding rollback action for a given application and action.
+   *
    * @private
+   * @param {string} app - The name of the application (e.g., 'gmail').
+   * @param {string} action - The original action performed (e.g., 'create_draft').
+   * @returns {string|null} The name of the rollback action (e.g., 'delete_draft'), or `null` if none is defined.
    */
   _getRollbackAction(app, action) {
     const appRollbacks = ROLLBACK_REGISTRY[app?.toLowerCase()];
@@ -386,8 +516,13 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Build rollback parameters from the original step's result.
+   * Builds a set of parameters suitable for a rollback action based on the original step's result.
+   * This method attempts to extract common identifiers (like `id`, `messageId`, etc.) from the result.
+   *
    * @private
+   * @param {Object} step - The completed step object, including its `result`.
+   * @param {Object} step.result - The result object from the original successful step execution.
+   * @returns {Object} An object containing parameters for the rollback action.
    */
   _buildRollbackParams(step) {
     const params = {};
@@ -407,20 +542,31 @@ class WorkflowResilienceService {
   }
 
   /**
-   * Promisified sleep.
+   * Returns a Promise that resolves after a specified number of milliseconds.
+   *
    * @private
+   * @param {number} ms - The number of milliseconds to sleep.
+   * @returns {Promise<void>} A promise that resolves after the delay.
    */
   _sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
-   * Clean up old registry entries to prevent memory leaks.
-   * Call periodically or after execution completes.
+   * Cleans up the `completedStepRegistry` for a specific workflow execution.
+   * This should be called after a workflow execution has definitively completed
+   * (either successfully or after a rollback) to prevent memory leaks.
+   *
+   * @param {string} executionId - The unique identifier of the workflow execution to clean up.
    */
   cleanup(executionId) {
     this.completedStepRegistry.delete(executionId);
   }
 }
 
+/**
+ * @constant {WorkflowResilienceService} workflowResilienceService
+ * @description An exported singleton instance of the `WorkflowResilienceService`.
+ * Use this instance to access all resilience functionalities across the application.
+ */
 export const workflowResilienceService = new WorkflowResilienceService();
