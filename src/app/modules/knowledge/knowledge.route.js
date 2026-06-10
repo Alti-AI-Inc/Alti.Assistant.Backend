@@ -80,7 +80,13 @@ const router = express.Router();
  */
 router.post(
   '/upload',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Expanded role access to include all hierarchical roles. Fine-grained authorization (e.g., a manager accessing only their team's data) is handled by the controller/service layer.
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   uploadKnowledge.single('file'),
   validateRequest(KnowledgeValidation.uploadFileSchema),
@@ -136,7 +142,12 @@ router.post(
  */
 router.post(
   '/process/:fileId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.processFileSchema),
   knowledgeController.processFile
@@ -198,7 +209,12 @@ router.post(
  */
 router.get(
   '/files',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getFilesSchema),
   knowledgeController.getFiles
@@ -245,7 +261,12 @@ router.get(
  */
 router.get(
   '/files/:fileId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getFileByIdSchema),
   knowledgeController.getFileById
@@ -298,7 +319,12 @@ router.get(
  */
 router.delete(
   '/files/:fileId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.deleteFileSchema),
   knowledgeController.deleteFile
@@ -360,7 +386,12 @@ router.delete(
  */
 router.get(
   '/stats',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getStorageStatsSchema),
   knowledgeController.getStorageStats
@@ -419,7 +450,12 @@ router.get(
  */
 router.post(
   '/folders',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.createFolderSchema),
   knowledgeController.createFolder
@@ -467,7 +503,12 @@ router.post(
  */
 router.get(
   '/folders',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getFoldersSchema),
   knowledgeController.getFolders
@@ -514,7 +555,12 @@ router.get(
  */
 router.get(
   '/folders/:folderId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getFolderByIdSchema),
   knowledgeController.getFolderById
@@ -576,7 +622,12 @@ router.get(
  */
 router.patch(
   '/folders/:folderId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.updateFolderSchema),
   knowledgeController.updateFolder
@@ -622,7 +673,12 @@ router.patch(
  */
 router.delete(
   '/folders/:folderId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.deleteFolderSchema),
   knowledgeController.deleteFolder
@@ -678,7 +734,12 @@ router.delete(
  */
 router.get(
   '/folders/:folderId/contents',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getFolderContentsSchema),
   knowledgeController.getFolderContents
@@ -759,7 +820,12 @@ router.get(
  */
 router.post(
   '/chat',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.conversationalQuerySchema),
   knowledgeController.conversationalQuery
@@ -832,7 +898,12 @@ router.post(
  */
 router.post(
   '/query',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.queryKnowledgeSchema),
   knowledgeController.queryKnowledge
@@ -900,7 +971,12 @@ router.post(
  */
 router.post(
   '/search',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.semanticSearchSchema),
   knowledgeController.semanticSearch
@@ -949,7 +1025,12 @@ router.post(
  */
 router.get(
   '/conversations/:conversationId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  auth(
+    ENUM_USER_ROLE.USER,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.SUPER_ADMIN
+  ),
   extractTenantContext,
   validateRequest(KnowledgeValidation.getConversationHistorySchema),
   knowledgeController.getConversationHistory
