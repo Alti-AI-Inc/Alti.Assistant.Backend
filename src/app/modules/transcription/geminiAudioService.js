@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
 import httpStatus from 'http-status';
+import { v4 as uuidv4 } from 'uuid';
+import { Storage } from '@google-cloud/storage';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import {
@@ -10,51 +11,75 @@ import {
   ERROR_MESSAGES,
 } from './transcription.constant.js';
 import { transcriptionService } from './transcription.service.js';
-import fs from 'fs';
-import path from 'path';
 import config from '../../../../config/index.js';
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
-const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
+
+// Initialize Google Cloud Storage
+const storage = new Storage();
+const gcsBucketName = config.gcs?.bucketName;
 
 /**
- * Uploads an audio file to the Gemini Files API.
- * This makes the file available for processing by Gemini models.
+ * Uploads an audio file stream directly to a Google Cloud Storage bucket.
+ * This avoids saving the file to the local filesystem.
  *
- * @param {string} filePath - The local path to the audio file.
+ * @param {ReadableStream} fileStream - The readable stream of the audio file.
+ * @param {string} originalFilename - The original name of the file, used for its extension.
  * @param {string} mimeType - The MIME type of the audio file (e.g., 'audio/mpeg', 'audio/wav').
- * @returns {Promise<Object>} A promise that resolves to an object containing the uploaded file's details.
- * @returns {string} .fileUri - The URI of the uploaded file on the Gemini Files API.
- * @returns {string} .fileName - The resource name of the uploaded file (e.g., 'files/12345').
+ * @returns {Promise<Object>} A promise that resolves to an object containing the GCS file's details.
+ * @returns {string} .gsUri - The GCS URI of the uploaded file (e.g., 'gs://bucket-name/file-name.mp3').
+ * @returns {string} .fileName - The resource name of the uploaded file in the GCS bucket.
  * @returns {string} .mimeType - The MIME type of the uploaded file.
- * @returns {number} .sizeBytes - The size of the uploaded file in bytes.
- * @throws {ApiError} If the file upload fails due to an internal server error.
+ * @throws {ApiError} If the file upload to GCS fails.
  */
-const uploadAudioFile = async (filePath, mimeType) => {
-  try {
-    logger.info(`Uploading audio file: ${filePath}`);
-
-    const uploadResult = await fileManager.uploadFile(filePath, {
-      mimeType,
-      displayName: path.basename(filePath),
-    });
-
-    logger.info(`File uploaded successfully: ${uploadResult.file.uri}`);
-
-    return {
-      fileUri: uploadResult.file.uri,
-      fileName: uploadResult.file.name,
-      mimeType: uploadResult.file.mimeType,
-      sizeBytes: uploadResult.file.sizeBytes,
-    };
-  } catch (error) {
-    logger.error('Error uploading audio file:', error);
+const uploadAudioStreamToGcs = (fileStream, originalFilename, mimeType) => {
+  if (!gcsBucketName) {
+    logger.error('GCS bucket name is not configured.');
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to upload audio file'
+      'Server configuration error for file uploads.'
     );
   }
+
+  return new Promise((resolve, reject) => {
+    const bucket = storage.bucket(gcsBucketName);
+    const fileExtension = originalFilename.includes('.')
+      ? originalFilename.substring(originalFilename.lastIndexOf('.'))
+      : '';
+    const uniqueFilename = `${uuidv4()}${fileExtension}`;
+
+    const gcsFile = bucket.file(uniqueFilename);
+    const stream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: mimeType,
+      },
+      resumable: false,
+    });
+
+    stream.on('error', err => {
+      logger.error('GCS stream upload error:', err);
+      reject(
+        new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          'Failed to upload audio file to GCS'
+        )
+      );
+    });
+
+    stream.on('finish', () => {
+      logger.info(
+        `File ${uniqueFilename} uploaded to GCS bucket ${gcsBucketName}.`
+      );
+      resolve({
+        gsUri: `gs://${gcsBucketName}/${uniqueFilename}`,
+        fileName: uniqueFilename, // This is the GCS object name
+        mimeType: mimeType,
+      });
+    });
+
+    fileStream.pipe(stream);
+  });
 };
 
 /**
@@ -62,8 +87,8 @@ const uploadAudioFile = async (filePath, mimeType) => {
  * using the Gemini Pro Vision model for various tasks like transcription, summarization, or description.
  *
  * @param {Object} audioFile - An object containing information about the audio file.
- * @param {string} audioFile.fileUri - The URI of the audio file on the Gemini Files API.
- * @param {string} [audioFile.gsUri] - Optional GCS URI of the audio file (e.g., 'gs://bucket/file.mp3').
+ * @param {string} [audioFile.fileUri] - The URI of the audio file on the Gemini Files API.
+ * @param {string} [audioFile.gsUri] - GCS URI of the audio file (e.g., 'gs://bucket/file.mp3').
  * @param {string} audioFile.mimeType - The MIME type of the audio file.
  * @param {string} [audioFile.fileName] - Optional original file name for logging/metadata.
  * @param {string} prompt - The user's specific prompt or question for the audio processing.
@@ -101,7 +126,14 @@ const processAudioWithGemini = async (
 
     // Support both Gemini File API URIs and direct GCS URIs
     // For GCS URIs (gs://...), Gemini can access them directly if in the same project
-    const fileUri = audioFile.fileUri || audioFile.gsUri;
+    const fileUri = audioFile.gsUri || audioFile.fileUri;
+
+    if (!fileUri) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'No audio file URI (gsUri or fileUri) provided.'
+      );
+    }
 
     // Generate content with audio
     const result = await model.generateContent([
@@ -280,13 +312,13 @@ const buildPromptForType = (processingType, options = {}) => {
  * This can be useful for estimating costs or understanding input size limitations.
  *
  * @param {Object} audioFile - An object containing information about the audio file.
- * @param {string} audioFile.fileUri - The URI of the audio file on the Gemini Files API.
+ * @param {string} audioFile.gsUri - The GCS URI of the audio file.
  * @param {string} audioFile.mimeType - The MIME type of the audio file.
  * @returns {Promise<Object>} A promise that resolves to an object containing the total token count.
  * @returns {number} .totalTokens - The total number of tokens in the audio file.
  * @throws {ApiError} If token counting fails due to an internal server error.
  */
-const countAudioTokens = async (audioFile) => {
+const countAudioTokens = async audioFile => {
   try {
     const model = genAI.getGenerativeModel({
       model: TRANSCRIPTION_CONSTANTS.MODEL,
@@ -295,7 +327,7 @@ const countAudioTokens = async (audioFile) => {
     const result = await model.countTokens([
       {
         fileData: {
-          fileUri: audioFile.fileUri,
+          fileUri: audioFile.gsUri,
           mimeType: audioFile.mimeType,
         },
       },
@@ -358,19 +390,29 @@ const processBatchAudio = async (audioFiles, options = {}) => {
 };
 
 /**
- * Deletes an uploaded file from the Gemini Files API.
+ * Deletes a file from the Google Cloud Storage bucket.
  * This helps manage storage and comply with data retention policies.
  * Errors during deletion are logged but not re-thrown to avoid disrupting other operations.
  *
- * @param {string} fileName - The resource name of the file to delete (e.g., 'files/12345').
+ * @param {string} fileName - The resource name of the file to delete from the GCS bucket.
  * @returns {Promise<void>} A promise that resolves when the file is deleted.
  */
-const deleteUploadedFile = async (fileName) => {
+const deleteFileFromGcs = async fileName => {
   try {
-    await fileManager.deleteFile(fileName);
-    logger.info(`Deleted file: ${fileName}`);
+    if (!gcsBucketName) {
+      logger.error('GCS bucket name is not configured for file deletion.');
+      return;
+    }
+    await storage.bucket(gcsBucketName).file(fileName).delete();
+    logger.info(`Deleted file from GCS: ${fileName}`);
   } catch (error) {
-    logger.error('Error deleting file:', error);
+    if (error.code === 404) {
+      logger.warn(
+        `Attempted to delete non-existent file from GCS: ${fileName}`
+      );
+    } else {
+      logger.error(`Error deleting file from GCS: ${fileName}`, error);
+    }
     // Don't throw error, just log it
   }
 };
@@ -381,7 +423,7 @@ const deleteUploadedFile = async (fileName) => {
  * @param {string} mimeType - The MIME type to validate (e.g., 'audio/mpeg', 'audio/wav').
  * @returns {boolean} True if the format is supported, false otherwise.
  */
-const isValidAudioFormat = (mimeType) => {
+const isValidAudioFormat = mimeType => {
   return Object.values(SUPPORTED_AUDIO_FORMATS).includes(mimeType);
 };
 
@@ -393,7 +435,7 @@ const isValidAudioFormat = (mimeType) => {
  * @param {Array<Object>} conversationHistory - An array of previous chat messages to provide context for the current turn.
  * @param {string} conversationHistory[].role - The role of the sender ('user' or 'assistant').
  * @param {string} conversationHistory[].content - The content of the message.
- * @param {string} [audioFileUri=null] - Optional URI of an audio file to include as context for the current message.
+ * @param {string} [audioFileGsUri=null] - Optional GCS URI of an audio file to include as context for the current message.
  * @returns {Promise<Object>} A promise that resolves to an object containing the model's response and metadata.
  * @returns {string} .text - The text response from the Gemini model.
  * @returns {Object} .metadata - Additional metadata about the chat processing.
@@ -405,7 +447,7 @@ const isValidAudioFormat = (mimeType) => {
 const processChatMessage = async (
   message,
   conversationHistory,
-  audioFileUri = null
+  audioFileGsUri = null
 ) => {
   try {
     const model = genAI.getGenerativeModel({
@@ -414,8 +456,8 @@ const processChatMessage = async (
 
     // Build chat context
     const chatHistory = conversationHistory
-      .filter((msg) => msg.role !== 'system')
-      .map((msg) => ({
+      .filter(msg => msg.role !== 'system')
+      .map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }],
       }));
@@ -427,12 +469,12 @@ const processChatMessage = async (
 
     // Send message (optionally with audio context)
     let result;
-    if (audioFileUri) {
+    if (audioFileGsUri) {
       result = await chat.sendMessage([
         message,
         {
           fileData: {
-            fileUri: audioFileUri,
+            fileUri: audioFileGsUri,
             mimeType: 'audio/mp3', // Assume mp3, adjust if needed
           },
         },
@@ -450,7 +492,7 @@ const processChatMessage = async (
       text,
       metadata: {
         model: TRANSCRIPTION_CONSTANTS.MODEL,
-        hasAudioContext: !!audioFileUri,
+        hasAudioContext: !!audioFileGsUri,
         historyLength: conversationHistory.length,
       },
     };
@@ -468,12 +510,12 @@ const processChatMessage = async (
  * This service encapsulates functionalities like uploading, processing, token counting, and managing audio files with Gemini.
  */
 export const geminiAudioService = {
-  uploadAudioFile,
+  uploadAudioStreamToGcs,
   processAudioWithGemini,
   processInlineAudio,
   countAudioTokens,
   processBatchAudio,
-  deleteUploadedFile,
+  deleteFileFromGcs,
   isValidAudioFormat,
   buildPromptForType,
   processChatMessage,
