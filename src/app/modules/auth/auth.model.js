@@ -276,7 +276,7 @@ const UserSchema = new mongoose.Schema(
      * @type {string}
      */
     // Security: This field stores the HASH of the token, not the token itself.
-    confirmationToken: String,
+    confirmationToken: { type: String, index: true, sparse: true }, // Performance: Sparse index for fast token lookups, as this field is usually null.
     /**
      * Expiration date for the email confirmation token.
      * @type {Date}
@@ -287,7 +287,7 @@ const UserSchema = new mongoose.Schema(
      * @type {string}
      */
     // Security: This field should store the HASH of the OTP, not the OTP itself.
-    resetPasswordOTP: String,
+    resetPasswordOTP: { type: String, index: true, sparse: true }, // Performance: Sparse index for fast OTP lookups, as this field is usually null.
     /**
      * Expiration date for the password reset OTP.
      * @type {Date}
@@ -298,7 +298,7 @@ const UserSchema = new mongoose.Schema(
      * @type {string}
      */
     // Security: This field should store the HASH of the OTP, not the OTP itself.
-    deleteAccountOTP: String,
+    deleteAccountOTP: { type: String, index: true, sparse: true }, // Performance: Sparse index for fast OTP lookups, as this field is usually null.
     /**
      * Expiration date for the account deletion OTP.
      * @type {Date}
@@ -308,7 +308,7 @@ const UserSchema = new mongoose.Schema(
      * The user's Stripe account ID.
      * @type {string}
      */
-    stripeAccountId: { type: String, trim: true }, // Security: Trim whitespace.
+    stripeAccountId: { type: String, trim: true, index: true, sparse: true }, // Performance: Sparse index for fast webhook lookups, as not all users have a stripe account.
 
     /**
      * Reference to the new Subscription model.
@@ -395,6 +395,10 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
+// Performance: Add a compound index for OAuth providers to speed up login.
+// A sparse index is used because these fields are only present for OAuth users.
+UserSchema.index({ provider: 1, providerId: 1 }, { sparse: true });
+
 /**
  * Security: Mongoose 'pre-save' hook to hash the password before saving it to the database.
  * This ensures that plaintext passwords are never stored.
@@ -457,6 +461,7 @@ UserSchema.statics.isUserExist = async function (id) {
   // Security: Validate that the ID is a valid MongoDB ObjectId format before querying.
   if (!mongoose.Types.ObjectId.isValid(id)) return false;
 
+  // Performance: .select('_id') and .lean() make this a highly efficient existence check.
   const user = await this.findById(id).select('_id').lean();
   return !!user;
 };

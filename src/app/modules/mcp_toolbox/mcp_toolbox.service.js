@@ -252,6 +252,29 @@ class McpToolboxService {
   }
 
   /**
+   * Validates that the user has the required role and belongs to the specified tenant.
+   * @private
+   * @param {Object} authContext - The authenticated user's context.
+   * @param {string} authContext.userId - The user's ID.
+   * @param {string} authContext.userRole - The user's role (e.g., 'user', 'manager', 'admin', 'super_admin').
+   * @param {string} authContext.userTenantId - The tenant the user belongs to.
+   * @param {string} tenantId - The ID of the tenant being accessed.
+   * @param {string[]} [allowedRoles=[]] - A list of roles allowed to perform the action. If empty, all roles are allowed (but tenant check still applies).
+   * @throws {Error} If authorization fails.
+   */
+  _validateTenantAccess(authContext, tenantId, allowedRoles = []) {
+    // Security: CRITICAL - Ensure the authenticated user belongs to the tenant they are trying to access.
+    // A super_admin can access any tenant.
+    if (authContext.userTenantId !== tenantId && authContext.userRole !== 'super_admin') {
+        throw new Error('Forbidden: Access denied to this tenant workspace.');
+    }
+    // Security: CRITICAL - Ensure the user has the required role for the action.
+    if (allowedRoles.length > 0 && !allowedRoles.includes(authContext.userRole)) {
+        throw new Error(`Forbidden: Role '${authContext.userRole}' is not authorized to perform this action.`);
+    }
+  }
+
+  /**
    * Generates tools.yaml securely inside the user's isolated workspace directory.
    * Provides multi-tenant isolation by writing to a tenant-specific path.
    * 
@@ -274,6 +297,11 @@ class McpToolboxService {
    * @returns {{ configPath: string, yamlContent: string }} The path and content of the generated YAML config.
    */
   generateConfig(tenantId, connectionDetails, customTools = []) {
+    // BUGFIX: Security - Validate tenantId to prevent path traversal vulnerabilities.
+    // It should be a simple identifier, not a path segment containing '..', '/', or '\'.
+    if (/[\\/..]/.test(tenantId)) {
+      throw new Error('Invalid tenantId: Contains illegal characters.');
+    }
     const configDir = path.resolve(`storage/users/${tenantId}/workspace/mcp_config`);
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
@@ -339,17 +367,21 @@ class McpToolboxService {
    * Supports multi-tenant isolation by running inside a Docker sandbox container
    * if configured, or falling back to a local process or high-fidelity mock.
    * 
+   * @param {Object} authContext - The authenticated user's context.
    * @param {string} tenantId - The unique identifier of the tenant.
    * @param {Object} connectionDetails - Database connection credentials.
    * @param {Array<Object>} [customTools=[]] - Custom SQL parameterized safe tools.
    * @returns {Promise<Object>} Initialization result containing status, logs, and config info.
    */
-  async startMcpServer(tenantId, connectionDetails, customTools = []) {
+  async startMcpServer(authContext, tenantId, connectionDetails, customTools = []) {
+    // BUGFIX: Security (Authorization) - Only admins can start/restart the MCP server.
+    this._validateTenantAccess(authContext, tenantId, ['admin', 'super_admin']);
+
     const { configPath, yamlContent } = this.generateConfig(tenantId, connectionDetails, customTools);
 
     // Clean up existing server if running
     if (this.activeServers.has(tenantId)) {
-      await this.stopMcpServer(tenantId);
+      await this.stopMcpServer(authContext, tenantId);
     }
 
     const terminalLogs = [
@@ -451,10 +483,14 @@ class McpToolboxService {
   /**
    * Stops an active MCP Server instance for a specific tenant.
    * 
+   * @param {Object} authContext - The authenticated user's context.
    * @param {string} tenantId - The unique identifier of the tenant.
    * @returns {Promise<Object>} Success status and message.
    */
-  async stopMcpServer(tenantId) {
+  async stopMcpServer(authContext, tenantId) {
+    // BUGFIX: Security (Authorization) - Only admins can stop the MCP server.
+    this._validateTenantAccess(authContext, tenantId, ['admin', 'super_admin']);
+
     if (this.activeServers.has(tenantId)) {
       const server = this.activeServers.get(tenantId);
       if (server.bridge) {
@@ -471,12 +507,16 @@ class McpToolboxService {
    * Introspects query intent to map it to pre-approved tools, preventing SQL injection.
    * Supports both real Go MCP process execution and high-fidelity virtual fallback.
    * 
+   * @param {Object} authContext - The authenticated user's context.
    * @param {string} tenantId - The unique identifier of the tenant.
    * @param {string} queryPrompt - The natural language query or prompt.
    * @returns {Promise<Object>} The execution result containing markdown answer, logs, and raw data.
    * @throws {Error} If the MCP server is not connected for the tenant.
    */
-  async querySecureDatabase(tenantId, queryPrompt) {
+  async querySecureDatabase(authContext, tenantId, queryPrompt) {
+    // BUGFIX: Security (Authorization) - Users must belong to the tenant to query its database.
+    this._validateTenantAccess(authContext, tenantId, ['admin', 'manager', 'user', 'super_admin']);
+
     const server = this.activeServers.get(tenantId);
     if (!server) {
       throw new Error('Google MCP Database Toolbox is not connected for this workspace.');
@@ -527,6 +567,20 @@ class McpToolboxService {
         summaryMarkdown += `**Execution Output:**\n\n${contentText}\n\n`;
         summaryMarkdown += `> [!NOTE]\n`;
         summaryMarkdown += `> SQL injection protection successfully guaranteed. Arbitrary SQL commands blocked. Observability metrics forwarded to Google Cloud Tracing (OpenTelemetry).`;
+
+        // INTEGRATION_GAP: Propagate usage details and check limits.
+        // This is where you would integrate with your billing, usage, and notification services.
+        // Example:
+        // await usageService.recordQuery({
+        //   userId: authContext.userId,
+        //   tenantId: tenantId,
+        //   toolUsed: selectedTool,
+        //   queryPrompt: queryPrompt,
+        // });
+        // const limits = await limitService.getLimits(tenantId);
+        // if (limits.queries.current >= limits.queries.max) {
+        //   await notificationService.notifyAdmins({ tenantId, message: `Workspace has reached its query limit.` });
+        // }
 
         return {
           success: true,
@@ -606,6 +660,10 @@ class McpToolboxService {
     summaryMarkdown += `\n\n> [!NOTE]\n`;
     summaryMarkdown += `> SQL injection protection successfully guaranteed. Arbitrary SQL commands blocked. Observability metrics forwarded to Google Cloud Tracing (OpenTelemetry).`;
 
+    // INTEGRATION_GAP: Propagate usage details and check limits (for mocked execution).
+    // This logic should mirror the real execution pathway.
+    // await usageService.recordQuery({ userId: authContext.userId, tenantId, ... });
+
     return {
       success: true,
       answer: summaryMarkdown,
@@ -619,10 +677,14 @@ class McpToolboxService {
   /**
    * Retrieves active server connection info for a specific tenant.
    * 
+   * @param {Object} authContext - The authenticated user's context.
    * @param {string} tenantId - The unique identifier of the tenant.
    * @returns {Object} Connection status, database details, and terminal logs.
    */
-  getStatus(tenantId) {
+  getStatus(authContext, tenantId) {
+    // BUGFIX: Security (Authorization) - Users must belong to the tenant to get its status.
+    this._validateTenantAccess(authContext, tenantId, ['admin', 'manager', 'user', 'super_admin']);
+
     if (this.activeServers.has(tenantId)) {
       const server = this.activeServers.get(tenantId);
       return {
