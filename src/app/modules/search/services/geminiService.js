@@ -31,7 +31,11 @@ export const createToolEnabledLLMExplicit = mcCreateToolEnabledLLMExplicit;
 
 // Default LLM instances for legacy backward-compatibility
 export const llm = gemini2_5Flash;
-export const toolEnabledLLM = createToolEnabledLLM();
+// BUG FIX: If `createToolEnabledLLM` is an asynchronous function or returns a Promise,
+// `toolEnabledLLM` would incorrectly hold a Promise instead of the resolved LLM instance.
+// Using `await` ensures that `toolEnabledLLM` holds the actual LLM instance once it's ready.
+// This assumes top-level await is supported in the Node.js environment (ES modules).
+export const toolEnabledLLM = await createToolEnabledLLM();
 
 export default {
   ModelComplexity,
