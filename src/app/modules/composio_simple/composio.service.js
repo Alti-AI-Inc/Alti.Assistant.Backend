@@ -14,9 +14,39 @@ import { getConversationHistory } from '../composio_v2/ai_classification/workflo
 import Conversation from '../conversations/conversation.model.js';
 import ConversationSummary from '../conversations/conversationSummary.model.js';
 
+/**
+ * @constant {Composio} composio - An instance of the Composio SDK initialized with the organization API key.
+ * This instance is used to interact with the Composio platform for managing connected accounts and executing tools.
+ */
 const composio = new Composio({ apiKey: config.composio.orgApiKey });
+
+/**
+ * @constant {GoogleGenerativeAI} genAI - An instance of the Google Generative AI SDK initialized with the Gemini secret key.
+ * This instance is used for interacting with Google's AI models, primarily for token counting and potentially for generating responses.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
+/**
+ * Executes a user's natural language request by identifying relevant applications,
+ * checking user connections, retrieving appropriate tools, and then generating and executing
+ * the necessary tool calls. It also manages conversation context and summarization.
+ *
+ * @async
+ * @param {string} userMessage - The natural language message from the user.
+ * @param {string} userId - The ID of the user making the request.
+ * @param {string | null} [conversationId=null] - The ID of the current conversation, used for context and history.
+ * @param {string | null} [scopedApp=null] - An optional app slug to directly scope the execution to a specific application, bypassing LLM app identification.
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status,
+ *   the AI's response or a success message, the conversation ID, tools used, and execution time,
+ *   or an error message if the operation fails.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {object} returns.data - The data returned on success.
+ * @returns {string} returns.data.response - The AI's response or a confirmation message.
+ * @returns {string} returns.data.conversationId - The ID of the conversation.
+ * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
+ * @returns {string} returns.data.executionTime - The total time taken for the request execution.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 export const executeUserRequest = async (
   userMessage,
   userId,
@@ -165,6 +195,19 @@ export const executeUserRequest = async (
   }
 };
 
+/**
+ * Analyzes a conversation's token count to determine if summarization is needed
+ * and provides the appropriate conversation context (full history or summary).
+ *
+ * @async
+ * @param {string | null} conversationId - The ID of the conversation to analyze.
+ * @returns {Promise<object>} A promise that resolves to an object containing
+ *   `needSummarization` (boolean), `tokenCount` (number), and either `summary` (string)
+ *   or `conversation` (Array<object>).
+ * @returns {boolean} returns.needSummarization - True if the conversation exceeds the token limit and needs summarization.
+ * @returns {number} returns.tokenCount - The total token count of the conversation.
+ * @returns {Array<object> | string} returns.conversation | returns.summary - The full conversation messages or a summarized version.
+ */
 const countTokenFromConversationAndProvideContext = async (conversationId) => {
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
   // reducing Mongoose overhead.
@@ -200,6 +243,20 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
   }
 };
 
+/**
+ * Initiates the authentication process for a given application for a specific user
+ * using the Composio platform. It handles creating default AuthConfig if not found
+ * and includes a fallback mechanism for connection initiation.
+ *
+ * @async
+ * @param {string} appName - The slug or name of the application to initiate authentication for.
+ * @param {string} userId - The ID of the user for whom the authentication is being initiated.
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status
+ *   and the connection URL data, or an error message.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {object} returns.data - The data returned on success, including `redirectUrl` and `id`.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 export const initiateAuth = async (appName, userId) => {
   try {
     // Optimization: Added .lean() for read-only query.
@@ -258,6 +315,18 @@ export const initiateAuth = async (appName, userId) => {
   }
 };
 
+/**
+ * Waits for a Composio connected account to complete its authentication process
+ * and updates the local database with the connection status and tokens.
+ *
+ * @async
+ * @param {string} connectedAccountId - The ID of the connected account to wait for.
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status
+ *   and the connection details, or an error message.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {object} returns.data - The data returned on success, including the connection status and tokens.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 export const waitForConnection = async (connectedAccountId) => {
   try {
     const connection =
@@ -279,6 +348,17 @@ export const waitForConnection = async (connectedAccountId) => {
   }
 };
 
+/**
+ * Retrieves all active connected accounts for a given user.
+ *
+ * @async
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status
+ *   and an array of connected accounts, or an error message.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {Array<object>} returns.data - An array of ComposioAuth documents representing the user's connected accounts.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 export const getUserConnectedAccounts = async (userId) => {
   try {
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1, updatedAt: -1 }`
@@ -293,6 +373,19 @@ export const getUserConnectedAccounts = async (userId) => {
   }
 };
 
+/**
+ * Disconnects an application for a specific user by deactivating the Composio connected account
+ * and removing its record from the database. It includes a fallback for Composio API deletion methods.
+ *
+ * @async
+ * @param {string} userId - The ID of the user.
+ * @param {string} appName - The name or slug of the application to disconnect.
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status
+ *   and a message, or an error message.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {string} returns.message - A success message.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 export const disconnectApp = async (userId, appName) => {
   try {
     // Optimization: Added .lean() for read-only query before deletion.
@@ -331,6 +424,27 @@ export const disconnectApp = async (userId, appName) => {
   }
 };
 
+/**
+ * Orchestrates a multi-application workflow based on a user query.
+ * It identifies appropriate apps, filters them by user's active connections,
+ * retrieves relevant tools, and then generates and executes tool calls.
+ *
+ * @async
+ * @param {string} query - The user's natural language query.
+ * @param {Array<object> | string} apps - Conversation history or context used for app identification.
+ *   This parameter was previously misused as `toolKits` in a bug, now correctly used as context.
+ * @param {object} toolKits - An object mapping app slugs to their desired toolkit versions (e.g., `{ "slack": "latest" }`).
+ *   Note: This parameter is initially passed but its values are overridden by the `appInfo` and connection checks.
+ * @param {string} entityId - The ID of the user or entity initiating the workflow (used for auth checks).
+ * @returns {Promise<object>} A promise that resolves to an object containing the success status,
+ *   the AI's response or a success message, tools used, and execution time, or an error message.
+ * @returns {boolean} returns.success - Indicates if the operation was successful.
+ * @returns {object} returns.data - The data returned on success.
+ * @returns {string} returns.data.response - The AI's response or a confirmation message.
+ * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
+ * @returns {string} returns.data.executionTime - The total time taken for the workflow execution.
+ * @returns {string} returns.error - The error message if the operation failed.
+ */
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
   // BUG FIX: Added try-catch block for robustness in this exported function.
   const startTime = Date.now();
@@ -418,6 +532,17 @@ async function multiAppWorkflow(query, apps, toolKits, entityId) {
   }
 }
 
+/**
+ * @constant {object} composioService - An object encapsulating various Composio-related service functions.
+ * This provides a centralized interface for interacting with Composio features like
+ * executing user requests, managing app authentications, and handling multi-app workflows.
+ * @property {function(string, string, string=, string=): Promise<object>} executeUserRequest - Executes a user's natural language request.
+ * @property {function(string, string): Promise<object>} initiateAuth - Initiates the authentication flow for an app.
+ * @property {function(string): Promise<object>} waitForConnection - Waits for a Composio connection to complete.
+ * @property {function(string): Promise<object>} getUserConnectedAccounts - Retrieves a user's active connected accounts.
+ * @property {function(string, string): Promise<object>} disconnectApp - Disconnects an app for a user.
+ * @property {function(string, Array<object> | string, object, string): Promise<object>} multiAppWorkflow - Orchestrates a workflow across multiple applications.
+ */
 export const composioService = {
   executeUserRequest,
   initiateAuth,
