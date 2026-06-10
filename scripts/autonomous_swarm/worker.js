@@ -309,7 +309,11 @@ async function runLoop() {
           security_agent: 'NO_CHANGES_NEEDED',
           telemetry_agent: 'NO_CHANGES_NEEDED',
           ratelimit_agent: 'NO_CHANGES_NEEDED',
-          patch_agent: 'NO_CHANGES_NEEDED'
+          patch_agent: 'NO_CHANGES_NEEDED',
+          gcp_secret_agent: 'NO_CHANGES_NEEDED',
+          gcp_logging_agent: 'NO_CHANGES_NEEDED',
+          gcp_storage_agent: 'NO_CHANGES_NEEDED',
+          gcp_pubsub_agent: 'NO_CHANGES_NEEDED'
         };
 
         if (reply && reply.includes(skipKeywords[AGENT_TYPE])) {
@@ -341,7 +345,11 @@ async function runLoop() {
           security_agent: 'sec(security)',
           telemetry_agent: 'telemetry',
           ratelimit_agent: 'perf(ratelimit)',
-          patch_agent: 'chore(patch)'
+          patch_agent: 'chore(patch)',
+          gcp_secret_agent: 'sec(gcp-secrets)',
+          gcp_logging_agent: 'telemetry(gcp-logging)',
+          gcp_storage_agent: 'feat(gcp-storage)',
+          gcp_pubsub_agent: 'feat(gcp-pubsub)'
         };
         const gitResult = await commitAndPush('main', `${commitPrefixes[AGENT_TYPE]}: [Zone ${ZONE_ID}] autonomous update to ${path.basename(filePath)}`);
         if (gitResult.success) {
