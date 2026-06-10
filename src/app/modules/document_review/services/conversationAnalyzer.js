@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google-generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
 import config from '../../../../../config/index.js';

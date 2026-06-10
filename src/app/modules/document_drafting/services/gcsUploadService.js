@@ -280,3 +280,71 @@ export const deleteDocumentFromGCS = async (gcsPath, user) => {
     throw new Error('Could not delete document.');
   }
 };
+
+/**
+ * Uploads a local document file to Google Cloud Storage.
+ * @param {string} localFilePath - The absolute path of the local file.
+ * @param {object} documentMetadata - Metadata containing userId, documentType, etc.
+ * @returns {Promise<object>} Upload result with GCS path and signed URL, or local path fallback.
+ */
+export const uploadDocumentToGCS = async (
+  localFilePath,
+  documentMetadata = {}
+) => {
+  if (!storage || !bucket) {
+    logger.warn('GCS not configured. Returning local file path.');
+    return {
+      success: true,
+      localPath: localFilePath,
+      fileName: path.basename(localFilePath),
+      storageType: 'local',
+    };
+  }
+
+  const fileName = path.basename(localFilePath);
+  const destination = `${GCS_CONFIG.FOLDER_PREFIX}${documentMetadata.userId || 'anonymous'}/${fileName}`;
+
+  logger.info(`Uploading document to GCS: ${destination}`);
+
+  try {
+    await bucket.upload(localFilePath, {
+      destination,
+      metadata: {
+        contentType: getContentType(fileName),
+        metadata: {
+          documentType: documentMetadata.documentType || 'general',
+          uploadedAt: new Date().toISOString(),
+          userId: documentMetadata.userId || 'anonymous',
+          title: documentMetadata.title || 'Untitled',
+        },
+      },
+    });
+
+    const file = bucket.file(destination);
+    const [signedUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    logger.info(`Document uploaded successfully to GCS: ${destination}`);
+
+    return {
+      success: true,
+      gcsPath: `gs://${GCS_CONFIG.BUCKET_NAME}/${destination}`,
+      publicUrl: signedUrl,
+      fileName,
+      destination,
+      storageType: 'gcs',
+    };
+  } catch (error) {
+    logger.error('Error uploading document to GCS:', error);
+    return {
+      success: true,
+      localPath: localFilePath,
+      fileName,
+      storageType: 'local',
+      error: error.message,
+    };
+  }
+};

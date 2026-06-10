@@ -19,13 +19,20 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 // GCS_REWRITE: Initialize Google Cloud Storage client.
 // Assumes GOOGLE_APPLICATION_CREDENTIALS environment variable is set.
 const storage = new Storage();
-const bucketName = process.env.GCS_UPLOADS_BUCKET; // Ensure this is configured in your environment.
+let bucketName = process.env.GCS_UPLOADS_BUCKET; // Ensure this is configured in your environment.
 
 if (!bucketName) {
-  // Throw an error on startup if the bucket isn't configured, to prevent runtime errors.
-  throw new Error(
-    'GCS_UPLOADS_BUCKET environment variable not set. File uploads will fail.'
-  );
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      'Warning: GCS_UPLOADS_BUCKET environment variable not set. Initializing with a fallback bucket name for development/testing.'
+    );
+    bucketName = 'development-uploads-bucket';
+  } else {
+    // Throw an error on startup if the bucket isn't configured, to prevent runtime errors.
+    throw new Error(
+      'GCS_UPLOADS_BUCKET environment variable not set. File uploads will fail.'
+    );
+  }
 }
 
 /**

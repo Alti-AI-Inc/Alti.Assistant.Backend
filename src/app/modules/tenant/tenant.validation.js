@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Improvement: Centralize role definitions for consistency and maintainability across the application.
-const ROLES = ['admin', 'manager', 'user'] as const;
+const ROLES = ['admin', 'manager', 'user'];
 
 /**
  * @typedef {object} CreateTenantBody

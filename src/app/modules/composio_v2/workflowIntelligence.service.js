@@ -11,8 +11,8 @@ import WorkflowPattern from './models/workflowPattern.model.js';
  * The GCP_PROJECT_ID and GCP_LOCATION environment variables must be set.
  */
 const vertex_ai = new VertexAI({
-  project: process.env.GCP_PROJECT_ID,
-  location: process.env.GCP_LOCATION,
+  project: process.env.GCP_PROJECT_ID || 'alti-assistant',
+  location: process.env.GCP_LOCATION || 'us-central1',
 });
 
 /**

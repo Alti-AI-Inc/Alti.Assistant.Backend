@@ -1,6 +1,6 @@
 import * as llama from './llamaindex.indexer.js';
-import logger from '../../../utils/logger.js';
-import ApiError from '../../../utils/ApiError.js';
+import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../errors/ApiError.js';
 
 const uploadAndIndexDocumentService = async (filePath, originalName, userId) => {
   try {

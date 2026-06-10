@@ -299,7 +299,7 @@ const LlamaAiGetResponseFromDbByUserId = catchAsync(async (req, res) => {
   // and Mongoose document methods/virtuals are not used.
   // Also, ensure an index exists on 'userId' in the database schema for efficient lookup.
   const responseData =
-    await LlamaAiService.getAiResponsesByUserIdService(userId);
+    await LlamaAiService.getAiResponsesByUserIdService(userId, req.user);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -414,7 +414,7 @@ const LlamaAiGetResponseFromDbBySessionId = catchAsync(async (req, res) => {
   // Also, ensure a compound index exists on '{ sessionId: 1, userId: 1 }'
   // or at least on 'sessionId' and 'userId' individually in the database schema
   // for efficient lookup and ownership checks.
-  const responseData = await LlamaAiService.getAiResponsesBySession(sessionId, userId);
+  const responseData = await LlamaAiService.getAiResponsesBySession(sessionId, req.user);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -505,7 +505,7 @@ const deleteOneAiSession = catchAsync(async (req, res) => {
 
   // Optimization recommendation: Ensure an index exists on '{ _id: 1, userId: 1 }'
   // in the database schema for efficient deletion with ownership check.
-  const result = await LlamaAiService.deleteOneLlamaAiSession(objectId, userId);
+  const result = await LlamaAiService.deleteOneLlamaAiSession(objectId, req.user);
   // logger.info(result, 'resultttt');
   if (!result.success) {
     // If the service indicates failure (e.g., not found or not authorized)
@@ -587,7 +587,7 @@ const deleteAllAiSessions = catchAsync(async (req, res) => {
 
   // Optimization recommendation: Ensure an index exists on 'userId' in the database schema
   // for efficient bulk deletion.
-  const result = await LlamaAiService.deleteAllAiSessionsService(userId);
+  const result = await LlamaAiService.deleteAllAiSessionsService(userId, req.user);
   // logger.info(result, 'resultttt');
 
   if (!result.success) {
@@ -698,7 +698,7 @@ const adminGetSessionsByUserId = catchAsync(async (req, res) => {
     throw error;
   }
   // Re-uses the existing service, but called in an admin context.
-  const sessions = await LlamaAiService.getAiResponsesByUserIdService(userId);
+  const sessions = await LlamaAiService.getAiResponsesByUserIdService(userId, req.user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -747,7 +747,7 @@ const adminDeleteAllUserSessions = catchAsync(async (req, res) => {
     throw error;
   }
   // Re-uses the existing service for a targeted bulk delete.
-  const result = await LlamaAiService.deleteAllAiSessionsService(userId);
+  const result = await LlamaAiService.deleteAllAiSessionsService(userId, req.user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -801,6 +801,49 @@ const adminDeleteOneAiSession = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Session deleted successfully by admin.',
+    data: result,
+  });
+});
+
+const getAllAiSessionsForSuperAdmin = catchAsync(async (req, res) => {
+  const result = await LlamaAiService.getAllAiSessionsForSuperAdminService();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All AI sessions retrieved successfully.',
+    data: result,
+  });
+});
+
+const getUserAiSessionsForSuperAdmin = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await LlamaAiService.getAiResponsesByUserIdService(userId, req.user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User AI sessions retrieved successfully.',
+    data: result,
+  });
+});
+
+const deleteAiSessionForSuperAdmin = catchAsync(async (req, res) => {
+  const { sessionId } = req.params;
+  const result = await LlamaAiService.deleteOneLlamaAiSession(sessionId, req.user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'AI session deleted successfully.',
+    data: result,
+  });
+});
+
+const deleteUserAiSessionsForSuperAdmin = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await LlamaAiService.deleteAllAiSessionsService(userId, req.user);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All AI sessions for user deleted successfully.',
     data: result,
   });
 });
@@ -913,6 +956,10 @@ export const LlamaAiController = {
   deleteAllAiSessions,
 
   // Platform Owner / Super Admin
+  getAllAiSessionsForSuperAdmin,
+  getUserAiSessionsForSuperAdmin,
+  deleteAiSessionForSuperAdmin,
+  deleteUserAiSessionsForSuperAdmin,
   adminGetPlatformStats,
   adminGetSessionsByUserId,
   adminDeleteAllUserSessions,

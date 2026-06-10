@@ -33,7 +33,7 @@ vi.mock('./legal_contract_review.service.js', () => ({
 const conversationHelpers = {
   getConversationById: vi.fn(),
 };
-vi.mock('../../conversation/conversation.helpers.js', () => ({ // Assuming path based on common module structure
+vi.mock('../../conversations/conversation.helpers.js', () => ({ // Assuming path based on common module structure
   conversationHelpers,
 }));
 

@@ -126,3 +126,10 @@ export const geminiSummarizer = async (history, content) => {
   // The system prompt is passed to runGeminiTask to ensure the model follows summarization instructions.
   return runGeminiTask(content, history, systemPrompt);
 };
+
+export const claudeSummarizer = async (messages, systemPrompt) => {
+  const historyCopy = [...messages];
+  const lastMessage = historyCopy.pop();
+  const content = lastMessage ? lastMessage.content : '';
+  return runGeminiTask(content, historyCopy, systemPrompt);
+};

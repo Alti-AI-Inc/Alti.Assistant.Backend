@@ -6,7 +6,7 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 // SECURITY-PATCH: Import a middleware to handle validation results.
 // REASON: This middleware will centralize the logic for checking validation errors and returning a 400 Bad Request response, keeping the controller logic clean.
-import validateRequest from '../../middlewares/validation/validateRequest.js';
+import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
 import { AdminController } from './admin.controller.js';
 
 /**

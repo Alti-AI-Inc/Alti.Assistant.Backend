@@ -1,5 +1,5 @@
 import { PubSub } from '@google-cloud/pubsub';
-import { GoogleGenerativeAI } from '@google-generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import {

@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import logger from '../../../config/logger.js'; // Added for robust logging
+import { logger } from '../../../shared/logger.js';
 import ApiError from '../../../errors/ApiError.js'; // Added for normalized error handling
 // import { ConversationChain } from 'langchain/chains';
 import { GeminiAiService } from './gemini.service.js';

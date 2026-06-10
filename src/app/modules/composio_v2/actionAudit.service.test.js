@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import { actionAuditService } from './actionAudit.service.js';
 import ActionAuditLog from './models/actionAuditLog.model.js';
-import User from '../../user/user.model.js';
-import { usageService } from '../../usage/usage.service.js';
+import User from '../auth/auth.model.js';
+import { usageService } from '../usage/usage.service.js';
 import { logger } from '../../../shared/logger.js';
 
 // Mock dependencies
@@ -17,14 +17,14 @@ vi.mock('./models/actionAuditLog.model.js', () => ({
   },
 }));
 
-vi.mock('../../user/user.model.js', () => ({
+vi.mock('../auth/auth.model.js', () => ({
   default: {
     findOne: vi.fn(),
     find: vi.fn(),
   },
 }));
 
-vi.mock('../../usage/usage.service.js', () => ({
+vi.mock('../usage/usage.service.js', () => ({
   usageService: {
     recordAction: vi.fn(),
   },

@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 // Assuming a shared Redis client is available for the application
-import redisClient from '../../../../../core/redis/redis.client.js';
+import redisClient from '../../../../shared/redis.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -159,4 +159,4 @@ const multerUpload = multer({
  * 2. `multerUpload`: If the rate is acceptable, process the file upload, which
  *    includes authentication checks, user-directory creation, and file validation.
  */
-export const uploadDocumentAnalysis = [documentUploadLimiter, multerUpload.single('document')];
+export const uploadDocumentAnalysis = multerUpload;

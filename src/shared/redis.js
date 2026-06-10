@@ -264,3 +264,6 @@ export const RedisClient = {
   getAccessToken,
   delAccessToken,
 };
+
+export { redisClient };
+export default redisClient;

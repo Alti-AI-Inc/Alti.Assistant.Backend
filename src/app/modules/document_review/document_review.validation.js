@@ -19,9 +19,22 @@ const redisClient = createClient({
 redisClient.connect().catch(console.error);
 
 // Create a Redis store for rate-limit-redis.
-const redisStore = new RedisStore({
+const redisStoreConversational = new RedisStore({
   // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
   sendCommand: (...args) => redisClient.sendCommand(args),
+  prefix: 'rl:doc_review:conv:',
+});
+
+const redisStoreReview = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+  sendCommand: (...args) => redisClient.sendCommand(args),
+  prefix: 'rl:doc_review:rev:',
+});
+
+const redisStoreHistory = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+  sendCommand: (...args) => redisClient.sendCommand(args),
+  prefix: 'rl:doc_review:hist:',
 });
 
 // Generic key generator to identify clients.
@@ -41,7 +54,7 @@ const keyGenerator = (req) => {
 // Allows for a reasonable number of messages within a short time frame to feel responsive,
 // but prevents rapid-fire spam or abuse.
 const conversationalLimiter = rateLimit({
-  store: redisStore,
+  store: redisStoreConversational,
   windowMs: 5 * 60 * 1000, // 5 minutes
   limit: 75, // Limit each user/IP to 75 requests per 5 minutes.
   standardHeaders: 'draft-7',
@@ -57,7 +70,7 @@ const conversationalLimiter = rateLimit({
 // These actions are costly (e.g., LLM API calls, heavy computation), so we must limit them aggressively
 // to prevent cost overruns and ensure service availability.
 const documentReviewLimiter = rateLimit({
-  store: redisStore,
+  store: redisStoreReview,
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 15, // Limit each user/IP to 15 reviews per hour.
   standardHeaders: 'draft-7',
@@ -72,7 +85,7 @@ const documentReviewLimiter = rateLimit({
 // Standard rate limiter for general data-retrieval endpoints like fetching history.
 // This is a baseline protection against simple DDOS or scraping attempts.
 const historyLimiter = rateLimit({
-  store: redisStore,
+  store: redisStoreHistory,
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 200, // Limit each user/IP to 200 requests per 15 minutes.
   standardHeaders: 'draft-7',

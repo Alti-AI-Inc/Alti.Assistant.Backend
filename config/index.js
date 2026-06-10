@@ -79,6 +79,10 @@ export default {
   gemini_secret_key: process.env.GEMINI_API_KEY,
   gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
+  gemini: {
+    model_name: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+    temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
+  },
   realestate_api_key: process.env.REALESTATE_API_KEY,
 
   llmProvider: 'gcp', // Enforced GCP provider for exclusive Google Cloud architecture
@@ -126,6 +130,22 @@ export default {
     google_smtp_user: process.env.GOOGLE_SMTP_USER,
     google_smtp_host: process.env.GOOGLE_SMTP_HOST,
     google_smtp_port: process.env.GOOGLE_SMTP_PORT,
+  },
+  gcp: {
+    projectId: process.env.GCP_PROJECT_ID,
+    project_id: process.env.GCP_PROJECT_ID,
+    location: process.env.GCP_LOCATION || 'us-central1',
+    saKeyPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './alti_gcp.json',
+    pubsub: {
+      subscriptionTopic: process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC || 'stripe-subscription-updates',
+      stripe_webhook_topic: process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhook-events',
+      topics: {
+        toolsSync: 'composio-tools-sync',
+      },
+    },
+    tasks_queue: process.env.GCP_TASKS_QUEUE || 'stripe-tasks-queue',
+    tasks_worker_url: process.env.GCP_TASKS_WORKER_URL || 'https://alti-backend.onrender.com/api/v1/stripe/tasks-worker',
+    tasks_service_account_email: process.env.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
   },
   privacy: {
     neverCollectData: true,

@@ -873,6 +873,54 @@ const getUserService = async (userId) => {
 };
 
 /**
+ * Authorizes a user to access a specific knowledge base (user-owned or bot-owned).
+ *
+ * @param {string} userId - The authenticated user's ID.
+ * @param {string} ownerType - The type of knowledge owner ('user' or 'bot').
+ * @param {string} ownerId - The ID of the owner of the knowledge base.
+ * @returns {Promise<void>} Resolves if authorized.
+ * @throws {ApiError} If access is unauthorized (FORBIDDEN) or target is not found (NOT_FOUND).
+ */
+export const authorizeKnowledgeAccess = async (userId, ownerType, ownerId) => {
+  if (!userId) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication required');
+  }
+
+  if (ownerType === 'user') {
+    if (userId.toString() !== ownerId.toString()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized access to user knowledge base');
+    }
+  } else if (ownerType === 'bot') {
+    const Chatbot = mongoose.model('Chatbot');
+    const chatbot = await Chatbot.findById(ownerId).select('userId tenantId').lean();
+    if (!chatbot) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Chatbot not found');
+    }
+
+    // Check if user is the owner of the bot
+    const isOwner = chatbot.userId && chatbot.userId.toString() === userId.toString();
+
+    // Check if user belongs to the same tenant as the bot
+    let isSameTenant = false;
+    if (chatbot.tenantId) {
+      const user = await UserModel.findById(userId).select('tenantId activeTenantId').lean();
+      if (user && (
+        (user.tenantId && user.tenantId.toString() === chatbot.tenantId.toString()) ||
+        (user.activeTenantId && user.activeTenantId.toString() === chatbot.tenantId.toString())
+      )) {
+        isSameTenant = true;
+      }
+    }
+
+    if (!isOwner && !isSameTenant) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized access to bot knowledge base');
+    }
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Invalid ownerType: ${ownerType}`);
+  }
+};
+
+/**
  * @typedef {object} AuthService
  * @property {function(string): Promise<object>} deleteUserAccountService - Deletes a user account.
  * @property {function(object): Promise<object>} registerService - Handles user registration.
@@ -882,6 +930,7 @@ const getUserService = async (userId) => {
  * @property {function(string): Promise<object>} refreshToken - Generates new access and refresh tokens.
  * @property {function(string, object): Promise<object>} updateUserService - Updates a user's profile.
  * @property {function(string): Promise<object>} getUserService - Retrieves a user's profile.
+ * @property {function(string, string, string): Promise<void>} authorizeKnowledgeAccess - Authorizes access to knowledge base.
  */
 
 /**
@@ -897,4 +946,5 @@ export const authService = {
   refreshToken,
   updateUserService,
   getUserService,
+  authorizeKnowledgeAccess,
 };

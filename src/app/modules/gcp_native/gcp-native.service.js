@@ -7,7 +7,7 @@ import GoogleRepository from './gcp-repository.model.js';
 // These services are essential for enforcing workspace-specific rules and logging actions.
 import { WorkspaceService } from '../workspace/workspace.service.js';
 import { NotificationService } from '../notification/notification.service.js';
-import { AuditLogService } from '../audit/audit.service.js';
+import auditLogger from '../../../shared/auditLogger.js';
 
 /**
  * Utility function to escape special characters for use in a regular expression.
@@ -287,7 +287,7 @@ const importGcpSubmodule = async (repoName, user) => {
     gitProcess.on('close', async (code) => {
       if (code !== 0) {
         // INTEGRATION: Log the failed attempt for auditing.
-        await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_failed', details: { repoName: match.name, error: stderr } });
+        auditLogger.error({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_failed', details: { repoName: match.name, error: stderr } });
         resolve({
           success: false,
           message: `Git command failed with exit code ${code}. The repository might already be imported or another error occurred.`,
@@ -298,7 +298,7 @@ const importGcpSubmodule = async (repoName, user) => {
         // HIERARCHY_PROPAGATION: On success, log the action, update usage, and notify relevant parties.
         try {
           // INTEGRATION: Log this action for auditing.
-          await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_success', details: { repoName: match.name, path: submodulePath } });
+          auditLogger.info({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_success', details: { repoName: match.name, path: submodulePath } });
 
           // INTEGRATION: Increment the workspace's usage count.
           await WorkspaceService.incrementSubmoduleCount(user.workspaceId);

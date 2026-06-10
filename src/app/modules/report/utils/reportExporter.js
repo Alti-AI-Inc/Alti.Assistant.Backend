@@ -7,13 +7,18 @@ import { EXPORT_CONFIG } from '../report.constant.js';
 const storage = new Storage();
 
 // Get the GCS bucket name from configuration or environment variables.
-const GCS_REPORT_BUCKET = EXPORT_CONFIG.gcsBucketName || process.env.GCS_REPORT_BUCKET;
+let GCS_REPORT_BUCKET = EXPORT_CONFIG.gcsBucketName || process.env.GCS_REPORT_BUCKET;
 
 // A GCS bucket must be configured for this module to function.
 if (!GCS_REPORT_BUCKET) {
-  const errorMessage = 'GCS bucket for reports is not configured. Set EXPORT_CONFIG.gcsBucketName or GCS_REPORT_BUCKET environment variable.';
-  logger.error(errorMessage);
-  throw new Error(errorMessage);
+  if (process.env.NODE_ENV !== 'production') {
+    logger.warn('Warning: GCS bucket for reports is not configured. Initializing with a fallback bucket name for development/testing.');
+    GCS_REPORT_BUCKET = 'development-reports-bucket';
+  } else {
+    const errorMessage = 'GCS bucket for reports is not configured. Set EXPORT_CONFIG.gcsBucketName or GCS_REPORT_BUCKET environment variable.';
+    logger.error(errorMessage);
+    throw new Error(errorMessage);
+  }
 }
 
 /**

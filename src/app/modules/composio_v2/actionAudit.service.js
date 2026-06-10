@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import ActionAuditLog from './models/actionAuditLog.model.js';
-import User from '../../user/user.model.js'; // FIX: Import User model for role-based access control.
-import { usageService } from '../../usage/usage.service.js'; // FIX: Import usage service for propagating usage data.
+import User from '../auth/auth.model.js'; // FIX: Import User model for role-based access control.
+import { usageService } from '../usage/usage.service.js'; // FIX: Import usage service for propagating usage data.
 import { logger } from '../../../shared/logger.js';
 
 // In your ActionAuditLog model definition (e.g., actionAuditLog.model.js),

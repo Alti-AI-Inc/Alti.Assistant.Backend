@@ -198,7 +198,10 @@ const initiateTaskInSessionService = async (
 
   // --- VERTEX AI SDK INTEGRATION ---
   // Initialize Vertex AI client using credentials and configuration from the environment.
-  const vertex_ai = new VertexAI({ project: config.google_project_id, location: config.google_location });
+  const vertex_ai = new VertexAI({
+    project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+    location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
+  });
   const model = 'gemini-1.5-flash-001';
 
   // Configure enterprise-grade safety settings to block harmful content at a low threshold.

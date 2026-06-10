@@ -6,11 +6,12 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
-import ApiError from '../../../core/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 
-// VAI-SAFETY-FIX: Instantiate the Vertex AI client.
-// This uses Application Default Credentials (ADC) for authentication, which is the recommended approach for GCP environments.
-const vertex_ai = new VertexAI({ project: config.gcp_project_id, location: config.gcp_location });
+const vertex_ai = new VertexAI({
+  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  location: config.google?.gcp_location || config.gcp_location || process.env.GCP_LOCATION || 'us-central1',
+});
 
 // VAI-SAFETY-FIX: PII masking utility function to redact sensitive information before sending to the AI model.
 const maskPII = text => {

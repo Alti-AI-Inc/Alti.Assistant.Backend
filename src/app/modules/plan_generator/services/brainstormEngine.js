@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redisClient from '../../../../shared/redis/redis.client.js';
+import redisClient from '../../../../shared/redis.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import {

@@ -50,24 +50,30 @@ import {
   getAirplanesService,
 } from './aviationstack.service.js';
 
-// Initialize Redis client for rate limiting.
-// In a production environment, connection details should come from environment variables.
-const redisClient = createClient({
-  // url: process.env.REDIS_URL || 'redis://localhost:6379' // Example connection string for production
-});
-redisClient.on('error', (err) => console.error('Redis Client Error', err));
-// Wait for the Redis client to connect before starting the server.
-// This ensures the rate limiter is ready to handle requests.
-await redisClient.connect();
-console.log('Redis client connected successfully.');
+/// Initialize Redis client for rate limiting.
+const redisClient = (() => {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    console.warn('WARNING: REDIS_URL not set. AviationStack rate limiting will use in-memory store.');
+    return null;
+  }
+  const client = createClient({ url: redisUrl });
+  client.on('error', (err) => console.error('AviationStack Rate Limiter Redis Client Error:', err));
+  client.connect().catch((err) => {
+    console.error('Failed to connect to Redis for AviationStack rate limiting:', err);
+  });
+  return client;
+})();
 
 // Create a Redis store for the rate limiter.
-const redisStore = new RedisStore({
-  sendCommand: (...args) => redisClient.sendCommand(args),
-});
+const redisStore = redisClient
+  ? new RedisStore({
+      // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
+      sendCommand: (...args) => redisClient.sendCommand(args),
+    })
+  : undefined;
 
 // Define a rate limiter for the AviationStack API endpoints.
-// This helps prevent DDOS attacks, API abuse, and excessive costs from the external API provider.
 // The limit is set to 100 requests per 15 minutes per IP address.
 const aviationStackApiLimiter = rateLimit({
   store: redisStore,
@@ -179,7 +185,7 @@ const router = express.Router();
  *                 error:
  *                   type: string
  *                   example: "Failed to fetch flight data from external API."
- */
+ * */
 router.get('/flights', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getFlightsService(req.query);
@@ -260,7 +266,7 @@ router.get('/flights', aviationStackApiLimiter, async (req, res) => {
  *                 error:
  *                   type: string
  *                   example: "Failed to fetch route data from external API."
- */
+ * */
 router.get('/routes', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getRoutesService(req.query);
@@ -348,7 +354,7 @@ router.get('/routes', aviationStackApiLimiter, async (req, res) => {
  *                 error:
  *                   type: string
  *                   example: "Failed to fetch airport data from external API."
- */
+ * */
 router.get('/airports', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirportsService(req.query);
@@ -429,7 +435,7 @@ router.get('/airports', aviationStackApiLimiter, async (req, res) => {
  *                 error:
  *                   type: string
  *                   example: "Failed to fetch airline data from external API."
- */
+ * */
 router.get('/airlines', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirlinesService(req.query);
@@ -504,7 +510,7 @@ router.get('/airlines', aviationStackApiLimiter, async (req, res) => {
  *                 error:
  *                   type: string
  *                   example: "Failed to fetch airplane data from external API."
- */
+ * */
 router.get('/airplanes', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirplanesService(req.query);
@@ -514,66 +520,4 @@ router.get('/airplanes', aviationStackApiLimiter, async (req, res) => {
   }
 });
 
-// --- GCP Cloud Run Server Implementation ---
-
-const app = express();
-
-// Mount the business logic router
-app.use('/api/aviationstack', router);
-
-// Liveness probe: A simple check to see if the server process is running.
-// Cloud Run uses this to determine if the container needs to be restarted.
-app.get('/healthz', (req, res) => {
-  res.status(200).send('ok');
-});
-
-// Readiness probe: Checks if the application is ready to accept traffic.
-// This should verify that all critical dependencies (like Redis) are connected.
-app.get('/readyz', (req, res) => {
-  if (redisClient.isReady) {
-    res.status(200).send('ok');
-  } else {
-    // If dependencies are not ready, return 503 to signal Cloud Run
-    // to not send traffic to this instance.
-    res.status(503).send('Service Unavailable: Not connected to dependencies.');
-  }
-});
-
-// Define the port. Cloud Run provides the PORT environment variable.
-// Default to 8080 for local development.
-const PORT = process.env.PORT || 8080;
-
-// Start the server
-const server = app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
-
-// Graceful shutdown logic for SIGTERM signal from Cloud Run
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: starting graceful shutdown.');
-
-  // Stop the server from accepting new connections. It will wait for existing
-  // connections to finish before calling the callback.
-  server.close(async () => {
-    console.log('HTTP server closed.');
-
-    // Close the Redis client connection
-    try {
-      await redisClient.quit();
-      console.log('Redis client disconnected successfully.');
-    } catch (err) {
-      console.error('Error during Redis disconnection:', err);
-    }
-
-    // Exit the process cleanly
-    process.exit(0);
-  });
-
-  // If the server hasn't closed after a timeout, force exit.
-  // Cloud Run gives a 10-second grace period by default. We set the
-  // timeout slightly shorter to ensure our cleanup logic can complete.
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down.');
-    process.exit(1);
-  }, 9500); // 9.5 seconds
-});
+export const aviationStackRoutes = router;

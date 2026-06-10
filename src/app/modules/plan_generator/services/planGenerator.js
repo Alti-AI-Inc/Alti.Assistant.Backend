@@ -1,5 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import { GoogleGenerativeAI } from '@google-generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 // FIX: Import usage service to enforce limits and track tenant-specific usage.

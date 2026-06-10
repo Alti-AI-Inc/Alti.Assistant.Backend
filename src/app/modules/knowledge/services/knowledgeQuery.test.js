@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import httpStatus from 'http-status';
 
 // Mock external dependencies
+vi.mock('../../auth/auth.service.js', () => ({
+  authorizeKnowledgeAccess: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../usage/usage.service.js', () => ({
+  usageService: {
+    checkQueryLimits: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({
     getGenerativeModel: vi.fn(),
@@ -213,6 +223,7 @@ describe('knowledgeQueryService', () => {
 
     it('should successfully query knowledge and return an answer with sources', async () => {
       const result = await knowledgeQueryService.queryKnowledge(
+        userId,
         query,
         ownerType,
         ownerId
@@ -244,6 +255,7 @@ describe('knowledgeQueryService', () => {
       KnowledgeFile.find.mockResolvedValueOnce([]);
 
       const result = await knowledgeQueryService.queryKnowledge(
+        userId,
         query,
         ownerType,
         ownerId
@@ -270,7 +282,7 @@ describe('knowledgeQueryService', () => {
       ragInstance.initialize.mockRejectedValueOnce(new Error(errorMessage));
 
       await expect(
-        knowledgeQueryService.queryKnowledge(query, ownerType, ownerId)
+        knowledgeQueryService.queryKnowledge(userId, query, ownerType, ownerId)
       ).rejects.toThrow(errorMessage);
       expect(logger.error).toHaveBeenCalledWith(
         '[Knowledge] Error querying knowledge:',
@@ -280,7 +292,7 @@ describe('knowledgeQueryService', () => {
 
     it('should use custom topK option if provided', async () => {
       const customTopK = 10;
-      await knowledgeQueryService.queryKnowledge(query, ownerType, ownerId, {
+      await knowledgeQueryService.queryKnowledge(userId, query, ownerType, ownerId, {
         topK: customTopK,
       });
       expect(ragInstance.query).toHaveBeenCalledWith(query, {
@@ -577,6 +589,7 @@ describe('knowledgeQueryService', () => {
 
     it('should successfully perform a semantic search and return results', async () => {
       const result = await knowledgeQueryService.semanticSearch(
+        userId,
         query,
         ownerType,
         ownerId
@@ -615,6 +628,7 @@ describe('knowledgeQueryService', () => {
       KnowledgeFile.find.mockResolvedValueOnce([]);
 
       const result = await knowledgeQueryService.semanticSearch(
+        userId,
         query,
         ownerType,
         ownerId
@@ -640,7 +654,7 @@ describe('knowledgeQueryService', () => {
       ragInstance.initialize.mockRejectedValueOnce(new Error(errorMessage));
 
       await expect(
-        knowledgeQueryService.semanticSearch(query, ownerType, ownerId)
+        knowledgeQueryService.semanticSearch(userId, query, ownerType, ownerId)
       ).rejects.toThrow(errorMessage);
       expect(logger.error).toHaveBeenCalledWith(
         '[Knowledge] Error in semantic search:',
@@ -650,7 +664,7 @@ describe('knowledgeQueryService', () => {
 
     it('should use custom limit option if provided', async () => {
       const customLimit = 5;
-      await knowledgeQueryService.semanticSearch(query, ownerType, ownerId, {
+      await knowledgeQueryService.semanticSearch(userId, query, ownerType, ownerId, {
         limit: customLimit,
       });
       expect(ragInstance.search).toHaveBeenCalledWith(query, {

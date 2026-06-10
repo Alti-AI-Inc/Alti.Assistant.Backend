@@ -42,12 +42,19 @@ const ALLOWED_MIMETYPES = new Set([
 const storage = new Storage();
 
 // The GCS bucket name must be provided via an environment variable.
-const bucketName = process.env.GCS_DOCUMENT_BUCKET;
+let bucketName = process.env.GCS_DOCUMENT_BUCKET;
 if (!bucketName) {
-  // Throw an error on startup if the bucket isn't configured, preventing runtime failures.
-  throw new Error(
-    'GCS_DOCUMENT_BUCKET environment variable is not set. This is required for file uploads.'
-  );
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      'Warning: GCS_DOCUMENT_BUCKET environment variable is not set. Initializing with a fallback bucket name for development/testing.'
+    );
+    bucketName = 'development-documents-bucket';
+  } else {
+    // Throw an error on startup if the bucket isn't configured, preventing runtime failures.
+    throw new Error(
+      'GCS_DOCUMENT_BUCKET environment variable is not set. This is required for file uploads.'
+    );
+  }
 }
 const bucket = storage.bucket(bucketName);
 

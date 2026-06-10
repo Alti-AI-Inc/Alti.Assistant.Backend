@@ -14,8 +14,8 @@ import { RedisClient } from '../../../shared/redis.js';
 // INTEGRATION: Import utilities for error handling, permission checks, and usage tracking.
 // This is critical for ensuring the service integrates correctly with the platform's security and billing model.
 import { AppError } from '../../../shared/errors.js';
-import { checkPermission } from '../../auth/auth.utils.js';
-import { recordUsage, checkUsageLimit } from '../../usage/usage.service.js';
+import { checkPermission } from '../auth/auth.utils.js';
+import { recordUsage, checkUsageLimit } from '../usage/usage.service.js';
 // INTEGRATION: Import original open data services to be wrapped for security and usage tracking.
 import * as openDataServices from './aviationOpenData.service.js';
 

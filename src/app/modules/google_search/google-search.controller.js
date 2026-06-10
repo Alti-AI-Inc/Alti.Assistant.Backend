@@ -16,16 +16,23 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 // control costs, and ensure service availability for all users.
 
 // Assumes a shared Redis client is available for a distributed, scalable rate-limiting state.
-const store = new RedisStore({
+const storeMinute = new RedisStore({
   // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
   sendCommand: (...args) => redisClient.call(...args),
+  prefix: 'rl:google-search:minute:',
+});
+
+const storeDaily = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
+  sendCommand: (...args) => redisClient.call(...args),
+  prefix: 'rl:google-search:daily:',
 });
 
 // LAYER 1: Strict Per-Minute Limiter
 // Protects against short-term, high-frequency burst attacks and API abuse.
 // Allows a reasonable number of requests for a normal conversational flow.
 const googleSearchPerMinuteLimiter = rateLimit({
-  store,
+  store: storeMinute,
   windowMs: 60 * 1000, // 1 minute window
   max: 15, // Limit each user to 15 requests per minute
   keyGenerator: (req) => req.user.id, // Base the limit on the authenticated user's ID
@@ -43,7 +50,7 @@ const googleSearchPerMinuteLimiter = rateLimit({
 // LAYER 2: Generous Daily Limiter
 // Protects against sustained, long-term abuse and prevents excessive cost runaway.
 const googleSearchDailyLimiter = rateLimit({
-  store,
+  store: storeDaily,
   windowMs: 24 * 60 * 60 * 1000, // 24 hour window
   max: 200, // Limit each user to 200 requests per day
   keyGenerator: (req) => req.user.id, // Base the limit on the authenticated user's ID

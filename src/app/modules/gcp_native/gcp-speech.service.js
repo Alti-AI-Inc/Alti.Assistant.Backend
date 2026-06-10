@@ -2,7 +2,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { logger } from '../../../shared/logger.js';
 // Integration fix: Import the UsageService to track API consumption against tenants
 // and users, which is critical for enforcing limits and enabling proper billing.
-import { UsageService } from '../../usage/usage.service.js';
+import { UsageService } from '../usage/usage.service.js';
 
 // Initialize auth helper with scopes
 const auth = new GoogleAuth({

@@ -3,8 +3,8 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 // INTEGRATION: Import services for workspace-level checks and usage tracking.
 // These are hypothetical services representing a real-world application architecture.
-import { UsageService } from '../../../shared/services/usage.service.js';
-import { WorkspaceService } from '../../workspace/workspace.service.js';
+import { UsageService } from '../usage/usage.service.js';
+import { WorkspaceService } from '../workspace/workspace.service.js';
 // INTEGRATION: Import custom error classes for consistent error handling.
 import { AppError, ForbiddenError, UsageLimitError } from '../../../shared/errors.js';
 

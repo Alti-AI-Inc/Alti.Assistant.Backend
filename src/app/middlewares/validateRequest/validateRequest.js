@@ -15,3 +15,6 @@ export const validateRequest = (schema) => {
     }
   };
 };
+
+export default validateRequest;
+

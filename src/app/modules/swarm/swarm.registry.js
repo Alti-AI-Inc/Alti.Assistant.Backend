@@ -63,7 +63,8 @@ export const registerAgent = (agentProfile) => {
   // Bug fix: Prevent silent overwriting of existing agents.
   // A registry should enforce unique identifiers or explicitly handle duplicates.
   if (SWARM_REGISTRY[agentProfile.id]) {
-    throw new Error(`Agent with ID "${agentProfile.id}" already exists in the registry. Cannot register duplicate.`);
+    console.warn(`⚠️ Swarm Registry Warning: Agent with ID "${agentProfile.id}" already exists in the registry. Skipping duplicate registration.`);
+    return;
   }
 
   SWARM_REGISTRY[agentProfile.id] = {

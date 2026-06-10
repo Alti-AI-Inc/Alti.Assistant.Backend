@@ -1,7 +1,7 @@
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import { relationshipGraphService } from './llamaindex.relationshipGraph.js';
 import { logger } from '../../../shared/logger.js';
-import ApiError from '../../../utils/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 
 // Common English stopwords to filter out for Jaccard similarity computation
 const STOPWORDS = new Set([

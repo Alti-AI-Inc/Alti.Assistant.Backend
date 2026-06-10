@@ -6,8 +6,8 @@ import sendResponse from '../../../shared/sendResponse.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 // FIX: Import services for business logic, authorization, and usage tracking.
-import { UsageService } from '../../services/usage.service.js'; // Assumed path
-import { WorkspaceService } from '../../services/workspace.service.js'; // Assumed path
+import { UsageService } from '../usage/usage.service.js';
+import { WorkspaceService } from '../workspace/workspace.service.js';
 import ApiError from '../../../errors/ApiError.js'; // Assumed path for a custom error class
 
 // Create a Winston logger that is compatible with Google Cloud Logging (Stackdriver)

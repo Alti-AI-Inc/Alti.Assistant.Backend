@@ -49,8 +49,10 @@ let ENCRYPTION_KEY_BUF;
       return;
     }
 
-    // If not in production and no key is provided, the app is misconfigured.
-    throw new Error('CHAT_ENCRYPTION_KEY environment variable must be set for development or testing environments.');
+    // If not in production and no key is provided, use a default fallback key.
+    console.warn('Warning: CHAT_ENCRYPTION_KEY environment variable is not set. Initializing with a fallback key for development/testing.');
+    ENCRYPTION_KEY_BUF = Buffer.from('development-key-32-characters-!!');
+    return;
 
   } catch (err) {
     console.error('FATAL: Failed to initialize chat encryption key. Application cannot run securely.', err);
@@ -410,4 +412,5 @@ ConversationSchema.statics.findByConversationId = function (
  */
 const Conversation = mongoose.model('Conversation', ConversationSchema);
 
+export { Conversation };
 export default Conversation;

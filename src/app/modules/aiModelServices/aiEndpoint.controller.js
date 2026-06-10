@@ -10,6 +10,7 @@
 
 import httpStatus from 'http-status';
 import AiEndpoint from './aiEndpoint.Model.js';
+import aiEndpoints from './aiEndpoint.utils.js';
 // Hypothetical audit logger for Platform Owner actions. Assumes a logger is configured elsewhere.
 import auditLogger from '../../../shared/auditLogger.js';
 
@@ -673,6 +674,85 @@ const deleteAiEndpoint = async (req, res) => {
  *       bearerFormat: JWT
  */
 
+const getWebAiEndpoint = async (req, res) => {
+  try {
+    const endpoints = await AiEndpoint.find().lean();
+    res.status(httpStatus.OK).json({
+      statusCode: httpStatus.OK,
+      status: 'Success',
+      message: 'Fetched AI socket endpoints successfully',
+      anonymously: '/groq/get-response-anonymously',
+      data: endpoints,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      status: 'fail',
+      message: 'Error fetching AI endpoints',
+      error: error.message,
+    });
+  }
+};
+
+const getAiEndpointForApp = async (req, res) => {
+  try {
+    res.status(httpStatus.OK).json({
+      statusCode: httpStatus.OK,
+      status: 'Success',
+      message: 'Get aiSocketEndpoint successfully',
+      anonymously: '/groq/get-response-anonymously',
+      data: aiEndpoints,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      status: 'fail',
+      message: 'Error fetching AI endpoints',
+      error: error.message,
+    });
+  }
+};
+
+const updateWebAiEndpoint = async (req, res) => {
+  const { title, enabled, default: isDefault } = req.body;
+  if (!title) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+      status: 'fail',
+      message: 'Title is required to identify the AI endpoint.',
+    });
+  }
+
+  try {
+    if (isDefault === true) {
+      await AiEndpoint.updateMany({}, { default: false });
+    }
+
+    const updatedEndpoint = await AiEndpoint.findOneAndUpdate(
+      { title },
+      { enabled, default: isDefault },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedEndpoint) {
+      return res.status(httpStatus.NOT_FOUND).json({
+        status: 'fail',
+        message: `AI endpoint '${title}' not found.`,
+      });
+    }
+
+    res.status(httpStatus.OK).json({
+      statusCode: httpStatus.OK,
+      status: 'Success',
+      message: `Updated AI endpoint '${title}' successfully.`,
+      data: updatedEndpoint,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      status: 'fail',
+      message: 'Error updating AI endpoint',
+      error: error.message,
+    });
+  }
+};
+
 /**
  * @namespace AiEndpointsController
  * @description Controller methods for Platform Owner management of AI endpoints.
@@ -683,4 +763,7 @@ export const AiEndpointsController = {
   getAiEndpointById,
   updateAiEndpoint,
   deleteAiEndpoint,
+  getWebAiEndpoint,
+  getAiEndpointForApp,
+  updateWebAiEndpoint,
 };

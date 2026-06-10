@@ -4,7 +4,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
 // BUG FIX: Missing import for conversationHelpers, assuming common path
-import { conversationHelpers } from '../conversation/conversation.helpers.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * @typedef {object} ComposioInitiateRequestBody

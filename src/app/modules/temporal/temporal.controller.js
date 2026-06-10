@@ -24,8 +24,8 @@ import { TemporalCatalogService } from './temporal-catalog.service.js';
 // - `auth`, `requireAdmin`: Middleware to protect routes and enforce role-based access.
 // - `ApiError`: A custom error class for consistent, safe error responses.
 // - `pick`: A utility function to whitelist object properties, preventing parameter pollution.
-import ApiError from '../../utils/ApiError.js';
-import pick from '../../utils/pick.js';
+import ApiError from '../../../errors/ApiError.js';
+import pick from '../../middlewares/other/pick.js';
 
 // Initialize the GCP Pub/Sub client.
 // In a production environment, the client will automatically use the service account

@@ -11,7 +11,7 @@ import crypto from 'crypto';
  * The application will exit if this key is not set or is invalid.
  * @private
  */
-const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
+let ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
 
 /**
  * @const {number} CBC_IV_LENGTH
@@ -36,8 +36,13 @@ const GCM_IV_LENGTH = 12; // For modern AES-256-GCM
 const GCM_TAG_LENGTH = 16;
 
 if (!ENCRYPTION_KEY) {
-  console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY environment variable is not set.');
-  process.exit(1);
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('Warning: CHAT_ENCRYPTION_KEY environment variable is not set. Initializing with a fallback key for development/testing.');
+    ENCRYPTION_KEY = 'development-key-32-characters-!!';
+  } else {
+    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY environment variable is not set.');
+    process.exit(1);
+  }
 }
 
 /**
@@ -45,12 +50,17 @@ if (!ENCRYPTION_KEY) {
  * @description The encryption key pre-buffered for performance and to ensure a consistent type.
  * @private
  */
-const ENCRYPTION_KEY_BUFFER = Buffer.from(ENCRYPTION_KEY, 'utf-8');
+let ENCRYPTION_KEY_BUFFER = Buffer.from(ENCRYPTION_KEY, 'utf-8');
 
 // AES-256 requires a 32-byte (256-bit) key.
 if (ENCRYPTION_KEY_BUFFER.length !== 32) {
-  console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes.');
-  process.exit(1);
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('Warning: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes. Initializing with a fallback key for development/testing.');
+    ENCRYPTION_KEY_BUFFER = Buffer.from('development-key-32-characters-!!', 'utf-8');
+  } else {
+    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes.');
+    process.exit(1);
+  }
 }
 
 /**

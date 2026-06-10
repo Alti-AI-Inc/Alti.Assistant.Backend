@@ -6,7 +6,7 @@ import DocumentRelationship from './llamaindex.relationship.model.js';
 // INTEGRATION: Import the usage service to track resource consumption.
 // This is crucial for propagating usage details to workspace admins and platform owners,
 // enabling features like billing, quota enforcement, and notifications.
-import { usageService } from '../../usage/usage.service.js';
+import { usageService } from '../usage/usage.service.js';
 
 /**
  * SECURITY: Initialize the Vertex AI client using Application Default Credentials.
@@ -15,8 +15,8 @@ import { usageService } from '../../usage/usage.service.js';
  * @type {VertexAI}
  */
 const vertex_ai = new VertexAI({
-  project: config.gcp_project_id,
-  location: config.gcp_location,
+  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 
 /**

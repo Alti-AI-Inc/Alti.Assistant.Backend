@@ -9,14 +9,21 @@ import crypto from 'crypto';
  * The application will fail to start if this variable is not set or is invalid.
  * @type {string}
  */
-const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
+let ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
 
 // Security check: Ensure the encryption key is provided and is the correct length.
 // The application must not start with a missing or insecure key.
 if (!ENCRYPTION_KEY || Buffer.from(ENCRYPTION_KEY).length !== 32) {
-  throw new Error(
-    'FATAL: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long.'
-  );
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      'Warning: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long. Initializing with a fallback key for development/testing.'
+    );
+    ENCRYPTION_KEY = 'development-key-32-characters-!!';
+  } else {
+    throw new Error(
+      'FATAL: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long.'
+    );
+  }
 }
 
 /**

@@ -914,6 +914,7 @@ export const queryKnowledge = catchAsync(async (req, res) => {
     // The knowledgeQueryService.queryKnowledge is expected to perform ownership validation
     // using finalOwnerId to ensure the query is against the authenticated user's knowledge or their bot's.
     const result = await knowledgeQueryService.queryKnowledge(
+      userId,
       query,
       ownerType,
       finalOwnerId,
@@ -991,6 +992,7 @@ export const semanticSearch = catchAsync(async (req, res) => {
     // The knowledgeQueryService.semanticSearch is expected to perform ownership validation
     // using finalOwnerId to ensure the search is against the authenticated user's knowledge or their bot's.
     const result = await knowledgeQueryService.semanticSearch(
+      userId,
       query,
       ownerType,
       finalOwnerId,

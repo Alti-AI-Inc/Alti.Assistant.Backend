@@ -1,6 +1,6 @@
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { findOrCreateUserModel } from '../../social-login.utils.js';
-import logger from '../../../../config/logger.js';
+import { logger } from '../../../../../shared/logger.js';
 
 /**
  * @typedef {import('express').Request} Request

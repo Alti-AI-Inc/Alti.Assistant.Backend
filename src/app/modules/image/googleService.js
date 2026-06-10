@@ -2,10 +2,9 @@ import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { predictionServiceClient } from './llm.js';
 // AI-FIX: Import services for usage tracking, workspace context, and custom errors.
-// These services are essential for enforcing business logic, security, and multi-tenancy.
-import { checkUsageLimits, recordUsage } from '../usage/usageService.js';
-import { getWorkspaceById } from '../workspace/workspaceService.js';
-import { QuotaExceededError, PermissionDeniedError } from '../../common/errors.js';
+import { checkImageGenerationLimit, recordUsage } from '../usage/usage.service.js';
+import { WorkspaceService } from '../workspace/workspace.service.js';
+import { QuotaExceededError, PermissionDeniedError } from '../../../shared/errors.js';
 
 /**
  * Generates an image using Google's Imagen 3 model via Vertex AI using the Node.js client library.
@@ -35,8 +34,9 @@ export const generateImage = async (prompt, user) => {
 
   // AI-FIX: Check usage limits against the user's workspace before making the API call.
   // This prevents overuse, enforces subscription plans, and provides a better user experience.
-  const { allowed } = await checkUsageLimits(user.workspaceId, 'imageGeneration');
-  if (!allowed) {
+  try {
+    await checkImageGenerationLimit({ workspaceId: user.workspaceId, userId: user.id });
+  } catch (error) {
     throw new QuotaExceededError('Image generation quota exceeded for this workspace.');
   }
 
@@ -50,7 +50,7 @@ export const generateImage = async (prompt, user) => {
   try {
     // AI-FIX: Retrieve tenant-specific configuration from the workspace to ensure data isolation.
     // Fallback to global config if no workspace-specific settings are found.
-    const workspace = await getWorkspaceById(user.workspaceId);
+    const workspace = await WorkspaceService.getById(user.workspaceId);
     const projectId = workspace?.gcpSettings?.projectId || config.gcpProjectId || (config.google && config.google.gcp_project_id);
     const location = workspace?.gcpSettings?.location || config.gcpLocation || (config.google && config.google.vertex_ai_region);
     const modelId = workspace?.gcpSettings?.imageModelId || config.google?.image_model_id || 'imagen-3.0-generate-002';
@@ -94,7 +94,7 @@ export const generateImage = async (prompt, user) => {
       
       // AI-FIX: Record successful usage to correctly decrement quotas and for billing purposes.
       // This propagates usage details up to the workspace/admin level.
-      await recordUsage(user.id, user.workspaceId, 'imageGeneration', 1);
+      await recordUsage({ userId: user.id, workspaceId: user.workspaceId });
 
       return `data:image/png;base64,${imageBase64}`;
     } else {
@@ -137,8 +137,9 @@ export const generateImageUsingVertexAI = async (prompt, user) => {
   }
 
   // AI-FIX: Check usage limits against the user's workspace before making the API call.
-  const { allowed } = await checkUsageLimits(user.workspaceId, 'imageGeneration');
-  if (!allowed) {
+  try {
+    await checkImageGenerationLimit({ workspaceId: user.workspaceId, userId: user.id });
+  } catch (error) {
     throw new QuotaExceededError('Image generation quota exceeded for this workspace.');
   }
 
@@ -151,7 +152,7 @@ export const generateImageUsingVertexAI = async (prompt, user) => {
 
   try {
     // AI-FIX: Retrieve tenant-specific configuration from the workspace to ensure data isolation.
-    const workspace = await getWorkspaceById(user.workspaceId);
+    const workspace = await WorkspaceService.getById(user.workspaceId);
     const imageEndpoint = workspace?.gcpSettings?.vertexAiEndpoint || (config.google && config.google.vertex_ai_endpoint) || 'us-central1-aiplatform.googleapis.com';
     const location = workspace?.gcpSettings?.location || (config.google && config.google.vertex_ai_region) || config.gcpLocation;
     const modelId = workspace?.gcpSettings?.imageModelId || (config.google && config.google.model_id) || 'imagen-3.0-generate-002';
@@ -209,7 +210,7 @@ export const generateImageUsingVertexAI = async (prompt, user) => {
     const imageBase64 = imageData.predictions[0].bytesBase64Encoded;
     if (imageBase64) {
       // AI-FIX: Record successful usage to correctly decrement quotas and for billing purposes.
-      await recordUsage(user.id, user.workspaceId, 'imageGeneration', 1);
+      await recordUsage({ userId: user.id, workspaceId: user.workspaceId });
       return `data:image/png;base64,${imageBase64}`;
     } else {
       console.error(`[Workspace: ${user.workspaceId}] Vertex AI prediction response did not contain bytesBase64Encoded data.`);

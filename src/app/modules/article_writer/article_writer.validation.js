@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import redisClient from '../../../config/redisClient.js'; // Assuming a shared Redis client instance
+import redisClient from '../../../shared/redis.js'; // Assuming a shared Redis client instance
 
 // ===================================================================================
 // Rate Limiting & DDOS Protection
@@ -16,10 +16,17 @@ import redisClient from '../../../config/redisClient.js'; // Assuming a shared R
 
 // Create a Redis store for rate-limit-redis.
 // This ensures that rate limits are shared across all server instances in a cluster.
-const store = new RedisStore({
-  // @ts-ignore - Known issue with rate-limit-redis types and ioredis/node-redis v4.
-  sendCommand: (...args) => redisClient.call(...args),
-});
+// Helper to create a unique Redis store for each rate limiter if a client is available.
+// This ensures that rate limits are shared across all server instances in a cluster without store sharing crashes.
+const createRateLimitStore = (prefix) => {
+  return redisClient
+    ? new RedisStore({
+        // @ts-ignore - Known issue with rate-limit-redis types and ioredis/node-redis v4.
+        sendCommand: (...args) => redisClient.sendCommand(args),
+        prefix: `rl:article:${prefix}:`,
+      })
+    : undefined;
+};
 
 /**
  * Custom key generator for rate limiting.
@@ -43,7 +50,7 @@ const keyGenerator = (req) => {
  * - Guest Users (IP-based): 10 requests per hour.
  */
 const aiGenerationLimiter = rateLimit({
-  store,
+  store: createRateLimitStore('ai'),
   keyGenerator,
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: (req) => (req.user ? 50 : 10), // Dynamic limit based on authentication status
@@ -62,7 +69,7 @@ const aiGenerationLimiter = rateLimit({
  * - Limit: 100 requests per 15 minutes.
  */
 const apiLimiter = rateLimit({
-  store,
+  store: createRateLimitStore('api'),
   keyGenerator,
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 100,

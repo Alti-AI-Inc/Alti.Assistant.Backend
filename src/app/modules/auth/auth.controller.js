@@ -15,6 +15,7 @@ import {
   generateOTP,
 } from './auth.utils.js';
 import TenantInvitation from '../tenant/tenantInvitation.model.js';
+import managerController from '../manager/manager.controller.js';
 
 /**
  * @swagger
@@ -1199,4 +1200,8 @@ export const authController = {
   deleteUserAccountOTP,
   changePassword,
   sendMailWithMailGunController,
+  inviteUser: managerController.inviteTeamMember,
+  getTeamMembers: managerController.getTeamMembers,
+  updateTeamMemberRole: managerController.updateTeamMemberRole,
+  getWorkspaceMetrics: managerController.getWorkspaceMetrics,
 };

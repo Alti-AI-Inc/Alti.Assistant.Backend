@@ -13,7 +13,7 @@ import { restClient } from '@massive.com/client-js';
 import dotenv from 'dotenv';
 import { logger } from '../../../shared/logger.js';
 // INTEGRATION: Import usage service and error handler for tenancy and limits.
-import { usageService } from '../../services/usage.service.js';
+import { usageService } from '../usage/usage.service.js';
 import { AppError } from '../../../shared/errors/AppError.js';
 
 dotenv.config();

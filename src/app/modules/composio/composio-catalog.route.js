@@ -4,7 +4,7 @@ import { body, validationResult } from 'express-validator';
 import { ComposioCatalogController } from './composio-catalog.controller.js';
 // Assuming an authentication middleware exists for protecting routes.
 // Adjust the path to your actual authentication middleware file.
-import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { authMiddleware } from '../auth/auth.middleware.js';
 
 const router = express.Router();
 

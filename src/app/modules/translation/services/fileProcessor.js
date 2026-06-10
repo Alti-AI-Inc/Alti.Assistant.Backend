@@ -2,7 +2,7 @@ import path from 'path';
 import { Storage } from '@google-cloud/storage';
 import mammoth from 'mammoth';
 // BUG FIX: Correctly import the default export for pdf-parse
-import PDFParse from 'pdf-parse'; // Changed from { PDFParse }
+import { PDFParse } from 'pdf-parse';
 import { logger } from '../../../../shared/logger.js';
 import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
@@ -31,21 +31,31 @@ try {
       projectId: projectId,
     });
   } else {
-    // In a stateless, cloud-native environment, GCS is not optional.
-    // Throw an error during initialization if configuration is missing.
-    const errorMsg =
-      'GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). This service cannot operate without GCS.';
-    logger.error(errorMsg);
-    throw new Error(errorMsg);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn('GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). Initializing mock storage client for development/testing.');
+      storage = new Storage();
+    } else {
+      // In a stateless, cloud-native environment, GCS is not optional.
+      // Throw an error during initialization if configuration is missing.
+      const errorMsg =
+        'GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). This service cannot operate without GCS.';
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
+    }
   }
 
   if (storage && bucketName) {
     bucket = storage.bucket(bucketName);
   } else if (storage && !bucketName) {
-    const errorMsg =
-      'GCS_BUCKET_NAME is not set. This service cannot operate without a target bucket.';
-    logger.error(errorMsg);
-    throw new Error(errorMsg);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn('GCS_BUCKET_NAME is not set. Initializing with a fallback bucket name for development/testing.');
+      bucket = storage.bucket('development-translation-bucket');
+    } else {
+      const errorMsg =
+        'GCS_BUCKET_NAME is not set. This service cannot operate without a target bucket.';
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
+    }
   }
 } catch (error) {
   logger.error(
@@ -66,7 +76,8 @@ try {
 const extractTextFromPDF = async (fileBuffer) => {
   try {
     // pdf-parse works directly with buffers, avoiding filesystem reads.
-    const data = await PDFParse(fileBuffer);
+    const pdfParser = new PDFParse({ data: fileBuffer });
+    const data = await pdfParser.getText();
     return data.text;
   } catch (error) {
     logger.error('Error extracting text from PDF buffer:', error);

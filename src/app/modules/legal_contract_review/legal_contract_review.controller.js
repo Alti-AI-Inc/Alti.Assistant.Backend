@@ -5,7 +5,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { legalContractReviewService } from './legal_contract_review.service.js';
 // BUG FIX: Added missing import for conversationHelpers.
 // Assuming conversationHelpers is a named export from a local helper file.
-import { conversationHelpers } from './conversation.helpers.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * @typedef {object} FileInfo

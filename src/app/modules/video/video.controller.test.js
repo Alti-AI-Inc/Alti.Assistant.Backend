@@ -4,7 +4,7 @@ import { videoController } from './video.controller.js';
 import { videoService } from './video.service.js';
 import { videoApp } from './video_assistant/workflow.js';
 import { videoHelpers } from './video.helper.js';
-import { conversationHelpers } from '../../../shared/conversation.helper.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import catchAsync from '../../../shared/catchAsync.js';
@@ -53,7 +53,7 @@ vi.mock('./video.helper.js', () => ({
   },
 }));
 
-vi.mock('../../../shared/conversation.helper.js', () => ({
+vi.mock('../conversations/conversation.helpers.js', () => ({
   conversationHelpers: {
     getConversationById: vi.fn(),
   },

@@ -2,7 +2,7 @@ import express from 'express';
 import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
-import { llamaAiRoutes } from '../modules/groq/groq.route.js';
+import { groqAiRoutes } from '../modules/groq/groq.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
@@ -131,7 +131,7 @@ const moduleRoutes = [
   },
   {
     path: '/groq',
-    route: llamaAiRoutes,
+    route: groqAiRoutes,
   },
   {
     path: '/google-search',

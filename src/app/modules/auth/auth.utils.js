@@ -271,3 +271,29 @@ export const roleUpdateNotificationTemplate = (
   };
   return mailData;
 };
+
+/**
+ * Check if the user has the required permission.
+ * Throws an Error if the user is not authorized.
+ * 
+ * @param {object} userContext - The context of the user, containing role and permissions.
+ * @param {string} permission - The permission string to check.
+ */
+export const checkPermission = (userContext, permission) => {
+  if (!userContext) {
+    throw new Error('Authentication required.');
+  }
+
+  // Super Admins/Admins have universal access
+  if (userContext.role === 'super_admin' || userContext.role === 'admin') {
+    return;
+  }
+
+  // Check explicit permissions
+  const permissions = userContext.permissions || [];
+  if (permissions.includes(permission)) {
+    return;
+  }
+
+  throw new Error(`Forbidden: Insufficient permissions for ${permission}`);
+};

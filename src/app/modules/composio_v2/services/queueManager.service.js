@@ -4,8 +4,8 @@ import workflowExecutor from './workflowExecutor.service.js';
 // --- IMPROVEMENT: Import models required for manager-level features ---
 // These models are assumed to exist and are necessary for enforcing plan limits
 // and providing workspace-specific metrics for the manager dashboard.
-import User from '../../user/models/user.model.js'; // Assumed: User model to link users to workspaces
-import Workspace from '../models/workspace.model.js'; // Assumed: Workspace model with plan limits
+import User from '../../auth/auth.model.js'; // FIX: Point to correct auth model location.
+import Workspace from '../../workspace/workspace.model.js'; // FIX: Point to correct workspace model location.
 
 /**
  * Queue Management Service - Handles workflow execution queuing and concurrency

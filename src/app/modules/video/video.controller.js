@@ -12,7 +12,7 @@ import { videoApp } from './video_assistant/workflow.js';
 import { videoHelpers } from './video.helper.js';
 // BUG FIX: Missing import for conversationHelpers.
 // Assuming conversationHelpers is a shared utility, adjust path if necessary.
-import { conversationHelpers } from '../../../shared/conversation.helper.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * @openapi

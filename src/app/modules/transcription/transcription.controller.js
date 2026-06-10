@@ -12,7 +12,7 @@ import {
 } from './transcription.constant.js';
 import fs from 'fs';
 import fsp from 'fs/promises'; // New import for async file operations
-import { conversationHelpers } from '../../utils/conversationHelpers.js'; // Assuming this path for conversationHelpers
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Helper to safely delete a file asynchronously, ignoring 'file not found' errors.

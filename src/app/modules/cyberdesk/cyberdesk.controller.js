@@ -5,7 +5,6 @@ import { cyberdeskService } from './cyberdesk.service.js';
 // BUG-FIX: Added a placeholder import for a user service.
 // This is required to fetch user details to enforce the manager-user hierarchy for access control.
 // In a real application, this would point to the actual user service implementation.
-import { userService } from '../user/user.service.js';
 
 /**
  * Helper to verify if a user has access to a specific desktop based on tenant boundaries and roles.

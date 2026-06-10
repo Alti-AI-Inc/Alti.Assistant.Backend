@@ -1,10 +1,17 @@
 import httpStatus from 'http-status';
+import { Storage } from '@google-cloud/storage';
+import crypto from 'crypto';
+import config from '../../../../config/index.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { imageService } from './image.service.js';
 import { app as imageAssistantApp } from './imageAssistant/workflow.js';
 import { imageHelpers } from './image.helper.js';
+
+// Initialize GCS storage client
+const storage = new Storage();
+const uploadBucketName = config.gcs?.uploads_bucket || 'alti_assistant_uploads';
 
 /**
  * @typedef {object} ImageGenerationRequest
@@ -260,6 +267,69 @@ export const generateImage = catchAsync(async (req, res) => {
         conversationId: errorConversationId,
         userType: isGuest ? 'guest' : 'authenticated',
       },
+    });
+  }
+});
+
+/**
+ * Generate GCS signed upload URL.
+ */
+export const generateUploadUrl = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  let userId;
+  if (isGuest) {
+    userId = imageService.generateGuestUserId();
+  } else {
+    userId = req.user?.userId || req.user?._id;
+  }
+
+  const { contentType } = req.body;
+
+  if (!uploadBucketName) {
+    logger.error('GCS uploads bucket is not configured.');
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Server configuration error: GCS uploads bucket is not configured.',
+    });
+  }
+
+  // Generate a unique filename / path
+  const fileExtension = contentType.split('/')[1] || 'png';
+  const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+  const gcsObjectName = `uploads/${userId}/${Date.now()}-${fileName}`;
+  const publicUrl = `https://storage.googleapis.com/${uploadBucketName}/${gcsObjectName}`;
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType: contentType,
+  };
+
+  try {
+    const [uploadUrl] = await storage
+      .bucket(uploadBucketName)
+      .file(gcsObjectName)
+      .getSignedUrl(options);
+
+    logger.info(`Generated signed upload URL for ${gcsObjectName} in bucket ${uploadBucketName}`);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Signed URL for upload generated successfully',
+      data: {
+        uploadUrl,
+        publicUrl,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to generate signed upload URL:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to generate signed upload URL due to an internal error',
     });
   }
 });
@@ -841,6 +911,7 @@ const getGuestConversations = catchAsync(async (req, res) => {
  */
 export const imageController = {
   generateImage,
+  generateUploadUrl,
   analyzeImage,
   getImageStats,
   getImageConversation,

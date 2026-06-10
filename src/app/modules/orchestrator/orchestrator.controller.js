@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import logger from '../../../config/logger.js'; // Import the pre-configured Winston logger for structured logging.
+import { logger } from '../../../shared/logger.js'; // Import the pre-configured Winston logger for structured logging.
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { orchestratorService } from './orchestrator.service.js';

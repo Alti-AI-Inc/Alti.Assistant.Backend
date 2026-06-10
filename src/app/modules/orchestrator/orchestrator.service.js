@@ -6,8 +6,9 @@ import { SwarmService } from '../swarm/swarm.service.js';
 import Conversation from '../conversations/conversation.model.js'; // OPTIMIZATION: For efficient lookups, ensure 'conversationId' and 'userId' are indexed in the Conversation model. A compound index { conversationId: 1, userId: 1 } is highly recommended.
 import crypto from 'crypto';
 import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
-import { userMemoryService } from '../conversations/userMemory.service';
+import { userMemoryService } from '../conversations/userMemory.service.js';
 import { captureException } from '../../../shared/sentry.js';
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODEL CONFIGURATION

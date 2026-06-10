@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import pdfParse from 'pdf-parse'; // Corrected import for pdf-parse library
+import { PDFParse } from 'pdf-parse'; // Corrected import for pdf-parse library
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
 import { logger } from '../../../../shared/logger.js';
@@ -17,10 +17,11 @@ const extractTextFromPDF = async (filePath) => {
     // Use asynchronous file reading to prevent blocking the Node.js event loop
     const dataBuffer = await fs.promises.readFile(filePath);
     // Correct usage of pdf-parse: it takes a buffer and returns a promise
-    const parsedData = await pdfParse(dataBuffer);
+    const parsedData = new PDFParse({ data: dataBuffer });
+    const pdfResult = await parsedData.getText();
 
     // The extracted text is available directly in the 'text' property of the result
-    const finalText = parsedData.text;
+    const finalText = pdfResult.text;
     logger.info('PDF text extraction completed'); // Use logger for consistent logging
     return finalText;
   } catch (error) {

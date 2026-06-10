@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url'; // Added for __dirname equivalent
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
-import ApiError from '../../../shared/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 
 // Get __dirname equivalent for ES Modules
 const __filename = fileURLToPath(import.meta.url);

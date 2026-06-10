@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GcpSpeechService } from './gcp-speech.service.js';
-import { UsageService } from '../../usage/usage.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { logger } from '../../../shared/logger.js';
 import { GoogleAuth } from 'google-auth-library';
 
@@ -21,7 +21,7 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-vi.mock('../../usage/usage.service.js', () => ({
+vi.mock('../usage/usage.service.js', () => ({
   UsageService: {
     checkLimit: vi.fn().mockResolvedValue(undefined),
     recordUsage: vi.fn().mockResolvedValue(undefined),

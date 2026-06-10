@@ -8,11 +8,40 @@
 import express from 'express';
 import { workflowController } from '../controllers/workflow.controller.js';
 import { managerController } from '../controllers/manager.controller.js';
-import { authenticate } from '../../../../middlewares/auth.middleware.js';
-import { authorizeRoles } from '../../../../middlewares/role.middleware.js';
-import { validateTenant } from '../../../../middlewares/tenant.middleware.js';
-import { trackUsage } from '../../../../middlewares/usage.middleware.js';
-import { checkPlanLimits } from '../../../../middlewares/plan.middleware.js';
+import { authenticate } from '../../../middlewares/auth/authenticate.js';
+import { requireRole as authorizeRoles } from '../../../middlewares/auth/requireRole.js';
+import { extractTenantContext, requireTenant } from '../../../middlewares/tenant/tenantContext.js';
+import { checkPlanLimits } from '../../../middlewares/plan.middleware.js';
+import { TenantUsageService } from '../../tenant/tenant-usage.service.js';
+import { logger } from '../../../../shared/logger.js';
+
+const validateTenant = async (req, res, next) => {
+  try {
+    await extractTenantContext(req, res, (err) => {
+      if (err) return next(err);
+      requireTenant(req, res, next);
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const trackUsage = (action) => {
+  return async (req, res, next) => {
+    try {
+      const tenantId = req.tenantId || req.user?.currentTenantId || req.user?.tenantId;
+      const userId = req.user?.id || req.user?._id;
+      if (tenantId && userId) {
+        TenantUsageService.trackUsage(tenantId, userId, action, 1).catch((err) => {
+          logger.error('Error tracking usage in middleware:', err);
+        });
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
 
 /**
  * Express router to handle workflow-related API requests.

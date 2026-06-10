@@ -333,6 +333,20 @@ const guestUserSchema = z.object({
 });
 
 /**
+ * Zod schema for validating GCS upload signed URL requests.
+ */
+const generateUploadUrlSchema = z.object({
+  body: z.object({
+    contentType: z
+      .string({
+        required_error: 'Content type is required',
+      })
+      .regex(/^[\w-]+\/[\w-+\.]+$/, 'Invalid content type format'),
+    guestUserId: z.string().optional(),
+  }),
+});
+
+/**
  * @namespace ImageValidation
  * @description A collection of Zod schemas used for validating various image-related
  *              requests and data throughout the Alti.Assistant backend.
@@ -349,6 +363,10 @@ export const ImageValidation = {
    * @see imageAnalysisSchema
    */
   imageAnalysisSchema,
+  /**
+   * Zod schema for validating GCS signed upload URL requests.
+   */
+  generateUploadUrlSchema,
   /**
    * Zod schema for validating image preferences updates.
    * @see imagePreferencesSchema

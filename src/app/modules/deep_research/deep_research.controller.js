@@ -6,7 +6,11 @@ import { deepResearchService } from './deep_research.service.js';
 import { runDeepResearchAgent } from './deep_research_assistant/workflow.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import { getResearchResultById } from './services/researchStorageService.js';
+import {
+  getResearchResultById,
+  searchResearchResults,
+  deleteResearchResult,
+} from './services/researchStorageService.js';
 import { generatePDFReport } from './services/pdfService.js';
 import { generatePPTXReport } from './services/pptxService.js';
 import { telemetryEmitter } from './services/telemetryService.js';
@@ -812,12 +816,69 @@ const telemetryStream = catchAsync(async (req, res) => {
 });
 
 /**
+ * List all deep research reports.
+ */
+const listAllReports = catchAsync(async (req, res) => {
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = parseInt(req.query.limit || '10', 10);
+  const offset = (page - 1) * limit;
+
+  const filters = {
+    classification: 'deep_research',
+    limit,
+    offset,
+  };
+
+  const results = await searchResearchResults(filters, req);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reports retrieved successfully',
+    data: results.results,
+    meta: {
+      page,
+      limit,
+      total: results.total,
+    },
+  });
+});
+
+/**
+ * Delete a deep research report by savedId.
+ */
+const deleteReport = catchAsync(async (req, res) => {
+  const { savedId } = req.params;
+
+  logger.info(`Deep research report deletion requested for savedId: ${savedId}`);
+
+  const deletedReport = await deleteResearchResult(savedId, req);
+
+  if (!deletedReport) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Report not found or already deleted',
+    });
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Report deleted successfully',
+    data: deletedReport,
+  });
+});
+
+/**
  * @typedef {object} DeepResearchController
  * @property {function(import('express').Request, import('express').Response): Promise<void>} performDeepResearch - Handles initiating a deep research query.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} getDeepResearchStats - Retrieves deep research statistics for the user.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} downloadPDF - Handles downloading a deep research report as a PDF.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} downloadPPTX - Handles downloading a deep research report as a PPTX.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} telemetryStream - Provides a real-time SSE stream for deep research progress.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} listAllReports - List all deep research reports.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} deleteReport - Delete a deep research report.
  */
 /**
  * DeepResearchController object containing all controller methods for deep research operations.
@@ -829,4 +890,6 @@ export const deepResearchController = {
   downloadPDF,
   downloadPPTX,
   telemetryStream,
+  listAllReports,
+  deleteReport,
 };

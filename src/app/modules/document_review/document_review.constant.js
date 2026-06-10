@@ -286,6 +286,7 @@ export const RESPONSE_MESSAGES = {
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
+  TEMP_FOLDER: 'uploads/document_reviews',
   GCS_BUCKET: process.env.GCS_BUCKET_NAME || '',
   GCS_UPLOAD_FOLDER: 'document_reviews',
   GCS_SIGNED_URL_EXPIRATION_MINUTES: 15, // Signed URL is valid for 15 minutes

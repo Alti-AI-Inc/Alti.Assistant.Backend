@@ -8,15 +8,15 @@ import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import * as llama from './llamaindex.indexer.js';
 // PLATFORM OWNER IMPROVEMENT: Import Tenant model to check status and iterate through tenants.
-import Tenant from '../../tenants/tenant.model.js'; // NOTE: Assuming a Tenant model exists for platform management.
+import Tenant from '../tenant/tenant.model.js';
 
 /**
  * Initializes the Vertex AI client for enterprise-grade features and safety controls.
  * Assumes GCP project ID and location are available in the config.
  */
 const vertex_ai = new VertexAI({
-  project: config.gcp_project_id,
-  location: config.gcp_location,
+  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 
 /**

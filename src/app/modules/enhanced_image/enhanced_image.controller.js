@@ -4,7 +4,7 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { enhancedImageService } from './enhanced_image.service.js';
 // Optimization: Added missing import for conversationHelpers. Adjust path if necessary.
-import { conversationHelpers } from '../conversation/conversation.helpers.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Optimization Recommendations:

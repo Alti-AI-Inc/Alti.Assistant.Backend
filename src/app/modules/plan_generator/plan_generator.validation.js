@@ -343,16 +343,21 @@ const redisClient = (() => {
 })();
 
 /**
- * Creates a Redis store for the rate limiter if a client is available.
- * This allows for distributed rate limiting across multiple server instances.
+ * Helper to create a unique Redis store for each rate limiter if a client is available.
+ * This allows for distributed rate limiting across multiple server instances without store sharing crashes.
  * If Redis is not configured, express-rate-limit will default to an in-memory store.
+ * @param {string} prefix - The unique prefix for the store keys.
+ * @returns {RedisStore|undefined} The RedisStore instance or undefined.
  */
-const redisStore = redisClient
-  ? new RedisStore({
-      // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
-      sendCommand: (...args) => redisClient.sendCommand(args),
-    })
-  : undefined;
+const createRateLimitStore = (prefix) => {
+  return redisClient
+    ? new RedisStore({
+        // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
+        sendCommand: (...args) => redisClient.sendCommand(args),
+        prefix: `rl:plan:${prefix}:`,
+      })
+    : undefined;
+};
 
 /**
  * Generates a unique key for each request to track for rate limiting.
@@ -395,7 +400,7 @@ const tieredLimit = (authenticatedLimit, guestLimit) => (req) =>
  * refinement, and brainstorming. This is a strict limit to prevent abuse and control costs.
  */
 const aiLimiter = rateLimit({
-  store: redisStore, // Will default to MemoryStore if redisStore is undefined.
+  store: createRateLimitStore('ai'), // Will default to MemoryStore if redisStore is undefined.
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: tieredLimit(20, 5), // OPTIMIZATION: Use `limit` which is the current standard, `max` is legacy.
   keyGenerator,
@@ -411,7 +416,7 @@ const aiLimiter = rateLimit({
  * Allows for more frequent requests than heavy AI tasks but prevents spamming.
  */
 const chatLimiter = rateLimit({
-  store: redisStore,
+  store: createRateLimitStore('chat'),
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: tieredLimit(100, 30),
   keyGenerator,
@@ -426,7 +431,7 @@ const chatLimiter = rateLimit({
  * Rate limiter for resource-intensive operations like exporting files (e.g., PDF generation).
  */
 const exportLimiter = rateLimit({
-  store: redisStore,
+  store: createRateLimitStore('export'),
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: tieredLimit(10, 3),
   keyGenerator,
@@ -440,7 +445,7 @@ const exportLimiter = rateLimit({
  * This is more lenient but still protects against rapid, repeated requests.
  */
 const dataLimiter = rateLimit({
-  store: redisStore,
+  store: createRateLimitStore('data'),
   windowMs: 5 * 60 * 1000, // 5 minutes
   limit: tieredLimit(200, 50),
   keyGenerator,

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import httpStatus from 'http-status';
 import { TemporalController } from './temporal.controller.js';
 import { TemporalCatalogService } from './temporal-catalog.service.js';
-import pick from '../../utils/pick.js';
-import ApiError from '../../utils/ApiError.js';
+import pick from '../../middlewares/other/pick.js';
+import ApiError from '../../../errors/ApiError.js';
 import { PubSub } from '@google-cloud/pubsub';
 
 // Mock dependencies
@@ -24,7 +24,7 @@ vi.mock('./temporal-catalog.service.js', () => ({
   }
 }));
 
-vi.mock('../../utils/ApiError.js', () => ({
+vi.mock('../../../errors/ApiError.js', () => ({
   default: class ApiError extends Error {
     constructor(statusCode, message, isOperational, stack) {
       super(message);
@@ -35,7 +35,7 @@ vi.mock('../../utils/ApiError.js', () => ({
   }
 }));
 
-vi.mock('../../utils/pick.js', () => ({
+vi.mock('../../middlewares/other/pick.js', () => ({
   default: vi.fn((object, keys) => {
     const result = {};
     if (!object) return result;

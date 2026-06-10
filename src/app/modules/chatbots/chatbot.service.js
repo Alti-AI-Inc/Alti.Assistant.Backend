@@ -3,9 +3,9 @@ import crypto from 'crypto';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Chatbot from './chatbot.model.js';
-import Tenant from '../tenants/tenant.model.js'; // Added for plan limit checks
-import User from '../users/user.model.js'; // Added for workspace metrics and role management
-import Invitation from '../invitations/invitation.model.js'; // Added for team invitations
+import Tenant from '../tenant/tenant.model.js'; // Added for plan limit checks
+import User from '../auth/auth.model.js'; // Added for workspace metrics and role management
+import Invitation from '../tenant/tenantInvitation.model.js'; // Added for team invitations
 import { emailService } from '../../../shared/email.service.js'; // Added for sending invitations
 import { withTenantContext } from '../../helpers/tenantQuery.js';
 

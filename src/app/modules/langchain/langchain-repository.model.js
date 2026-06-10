@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import httpStatus from 'http-status';
-import logger from '../../config/logger';
-import ApiError from '../../utils/ApiError';
+import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../errors/ApiError.js';
 
 /**
  * @typedef {Object} ILangchainRepository

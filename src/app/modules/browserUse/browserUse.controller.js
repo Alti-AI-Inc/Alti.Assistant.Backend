@@ -4,7 +4,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { BrowserUseServices } from './browserUse.service.js';
 // Assuming a pre-configured Winston logger is available for GCP structured logging.
-import logger from '../../../config/logger.js';
+import { logger } from '../../../shared/logger.js';
 
 /**
  * @swagger

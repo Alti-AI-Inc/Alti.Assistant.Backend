@@ -11,15 +11,20 @@ import {
 } from '../brainstorm.constant.js';
 import { rateLimit } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../../../../shared/redis/redis.client.js'; // Assuming a shared Redis client is available
+import { redisClient } from '../../../../shared/redis.js'; // Assuming a shared Redis client is available
 
 // --- Rate Limiting & DDOS Protection Setup ---
 
-// Create a new Redis store for rate-limit-redis to persist rate limit counts
-// across multiple processes or servers, which is essential for DDOS protection.
-const rateLimitStore = new RedisStore({
-  // The `sendCommand` function is the new API for ioredis v5 and node-redis v4.
+// Create separate Redis stores for rate-limit-redis to persist rate limit counts
+// across multiple processes or servers, satisfying the uniqueness constraint.
+const rateLimitStoreAnalysis = new RedisStore({
   sendCommand: (...args) => redisClient.sendCommand(args),
+  prefix: 'rl:brainstorm:analysis:',
+});
+
+const rateLimitStoreExtraction = new RedisStore({
+  sendCommand: (...args) => redisClient.sendCommand(args),
+  prefix: 'rl:brainstorm:extraction:',
 });
 
 /**
@@ -50,7 +55,7 @@ const keyGenerator = (req) => {
  * - Limit: 100 requests per 15 minutes per user/IP.
  */
 export const aiAnalysisLimiter = rateLimit({
-  store: rateLimitStore,
+  store: rateLimitStoreAnalysis,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
@@ -69,7 +74,7 @@ export const aiAnalysisLimiter = rateLimit({
  * - Limit: 75 requests per 5 minutes per user/IP.
  */
 export const aiExtractionLimiter = rateLimit({
-  store: rateLimitStore,
+  store: rateLimitStoreExtraction,
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 75,
   standardHeaders: true,

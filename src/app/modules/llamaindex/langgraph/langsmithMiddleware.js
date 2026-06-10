@@ -2,7 +2,7 @@ import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 // Assuming LangChainTracer is available from @langchain/core for LangSmith integration.
 // This import path might need adjustment based on the actual project setup and LangChain version.
-import { LangChainTracer } from '@langchain/core/tracers/langchain';
+import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 /**
  * @class LangsmithMiddleware

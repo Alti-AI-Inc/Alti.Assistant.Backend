@@ -4,7 +4,7 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { rewriteService } from './rewrite.service.js';
 // BUG FIX: Missing import for conversationHelpers
-import { conversationHelpers } from '../conversation/conversation.helpers.js'; // Assuming this path based on project structure
+import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Assuming this path based on project structure
 
 /**
  * Conversational rewrite assistant endpoint

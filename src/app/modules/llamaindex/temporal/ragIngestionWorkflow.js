@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
-import { logger } from '../../../core/logger.js';
-import { ApiError } from '../../../core/ApiError.js';
+import { logger } from '../../../../shared/logger.js';
+import ApiError from '../../../../errors/ApiError.js';
 
 /**
  * Stateful, durable Temporal RAG Ingestion Workflow that orchestrates

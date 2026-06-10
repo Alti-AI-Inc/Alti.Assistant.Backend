@@ -4,19 +4,14 @@ import fs from 'fs';
 import path from 'path';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import ApiError from '../../../core/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 
-/**
- * Google Vertex AI client instance initialized with project and location.
- * This uses the enterprise-grade SDK for Google Cloud.
- * @private
- */
 const vertex_ai = new VertexAI({
-  project: config.gcp_project_id || process.env.GCP_PROJECT_ID,
-  location: config.gcp_location || process.env.GCP_LOCATION,
+  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  location: config.google?.gcp_location || config.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 
 /**

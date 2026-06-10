@@ -46,14 +46,14 @@ vi.mock('./composio.service.js', () => ({
 // NOTE: conversationHelpers is used in the controller but not explicitly imported.
 // This mock assumes it's either a global or implicitly available.
 // In a real-world scenario, this would indicate a missing import in the original file.
-vi.mock('../../conversation/conversation.helpers.js', () => ({
+vi.mock('../../conversations/conversation.helpers.js', () => ({
   conversationHelpers: {
     getConversationById: vi.fn(),
     getUserConversations: vi.fn(),
   },
 }));
 
-const { conversationHelpers } = await import('../../conversation/conversation.helpers.js');
+const { conversationHelpers } = await import('../../conversations/conversation.helpers.js');
 
 describe('composioController', () => {
   let req;

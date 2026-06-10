@@ -193,6 +193,34 @@ const archiveNotificationService = async (notificationId, isArchived = true, req
   return result;
 };
 
+const sendNotification = async (userId, data, req = null) => {
+  return sendNotificationByIdService(userId, data, req);
+};
+
+const notifyTenantAdmins = async (tenantId, data, req = null) => {
+  try {
+    const admins = await UserModel.find({ tenantId, role: 'admin' }).select('_id').lean();
+    const promises = admins.map(admin => sendNotificationByIdService(admin._id, data, req));
+    await Promise.all(promises);
+  } catch (error) {
+    logger.error(`Failed to notify tenant admins for tenant ${tenantId}:`, error);
+  }
+};
+
+const notifyPlatformOwners = async (data, req = null) => {
+  try {
+    const superAdmins = await UserModel.find({ role: 'super_admin' }).select('_id').lean();
+    const promises = superAdmins.map(admin => sendNotificationByIdService(admin._id, data, req));
+    await Promise.all(promises);
+  } catch (error) {
+    logger.error('Failed to notify platform owners:', error);
+  }
+};
+
+const createForAdmins = async (workspaceId, data, req = null) => {
+  return notifyTenantAdmins(workspaceId, data, req);
+};
+
 export const NotificationService = {
   sendNotificationService,
   getNotificationService,
@@ -203,4 +231,10 @@ export const NotificationService = {
   deleteAllNotificationService,
   getUserInboxService,
   archiveNotificationService,
+  sendNotification,
+  notifyTenantAdmins,
+  notifyPlatformOwners,
+  createForAdmins,
 };
+
+export const notificationService = NotificationService;

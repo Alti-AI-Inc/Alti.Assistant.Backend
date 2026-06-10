@@ -3,8 +3,9 @@ import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertex
 import httpStatus from 'http-status'; // MODIFICATION: Added for standardized HTTP status codes.
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import ApiError from '../../../shared/ApiError.js'; // MODIFICATION: Added for standardized error responses.
+import ApiError from '../../../errors/ApiError.js'; // MODIFICATION: Added for standardized error responses.
 import LangchainChain from './langchain-chain.model.js';
+
 import LangchainChainVersion from './langchain-version.model.js';
 import { LangchainExecutionService } from './langchainExecution.service.js';
 

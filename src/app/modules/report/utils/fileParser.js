@@ -1,7 +1,7 @@
 import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
-import pdf from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import { parse as csvParseSync } from 'csv-parse/sync';
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
@@ -42,14 +42,16 @@ export const parseTextFile = async (filePath) => {
 export const parsePDFFile = async (filePath) => {
   try {
     const dataBuffer = await readFile(filePath);
-    const data = await pdf(dataBuffer);
+    const pdfParser = new PDFParse({ data: dataBuffer });
+    const infoResult = await pdfParser.getInfo();
+    const textResult = await pdfParser.getText();
 
     return {
-      content: data.text,
+      content: textResult.text,
       metadata: {
         type: 'pdf',
-        pages: data.numpages,
-        info: data.info, // Includes PDF metadata like Title, Author, etc.
+        pages: infoResult.total,
+        info: infoResult.info, // Includes PDF metadata like Title, Author, etc.
       },
     };
   } catch (error) {

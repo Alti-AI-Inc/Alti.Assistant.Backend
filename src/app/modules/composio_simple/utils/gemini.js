@@ -7,13 +7,9 @@
 // Use the Google Cloud Vertex AI SDK which supports Application Default Credentials.
 import { VertexAI } from '@google-cloud/vertexai';
 
-// Validate necessary environment variables for Vertex AI client initialization.
-if (!process.env.GOOGLE_CLOUD_PROJECT) {
-  throw new Error('GOOGLE_CLOUD_PROJECT environment variable is not set.');
-}
-if (!process.env.GOOGLE_CLOUD_LOCATION) {
-  throw new Error('GOOGLE_CLOUD_LOCATION environment variable is not set.');
-}
+// Use standard GCP project / location values or fallbacks to prevent startup crashes
+const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'alti-assistant';
+const location = process.env.GOOGLE_CLOUD_LOCATION || process.env.GCP_LOCATION || 'us-central1';
 
 /**
  * VertexAI client instance for interacting with the Vertex AI API.
@@ -22,8 +18,8 @@ if (!process.env.GOOGLE_CLOUD_LOCATION) {
  * @type {VertexAI}
  */
 const vertexAI = new VertexAI({
-  project: process.env.GOOGLE_CLOUD_PROJECT,
-  location: process.env.GOOGLE_CLOUD_LOCATION,
+  project,
+  location,
 });
 
 /**

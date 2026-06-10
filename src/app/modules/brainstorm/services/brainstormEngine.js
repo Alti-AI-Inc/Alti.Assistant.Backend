@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 // CRITICAL INTEGRATION: Import services for usage tracking and custom error handling.
-import { usageService } from '../../../../services/usageService.js';
+import { usageService } from '../../usage/usage.service.js';
 import { AppError } from '../../../../shared/errors/AppError.js';
 import {
   BRAINSTORM_CONFIG,

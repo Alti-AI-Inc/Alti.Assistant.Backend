@@ -39,7 +39,9 @@ if (!bucketName) {
     'GCS bucket name not configured (config.gcs.bucket_name). File uploads and exports will fail.'
   );
 }
-const bucket = storage.bucket(bucketName);
+const bucket = storage.bucket(
+  bucketName || (process.env.NODE_ENV !== 'production' ? 'development-plan-generator-bucket' : '')
+);
 
 /**
  * Generates a unique guest user ID using Mongoose's ObjectId.

@@ -253,6 +253,7 @@ export const SUCCESS_MESSAGES = {
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
+  TEMP_FOLDER: 'uploads/translations',
   UPLOADS_GCS_FOLDER: 'translations/uploads',
   OUTPUTS_GCS_FOLDER: 'translations/outputs',
   GCS_BUCKET: process.env.GCS_BUCKET_NAME || '',

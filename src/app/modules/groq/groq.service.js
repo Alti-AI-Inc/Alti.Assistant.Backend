@@ -578,6 +578,58 @@ const deleteAllAiSessionsService = async (targetUserId, requestingUser) => {
   }
 };
 
+const getAllAiSessionsForSuperAdminService = async () => {
+  try {
+    return await ChatHistory.find({}).populate('user', 'email name').lean();
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve all sessions');
+  }
+};
+
+const getPlatformWideStats = async () => {
+  try {
+    const totalPromptsResult = await UserModel.aggregate([
+      { $group: { _id: null, total: { $sum: '$promptsUsed' } } }
+    ]);
+    const totalPrompts = totalPromptsResult[0]?.total || 0;
+    const uniqueUsers = await UserModel.countDocuments({ promptsUsed: { $gt: 0 } });
+    const totalSessions = await ChatHistory.countDocuments({});
+    return {
+      totalPrompts,
+      uniqueUsers,
+      totalSessions,
+    };
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve platform statistics');
+  }
+};
+
+const adminDeleteOneLlamaAiSessionById = async (objectId) => {
+  try {
+    const sessionToDelete = await ChatHistory.findById(objectId);
+    if (!sessionToDelete) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
+    }
+    const deleteResult = await ChatHistory.deleteOne({ _id: objectId });
+    if (deleteResult.deletedCount === 1) {
+      if (sessionToDelete.user) {
+        await UserModel.updateOne(
+          { _id: sessionToDelete.user },
+          { $pull: { llamaAiSessions: objectId } }
+        );
+      }
+      return {
+        success: true,
+        message: 'LlamaAiSession deleted successfully by admin',
+      };
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete the LlamaAiSession');
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred during deletion');
+  }
+};
+
 /**
  * @namespace LlamaAiService
  * @description Provides a collection of services for managing AI chat interactions,
@@ -632,4 +684,7 @@ export const LlamaAiService = {
    * @see {@link deleteAllAiSessionsService} for implementation details.
    */
   deleteAllAiSessionsService,
+  getAllAiSessionsForSuperAdminService,
+  getPlatformWideStats,
+  adminDeleteOneLlamaAiSessionById,
 };
