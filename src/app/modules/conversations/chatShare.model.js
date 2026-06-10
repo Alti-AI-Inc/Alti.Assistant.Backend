@@ -9,6 +9,28 @@ import { v4 as uuidv4 } from 'uuid';
  * @property {object} [custom] - Any other custom metadata.
  */
 
+// SECURITY FIX: Helper function to recursively check for '$' prefixed keys.
+// This is used to sanitize objects before they are saved into a Mixed type field,
+// preventing NoSQL operator injection attacks (e.g., using '$where').
+const containsDisallowedKeys = (obj) => {
+  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+    for (const key in obj) {
+      // Using hasOwnProperty is a good practice to avoid iterating over prototype properties.
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        if (key.startsWith('$')) {
+          return true;
+        }
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+          if (containsDisallowedKeys(obj[key])) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+};
+
 /**
  * Mongoose schema for the ChatShare model.
  * Represents a shareable link for a conversation, allowing users to share their chats.
@@ -93,6 +115,14 @@ const ChatShareSchema = new mongoose.Schema(
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
+      // SECURITY FIX: Add a validator to prevent NoSQL operator injection.
+      // The 'Mixed' type is flexible but can be a security risk if user input
+      // containing keys starting with '$' (like '$where') is saved directly.
+      // This validator recursively checks for such keys in the metadata object.
+      validate: {
+        validator: (v) => !containsDisallowedKeys(v),
+        message: 'Metadata contains disallowed keys starting with "$".',
+      },
     },
   },
   {
@@ -164,6 +194,13 @@ ChatShareSchema.methods.isAccessible = function () {
  * @returns {Promise<ChatShare|null>} A promise that resolves with the ChatShare document if found and active/not expired, otherwise `null`.
  */
 ChatShareSchema.statics.findActiveShare = function (shareId) {
+  // SECURITY FIX: Add input validation to prevent NoSQL injection.
+  // Ensure shareId is a non-empty string before using it in a query.
+  // This prevents query objects like { $ne: null } from being passed.
+  if (typeof shareId !== 'string' || shareId.trim() === '') {
+    // Returning null is a safe default for a "find" operation.
+    return Promise.resolve(null);
+  }
   return this.findOne({
     shareId,
     isActive: true,
@@ -191,7 +228,13 @@ ChatShareSchema.statics.findActiveShare = function (shareId) {
  */
 ChatShareSchema.statics.findUserShares = function (queryContext, options = {}) {
   const { userId, workspaceId } = queryContext;
-  const { page = 1, limit = 20, status = 'active' } = options;
+
+  // SECURITY FIX: Sanitize and validate pagination parameters.
+  // Ensure 'page' and 'limit' are positive integers to prevent potential DoS
+  // via large values or errors from non-numeric input. A cap on the limit is also enforced.
+  const page = Math.max(1, parseInt(options.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(options.limit, 10) || 20));
+  const { status = 'active' } = options;
 
   // SECURITY FIX: The query must be scoped to the workspace to prevent IDOR and data leakage across tenants.
   // Throwing an error or returning an empty array if workspaceId is missing prevents accidental data exposure.

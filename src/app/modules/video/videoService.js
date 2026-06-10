@@ -4,6 +4,55 @@ import globalConfig from '../../../../config/index.js';
 import path from 'path';
 // import { pipeline } from 'stream/promises'; // Removed: Unused import
 import { GoogleAuth } from 'google-auth-library';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import redisClient from '../../../../config/redisClient.js';
+
+// --- Enterprise Rate-Limiting & DDOS Guard ---
+// Centralized handler for rate limit errors to ensure consistent responses.
+const handleRateLimitError = (err) => {
+  // If the error is a standard Error object, it's not from the rate limiter. Re-throw it.
+  if (err instanceof Error) {
+    throw err;
+  }
+  // Otherwise, it's a rate limiter rejection. Construct a user-friendly error message.
+  const secondsRemaining = Math.ceil(err.msBeforeNext / 1000);
+  throw new Error(
+    `Rate limit exceeded. Please try again in ${secondsRemaining} seconds.`
+  );
+};
+
+// Strict limiter for expensive, resource-intensive video generation endpoints.
+// Protects against API abuse, cost runaway, and DDOS on core generation functionality.
+// Allows 5 generations per hour for each user. Blocks for 15 minutes if exceeded.
+const videoGenerationLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_video_gen',
+  points: 5, // 5 requests
+  duration: 60 * 60, // per 1 hour
+  blockDuration: 60 * 15, // Block for 15 minutes if points are consumed
+  inmemoryBlockOnConsumed: 5, // Start blocking immediately in memory
+});
+
+// Moderate limiter for polling status endpoints.
+// Prevents rapid-fire polling that could strain the server and external APIs.
+// Allows 60 status checks per minute for each user.
+const statusCheckLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_video_status',
+  points: 60, // 60 requests
+  duration: 60, // per 1 minute
+});
+
+// Lenient limiter for inexpensive metadata endpoints like fetching available models.
+// Provides basic protection against enumeration attacks and nuisance traffic.
+// Allows 100 requests per minute for each user.
+const metadataLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_video_meta',
+  points: 100, // 100 requests
+  duration: 60, // per 1 minute
+});
+// --- End Enterprise Rate-Limiting & DDOS Guard ---
 
 /**
  * Generates a video using the specified parameters.
@@ -15,14 +64,25 @@ import { GoogleAuth } from 'google-auth-library';
  * @param {number} options.duration - Duration in seconds (default: 5)
  * @param {string} options.style - Visual style (default: "realistic")
  * @param {string} options.resolution - Video resolution (default: "1024x576")
+ * @param {string} userId - The ID of the user making the request for rate-limiting.
  * @returns {Promise<Object>} - Object containing videoUrl and metadata
  */
-export const generateVideo = async ({
-  prompt,
-  duration = 5,
-  style = 'realistic',
-  resolution = '1024x576',
-}) => {
+export const generateVideo = async (
+  {
+    prompt,
+    duration = 5,
+    style = 'realistic',
+    resolution = '1024x576',
+  },
+  userId
+) => {
+  try {
+    // Apply strict rate limiting for this expensive operation.
+    await videoGenerationLimiter.consume(userId);
+  } catch (err) {
+    handleRateLimitError(err);
+  }
+
   console.log('Generating video with parameters:', {
     prompt,
     duration,
@@ -39,8 +99,8 @@ export const generateVideo = async ({
     });
 
     const modelId = 'veo-3.1-fast-generate-preview'; // Hardcoded model for this function
-    const availableModels = await getAvailableVideoModels(); // Get models to find maxDuration
-    const currentModel = availableModels.find(m => m.id === modelId);
+    const availableModels = await getAvailableVideoModels(userId); // Pass userId to satisfy signature
+    const currentModel = availableModels.find((m) => m.id === modelId);
     // Cap duration to model's max duration, default to 8 seconds if model not found
     const maxDuration = currentModel ? currentModel.maxDuration : 8;
     const actualDuration = Math.min(duration, maxDuration);
@@ -108,12 +168,22 @@ export const generateVideo = async ({
   }
 };
 
-export const generateVideoWithVertexAI = async ({
-  prompt,
-  duration = 5, // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
-  style = 'realistic', // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
-  resolution = '1024x576', // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
-}) => {
+export const generateVideoWithVertexAI = async (
+  {
+    prompt,
+    duration = 5, // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
+    style = 'realistic', // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
+    resolution = '1024x576', // Not directly used in the Vertex AI predictLongRunning call for Veo, but kept for consistency
+  },
+  userId
+) => {
+  try {
+    // Apply strict rate limiting for this expensive operation.
+    await videoGenerationLimiter.consume(userId);
+  } catch (err) {
+    handleRateLimitError(err);
+  }
+
   const imageEndpoint = globalConfig.google.vertex_ai_endpoint;
   const location = globalConfig.google.vertex_ai_region;
   const modelId = 'veo-3.1-fast-generate-preview';
@@ -160,7 +230,9 @@ export const generateVideoWithVertexAI = async ({
   if (!response.ok) {
     // Improve error logging to include response body
     const errorBody = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${errorBody}`
+    );
   }
 
   const operation = await response.json();
@@ -204,14 +276,18 @@ export const getOperationStatus = async (operationName) => {
   if (!response.ok) {
     // Improve error logging to include response body
     const errorBody = await response.text();
-    throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${errorBody}`
+    );
   }
   const operationStatus = await response.json();
   console.log('Operation status from Vertex AI:', operationStatus);
 
   if (operationStatus.done && operationStatus.response) {
     // Bug Fix: Handle different response structures for video URIs
-    const videoResult = operationStatus.response.generatedVideos?.[0]?.video || operationStatus.response.videos?.[0];
+    const videoResult =
+      operationStatus.response.generatedVideos?.[0]?.video ||
+      operationStatus.response.videos?.[0];
     if (videoResult?.uri || videoResult?.gcsUri) {
       const gcsUri = videoResult.uri || videoResult.gcsUri;
       const publicUrl = convertGcsUriToPublicUrl(gcsUri);
@@ -324,22 +400,35 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
 /**
  * Checks the status of a video generation job (for async video generation services)
  * @param {string} jobId - The job ID returned from the initial generation request (can be an operation name)
+ * @param {string} userId - The ID of the user making the request for rate-limiting.
  * @returns {Promise<Object>} - Job status and result if completed
  */
-export const checkVideoGenerationStatus = async (jobId) => {
+export const checkVideoGenerationStatus = async (jobId, userId) => {
+  try {
+    // Apply moderate rate limiting to prevent polling abuse.
+    await statusCheckLimiter.consume(userId);
+  } catch (err) {
+    handleRateLimitError(err);
+  }
+
   try {
     // If jobId represents a Vertex AI operation (contains 'projects/' or '/operations/')
-    if (typeof jobId === 'string' && (jobId.includes('projects/') || jobId.includes('/operations/'))) {
+    if (
+      typeof jobId === 'string' &&
+      (jobId.includes('projects/') || jobId.includes('/operations/'))
+    ) {
       const operationStatus = await getOperationStatus(jobId);
-      
+
       // Map to consistent format
       let status = 'processing';
       if (operationStatus.done) {
         status = operationStatus.error ? 'failed' : 'completed';
       }
-      
+
       // Provide a more accurate progress if available in metadata
-      const progress = operationStatus.done ? 100 : (operationStatus.metadata?.progressPercent || 50);
+      const progress = operationStatus.done
+        ? 100
+        : operationStatus.metadata?.progressPercent || 50;
 
       return {
         id: jobId,
@@ -347,7 +436,7 @@ export const checkVideoGenerationStatus = async (jobId) => {
         progress,
         videoUrl: operationStatus.response?.videoUrl || null,
         error: operationStatus.error?.message || null,
-        raw: operationStatus
+        raw: operationStatus,
       };
     }
 
@@ -367,9 +456,17 @@ export const checkVideoGenerationStatus = async (jobId) => {
 
 /**
  * Gets available video generation models/styles
+ * @param {string} userId - The ID of the user making the request for rate-limiting.
  * @returns {Promise<Array>} - Array of available models and their capabilities
  */
-export const getAvailableVideoModels = async () => {
+export const getAvailableVideoModels = async (userId) => {
+  try {
+    // Apply lenient rate limiting for this inexpensive operation.
+    await metadataLimiter.consume(userId);
+  } catch (err) {
+    handleRateLimitError(err);
+  }
+
   return [
     {
       id: 'veo-3.1-fast-generate-preview',

@@ -48,8 +48,8 @@ const DocumentRelationshipSchema = new mongoose.Schema(
     workspaceId: {
       type: Schema.Types.ObjectId,
       ref: 'Workspace',
-      required: true,
-      index: true
+      required: true
+      // PERFORMANCE OPTIMIZATION: Removed redundant individual index. This field is the leading field in multiple compound indexes below, which is more efficient.
     },
     /**
      * The ID of the user who owns this document relationship.
@@ -63,7 +63,7 @@ const DocumentRelationshipSchema = new mongoose.Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true
+      index: true // Kept for queries specific to a user across all their workspaces.
     },
     /**
      * The ID of the source document in this relationship.
@@ -74,8 +74,8 @@ const DocumentRelationshipSchema = new mongoose.Schema(
      */
     sourceDocId: {
       type: String,
-      required: true,
-      index: true
+      required: true
+      // PERFORMANCE OPTIMIZATION: Removed redundant individual index. Replaced with a more efficient compound index with workspaceId.
     },
     /**
      * The ID of the target document in this relationship.
@@ -86,8 +86,8 @@ const DocumentRelationshipSchema = new mongoose.Schema(
      */
     targetDocId: {
       type: String,
-      required: true,
-      index: true
+      required: true
+      // PERFORMANCE OPTIMIZATION: Removed redundant individual index. Replaced with a more efficient compound index with workspaceId.
     },
     /**
      * The type of relationship between the source and target documents.
@@ -203,6 +203,22 @@ const DocumentRelationshipSchema = new mongoose.Schema(
  * for role-based access by admins and managers.
  */
 DocumentRelationshipSchema.index({ workspaceId: 1, userId: 1, sourceDocId: 1, targetDocId: 1 }, { unique: true });
+
+/**
+ * PERFORMANCE OPTIMIZATION: Added compound indexes for common query patterns.
+ * Querying for all relationships involving a specific document within a workspace is a common use case.
+ * These indexes ensure such lookups are fast and efficient.
+ */
+DocumentRelationshipSchema.index({ workspaceId: 1, sourceDocId: 1 });
+DocumentRelationshipSchema.index({ workspaceId: 1, targetDocId: 1 });
+
+/**
+ * PERFORMANCE OPTIMIZATION: Added compound index for analytics and filtering.
+ * This index supports efficient queries for managers/admins who need to filter or aggregate
+ * relationships by their type within a specific workspace (e.g., "show all 'hierarchical' relationships").
+ */
+DocumentRelationshipSchema.index({ workspaceId: 1, relationType: 1 });
+
 
 /**
  * Mongoose model for Document Relationships.
