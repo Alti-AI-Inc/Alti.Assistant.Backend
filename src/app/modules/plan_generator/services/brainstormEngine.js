@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import redisClient from '../../../../shared/redis/redis.client.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import {
@@ -6,6 +8,32 @@ import {
   PLAN_GENERATOR_CONFIG,
   BRAINSTORM_ASPECTS,
 } from '../plan_generator.constant.js';
+
+// Enterprise Rate-Limiting & DDOS Guard Agent AI: Configuration
+// Rate limiters are configured to protect expensive AI generation endpoints from abuse,
+// DDOS attacks, and excessive cost. Limits are applied per user ID or IP address.
+const rateLimiterOptions = {
+  storeClient: redisClient,
+  points: 10, // Default points
+  duration: 60 * 60, // 1 hour in seconds
+  blockDuration: 60 * 60, // Block for 1 hour
+};
+
+// Limiter for the comprehensive 'generateBrainstorm' function.
+// Allows 10 requests per hour per user/IP. This is a costly operation.
+const brainstormLimiter = new RateLimiterRedis({
+  ...rateLimiterOptions,
+  keyPrefix: 'rate_limit_brainstorm',
+  points: 10,
+});
+
+// Limiter for the 'generateSWOT' function.
+// Allows a higher rate of 30 requests per hour as it's a less intensive operation.
+const swotLimiter = new RateLimiterRedis({
+  ...rateLimiterOptions,
+  keyPrefix: 'rate_limit_swot',
+  points: 30,
+});
 
 /**
  * @constant {GoogleGenerativeAI} genAI
@@ -20,6 +48,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * then calls the AI to get insights on SWOT, resource needs, and timelines.
  *
  * @async
+ * @param {string} limiterKey - A unique identifier for the user or IP address to enforce rate limits.
  * @param {string} ideaText - The core idea or concept to be brainstormed.
  * @param {object} analysis - An object containing a pre-computed analysis of the idea.
  * @param {string} analysis.plan_type - The type of plan (e.g., 'Business Plan', 'Project Plan').
@@ -30,14 +59,33 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * @param {object} [contextData={}] - Optional additional context data, such as constraints.
  * @param {object} [contextData.constraints] - Specific constraints to consider during brainstorming.
  * @returns {Promise<object>} A promise that resolves to a structured JSON object containing the brainstorming results, including SWOT analysis, resource needs, timeline estimation, and key insights.
- * @throws {Error} Throws an error if the AI model fails to generate a response or if the response cannot be parsed into valid JSON.
+ * @throws {Error} Throws an error if the AI model fails to generate a response, if the response cannot be parsed into valid JSON, or if the rate limit is exceeded.
  */
 export const generateBrainstorm = async (
+  limiterKey,
   ideaText,
   analysis,
   requestedAspects = [],
   contextData = {}
 ) => {
+  try {
+    // Enterprise Rate-Limiting & DDOS Guard Agent AI: Enforcement
+    // Consume one point for this operation. Throws an error if the limit is exceeded.
+    await brainstormLimiter.consume(limiterKey);
+  } catch (rateLimiterRes) {
+    // If the error is not from the rate limiter, re-throw it.
+    if (rateLimiterRes instanceof Error) {
+      logger.error('Unexpected error during rate limit check:', rateLimiterRes);
+      throw rateLimiterRes;
+    }
+    // Otherwise, throw a specific 429 Too Many Requests error.
+    const err = new Error(
+      'Too many brainstorm requests. Please try again in an hour.'
+    );
+    err.status = 429;
+    throw err;
+  }
+
   try {
     console.log('Starting brainstorming session:', {
       ideaLength: ideaText.length,
@@ -120,6 +168,10 @@ Only return valid JSON, no additional text. Keep responses concise.`;
 
     return brainstorm;
   } catch (error) {
+    // Do not wrap rate limit errors, they are already handled.
+    if (error.status === 429) {
+      throw error;
+    }
     logger.error('Error generating brainstorm:', error);
     throw error;
   }
@@ -130,10 +182,29 @@ Only return valid JSON, no additional text. Keep responses concise.`;
  * This is a focused version of the main brainstormer, intended for rapid analysis.
  *
  * @async
+ * @param {string} limiterKey - A unique identifier for the user or IP address to enforce rate limits.
  * @param {string} ideaText - The idea or concept to analyze.
- * @returns {Promise<object|null>} A promise that resolves to a JSON object with `strengths`, `weaknesses`, `opportunities`, and `threats` arrays. Returns `null` if an error occurs during generation or parsing.
+ * @returns {Promise<object|null>} A promise that resolves to a JSON object with `strengths`, `weaknesses`, `opportunities`, and `threats` arrays. Returns `null` if an error occurs during generation or parsing. Throws an error if rate limit is exceeded.
  */
-export const generateSWOT = async (ideaText) => {
+export const generateSWOT = async (limiterKey, ideaText) => {
+  try {
+    // Enterprise Rate-Limiting & DDOS Guard Agent AI: Enforcement
+    // Consume one point for this operation. Throws an error if the limit is exceeded.
+    await swotLimiter.consume(limiterKey);
+  } catch (rateLimiterRes) {
+    // If the error is not from the rate limiter, re-throw it.
+    if (rateLimiterRes instanceof Error) {
+      logger.error('Unexpected error during rate limit check:', rateLimiterRes);
+      throw rateLimiterRes;
+    }
+    // Otherwise, throw a specific 429 Too Many Requests error.
+    const err = new Error(
+      'Too many SWOT requests. Please try again in an hour.'
+    );
+    err.status = 429;
+    throw err;
+  }
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -164,6 +235,10 @@ Return only JSON:
 
     return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
   } catch (error) {
+    // Do not wrap rate limit errors, they are already handled.
+    if (error.status === 429) {
+      throw error;
+    }
     logger.error('Error generating SWOT:', error);
     return null;
   }
