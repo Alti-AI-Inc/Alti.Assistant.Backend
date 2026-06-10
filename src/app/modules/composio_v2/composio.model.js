@@ -1,4 +1,4 @@
-import mongoose, { connect } from 'mongoose';
+import mongoose from 'mongoose'; // Removed unused 'connect' import
 
 /**
  * @typedef {object} ComposioAuthToolkit
@@ -9,6 +9,34 @@ import mongoose, { connect } from 'mongoose';
  * @property {string[]} scopes - An array of scopes requested for this toolkit.
  * @property {object} metadata - Additional metadata related to the toolkit.
  */
+
+/**
+ * Mongoose Schema for ComposioAuthToolkit.
+ * Defines the structure for the embedded toolkit information.
+ * @type {mongoose.Schema<ComposioAuthToolkit>}
+ */
+const ComposioAuthToolkitSchema = new mongoose.Schema({
+  slug: {
+    type: String,
+    required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+  },
+  icon: {
+    type: String,
+  },
+  scopes: {
+    type: [String], // Array of strings
+  },
+  metadata: {
+    type: Object, // Can be an empty object or more specific schema if needed
+  },
+}, { _id: false }); // Embedded sub-documents typically don't need their own _id
 
 /**
  * @typedef {object} ComposioAuthDocument
@@ -135,7 +163,7 @@ const ComposioAuthSchema = new mongoose.Schema({
    * @type {ComposioAuthToolkit}
    */
   toolkit: {
-    type: Object,
+    type: ComposioAuthToolkitSchema, // Using the defined sub-schema for better validation
   },
 
   /**
