@@ -138,6 +138,56 @@ const DEFAULT_RATE_LIMITS = {
 };
 
 /**
+ * @constant {string} RATE_LIMIT_LUA_SCRIPT
+ * @description Lua script for atomic sliding window rate limiting using Redis sorted sets.
+ * This script ensures that rate limit checks and updates are performed atomically on the Redis server,
+ * preventing race conditions that could occur with separate GET and SET operations in a distributed environment.
+ * It removes old timestamps, checks the current count, adds a new timestamp if under limit,
+ * and calculates the wait time if the limit is exceeded.
+ */
+const RATE_LIMIT_LUA_SCRIPT = `
+-- KEYS[1]: The Redis key for the rate limit (e.g., ratelimit:wf:gmail)
+-- KEYS[2]: A counter key for unique members (e.g., ratelimit:wf:gmail:counter)
+-- ARGV[1]: Current timestamp in milliseconds
+-- ARGV[2]: Window size in milliseconds
+-- ARGV[3]: Limit (max requests)
+
+local key = KEYS[1]
+local counter_key = KEYS[2]
+local now = tonumber(ARGV[1])
+local windowMs = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+
+-- Remove all members with a score less than (now - windowMs)
+redis.call('ZREMRANGEBYSCORE', key, 0, now - windowMs)
+
+-- Get the current count of requests within the window
+local count = redis.call('ZCARD', key)
+
+if count < limit then
+    -- Generate a unique member ID using a counter to ensure each request is counted
+    local unique_id = now .. ':' .. redis.call('INCR', counter_key)
+    redis.call('ZADD', key, now, unique_id)
+    -- Set/update the expiry for the main key to ensure it eventually cleans up
+    redis.call('EXPIRE', key, math.ceil(windowMs / 1000) + 1)
+    -- Also set expiry for the counter key to clean up
+    redis.call('EXPIRE', counter_key, math.ceil(windowMs / 1000) + 1)
+    return {1, 0} -- Allowed, no wait
+else
+    -- Limit exceeded. Calculate wait time.
+    -- Get the score (timestamp) of the oldest request in the window
+    local oldestTimestamp = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')[2]
+    if oldestTimestamp then
+        local waitTime = (tonumber(oldestTimestamp) + windowMs) - now
+        return {0, math.max(0, waitTime)} -- Not allowed, return wait time
+    else
+        -- This case should ideally not be reached if count > 0, but as a fallback
+        return {0, windowMs} -- Fallback: wait for a full window
+    end
+end
+`;
+
+/**
  * @class WorkflowResilienceService
  * @description
  * Manages workflow resilience by providing retry mechanisms with exponential backoff
@@ -163,17 +213,19 @@ class WorkflowResilienceService {
      * @private
      * @type {Map<string, boolean>}
      * A local mutex map used to prevent race conditions in the `throttle` method
-     * when multiple concurrent calls attempt to update Redis rate limit counters.
+     * when multiple concurrent calls attempt to update Redis rate limit counters
+     * from the same Node.js process.
      * Keys are rate limit keys (e.g., `ratelimit:wf:gmail`), values indicate if a lock is held.
      */
     this.throttleLocks = new Map(); // Local mutex map to prevent concurrent tick race conditions
   }
 
   /**
-   * Checks and enforces rate limits for a given target service.
-   * This method uses Redis to maintain a distributed counter of requests within a time window.
-   * If the limit is exceeded, the execution is blocked (sleeps) until the rate limit resets
-   * or a token becomes available. A local mutex is used to prevent race conditions during Redis updates.
+   * Checks and enforces rate limits for a given target service using an atomic Redis Lua script.
+   * This method uses Redis sorted sets to maintain a distributed log of request timestamps
+   * within a sliding time window. If the limit is exceeded, the execution is blocked (sleeps)
+   * until the rate limit resets or a token becomes available. A local mutex is used to prevent
+   * race conditions during Redis operations from the same Node.js instance.
    *
    * @param {string} service - The name of the service or provider, e.g., 'gmail', 'slack'.
    * @param {number} [limit=30] - The maximum number of requests allowed within the `windowMs`.
@@ -183,9 +235,11 @@ class WorkflowResilienceService {
    */
   async throttle(service, limit = 30, windowMs = 60000) {
     const key = `ratelimit:wf:${service?.toLowerCase() || 'default'}`;
+    const counterKey = `${key}:counter`; // Key for unique member counter in Lua script
 
     while (true) {
-      // 1. Acquire execution lock to prevent parallel ticks from reading stale data
+      // Acquire local execution lock to prevent parallel EVAL calls from the same Node.js instance
+      // for the same key. This is a local optimization, the Lua script handles atomicity on Redis.
       while (this.throttleLocks.get(key)) {
         await this._sleep(5);
       }
@@ -193,34 +247,27 @@ class WorkflowResilienceService {
 
       try {
         const now = Date.now();
-        let currentRequests = [];
-        const cached = await RedisClient.get(key);
-        if (cached) {
-          try {
-            currentRequests = JSON.parse(cached);
-          } catch (e) {
-            currentRequests = [];
-          }
-        }
+        // Execute the Lua script atomically on Redis.
+        // The script returns an array: [allowed (1 or 0), waitTimeMs].
+        const [allowed, waitTime] = await RedisClient.eval(
+          RATE_LIMIT_LUA_SCRIPT,
+          2, // Number of keys passed to the script
+          key,
+          counterKey,
+          now,
+          windowMs,
+          limit
+        );
 
-        // Filter out requests older than the window
-        currentRequests = currentRequests.filter(timestamp => timestamp > now - windowMs);
-
-        if (currentRequests.length < limit) {
-          // Record this request
-          currentRequests.push(now);
-          await RedisClient.set(key, JSON.stringify(currentRequests), { EX: Math.ceil(windowMs / 1000) });
-
-          this.throttleLocks.set(key, false); // Release lock
+        if (allowed === 1) {
+          this.throttleLocks.set(key, false); // Release local lock
           break; // Allowed to run!
         } else {
-          // Release lock *before* sleeping to allow other concurrent calls to queue up and wait too
+          // Release local lock *before* sleeping to allow other concurrent calls to queue up and wait too
           this.throttleLocks.set(key, false);
 
-          const oldestTimestamp = currentRequests[0];
-          const waitTime = (oldestTimestamp + windowMs) - now + 50; // Add 50ms buffer
           logger.info(`[Rate Limiting] Outgoing limit exceeded for service "${service}". Throttling execution. Pausing for ${waitTime}ms...`);
-          await this._sleep(waitTime);
+          await this._sleep(waitTime + 50); // Add a small buffer to wait time
         }
       } catch (err) {
         this.throttleLocks.set(key, false); // Safeguard release on error
