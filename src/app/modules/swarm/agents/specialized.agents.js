@@ -8,7 +8,10 @@
  * @property {string} name - Human-readable name of the agent.
  * @property {string} description - A brief description of the agent's capabilities.
  * @property {string} systemInstruction - The core system prompt that defines the agent's persona and rules.
- * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-1.5-flash-001').
+ * @property {object[]} safetySettings - Configuration for content safety filters.
+ * @property {string} safetySettings.category - The category of harmful content to filter.
+ * @property {string} safetySettings.threshold - The threshold for blocking harmful content.
  * @property {string[]} tools - An array of tools (e.g., API names) this agent can utilize.
  * @property {string[]} keywords - An array of keywords associated with the agent's domain.
  */
@@ -26,6 +29,12 @@ export const dietNutritionExpert = {
 Deconstruct fitness goals and formulate highly balanced nutrition protocols, calorie/macronutrient breakdown tables, allergy substitutions, and delicious, clean recipes.
 Prioritize clean layouts and precise weight metrics.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['diet plan', 'meal prep', 'nutrition guide', 'healthy recipe', 'calorie counter', 'lose weight', 'macros calculator', 'meal planner']
 };
@@ -43,6 +52,12 @@ export const workoutFitnessCoach = {
 Generate optimized workout itineraries: training splits (Push/Pull/Legs, Upper/Lower), exercise sets/reps schemes, mobility routines, and progressive overload parameters.
 Stay highly motivating, structured, and focused on safety.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['workout plan', 'exercise split', 'gym routine', 'fitness split', 'weightlifting', 'cardio plan', 'training schedule']
 };
@@ -60,6 +75,12 @@ export const travelItineraryArchitect = {
 Build breathtaking day-by-day travel itineraries, transport routing timetables, packing checklists, local currency warnings, and dining suggestions.
 Structure details neatly into clear tables or timelines.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['travel plan', 'itinerary', 'trip planner', 'packing list', 'sightseeing', 'travel guide', 'flight schedule', 'destination guide']
 };
@@ -77,6 +98,12 @@ export const financialBudgetPlanner = {
 Formulate personal budgets, monthly expenditure tables, debt repayment schedules (snowball/avalanche methods), and quantitative savings strategies.
 Always output beautiful, clean breakdown charts or tables.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['budget planner', 'personal finance', 'debt snowball', 'saving money', 'cash flow sheet', 'mortgage calculation', 'expense tracker']
 };
@@ -94,6 +121,12 @@ export const legalCeaseDesistDrafter = {
 Draft highly formal, legally grounded cease-and-desist notifications, standard unilateral NDAs, copyright notices, and trademark warning letters.
 Maintain an assertive, highly formal, and precise legal tone.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['cease and desist', 'nda template', 'legal draft letter', 'copyright letter', 'trademark warning', 'non disclosure agreement']
 };
@@ -111,6 +144,12 @@ export const financialAnalyst = {
 Analyze live stock quotes, market trends, volume, and bid-ask spreads.
 Synthesize findings into clean, concise tabular breakdowns and actionable summaries.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: ['massive-realtime-tick'],
   keywords: ['stock', 'ticker', 'price', 'quote', 'market', 'financial', 'shares', 'googl', 'aapl']
 };
@@ -128,6 +167,12 @@ export const marketResearcher = {
 Perform high-fidelity competitive market audits, comprehensive SWOT analyses, industry trend mappings, and TAM/SAM/SOM financial assessments.
 Structure reports into clear, highly executive sections with verified industry metrics.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: [],
   keywords: ['market research', 'swot analysis', 'competitor analysis', 'industry trends', 'business audit', 'tam sam som', 'financial assessment']
 };
@@ -154,6 +199,12 @@ CRITICAL PATENT EXAMINATION LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, database code, or terminal commands under any circumstances.
 5. NO FLUFF: Start directly with the patent abstract, claim structure, and prior art audit.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: ['google-search'],
   keywords: [
     'patent search', 'prior art', 'patent claims analysis', 'uspto utility patent',
@@ -184,6 +235,12 @@ CRITICAL SEC AUDITING LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Never write programming code, scraper commands, or database scripts. Ground everything in rigorous, conceptual financial text.
 5. NO FLUFF: Deliver the financial tabular overview and disclosure analysis immediately.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: ['google-search'],
   keywords: [
     'sec filing search', '10-k financial statements', '10-q earnings call', 'corporate disclosure audit',
@@ -214,6 +271,12 @@ CRITICAL LEGAL GROUNDING LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, terminal commands, or database queries. Keep all legal analysis conceptual, analytical, and professional.
 5. NO FLUFF: Deliver the legal summary and regulatory action plan immediately.`,
   model: 'gemini-2.5-flash',
+  safetySettings: [ // Enterprise-grade safety guardrails
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+  ],
   tools: ['google-search'],
   keywords: [
     'case law search', 'regulatory compliance tracking', 'court docket review', 'federal registry update',

@@ -2,24 +2,25 @@ import express from 'express';
 import { BrowserUseController } from './browserUse.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import { requireRole } from '../../middlewares/auth/requireRole.js'; // Middleware to enforce role-based access
 
 /**
  * @constant {express.Router} router - Express router instance for browser use AI routes.
  */
 const router = express.Router();
 
-// Apply auth and tenant context to all browser session routes
-router.use(auth());
-router.use(extractTenantContext);
+// --- USER & TENANT-SCOPED ROUTES ---
+// These routes are for regular users and are scoped to their tenant.
+// The middleware chain ensures authentication and that the operation is within the user's tenant context.
 
 /**
  * @swagger
  * /api/browser-use/task:
  *   post:
  *     summary: Initiates a new browser automation task.
- *     description: Creates and starts a new browser automation task based on the provided instructions and context.
+ *     description: Creates and starts a new browser automation task based on the provided instructions and context. This operation is tenant-scoped.
  *     tags:
- *       - Browser Use AI
+ *       - Browser Use AI (User)
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -77,33 +78,26 @@ router.use(extractTenantContext);
  *                       example: "task_xyz789"
  *       400:
  *         description: Bad request, invalid input.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized, authentication token missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/task', BrowserUseController.runTaskController);
+router.post(
+  '/task',
+  auth(),
+  extractTenantContext,
+  BrowserUseController.runTaskController
+);
 
 /**
  * @swagger
  * /api/browser-use/status/{sessionId}/{taskId}:
  *   get:
  *     summary: Retrieves the status of a specific browser automation task.
- *     description: Fetches the current status and any available results for a given browser automation task within a session.
+ *     description: Fetches the current status and any available results for a given browser automation task within the user's session and tenant.
  *     tags:
- *       - Browser Use AI
+ *       - Browser Use AI (User)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -162,38 +156,26 @@ router.post('/task', BrowserUseController.runTaskController);
  *                       example: null
  *       401:
  *         description: Unauthorized, authentication token missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Session or task not found.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/status/:sessionId/:taskId',
+  auth(),
+  extractTenantContext,
   BrowserUseController.getTaskStatusController
 );
-
-// --- NEW HISTORY ROUTES ---
 
 /**
  * @swagger
  * /api/browser-use/sessions/{userId}:
  *   get:
  *     summary: Retrieves all browser automation sessions for a specific user.
- *     description: Fetches a list of all historical browser automation sessions associated with the given user ID.
+ *     description: Fetches a list of all historical browser automation sessions associated with the given user ID within the current tenant. The requesting user must have permission to view the target user's data.
  *     tags:
- *       - Browser Use AI
+ *       - Browser Use AI (User)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -207,71 +189,28 @@ router.get(
  *     responses:
  *       200:
  *         description: User sessions retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "User sessions retrieved."
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       sessionId:
- *                         type: string
- *                         example: "sess_abc123"
- *                       userId:
- *                         type: string
- *                         example: "user_12345"
- *                       status:
- *                         type: string
- *                         example: "completed"
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2023-10-27T10:00:00Z"
- *                       lastUpdated:
- *                         type: string
- *                         format: date-time
- *                         example: "2023-10-27T10:15:00Z"
- *                       taskCount:
- *                         type: number
- *                         example: 2
  *       401:
- *         description: Unauthorized, authentication token missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Unauthorized.
  *       404:
  *         description: User not found or no sessions for the user.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/sessions/:userId', BrowserUseController.getUserSessionsController);
+router.get(
+  '/sessions/:userId',
+  auth(),
+  extractTenantContext,
+  BrowserUseController.getUserSessionsController
+);
 
 /**
  * @swagger
  * /api/browser-use/session/{sessionId}/{userId}:
  *   get:
  *     summary: Retrieves a specific browser automation session by ID for a user.
- *     description: Fetches detailed information about a single browser automation session, including its tasks and results, for a given user.
+ *     description: Fetches detailed information about a single browser automation session, including its tasks and results, for a given user within the current tenant.
  *     tags:
- *       - Browser Use AI
+ *       - Browser Use AI (User)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -292,6 +231,159 @@ router.get('/sessions/:userId', BrowserUseController.getUserSessionsController);
  *     responses:
  *       200:
  *         description: Session details retrieved successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Session not found for the given user.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get(
+  '/session/:sessionId/:userId',
+  auth(),
+  extractTenantContext,
+  BrowserUseController.getSessionByIdController
+);
+
+// --- PLATFORM OWNER / SUPER ADMIN ROUTES ---
+// These routes provide global oversight and are NOT tenant-scoped.
+// Access is restricted to users with the 'platform_owner' role.
+
+/**
+ * @swagger
+ * /api/browser-use/platform/sessions:
+ *   get:
+ *     summary: (Platform Owner) List all browser sessions across the platform.
+ *     description: Retrieves a paginated list of all browser automation sessions across all tenants. Supports filtering by tenant ID, user ID, and status.
+ *     tags:
+ *       - Browser Use AI (Platform Owner)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: The number of items per page.
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Optional. Filter sessions by a specific tenant ID.
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Optional. Filter sessions by a specific user ID.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, running, completed, failed, terminated]
+ *         description: Optional. Filter sessions by status.
+ *     responses:
+ *       200:
+ *         description: A list of all sessions on the platform.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ */
+router.get(
+  '/platform/sessions',
+  auth(),
+  requireRole('platform_owner'),
+  BrowserUseController.getAllSessionsForPlatformController
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/sessions/{sessionId}:
+ *   get:
+ *     summary: (Platform Owner) Get any session by ID.
+ *     description: Retrieves the full details of a specific browser automation session by its ID, regardless of the tenant.
+ *     tags:
+ *       - Browser Use AI (Platform Owner)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the session to retrieve.
+ *     responses:
+ *       200:
+ *         description: Detailed information about the session.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       404:
+ *         description: Session not found.
+ */
+router.get(
+  '/platform/sessions/:sessionId',
+  auth(),
+  requireRole('platform_owner'),
+  BrowserUseController.getSessionByIdForPlatformController
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/sessions/{sessionId}/terminate:
+ *   post:
+ *     summary: (Platform Owner) Terminate a running session.
+ *     description: Forcefully terminates a running browser automation session. This is an administrative action to stop runaway or stuck processes.
+ *     tags:
+ *       - Browser Use AI (Platform Owner)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the session to terminate.
+ *     responses:
+ *       200:
+ *         description: Session terminated successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       404:
+ *         description: Session not found or already completed.
+ */
+router.post(
+  '/platform/sessions/:sessionId/terminate',
+  auth(),
+  requireRole('platform_owner'),
+  BrowserUseController.terminateSessionForPlatformController
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/stats:
+ *   get:
+ *     summary: (Platform Owner) Get global platform statistics.
+ *     description: Retrieves system-wide statistics for the Browser Use AI module, such as total sessions, active sessions, tasks completed, error rates, and usage by tenant.
+ *     tags:
+ *       - Browser Use AI (Platform Owner)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Platform-wide statistics.
  *         content:
  *           application/json:
  *             schema:
@@ -299,72 +391,41 @@ router.get('/sessions/:userId', BrowserUseController.getUserSessionsController);
  *               properties:
  *                 success:
  *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Session details retrieved."
  *                 data:
  *                   type: object
  *                   properties:
- *                     sessionId:
- *                       type: string
- *                       example: "sess_abc123"
- *                     userId:
- *                       type: string
- *                       example: "user_12345"
- *                     status:
- *                       type: string
- *                       example: "completed"
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2023-10-27T10:00:00Z"
- *                     lastUpdated:
- *                       type: string
- *                       format: date-time
- *                       example: "2023-10-27T10:15:00Z"
- *                     tasks:
+ *                     totalSessions:
+ *                       type: integer
+ *                     activeSessions:
+ *                       type: integer
+ *                     completedTasksToday:
+ *                       type: integer
+ *                     failedTasksToday:
+ *                       type: integer
+ *                     errorRate:
+ *                       type: number
+ *                       format: float
+ *                     topTenantsByUsage:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
- *                           taskId:
+ *                           tenantId:
  *                             type: string
- *                             example: "task_xyz789"
- *                           taskType:
- *                             type: string
- *                             example: "scrape"
- *                           status:
- *                             type: string
- *                             example: "completed"
- *                           results:
- *                             type: object
- *                             example: { "extractedData": [{ "name": "Plan A", "price": "$10" }] }
- *                           error:
- *                             type: string
- *                             example: null
+ *                           sessionCount:
+ *                             type: integer
  *       401:
- *         description: Unauthorized, authentication token missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       404:
- *         description: Session not found for the given user.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
  */
 router.get(
-  '/session/:sessionId/:userId',
-  BrowserUseController.getSessionByIdController
+  '/platform/stats',
+  auth(),
+  requireRole('platform_owner'),
+  BrowserUseController.getPlatformStatsController
 );
 
 /**
