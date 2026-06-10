@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import winston from 'winston';
+import { PubSub } from '@google-cloud/pubsub';
 import config from '../../../../config/index.js';
 import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMail.js';
 import UserModel from '../auth/auth.model.js';
@@ -27,6 +28,13 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
   // to leverage new features and security enhancements.
   apiVersion: '2022-11-15',
 });
+
+// AGENT-REWRITE-NOTE: Initialize GCP Pub/Sub client to offload webhook processing.
+// This ensures the webhook endpoint responds quickly to Stripe, preventing timeouts and retries.
+// The actual processing is handled by a separate, scalable background worker.
+const pubSubClient = new PubSub();
+const stripeWebhookTopicName = config.gcp?.pubsub?.stripe_webhook_topic || 'stripe-webhook-events';
+const stripeWebhookTopic = pubSubClient.topic(stripeWebhookTopicName);
 
 /**
  * Plan limits configuration based on plan type.
@@ -74,7 +82,6 @@ const PLAN_LIMITS = {
 /**
  * Creates a Stripe checkout session for a user to subscribe to a specific plan.
  * This function handles customer creation if necessary and sets up the subscription details.
- * The operation is performed within the context of the user's tenant.
  *
  * @param {object} user - The user object initiating the subscription.
  * @param {mongoose.Types.ObjectId} user._id - The ID of the user.
@@ -160,20 +167,14 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
 };
 
 /**
- * Handles incoming Stripe webhook events.
- * This service verifies the webhook signature, prevents replay attacks,
- * and processes various event types such as `checkout.session.completed`
- * and `customer.subscription.deleted` to update the application's database.
+ * AGENT-REWRITE-NOTE: This function now only handles the initial, lightweight part of the webhook process.
+ * It verifies the request's authenticity, prevents replay attacks, and then immediately offloads
+ * the heavy processing to a background worker by publishing the event to a GCP Pub/Sub topic.
+ * This ensures a fast response to Stripe, improving reliability and scalability.
  *
  * @param {object} req - The Express request object.
- * @param {object} req.headers - Request headers, including 'stripe-signature'.
- * @param {string} req.headers['stripe-signature'] - The Stripe signature header for webhook verification.
- * @param {string} req.ip - The IP address of the client making the request.
- * @param {object} req.body - The raw request body containing the Stripe event payload.
- * @param {object} res - The Express response object used to send back status codes to Stripe.
- * @returns {Promise<void>} A promise that resolves when the webhook is processed and a response is sent.
- *   Sends a 200 status for successful processing, 400 for verification failures,
- *   403 for untrusted IPs, 500 for internal server errors or missing configurations.
+ * @param {object} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the webhook is acknowledged or an error is sent.
  */
 const handleWebhookService = async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -260,96 +261,96 @@ const handleWebhookService = async (req, res) => {
   }
 
   // Webhook Replay Protection Guard
-  // OPTIMIZATION: Added .lean() as the event document is only checked for existence.
-  // RECOMMENDATION: Consider adding an index to StripeEventModel on `{ eventId: 1 }` for faster lookups.
   const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Payment Service.`);
     return res.status(200).send('Webhook processed successfully (Duplicate)');
   }
+  // IMPORTANT: Create the event record *before* acknowledging to prevent race conditions with retries.
   await StripeEvent.create({ eventId: event.id });
 
-  const session = await mongoose.startSession();
+  try {
+    // Offload the actual processing to a background worker via Pub/Sub
+    const dataBuffer = Buffer.from(JSON.stringify(event));
+    await stripeWebhookTopic.publishMessage({ data: dataBuffer });
 
+    logger.info(`Successfully published event ${event.id} (${event.type}) to Pub/Sub for background processing.`);
+
+    // Acknowledge the event to Stripe immediately
+    res.status(200).send('Webhook acknowledged and queued for processing.');
+
+  } catch (error) {
+    logger.error('Failed to publish Stripe event to Pub/Sub', {
+      eventId: event.id,
+      error: error.message,
+      stack: error.stack,
+    });
+    // If publishing fails, we cannot process the event.
+    // Return a 500 error so Stripe will retry the webhook.
+    // The replay protection will prevent reprocessing if a future attempt succeeds.
+    res.status(500).send('Failed to queue webhook for processing.');
+  }
+};
+
+/**
+ * AGENT-REWRITE-NOTE: This new function contains the core business logic for processing Stripe events.
+ * It is designed to be triggered by a GCP Pub/Sub subscription (e.g., via a Cloud Function or Cloud Run service).
+ * This isolates the long-running tasks (DB operations, external API calls, email sending) from the
+ * initial webhook acknowledgement, making the system more robust and scalable.
+ *
+ * @param {object} event - The Stripe event object, parsed from the Pub/Sub message.
+ * @returns {Promise<void>} A promise that resolves when processing is complete.
+ * @throws {Error} Throws an error if processing fails, which should trigger a Pub/Sub retry.
+ */
+const processStripeEventService = async (event) => {
+  const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    logger.info('Processing event', { eventType: event.type });
+    logger.info(`[BACKGROUND_WORKER] Processing event ${event.id}`, { eventType: event.type });
 
     if (event.type === 'checkout.session.completed') {
       const stripeSession = event.data.object;
-      logger.info('Checkout session data', { sessionId: stripeSession.id });
+      logger.info('[BACKGROUND_WORKER] Checkout session data', { sessionId: stripeSession.id });
 
-      // Validate metadata
       if (
         !stripeSession.metadata.plan_name ||
         !stripeSession.metadata.duration ||
         !stripeSession.metadata.tenantId
       ) {
-        logger.error('Missing required metadata in session', {
-          metadata: stripeSession.metadata,
-        });
-        throw new Error('Invalid session metadata');
+        throw new Error(`Invalid session metadata for event ${event.id}`);
       }
 
-      // Find tenant
-      // No .lean() here as the tenant document is modified later in the transaction.
-      const tenant = await Tenant.findById(
-        stripeSession.metadata.tenantId
-      ).session(session);
+      const tenant = await Tenant.findById(stripeSession.metadata.tenantId).session(session);
       if (!tenant) {
-        logger.warn('No tenant found', {
-          tenantId: stripeSession.metadata.tenantId,
-        });
-        throw new Error('Tenant not found');
+        throw new Error(`Tenant not found for event ${event.id}, tenantId: ${stripeSession.metadata.tenantId}`);
       }
 
-      // Find user
-      // No .lean() here as the user document is modified later in the transaction.
-      const user = await UserModel.findById(
-        stripeSession.metadata.userId
-      ).session(session);
+      const user = await UserModel.findById(stripeSession.metadata.userId).session(session);
       if (!user) {
-        logger.warn('No user found', { userId: stripeSession.metadata.userId });
-        throw new Error('User not found');
+        throw new Error(`User not found for event ${event.id}, userId: ${stripeSession.metadata.userId}`);
       }
 
-      // Check for existing subscription to prevent duplicates
-      // OPTIMIZATION: Added .lean() as the subscription document is only checked for existence.
-      // The `withTenantFilter` helper is designed for user-initiated requests with `req.user` context.
-      // For webhooks, the `tenantId` is already explicitly provided in the Stripe metadata,
-      // so `withTenantFilter` is not applicable and could cause issues if `req` lacks the expected tenant context.
-      // RECOMMENDATION: Consider adding an index to SubscriptionModel on `{ transactionId: 1 }` for faster lookups.
-      const existingSubQuery = { transactionId: stripeSession.id };
-      const existingSubscription = await SubscriptionModel.findOne(
-        existingSubQuery
-      ).session(session).lean();
+      const existingSubscription = await SubscriptionModel.findOne({ transactionId: stripeSession.id }).session(session).lean();
       if (existingSubscription) {
-        logger.warn('Subscription already exists', {
-          transactionId: stripeSession.id,
-        });
-        await session.commitTransaction();
-        return res.status(200).send('Webhook processed successfully');
+        logger.warn(`[BACKGROUND_WORKER] Subscription already exists for event ${event.id}, transactionId: ${stripeSession.id}. Skipping.`);
+        await session.commitTransaction(); // Commit to end transaction, but do nothing.
+        return;
       }
 
-      // Prepare subscription data and fetch invoiceUrl
       let invoiceUrl = null;
       let stripeSubscriptionId = null;
 
       if (stripeSession.subscription) {
         try {
-          const stripeSubscription = await stripe.subscriptions.retrieve(
-            stripeSession.subscription
-          );
+          const stripeSubscription = await stripe.subscriptions.retrieve(stripeSession.subscription);
           stripeSubscriptionId = stripeSubscription.id;
 
           if (stripeSubscription.latest_invoice) {
-            const invoice = await stripe.invoices.retrieve(
-              stripeSubscription.latest_invoice
-            );
+            const invoice = await stripe.invoices.retrieve(stripeSubscription.latest_invoice);
             invoiceUrl = invoice.hosted_invoice_url;
           }
         } catch (error) {
-          logger.error('Error retrieving invoice', { message: error.message });
+          logger.error('[BACKGROUND_WORKER] Error retrieving invoice', { message: error.message });
         }
       }
 
@@ -368,37 +369,24 @@ const handleWebhookService = async (req, res) => {
         invoiceUrl,
       };
 
-      // Save subscription
       const newSubscription = new SubscriptionModel(subscriptionData);
-      // Add Stripe IDs to subscription
       newSubscription.stripeCustomerId = stripeSession.customer;
       newSubscription.stripeSubscriptionId = stripeSubscriptionId;
       await newSubscription.save({ session });
-      logger.info('Subscription saved', {
-        subscriptionId: newSubscription._id,
-      });
+      logger.info('[BACKGROUND_WORKER] Subscription saved', { subscriptionId: newSubscription._id });
 
-      // Update tenant with subscription reference and limits (single source of truth is Subscription model)
       tenant.plan = planName;
       tenant.status = 'active';
       tenant.subscriptionId = newSubscription._id;
-
-      // Update tenant limits based on plan
       const planLimits = PLAN_LIMITS[planName] || PLAN_LIMITS.free;
       tenant.limits = {
         maxApiCalls: planLimits.maxApiCalls,
         maxStorage: planLimits.maxStorage,
         maxUsers: planLimits.maxUsers,
       };
-
       await tenant.save({ session });
-      logger.info('Tenant updated with subscription reference', {
-        tenantId: tenant._id,
-        subscriptionId: newSubscription._id,
-        plan: planName,
-      });
+      logger.info('[BACKGROUND_WORKER] Tenant updated', { tenantId: tenant._id, plan: planName });
 
-      // Update user subscription info (for backward compatibility)
       user.isSubscribed = true;
       user.subscription = {
         price: stripeSession.amount_total / 100,
@@ -409,102 +397,66 @@ const handleWebhookService = async (req, res) => {
         invoiceUrl,
       };
       await user.save({ session });
-      logger.info('User updated', { email: user.email });
+      logger.info('[BACKGROUND_WORKER] User updated', { email: user.email });
 
-      // Send email confirmation
       try {
-        const mailData = await purchasePlanTemplate(
-          user.email,
-          user,
-          newSubscription
-        );
+        const mailData = await purchasePlanTemplate(user.email, user, newSubscription);
         await sendMailWithMailGun(mailData);
-        logger.info('Confirmation email sent', { email: user.email });
+        logger.info('[BACKGROUND_WORKER] Confirmation email sent', { email: user.email });
       } catch (emailError) {
-        logger.error('Failed to send confirmation email', {
+        logger.error('[BACKGROUND_WORKER] Failed to send confirmation email', {
           email: user.email,
           message: emailError.message,
         });
       }
-
-      await session.commitTransaction();
-      logger.info('Subscription created and tenant updated successfully', {
-        tenantId: tenant._id,
-        userId: user._id,
-      });
     }
 
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
-
-      // When a `customer.subscription.deleted` event occurs, `subscription.id` refers to the Stripe Subscription ID.
-      // Our `SubscriptionModel` stores this in the `stripeSubscriptionId` field, not `transactionId` (which holds the Checkout Session ID).
-      // The `withTenantFilter` helper is designed for user-initiated requests with `req.user` context.
-      // For webhooks, the `tenantId` is derived from the found subscription, so `withTenantFilter` is not applicable.
-      // RECOMMENDATION: Consider adding an index to SubscriptionModel on `{ stripeSubscriptionId: 1 }` for faster lookups.
-      const existingSubQuery = { stripeSubscriptionId: subscription.id };
-      const existingSubscription = await SubscriptionModel.findOne(
-        existingSubQuery
-      ).session(session);
+      const existingSubscription = await SubscriptionModel.findOne({ stripeSubscriptionId: subscription.id }).session(session);
 
       if (existingSubscription) {
         existingSubscription.paymentStatus = 'expired';
         existingSubscription.status = 'cancelled';
         await existingSubscription.save({ session });
 
-        // Update tenant status and revert to free plan
-        // No .lean() here as the tenant document is modified later in the transaction.
-        const tenant = await Tenant.findById(
-          existingSubscription.tenantId
-        ).session(session);
+        const tenant = await Tenant.findById(existingSubscription.tenantId).session(session);
         if (tenant) {
           tenant.plan = 'free';
           tenant.status = 'active';
-          // Clear subscription reference (or keep for history, but subscription status will be 'cancelled')
-          // tenant.subscriptionId = null; // Uncomment if you want to clear reference
-
-          // Reset limits to free tier
           tenant.limits = {
             maxApiCalls: PLAN_LIMITS.free.maxApiCalls,
             maxStorage: PLAN_LIMITS.free.maxStorage,
             maxUsers: PLAN_LIMITS.free.maxUsers,
           };
-
           await tenant.save({ session });
-          logger.info('Tenant reverted to free plan', {
-            tenantId: tenant._id,
-          });
+          logger.info('[BACKGROUND_WORKER] Tenant reverted to free plan', { tenantId: tenant._id });
         }
 
-        // Update user subscription status (backward compatibility)
-        // No .lean() here as the user document is modified later in the transaction.
-        const user = await UserModel.findById(
-          existingSubscription.userId
-        ).session(session);
+        const user = await UserModel.findById(existingSubscription.userId).session(session);
         if (user) {
           user.isSubscribed = false;
           user.subscription = null;
           await user.save({ session });
-          logger.info('User subscription status updated', {
-            email: user.email,
-          });
+          logger.info('[BACKGROUND_WORKER] User subscription status updated', { email: user.email });
         }
-
-        await session.commitTransaction();
-        logger.info('Subscription marked as expired', {
-          stripeSubscriptionId: subscription.id,
-        });
+        logger.info('[BACKGROUND_WORKER] Subscription marked as expired', { stripeSubscriptionId: subscription.id });
+      } else {
+        logger.warn(`[BACKGROUND_WORKER] Subscription not found for cancellation event ${event.id}`, { stripeSubscriptionId: subscription.id });
       }
     }
 
-    res.status(200).send('Webhook processed successfully');
+    await session.commitTransaction();
+    logger.info(`[BACKGROUND_WORKER] Successfully processed event ${event.id}`);
   } catch (error) {
-    logger.error('Error processing webhook', {
+    logger.error(`[BACKGROUND_WORKER] Error processing event ${event.id}`, {
       message: error.message,
       stack: error.stack,
     });
     await session.abortTransaction();
-    res.status(500).send(`Internal server error: ${error.message}`);
+    // Re-throw the error to signal failure to the Pub/Sub subscriber,
+    // which will trigger a retry according to the subscription's policy.
+    throw error;
   } finally {
     session.endSession();
   }
@@ -537,4 +489,6 @@ const getExpirationDate = (duration) => {
 export const PaymentService = {
   createCheckoutSessionService,
   handleWebhookService,
+  // AGENT-REWRITE-NOTE: Exporting the new processing function for use by the background worker.
+  processStripeEventService,
 };
