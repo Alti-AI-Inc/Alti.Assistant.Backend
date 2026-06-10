@@ -1,4 +1,14 @@
+import { PubSub } from '@google-cloud/pubsub';
 import mongoose from 'mongoose';
+
+// Initialize the Google Cloud Pub/Sub client.
+// In a production application, this would be initialized once in a shared module.
+const pubSubClient = new PubSub();
+
+// Topic names should be managed via environment variables for different environments.
+const USAGE_REQUEST_INCREMENT_TOPIC = process.env.USAGE_REQUEST_INCREMENT_TOPIC || 'usage-request-increment';
+const USAGE_STORAGE_UPDATE_TOPIC = process.env.USAGE_STORAGE_UPDATE_TOPIC || 'usage-storage-update';
+
 
 /**
  * @typedef {Object} IUserUsage
@@ -76,6 +86,8 @@ UserUsageSchema.index({ userId: 1, tenantId: 1, date: 1 }, { unique: true });
 
 /**
  * Get (or create) today's usage document for a user.
+ * This operation remains synchronous (within the request-response cycle) as it's often
+ * a prerequisite for other actions that need up-to-date usage information.
  * If a new daily document is created, storageUsed is initialized from the latest previous day's record.
  * 
  * @async
@@ -109,37 +121,37 @@ UserUsageSchema.statics.getOrCreateToday = async function (
 };
 
 /**
- * Increment the request counter for today. Returns the updated document.
- * If a new daily document is created, storageUsed is initialized from the latest previous day's record.
+ * Asynchronously increments the request counter for today by publishing a message to Pub/Sub.
+ * This offloads the database write from the request-response cycle, improving API latency and resilience.
+ * A separate background worker must subscribe to the topic and perform the database update.
  * 
  * @async
  * @function incrementRequest
  * @memberof UserUsageSchema.statics
  * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
  * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
- * @returns {Promise<mongoose.Document & IUserUsage>} The updated daily usage document.
+ * @returns {Promise<string>} The message ID of the published message.
  */
 UserUsageSchema.statics.incrementRequest = async function (
   userId,
   tenantId = null
 ) {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  // The payload for the background worker. Convert ObjectIds to strings for reliable JSON serialization.
+  const payload = {
+    userId: userId.toString(),
+    tenantId: tenantId ? tenantId.toString() : null,
+  };
+  const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-  // Bug Fix: When a new daily document is created via incrementRequest, storageUsed should be initialized
-  // from the latest previous day's record, not default to 0.
-  const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
-                                    .sort({ date: -1 })
-                                    .select('storageUsed');
+  // Publish the message to the Pub/Sub topic.
+  // A separate subscriber service will consume this message and execute the atomic database update.
+  // The original database logic (including finding the previous day's storage for initialization)
+  // must be implemented in that subscriber.
+  const messageId = await pubSubClient
+    .topic(USAGE_REQUEST_INCREMENT_TOPIC)
+    .publishMessage({ data: dataBuffer });
 
-  const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
-
-  const doc = await this.findOneAndUpdate(
-    { userId, tenantId, date: today },
-    { $inc: { requestsUsed: 1 }, $setOnInsert: { storageUsed: initialStorageUsed } }, // Initialize storageUsed on insert
-    { upsert: true, new: true }
-  );
-  return doc;
+  return messageId;
 };
 
 /**
@@ -164,9 +176,9 @@ UserUsageSchema.statics.getTodayRequests = async function (
 };
 
 /**
- * Update storage used (add or subtract bytes).
- * Pass negative value to subtract when files are deleted.
- * Uses an atomic aggregation pipeline to prevent race conditions and clamp storage at 0.
+ * Asynchronously updates storage used by publishing a message to Pub/Sub.
+ * This offloads the database write from the request-response cycle.
+ * A separate background worker must subscribe to the topic and perform the atomic database update.
  * 
  * @async
  * @function updateStorage
@@ -174,53 +186,30 @@ UserUsageSchema.statics.getTodayRequests = async function (
  * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
  * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
  * @param {number} bytes - The number of bytes to add (positive) or subtract (negative).
- * @returns {Promise<mongoose.Document & IUserUsage>} The updated daily usage document.
+ * @returns {Promise<string>} The message ID of the published message.
  */
 UserUsageSchema.statics.updateStorage = async function (
   userId,
   tenantId = null,
   bytes
 ) {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  // The payload for the background worker.
+  const payload = {
+    userId: userId.toString(),
+    tenantId: tenantId ? tenantId.toString() : null,
+    bytes,
+  };
+  const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-  // Bug Fix: When a new daily document is created via updateStorage, storageUsed should be initialized
-  // from the latest previous day's record, not default to 0.
-  const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
-                                    .sort({ date: -1 })
-                                    .select('storageUsed');
+  // Publish the message to the Pub/Sub topic.
+  // A separate subscriber service will consume this message and execute the atomic database update.
+  // The original database logic (using an aggregation pipeline for atomic clamping)
+  // must be implemented in that subscriber.
+  const messageId = await pubSubClient
+    .topic(USAGE_STORAGE_UPDATE_TOPIC)
+    .publishMessage({ data: dataBuffer });
 
-  const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
-
-  // Bug Fix: The original clamping logic `if (doc.storageUsed < 0) { doc.storageUsed = 0; await doc.save(); }`
-  // was not atomic and could lead to race conditions.
-  // Using an aggregation pipeline for findOneAndUpdate allows for atomic increment and clamping.
-  const doc = await this.findOneAndUpdate(
-    { userId, tenantId, date: today },
-    [ // Use an aggregation pipeline for atomic update and clamping
-      {
-        $set: {
-          // Initialize storageUsed if it's a new document, otherwise use existing and add bytes, then clamp at 0
-          storageUsed: {
-            $max: [
-              0, // Ensure storageUsed does not go below 0
-              {
-                $add: [
-                  { $ifNull: ["$storageUsed", initialStorageUsed] }, // Use existing storageUsed or initialize
-                  bytes
-                ]
-              }
-            ]
-          },
-          // Ensure requestsUsed is initialized to 0 if this is the first operation of the day
-          requestsUsed: { $ifNull: ["$requestsUsed", 0] }
-        }
-      }
-    ],
-    { upsert: true, new: true }
-  );
-
-  return doc;
+  return messageId;
 };
 
 /**
