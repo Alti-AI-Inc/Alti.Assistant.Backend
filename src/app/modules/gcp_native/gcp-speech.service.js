@@ -16,6 +16,17 @@ const auth = new GoogleAuth({
  */
 const synthesizeSpeech = async (text, options = {}) => {
   try {
+    // Bug fix: Add input validation for text length and type to prevent API errors,
+    // resource waste, and provide clearer error messages.
+    // GCP Text-to-Speech API typically has a character limit (e.g., 5000 characters for synchronous requests).
+    const MAX_TEXT_LENGTH = 5000; 
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      throw new Error('Text input is required and cannot be empty.');
+    }
+    if (text.length > MAX_TEXT_LENGTH) {
+      throw new Error(`Text input exceeds the maximum allowed length of ${MAX_TEXT_LENGTH} characters.`);
+    }
+
     const languageCode = options.languageCode || 'en-US';
     const voiceName = options.voiceName || 'en-US-Neural2-F'; // Default to premium Neural2 female voice
     const ssmlGender = options.gender || 'FEMALE';
@@ -64,6 +75,19 @@ const synthesizeSpeech = async (text, options = {}) => {
  */
 const transcribeSpeech = async (audioBuffer, options = {}) => {
   try {
+    // Bug fix: Add input validation for audioBuffer to ensure it's a valid non-empty buffer.
+    if (!audioBuffer || !Buffer.isBuffer(audioBuffer) || audioBuffer.length === 0) {
+      throw new Error('Audio buffer is required and cannot be empty.');
+    }
+    // Note: Checking audio duration based on buffer size, encoding, and sample rate is complex.
+    // The GCP API will handle duration limits (e.g., 60 seconds for synchronous requests).
+    // A simple size check could be added for robustness, but might be too restrictive without knowing audio parameters.
+    // For example, 10MB is a common limit for synchronous requests, but depends on encoding.
+    // const MAX_AUDIO_BUFFER_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+    // if (audioBuffer.length > MAX_AUDIO_BUFFER_SIZE_BYTES) {
+    //   throw new Error(`Audio buffer exceeds the maximum allowed size of ${MAX_AUDIO_BUFFER_SIZE_BYTES / (1024 * 1024)} MB.`);
+    // }
+
     const languageCode = options.languageCode || 'en-US';
     // Match common audio formats
     const encoding = options.encoding || 'WEBM_OPUS'; 
