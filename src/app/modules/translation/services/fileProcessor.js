@@ -3,7 +3,8 @@ import fsSync from 'fs';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
+// BUG FIX: Correctly import the default export for pdf-parse
+import PDFParse from 'pdf-parse'; // Changed from { PDFParse }
 import { logger } from '../../../../shared/logger.js';
 import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
@@ -57,11 +58,9 @@ try {
 const extractTextFromPDF = async (filePath) => {
   try {
     const dataBuffer = await fs.readFile(filePath);
-    const data = new PDFParse({
-      data: dataBuffer,
-    });
-    const pdfContent = await data.getText();
-    return pdfContent.text;
+    // BUG FIX: Use pdf-parse as a function, not a constructor, and directly access .text property
+    const data = await PDFParse(dataBuffer);
+    return data.text;
   } catch (error) {
     logger.error('Error extracting text from PDF:', error);
     throw new ApiError(
@@ -106,7 +105,9 @@ const extractTextFromTXT = async (filePath) => {
 const extractTextFromXLSX = async (filePath) => {
   try {
     const XLSX = await import('xlsx');
-    const workbook = XLSX.readFile(filePath);
+    // PERFORMANCE FIX: Read file asynchronously first, then process buffer with XLSX.read
+    const dataBuffer = await fs.readFile(filePath);
+    const workbook = XLSX.read(dataBuffer, { type: 'buffer' });
     let text = '';
 
     workbook.SheetNames.forEach((sheetName) => {
