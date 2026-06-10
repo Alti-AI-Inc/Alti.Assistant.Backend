@@ -275,17 +275,18 @@ export const RESPONSE_MESSAGES = {
 
 /**
  * @typedef {object} StorageConfig
- * @property {string} UPLOAD_FOLDER The base folder name for storing uploaded document review files.
- * @property {string} TEMP_FOLDER The temporary folder path where files are initially stored before processing or moving.
  * @property {string} GCS_BUCKET The name of the Google Cloud Storage bucket to use for persistent storage.
+ * @property {string} GCS_UPLOAD_FOLDER The base folder name within the GCS bucket for storing uploaded document review files.
+ * @property {number} GCS_SIGNED_URL_EXPIRATION_MINUTES The duration in minutes for which a generated signed URL for upload is valid.
  */
 /**
- * Configuration settings for file storage related to document reviews,
- * including upload directories and cloud storage bucket names.
+ * Configuration settings for Google Cloud Storage related to document reviews.
+ * This configuration supports a stateless architecture by using signed URLs for direct client uploads,
+ * avoiding any writes to the local container filesystem.
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
-  UPLOAD_FOLDER: 'document_reviews',
-  TEMP_FOLDER: 'uploads/document_reviews',
   GCS_BUCKET: process.env.GCS_BUCKET_NAME || '',
+  GCS_UPLOAD_FOLDER: 'document_reviews',
+  GCS_SIGNED_URL_EXPIRATION_MINUTES: 15, // Signed URL is valid for 15 minutes
 };

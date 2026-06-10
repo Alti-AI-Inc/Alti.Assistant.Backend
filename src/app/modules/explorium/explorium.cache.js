@@ -134,7 +134,7 @@ function cacheKey(type, params) {
  */
 export async function withCache(type, params, fetcher, ttl) {
   const key = cacheKey(type, params);
-  const ttlSecs = ttl ?? TTL[type] ?? TTL.default;
+  const baseTtl = ttl ?? TTL[type] ?? TTL.default;
 
   // ── Try cache read ──
   try {
@@ -166,7 +166,13 @@ export async function withCache(type, params, fetcher, ttl) {
   // ── Store result ──
   if (data != null) {
     try {
-      await RedisClient.set(key, JSON.stringify(data), { EX: ttlSecs });
+      // OPTIMIZATION: Add up to 10% jitter to the TTL. This prevents a "thundering herd"
+      // problem where many cache keys expire simultaneously, causing a surge of requests
+      // to the underlying data source.
+      const jitter = Math.floor(baseTtl * 0.1 * Math.random());
+      const ttlSecsWithJitter = baseTtl + jitter;
+
+      await RedisClient.set(key, JSON.stringify(data), { EX: ttlSecsWithJitter });
       _stats.sets++;
     } catch (err) {
       _stats.errors++;
@@ -193,7 +199,7 @@ export async function withCacheBatch(type, paramsList, fetcher, ttl) {
     return [];
   }
 
-  const ttlSecs = ttl ?? TTL[type] ?? TTL.default;
+  const baseTtl = ttl ?? TTL[type] ?? TTL.default;
   const keys = paramsList.map(params => cacheKey(type, params));
   const results = new Array(paramsList.length);
   const missIndices = [];
@@ -258,7 +264,10 @@ export async function withCacheBatch(type, paramsList, fetcher, ttl) {
       if (setsToCache.length > 0) {
         const pipeline = RedisClient.pipeline();
         for (const [key, value] of setsToCache) {
-          pipeline.set(key, value, { EX: ttlSecs });
+          // OPTIMIZATION: Add up to 10% jitter to each TTL to prevent thundering herd on mass expiry.
+          const jitter = Math.floor(baseTtl * 0.1 * Math.random());
+          const ttlSecsWithJitter = baseTtl + jitter;
+          pipeline.set(key, value, { EX: ttlSecsWithJitter });
         }
         try {
           await pipeline.exec();
@@ -269,6 +278,7 @@ export async function withCacheBatch(type, paramsList, fetcher, ttl) {
         }
       }
     } catch (err) {
+      _stats.errors++;
       logger.error(`[Explorium Cache] Batch fetcher error: ${err.message}`);
       // On fetcher error, ensure we return null for missed items that failed to fetch
       for (let j = 0; j < missParams.length; j++) {

@@ -8,6 +8,14 @@ import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
 
 // --- Enterprise Rate Limiting & DDOS Guard ---
+
+/**
+ * Redis client instance for connecting to the Redis server.
+ * Used as the backing store for all rate limiters.
+ * The `enable_offline_queue: false` option ensures that if the connection is lost,
+ * commands don't buffer in memory, failing fast instead.
+ * @type {import('redis').RedisClientType}
+ */
 const redisClient = createClient({
   // url: process.env.REDIS_URL, // Example for production
   enable_offline_queue: false,
@@ -18,7 +26,12 @@ redisClient.connect().catch(console.error);
 
 // --- Rate Limiter Definitions ---
 
-// Public (IP-based) limiters for unauthenticated users.
+/**
+ * Rate limiter for unauthenticated (public) users performing content fetch operations.
+ * Limits are based on the client's IP address.
+ * Allows 20 fetches per hour per IP. If exceeded, the IP is blocked for 15 minutes.
+ * @type {RateLimiterRedis}
+ */
 const publicFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_ip',
@@ -27,6 +40,12 @@ const publicFetchLimiter = new RateLimiterRedis({
   blockDuration: 60 * 15,
 });
 
+/**
+ * Rate limiter for unauthenticated (public) users performing summary operations.
+ * Limits are based on the client's IP address.
+ * Allows 10 summaries per hour per IP. If exceeded, the IP is blocked for 30 minutes.
+ * @type {RateLimiterRedis}
+ */
 const publicSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_ip',
@@ -35,7 +54,12 @@ const publicSummarizeLimiter = new RateLimiterRedis({
   blockDuration: 60 * 30,
 });
 
-// Per-user limiters for authenticated users.
+/**
+ * Rate limiter for authenticated users performing content fetch operations.
+ * Limits are based on the user's unique ID.
+ * Allows 200 fetches per hour per user.
+ * @type {RateLimiterRedis}
+ */
 const authenticatedFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_user',
@@ -43,6 +67,12 @@ const authenticatedFetchLimiter = new RateLimiterRedis({
   duration: 60 * 60,
 });
 
+/**
+ * Rate limiter for authenticated users performing summary operations.
+ * Limits are based on the user's unique ID.
+ * Allows 100 summaries per hour per user.
+ * @type {RateLimiterRedis}
+ */
 const authenticatedSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_user',
@@ -53,6 +83,13 @@ const authenticatedSummarizeLimiter = new RateLimiterRedis({
 // BUGFIX/INTEGRATION: Added workspace-level limiters to enforce tenant-wide quotas.
 // This ensures that the collective actions of all users in a workspace do not
 // exceed the plan's limits.
+/**
+ * Tenant-level (workspace) rate limiter for content fetch operations.
+ * Enforces a collective quota for all users within a single workspace.
+ * This is crucial for multi-tenant plan enforcement.
+ * Allows 1000 fetches per hour for the entire workspace.
+ * @type {RateLimiterRedis}
+ */
 const workspaceFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_workspace',
@@ -60,6 +97,13 @@ const workspaceFetchLimiter = new RateLimiterRedis({
   duration: 60 * 60,
 });
 
+/**
+ * Tenant-level (workspace) rate limiter for summary operations.
+ * Enforces a collective quota for all users within a single workspace.
+ * This is crucial for multi-tenant plan enforcement.
+ * Allows 500 summaries per hour for the entire workspace.
+ * @type {RateLimiterRedis}
+ */
 const workspaceSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_workspace',
@@ -79,7 +123,7 @@ const workspaceSummarizeLimiter = new RateLimiterRedis({
 const isPrivateIp = (ip) => {
   // A more comprehensive library like 'ip-address' or 'ip-range-check' is recommended for production.
   const parts = ip.split('.').map(Number);
-  if (parts.length !== 4) return false; // Not a valid IPv4 address for this simple check
+  if (parts.length !== 4) return false; // Not a valid IPv4 for this simple check
   return (
     parts[0] === 10 ||
     (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
@@ -124,6 +168,16 @@ const validateUrl = async (urlString) => {
 /**
  * INTEGRATION: Consumes rate limit points hierarchically for a user and their workspace.
  * This function enforces role-based permissions and tenant boundaries.
+ *
+ * **Permissions:**
+ * - `super_admin`: Bypasses all rate limits.
+ * - `admin`, `manager`, `user`: Subject to both individual and workspace-level limits.
+ * - Unauthenticated users: Subject to public IP-based limits.
+ *
+ * **Multi-tenancy:**
+ * - The `user.workspaceId` is used as the key for tenant-wide rate limiting, ensuring
+ *   that all users in a workspace share a common pool of requests as per their plan.
+ *
  * @param {UserContext} user - The authenticated user's context.
  * @param {string} ip - The client's IP address (for public requests).
  * @param {object} limiters - The set of limiters to use for this operation.
@@ -181,10 +235,13 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
 // --- Type Definitions ---
 
 /**
+ * Defines the possible roles a user can have within the system.
  * @typedef {'super_admin' | 'admin' | 'manager' | 'user'} UserRole
  */
 
 /**
+ * Represents the context of an authenticated user.
+ * This object is essential for enforcing role-based permissions and multi-tenant boundaries.
  * @typedef {object} UserContext
  * @property {string} id - The user's unique identifier.
  * @property {UserRole} role - The user's role, used for applying permissions and limits.
@@ -192,6 +249,7 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
  */
 
 /**
+ * Represents the result of parsing a user's input for a URL.
  * @typedef {object} UrlInfo
  * @property {string|null} url - The extracted URL.
  * @property {boolean} isYoutubeUrl - True if the URL is a YouTube link.
@@ -199,6 +257,7 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
  */
 
 /**
+ * Represents the state of the summarization workflow as it passes through different nodes.
  * @typedef {object} WorkflowState
  * @property {string} user_input - The initial input provided by the user.
  * @property {string} [ip] - The IP address of the client, for unauthenticated requests.
@@ -214,8 +273,14 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
  * Node: Fetches content from a URL or uses user input directly.
  * This node is now secured against SSRF, DoS (via content size limits), and enforces
  * hierarchical, role-based rate limiting.
+ *
+ * **Permissions & Multi-tenancy:**
+ * - This node calls `consumeHierarchicalRateLimit` to enforce rate limits based on the user's role
+ *   and their workspace affiliation. A `super_admin` bypasses these limits.
+ * - Unauthenticated requests are limited by IP address.
+ *
  * @param {WorkflowState} state - The current state object.
- * @returns {Promise<object>} The updated state with either `content` or `error`.
+ * @returns {Promise<Partial<WorkflowState>>} The updated state with either `content` or `error`.
  */
 export const fetchContentNode = async (state) => {
   const { user_input, isFilePassed, ip, user } = state;
@@ -287,8 +352,8 @@ export const fetchContentNode = async (state) => {
 /**
  * BUGFIX: Converts a raw JSON string from an AI model into a JavaScript object using a robust regex.
  * This is more reliable than brittle string replacement methods.
- * @param {string} rawJson - The raw string containing the JSON.
- * @returns {UrlInfo} The parsed URL information object.
+ * @param {string} rawJson - The raw string containing the JSON, which may be wrapped in markdown or other text.
+ * @returns {UrlInfo} The parsed URL information object. If parsing fails, an object with an `error` property is returned.
  */
 export const convertRawJsonToJson = (rawJson) => {
   try {
@@ -320,8 +385,14 @@ export const convertRawJsonToJson = (rawJson) => {
 /**
  * Node: Generates a summary from the fetched content.
  * This node now enforces hierarchical, role-based rate limiting for the most expensive AI operation.
+ *
+ * **Permissions & Multi-tenancy:**
+ * - This node calls `consumeHierarchicalRateLimit` to enforce rate limits based on the user's role
+ *   and their workspace affiliation. A `super_admin` bypasses these limits.
+ * - Unauthenticated requests are limited by IP address.
+ *
  * @param {WorkflowState} state - The current state object.
- * @returns {Promise<object>} The updated state with either `summary` or `error`.
+ * @returns {Promise<Partial<WorkflowState>>} The updated state with either `summary` or `error`.
  */
 export const summarizeContentNode = async (state) => {
   console.log('--- Node: summarizeContentNode ---');

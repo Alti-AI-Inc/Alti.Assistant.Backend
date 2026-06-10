@@ -1,4 +1,15 @@
 import mongoose from 'mongoose';
+import { PubSub } from '@google-cloud/pubsub';
+
+// Instantiate a new Pub/Sub client.
+// It's a best practice to create one client and reuse it across the application.
+// Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set or you are
+// running in a GCP environment with appropriate service account permissions.
+const pubSubClient = new PubSub();
+
+// The name of the Pub/Sub topic to which usage logs will be published.
+// It's recommended to configure this via environment variables.
+const usageLogTopicName = process.env.USAGE_LOG_TOPIC || 'usage-log-events';
 
 /**
  * Usage Log Model Schema
@@ -192,14 +203,31 @@ UsageLogSchema.index(
   { expireAfterSeconds: 90 * 24 * 60 * 60 }
 );
 
-// Static method to create log asynchronously
-UsageLogSchema.statics.logAsync = function (logData) {
-  // Don't await - fire and forget
-  setImmediate(() => {
-    this.create(logData).catch((error) => {
-      console.error('Failed to create usage log:', error.message);
+// Static method to create log asynchronously by publishing to a Pub/Sub topic.
+// This offloads the database write from the request-response cycle, ensuring
+// durability and scalability. A separate worker service (e.g., a Cloud Function)
+// will subscribe to the topic and handle the database insertion.
+UsageLogSchema.statics.logAsync = async function (logData) {
+  try {
+    // The data for a Pub/Sub message must be a Buffer.
+    const dataBuffer = Buffer.from(JSON.stringify(logData));
+
+    // Publish the message to the configured GCP Pub/Sub topic.
+    // This is a "fire-and-forget" operation from the perspective of the caller.
+    // The actual publishing is awaited here to handle potential errors, but the
+    // calling service does not need to await this static method.
+    await pubSubClient.topic(usageLogTopicName).publishMessage({
+      data: dataBuffer,
     });
-  });
+  } catch (error) {
+    // If publishing fails, it's a critical issue that needs to be logged and monitored.
+    // This indicates a problem with Pub/Sub configuration, permissions, or connectivity.
+    // In a production environment, this should trigger an alert.
+    console.error(
+      `[FATAL] Failed to publish usage log to Pub/Sub topic ${usageLogTopicName}:`,
+      error
+    );
+  }
 };
 
 // Static method to get tenant usage summary

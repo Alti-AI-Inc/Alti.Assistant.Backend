@@ -5,7 +5,13 @@ import { runAIClassificationAgent } from '../ai_classification/workflow.js';
 import { executeComposioWithGemini } from '../services/aiClassificationService.js';
 import ComposioAuth from '../composio.model.js';
 
-// Security Patch: Helper function to escape special characters for safe RegExp creation, preventing ReDoS attacks.
+/**
+ * Escapes special characters in a string for use in a regular expression.
+ * This is a security measure to prevent Regular Expression Denial of Service (ReDoS) attacks.
+ * @param {string} string The string to escape.
+ * @returns {string} The escaped string, safe for use in a RegExp.
+ * @private
+ */
 const escapeRegex = (string) => {
   if (typeof string !== 'string') {
     return '';
@@ -14,7 +20,12 @@ const escapeRegex = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Security Patch: Helper function to sanitize strings for storage/output, preventing stored XSS.
+/**
+ * Sanitizes a string by replacing HTML special characters to prevent Cross-Site Scripting (XSS) attacks.
+ * @param {string} str The input string to sanitize.
+ * @returns {string} The sanitized string.
+ * @private
+ */
 const sanitizeString = (str) => {
   if (typeof str !== 'string') {
     // Ensure we always return a string to prevent downstream errors.
@@ -32,11 +43,26 @@ const sanitizeString = (str) => {
 // - Consider a compound index on `{ userId: 1, integrationId: 1, status: 1 }` for `findOne` and `find` queries.
 
 /**
- * Workflow Executor Service - Executes saved workflows
+ * Provides services for executing and managing workflows.
+ * This class handles the entire lifecycle of a workflow execution,
+ * including single-step, multi-step, validation, and error handling.
+ * All operations are performed within the context of a specific user.
+ * @class WorkflowExecutor
  */
 class WorkflowExecutor {
   /**
-   * Execute a saved workflow
+   * Executes a saved workflow, creating an execution record and running the defined steps.
+   * This is the main entry point for triggering a workflow.
+   * @param {import('../models/scheduledWorkflow.model.js').ScheduledWorkflow} workflow The Mongoose document of the workflow to execute.
+   * @param {string} [executionType='manual'] The type of execution (e.g., 'manual', 'scheduled', 'retry').
+   * @param {string} [triggerSource='api_call'] The source that triggered the execution (e.g., 'api_call', 'scheduler').
+   * @returns {Promise<object>} An object containing the result of the execution.
+   * @property {boolean} success - Indicates if the execution was successfully initiated and completed.
+   * @property {string} executionId - The unique ID for this execution instance.
+   * @property {object} [data] - The output data from the workflow if successful.
+   * @property {string} [summary] - A summary of the execution result.
+   * @property {string} [error] - An error message if the execution failed.
+   * @property {string} message - A user-friendly message about the outcome.
    */
   async executeWorkflow(
     workflow,
@@ -167,7 +193,16 @@ class WorkflowExecutor {
   }
 
   /**
-   * Execute single-step workflow
+   * Executes a workflow consisting of a single step.
+   * @param {import('../models/scheduledWorkflow.model.js').ScheduledWorkflow} workflow The workflow document.
+   * @param {import('../models/workflowExecution.model.js').WorkflowExecution} execution The current execution document.
+   * @param {Array<object>} [prefetchedAccounts=null] An array of prefetched connected accounts to optimize DB queries.
+   * @returns {Promise<object>} The result of the single-step execution.
+   * @property {boolean} success - True if the step completed successfully.
+   * @property {object} [data] - The data returned by the executed action.
+   * @property {string} summary - A summary of the step's outcome.
+   * @property {object} outputData - The structured output data.
+   * @private
    */
   async executeSingleStepWorkflow(workflow, execution, prefetchedAccounts = null) {
     try {
@@ -262,7 +297,16 @@ class WorkflowExecutor {
   }
 
   /**
-   * Execute multi-step workflow
+   * Executes a workflow consisting of multiple steps, handling dependencies and cross-step parameter mapping.
+   * @param {import('../models/scheduledWorkflow.model.js').ScheduledWorkflow} workflow The workflow document.
+   * @param {import('../models/workflowExecution.model.js').WorkflowExecution} execution The current execution document.
+   * @param {Array<object>} [prefetchedAccounts=null] An array of prefetched connected accounts to optimize DB queries.
+   * @returns {Promise<object>} The result of the multi-step execution.
+   * @property {boolean} success - True if all steps completed successfully.
+   * @property {object} [data] - An object containing the results of all steps.
+   * @property {string} summary - A summary of the overall workflow outcome.
+   * @property {object} outputData - The structured output data from all steps.
+   * @private
    */
   async executeMultiStepWorkflow(workflow, execution, prefetchedAccounts = null) {
     const stepResults = [];
@@ -440,7 +484,18 @@ class WorkflowExecutor {
   }
 
   /**
-   * Execute Composio action
+   * Executes a specific action on a connected application via Composio.
+   * This is a mock implementation for demonstration purposes.
+   * @param {string} userId The ID of the user performing the action.
+   * @param {string} app The name of the application (e.g., 'github').
+   * @param {string} action The action to perform (e.g., 'create_issue').
+   * @param {object} parameters The parameters for the action.
+   * @param {object} connectedAccount The user's connected account information for the app.
+   * @returns {Promise<object>} The result of the action.
+   * @property {boolean} success - True if the action was successful.
+   * @property {object} [data] - The result data from the action.
+   * @property {string} [error] - An error message if the action failed.
+   * @private
    */
   async executeComposioAction(
     userId,
@@ -486,7 +541,12 @@ class WorkflowExecutor {
   }
 
   /**
-   * Resolve cross-step parameters
+   * Resolves parameters for a workflow step by substituting placeholders with outputs from previous steps.
+   * @param {object} parameters The original parameters for the current step.
+   * @param {object} stepOutputs An object containing the outputs from all previously completed steps.
+   * @param {object} crossStepParameters The workflow-level parameter mapping definitions.
+   * @returns {object} The resolved parameters with placeholders replaced by actual values.
+   * @private
    */
   resolveCrossStepParameters(parameters, stepOutputs, crossStepParameters) {
     const resolved = { ...parameters };
@@ -523,7 +583,14 @@ class WorkflowExecutor {
   }
 
   /**
-   * Validate workflow connections
+   * Validates that the user has active connections for all applications required by the workflow.
+   * @param {import('../models/scheduledWorkflow.model.js').ScheduledWorkflow} workflow The workflow to validate.
+   * @returns {Promise<object>} An object indicating validation success or failure.
+   * @property {boolean} success - True if all required connections are active.
+   * @property {Array<object>} [connectedAccounts] - An array of the user's active connection documents if successful.
+   * @property {string} [error] - An error message if validation fails.
+   * @property {Array<string>} [missingApps] - A list of apps with missing connections.
+   * @private
    */
   async validateConnections(workflow) {
     try {
@@ -575,7 +642,12 @@ class WorkflowExecutor {
   }
 
   /**
-   * Get connected account for user and app
+   * Retrieves a user's active connected account for a specific application.
+   * @param {string} userId The ID of the user.
+   * @param {string} app The name of the application.
+   * @param {Array<object>} [prefetchedAccounts=null] Optional array of prefetched accounts to avoid a database query.
+   * @returns {Promise<object|null>} The connected account object or null if not found or inactive.
+   * @private
    */
   async getConnectedAccount(userId, app, prefetchedAccounts = null) {
     try {
@@ -617,7 +689,12 @@ class WorkflowExecutor {
   }
 
   /**
-   * Get execution statistics
+   * Retrieves execution statistics for a specific workflow.
+   * @param {string} workflowId The ID of the workflow.
+   * @returns {Promise<object>} An object containing the statistics.
+   * @property {boolean} success - True if stats were retrieved successfully.
+   * @property {object} [data] - The statistics data.
+   * @property {string} [error] - An error message on failure.
    */
   async getExecutionStats(workflowId) {
     try {
@@ -637,7 +714,14 @@ class WorkflowExecutor {
   }
 
   /**
-   * Cancel running execution
+   * Cancels a currently running workflow execution.
+   * The operation is scoped to the provided userId for security.
+   * @param {string} executionId The ID of the execution to cancel.
+   * @param {string} userId The ID of the user who owns the execution.
+   * @returns {Promise<object>} An object indicating the result of the cancellation request.
+   * @property {boolean} success - True if the cancellation was successful.
+   * @property {string} [message] - A success message.
+   * @property {string} [error] - An error message on failure.
    */
   async cancelExecution(executionId, userId) {
     try {
@@ -680,7 +764,15 @@ class WorkflowExecutor {
   }
 
   /**
-   * Retry failed execution
+   * Retries a failed workflow execution. This will trigger a new execution of the original workflow.
+   * The operation is scoped to the provided userId for security.
+   * @param {string} executionId The ID of the failed execution to retry.
+   * @param {string} userId The ID of the user who owns the execution.
+   * @returns {Promise<object>} An object containing the result of the new execution attempt.
+   * @property {boolean} success - True if the retry was successfully initiated.
+   * @property {object} [data] - The result object from the new `executeWorkflow` call.
+   * @property {string} [message] - A success message.
+   * @property {string} [error] - An error message on failure.
    */
   async retryExecution(executionId, userId) {
     try {
@@ -741,6 +833,9 @@ class WorkflowExecutor {
   }
 }
 
-// Export singleton instance
+/**
+ * Singleton instance of the WorkflowExecutor service.
+ * @type {WorkflowExecutor}
+ */
 export const workflowExecutor = new WorkflowExecutor();
 export default workflowExecutor;
