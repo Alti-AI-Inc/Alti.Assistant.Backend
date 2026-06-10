@@ -152,8 +152,9 @@ const acceptInvitation = async (token, userId) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  console.log('User email:', user.email);
-  console.log('Invitation email:', invitation.email);
+  // Removed console.log statements
+  // console.log('User email:', user.email);
+  // console.log('Invitation email:', invitation.email);
   // Check if user email matches invitation
   if (user.email.toLowerCase() !== invitation.email) {
     throw new ApiError(
@@ -207,13 +208,12 @@ const acceptInvitation = async (token, userId) => {
     });
   }
 
-  // Update tenant user count
-  // No .lean() here as tenant object will be modified and saved later
-  const tenant = await Tenant.findById(invitation.tenantId);
-  if (tenant) {
-    tenant.usage.usersCount += 1;
-    await tenant.save();
-  }
+  // Atomically increment tenant user count to prevent race conditions
+  await Tenant.findByIdAndUpdate(
+    invitation.tenantId,
+    { $inc: { 'usage.usersCount': 1 } },
+    { new: true } // Return the updated document (optional, but good practice)
+  );
 
   // Add seat to subscription if paid plan
   try {
