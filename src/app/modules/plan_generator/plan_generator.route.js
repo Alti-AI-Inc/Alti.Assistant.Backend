@@ -3,6 +3,10 @@
  * @module routes/planGenerator
  * @requires express
  * @requires http
+ * @requires @google-cloud/storage
+ * @requires busboy
+ * @requires uuid
+ * @requires path
  * @requires ../../middlewares/auth/auth
  * @requires ../../middlewares/auth/optionalAuth
  * @requires ../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit
@@ -11,26 +15,29 @@
  * @requires ../../middlewares/tenant/tenantContext
  * @requires ./plan_generator.controller
  * @requires ./plan_generator.validation
- * @requires ./middlewares/uploadPlanFiles
  * @requires ../../middlewares/checkRAGFeature/checkRAGFeature
  * @requires ../../middlewares/checkStorageLimit/checkStorageLimit
  *
  * @description This file sets up the Express router for all plan generation and assistant-related endpoints.
  * It includes routes for conversational AI, direct plan generation, brainstorming, exporting plans, and retrieving conversation history.
- * The file also implements health check endpoints (`/healthz`, `/readyz`) and graceful shutdown logic,
- * which are essential for running in a containerized environment like Google Cloud Run.
+ * All file uploads and exports are handled by streaming directly to/from Google Cloud Storage (GCS)
+ * to ensure the application remains stateless and scalable, suitable for environments like Google Cloud Run.
  *
  * Middleware stack includes:
  * - `optionalAuth` / `auth`: For handling authenticated and guest users.
  * - `extractTenantContext`: For multi-tenancy support, isolating data and usage by tenant.
  * - `checkDailyRequestLimit`: To enforce usage quotas.
  * - `checkStorageLimit`: To enforce storage quotas for file uploads.
- * - `uploadPlanFiles`: For handling multipart/form-data file uploads.
+ * - `gcsUpload`: Custom middleware for streaming multipart/form-data file uploads directly to GCS.
  * - `checkRAGFeature`: To gate access to the RAG feature based on tenant/user subscription.
  * - `validateRequest`: For validating request bodies and parameters against Zod schemas.
  */
 import express from 'express';
 import http from 'http';
+import { Storage } from '@google-cloud/storage';
+import Busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -40,9 +47,119 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { planGeneratorController } from './plan_generator.controller.js';
 import { PlanGeneratorValidation } from './plan_generator.validation.js';
-import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
+
+// --- Google Cloud Storage Setup ---
+// This assumes that the GCS client is authenticated, e.g., via
+// Application Default Credentials when running on Google Cloud.
+const storage = new Storage();
+// Bucket names should be configured via environment variables.
+const uploadsBucketName = process.env.GCS_UPLOADS_BUCKET;
+
+if (!uploadsBucketName) {
+  // In a real app, you might have a more robust configuration check.
+  // For this context, we'll log an error, and file operations will fail.
+  console.error('GCS_UPLOADS_BUCKET environment variable is not set. File upload operations will fail.');
+}
+
+/**
+ * Middleware to handle multipart/form-data and stream file uploads directly to GCS.
+ * This replaces multer and its local disk storage, ensuring statelessness.
+ * It parses non-file fields and populates `req.body`.
+ * The uploaded file info is attached to `req.file`.
+ * @returns {Function} Express middleware.
+ */
+const gcsUpload = () => (req, res, next) => {
+  // The 'validateRequest' middleware expects a parsed body. Since we are handling
+  // multipart/form-data, we need to parse the fields and populate req.body here.
+  // We also handle the file stream.
+  if (!req.headers['content-type']?.startsWith('multipart/form-data')) {
+    // If not a multipart request, just move on. This allows the same route
+    // to handle application/json if no file is sent.
+    return next();
+  }
+
+  const busboy = Busboy({ headers: req.headers });
+  const fields = {};
+  const filePromises = [];
+
+  busboy.on('field', (fieldname, val) => {
+    // For fields like 'message', 'conversationId', etc., we parse them into an object.
+    // This handles nested objects sent as form fields, e.g., context[key]=value
+    const fieldParts = fieldname.split('[').map(part => part.replace(']', ''));
+    let current = fields;
+    for (let i = 0; i < fieldParts.length - 1; i++) {
+      const part = fieldParts[i];
+      if (!current[part]) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+    current[fieldParts[fieldParts.length - 1]] = val;
+  });
+
+  busboy.on('file', (fieldname, file, { filename, encoding, mimeType }) => {
+    if (!filename) {
+      // No file was uploaded, just drain the stream.
+      return file.resume();
+    }
+    if (!uploadsBucketName) {
+      return next(new Error('GCS_UPLOADS_BUCKET is not configured.'));
+    }
+
+    // Generate a unique filename to prevent overwrites in the bucket.
+    const gcsFileName = `${uuidv4()}-${path.basename(filename)}`;
+    const gcsFile = storage.bucket(uploadsBucketName).file(gcsFileName);
+    const writeStream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: mimeType,
+      },
+    });
+
+    file.pipe(writeStream);
+
+    const filePromise = new Promise((resolve, reject) => {
+      writeStream.on('finish', () => {
+        // The file has been fully uploaded to GCS.
+        req.file = {
+          fieldname,
+          originalname: filename,
+          encoding,
+          mimetype: mimeType,
+          bucket: uploadsBucketName,
+          name: gcsFileName,
+          gcsUrl: `gs://${uploadsBucketName}/${gcsFileName}`,
+        };
+        resolve();
+      });
+
+      writeStream.on('error', err => {
+        // An error occurred during the GCS upload.
+        reject(err);
+      });
+    });
+
+    filePromises.push(filePromise);
+  });
+
+  busboy.on('finish', async () => {
+    try {
+      // Wait for all file uploads to complete.
+      await Promise.all(filePromises);
+      // Merge parsed fields into req.body. If the original request was JSON,
+      // express.json() would have already populated req.body. If it was multipart,
+      // req.body is empty, so we populate it.
+      req.body = { ...req.body, ...fields };
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Pipe the request stream into busboy to start parsing.
+  req.pipe(busboy);
+};
 
 // --- Cloud Run & Graceful Shutdown Setup ---
 
@@ -111,7 +228,7 @@ app.get('/readyz', (req, res) => {
  * @param {Function} fn - The asynchronous controller function to wrap.
  * @returns {Function} An Express middleware function that executes the controller and catches errors.
  */
-const asyncHandler = (fn) => (req, res, next) => {
+const asyncHandler = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
@@ -129,6 +246,7 @@ const router = express.Router();
  *     summary: Conversational AI Assistant
  *     description: >
  *       Main entry point for the conversational AI assistant. Supports natural language requests and optional file uploads for Retrieval Augmented Generation (RAG).
+ *       File uploads are streamed directly to a secure Google Cloud Storage bucket and never touch the local filesystem.
  *       Handles both authenticated and guest users, with different rate limits and feature access applied accordingly.
  *       Tenant context is extracted for authenticated users to ensure data isolation and proper billing/quota management.
  *     tags:
@@ -184,7 +302,7 @@ router.post(
   extractTenantContext,
   checkDailyRequestLimit,
   checkStorageLimit,
-  uploadPlanFiles.single('file'),
+  gcsUpload(), // Replaced local file upload with direct-to-GCS streaming.
   checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
@@ -199,7 +317,7 @@ router.post(
  *     description: >
  *       Initiates an asynchronous conversational AI task. Returns a task ID immediately.
  *       The status and result can be retrieved via `/api/v1/plan-generator/task/{taskId}`.
- *       Supports optional file uploads for RAG. This endpoint is suitable for long-running generation tasks.
+ *       Supports optional file uploads for RAG, which are streamed directly to GCS. This endpoint is suitable for long-running generation tasks.
  *       Tenant context and usage limits are applied.
  *     tags:
  *       - Assistant
@@ -253,8 +371,8 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  checkStorageLimit, // Added: Ensure storage limit is checked for file uploads in async requests, consistent with synchronous assistant.
-  uploadPlanFiles.single('file'),
+  checkStorageLimit,
+  gcsUpload(), // Replaced local file upload with direct-to-GCS streaming.
   // createRateLimiter(30, 15),
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
   asyncHandler(planGeneratorController.conversationalAssistantAsync) // Wrapped controller to catch async errors
@@ -436,20 +554,19 @@ router.post(
  * @swagger
  * /api/v1/plan-generator/export:
  *   post:
- *     summary: Export Plan
+ *     summary: Export Plan to Cloud Storage
  *     description: >
- *       Exports a previously generated plan into various formats such as PDF, DOCX, JSON, or Markdown.
- *       Tenant context and usage limits are applied.
+ *       Exports a previously generated plan into various formats (PDF, DOCX, etc.).
+ *       The file is generated and streamed directly to a secure Google Cloud Storage bucket.
+ *       The API responds with a short-lived signed URL for the client to download the file.
+ *       This approach is stateless, secure, and handles large files efficiently.
  *     tags:
  *       - Plan Generation
  *       - Export
  *     consumes:
  *       - application/json
  *     produces:
- *       - application/pdf
- *       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
  *       - application/json
- *       - text/markdown
  *     parameters:
  *       - in: body
  *         name: body
@@ -459,17 +576,25 @@ router.post(
  *           $ref: '#/components/schemas/ExportPlanRequest'
  *     responses:
  *       200:
- *         description: Successful response with the exported plan data/file.
- *         schema:
- *           type: string
- *           format: binary
- *         headers:
- *           Content-Disposition:
- *             type: string
- *             description: Attachment filename.
- *           Content-Type:
- *             type: string
- *             description: The content type of the exported file (e.g., application/pdf).
+ *         description: Successful response with a signed URL to download the exported file.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Export successful. Use the URL to download your file."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     downloadUrl:
+ *                       type: string
+ *                       format: uri
+ *                       description: A short-lived signed URL to download the generated export file.
  *       400:
  *         description: Bad Request - Invalid input or missing required fields.
  *       401:
@@ -484,11 +609,14 @@ router.post(
 router.post(
   '/export',
   optionalAuth(),
-  extractTenantContext, // Added: Ensure tenant context is extracted for resource management, consistent with other generation routes.
-  checkDailyRequestLimit, // Added: Ensure daily request limits are applied for resource-consuming operations, consistent with other generation routes.
+  extractTenantContext,
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 exports per 15 minutes
   validateRequest(PlanGeneratorValidation.exportPlanSchema),
-  asyncHandler(planGeneratorController.exportPlan) // Wrapped controller to catch async errors
+  // The controller is now expected to generate the file, stream it to GCS,
+  // and return a JSON response with a short-lived signed URL for download.
+  // This avoids writing to the local filesystem and sending large binary payloads.
+  asyncHandler(planGeneratorController.exportPlanAndGetSignedUrl)
 );
 
 /**
@@ -644,7 +772,7 @@ const server = http.createServer(app);
  * closes database connections, and then exits the process.
  * @param {string} signal - The signal that triggered the shutdown (e.g., 'SIGTERM').
  */
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = signal => {
   console.log(`[${signal}] received. Shutting down gracefully...`);
   isShuttingDown = true; // Mark as shutting down for readiness probe
 
