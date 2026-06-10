@@ -1,8 +1,52 @@
 import pptxgen from 'pptxgenjs';
 
 /**
+ * @typedef {object} QuantitativeFact
+ * @property {string} metric - A description of the quantitative metric or finding.
+ * @property {string} value - The numerical or categorical value of the fact (e.g., "10x", "35% - 40%").
+ * @property {string} source - The reference source from which the fact was extracted (e.g., "McKinsey Developer Velocity Audit").
+ * @property {'HIGH'|'MEDIUM'|'LOW'} [trustLevel='MEDIUM'] - The assessed trust level of the fact.
+ * @property {number} [verificationScore=85] - A percentage score indicating the verification confidence (0-100).
+ */
+
+/**
+ * @typedef {object} QualityMetrics
+ * @property {number} [sourceDiversity=8.5] - A score (0-10) indicating the diversity of research sources.
+ * @property {number} [informationDepth=9.0] - A score (0-10) indicating the depth of information gathered.
+ * @property {number} [topicCoverage=8.0] - A score (0-10) indicating how comprehensively the topic was covered.
+ * @property {number} [credibilityScore=9.5] - A score (0-10) indicating the overall credibility of the research.
+ */
+
+/**
+ * @typedef {object} Metadata
+ * @property {QualityMetrics} [qualityMetrics] - Object containing various quality metrics for the research.
+ * @property {string} [reviewComments] - A string containing review comments or debate transcripts, potentially influencing slide content.
+ */
+
+/**
+ * @typedef {object} ReportData
+ * @property {string} [title] - The main title for the report.
+ * @property {string} [query] - The original research query or objective.
+ * @property {string} [answer] - The synthesized answer or executive summary of the research.
+ * @property {string[]} [sources] - An array of source URLs or descriptions.
+ * @property {QuantitativeFact[]} [quantitativeFacts] - An array of verified quantitative facts.
+ * @property {Metadata} [metadata] - Additional metadata related to the research quality and review.
+ */
+
+/**
  * Main function: Generates a premium 16:9 strategic PowerPoint slide deck (PPTX)
  * from recursive deep research results matching the McKinsey Slide Dashboard.
+ *
+ * This function constructs a multi-slide presentation including an executive briefing dashboard,
+ * a quantitative fact matrix, a C-suite debate dialogue, and strategic recommendations.
+ * It uses `pptxgenjs` to programmatically create the slides with a consistent branding and layout.
+ *
+ * @param {ReportData} reportDataParam - An object containing all the data required to populate the report.
+ * @returns {Promise<object>} A promise that resolves to an object containing the PPTX buffer, filename, content type, and size.
+ * @property {Buffer} buffer - The generated PowerPoint file content as a Node.js Buffer.
+ * @property {string} filename - The suggested filename for the generated PPTX file.
+ * @property {string} contentType - The MIME type for the PPTX file.
+ * @property {number} size - The size of the generated PPTX buffer in bytes.
  */
 export const generatePPTXReport = async (reportDataParam) => {
   // Ensure reportData is an object to prevent destructuring errors if null/undefined
@@ -14,7 +58,16 @@ export const generatePPTXReport = async (reportDataParam) => {
   // Set modern 16:9 widescreen layout
   pptx.layout = 'LAYOUT_16x9'; 
   
-  // Define custom styles and colors (Slate dark background with Gold/Teal highlights)
+  /**
+   * Defines custom color palette for the presentation, inspired by Slate, Gold, and Teal.
+   * @constant {string} COLOR_BG_LIGHT - Light background color.
+   * @constant {string} COLOR_DARK_SLATE - Dark slate color for primary text and accents.
+   * @constant {string} COLOR_TEAL - Teal accent color for highlights and primary branding.
+   * @constant {string} COLOR_GOLD - Gold accent color for secondary highlights.
+   * @constant {string} COLOR_TEXT_MUTED - Muted text color for secondary information.
+   * @constant {string} COLOR_WHITE - White color for text and backgrounds.
+   * @constant {string} COLOR_LIGHT_TEAL - Light teal for subtle accents.
+   */
   const COLOR_BG_LIGHT = 'F8FAFC';
   const COLOR_DARK_SLATE = '1E293B';
   const COLOR_TEAL = '0F766E';
