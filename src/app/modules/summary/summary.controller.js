@@ -46,6 +46,8 @@ const summarizeContent = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: If summaryService.handleSummaryConversation primarily fetches a Mongoose document for read-only access (as 'conversation' is only read here),
+    // consider adding .lean() within the service method for better performance by returning plain JavaScript objects.
     const conversation = await summaryService.handleSummaryConversation(
       userId,
       conversationId,
@@ -86,6 +88,8 @@ const summarizeContent = catchAsync(async (req, res) => {
       };
 
       // File parsing logic
+      // Optimization Recommendation: For very large files, especially CSV, synchronous parsing (like `parse` and `JSON.stringify`) can be CPU-intensive and block the event loop.
+      // Consider using stream-based parsing or offloading to worker threads for improved scalability with large inputs.
       switch (req.file.mimetype) {
         case 'application/pdf':
           const pdfData = new PDFParse({
@@ -256,6 +260,8 @@ const getSummaryStats = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Recommendation: If summaryService.getSummaryStats primarily fetches Mongoose documents for read-only display,
+  // consider adding .lean() within the service method for better performance by returning plain JavaScript objects.
   const stats = await summaryService.getSummaryStats(userId, req);
 
   sendResponse(res, {
