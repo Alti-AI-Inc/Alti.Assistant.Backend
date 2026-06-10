@@ -49,8 +49,8 @@ export const chatController = catchAsync(async (req, res) => {
 
   // Check subscription limits (optional - can be removed if not needed)
   // Optimization: Added .lean() for read-only query to return a plain JavaScript object.
-  // Recommendation: Consider adding an index on `userId` and a compound index on `{ userId: 1, createdAt: -1 }`
-  // to the SubscriptionModel for efficient querying and sorting.
+  // Recommendation: Add a compound index on `{ userId: 1, createdAt: -1 }`
+  // to the SubscriptionModel for efficient querying and sorting of the latest subscription.
   const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
     createdAt: -1,
   }).lean();
@@ -267,7 +267,7 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
   // Find all tools associated with this appName
   // We use regex to handle case insensitivity
   // Optimization: Already uses .lean() for read-only data.
-  // Recommendation: Add an index on `appName` to the Tool model for efficient querying, especially with regex.
+  // Recommendation: Add an index on `appName` to the Tool model for efficient, case-insensitive, anchored regex queries.
   const capabilities = await Tool.find({
     appName: new RegExp(`^${sanitizedApp}`, 'i')
   }, { name: 1, description: 1, _id: 0 }).lean();
@@ -291,7 +291,6 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
   // Security Note: Ensure global CORS policy is configured correctly for this endpoint.
   res.flushHeaders();
 
-  // Handle both auth middleware user and default fallback
   // Security Fix: Removed 'default_user' fallback. If userId is not present,
   // it indicates an unauthenticated request to an endpoint that requires authentication.
   const userId = req.user?._id?.toString();
@@ -387,8 +386,8 @@ export const getConversationsController = catchAsync(async (req, res) => {
   };
 
   // Recommendation: Ensure `conversationService.getUserConversations` uses .lean() for read-only data.
-  // Also, ensure that `userId` is indexed on the Conversation model, and if `lastActivity` is a field
-  // used for sorting, a compound index like `{ userId: 1, lastActivity: -1 }` would be highly beneficial.
+  // Also, ensure that `userId` is indexed on the Conversation model, and a compound index like
+  // `{ userId: 1, lastActivity: -1 }` would be highly beneficial for the default sort.
   const result = await conversationService.getUserConversations(
     userId,
     options
@@ -545,7 +544,7 @@ export const compareController = catchAsync(async (req, res) => {
         toolsUsed: simplifiedResult?.data?.toolsUsed || [],
         executionTime: `${simplifiedTime}ms`,
         // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
-        error: process.env.NODE_ENV !== 'production' && simplifiedError ? 'An error occurred' : simplifiedError,
+        error: process.env.NODE_ENV !== 'production' ? simplifiedError : (simplifiedError ? 'An error occurred' : null),
         conversationId: simplifiedResult?.data?.conversationId || null,
       },
       v2: {
@@ -553,7 +552,7 @@ export const compareController = catchAsync(async (req, res) => {
         response: complexResult?.data?.result || complexResult?.result || null,
         executionTime: `${complexTime}ms`,
         // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
-        error: process.env.NODE_ENV !== 'production' && complexError ? 'An error occurred' : complexError,
+        error: process.env.NODE_ENV !== 'production' ? complexError : (complexError ? 'An error occurred' : null),
       },
       comparison: {
         timeSaved: `${timeSaved}ms`,
