@@ -161,7 +161,10 @@ const updateChatbotValidation = [
  *         description: Chatbot not found
  *   patch:
  *     summary: Update chatbot by ID
- *     description: Updates an existing chatbot. Restricted to workspace MANAGERS and SUPER_ADMINS.
+ *     description: >
+ *       Updates an existing chatbot.
+ *       - USERS can update chatbots they created.
+ *       - MANAGERS and SUPER_ADMINS can update any chatbot in the workspace.
  *     tags: [Chatbots]
  *     security:
  *       - bearerAuth: []
@@ -196,7 +199,10 @@ const updateChatbotValidation = [
  *         description: Chatbot not found
  *   delete:
  *     summary: Delete chatbot by ID
- *     description: Deletes a specific chatbot. Restricted to workspace MANAGERS and SUPER_ADMINS.
+ *     description: >
+ *       Deletes a specific chatbot.
+ *       - USERS can delete chatbots they created.
+ *       - MANAGERS and SUPER_ADMINS can delete any chatbot in the workspace.
  *     tags: [Chatbots]
  *     security:
  *       - bearerAuth: []
@@ -229,18 +235,24 @@ router
     chatbotController.getChatbotById
   )
   .patch(
-    auth(ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+    // HIERARCHY-FIX: Allow USER role to modify chatbots. The controller must enforce ownership.
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
     // SECURITY-PATCH: Apply ID and body validation and error handling.
     chatbotIdValidation,
     updateChatbotValidation,
     handleValidationErrors,
+    // HIERARCHY-FIX: The controller is responsible for verifying that a USER can only update
+    // their own chatbot, while a MANAGER can update any chatbot within their workspace.
     chatbotController.updateChatbot
   )
   .delete(
-    auth(ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+    // HIERARCHY-FIX: Allow USER role to delete chatbots. The controller must enforce ownership.
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
     // SECURITY-PATCH: Apply ID validation and error handling.
     chatbotIdValidation,
     handleValidationErrors,
+    // HIERARCHY-FIX: The controller is responsible for verifying that a USER can only delete
+    // their own chatbot, while a MANAGER can delete any chatbot within their workspace.
     chatbotController.deleteChatbot
   );
 
