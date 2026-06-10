@@ -92,12 +92,13 @@ process.on('SIGINT', () => {
 
 /**
  * Mongoose schema for a Note.
- * Each note is associated with a specific user, providing a multi-tenant data structure.
+ * Each note is associated with a specific user and workspace, providing a robust multi-tenant data structure.
  *
  * @constructor Note
  * @property {string} title - The title of the note. Required.
  * @property {string} [description] - The main content or description of the note.
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this note. This enforces data separation between users.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this note belongs to. Critical for multi-tenancy and role-based access control.
  * @property {Date} createdAt - Timestamp indicating when the note was created. Automatically managed by Mongoose.
  * @property {Date} updatedAt - Timestamp indicating when the note was last updated. Automatically managed by Mongoose.
  */
@@ -115,11 +116,24 @@ const noteSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // Assuming you have a User model
     required: true,
+    index: true, // Index for efficient querying of notes by user.
+  },
+  // --- HIERARCHY & MULTI-TENANCY FIX ---
+  // Added workspaceId to enforce tenant boundaries at the database level.
+  // This is critical for security, preventing IDOR vulnerabilities where a user from one
+  // workspace could potentially access data from another. It also simplifies and secures
+  // queries for workspace-level roles (admin, manager), ensuring they only see data
+  // within their designated tenant context. This field is essential for propagating
+  // usage details and limits up to the workspace owner.
+  workspaceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace', // Assuming a Workspace model exists for tenancy.
+    required: true,
+    index: true, // Index for efficient querying of all notes within a workspace.
   },
 }, {
   timestamps: true, // Automatically adds `createdAt` and `updatedAt` fields, managing their values.
-                    // This is the recommended way to handle timestamps in Mongoose,
-                    // making the manual `createdAt` and `updatedAt` definitions redundant and less error-prone.
+                    // This is the recommended way to handle timestamps in Mongoose.
 });
 
 /**
