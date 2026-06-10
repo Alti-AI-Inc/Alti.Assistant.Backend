@@ -394,7 +394,7 @@ router.post('/chains/:chainId/stream', LangchainController.streamChain);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/stats', LangchainController.getGlobalStats);
+router.get('/platform/langchain/stats', LangchainController.getGlobalStats);
 
 /**
  * @openapi
@@ -432,7 +432,7 @@ router.get('/platform/stats', LangchainController.getGlobalStats);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/logs', LangchainController.getGlobalLogs);
+router.get('/platform/langchain/logs', LangchainController.getGlobalLogs);
 
 /**
  * @openapi
@@ -453,7 +453,7 @@ router.get('/platform/logs', LangchainController.getGlobalLogs);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/config', LangchainController.getGlobalConfig);
+router.get('/platform/langchain/config', LangchainController.getGlobalConfig);
 
 /**
  * @openapi
@@ -492,7 +492,7 @@ router.get('/platform/config', LangchainController.getGlobalConfig);
  *       500:
  *         description: Internal server error.
  */
-router.put('/platform/config', LangchainController.updateGlobalConfig);
+router.put('/platform/langchain/config', LangchainController.updateGlobalConfig);
 
 /**
  * @openapi
@@ -522,7 +522,51 @@ router.put('/platform/config', LangchainController.updateGlobalConfig);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/tenants/:tenantId/chains', LangchainController.getTenantChains);
+router.get('/platform/langchain/tenants/:tenantId/chains', LangchainController.getTenantChains);
+
+/**
+ * @openapi
+ * /api/v1/platform/langchain/tenants/{tenantId}/status:
+ *   patch:
+ *     summary: Suspend or re-enable a tenant's Langchain access
+ *     description: Allows a Platform Owner to globally suspend or re-enable a specific tenant's access to all Langchain module features. This is a master switch for a tenant's AI capabilities, useful for billing or policy enforcement.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enabled
+ *             properties:
+ *               enabled:
+ *                 type: boolean
+ *                 description: Set to `false` to suspend the tenant's access, `true` to re-enable it.
+ *     responses:
+ *       200:
+ *         description: Tenant's Langchain status updated successfully.
+ *       400:
+ *         description: Invalid request body.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Insufficient permissions.
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.patch('/platform/langchain/tenants/:tenantId/status', LangchainController.updateTenantLangchainStatus);
 
 /**
  * @openapi
@@ -572,6 +616,6 @@ router.get('/platform/tenants/:tenantId/chains', LangchainController.getTenantCh
  *       500:
  *         description: Internal server error.
  */
-router.patch('/platform/tenants/:tenantId/chains/:chainId/toggle', LangchainController.toggleTenantChain);
+router.patch('/platform/langchain/tenants/:tenantId/chains/:chainId/toggle', LangchainController.toggleTenantChain);
 
 export const langchainRoutes = router;

@@ -12,6 +12,10 @@ import {
 } from './nodes.js';
 import { MongoDBSaver } from './mongodbSaver.js';
 import { logger } from '../../../../shared/logger.js';
+// --- Improvement: Import a service to handle workspace-level checks ---
+// This service is responsible for checking subscription status, usage limits, and feature permissions
+// based on the workspace's current plan. This is crucial for enforcing billing tiers.
+import { checkUsageAndPermissions } from '../../../services/workspaceService.js';
 
 /**
  * Represents the core workflow automation graph using LangGraph's StateGraph.
@@ -178,6 +182,7 @@ export const workflowAutomationGraph = workflow.compile({ checkpointer });
  *
  * @param {string} userPrompt - The initial prompt or request from the user.
  * @param {string} userId - The ID of the user initiating the request.
+ * @param {string} workspaceId - The ID of the workspace the user belongs to.
  * @param {string} [conversationId=null] - Optional. An existing conversation ID to link this request to.
  *                                         If null, a new unique conversation ID will be generated.
  * @returns {Promise<{
@@ -191,20 +196,39 @@ export const workflowAutomationGraph = workflow.compile({ checkpointer });
 export const processWorkflowRequest = async (
   userPrompt,
   userId,
+  workspaceId,
   conversationId = null
 ) => {
   try {
-    logger.info(`Processing workflow request for user ${userId}`);
+    // --- Improvement: Enforce workspace limits and subscription permissions ---
+    // Before initiating a potentially costly workflow, verify the workspace's subscription status and usage limits.
+    // This prevents resource abuse and ensures compliance with the subscribed plan (e.g., Stripe plans).
+    const { allowed, reason } = await checkUsageAndPermissions(workspaceId, 'workflowExecution');
+    if (!allowed) {
+      logger.warn(`Workflow execution denied for workspace ${workspaceId}: ${reason}`);
+      return {
+        success: false,
+        error: reason,
+        result: {
+          response: `Your request could not be processed. Reason: ${reason}. Please check your workspace billing settings or contact an administrator.`,
+          responseType: 'limit_exceeded',
+        },
+        conversationId: conversationId,
+      };
+    }
+
+    logger.info(`Processing workflow request for user ${userId} in workspace ${workspaceId}`);
 
     const config = {
       configurable: {
-        thread_id: conversationId || `workflow_${userId}_${Date.now()}`,
+        thread_id: conversationId || `workflow_${workspaceId}_${userId}_${Date.now()}`,
       },
     };
 
     const initialState = {
       userPrompt,
       userId,
+      workspaceId, // Persist workspaceId in the state for security and context in subsequent nodes.
       conversationId: config.configurable.thread_id,
       currentStage: 'init',
     };
@@ -212,7 +236,10 @@ export const processWorkflowRequest = async (
     // Run the workflow
     const result = await workflowAutomationGraph.invoke(initialState, config);
 
-    logger.info(`Workflow processing completed for user ${userId}`);
+    // Note: After a successful invocation, you would typically increment the usage count for the workspace.
+    // e.g., await incrementUsage(workspaceId, 'workflowExecution');
+
+    logger.info(`Workflow processing completed for user ${userId} in workspace ${workspaceId}`);
     return {
       success: true,
       result,
@@ -228,6 +255,7 @@ export const processWorkflowRequest = async (
           'I apologize, but I encountered an error processing your request. Please try again or contact support.',
         responseType: 'error',
       },
+      conversationId,
     };
   }
 };
@@ -240,6 +268,7 @@ export const processWorkflowRequest = async (
  * @param {string} userInput - The new input from the user to continue the conversation.
  * @param {string} conversationId - The ID of the existing conversation thread to continue.
  * @param {string} userId - The ID of the user continuing the conversation.
+ * @param {string} workspaceId - The ID of the workspace the user belongs to.
  * @returns {Promise<{
  *   success: boolean,
  *   result?: object,
@@ -251,11 +280,29 @@ export const processWorkflowRequest = async (
 export const continueWorkflowConversation = async (
   userInput,
   conversationId,
-  userId
+  userId,
+  workspaceId
 ) => {
   try {
+    // --- Improvement: Enforce workspace limits and subscription permissions on continuation ---
+    // It's crucial to check limits on every invocation, not just the start,
+    // to prevent misuse after a limit has been reached mid-conversation.
+    const { allowed, reason } = await checkUsageAndPermissions(workspaceId, 'workflowExecution');
+    if (!allowed) {
+      logger.warn(`Workflow continuation denied for workspace ${workspaceId}: ${reason}`);
+      return {
+        success: false,
+        error: reason,
+        result: {
+          response: `We can't continue this conversation. Reason: ${reason}. Please check your workspace billing settings or contact an administrator.`,
+          responseType: 'limit_exceeded',
+        },
+        conversationId: conversationId,
+      };
+    }
+
     logger.info(
-      `Continuing workflow conversation ${conversationId} for user ${userId}`
+      `Continuing workflow conversation ${conversationId} for user ${userId} in workspace ${workspaceId}`
     );
 
     const config = {
@@ -267,8 +314,16 @@ export const continueWorkflowConversation = async (
     // Get current state
     const currentState = await workflowAutomationGraph.getState(config);
 
-    if (!currentState) {
-      throw new Error('Conversation not found');
+    if (!currentState?.values) {
+      throw new Error('Conversation not found or state is empty.');
+    }
+
+    // --- Improvement: Add security check for workspace ownership ---
+    // Ensure the workspaceId from the request matches the one stored in the conversation state.
+    // This prevents a user from one workspace from hijacking a conversation from another.
+    if (currentState.values.workspaceId !== workspaceId) {
+        logger.error(`Security Alert: Workspace ID mismatch for conversation ${conversationId}. Request: ${workspaceId}, Stored: ${currentState.values.workspaceId}`);
+        throw new Error('Workspace mismatch. Access denied.');
     }
 
     // Update state with new user input
@@ -297,6 +352,7 @@ export const continueWorkflowConversation = async (
           'I apologize, but I encountered an error continuing our conversation. Please try starting a new workflow request.',
         responseType: 'error',
       },
+      conversationId,
     };
   }
 };
@@ -306,6 +362,7 @@ export const continueWorkflowConversation = async (
  * This allows for inspecting the progress and data within an ongoing workflow.
  *
  * @param {string} conversationId - The ID of the conversation thread whose state is to be retrieved.
+ * @param {string} workspaceId - The ID of the workspace requesting the state, for security validation.
  * @returns {Promise<{
  *   success: boolean,
  *   state: object | null,
@@ -313,7 +370,7 @@ export const continueWorkflowConversation = async (
  * }>} An object containing the success status and the current state values of the conversation,
  *     or null if the conversation is not found or an error occurs.
  */
-export const getWorkflowConversationState = async (conversationId) => {
+export const getWorkflowConversationState = async (conversationId, workspaceId) => {
   try {
     const config = {
       configurable: {
@@ -322,6 +379,19 @@ export const getWorkflowConversationState = async (conversationId) => {
     };
 
     const state = await workflowAutomationGraph.getState(config);
+
+    // --- Improvement: Security check for data access ---
+    // Ensure the requested conversation belongs to the specified workspace to prevent data leakage between tenants.
+    // An admin/owner role check would happen in the controller/service layer before calling this function.
+    if (state && state.values.workspaceId !== workspaceId) {
+        logger.warn(`Unauthorized attempt to access conversation ${conversationId} from workspace ${workspaceId}.`);
+        return {
+            success: false,
+            error: 'Access denied. Conversation does not belong to this workspace.',
+            state: null,
+        };
+    }
+
     return {
       success: true,
       state: state?.values || null,
