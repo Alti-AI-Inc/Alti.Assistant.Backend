@@ -1,4 +1,6 @@
 import { StateGraph, END, MemorySaver, START } from '@langchain/langgraph';
+// ADDED: Import RunnableConfig to access invocation-specific configuration.
+import { RunnableConfig } from "@langchain/core/runnables";
 import { codeAssistantState } from './state.js';
 import {
   detectIntentNode,
@@ -11,6 +13,10 @@ import {
 } from './nodes.js';
 import { MongoDBSaver } from './MongoDBSaver.js';
 import config from '../../../../../config/index.js';
+// ADDED: Placeholder imports for database models and services.
+// In a real application, these would point to the actual model and service files.
+// import { User, Workspace } from '../../../models/index.js';
+// import { checkUsage } from '../../../services/usageService.js';
 
 /**
  * @module workflow
@@ -19,6 +25,69 @@ import config from '../../../../../config/index.js';
  * based on user intent, allowing for code generation, explanation, debugging,
  * best practices advice, and general conversation.
  */
+
+// ADDED: Node for security, authorization, and context validation.
+/**
+ * Performs critical pre-flight checks before executing the main workflow logic.
+ * This node ensures that the request is properly authenticated, authorized,
+ * and within the usage limits of the workspace. It enriches the state with
+ * user and workspace context for downstream nodes.
+ *
+ * CRITICAL: This node relies on `userId` and `workspaceId` being passed in the
+ * `configurable` object on every invocation of the graph.
+ * e.g., `app.invoke(..., { configurable: { thread_id: "...", userId: "...", workspaceId: "..." } })`
+ *
+ * @param {object} state - The current graph state.
+ * @param {RunnableConfig} config - The configuration for the runnable, containing user/workspace context.
+ * @returns {Promise<object>} A partial state object with user and workspace context.
+ * @throws {Error} If validation fails (e.g., auth error, limits exceeded).
+ */
+const validateContextAndPermissionsNode = async (state, config) => {
+  // This is a simplified placeholder implementation. A real implementation would use actual DB models and services.
+  const { userId, workspaceId } = config.configurable;
+
+  if (!userId || !workspaceId) {
+    // This check is fundamental to prevent any unauthenticated or context-less access.
+    throw new Error("Authorization Error: User ID and Workspace ID are required.");
+  }
+
+  // In a real implementation, you would fetch from your database.
+  // const user = await User.findOne({ _id: userId, workspaces: workspaceId }).populate('role');
+  // const workspace = await Workspace.findById(workspaceId);
+  const FAKE_DB = {
+      users: { 'user-1': { id: 'user-1', role: 'user', workspaceId: 'ws-1' } },
+      workspaces: { 'ws-1': { id: 'ws-1', owner: 'admin-1', features: { codeAssistant: { enabled: true } }, limits: { monthlyTokens: 1000000 } } }
+  };
+  const user = FAKE_DB.users[userId];
+  const workspace = FAKE_DB.workspaces[workspaceId];
+
+
+  if (!user || !workspace || user.workspaceId !== workspaceId) {
+    throw new Error("Authorization Error: User is not authorized for this workspace.");
+  }
+
+  if (!workspace.features.codeAssistant.enabled) {
+    throw new Error("Feature Not Enabled: Code Assistant is not enabled for this workspace.");
+  }
+
+  // Example usage limit check. This would call a service to get current usage.
+  // const usage = await checkUsage(workspaceId, 'codeAssistant');
+  const usage = { tokens: 500000 }; // Placeholder usage
+  if (usage.tokens >= workspace.limits.monthlyTokens) {
+    // Optionally, trigger a notification to the workspace owner/admin.
+    // await sendLimitNotification(workspace.owner, 'Code Assistant token limit reached.');
+    throw new Error("Usage Limit Exceeded: Your workspace has reached its monthly token limit for the Code Assistant.");
+  }
+
+  // If all checks pass, enrich the state with validated context.
+  // Downstream nodes can use this information for fine-grained logic, logging, and usage tracking.
+  // NOTE: The `codeAssistantState` in `./state.js` must be updated to include `user` and `workspace` channels.
+  return {
+    user: { id: user.id, role: user.role },
+    workspace: { id: workspace.id, ownerId: workspace.owner },
+  };
+};
+
 
 /**
  * Initializes the LangGraph StateGraph for the code assistant.
@@ -30,6 +99,10 @@ const workflow = new StateGraph({
 });
 
 // Add nodes to the graph
+
+// ADDED: The new validation node is the first step in the workflow to enforce security and context.
+workflow.addNode('validate_context', validateContextAndPermissionsNode);
+
 /**
  * Adds the 'detect_intent' node to the workflow. This node is responsible for
  * identifying the user's primary goal from their input.
@@ -65,9 +138,14 @@ workflow.addNode('general_conversation', generalConversationNode);
 
 /**
  * Defines the entry point of the workflow.
- * All interactions start by routing to the 'detect_intent' node.
+ * All interactions start by routing to the 'validate_context' node for security checks.
  */
-workflow.addEdge(START, 'detect_intent');
+workflow.addEdge(START, 'validate_context');
+
+/**
+ * After context validation, the workflow proceeds to intent detection.
+ */
+workflow.addEdge('validate_context', 'detect_intent');
 
 /**
  * Defines conditional edges from the 'detect_intent' node.
@@ -147,6 +225,14 @@ const mongoDbOptions = {
   // Automatic reconnect logic is also built-in and enabled by default.
 };
 
+// CRITICAL SECURITY REQUIREMENT: The custom MongoDBSaver implementation MUST be multi-tenant aware.
+// Its `get`, `put`, and `list` methods must use the `workspaceId` from the `configurable` object passed
+// during invocation to scope all database operations. This prevents users from one workspace
+// from accessing conversation threads in another (IDOR vulnerability).
+// Example within MongoDBSaver.get(config):
+//   const { thread_id, workspaceId } = config.configurable;
+//   if (!workspaceId) throw new Error("Workspace ID is required for thread retrieval.");
+//   const doc = await this.collection.findOne({ _id: thread_id, workspaceId: workspaceId });
 MongoDBSaver.fromUri(config.database_uri, mongoDbOptions) // Use production URI and resiliency options
   .then((mongoCheckpointer) => {
     checkpointer = mongoCheckpointer;
