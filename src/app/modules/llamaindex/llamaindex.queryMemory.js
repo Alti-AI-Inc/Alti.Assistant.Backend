@@ -210,9 +210,13 @@ const getRelevantHistory = async (authContext, currentQuery, limit = 3, minSimil
     if (currentTokens.length === 0) return [];
 
     // INTEGRATION FIX: Query is now scoped by both userId and workspaceId for strict tenant isolation.
+    // --- PERFORMANCE OPTIMIZATION ---
+    // Added .select() to fetch only the fields required for the similarity calculation and response.
+    // This reduces the amount of data transferred from MongoDB to the application, improving query performance.
     const candidates = await QueryMemory.find({ userId, workspaceId })
       .sort({ createdAt: -1 })
       .limit(100)
+      .select('query answer engine createdAt queryTokens') // Fetch only necessary fields.
       .lean();
 
     if (candidates.length === 0) return [];
