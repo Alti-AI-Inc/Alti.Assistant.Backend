@@ -5,23 +5,57 @@ import config from '../../../../../config/index.js';
 /**
  * Vertex AI Service
  * Handles native Google Cloud Vertex AI Search datastore grounding
- * as a premium enterprise RAG tool.
+ * as a premium enterprise RAG tool. This service integrates with Google's Gemini API
+ * to perform grounded searches against specified Vertex AI Search datastores,
+ * providing relevant answers with citations and references.
  */
 class VertexAiService {
+  /**
+   * Constructs an instance of VertexAiService.
+   * Initializes the GoogleGenAI client with the API key from configuration.
+   * @throws {Error} If `GEMINI_SECRET_KEY` is not configured.
+   */
   constructor() {
     // Ensure API key is present for GoogleGenAI initialization
     if (!config.gemini_secret_key) {
       throw new Error('GEMINI_SECRET_KEY is not configured. Please ensure config/index.js or environment variables are set correctly.');
     }
+    /**
+     * The GoogleGenAI client instance used for interacting with the Gemini API.
+     * @private
+     * @type {GoogleGenAI}
+     */
     this.ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
     // this.initialized flag was redundant and has been removed.
   }
 
   /**
-   * Performs grounded search using a Vertex AI Search datastore
-   * @param {string} query - The search query
-   * @param {string|null} datastoreId - Custom datastore identifier or null for default
-   * @returns {Promise<Object>} Grounded answer with references and citations
+   * Performs grounded search using a Vertex AI Search datastore.
+   * This method sends a query to the Gemini API, leveraging a Vertex AI Search datastore
+   * for grounding the response, thereby providing factual and referenced answers.
+   *
+   * @param {string} query - The natural language search query to be executed against the datastore.
+   * @param {string|null} [datastoreId=null] - Optional. A custom datastore identifier (e.g., a full resource name like `projects/.../locations/.../dataStores/...`).
+   *   If `null` or not provided, it defaults to `process.env.VERTEX_AI_DATASTORE_ID` or a predefined
+   *   datastore based on `config.google.gcp_project_id`.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the grounded answer,
+   *   references, citations, and citation metadata.
+   * @returns {string} return.answer - The grounded answer text from the model.
+   * @returns {Array<Object>} return.reference - An array of up to 5 unique references found.
+   * @returns {string} return.reference[].url - The URL of the reference.
+   * @returns {string} return.reference[].domain - The domain or title of the reference source.
+   * @returns {string} return.reference[].title - The title of the reference.
+   * @returns {Array<Object>} return.citations - An array of up to 5 citations, indexed for display.
+   * @returns {number} return.citations[].index - The 1-based index of the citation.
+   * @returns {string} return.citations[].url - The URL of the citation.
+   * @returns {string} return.citations[].domain - The domain or title of the citation source.
+   * @returns {string} return.citations[].title - The title of the citation.
+   * @returns {Object} return.citationMetadata - Metadata about the search operation.
+   * @returns {string} return.citationMetadata.searchTimestamp - ISO timestamp of when the search was performed.
+   * @returns {string} return.citationMetadata.model - The model used for the search (e.g., 'gemini-2.5-flash').
+   * @returns {number} return.citationMetadata.totalSources - The total number of grounding chunks found.
+   * @returns {string} return.citationMetadata.searchMethod - The method used for search (e.g., 'vertex_ai_search').
+   * @throws {Error} If the Vertex AI Search grounding fails due to API errors or misconfiguration.
    */
   async searchVertexStore(query, datastoreId = null) {
     console.log(`🔍 Executing Vertex AI Search Datastore Grounding: "${query}"`);
@@ -119,8 +153,14 @@ class VertexAiService {
   }
 
   /**
-   * Returns a LangChain DynamicTool for integrating Vertex AI Search into the ReAct Agent
-   * @returns {DynamicTool} Configured DynamicTool instance
+   * Returns a LangChain DynamicTool for integrating Vertex AI Search into a ReAct Agent.
+   * This tool allows an AI agent to perform grounded searches against enterprise knowledge bases
+   * when specific types of queries are detected.
+   *
+   * @returns {DynamicTool} A configured `DynamicTool` instance with the name 'vertex-ai-search'
+   *   and a description guiding its usage for internal documentation and private knowledge bases.
+   *   The `func` property of the tool wraps `searchVertexStore` and returns a JSON string
+   *   of the answer and references.
    */
   asTool() {
     const self = this;
@@ -142,6 +182,11 @@ class VertexAiService {
   }
 }
 
+/**
+ * Singleton instance of the VertexAiService.
+ * This instance is exported as the default export for convenient use throughout the application.
+ * @type {VertexAiService}
+ */
 const vertexAiService = new VertexAiService();
 export default vertexAiService;
 export { VertexAiService };
