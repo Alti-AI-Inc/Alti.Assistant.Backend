@@ -1,3 +1,8 @@
+/**
+ * @file This service handles all business logic related to creative writing generation and conversation management.
+ * It interacts with the Google Generative AI (Gemini) model and manages conversation history in the database.
+ */
+
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -19,25 +24,45 @@ import {
   TYPE_KEYWORDS,
 } from './creative_writing.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using Mongoose's ObjectId.
+ * This is used for unauthenticated users to maintain conversation state.
+ *
+ * @returns {string} A unique string representation of a Mongoose ObjectId.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for creative writing sessions.
+ * The ID is prefixed with 'creative_' and includes a timestamp and a random string.
+ *
+ * @returns {string} A unique conversation ID.
  */
 const generateConversationId = () => {
   return `creative_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Analyze user message to detect intent and extract parameters
+ * Analyzes a user's message to detect their intent, desired writing type,
+ * word count, and style preferences. It uses predefined keywords and
+ * considers conversation history for context.
+ *
+ * @param {string} message - The user's input message.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation,
+ *                                                 each with `role` and `content` properties.
+ * @returns {Object} An object containing the detected intent, writing type, word count, style, and the original message.
+ * @returns {string} return.intent - The detected intent (e.g., 'CREATE_NEW', 'CONTINUE_STORY').
+ * @returns {string|null} return.writingType - The detected writing type (e.g., 'POEM', 'SHORT_STORY'), or null if not detected.
+ * @returns {number|null} return.wordCount - The detected word count, or null if not specified.
+ * @returns {string|null} return.style - The detected writing style (e.g., 'dramatic', 'romantic'), or null if not detected.
+ * @returns {string} return.originalMessage - The original user message.
  */
 const analyzeUserMessage = (message, conversationHistory = []) => {
   const lowerMessage = message.toLowerCase();
@@ -110,7 +135,17 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
 };
 
 /**
- * Handle creative writing conversation (create or retrieve)
+ * Handles the retrieval or creation of a creative writing conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no ID is provided, or if the provided ID is not found/unauthorized, a new conversation is created.
+ *
+ * @param {string} userId - The ID of the user (guest or authenticated).
+ * @param {string|null} conversationId - The ID of an existing conversation, or null if starting a new one.
+ * @param {string} userMessage - The initial user message for the conversation, used for title generation.
+ * @param {boolean} [isGuest=false] - True if the user is a guest, false otherwise.
+ * @param {object} [req=null] - The Express request object, potentially containing user information for logging/context.
+ * @returns {Promise<Object>} The conversation object (Mongoose document).
+ * @throws {ApiError} If there's an internal server error during conversation handling.
  */
 const handleCreativeWritingConversation = async (
   userId,
@@ -182,7 +217,16 @@ const handleCreativeWritingConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message (user or assistant) to a specified conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user'|'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The content of the message.
+ * @param {Object} [metadata={}] - Optional metadata to store with the message.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<Object>} The updated conversation object after adding the message.
+ * @throws {ApiError} If there's an internal server error during message addition.
  */
 const addMessage = async (
   conversationId,
@@ -216,7 +260,19 @@ const addMessage = async (
 };
 
 /**
- * Build writing prompt based on parameters and user request
+ * Constructs a detailed prompt for the AI model based on user request,
+ * detected parameters, and conversation history.
+ *
+ * @param {string} userMessage - The current user's request.
+ * @param {Object} params - An object containing detected writing parameters.
+ * @param {string} params.writingType - The type of writing requested (e.g., 'POEM', 'SHORT_STORY').
+ * @param {string} [params.style] - The desired writing style (e.g., 'dramatic', 'romantic').
+ * @param {string} [params.tone] - The desired writing tone.
+ * @param {number} [params.wordCount] - The target word count.
+ * @param {string} params.intent - The detected intent (e.g., 'CREATE_NEW', 'CONTINUE_STORY').
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation,
+ *                                                 each with `role` and `content` properties.
+ * @returns {string} The fully constructed prompt for the AI model.
  */
 const buildWritingPrompt = (userMessage, params, conversationHistory = []) => {
   const { writingType, style, tone, wordCount, intent } = params;
@@ -309,7 +365,12 @@ Please create engaging, original creative writing that fulfills this request. Be
 };
 
 /**
- * Generate creative writing using AI
+ * Generates creative writing content using the configured Google Generative AI model.
+ *
+ * @param {string} prompt - The detailed prompt to send to the AI model.
+ * @param {number} [temperature=CREATIVE_WRITING_CONFIG.TEMPERATURE] - The creativity temperature for the AI model (0.0 to 1.0).
+ * @returns {Promise<string>} The generated creative writing text.
+ * @throws {ApiError} If there's an error during AI content generation.
  */
 const generateCreativeWriting = async (
   prompt,
@@ -339,11 +400,20 @@ const generateCreativeWriting = async (
 };
 
 /**
- * Store writing in conversation history
- * @param {object} conversation - The conversation object (Mongoose document or lean object)
- * @param {string} userId - The ID of the user
- * @param {object} writingData - The data about the generated writing
- * @param {object} req - The request object (optional)
+ * Stores the generated creative writing and associated metadata into the conversation's history.
+ * This updates the `metadata.writingHistory` and `metadata.lastWritingType` fields of the conversation.
+ *
+ * @param {object} conversation - The conversation object (Mongoose document or lean object).
+ * @param {string} userId - The ID of the user.
+ * @param {object} writingData - The data about the generated writing.
+ * @param {string} writingData.userRequest - The user's original request that led to this writing.
+ * @param {string} writingData.generatedText - The AI-generated creative writing text.
+ * @param {string} writingData.writingType - The type of writing generated.
+ * @param {string} [writingData.style] - The style of writing generated.
+ * @param {number} [writingData.wordCount] - The target word count for the generated writing.
+ * @param {string} writingData.intent - The intent detected for this writing.
+ * @param {object} [req=null] - The Express request object (optional).
+ * @returns {Promise<void>}
  */
 const storeWritingInConversation = async (
   conversation, // Optimization: Changed to accept the conversation object directly to avoid redundant fetch
@@ -387,7 +457,14 @@ const storeWritingInConversation = async (
 };
 
 /**
- * Determine if user needs clarification
+ * Determines if the user's request needs clarification based on initial vagueness
+ * and lack of detected writing type, especially for the first message.
+ *
+ * @param {Object} analysis - The result of `analyzeUserMessage`.
+ * @param {string} analysis.originalMessage - The original user message.
+ * @param {string|null} analysis.writingType - The detected writing type.
+ * @param {Array<Object>} conversationHistory - The full conversation history.
+ * @returns {boolean} True if clarification is needed, false otherwise.
  */
 const needsClarification = (analysis, conversationHistory) => {
   // If it's the first message and very vague
@@ -411,7 +488,11 @@ const needsClarification = (analysis, conversationHistory) => {
 };
 
 /**
- * Generate clarification question
+ * Generates a clarification question for the user based on what information is missing.
+ *
+ * @param {Object} analysis - The result of `analyzeUserMessage`.
+ * @param {string|null} analysis.writingType - The detected writing type.
+ * @returns {string} A clarification question or a generic clarification message.
  */
 const generateClarificationQuestion = (analysis) => {
   if (!analysis.writingType) {
@@ -422,7 +503,24 @@ const generateClarificationQuestion = (analysis) => {
 };
 
 /**
- * Main function to process conversational creative writing request
+ * The main function to process a conversational creative writing request.
+ * It orchestrates conversation handling, message analysis, prompt building,
+ * AI generation, and storing results.
+ *
+ * @param {string} userId - The ID of the user (guest or authenticated).
+ * @param {string} message - The user's current input message.
+ * @param {string|null} conversationId - The ID of the current conversation, or null for a new one.
+ * @param {boolean} [isGuest=false] - True if the user is a guest, false otherwise.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<Object>} An object containing the success status, conversation ID, AI response,
+ *                            detected writing parameters, and analysis.
+ * @returns {boolean} return.success - True if the request was processed successfully.
+ * @returns {string} return.conversationId - The ID of the conversation.
+ * @returns {string} return.response - The AI's response (generated text or clarification question).
+ * @returns {boolean} [return.needsClarification] - True if the AI is asking for clarification.
+ * @returns {Object} return.writingParams - The parameters used for writing generation.
+ * @returns {Object} return.analysis - The detailed analysis of the user's message.
+ * @throws {ApiError} If any underlying operation fails.
  */
 const processConversationalRequest = async (
   userId,
@@ -565,7 +663,19 @@ const processConversationalRequest = async (
 };
 
 /**
- * Get conversation history
+ * Retrieves the full conversation history for a given conversation ID and user.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<Object>} An object containing the conversation details and messages.
+ * @returns {string} return.conversationId - The ID of the conversation.
+ * @returns {string} return.title - The title of the conversation.
+ * @returns {Array<Object>} return.messages - An array of message objects in the conversation.
+ * @returns {Object} return.metadata - Additional metadata associated with the conversation.
+ * @returns {Date} return.createdAt - The creation timestamp of the conversation.
+ * @returns {Date} return.updatedAt - The last update timestamp of the conversation.
+ * @throws {ApiError} If the conversation is not found or unauthorized.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
@@ -591,6 +701,12 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
   }
 };
 
+/**
+ * @constant {Object} creativeWritingService - An object exporting all creative writing related service functions.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
+ * @property {function(string, string, string, boolean, object): Promise<Object>} processConversationalRequest - Processes a user's creative writing request conversationally.
+ * @property {function(string, string, object): Promise<Object>} getConversationHistory - Retrieves the full history of a creative writing conversation.
+ */
 export const creativeWritingService = {
   generateGuestUserId,
   processConversationalRequest,
