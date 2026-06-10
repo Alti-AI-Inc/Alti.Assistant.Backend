@@ -411,8 +411,11 @@ const updateWebAiEndpoint = async (req, res) => {
 
     // If isDefault is true, first set all other AI endpoints to false
     if (isDefault === true) {
-      // Optimization: Only update documents where default is currently true,
-      // avoiding a full collection write scan.
+      // Optimization: Only update documents where `default` is currently true,
+      // avoiding a full collection write scan. For large collections, a sparse
+      // index on the `default` field will significantly improve performance.
+      // Example in aiEndpoint.Model.js:
+      // aiEndpointSchema.index({ default: 1 }, { sparse: true });
       await AiEndpoint.updateMany({ default: true }, { default: false });
     }
 

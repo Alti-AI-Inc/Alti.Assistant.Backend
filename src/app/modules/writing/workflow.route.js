@@ -4,11 +4,44 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 
+// --- Cloud Run Lifecycle & Probes ---
+
+const app = express();
+
+// A flag to indicate if the server is ready to accept traffic.
+// It's set to true after all startup tasks (like DB connections) are complete.
+let isReady = false;
+
+/**
+ * Liveness probe endpoint (/healthz).
+ * Cloud Run uses this to check if the container's server process is running.
+ * A 200 OK response indicates the process is alive.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+/**
+ * Readiness probe endpoint (/readyz).
+ * Cloud Run uses this to check if the application is ready to serve traffic.
+ * This should only return 200 OK after essential startup tasks are complete.
+ * During shutdown, this will fail to signal the load balancer to stop sending new requests.
+ */
+app.get('/readyz', (req, res) => {
+  if (isReady) {
+    res.status(200).send('OK');
+  } else {
+    // 503 Service Unavailable indicates the app is not ready for traffic.
+    res.status(503).send('Service Unavailable');
+  }
+});
+
+// --- Original Application Routes ---
+
 /**
  * @module writingWorkflowRoutes
  * @description Defines API routes for the writing assistant workflow.
  */
-
 const router = express.Router();
 
 /**
@@ -87,8 +120,75 @@ router.post(
   writingController
 );
 
-/**
- * @exports writingRoutes
- * @description The Express router instance containing all writing workflow-related routes.
- */
-export const writingRoutes = router;
+// Mount the application routes
+app.use(router);
+
+// --- Server Startup & Graceful Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+
+// Start the server
+const server = app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+  // TODO: Place asynchronous startup logic here, like connecting to a database.
+  // Once all startup tasks are complete, mark the service as ready.
+  // For example:
+  // db.connect().then(() => {
+  //   console.log('Database connected successfully.');
+  //   isReady = true;
+  //   console.log('Server is now ready to accept traffic.');
+  // }).catch(err => {
+  //   console.error('Failed to connect to the database:', err);
+  //   process.exit(1); // Exit if critical connections fail
+  // });
+
+  // For this example, we'll assume readiness immediately after server starts.
+  // In a real application, this should be tied to actual events like a DB connection.
+  isReady = true;
+  console.log('Server is now ready to accept traffic.');
+});
+
+// Graceful shutdown logic
+const gracefulShutdown = (signal) => {
+  console.log(`Received ${signal}. Starting graceful shutdown...`);
+
+  // 1. Stop accepting new traffic by failing readiness probes.
+  isReady = false;
+  console.log('Readiness probe will now fail. No new traffic will be sent.');
+
+  // 2. Stop the server from accepting new connections and wait for existing ones to finish.
+  // Cloud Run gives a 10-second grace period by default before sending SIGKILL.
+  server.close((err) => {
+    if (err) {
+      console.error('Error during server shutdown:', err);
+      process.exit(1);
+    }
+
+    console.log('HTTP server closed. All requests have been handled.');
+
+    // 3. Close other connections (e.g., database, message queues).
+    // For example:
+    // db.close().then(() => {
+    //   console.log('Database connection closed.');
+    //   process.exit(0);
+    // }).catch(dbErr => {
+    //   console.error('Error closing database connection:', dbErr);
+    //   process.exit(1);
+    // });
+
+    // In this example, we just exit.
+    console.log('Shutdown complete.');
+    process.exit(0);
+  });
+
+  // Force shutdown if the graceful shutdown process takes too long.
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcing shutdown.');
+    process.exit(1);
+  }, 9500); // Set slightly less than the default 10s Cloud Run timeout
+};
+
+// Listen for termination signals from the host environment
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Sent by Cloud Run, Docker, Kubernetes
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));   // For local development (Ctrl+C)
