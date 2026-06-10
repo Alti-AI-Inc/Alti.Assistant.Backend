@@ -150,3 +150,94 @@ export const deleteUserOtpTemplate = (user, OTP) => {
   };
   return mailData;
 };
+
+/**
+ * Creates an HTML email template for inviting a new member to a workspace.
+ * This is initiated by a workspace manager.
+ *
+ * @param {string} inviterName - The name of the manager sending the invitation.
+ * @param {string} inviteeEmail - The email address of the person being invited.
+ * @param {string} workspaceName - The name of the workspace they are invited to.
+ * @param {string} invitationToken - The unique token for the invitation link.
+ * @returns {object} An object containing the email data.
+ */
+export const teamInvitationTemplate = (
+  inviterName,
+  inviteeEmail,
+  workspaceName,
+  invitationToken,
+) => {
+  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const invitationLink = `${frontendUrl}/accept-invitation?token=${encodeURIComponent(invitationToken)}`;
+
+  const mailData = {
+    userEmail: inviteeEmail,
+    sub: `You're invited to join ${escapeHtml(workspaceName)} on Alti AI`,
+    message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
+                <div style="max-width: 1050px; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
+                  <h2 style="color: #333333; text-align: center;">You're Invited!</h2>
+                  <p style="color: #666666; font-size: 18px;">Hello,</p>
+                  <p style="color: #666666; font-size: 18px;">
+                    <b>${escapeHtml(inviterName)}</b> has invited you to join the <b>${escapeHtml(workspaceName)}</b> workspace on Alti AI.
+                  </p>
+                  <p style="color: #666666; font-size: 18px;">Click the button below to accept the invitation and set up your account.</p>
+                  <div style="text-align: center; margin: 20px 0;">
+                    <a href="${escapeHtml(invitationLink)}" 
+                       style="display: inline-block; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 12px 24px; text-decoration: none; font-size: 18px; font-weight: bold;">
+                      Accept Invitation
+                    </a>
+                  </div>
+                  <p style="color: #666666; font-size: 18px;">If you were not expecting this invitation, you can safely ignore this email.</p>
+                </div>
+                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Alti AI.</p>
+              </div>`,
+  };
+  return mailData;
+};
+
+/**
+ * Creates an HTML email template to notify a user of a role change.
+ *
+ * @param {object} user - The user object, containing `email` and `username`.
+ * @param {string} managerName - The name of the manager who updated the role.
+ * @param {string} workspaceName - The name of the workspace where the role was updated.
+ * @param {string} newRole - The user's new role.
+ * @returns {object} An object containing the email data.
+ */
+export const roleUpdateNotificationTemplate = (
+  user,
+  managerName,
+  workspaceName,
+  newRole,
+) => {
+  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const dashboardLink = `${frontendUrl}/dashboard`;
+
+  const mailData = {
+    userEmail: user?.email,
+    sub: `Your role in ${escapeHtml(workspaceName)} has been updated`,
+    message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
+                <div style="max-width: 1050px; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
+                  <h2 style="color: #333333; text-align: center;">Role Updated</h2>
+                  <p style="color: #666666; font-size: 18px;">
+                    Dear ${escapeHtml(user?.username || 'User')},
+                  </p>
+                  <p style="color: #666666; font-size: 18px;">
+                    Your role in the <b>${escapeHtml(workspaceName)}</b> workspace has been updated by <b>${escapeHtml(managerName)}</b>.
+                  </p>
+                  <p style="color: #666666; font-size: 18px;">
+                    Your new role is: <b style="color: #242C36;">${escapeHtml(newRole)}</b>.
+                  </p>
+                  <div style="text-align: center; margin: 20px 0;">
+                    <a href="${escapeHtml(dashboardLink)}" 
+                       style="display: inline-block; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 12px 24px; text-decoration: none; font-size: 18px; font-weight: bold;">
+                      Go to Dashboard
+                    </a>
+                  </div>
+                  <p style="color: #666666; font-size: 18px;">If you have any questions, please contact your workspace manager.</p>
+                </div>
+                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Alti AI.</p>
+              </div>`,
+  };
+  return mailData;
+};
