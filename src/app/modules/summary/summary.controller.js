@@ -1,9 +1,11 @@
 /* eslint-disable no-case-declarations */
 
 import httpStatus from 'http-status';
-import { PDFParse } from 'pdf-parse';
+// Fix: Correct import for pdf-parse. It exports a default function, not a named class.
+import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
-import { parse } from 'csv-parse/browser/esm';
+// Fix: Correct import path for csv-parse in a Node.js environment.
+import { parse } from 'csv-parse';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -23,7 +25,10 @@ const summarizeContent = catchAsync(async (req, res) => {
     ? summaryService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId; // Allow overriding userId from request body
+  // Security Fix: Remove the ability to override userId from the request body.
+  // The userId must be derived from the authenticated session (req.user) or generated for guests
+  // to prevent IDOR (Insecure Direct Object Reference) vulnerabilities.
+  // userId = req.body.userId || userId; // Removed for security
 
   if (!message) {
     return sendResponse(res, {
@@ -44,6 +49,10 @@ const summarizeContent = catchAsync(async (req, res) => {
   const thread_id =
     conversationId || summaryService.generateSummaryConversationId();
 
+  // Bug Fix: Declare actualConversationId with 'let' outside the try block
+  // so it's accessible in the catch block for consistent error logging.
+  let actualConversationId;
+
   try {
     // Handle conversation creation/retrieval
     // Optimization Recommendation: If summaryService.handleSummaryConversation primarily fetches a Mongoose document for read-only access (as 'conversation' is only read here),
@@ -55,7 +64,7 @@ const summarizeContent = catchAsync(async (req, res) => {
       isGuest,
       req
     );
-    const actualConversationId = conversation.conversationId || thread_id;
+    actualConversationId = conversation.conversationId || thread_id;
 
     // Get conversation history for context-aware processing
     let conversationHistory = [];
@@ -92,11 +101,10 @@ const summarizeContent = catchAsync(async (req, res) => {
       // Consider using stream-based parsing or offloading to worker threads for improved scalability with large inputs.
       switch (req.file.mimetype) {
         case 'application/pdf':
-          const pdfData = new PDFParse({
-            data: req.file.buffer,
-          });
-          const pdfContent = await pdfData.getText();
-          contentToSummarize = pdfContent.text;
+          // Bug Fix: Correct usage of pdf-parse. It's a function that returns a promise,
+          // and the result object contains the 'text' property.
+          const pdfData = await pdf(req.file.buffer);
+          contentToSummarize = pdfData.text;
           console.log(
             `Extracted text from PDF: ${contentToSummarize.substring(0, 100)}...`
           );
@@ -113,8 +121,9 @@ const summarizeContent = catchAsync(async (req, res) => {
           isFilePassed = true;
           break;
         case 'text/csv':
-          // For CSV, we'll stringify the records to make them readable for the AI.
-          const records = parse(req.file.buffer, {
+          // Bug Fix: csv-parse expects a string or stream, not a raw Buffer.
+          // Convert the buffer to a UTF-8 string explicitly.
+          const records = parse(req.file.buffer.toString('utf-8'), {
             columns: true,
             skip_empty_lines: true,
           });
@@ -204,9 +213,12 @@ const summarizeContent = catchAsync(async (req, res) => {
   } catch (error) {
     logger.error('Summarizer Assistant Error:', error);
 
-    // Try to save error message to conversation if possible
+    // Bug Fix: Ensure error message is saved to the correct conversation ID.
+    // Prioritize actualConversationId if it was successfully determined,
+    // then fall back to the initial conversationId from req.body,
+    // and only generate a new one as a last resort.
     const errorConversationId =
-      conversationId || summaryService.generateSummaryConversationId();
+      actualConversationId || conversationId || summaryService.generateSummaryConversationId();
     try {
       if (errorConversationId && userId) {
         await summaryService.addErrorMessage(
