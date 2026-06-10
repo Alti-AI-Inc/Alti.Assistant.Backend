@@ -14,15 +14,19 @@ const optimizeChain = async (chainId, userId) => {
     logger.info(`LangchainOptimizer: running diagnostics on chain ${chainId}`);
 
     // Fetch the chain and its last 15 executions
-    // Added .lean() for performance as the document is read-only.
-    const chain = await LangchainChain.findById(chainId).lean();
+    // Added .lean() and .select() to retrieve only required fields, minimizing memory and network overhead.
+    const chain = await LangchainChain.findById(chainId)
+      .select('name description steps')
+      .lean();
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
 
     // For optimal performance with this query, consider adding a compound index to the LangchainExecution model:
     // { chainId: 1, userId: 1, createdAt: -1 }
+    // Added .select() to retrieve only required fields, minimizing memory and network overhead.
     const executions = await LangchainExecution.find({ chainId, userId })
+      .select('status totalDurationMs stepsExecution createdAt')
       .sort({ createdAt: -1 })
       .limit(15)
       .lean();
@@ -35,18 +39,19 @@ const optimizeChain = async (chainId, userId) => {
       };
     }
 
-    // Aggregate statistics
+    // Single-pass aggregation to optimize CPU usage and avoid multiple array iterations
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter(e => e.status === 'success').length;
-    const successRate = Math.round((successfulExecutions / totalExecutions) * 100);
-    const avgDuration = Math.round(executions.reduce((sum, e) => sum + (e.totalDurationMs || 0), 0) / totalExecutions);
-
-    // Identify bottlenecks and failures
+    let successfulExecutions = 0;
+    let totalDuration = 0;
     const failures = [];
-    const slowSteps = [];
     const stepDurations = {};
 
     for (const exec of executions) {
+      if (exec.status === 'success') {
+        successfulExecutions++;
+      }
+      totalDuration += exec.totalDurationMs || 0;
+
       for (const stepRun of exec.stepsExecution || []) {
         // Accumulate durations per step
         if (!stepDurations[stepRun.stepName]) {
@@ -66,6 +71,10 @@ const optimizeChain = async (chainId, userId) => {
         }
       }
     }
+
+    const successRate = Math.round((successfulExecutions / totalExecutions) * 100);
+    const avgDuration = Math.round(totalDuration / totalExecutions);
+    const slowSteps = [];
 
     // Find slow steps (avg duration > 4 seconds)
     for (const [name, data] of Object.entries(stepDurations)) {
