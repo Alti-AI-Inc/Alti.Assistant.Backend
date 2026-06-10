@@ -191,6 +191,46 @@ Otherwise, provide the ENTIRE updated file content, incorporating GCP Pub/Sub/Cl
 
 File Path: {FILE_PATH}
 Content:
+{FILE_CONTENT}`,
+
+  gcp_iam_agent: `You are an elite GCP IAM & Service Account Auditor Agent AI.
+Analyze the following JavaScript file from a Node.js/Express backend.
+Your task is to ensure the codebase relies on Application Default Credentials (ADC) rather than hardcoded Service Account JSON keys. Audit and update Google API clients (Secret Manager, GCS, Vertex AI) to connect without hardcoded credential paths.
+If you find no IAM or hardcoded key violations, reply EXACTLY with: "NO_CHANGES_NEEDED".
+Otherwise, provide the ENTIRE updated file content, incorporating Application Default Credentials. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.
+
+File Path: {FILE_PATH}
+Content:
+{FILE_CONTENT}`,
+
+  vertex_safety_agent: `You are an elite Vertex AI & Safety Guard Agent AI.
+Analyze the following JavaScript file from a Node.js/Express backend.
+Your task is to audit all model generation code. Ensure model calls use the enterprise Vertex AI SDK (@google-cloud/vertexai), explicitly configure Google's safety settings (hate speech, harassment filter thresholds), and filter out or mask PII (Personally Identifiable Information) before transmitting data.
+If you find no safety setting or Vertex AI gaps, reply EXACTLY with: "NO_CHANGES_NEEDED".
+Otherwise, provide the ENTIRE updated file content, incorporating Vertex AI safety settings. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.
+
+File Path: {FILE_PATH}
+Content:
+{FILE_CONTENT}`,
+
+  gcp_health_agent: `You are an elite GCP Cloud Run Health Check & Graceful Shutdown Agent AI.
+Analyze the following JavaScript file from a Node.js/Express backend.
+Your task is to ensure the Express server handles Cloud Run scaling gracefully. Audit and update the startup/shutdown code to bind to process.env.PORT, expose liveness (/healthz) and readiness (/readyz) probes, and listen to SIGTERM signals to close database connections and wait for active requests before shutting down.
+If you find no Cloud Run lifecycle or probe gaps, reply EXACTLY with: "NO_CHANGES_NEEDED".
+Otherwise, provide the ENTIRE updated file content, incorporating graceful shutdown and probes. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.
+
+File Path: {FILE_PATH}
+Content:
+{FILE_CONTENT}`,
+
+  gcp_db_agent: `You are an elite GCP Database Resiliency Agent AI.
+Analyze the following JavaScript file from a Node.js/Express backend.
+Your task is to audit database connection configurations. Ensure connection strings utilize production connection pooling settings, automatic reconnects, socket timeouts, and keepAlive parameters optimized for GCP network routing (such as VPC peering or Cloud SQL Auth Proxy).
+If you find no connection or pooling optimization gaps, reply EXACTLY with: "NO_CHANGES_NEEDED".
+Otherwise, provide the ENTIRE updated file content, incorporating the database resiliency configurations. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.
+
+File Path: {FILE_PATH}
+Content:
 {FILE_CONTENT}`
 };
 
