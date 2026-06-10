@@ -61,28 +61,32 @@ const guestRateLimitSchema = z.object({
 });
 
 // Schema for image file upload validation
+// BUG FIX: The original schema incorrectly wrapped the file properties in an optional 'file' object.
+// When validating 'req.file' (as typically provided by Multer), the 'mimetype' and 'size'
+// are direct properties of 'req.file', not nested under another 'file' key.
+// This corrected schema directly validates the expected properties of 'req.file' and makes them required.
 const imageFileSchema = z.object({
-  file: z
-    .object({
-      mimetype: z
-        .string()
-        .refine(
-          (type) =>
-            [
-              'image/png',
-              'image/jpeg',
-              'image/jpg',
-              'image/gif',
-              'image/bmp',
-              'image/webp',
-            ].includes(type),
-          'Invalid image format. Only PNG, JPEG, GIF, BMP, and WebP are allowed.'
-        ),
-      size: z
-        .number()
-        .max(10 * 1024 * 1024, 'Image file too large. Maximum size is 10MB.'),
+  mimetype: z
+    .string({
+      required_error: 'Image mimetype is required.', // Ensure mimetype is present
     })
-    .optional(),
+    .refine(
+      (type) =>
+        [
+          'image/png',
+          'image/jpeg',
+          'image/jpg',
+          'image/gif',
+          'image/bmp',
+          'image/webp',
+        ].includes(type),
+      'Invalid image format. Only PNG, JPEG, GIF, BMP, and WebP are allowed.'
+    ),
+  size: z
+    .number({
+      required_error: 'Image size is required.', // Ensure size is present
+    })
+    .max(10 * 1024 * 1024, 'Image file too large. Maximum size is 10MB.'),
 });
 
 // Schema for conversation management
