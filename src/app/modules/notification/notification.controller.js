@@ -221,6 +221,7 @@ const sendNotificationById = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const data = req.body;
   // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  // This reduces memory overhead and improves performance when you don't need Mongoose document methods.
   const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
@@ -291,6 +292,7 @@ const getNotificationById = catchAsync(async (req, res) => {
   const { userId } = req.params;
 
   // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  // This reduces memory overhead and improves performance when you don't need Mongoose document methods.
   const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
@@ -407,7 +409,9 @@ const updateNotificationById = catchAsync(async (req, res) => {
     data
   );
 
-  if (!result || result.modifiedCount === 0) { // Check for null/undefined result or no modifications
+  // Optimize: Check if the update operation actually modified a document.
+  // If result is null/undefined or modifiedCount is 0, it means no document was found or no changes were applied.
+  if (!result || result.modifiedCount === 0) {
     return sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
       success: false,
@@ -493,8 +497,10 @@ const deleteNotificationById = catchAsync(async (req, res) => {
 
   const result =
     await NotificationService.deleteNotificationByIdService(notificationId);
-  if (!result || !result.deletedCount) { // Check for null/undefined result or no deletions
-    return res.status(400).json({
+  // Optimize: Check if the delete operation actually removed a document.
+  // If result is null/undefined or deletedCount is 0, it means no document was found or deleted.
+  if (!result || result.deletedCount === 0) {
+    return res.status(httpStatus.BAD_REQUEST).json({ // Use httpStatus for consistency
       status: 'fail',
       error: "Could't delete the notification",
     });
@@ -631,6 +637,7 @@ const getUserInbox = catchAsync(async (req, res) => {
   const isArchived = archived === 'true' ? true : archived === 'false' ? false : false;
 
   // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  // This reduces memory overhead and improves performance when you don't need Mongoose document methods.
   const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
