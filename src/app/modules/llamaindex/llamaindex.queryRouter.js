@@ -87,6 +87,9 @@ class QueryRouterService {
       // Fetch user's enriched document metadata for semantic alignment
       let userMetadataList = [];
       try {
+        // OPTIMIZATION: Ensure an index exists on the 'userId' field in the 'DocumentMetadata'
+        // collection for fast lookups, as this query runs for every routing request.
+        // Example Mongoose schema index: DocumentMetadataSchema.index({ userId: 1 });
         userMetadataList = await DocumentMetadata.find({ userId }).lean();
       } catch (dbError) {
         // PATCH: Improved logging for non-fatal DB errors. Log the full error object for better diagnostics.
@@ -94,13 +97,13 @@ class QueryRouterService {
         logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`, { error: dbError });
       }
 
-      // Step 1: Classify query profile using keywords + semantic tags from user documents
-      const profile = this._classifyProfile(queryLower, userMetadataList);
+      // Step 1: Classify query profile and analyze user document corpus in one pass
+      const { profile, docCharacteristics } = this._classifyProfile(queryLower, userMetadataList);
 
       // Step 2: Score each engine
       const scores = {};
       for (const engine of ENGINES) {
-        scores[engine] = this._scoreEngine(engine, profile, queryLower, options, userMetadataList);
+        scores[engine] = this._scoreEngine(engine, profile, queryLower, options, docCharacteristics);
       }
 
       // Step 3: Pick the winner
@@ -119,7 +122,7 @@ class QueryRouterService {
         engine: bestEngine,
         confidence: Math.round(confidence * 100) / 100,
         profile: profile.name,
-        reasoning: this._buildReasoning(bestEngine, profile, options, userMetadataList),
+        reasoning: this._buildReasoning(bestEngine, profile, options, docCharacteristics),
         alternatives: ranked.slice(1, 3).map(([eng, score]) => ({
           engine: eng,
           score: Math.round(score * 100) / 100,
@@ -228,51 +231,68 @@ class QueryRouterService {
   }
 
   /**
-   * Classify a query into a document profile, checking user document tags.
+   * Classify a query and analyze the user's document corpus.
    * @private
    */
   _classifyProfile(queryLower, userMetadataList) {
-    let bestMatch = { name: 'general', score: 0, preferredEngines: ['hybrid', 'vector'] };
+    // OPTIMIZATION: This function now iterates over userMetadataList only ONCE to extract all
+    // necessary characteristics, which are then passed to other functions. This avoids
+    // multiple O(N) iterations over the same list for profiling, scoring, and reasoning.
+    const docCharacteristics = {
+      highlyTechnicalCount: 0,
+    };
+    const profileScores = {};
 
+    // Step 1: Initialize scores from query keywords
     for (const [name, profile] of Object.entries(DOCUMENT_PROFILES)) {
-      let score = profile.keywords.reduce((acc, keyword) => {
-        return acc + (queryLower.includes(keyword) ? 1 : 0);
-      }, 0);
+      profileScores[name] = profile.keywords.reduce((acc, keyword) => (
+        acc + (queryLower.includes(keyword) ? 1 : 0)
+      ), 0);
+    }
 
-      // Semantic matching with user's enriched document topics
-      if (userMetadataList && userMetadataList.length > 0) {
-        for (const meta of userMetadataList) {
-          // If query targets a topic inside user's own technical/financial documents, boost alignment
-          const matchesTopic = meta.topics.some(t => queryLower.includes(t.toLowerCase()));
-          const matchesEntity = meta.entities.some(e => queryLower.includes(e.toLowerCase()));
+    // Step 2: Augment scores by iterating through user documents ONCE
+    if (userMetadataList && userMetadataList.length > 0) {
+      for (const meta of userMetadataList) {
+        // Tally characteristics for scoring and reasoning
+        if (meta.complexity === 'Highly Technical') {
+          docCharacteristics.highlyTechnicalCount++;
+        }
 
-          if (matchesTopic || matchesEntity) {
-            if (name === 'technical' && (meta.complexity === 'Highly Technical' || meta.complexity === 'Advanced')) {
-              score += 2;
-            }
-            if (name === 'structured' && meta.topics.some(t => ['database', 'sheets', 'data', 'finance'].includes(t.toLowerCase()))) {
-              score += 2;
-            }
-            if (name === 'research' && meta.topics.some(t => ['research', 'scientific', 'analysis'].includes(t.toLowerCase()))) {
-              score += 2;
-            }
+        // Check if query matches topics/entities in this document
+        const matchesAnyTopic = meta.topics.some(t => queryLower.includes(t.toLowerCase()));
+        const matchesAnyEntity = meta.entities.some(e => queryLower.includes(e.toLowerCase()));
+
+        if (matchesAnyTopic || matchesAnyEntity) {
+          // Boost relevant profiles based on document metadata
+          if (meta.complexity === 'Highly Technical' || meta.complexity === 'Advanced') {
+            profileScores.technical = (profileScores.technical || 0) + 2;
+          }
+          if (meta.topics.some(t => ['database', 'sheets', 'data', 'finance'].includes(t.toLowerCase()))) {
+            profileScores.structured = (profileScores.structured || 0) + 2;
+          }
+          if (meta.topics.some(t => ['research', 'scientific', 'analysis'].includes(t.toLowerCase()))) {
+            profileScores.research = (profileScores.research || 0) + 2;
           }
         }
       }
+    }
 
-      if (score > bestMatch.score) {
-        bestMatch = { name, score, preferredEngines: profile.preferredEngines };
+    // Step 3: Determine the best matching profile
+    let bestMatch = { name: 'general', score: 0, preferredEngines: ['hybrid', 'vector'] };
+    for (const name in profileScores) {
+      if (profileScores[name] > bestMatch.score) {
+        bestMatch = { name, score: profileScores[name], preferredEngines: DOCUMENT_PROFILES[name].preferredEngines };
       }
     }
 
-    return bestMatch;
+    return { profile: bestMatch, docCharacteristics };
   }
 
   /**
    * Score an engine for a given query profile and context.
    * @private
    */
-  _scoreEngine(engine, profile, queryLower, options, userMetadataList) {
+  _scoreEngine(engine, profile, queryLower, options, docCharacteristics) {
     let score = 0;
 
     // Base score: is this engine preferred for this profile?
@@ -302,11 +322,8 @@ class QueryRouterService {
     if (options.documentCount && options.documentCount <= 3 && engine === 'vector') score += 2;
 
     // Smart boost: Highly Technical document complexity alignment
-    if (userMetadataList && userMetadataList.length > 0) {
-      const hasHighlyTechnical = userMetadataList.some(meta => meta.complexity === 'Highly Technical');
-      if (hasHighlyTechnical && engine === 'selfcorrect') {
-        score += 3; // Boost self-correcting logic if user corpus contains complex papers
-      }
+    if (docCharacteristics.highlyTechnicalCount > 0 && engine === 'selfcorrect') {
+      score += 3; // Boost self-correcting logic if user corpus contains complex papers
     }
 
     // Query length heuristics
@@ -320,7 +337,7 @@ class QueryRouterService {
    * Build a human-readable reasoning string.
    * @private
    */
-  _buildReasoning(engine, profile, options, userMetadataList) {
+  _buildReasoning(engine, profile, options, docCharacteristics) {
     const parts = [];
     parts.push(`Query classified as "${profile.name}" profile`);
 
@@ -332,11 +349,8 @@ class QueryRouterService {
       parts.push('follow-up question detected');
     }
 
-    if (userMetadataList && userMetadataList.length > 0) {
-      const complexCount = userMetadataList.filter(m => m.complexity === 'Highly Technical').length;
-      if (complexCount > 0) {
-        parts.push(`Corpus contains ${complexCount} highly technical document profiles`);
-      }
+    if (docCharacteristics.highlyTechnicalCount > 0) {
+      parts.push(`Corpus contains ${docCharacteristics.highlyTechnicalCount} highly technical document profiles`);
     }
 
     const key = `${profile.name}:${engine}`;
