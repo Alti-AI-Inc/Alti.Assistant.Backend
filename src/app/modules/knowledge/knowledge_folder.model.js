@@ -291,13 +291,19 @@ KnowledgeFolderSchema.index({ userId: 1, parentFolderId: 1, isActive: 1 });
  */
 KnowledgeFolderSchema.index({ userId: 1, path: 1 });
 /**
- * Compound index for ensuring unique folder names within a parent folder for a given user.
+ * Compound index for ensuring unique folder names within a parent folder for a given user,
+ * but only for active folders. This allows soft-deleted folders to have duplicate names.
  * @index
  * @property {number} userId - Ascending order.
  * @property {number} name - Ascending order.
  * @property {number} parentFolderId - Ascending order.
+ * @property {boolean} unique - Enforces uniqueness.
+ * @property {object} partialFilterExpression - Applies uniqueness only when isActive is true.
  */
-KnowledgeFolderSchema.index({ userId: 1, name: 1, parentFolderId: 1 });
+KnowledgeFolderSchema.index(
+  { userId: 1, name: 1, parentFolderId: 1 },
+  { unique: true, partialFilterExpression: { isActive: true } }
+);
 
 // Virtual for formatted total size
 /**
@@ -420,6 +426,8 @@ KnowledgeFolderSchema.statics.nameExistsInParent = async function (
 
 /**
  * Retrieves a specific folder along with its entire lineage of ancestor folders and a breadcrumb string.
+ * This method uses Mongoose's aggregation framework with $graphLookup for efficient retrieval
+ * of hierarchical data, avoiding N+1 query issues.
  * @memberof KnowledgeFolderModel
  * @static
  * @async
@@ -433,27 +441,69 @@ KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (
   folderId,
   userId
 ) {
-  const folder = await this.findOne({ _id: folderId, userId, isActive: true });
-  if (!folder) return null;
+  const result = await this.aggregate([
+    {
+      // Match the target folder by its ID and ensure it belongs to the user and is active
+      $match: {
+        _id: new mongoose.Types.ObjectId(folderId),
+        userId: userId,
+        isActive: true,
+      },
+    },
+    {
+      // Use $graphLookup to recursively find all parent folders (ancestors)
+      $graphLookup: {
+        from: 'knowledgefolders', // The collection name for KnowledgeFolder model
+        startWith: '$parentFolderId', // Start the recursive search from the parentFolderId of the matched folder
+        connectFromField: 'parentFolderId', // Field in the 'from' collection to connect from (parent's parentFolderId)
+        connectToField: '_id', // Field in the 'from' collection to connect to (parent's _id)
+        as: 'ancestors', // The output array field containing all ancestors
+        // Restrict the search to only include active ancestors belonging to the same user
+        restrictSearchWithMatch: { userId: userId, isActive: true },
+      },
+    },
+    {
+      // Sort the ancestors by their path to ensure they are in root-to-parent order
+      $addFields: {
+        ancestors: {
+          $sortArray: {
+            input: '$ancestors',
+            sortBy: { path: 1 },
+          },
+        },
+      },
+    },
+    {
+      // Project the output to match the desired structure: 'folder' and 'ancestors'
+      $project: {
+        folder: '$$ROOT', // The original matched document becomes the 'folder'
+        ancestors: '$ancestors',
+        _id: 0, // Exclude the aggregation's root _id
+      },
+    },
+  ]);
 
-  const ancestors = [];
-  let currentFolder = folder;
-
-  while (currentFolder.parentFolderId) {
-    const parent = await this.findById(currentFolder.parentFolderId);
-    if (!parent) break; // Parent might be deleted or not found
-    ancestors.unshift(parent); // Add to the beginning to maintain root-to-parent order
-    currentFolder = parent;
+  if (result.length === 0) {
+    return null;
   }
 
-  const breadcrumb = ancestors
+  const { folder, ancestors } = result[0];
+
+  // Apply the toJSON transform manually to the aggregation results for consistency
+  // Aggregation results are plain objects, not Mongoose documents, so virtuals and transforms
+  // are not applied automatically.
+  const transformedFolder = KnowledgeFolderSchema.options.toJSON.transform(folder, { ...folder });
+  const transformedAncestors = ancestors.map(a => KnowledgeFolderSchema.options.toJSON.transform(a, { ...a }));
+
+  // Construct the breadcrumb string
+  const breadcrumb = transformedAncestors
     .map((a) => a.name)
-    .concat([folder.name])
+    .concat([transformedFolder.name])
     .join(' > ');
 
   return {
-    folder,
-    ancestors,
+    folder: transformedFolder,
+    ancestors: transformedAncestors,
     breadcrumb,
   };
 };
@@ -496,6 +546,7 @@ KnowledgeFolderSchema.methods.softDelete = async function () {
  * Mongoose pre-save hook to automatically generate or update the `path` field.
  * The path is constructed based on the folder's name and its parent's path.
  * This hook runs before saving a new document or when `parentFolderId` or `name` is modified.
+ * Includes error handling for parent folder lookup.
  * @memberof KnowledgeFolderSchema
  * @function preSaveHook
  * @param {function} next - The next middleware function.
@@ -507,14 +558,24 @@ KnowledgeFolderSchema.pre('save', async function (next) {
     this.isModified('parentFolderId') ||
     this.isModified('name')
   ) {
-    if (!this.parentFolderId) {
-      this.path = `/${this.name}`;
-    } else {
-      // Use this.constructor to refer to the model itself in a static context
-      const parent = await this.constructor.findById(this.parentFolderId);
-      if (parent) {
-        this.path = `${parent.path}/${this.name}`;
+    try {
+      if (!this.parentFolderId) {
+        this.path = `/${this.name}`;
+      } else {
+        // Use this.constructor to refer to the model itself in a static context.
+        // Select only necessary fields (path, name) for performance.
+        const parent = await this.constructor.findById(this.parentFolderId).select('path name');
+        if (parent) {
+          this.path = `${parent.path}/${this.name}`;
+        } else {
+          // If the parent folder is not found, it indicates a data inconsistency.
+          // Prevent saving the current folder with an invalid parent.
+          return next(new Error('Parent folder not found. Cannot create/update folder.'));
+        }
       }
+    } catch (error) {
+      // Catch any errors during the database lookup and pass them to Mongoose's error handling.
+      return next(error);
     }
   }
   next();
