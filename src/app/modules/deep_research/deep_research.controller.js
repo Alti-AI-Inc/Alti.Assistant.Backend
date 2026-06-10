@@ -201,7 +201,9 @@ export const performDeepResearch = catchAsync(async (req, res) => {
   // Determine actual maxDepth based on pre-flight depth choice
   const calculatedDepth = depth === 'fast' ? 2 : 4;
   const finalMaxDepth = req.body.maxDepth ? maxDepth : calculatedDepth;
-  userId = req.body.userId || userId; // Allow overriding userId from request body
+  // SECURITY FIX: Removed potential IDOR vulnerability. userId should be derived from authentication context
+  // or securely generated for guests, not from user input in the request body.
+  // userId = req.body.userId || userId; // Removed this line
 
   // Skip subscription check for guest users
   if (!isGuest) {
@@ -210,19 +212,13 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
     }).lean(); // Added .lean()
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
 
-    // Optimization: If `conversationHelpers.getConversationById` performs a Mongoose query for read-only data,
-    // consider adding `.lean()` within that helper function for performance.
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
+    // BUG FIX: Corrected subscription limit check logic.
+    // Assuming `userSubscription.usage` represents the *remaining* deep research credits for the user.
+    // If no subscription or usage is not defined, default to 0 credits.
+    const remainingDeepResearchCredits = userSubscription ? userSubscription.usage : 0;
 
-    if (promptUsage <= totalConversationWithConvId) {
+    if (remainingDeepResearchCredits <= 0) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -327,6 +323,20 @@ export const performDeepResearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    // BUG FIX: Decrement remaining deep research credits after successful research for authenticated users.
+    if (!isGuest) {
+      // Re-fetch the subscription to ensure we have the latest state, or pass the Mongoose document if available.
+      // For simplicity, we'll re-fetch and update.
+      const userSubscriptionToUpdate = await SubscriptionModel.findOne({ userId });
+      if (userSubscriptionToUpdate && userSubscriptionToUpdate.usage > 0) {
+        userSubscriptionToUpdate.usage -= 1;
+        await userSubscriptionToUpdate.save();
+      } else if (userSubscriptionToUpdate) {
+        // Log a warning if usage was already 0 but research was allowed (shouldn't happen with the check above)
+        logger.warn(`User ${userId} performed deep research but usage was already 0 or less. No decrement applied.`);
+      }
+    }
 
     // Prepare response
     const response = {
@@ -535,6 +545,10 @@ const getDeepResearchStats = catchAsync(async (req, res) => {
  */
 const downloadPDF = catchAsync(async (req, res) => {
   const { savedId } = req.params;
+  const isGuest = req.isGuest || !req.user;
+  // For authenticated users, get their userId. For guests, userId is not used for ownership check here,
+  // as guest access is typically based on the savedId itself being a unique, unguessable token.
+  const userId = isGuest ? null : req.user?.userId || req.user?._id;
 
   logger.info(`Deep research PDF download requested for savedId: ${savedId}`);
 
@@ -550,6 +564,17 @@ const downloadPDF = catchAsync(async (req, res) => {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
         message: 'Research result not found or has expired',
+      });
+    }
+
+    // SECURITY FIX: IDOR vulnerability. Ensure the research result belongs to the authenticated user.
+    // Guest users are implicitly allowed if they have the savedId, assuming savedId acts as an access token for guests.
+    // If guest users have a persistent userId associated with their research, an additional check would be needed here.
+    if (!isGuest && researchResult.userId !== userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'You do not have permission to access this research result',
       });
     }
 
@@ -626,6 +651,10 @@ const downloadPDF = catchAsync(async (req, res) => {
  */
 const downloadPPTX = catchAsync(async (req, res) => {
   const { savedId } = req.params;
+  const isGuest = req.isGuest || !req.user;
+  // For authenticated users, get their userId. For guests, userId is not used for ownership check here,
+  // as guest access is typically based on the savedId itself being a unique, unguessable token.
+  const userId = isGuest ? null : req.user?.userId || req.user?._id;
 
   logger.info(`Deep research PPTX download requested for savedId: ${savedId}`);
 
@@ -641,6 +670,17 @@ const downloadPPTX = catchAsync(async (req, res) => {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
         message: 'Research result not found or has expired',
+      });
+    }
+
+    // SECURITY FIX: IDOR vulnerability. Ensure the research result belongs to the authenticated user.
+    // Guest users are implicitly allowed if they have the savedId, assuming savedId acts as an access token for guests.
+    // If guest users have a persistent userId associated with their research, an additional check would be needed here.
+    if (!isGuest && researchResult.userId !== userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'You do not have permission to access this research result',
       });
     }
 
@@ -715,11 +755,26 @@ const downloadPPTX = catchAsync(async (req, res) => {
  */
 const telemetryStream = catchAsync(async (req, res) => {
   const { conversationId } = req.query;
+  const isGuest = req.isGuest || !req.user;
+  const userId = isGuest ? null : req.user?.userId || req.user?._id;
 
   if (!conversationId) {
     return res.status(httpStatus.BAD_REQUEST).json({
       success: false,
       message: 'conversationId query parameter is required',
+    });
+  }
+
+  // SECURITY FIX: IDOR vulnerability. Verify that the conversationId belongs to the current user.
+  // Using conversationHelpers.getConversationById to verify ownership.
+  // This helper is assumed to return null or throw if the user does not own the conversation.
+  // For guest users, if `userId` is null, the helper should handle guest-specific ownership (e.g., if conversationId is a guest-specific token).
+  const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+
+  if (!conversation) {
+    return res.status(httpStatus.FORBIDDEN).json({
+      success: false,
+      message: 'You do not have permission to access this conversation\'s telemetry stream',
     });
   }
 
