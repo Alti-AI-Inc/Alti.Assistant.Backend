@@ -43,8 +43,9 @@ workflow.addEdge('generate_pdf', END);
 // Compile immediately with in-memory checkpointer to avoid blocking startup
 let checkpointer = new MemorySaver();
 
-// Compile the workflow with checkpointer
-export const deepResearchAgentApp = workflow.compile({
+// Export the deep research agent app as a mutable variable so its checkpointer can be updated.
+// It's initially compiled with an in-memory checkpointer.
+export let deepResearchAgentApp = workflow.compile({
   checkpointer,
   debug: true,
 });
@@ -54,7 +55,10 @@ if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
   MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints')
     .then((mongoCheckpointer) => {
       checkpointer = mongoCheckpointer;
-      Object.assign(deepResearchAgentApp, workflow.compile({ checkpointer, debug: true }));
+      // Recompile and reassign the deepResearchAgentApp with the MongoDB checkpointer.
+      // Using Object.assign on a const export might not correctly update the internal checkpointer
+      // of a LangGraph Runnable. Reassigning the exported variable (now `let`) is more robust.
+      deepResearchAgentApp = workflow.compile({ checkpointer, debug: true });
       console.log('✅ Deep research: MongoDB checkpointer connected');
     })
     .catch((err) => {
@@ -75,9 +79,15 @@ export const runDeepResearchAgent = async (query, options = {}) => {
     consensusLevel = 'majority',
   } = options;
 
+  // Determine a consistent threadId for both the initial state and the LangGraph checkpointer.
+  // Prioritize provided conversationId, then a default from the imported config, then a new unique ID.
+  // This resolves the `config` variable shadowing and ensures consistency between `initialState.conversationId`
+  // and the `thread_id` used by the checkpointer.
+  const currentThreadId = conversationId || config.configurable.thread_id || `deep_research_${Date.now()}`;
+
   const initialState = {
     originalQuery: query,
-    conversationId: conversationId || config.configurable.thread_id,
+    conversationId: currentThreadId, // Use the consistent threadId
     generatePdf,
     history,
     maxDepth,
@@ -93,13 +103,12 @@ export const runDeepResearchAgent = async (query, options = {}) => {
     },
   };
 
-  const config = conversationId
-    ? { configurable: { thread_id: conversationId } }
-    : { configurable: { thread_id: `deep_research_${Date.now()}` } };
+  // Configuration for the LangGraph invocation, using the consistent threadId for the checkpointer.
+  const invokeConfig = { configurable: { thread_id: currentThreadId } };
 
   try {
-    console.log(`Starting deep research for: "${query}"`);
-    const result = await deepResearchAgentApp.invoke(initialState, config);
+    console.log(`Starting deep research for: "${query}" with threadId: ${currentThreadId}`);
+    const result = await deepResearchAgentApp.invoke(initialState, invokeConfig);
 
     return {
       success: true,
@@ -113,7 +122,7 @@ export const runDeepResearchAgent = async (query, options = {}) => {
       knowledgeGraph: result.knowledgeGraph,
       metadata: result.metadata,
       pdfData: result.pdfData,
-      conversationId: config.configurable.thread_id,
+      conversationId: currentThreadId, // Ensure the returned conversationId is the one actually used
       researchProgress: result.researchProgress,
     };
   } catch (error) {
@@ -122,7 +131,7 @@ export const runDeepResearchAgent = async (query, options = {}) => {
       success: false,
       error: error.message,
       query,
-      conversationId: config.configurable.thread_id,
+      conversationId: currentThreadId, // Ensure the returned conversationId is the one actually used
     };
   }
 };
