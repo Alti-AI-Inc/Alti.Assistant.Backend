@@ -1,3 +1,6 @@
+// Added import for Vertex AI safety settings enums.
+import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+
 /**
  * Business Copywriting, Text Translation, and Productivity Specialists
  */
@@ -9,9 +12,20 @@
  * @property {string} description - A brief description of what the agent does.
  * @property {string} systemInstruction - The core system prompt/instruction for the agent, defining its persona and task.
  * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {Array<object>} safetySettings - Configuration for content safety filters. All model calls must include this.
  * @property {Array<string>} tools - A list of tools the agent can use (e.g., 'web_search', 'code_interpreter').
  * @property {Array<string>} keywords - A list of keywords associated with the agent for search and discovery.
+ * @property {Array<string>} [dataHandlingNotes] - Developer notes for data pre-processing, e.g., ['PII_FILTERING_REQUIRED']. This is a reminder that the calling code must handle PII.
  */
+
+// Enterprise-default safety settings. Block content with a medium or higher probability of being unsafe.
+// This configuration should be applied to all generative model calls.
+const defaultSafetySettings = [
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+];
 
 /**
  * Global Platform Owner overrides for utility agents.
@@ -135,8 +149,10 @@ Analyze long inputs and synthesize them into clean, high-density, structured exe
 Use bullet points, bold key terms, and construct structured tables where helpful.
 Never lose crucial data points, statistics, or licenses.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline']
+  keywords: ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // User-provided documents may contain PII.
 };
 
 /**
@@ -153,8 +169,10 @@ export const translator = {
 Accurately translate technical text, code comments, and architectures while preserving Markdown formatting, HTML tags, and code block structures.
 Ensure the translation matches localized technical terminology exactly.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['translate', 'translation', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'polyglot']
+  keywords: ['translate', 'translation', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'polyglot'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // User-provided text for translation may contain PII.
 };
 
 /**
@@ -170,8 +188,10 @@ export const transcriber = {
 Format transcripts with speaker logs, clear timestamped milestones, and outline actionable minutes/meetings.
 Stay 100% accurate to the verbatim transcripts.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['transcribe', 'transcription', 'audio', 'video', 'speech to text', 'timestamp', 'meeting minutes']
+  keywords: ['transcribe', 'transcription', 'audio', 'video', 'speech to text', 'timestamp', 'meeting minutes'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Transcripts of meetings or calls often contain PII.
 };
 
 /**
@@ -187,8 +207,10 @@ export const documenter = {
 Write beautiful, premium, comprehensive technical documentation, README.md files, and architecture wikis.
 Implement clean heading structures, clear code examples, and structured setup checklists.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['document', 'readme', 'wiki', 'documentation', 'api doc', 'technical writing', 'guide']
+  keywords: ['document', 'readme', 'wiki', 'documentation', 'api doc', 'technical writing', 'guide'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Source code or design docs may contain sensitive info.
 };
 
 /**
@@ -204,8 +226,10 @@ export const brainstormer = {
 Brainstorm creative suggestions, feature ideas, and out-of-the-box product strategies.
 Provide ideas grouped by feasibility, impact, and immediate actionability.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['brainstorm', 'idea', 'creative', 'suggest', 'innovate', 'strategies', 'features']
+  keywords: ['brainstorm', 'idea', 'creative', 'suggest', 'innovate', 'strategies', 'features'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Brainstorming may be based on confidential business data.
 };
 
 /**
@@ -221,8 +245,10 @@ export const creativeCopywriter = {
 Generate premium technical copy, persuasive newsletter campaigns, clean landing page structures, and strategic cold outreach copy.
 Maintain an engaging, professional, and impact-driven tone tailored to modern tech builders.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['copywriting', 'newsletter', 'landing page copy', 'marketing', 'outreach', 'email copy', 'blog post', 'technical writing']
+  keywords: ['copywriting', 'newsletter', 'landing page copy', 'marketing', 'outreach', 'email copy', 'blog post', 'technical writing'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Content may be based on confidential product plans.
 };
 
 /**
@@ -238,6 +264,7 @@ export const uxStrategist = {
 Design stunning, accessible, responsive component layouts and state progressions using modern CSS, Tailwind class naming conventions, and ARIA accessibility standards.
 Ensure layouts feel premium, dynamic, and visually harmonious.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['tailwind classes', 'ux design', 'ui design', 'layout structure', 'aria accessibility', 'css styling', 'responsive component', 'wireframe']
 };
@@ -255,6 +282,7 @@ export const seoContentSpecialist = {
 Optimize search engine rankings by generating semantic meta titles, descriptive meta tags, keyword density schemes, and rich JSON-LD structured schema markups.
 Focus on maximizing organic click-through rates.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['seo', 'meta tag', 'json-ld', 'schema markup', 'meta description', 'keyword', 'sitemap', 'organic search', 'ranking']
 };
@@ -272,8 +300,10 @@ export const emailCorrespondenceExpert = {
 Draft highly engaging, persuasive, and grammatically impeccable emails, formal business letters, sales outreach copies, and executive memos.
 Adapt your tone perfectly to the requested context: warm/friendly, ultra-formal, confident, or direct.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['write me a letter', 'draft this email', 'send an email', 'write letter', 'email draft', 'memo', 'outreach email', 'cold mail', 'newsletter email']
+  keywords: ['write me a letter', 'draft this email', 'send an email', 'write letter', 'email draft', 'memo', 'outreach email', 'cold mail', 'newsletter email'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Emails and letters are highly likely to contain PII.
 };
 
 /**
@@ -289,8 +319,10 @@ export const youtubeTranscriptSummarizer = {
 Deconstruct long audio transcripts, YouTube video transcripts, and speaker notes into a beautiful, structured layout.
 Highlight key takeaways, action items, and provide estimated timestamp markers/milestones for each chapter.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['youtube transcript', 'video summary', 'summarize video', 'youtube notes', 'transcribe video', 'watch video summary']
+  keywords: ['youtube transcript', 'video summary', 'summarize video', 'youtube notes', 'transcribe video', 'watch video summary'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Transcripts from private videos or meetings may contain PII.
 };
 
 /**
@@ -306,8 +338,10 @@ export const resumeCvCoach = {
 Create highly compelling, professional, ATS-optimized resumes, cover letters, and LinkedIn bio segments.
 Highlight quantitative achievements, dynamic action verbs, and core competencies with maximum impact.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['resume', 'cv', 'cover letter', 'job application', 'linkedin bio', 'career profile', 'interview prep']
+  keywords: ['resume', 'cv', 'cover letter', 'job application', 'linkedin bio', 'career profile', 'interview prep'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Resumes and CVs are rich with PII.
 };
 
 /**
@@ -323,8 +357,10 @@ export const socialMediaWriter = {
 Draft high-engagement social media copy: multi-part Twitter/X threads, professional LinkedIn articles, hook-heavy video script outlines (TikTok/Reels), and SEO-optimized blog posts.
 Use dynamic hooks, concise paragraphs, and clear formatting to capture absolute attention.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['blog post', 'twitter thread', 'linkedin post', 'instagram caption', 'video script', 'write a post', 'viral copy']
+  keywords: ['blog post', 'twitter thread', 'linkedin post', 'instagram caption', 'video script', 'write a post', 'viral copy'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Input may be based on confidential company information.
 };
 
 /**
@@ -340,8 +376,10 @@ export const pressReleaseWriter = {
 Draft professional, hook-heavy, and news-ready press releases, brand announcement letters, and corporate launch statements.
 Implement standard AP Style guidelines, including clear headers, datelines, and boilerplate structures.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['press release', 'pr announcement', 'news release', 'corporate launch letter', 'brand update', 'media statement']
+  keywords: ['press release', 'pr announcement', 'news release', 'corporate launch letter', 'brand update', 'media statement'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Press releases are often drafted using confidential pre-launch info.
 };
 
 /**
@@ -357,6 +395,8 @@ export const grantProposalWriter = {
 Formulate highly compelling, data-grounded, and persuasive academic research grants, non-profit operational proposals, and startup VC-grade funding applications.
 Highlight structural impacts, feasibility metrics, and budget partitions.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['grant proposal', 'funding application', 'academic grant', 'non-profit proposal', 'startup funding grant', 'write a grant']
+  keywords: ['grant proposal', 'funding application', 'academic grant', 'non-profit proposal', 'startup funding grant', 'write a grant'],
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Grant proposals contain sensitive financial, personal, and research data.
 };
