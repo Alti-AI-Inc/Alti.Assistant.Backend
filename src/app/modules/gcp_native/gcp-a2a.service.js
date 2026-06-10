@@ -2,6 +2,11 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Programmatically generates standard system instructions for A2A peer communication.
+ * This prompt defines the expected XML-wrapped JSON structure for Agent-to-Agent (A2A)
+ * communication packets within a Google-native swarm environment. It includes mandatory
+ * headers, payload structure, and security token format.
+ *
+ * @returns {string} A multi-line string containing the A2A system prompt specifications.
  */
 const generateA2aSystemPrompt = () => {
   logger.info('GCP A2A: Compiling system prompt specifications for Google Agent-to-Agent swarm workflows...');
@@ -41,6 +46,23 @@ You are equipped with Google A2A peer communication protocols. When a complex ta
 
 /**
  * Extracts, sanitizes, and validates an A2A packet from raw response text.
+ * It looks for an XML block `<a2a-packet>...</a2a-packet>`, parses the enclosed JSON,
+ * and performs schema and security token validation.
+ *
+ * @param {string} rawText - The raw text response potentially containing an A2A packet.
+ * @returns {object} An object indicating the parsing and validation outcome.
+ * @property {boolean} success - True if the packet was successfully parsed and validated, false otherwise.
+ * @property {boolean} containsPacket - True if an `<a2a-packet>` block was found, false otherwise.
+ * @property {string} [message] - A descriptive message if no packet was found.
+ * @property {string[]} [errors] - An array of error messages if validation failed.
+ * @property {object|null} packet - The parsed A2A packet object if found and partially parsed, null otherwise.
+ * @property {string} packet.sender - The name of the sending agent.
+ * @property {string} packet.recipient - The name of the recipient agent.
+ * @property {string} packet.seqId - A unique sequence identifier for the packet.
+ * @property {string} packet.securityToken - A security token for authentication and integrity.
+ * @property {object} packet.payload - The main content of the message.
+ * @property {string} packet.payload.action - The specific action the recipient should perform.
+ * @property {object} packet.payload.parameters - Parameters relevant to the action.
  */
 const parseAndValidateA2a = (rawText) => {
   try {
@@ -134,12 +156,15 @@ const parseAndValidateA2a = (rawText) => {
 
 /**
  * Programmatically formats a secure multi-agent swarm handoff transition packet.
- * 
- * @param {string} fromAgent - Subagent initiator name
- * @param {string} toAgent - Target recipient subagent name
- * @param {string} action - Trigger objective action
- * @param {object} params - Input task parameters
- * @returns {string} Formatted XML string package
+ * This function constructs an A2A packet in the required JSON structure,
+ * wraps it in XML `<a2a-packet>` tags, and includes a dynamically generated
+ * security token with the current year.
+ *
+ * @param {string} fromAgent - The name of the initiating subagent.
+ * @param {string} toAgent - The name of the target recipient subagent.
+ * @param {string} action - The specific objective action the recipient should perform.
+ * @param {object} [params={}] - An object containing input task parameters relevant to the action. Defaults to an empty object.
+ * @returns {string} The formatted A2A packet as an XML string, ready for transmission.
  */
 const formatSwarmHandoff = (fromAgent, toAgent, action, params = {}) => {
   logger.info(`GCP A2A: Packaging swarm handoff from "${fromAgent}" to "${toAgent}"...`);
@@ -158,6 +183,20 @@ const formatSwarmHandoff = (fromAgent, toAgent, action, params = {}) => {
   return `<a2a-packet>\n${JSON.stringify(packet, null, 2)}\n</a2a-packet>`;
 };
 
+/**
+ * @typedef {object} GcpA2aService
+ * @property {function(): string} generateA2aSystemPrompt - Generates the standard A2A system prompt.
+ * @property {function(string): object} parseAndValidateA2a - Extracts, sanitizes, and validates an A2A packet from raw text.
+ * @property {function(string, string, string, object): string} formatSwarmHandoff - Formats a secure multi-agent swarm handoff transition packet.
+ */
+
+/**
+ * Provides a set of utilities for managing Google Agent-to-Agent (A2A) swarm communications.
+ * This service includes functions for generating system prompts, parsing and validating
+ * incoming A2A packets, and formatting outgoing A2A handoff messages.
+ *
+ * @type {GcpA2aService}
+ */
 export const GcpA2aService = {
   generateA2aSystemPrompt,
   parseAndValidateA2a,
