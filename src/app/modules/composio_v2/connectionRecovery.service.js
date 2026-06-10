@@ -1,15 +1,19 @@
 import ComposioAuth from './composio.model.js';
 import { actionAuditService } from './actionAudit.service.js';
 import { logger } from '../../../shared/logger.js';
-import config from '../../../../config/index.js';
 import { Composio } from '@composio/core';
 
 /**
  * @constant {Composio} composio - An instance of the Composio SDK initialized with the organization's API key.
  * This instance is used to interact with the Composio platform, specifically for managing connected accounts.
  */
+// GCP Secret Manager Auditor Agent:
+// The Composio API key is now sourced from an environment variable (COMPOSIO_ORG_API_KEY).
+// This is a best practice for cloud environments like Cloud Run, where secrets
+// can be securely injected as environment variables. This change removes the dependency
+// on a local configuration file for secrets in production.
 const composio = new Composio({
-  apiKey: config.composio.orgApiKey,
+  apiKey: process.env.COMPOSIO_ORG_API_KEY,
 });
 
 /**
