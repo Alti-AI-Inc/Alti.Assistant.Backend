@@ -219,6 +219,8 @@ class ActionAuditService {
   async getAuditLogs(authUser, filters = {}) {
     try {
       const query = {};
+      const limit = Math.min(parseInt(filters.limit) || 50, 200);
+      const offset = parseInt(filters.offset) || 0;
 
       // FIX: Build query based on user role to enforce RBAC and tenancy.
       switch (authUser.role) {
@@ -227,16 +229,31 @@ class ActionAuditService {
           break;
         case 'manager': {
           query.workspaceId = authUser.workspaceId;
-          const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
-          const managedUserIds = managedUsers.map(u => u._id);
-          managedUserIds.push(authUser._id); // Include manager's own logs
-
+          // OPTIMIZATION: If a specific user is requested, perform a targeted check
+          // instead of fetching all managed users first. This avoids a potentially slow User.find() call.
           if (filters.userId) {
-            if (!managedUserIds.some(id => id.equals(filters.userId))) {
-              return { success: false, error: 'Forbidden: You can only view logs for users you manage.', entries: [], total: 0 };
+            const targetUserId = new mongoose.Types.ObjectId(filters.userId);
+            // A manager can view their own logs.
+            if (targetUserId.equals(authUser._id)) {
+              query.userId = targetUserId;
+            } else {
+              // Verify the target user is managed by the authenticated manager within the same workspace.
+              const isManaged = await User.findOne({
+                _id: targetUserId,
+                managerId: authUser._id,
+                workspaceId: authUser.workspaceId,
+              }).lean();
+
+              if (!isManaged) {
+                return { success: false, error: 'Forbidden: You can only view logs for users you manage.', entries: [], total: 0 };
+              }
+              query.userId = targetUserId;
             }
-            query.userId = new mongoose.Types.ObjectId(filters.userId);
           } else {
+            // If no specific user, fetch all users managed by this manager.
+            const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
+            const managedUserIds = managedUsers.map(u => u._id);
+            managedUserIds.push(authUser._id); // Include manager's own logs
             query.userId = { $in: managedUserIds };
           }
           break;
@@ -244,7 +261,19 @@ class ActionAuditService {
         case 'admin':
           query.workspaceId = authUser.workspaceId;
           if (filters.userId) {
-            query.userId = new mongoose.Types.ObjectId(filters.userId);
+            const targetUserId = new mongoose.Types.ObjectId(filters.userId);
+            // OPTIMIZATION: Verify the user belongs to the admin's workspace to fail fast
+            // and avoid querying the large audit log collection unnecessarily.
+            const userInWorkspace = await User.findOne({
+              _id: targetUserId,
+              workspaceId: authUser.workspaceId,
+            }).lean();
+
+            if (!userInWorkspace) {
+              // User not found in this workspace, return empty result immediately.
+              return { success: true, entries: [], total: 0, limit, offset, hasMore: false };
+            }
+            query.userId = targetUserId;
           }
           break;
         case 'super_admin':
@@ -266,15 +295,13 @@ class ActionAuditService {
         query.createdAt = { $gte: new Date(filters.since) };
       }
 
-      const limit = Math.min(parseInt(filters.limit) || 50, 200);
-      const offset = parseInt(filters.offset) || 0;
-
+      // OPTIMIZATION: Run find and count queries in parallel.
       const [entries, total] = await Promise.all([
         ActionAuditLog.find(query)
           .sort({ createdAt: -1 })
           .skip(offset)
           .limit(limit)
-          .lean(),
+          .lean(), // OPTIMIZATION: Use .lean() for faster read-only queries.
         ActionAuditLog.countDocuments(query),
       ]);
 
@@ -323,16 +350,31 @@ class ActionAuditService {
           break;
         case 'manager': {
           matchStage.workspaceId = authUser.workspaceId;
-          const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
-          const managedUserIds = managedUsers.map(u => u._id);
-          managedUserIds.push(authUser._id);
-
+          // OPTIMIZATION: If a specific user is requested, perform a targeted check
+          // instead of fetching all managed users first. This avoids a potentially slow User.find() call.
           if (filters.userId) {
-            if (!managedUserIds.some(id => id.equals(filters.userId))) {
-              return { success: false, error: 'Forbidden: You can only view analytics for users you manage.' };
+            const targetUserId = new mongoose.Types.ObjectId(filters.userId);
+            // A manager can view their own analytics.
+            if (targetUserId.equals(authUser._id)) {
+              matchStage.userId = targetUserId;
+            } else {
+              // Verify the target user is managed by the authenticated manager within the same workspace.
+              const isManaged = await User.findOne({
+                _id: targetUserId,
+                managerId: authUser._id,
+                workspaceId: authUser.workspaceId,
+              }).lean();
+
+              if (!isManaged) {
+                return { success: false, error: 'Forbidden: You can only view analytics for users you manage.' };
+              }
+              matchStage.userId = targetUserId;
             }
-            matchStage.userId = new mongoose.Types.ObjectId(filters.userId);
           } else {
+            // If no specific user, fetch all users managed by this manager.
+            const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
+            const managedUserIds = managedUsers.map(u => u._id);
+            managedUserIds.push(authUser._id); // Include manager's own analytics
             matchStage.userId = { $in: managedUserIds };
           }
           break;
@@ -340,7 +382,18 @@ class ActionAuditService {
         case 'admin':
           matchStage.workspaceId = authUser.workspaceId;
           if (filters.userId) {
-            matchStage.userId = new mongoose.Types.ObjectId(filters.userId);
+            const targetUserId = new mongoose.Types.ObjectId(filters.userId);
+            // OPTIMIZATION: Verify the user belongs to the admin's workspace to fail fast
+            // and avoid running a costly aggregation on an invalid user.
+            const userInWorkspace = await User.findOne({
+              _id: targetUserId,
+              workspaceId: authUser.workspaceId,
+            }).lean();
+
+            if (!userInWorkspace) {
+              return { success: false, error: 'User not found in this workspace.' };
+            }
+            matchStage.userId = targetUserId;
           }
           break;
         case 'super_admin':
@@ -356,6 +409,7 @@ class ActionAuditService {
           return { success: false, error: 'Forbidden' };
       }
 
+      // OPTIMIZATION: Use a single aggregation with $facet to compute multiple analytics in one DB trip.
       const [analyticsResult] = await ActionAuditLog.aggregate([
         { $match: matchStage },
         {

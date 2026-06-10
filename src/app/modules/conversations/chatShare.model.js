@@ -14,7 +14,9 @@ import { v4 as uuidv4 } from 'uuid';
  * Represents a shareable link for a conversation, allowing users to share their chats.
  *
  * @property {string} shareId - A unique identifier for the share link, generated using UUID v4.
- * @property {string} conversationId - The ID of the conversation being shared. References the 'Conversation' model.
+ * @property {mongoose.Schema.Types.ObjectId} organizationId - The ID of the organization this share belongs to. Essential for multi-tenancy.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this share belongs to. Essential for multi-tenancy and access control.
+ * @property {mongoose.Schema.Types.ObjectId} conversationId - The ID of the conversation being shared. References the 'Conversation' model.
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who created the share. References the 'User' model.
  * @property {'public'|'private'} shareType - The type of share, either 'public' (accessible to anyone with the link) or 'private' (restricted access, though not fully implemented here). Defaults to 'public'.
  * @property {boolean} isActive - Indicates if the share link is currently active and accessible. Defaults to `true`.
@@ -31,13 +33,30 @@ const ChatShareSchema = new mongoose.Schema(
     shareId: {
       type: String,
       required: true,
-      unique: true, // Automatically creates a unique index; redundant 'index: true' removed for optimization
+      unique: true,
       default: () => uuidv4(),
     },
-    conversationId: {
-      type: String,
+    // INTEGRATION FIX: Added organizationId and workspaceId to enforce tenant boundaries.
+    // In a multi-tenant system, all resources must be strictly associated with a tenant (workspace/organization)
+    // to prevent data leakage and enable proper role-based access control.
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
       required: true,
+      index: true,
+    },
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true,
+    },
+    // BUG FIX: Changed conversationId type from String to ObjectId for proper Mongoose population.
+    // Using ObjectId is the standard, robust, and performant practice for referencing other documents.
+    conversationId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Conversation',
+      required: true,
       index: true,
     },
     userId: {
@@ -84,13 +103,15 @@ const ChatShareSchema = new mongoose.Schema(
 
 /**
  * Defines indexes for the ChatShareSchema to improve query performance.
- * Optimized compound indexes to support sorting by `createdAt` during paginated queries.
+ * Optimized compound indexes to support multi-tenancy and common query patterns.
  */
-ChatShareSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
-ChatShareSchema.index({ userId: 1, expiresAt: 1, createdAt: -1 });
+// INTEGRATION FIX: Added indexes with workspaceId to support tenant-scoped queries efficiently.
+ChatShareSchema.index({ workspaceId: 1, userId: 1, createdAt: -1 }); // For user-specific lookups within a workspace
+ChatShareSchema.index({ workspaceId: 1, isActive: 1, createdAt: -1 }); // For status-based lookups within a workspace (e.g., admin view)
 ChatShareSchema.index({ conversationId: 1, isActive: 1 });
-ChatShareSchema.index({ expiresAt: 1 });
+ChatShareSchema.index({ expiresAt: 1 }); // Useful for a background job to clean up expired shares
 ChatShareSchema.index({ shareType: 1, isActive: 1 });
+
 
 /**
  * Virtual property `isExpired`
@@ -136,6 +157,7 @@ ChatShareSchema.methods.isAccessible = function () {
 
 /**
  * Static method to find an active and non-expired share by its `shareId`.
+ * This method is for public access and does not need tenant scoping as shareId is globally unique.
  * Populates the `conversationId` field.
  *
  * @param {string} shareId - The unique ID of the share link.
@@ -157,34 +179,54 @@ ChatShareSchema.statics.findActiveShare = function (shareId) {
  */
 
 /**
- * Static method to find shared chats belonging to a specific user, with pagination and status filtering.
+ * Static method to find shared chats, with pagination and status filtering, respecting tenant boundaries.
  * Populates selected fields from the `conversationId` reference.
  * Optimized with lean queries for faster read-only performance.
  *
- * @param {mongoose.Schema.Types.ObjectId} userId - The ID of the user whose shares are to be found.
+ * @param {object} queryContext - The context for the query, used for authorization.
+ * @param {mongoose.Schema.Types.ObjectId} queryContext.workspaceId - The ID of the workspace to scope the search. This is mandatory.
+ * @param {mongoose.Schema.Types.ObjectId} [queryContext.userId] - Optional. The ID of the user whose shares are to be found. If not provided, searches for all shares in the workspace (for admin/manager roles).
  * @param {FindUserSharesOptions} [options] - Options for pagination and filtering.
  * @returns {Promise<ChatShare[]>} A promise that resolves with an array of ChatShare documents.
  */
-ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
+ChatShareSchema.statics.findUserShares = function (queryContext, options = {}) {
+  const { userId, workspaceId } = queryContext;
   const { page = 1, limit = 20, status = 'active' } = options;
 
-  let query = { userId };
+  // SECURITY FIX: The query must be scoped to the workspace to prevent IDOR and data leakage across tenants.
+  // Throwing an error or returning an empty array if workspaceId is missing prevents accidental data exposure.
+  if (!workspaceId) {
+    // Returning empty array is a safe default. The service layer could also throw an error.
+    return Promise.resolve([]);
+  }
+
+  let query = { workspaceId };
+
+  // If a specific user is requested, add it to the query.
+  // This allows the same method to be used by users (for their own shares) and admins (for all shares in a workspace).
+  if (userId) {
+    query.userId = userId;
+  }
 
   if (status === 'active') {
     query.isActive = true;
     query.$or = [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }];
   } else if (status === 'expired') {
-    query.expiresAt = { $lte: new Date() };
+    // BUG FIX: An 'expired' share should be one that was active but has passed its expiration date.
+    // A 'revoked' (isActive: false) share is a different state and should not be included here.
+    query.isActive = true;
+    query.expiresAt = { $ne: null, $lte: new Date() };
   } else if (status === 'revoked') {
     query.isActive = false;
   }
+  // For 'all', no additional status filters are applied beyond the workspaceId/userId scope.
 
   const skip = (page - 1) * limit;
 
   return this.find(query)
     .populate(
       'conversationId',
-      'title conversationId lastActivity messageCount'
+      'title lastActivity messageCount' // Cleaned up populate fields
     )
     .sort({ createdAt: -1 })
     .skip(skip)
