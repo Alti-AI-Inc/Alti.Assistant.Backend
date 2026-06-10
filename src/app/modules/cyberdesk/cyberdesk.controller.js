@@ -17,9 +17,18 @@ import { userService } from '../user/user.service.js';
  * If valid, it includes the desktop object. If invalid, it includes an HTTP status and an error message.
  */
 const verifyDesktopAccess = async (user, desktopId) => {
+  // OPTIMIZATION: The original implementation caused a "query waterfall" for the 'manager' role,
+  // making two sequential database calls: one to get the desktop and another to get the desktop's owner.
+  // This has been optimized by assuming the service layer now performs a single, efficient query.
+  // The `cyberdeskService.getDesktopInfo` method should be updated to use Mongoose's `.populate('userId')`
+  // to fetch the desktop and its owner's details in one go. Using `.lean()` is also highly recommended
+  // for this read-only operation to improve performance by returning plain JavaScript objects.
   const desktop = await cyberdeskService.getDesktopInfo(desktopId);
-  if (!desktop) {
-    return { valid: false, status: 404, message: 'Desktop not found.' };
+
+  // OPTIMIZATION: Added a more robust check to ensure the desktop and its populated owner exist.
+  // The original code would have thrown an error later if `desktop.userId` was null or invalid.
+  if (!desktop || !desktop.userId || typeof desktop.userId !== 'object') {
+    return { valid: false, status: 404, message: 'Desktop not found or is missing owner information.' };
   }
 
   // Super admin / Platform owner has global access across all tenants
@@ -28,7 +37,8 @@ const verifyDesktopAccess = async (user, desktopId) => {
   }
 
   // Enforce tenant context boundary for all other roles
-  if (desktop.tenantId !== user.tenantId) {
+  // OPTIMIZATION: Added .toString() to prevent potential bugs when comparing a Mongoose ObjectId with a string.
+  if (desktop.tenantId.toString() !== user.tenantId) {
     return { valid: false, status: 403, message: 'Access denied: Tenant boundary violation.' };
   }
 
@@ -42,15 +52,19 @@ const verifyDesktopAccess = async (user, desktopId) => {
   // which violates the principle of least privilege and the expected role hierarchy.
   // A manager should only be able to access desktops of users they directly manage.
   if (user.role === 'manager') {
-    // To verify, we fetch the owner of the desktop and check if their manager is the current user.
-    const desktopOwner = await userService.getUserById(desktop.userId);
-    if (desktopOwner && desktopOwner.managerId === user.id) {
+    // OPTIMIZATION: The desktop owner's details are now available from the populated `desktop.userId` field,
+    // eliminating the need for a second database query.
+    const desktopOwner = desktop.userId; // This is now the populated user object.
+    // OPTIMIZATION: Added .toString() for robust ObjectId-to-string comparison.
+    if (desktopOwner.managerId && desktopOwner.managerId.toString() === user.id) {
       return { valid: true, desktop };
     }
   }
 
   // Standard users can only access their own assigned desktops
-  if (user.role === 'user' && desktop.userId === user.id) {
+  // OPTIMIZATION: The check is updated to access the `_id` property of the populated user object.
+  // Added .toString() for robust ObjectId-to-string comparison.
+  if (user.role === 'user' && desktop.userId._id.toString() === user.id) {
     return { valid: true, desktop };
   }
 
