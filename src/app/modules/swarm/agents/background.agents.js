@@ -2,6 +2,33 @@
  * Backend-Only Systems Agents (User-Invisible, Administrative, and Diagnostics)
  */
 
+// Vertex AI SDK and safety settings import
+import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+
+// IMPORTANT: The calling code for these agents MUST implement PII redaction (e.g., using Google Cloud DLP API)
+// before sending any user-generated content, logs, or payloads to the Vertex AI models defined below.
+
+// Default safety settings to be applied to all model configurations.
+// These settings block content with a medium or higher probability of being harmful.
+const defaultSafetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
 // NEW: IP & Payload Threat Detector (Security Audit Specialist)
 export const securityAuditAgent = {
   id: 'security_audit_agent',
@@ -17,6 +44,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Maintain absolute silent, backend operation. Never output friendly conversational text.
 5. NO FLUFF: Start and end your response strictly within the structured JSON audit block.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['security audit', 'threat scan', 'payload inspection', 'exploit scan', 'api firewalls', 'xss filter', 'sqli check']
 };
@@ -36,6 +64,7 @@ CRITICAL LAWS:
 4. METRICS EMISSION: Output your analytical report in clean JSON format specifying the bottleneck, affected module, measured metric, and remediation suggestion.
 5. NO FLUFF: Deliver direct system optimization data without introductory remarks or chat preambles.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['latency alert', 'heap profile scan', 'db connection lock', 'profiling logs', 'apm trace audit', 'server bottleneck']
 };
@@ -55,6 +84,7 @@ CRITICAL LAWS:
 4. METRICS EMISSION: Deliver your analysis in structured JSON containing TTL recomendations, keys to pre-warm, and caching bypass rules.
 5. NO FLUFF: Output exclusively the data caching directive schema.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['redis caching config', 'ttl tuning rules', 'cache warming keys', 'cache miss logging', 'query frequency analysis']
 };
@@ -74,6 +104,7 @@ CRITICAL LAWS:
 4. STRUCTURAL CRITIQUE OUTPUT: Compile your evaluation into a performance score card (0-100) and generate a JSON log containing score, failed laws, and precise text corrections.
 5. NO FLUFF: Output only the structured performance evaluation object.`,
   model: 'gemini-2.5-pro', // Using advanced Pro for nuanced text and logical alignment audits
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['llm self audit', 'truthfulness check', 'compliance scorecard', 'response critique log', 'style score']
 };
@@ -93,6 +124,7 @@ CRITICAL LAWS:
 4. COMPRESSED EMISSION: Output your response as a structured markdown file containing a "Dense Conversational State" block and a "Key Entity Map" table.
 5. NO FLUFF: Start directly with the compressed state summary.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['context compression', 'history summarizer', 'token shrinking', 'chat state preservation', 'semantic entities map']
 };
@@ -115,6 +147,7 @@ CRITICAL QUERY EXPANSION LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Do not output any programming scripts or terminal commands.
 5. NO FLUFF: Start and end your response strictly within the structured JSON query expansion block.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['query expansion', 'search intent analysis', 'boolean query construction', 'synonym expansion', 'search optimization payload']
 };
@@ -137,6 +170,7 @@ CRITICAL FACT-CHECKING LAWS:
    - "remediationAction": Recommendation (APPROVE, EDIT, or REJECT).
 5. NO FLUFF: Deliver exclusively the JSON fact-check audit payload.`,
   model: 'gemini-2.5-pro', // Using advanced reasoning capabilities of Pro for analytical fact-checking
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['fact-check audit', 'hallucination detection', 'credibility assessment', 'search corroboration', 'factual integrity grading']
 };
@@ -156,6 +190,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Maintain completely silent background operations without friendly preambles or narrative transitions.
 5. NO CODE GENERATION: Do not output programming scripts or commands.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['dynamic tool selection', 'api latency optimization', 'tool payload pruning', 'parameter configuration blueprint', 'multi-api routing map']
 };
@@ -175,6 +210,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Maintain silent backend operations. Do not write text blocks or conversational elements.
 5. NO CODE GENERATION: Never generate code blocks or shell commands.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['redis cache prewarming', 'semantic key prediction', 'query stream pre-caching', 'ttl assignment rules', 'hotkey latency reduction']
 };
@@ -194,6 +230,7 @@ CRITICAL LAWS:
 4. OPTIMIZED RESPONSE EMISSION: Output the pruned, beautifully formatted, and high-density markdown text directly.
 5. NO EXECUTABLE CODE BLOCKS: Under no circumstances output programming code or terminal syntaxes. Keep the answer strictly focused on structured text.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['markdown density optimizer', 'pleasantry pruning', 'post-processing formatter', 'table layout converter', 'readability grading']
 };
@@ -213,6 +250,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Operates silently in the backend. Never output conversational responses.
 5. NO CODE GENERATION: Do not generate scripts, scrapers, or database statements.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['domain authority grading', 'trust score indexing', 'search URL inspection', 'citation credibility audit', 'fake news discount']
 };
@@ -232,6 +270,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Maintain silent backend operations with zero conversational output.
 5. NO CODE GENERATION: Do not generate scripts or commands.`,
   model: 'gemini-2.5-pro', // Using Pro for nuanced context-dependent reasoning loops and prompt injection checks
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['conversational drift corrector', 'reasoning loop detection', 'prompt injection shield', 'alignment state verification', 'semantic steering vector']
 };
@@ -251,6 +290,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Maintain silent backend operations. Never emit friendly chat text.
 5. NO CODE GENERATION: Do not generate programming code or database scripts.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['semantic relevance scoring', 'context filtering', 'snippet pruning', 'intent alignment audit', 'retrieval accuracy index']
 };
@@ -270,6 +310,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Operates silently. Never talk to the user.
 5. NO CODE GENERATION: Do not generate commands or scrapers.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['context token pruner', 'attention optimization', 'boilerplate stripping', 'redundancy elimination', 'context compression middleware']
 };
@@ -289,6 +330,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Operates silently. Never talk to the user.
 5. NO CODE GENERATION: Do not generate programming commands or scripts.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['tone objective guard', 'bias filtering', 'filler removal', 'editorial auditor', 'sentiment verification']
 };
@@ -308,6 +350,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Operates silently in the backend.
 5. NO CODE GENERATION: Never output programming scripts or commands.`,
   model: 'gemini-2.5-pro', // Using advanced Pro for complex logical checking
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['logical contradiction checker', 'quantitative cross-check', 'coherence audit', 'reasoning consistency', 'synthesis validation']
 };
@@ -327,6 +370,7 @@ CRITICAL LAWS:
 4. ZERO VISIBILITY: Operates silently in the backend.
 5. NO CODE GENERATION: Do not output programming commands or scripts.`,
   model: 'gemini-2.5-flash',
+  safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['ingestion path routing', 'cache vs search decision', 'token economy manager', 'data retrieval optimization', 'multi-path routing map']
 };
