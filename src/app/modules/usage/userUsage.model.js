@@ -106,9 +106,11 @@ UserUsageSchema.statics.getOrCreateToday = async function (
 
   // Bug Fix: When a new daily document is created, storageUsed should be initialized
   // from the latest previous day's record, not default to 0.
+  // OPTIMIZATION: Added .lean() to skip Mongoose document hydration for a faster, read-only operation.
   const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
                                     .sort({ date: -1 })
-                                    .select('storageUsed');
+                                    .select('storageUsed')
+                                    .lean();
 
   const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
 
@@ -171,7 +173,11 @@ UserUsageSchema.statics.getTodayRequests = async function (
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  const doc = await this.findOne({ userId, tenantId, date: today });
+  // OPTIMIZATION: Added .select() to fetch only the necessary field and .lean() to return a plain JS object,
+  // which is faster than hydrating a full Mongoose document.
+  const doc = await this.findOne({ userId, tenantId, date: today })
+    .select('requestsUsed')
+    .lean();
   return doc ? doc.requestsUsed : 0;
 };
 
@@ -227,7 +233,12 @@ UserUsageSchema.statics.getTotalStorage = async function (
   userId,
   tenantId = null
 ) {
-  const latest = await this.findOne({ userId, tenantId }).sort({ date: -1 });
+  // OPTIMIZATION: Added .select() to fetch only the necessary field and .lean() to return a plain JS object,
+  // which is faster than hydrating a full Mongoose document.
+  const latest = await this.findOne({ userId, tenantId })
+    .sort({ date: -1 })
+    .select('storageUsed')
+    .lean();
   return latest ? latest.storageUsed : 0;
 };
 
