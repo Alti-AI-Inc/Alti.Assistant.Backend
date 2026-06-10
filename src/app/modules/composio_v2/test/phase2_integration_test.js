@@ -347,7 +347,11 @@ export const testWorkflowExecution = async () => {
     const results = {
       singleStepExecution: singleStepResult.success,
       multiStepExecution: multiStepResult.success,
-      connectionValidation: connectionValidation.success !== undefined,
+      // BUG FIX: Changed assertion from `!== undefined` to `=== true`
+      // The `validateConnections` method is expected to return an object with a `success` property.
+      // If `success` is `false`, it means validation failed, which should be considered a test failure for this specific check.
+      // `!== undefined` would pass even if `success` was explicitly `false`.
+      connectionValidation: connectionValidation.success === true,
     };
 
     const testSuccess = Object.values(results).every(
