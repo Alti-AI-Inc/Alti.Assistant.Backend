@@ -1,9 +1,28 @@
+/**
+ * @fileoverview This service provides an interface for interacting with various Google Workspace APIs
+ * including Drive, Sheets, Docs, and Calendar. It handles authentication and wraps API calls
+ * with logging and error handling.
+ * @module gcp-workspace.service
+ */
+
 import { google } from 'googleapis';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
 // Setup scoped authentication for Workspace
+
+/**
+ * The path to the Google application credentials key file.
+ * Defaults to 'alti_gcp.json' if not specified in configuration.
+ * @type {string}
+ */
 const keyFile = config.google.google_application_credentials || 'alti_gcp.json';
+
+/**
+ * GoogleAuth client for authenticating requests to Google APIs.
+ * Configured with specific scopes for Drive, Sheets, Calendar, and Docs.
+ * @type {google.auth.GoogleAuth}
+ */
 const auth = new google.auth.GoogleAuth({
   keyFile,
   scopes: [
@@ -14,14 +33,33 @@ const auth = new google.auth.GoogleAuth({
   ]
 });
 
+/**
+ * Google Drive API client instance.
+ * @type {import('googleapis').drive_v3.Drive}
+ */
 const drive = google.drive({ version: 'v3', auth });
+
+/**
+ * Google Sheets API client instance.
+ * @type {import('googleapis').sheets_v4.Sheets}
+ */
 const sheets = google.sheets({ version: 'v4', auth });
+
+/**
+ * Google Calendar API client instance.
+ * @type {import('googleapis').calendar_v3.Calendar}
+ */
 const calendar = google.calendar({ version: 'v3', auth });
+
+/**
+ * Google Docs API client instance.
+ * @type {import('googleapis').docs_v1.Docs}
+ */
 const docs = google.docs({ version: 'v1', auth });
 
 /**
  * Uploads a text or binary payload as a file to Google Drive.
- * 
+ *
  * @param {string} fileName - Destination name
  * @param {string|Buffer} content - Content payload
  * @param {string} [folderId] - Parent folder ID
@@ -62,7 +100,7 @@ const driveUpload = async (fileName, content, folderId = null, mimeType = 'text/
 
 /**
  * Downloads a file's content from Google Drive by ID.
- * 
+ *
  * @param {string} fileId - Google Drive file ID
  * @returns {Promise<object>} Download content
  */
@@ -87,7 +125,7 @@ const driveDownload = async (fileId) => {
 
 /**
  * Creates a brand new Google Sheet spreadsheet.
- * 
+ *
  * @param {string} title - Sheet title
  * @returns {Promise<object>} Sheet info
  */
@@ -116,7 +154,7 @@ const sheetsCreate = async (title) => {
 
 /**
  * Appends row values to a Google Sheet spreadsheet range.
- * 
+ *
  * @param {string} spreadsheetId - Spreadsheet ID
  * @param {string} range - Sheet range (e.g. 'Sheet1!A:C')
  * @param {Array|Array<Array>} values - Array of cells/values or double array of rows
@@ -152,7 +190,7 @@ const sheetsAppend = async (spreadsheetId, range, values) => {
 
 /**
  * Reads cells from a Google Sheet spreadsheet range.
- * 
+ *
  * @param {string} spreadsheetId - Spreadsheet ID
  * @param {string} range - Sheet range (e.g. 'Sheet1!A1:D20')
  * @returns {Promise<object>} Read content
@@ -179,7 +217,7 @@ const sheetsRead = async (spreadsheetId, range) => {
 
 /**
  * Creates a formatted Google Document with structured headers and body content.
- * 
+ *
  * @param {string} title - Document title
  * @param {string} bodyText - Document text body
  * @returns {Promise<object>} Docs creation report
@@ -187,7 +225,7 @@ const sheetsRead = async (spreadsheetId, range) => {
 const docsCreate = async (title, bodyText) => {
   try {
     logger.info(`Workspace API: Creating Google Doc "${title}"...`);
-    
+
     // 1. Create empty doc first
     const createResponse = await drive.files.create({
       requestBody: {
@@ -196,7 +234,7 @@ const docsCreate = async (title, bodyText) => {
       },
       fields: 'id, name, webViewLink'
     });
-    
+
     const docId = createResponse.data.id;
 
     // 2. Append body content
@@ -228,17 +266,22 @@ const docsCreate = async (title, bodyText) => {
 
 /**
  * Creates an event on the Google Calendar.
- * 
+ *
  * @param {string} summary - Event name
  * @param {string} startTime - ISO datetime start (e.g. '2026-05-25T10:00:00-04:00')
  * @param {string} endTime - ISO datetime end (e.g. '2026-05-25T11:30:00-04:00')
  * @param {object} [details] - Optional descriptions, location, attendees
+ * @param {string} [details.location] - Location of the event.
+ * @param {string} [details.description] - Description of the event.
+ * @param {string} [details.timeZone='UTC'] - Time zone for the event start/end times.
+ * @param {Array<string>} [details.attendees] - Array of attendee email addresses.
+ * @param {string} [details.calendarId='primary'] - The ID of the calendar to create the event on.
  * @returns {Promise<object>} Calendar event report
  */
 const calendarCreateEvent = async (summary, startTime, endTime, details = {}) => {
   try {
     logger.info(`Workspace API: Creating Calendar Event "${summary}"...`);
-    
+
     const event = {
       summary,
       location: details.location || '',
@@ -278,8 +321,11 @@ const calendarCreateEvent = async (summary, startTime, endTime, details = {}) =>
 
 /**
  * Lists upcoming Google Calendar events.
- * 
- * @param {object} [options] - Event query filters (maxResults, timeMin)
+ *
+ * @param {object} [options] - Event query filters
+ * @param {string} [options.calendarId='primary'] - The ID of the calendar to list events from.
+ * @param {number} [options.maxResults=10] - Maximum number of events to return.
+ * @param {string} [options.timeMin] - The minimum start time for events to return (ISO datetime string). Defaults to current time.
  * @returns {Promise<object>} Event list report
  */
 const calendarListEvents = async (options = {}) => {
@@ -317,6 +363,19 @@ const calendarListEvents = async (options = {}) => {
   }
 };
 
+/**
+ * Provides a collection of functions for interacting with Google Workspace APIs.
+ * This service encapsulates operations for Google Drive, Sheets, Docs, and Calendar.
+ * @namespace GcpWorkspaceService
+ * @property {function(string, string|Buffer, string, string): Promise<object>} driveUpload - Uploads a file to Google Drive.
+ * @property {function(string): Promise<object>} driveDownload - Downloads a file from Google Drive.
+ * @property {function(string): Promise<object>} sheetsCreate - Creates a new Google Sheet spreadsheet.
+ * @property {function(string, string, Array|Array<Array>): Promise<object>} sheetsAppend - Appends row values to a Google Sheet.
+ * @property {function(string, string): Promise<object>} sheetsRead - Reads cells from a Google Sheet.
+ * @property {function(string, string): Promise<object>} docsCreate - Creates a new Google Document.
+ * @property {function(string, string, string, object): Promise<object>} calendarCreateEvent - Creates an event on Google Calendar.
+ * @property {function(object): Promise<object>} calendarListEvents - Lists upcoming Google Calendar events.
+ */
 export const GcpWorkspaceService = {
   driveUpload,
   driveDownload,
