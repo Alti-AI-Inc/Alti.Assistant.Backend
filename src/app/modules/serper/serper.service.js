@@ -1,15 +1,47 @@
+/**
+ * @module serper.service
+ * @description This module provides a service for interacting with the Serper.dev Google Search API.
+ * It encapsulates the logic for making search requests, handling API keys securely,
+ * sanitizing input, and managing errors gracefully.
+ */
 const axios = require('axios');
 
-// Security: Load API key from environment variables.
-// This prevents hardcoding sensitive credentials and allows for easy management across environments.
-// Ensure SERPER_API_KEY is set in your environment (e.g., via .env file and dotenv package, or directly in deployment).
+/**
+ * The API key for the Serper.dev service, loaded from environment variables.
+ * This approach prevents hardcoding sensitive credentials and allows for easy management across environments.
+ * Ensure `SERPER_API_KEY` is set in your environment (e.g., via a .env file).
+ * @type {string | undefined}
+ * @private
+ * @security This key is sensitive and must be managed securely.
+ */
 const SERPER_API_KEY = process.env.SERPER_API_KEY;
+
+/**
+ * The base URL for the Serper.dev search API endpoint.
+ * @type {string}
+ * @private
+ * @constant
+ */
 const SERPER_API_URL = 'https://google.serper.dev/search';
 
-// UX Optimization: Define a request timeout to prevent hanging requests, improving user experience by failing fast.
+/**
+ * Request timeout in milliseconds.
+ * This is a UX optimization to prevent requests from hanging indefinitely,
+ * improving user experience by failing fast if the external API is slow.
+ * @type {number}
+ * @private
+ * @constant
+ */
 const REQUEST_TIMEOUT_MS = 8000; // 8 seconds
 
-// Security & Robustness: Whitelist allowed parameters to prevent unexpected behavior or data leakage from the options object.
+/**
+ * A whitelist of allowed search option parameters that can be passed to the Serper API.
+ * This is a security and robustness measure to prevent unexpected behavior or data leakage
+ * by only allowing known parameters to be sent to the external service.
+ * @type {Set<string>}
+ * @private
+ * @constant
+ */
 const ALLOWED_OPTIONS = new Set(['gl', 'hl', 'num', 'tbs', 'searchType', 'page', 'autocorrect']);
 
 /**
@@ -24,6 +56,7 @@ const ALLOWED_OPTIONS = new Set(['gl', 'hl', 'num', 'tbs', 'searchType', 'page',
  * @param {number} [options.page] Page number for pagination.
  * @param {boolean} [options.autocorrect] Enable or disable autocorrect.
  * @returns {Promise<object>} The search results from the Serper API.
+ * @throws {Error} Throws an error if the query is invalid, the service is not configured, or the API call fails.
  */
 async function search(query, options = {}) {
     // Robustness: Validate that the query is a non-empty string.
