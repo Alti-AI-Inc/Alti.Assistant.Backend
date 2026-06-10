@@ -15,7 +15,149 @@ import SubscriptionModel from '../subscription/subscription.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
- * Summarize content (URL or file)
+ * @swagger
+ * tags:
+ *   name: Summary
+ *   description: API for content summarization and related operations.
+ */
+
+/**
+ * @swagger
+ * /api/v1/summary:
+ *   post:
+ *     summary: Summarize content from a URL, text, or uploaded file.
+ *     description: |
+ *       Processes user input (a URL, raw text, or an uploaded file) to generate a summary.
+ *       Supports PDF, DOCX, CSV, and TXT file types.
+ *       Manages conversation history, allowing users to continue previous summarization threads.
+ *       Handles both authenticated and guest users, generating a unique ID for guests.
+ *       The response includes the generated summary, conversation ID, and metadata.
+ *     tags: [Summary]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The URL or text content to be summarized.
+ *                 example: "https://example.com/article.pdf"
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional. The ID of an existing conversation to continue.
+ *                 example: "654321098765432109876543"
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *               - file
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: A descriptive message for the file being summarized (e.g., "Summarize this document").
+ *                 example: "Summarize the attached report."
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional. The ID of an existing conversation to continue.
+ *                 example: "654321098765432109876543"
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to be uploaded and summarized (PDF, DOCX, CSV, TXT).
+ *     responses:
+ *       200:
+ *         description: Summarization completed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Summarization completed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     responseMessage:
+ *                       type: object
+ *                       properties:
+ *                         answer:
+ *                           type: string
+ *                           description: The generated summary.
+ *                           example: "The document discusses AI advancements..."
+ *                         summaryType:
+ *                           type: string
+ *                           enum: [file, url]
+ *                           description: Indicates if the summary was generated from a file or URL/text.
+ *                           example: "file"
+ *                         fileMetadata:
+ *                           type: object
+ *                           description: Metadata about the summarized file, if applicable.
+ *                           properties:
+ *                             fileName: { type: string, example: "report.pdf" }
+ *                             fileType: { type: string, example: "application/pdf" }
+ *                             fileSize: { type: number, example: 102400 }
+ *                         metadata:
+ *                           type: object
+ *                           description: Additional message metadata.
+ *                           properties:
+ *                             summaryType: { type: string, example: "file" }
+ *                             fileMetadata: { type: object }
+ *                             summaryTimestamp: { type: string, format: date-time }
+ *                             model: { type: string, example: "claude-sonnet-4.5" }
+ *                     conversationId:
+ *                       type: string
+ *                       description: The ID of the conversation.
+ *                       example: "654321098765432109876543"
+ *                     messageCount:
+ *                       type: number
+ *                       description: The total number of messages in the conversation after this interaction.
+ *                       example: 4
+ *                     userType:
+ *                       type: string
+ *                       enum: [guest, authenticated]
+ *                       description: Type of user performing the summarization.
+ *                       example: "authenticated"
+ *                     userId:
+ *                       type: string
+ *                       description: The user ID (only included for guest users for frontend tracking).
+ *                       example: "guest_12345"
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Summarizes content provided as a URL, raw text, or an uploaded file.
+ * This function handles the entire summarization workflow, including:
+ * - Identifying user type (guest or authenticated) and managing user IDs.
+ * - Creating or retrieving conversation threads.
+ * - Parsing various file types (PDF, DOCX, CSV, TXT) if a file is uploaded.
+ * - Invoking the summarization AI workflow.
+ * - Storing user queries and AI responses in the conversation history.
+ * - Returning the summary and relevant conversation metadata.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ *   - `req.user`: Authenticated user information (if available).
+ *   - `req.isGuest`: Boolean indicating if the user is a guest.
+ *   - `req.body.message`: The URL or text content to summarize.
+ *   - `req.body.conversationId`: Optional ID of an existing conversation.
+ *   - `req.file`: Uploaded file object (if `multipart/form-data` is used).
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const summarizeContent = catchAsync(async (req, res) => {
   console.log('Performing summarization with request body:', req.user);
@@ -249,7 +391,71 @@ const summarizeContent = catchAsync(async (req, res) => {
 });
 
 /**
- * Get summary statistics for the user (authenticated users only)
+ * @swagger
+ * /api/v1/summary/stats:
+ *   get:
+ *     summary: Retrieve summary statistics for the authenticated user.
+ *     description: |
+ *       Fetches usage statistics related to summarization for the currently authenticated user.
+ *       This endpoint is restricted to authenticated users only; guest users will receive an unauthorized response.
+ *       Statistics might include total summaries, file summaries, URL summaries, etc.
+ *     tags: [Summary]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Summary statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Summary statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   description: Object containing various summary statistics.
+ *                   properties:
+ *                     totalSummaries:
+ *                       type: number
+ *                       example: 50
+ *                       description: Total number of summarization requests made by the user.
+ *                     fileSummaries:
+ *                       type: number
+ *                       example: 20
+ *                       description: Number of summaries generated from file uploads.
+ *                     urlSummaries:
+ *                       type: number
+ *                       example: 30
+ *                       description: Number of summaries generated from URLs or text.
+ *                     lastSummaryDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-10-27T10:00:00Z"
+ *                       description: Timestamp of the last summarization request.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Retrieves summarization usage statistics for an authenticated user.
+ * This endpoint is protected and will return an unauthorized error for guest users.
+ * It fetches data such as the total number of summaries, file summaries, etc.,
+ * from the `summaryService`.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ *   - `req.user`: Authenticated user information, including `userId` or `_id`.
+ *   - `req.isGuest`: Boolean indicating if the user is a guest.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getSummaryStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -284,6 +490,15 @@ const getSummaryStats = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @typedef {object} SummaryController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} summarizeContent - Handles content summarization requests.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getSummaryStats - Retrieves summary statistics for authenticated users.
+ */
+/**
+ * Exports an object containing all controller functions related to summary operations.
+ * @type {SummaryController}
+ */
 export const summaryController = {
   summarizeContent,
   getSummaryStats,
