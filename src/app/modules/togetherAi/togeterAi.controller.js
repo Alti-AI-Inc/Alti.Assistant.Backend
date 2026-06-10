@@ -18,9 +18,12 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *     summary: Generate an image using Google GenAI Imagen 4.0
  *     description: Generates an image based on a provided text prompt using the Google GenAI Imagen 4.0 model.
  *                  It also increments the user's image usage count via the payment controller.
+ *                  Requires an authenticated user context to track and enforce usage limits.
  *     tags:
  *       - AI Image Generation
  *       - Google GenAI
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -33,7 +36,7 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *             properties:
  *               user:
  *                 type: object
- *                 description: User object, typically from authentication, containing user details for usage tracking.
+ *                 description: User object containing user details for usage tracking and quota enforcement.
  *                 example: { "_id": "654321098765432109876543", "email": "user@example.com" }
  *               sessionId:
  *                 type: string
@@ -73,7 +76,7 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *                             description: Base64 encoded URL of the generated image.
  *                             example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
  *       400:
- *         description: Bad request due to missing prompt, no image data, or error updating image usage.
+ *         description: Bad request due to missing prompt, no image data, or error updating image usage (e.g., insufficient credits).
  *         content:
  *           application/json:
  *             schema:
@@ -85,7 +88,7 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *                 message:
  *                   type: string
  *                   example: "Prompt is required for image generation."
- *       500:
+ *       501:
  *         description: Internal server error.
  *         content:
  *           application/json:
@@ -98,6 +101,26 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *                 message:
  *                   type: string
  *                   example: "An unexpected error occurred."
+ */
+
+/**
+ * @async
+ * @function TogetherAiImgGeneration
+ * @description Handles the image generation request using Google GenAI Imagen 4.0.
+ * It takes a prompt, generates an image, and returns a base64 encoded image URL.
+ * It also tracks and increments the user's image usage.
+ * 
+ * @permission Authenticated User (Requires valid user object in request body for quota tracking)
+ * @context Multi-tenant / User-specific quota tracking via payment controller
+ * 
+ * @param {import('express').Request} req - The Express request object.
+ * @param {Object} req.body - The request body.
+ * @param {Object} req.body.user - The user object used for tracking usage.
+ * @param {string} [req.body.sessionId] - Optional session identifier.
+ * @param {string} req.body.prompt - The text prompt to generate the image from.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent to the client.
+ * @throws {Error} If the prompt is missing, the AI model fails to return image data, or the payment/usage increment fails.
  */
 const TogetherAiImgGeneration = catchAsync(async (req, res) => {
   const { user, sessionId, prompt } = req.body;
