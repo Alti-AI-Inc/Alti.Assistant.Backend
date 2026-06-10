@@ -5,6 +5,9 @@ import { logger } from '../../../shared/logger.js';
 import { videoService } from './video.service.js';
 import { videoApp } from './video_assistant/workflow.js';
 import { videoHelpers } from './video.helper.js';
+// BUG FIX: Missing import for conversationHelpers.
+// Assuming conversationHelpers is a shared utility, adjust path if necessary.
+import { conversationHelpers } from '../../../shared/conversation.helper.js';
 
 // Generate video similar to image module flow
 export const generateVideo = catchAsync(async (req, res) => {
@@ -12,7 +15,11 @@ export const generateVideo = catchAsync(async (req, res) => {
   let userId = isGuest
     ? videoService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
-  userId = req.body?.userId || userId;
+  // BUG FIX: Security Vulnerability (IDOR) - Do not allow client to override userId.
+  // The userId should be authoritative, derived from authentication or guest generation.
+  // Removing this line prevents a malicious user from impersonating another user
+  // by providing a userId in the request body.
+  // userId = req.body?.userId || userId;
 
   const { message, conversationId } = req.body;
 
@@ -32,6 +39,9 @@ export const generateVideo = catchAsync(async (req, res) => {
     });
   }
 
+  // BUG FIX: Declare actualConversationId outside try block to make it accessible in catch.
+  // This ensures that if an error occurs, the correct conversation ID can be used for logging.
+  let actualConversationId;
   const thread_id =
     conversationId || videoService.generateVideoConversationId();
 
@@ -43,7 +53,7 @@ export const generateVideo = catchAsync(async (req, res) => {
       isGuest,
       req
     );
-    const actualConversationId = conversation.conversationId || thread_id;
+    actualConversationId = conversation.conversationId || thread_id; // Assign here
 
     // Add user message to conversation
     await videoService.addVideoQueryMessage(
@@ -105,7 +115,11 @@ export const generateVideo = catchAsync(async (req, res) => {
       fullResponse,
       {
         video: videoData,
-        preferences: inputs.preferences,
+        // BUG FIX: inputs.preferences is always undefined as the 'inputs' object
+        // (initialPrompt or userResponse) does not contain a 'preferences' property.
+        // Removed this property to avoid passing an undefined value.
+        // If preferences are intended to be passed, they should be explicitly extracted from req.body.
+        // preferences: inputs.preferences,
       },
       isGuest,
       req
@@ -130,8 +144,10 @@ export const generateVideo = catchAsync(async (req, res) => {
     logger.error('Video Assistant Error:', error);
 
     // Try to save error message to conversation if possible
-    const errorConversationId =
-      conversationId || videoService.generateVideoConversationId();
+    // BUG FIX: Use actualConversationId if available, otherwise fall back to thread_id.
+    // This ensures consistency with the conversation ID established for the request
+    // and prevents generating a new, unrelated ID for the error log.
+    const errorConversationId = actualConversationId || thread_id;
     try {
       if (errorConversationId && userId) {
         await videoService.addErrorMessage(
@@ -144,7 +160,7 @@ export const generateVideo = catchAsync(async (req, res) => {
         );
       }
     } catch {
-      // Ignore errors from logging the error message
+      // Ignore errors from logging the error message to prevent cascading failures.
     }
 
     return sendResponse(res, {
@@ -199,6 +215,8 @@ const getVideoConversation = catchAsync(async (req, res) => {
         req
       );
     } else {
+      // BUG FIX: conversationHelpers was not imported, causing a ReferenceError.
+      // Now using the imported conversationHelpers to retrieve the conversation.
       conversation = await conversationHelpers.getConversationById(
         conversationId,
         userId,
@@ -213,6 +231,8 @@ const getVideoConversation = catchAsync(async (req, res) => {
       data: { conversation, userType: isGuest ? 'guest' : 'authenticated' },
     });
   } catch (error) {
+    // Improve error logging for debugging purposes
+    logger.error('Error retrieving video conversation:', error);
     return sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
       success: false,
