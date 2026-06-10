@@ -151,14 +151,23 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    });
+    // Optimization: Add .lean() for read-only query to improve performance by returning plain JavaScript objects
+    // instead of Mongoose documents.
+    // Recommendation: Ensure an index exists on `userId` and `createdAt` in the SubscriptionModel
+    // for efficient querying and sorting (e.g., `{ userId: 1, createdAt: -1 }`).
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
     const promptUsage = userSubscription ? userSubscription.usage : 0;
+
     // Note: conversationHelpers.getConversationById typically returns a conversation object.
     // The comparison `promptUsage <= totalConversationWithConvId` implies `totalConversationWithConvId`
     // is expected to be a numeric value representing usage. This logic might need review
     // if `getConversationById` does not return a comparable numeric value.
+    // If `getConversationById` fetches a Mongoose document for read-only purposes, consider adding `.lean()` inside that helper.
+    // Recommendation: Ensure an index exists on `conversationId` and `userId` in the Conversation model
+    // for efficient lookup within `conversationHelpers.getConversationById`.
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
           conversationId,
@@ -348,6 +357,10 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   });
 
   try {
+    // If `creativeWritingService.getConversationHistory` fetches a Mongoose document for read-only purposes,
+    // consider adding `.lean()` inside that service method for performance.
+    // Recommendation: Ensure an index exists on `conversationId` and `userId` in the Conversation model
+    // for efficient lookup (e.g., `{ conversationId: 1, userId: 1 }`).
     const conversation = await creativeWritingService.getConversationHistory(
       conversationId,
       userId,
