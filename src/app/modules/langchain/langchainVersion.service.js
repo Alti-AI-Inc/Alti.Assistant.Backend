@@ -16,9 +16,11 @@ import LangchainChainVersion from './langchain-version.model.js';
  */
 const createSnapshot = async (chainId, userId, changeSummary = 'Configuration snapshotted.') => {
   try {
+    // Optimization: Use .lean() for this read-only operation to improve performance by returning a plain
+    // JavaScript object instead of a full Mongoose document, reducing memory overhead.
     // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups.
     // Example: LangchainChainSchema.index({ userId: 1 });
-    const chain = await LangchainChain.findOne({ _id: chainId, userId });
+    const chain = await LangchainChain.findOne({ _id: chainId, userId }).lean();
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
