@@ -148,9 +148,15 @@ const transcribeAudioToTextController = async (req, res) => {
         audioFilePath
       );
 
-    // Safe delete
-    if (fs.existsSync(audioFilePath)) {
-      fs.unlinkSync(audioFilePath);
+    // Optimize: Replaced synchronous fs.unlinkSync with asynchronous fs.promises.unlink
+    // to prevent blocking the event loop during file deletion.
+    // Added specific error handling for 'ENOENT' (file not found) to avoid unnecessary warnings.
+    try {
+      await fs.promises.unlink(audioFilePath);
+    } catch (unlinkError) {
+      if (unlinkError.code !== 'ENOENT') {
+        console.warn(`Failed to delete temporary audio file ${audioFilePath}:`, unlinkError.message);
+      }
     }
 
     return res.status(httpStatus.OK).json({
@@ -158,9 +164,15 @@ const transcribeAudioToTextController = async (req, res) => {
       transcription: text,
     });
   } catch (error) {
-    // Safe delete on error
-    if (fs.existsSync(audioFilePath)) {
-      fs.unlinkSync(audioFilePath);
+    // Optimize: Replaced synchronous fs.unlinkSync with asynchronous fs.promises.unlink
+    // to prevent blocking the event loop during file deletion, even on error.
+    // Added specific error handling for 'ENOENT' (file not found) to avoid unnecessary warnings.
+    try {
+      await fs.promises.unlink(audioFilePath);
+    } catch (unlinkError) {
+      if (unlinkError.code !== 'ENOENT') {
+        console.warn(`Failed to delete temporary audio file ${audioFilePath} during error handling:`, unlinkError.message);
+      }
     }
 
     console.error(
