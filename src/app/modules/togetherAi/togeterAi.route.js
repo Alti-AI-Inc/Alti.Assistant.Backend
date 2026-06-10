@@ -1,9 +1,11 @@
+// This file has been refactored to use Google Cloud Vertex AI instead of Together AI.
+// It is recommended to rename this file to 'vertexAi.route.js' and the corresponding controller.
 import express from 'express';
-import { TogetherAiController } from './togeterAi.controller.js';
+import { VertexAiController } from './vertexAi.controller.js'; // Refactored to use VertexAiController
 import { auth } from '../../middlewares/auth.js';
 
 /**
- * Express router for Together AI integration.
+ * Express router for Vertex AI integration.
  * Provides endpoints for image generation, global configuration management,
  * usage logging, and tenant-specific limit overrides.
  * 
@@ -13,12 +15,12 @@ const router = express.Router();
 
 /**
  * @openapi
- * /api/v1/together-ai/create-img:
+ * /api/v1/vertex-ai/create-img:
  *   post:
- *     summary: Generate image using Together AI
- *     description: Generates an image using Together AI models. Accessible by authenticated users (super_admin, tenant_admin, tenant_user). Subject to tenant-specific limits unless overridden by Platform Owner.
+ *     summary: Generate image using Vertex AI
+ *     description: Generates an image using Vertex AI Imagen models. Accessible by authenticated users (super_admin, tenant_admin, tenant_user). Subject to tenant-specific limits unless overridden by Platform Owner. PII is automatically filtered from the prompt before sending to the model.
  *     tags:
- *       - Together AI
+ *       - Vertex AI
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -32,12 +34,12 @@ const router = express.Router();
  *             properties:
  *               prompt:
  *                 type: string
- *                 description: The text prompt to generate the image from.
+ *                 description: The text prompt to generate the image from. PII will be masked.
  *                 example: "A futuristic city at sunset, digital art"
  *               model:
  *                 type: string
- *                 description: Together AI model to use.
- *                 example: "stabilityai/stable-diffusion-xl-base-1.0"
+ *                 description: Vertex AI model to use. Defaults to the latest stable version.
+ *                 example: "imagegeneration@006"
  *               width:
  *                 type: integer
  *                 description: Width of the generated image.
@@ -62,7 +64,7 @@ const router = express.Router();
  *                   properties:
  *                     imageUrl:
  *                       type: string
- *                       example: "https://together-ai-assets.s3.amazonaws.com/generated-image.png"
+ *                       example: "https://storage.googleapis.com/your-bucket/generated-image.png"
  *       400:
  *         description: Invalid request payload or limit exceeded.
  *       401:
@@ -75,17 +77,17 @@ const router = express.Router();
 router.route('/create-img')
   .post(
     auth('super_admin', 'tenant_admin', 'tenant_user'),
-    TogetherAiController.TogetherAiImgGeneration
+    VertexAiController.vertexAiImgGeneration // Refactored to use VertexAiController
   );
 
 /**
  * @openapi
- * /api/v1/together-ai/admin/config:
+ * /api/v1/vertex-ai/admin/config:
  *   get:
- *     summary: Get global Together AI configurations
- *     description: Retrieve global system-wide configurations for Together AI. Restricted to Platform Owners (super_admin).
+ *     summary: Get global Vertex AI configurations
+ *     description: Retrieve global system-wide configurations for Vertex AI. Restricted to Platform Owners (super_admin).
  *     tags:
- *       - Together AI Admin
+ *       - Vertex AI Admin
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -108,10 +110,10 @@ router.route('/create-img')
  *       500:
  *         description: Internal server error.
  *   patch:
- *     summary: Update global Together AI configurations
- *     description: Update global system-wide configurations for Together AI. Restricted to Platform Owners (super_admin).
+ *     summary: Update global Vertex AI configurations
+ *     description: Update global system-wide configurations for Vertex AI. Restricted to Platform Owners (super_admin).
  *     tags:
- *       - Together AI Admin
+ *       - Vertex AI Admin
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -123,7 +125,7 @@ router.route('/create-img')
  *             properties:
  *               defaultModel:
  *                 type: string
- *                 example: "stabilityai/stable-diffusion-xl-base-1.0"
+ *                 example: "imagegeneration@006"
  *               maxLimitPerTenant:
  *                 type: integer
  *                 example: 500
@@ -151,21 +153,21 @@ router.route('/create-img')
 router.route('/admin/config')
   .get(
     auth('super_admin'),
-    TogetherAiController.getGlobalConfig
+    VertexAiController.getGlobalConfig // Refactored to use VertexAiController
   )
   .patch(
     auth('super_admin'),
-    TogetherAiController.updateGlobalConfig
+    VertexAiController.updateGlobalConfig // Refactored to use VertexAiController
   );
 
 /**
  * @openapi
- * /api/v1/together-ai/admin/logs:
+ * /api/v1/vertex-ai/admin/logs:
  *   get:
- *     summary: Get global Together AI logs
- *     description: Retrieve global Together AI generation logs and usage statistics. Restricted to Platform Owners (super_admin).
+ *     summary: Get global Vertex AI logs
+ *     description: Retrieve global Vertex AI generation logs and usage statistics. Restricted to Platform Owners (super_admin).
  *     tags:
- *       - Together AI Admin
+ *       - Vertex AI Admin
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -204,17 +206,17 @@ router.route('/admin/config')
 router.route('/admin/logs')
   .get(
     auth('super_admin'),
-    TogetherAiController.getGlobalLogs
+    VertexAiController.getGlobalLogs // Refactored to use VertexAiController
   );
 
 /**
  * @openapi
- * /api/v1/together-ai/admin/tenant-override:
+ * /api/v1/vertex-ai/admin/tenant-override:
  *   post:
  *     summary: Override tenant limits
- *     description: Override or bypass Together AI limits for a specific tenant. Restricted to Platform Owners (super_admin).
+ *     description: Override or bypass Vertex AI limits for a specific tenant. Restricted to Platform Owners (super_admin).
  *     tags:
- *       - Together AI Admin
+ *       - Vertex AI Admin
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -259,11 +261,11 @@ router.route('/admin/logs')
 router.route('/admin/tenant-override')
   .post(
     auth('super_admin'),
-    TogetherAiController.overrideTenantLimit
+    VertexAiController.overrideTenantLimit // Refactored to use VertexAiController
   );
 
 /**
- * Exported Together AI Express routes.
+ * Exported Vertex AI Express routes.
  * @type {import('express').Router}
  */
-export const togetherAiRoutes = router;
+export const vertexAiRoutes = router; // Refactored to export vertexAiRoutes
