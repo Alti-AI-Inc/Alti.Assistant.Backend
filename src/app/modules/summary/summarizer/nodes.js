@@ -3,7 +3,7 @@ import { createClient } from 'redis';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
 import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
 import { promises as dns } from 'dns';
-import { isIP } from 'net';
+import { isIP, isIPv4 } from 'net';
 import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
 
@@ -17,7 +17,7 @@ import { generateSummary } from '../summarizerService.js';
  * @type {import('redis').RedisClientType}
  */
 const redisClient = createClient({
-  // url: process.env.REDIS_URL, // Example for production
+  url: process.env.REDIS_URL || 'redis://localhost:6379', // Connect via URL, fallback to default for local dev
   enable_offline_queue: false,
 });
 
@@ -29,15 +29,17 @@ redisClient.connect().catch(console.error);
 /**
  * Rate limiter for unauthenticated (public) users performing content fetch operations.
  * Limits are based on the client's IP address.
+ * NOTE: In a production system, these values should be configurable per environment
+ * or loaded from a central configuration service.
  * Allows 20 fetches per hour per IP. If exceeded, the IP is blocked for 15 minutes.
  * @type {RateLimiterRedis}
  */
 const publicFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_ip',
-  points: 20,
-  duration: 60 * 60,
-  blockDuration: 60 * 15,
+  points: 20, // Configurable: e.g., process.env.PUBLIC_FETCH_LIMIT
+  duration: 60 * 60, // 1 hour
+  blockDuration: 60 * 15, // 15 minutes
 });
 
 /**
@@ -49,22 +51,24 @@ const publicFetchLimiter = new RateLimiterRedis({
 const publicSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_ip',
-  points: 10,
-  duration: 60 * 60,
-  blockDuration: 60 * 30,
+  points: 10, // Configurable
+  duration: 60 * 60, // 1 hour
+  blockDuration: 60 * 30, // 30 minutes
 });
 
 /**
  * Rate limiter for authenticated users performing content fetch operations.
  * Limits are based on the user's unique ID.
+ * NOTE: For a tiered subscription model, multiple limiters could be created and
+ * selected based on the user's plan.
  * Allows 200 fetches per hour per user.
  * @type {RateLimiterRedis}
  */
 const authenticatedFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_user',
-  points: 200,
-  duration: 60 * 60,
+  points: 200, // Configurable per plan
+  duration: 60 * 60, // 1 hour
 });
 
 /**
@@ -76,13 +80,10 @@ const authenticatedFetchLimiter = new RateLimiterRedis({
 const authenticatedSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_user',
-  points: 100,
-  duration: 60 * 60,
+  points: 100, // Configurable per plan
+  duration: 60 * 60, // 1 hour
 });
 
-// BUGFIX/INTEGRATION: Added workspace-level limiters to enforce tenant-wide quotas.
-// This ensures that the collective actions of all users in a workspace do not
-// exceed the plan's limits.
 /**
  * Tenant-level (workspace) rate limiter for content fetch operations.
  * Enforces a collective quota for all users within a single workspace.
@@ -93,8 +94,8 @@ const authenticatedSummarizeLimiter = new RateLimiterRedis({
 const workspaceFetchLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_fetch_workspace',
-  points: 1000, // 1000 fetch operations per hour for the entire workspace
-  duration: 60 * 60,
+  points: 1000, // Configurable per workspace plan
+  duration: 60 * 60, // 1 hour
 });
 
 /**
@@ -107,28 +108,57 @@ const workspaceFetchLimiter = new RateLimiterRedis({
 const workspaceSummarizeLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_summarize_workspace',
-  points: 500, // 500 summary operations per hour for the entire workspace
-  duration: 60 * 60,
+  points: 500, // Configurable per workspace plan
+  duration: 60 * 60, // 1 hour
 });
 // --- End of Rate Limiting Setup ---
 
-// --- Security Helper Functions ---
+// --- Utility & Security Helper Functions ---
 
 /**
- * SECURITY: Checks if an IP address is in a private range (RFC 1918) or loopback.
- * This is a crucial part of the SSRF mitigation strategy.
+ * Wraps a promise with a timeout, improving resilience against slow external services.
+ * @template T
+ * @param {Promise<T>} promise The promise to wrap.
+ * @param {number} ms The timeout in milliseconds.
+ * @param {string} [timeoutMessage] Optional message for the timeout error.
+ * @returns {Promise<T>}
+ */
+const withTimeout = (promise, ms, timeoutMessage = 'Operation timed out.') => {
+  const timeout = new Promise((_, reject) => {
+    const id = setTimeout(() => {
+      clearTimeout(id);
+      reject(new Error(timeoutMessage));
+    }, ms);
+  });
+  return Promise.race([promise, timeout]);
+};
+
+/**
+ * SECURITY: Checks if an IP address is in a private, loopback, or link-local range.
+ * This is a crucial part of the SSRF mitigation strategy and now includes basic IPv6 checks.
  * @param {string} ip - The IP address to check.
- * @returns {boolean} - True if the IP is private, false otherwise.
+ * @returns {boolean} - True if the IP is private/reserved, false otherwise.
  */
 const isPrivateIp = (ip) => {
-  // A more comprehensive library like 'ip-address' or 'ip-range-check' is recommended for production.
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4) return false; // Not a valid IPv4 for this simple check
+  // For production, a robust library like `ip-address` or `ip-range-check` is recommended.
+  if (isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    return (
+      parts[0] === 10 || // 10.0.0.0/8
+      (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
+      (parts[0] === 192 && parts[1] === 168) || // 192.168.0.0/16
+      parts[0] === 127 || // 127.0.0.0/8 (Loopback)
+      (parts[0] === 169 && parts[1] === 254) // 169.254.0.0/16 (Link-local)
+    );
+  }
+
+  // Basic IPv6 private range checks
+  const normalizedIp = ip.toLowerCase();
   return (
-    parts[0] === 10 ||
-    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-    (parts[0] === 192 && parts[1] === 168) ||
-    parts[0] === 127 // Loopback
+    normalizedIp === '::1' || // Loopback
+    normalizedIp.startsWith('fc00:') || // Unique Local Unicast
+    normalizedIp.startsWith('fd00:') || // Unique Local Unicast
+    normalizedIp.startsWith('fe80:') // Link-local
   );
 };
 
@@ -208,8 +238,11 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
     // For all other roles (admin, manager, user), consume points from both the individual
     // user's limit and the overall workspace's limit. This ensures fairness and
     // adherence to the workspace's subscription plan.
-    // Using Promise.all ensures that if one limit is exceeded, the other is not consumed.
-    // For true atomicity, a Redis Lua script would be the most robust solution.
+    // Using Promise.all is a "fail-fast" approach: if one limit check fails, the entire
+    // operation is rejected. However, it is not truly atomic. There's a small chance
+    // one `consume` call succeeds in Redis before the second one fails, leading to a
+    // partially-consumed limit. For mission-critical billing, a Redis Lua script that
+    // checks and decrements both keys in a single, atomic operation is the gold standard.
     await Promise.all([
       workspaceLimiter.consume(workspaceId),
       userLimiter.consume(id),
@@ -272,7 +305,7 @@ const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
 /**
  * Node: Fetches content from a URL or uses user input directly.
  * This node is now secured against SSRF, DoS (via content size limits), and enforces
- * hierarchical, role-based rate limiting.
+ * hierarchical, role-based rate limiting. It also includes timeouts for external requests.
  *
  * **Permissions & Multi-tenancy:**
  * - This node calls `consumeHierarchicalRateLimit` to enforce rate limits based on the user's role
@@ -293,7 +326,8 @@ export const fetchContentNode = async (state) => {
       publicLimiter: publicFetchLimiter,
     });
   } catch (rateLimiterError) {
-    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on fetchContentNode`);
+    // Log the specific error for debugging, but return a generic message to the user.
+    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on fetchContentNode. Details: ${rateLimiterError.message}`);
     return { error: 'You have made too many requests. Please try again later.' };
   }
 
@@ -317,13 +351,21 @@ export const fetchContentNode = async (state) => {
       // SECURITY FIX: Validate URL to prevent SSRF attacks before making any external request.
       await validateUrl(url);
 
+      const FETCH_TIMEOUT_MS = 15000; // 15-second timeout for fetching external content.
       let docs;
+
       if (!isYoutubeUrl) {
-        const loader = new CheerioWebBaseLoader(url);
+        // CheerioWebBaseLoader uses axios and accepts a timeout option directly.
+        const loader = new CheerioWebBaseLoader(url, { timeout: FETCH_TIMEOUT_MS });
         docs = await loader.load();
       } else {
+        // YoutubeLoader does not have a built-in timeout, so we wrap the promise.
         const loader = YoutubeLoader.createFromUrl(url, { language: 'en', addVideoInfo: true });
-        docs = await loader.load();
+        docs = await withTimeout(
+          loader.load(),
+          FETCH_TIMEOUT_MS,
+          'Fetching YouTube content timed out.'
+        );
       }
 
       if (docs.length === 0) {
@@ -333,6 +375,7 @@ export const fetchContentNode = async (state) => {
       const content = docs.map((doc) => doc.pageContent).join('\n');
 
       // BUGFIX/SECURITY: Add a content size limit to prevent DoS from very large web pages.
+      // NOTE: This should be configurable, potentially based on the user's subscription plan.
       const MAX_CONTENT_SIZE_CHARS = 500000; // 500k characters limit
       if (content.length > MAX_CONTENT_SIZE_CHARS) {
         throw new Error(`Content exceeds maximum allowed size of ${MAX_CONTENT_SIZE_CHARS} characters.`);
@@ -414,7 +457,8 @@ export const summarizeContentNode = async (state) => {
       publicLimiter: publicSummarizeLimiter,
     });
   } catch (rateLimiterError) {
-    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on summarizeContentNode`);
+    // Log the specific error for debugging, but return a generic message to the user.
+    console.warn(`Rate limit exceeded for user ${user?.id || 'public'} on summarizeContentNode. Details: ${rateLimiterError.message}`);
     return { error: 'You have made too many requests. Please try again later.' };
   }
 
