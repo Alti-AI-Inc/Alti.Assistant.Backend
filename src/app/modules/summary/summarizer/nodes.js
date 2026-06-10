@@ -4,10 +4,35 @@ import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
 
 /**
- * Node: Fetches content from the URL provided in the state.
+ * @typedef {object} UrlInfo
+ * @property {string|null} url - The extracted URL, or null if not found or an error occurred.
+ * @property {boolean} isYoutubeUrl - True if the URL is a YouTube link, false otherwise.
+ * @property {string} [error] - An error message if parsing failed.
+ */
+
+/**
+ * @typedef {object} WorkflowState
+ * @property {string} user_input - The initial input provided by the user.
+ * @property {boolean} [isFilePassed=false] - Indicates if the input was from a file, in which case AI URL extraction might be skipped.
+ * @property {string} [content] - The fetched content from a URL or user input, used for summarization.
+ * @property {Array<object>} [history] - Conversation history, potentially used by the summarization service.
+ * @property {string} [summary] - The generated summary of the content.
+ * @property {string} [error] - An error message if any step in the workflow failed.
+ */
+
+/**
+ * Node: Fetches content from a URL provided in the state's `user_input` or directly uses `user_input` as content.
+ * It first attempts to extract a URL from the user input using an AI service, then fetches content
+ * using appropriate loaders (Cheerio for web pages, YoutubeLoader for YouTube videos).
+ *
+ * @param {WorkflowState} state - The current state object containing `user_input` and `isFilePassed`.
+ * @returns {Promise<object>} A promise that resolves to an object containing:
+ *   - `{ content: string }` if content was successfully fetched or derived from user input.
+ *   - `{ error: string }` if an error occurred during URL extraction, content fetching, or validation.
  */
 export const fetchContentNode = async (state) => {
   const { user_input, isFilePassed } = state;
+  /** @type {UrlInfo} */
   let urlInfo = { url: null, isYoutubeUrl: false };
   let fetchError = null; // To capture errors from AI processing before content fetching
 
@@ -87,6 +112,16 @@ export const fetchContentNode = async (state) => {
   }
 };
 
+/**
+ * Converts a raw JSON string, potentially wrapped in markdown backticks (e.g., "```json\n{...}\n```"),
+ * into a JavaScript object. This is typically used to parse AI model outputs.
+ *
+ * @param {string} rawJson - The raw string containing the JSON, possibly with markdown formatting.
+ * @returns {UrlInfo} An object containing the parsed URL information:
+ *   - `url`: The extracted URL string, or `null` if parsing failed.
+ *   - `isYoutubeUrl`: A boolean indicating if the URL is a YouTube link, or `false` if parsing failed.
+ *   - `error`: An error message string if parsing failed, otherwise undefined.
+ */
 export const convertRawJsonToJson = (rawJson) => {
   try {
     console.log('--- Converting raw JSON to object ---', rawJson);
@@ -119,7 +154,13 @@ export const convertRawJsonToJson = (rawJson) => {
 };
 
 /**
- * Node: Generates the summary from the fetched content.
+ * Node: Generates a summary from the fetched content using an external summarization service.
+ * It expects `content` to be present in the state and can handle errors passed from previous nodes.
+ *
+ * @param {WorkflowState} state - The current state object containing `content`, `history`, and potentially `error`.
+ * @returns {Promise<object>} A promise that resolves to an object containing:
+ *   - `{ summary: string }` if the summary was successfully generated.
+ *   - `{ error: string }` if an error occurred during summarization or if content was missing.
  */
 export const summarizeContentNode = async (state) => {
   console.log('--- Node: summarizeContentNode ---');
