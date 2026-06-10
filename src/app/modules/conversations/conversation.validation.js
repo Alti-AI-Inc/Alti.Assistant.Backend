@@ -1,6 +1,24 @@
+/**
+ * @file This file defines Zod schemas for validating various conversation-related API requests.
+ * It includes schemas for creating, updating, retrieving, and managing conversations and their messages,
+ * as well as schemas for sharing conversations.
+ * These schemas are used to ensure that incoming request data conforms to expected structures and types.
+ */
+
 import * as zod from 'zod';
 const { z } = zod;
 
+/**
+ * @typedef {object} Message
+ * @property {'user'|'assistant'|'system'} role - The role of the message sender.
+ * @property {string} content - The actual content of the message.
+ * @property {Record<string, any>} [metadata] - Optional metadata associated with the message.
+ */
+/**
+ * Zod schema for validating a single message object within a conversation.
+ * Ensures the message has a valid role and non-empty content.
+ * @type {z.ZodObject<any, any, any, Message, any>}
+ */
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system'], {
     required_error: 'Message role is required',
@@ -14,6 +32,24 @@ const messageSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+/**
+ * @typedef {object} CreateConversationBody
+ * @property {string} [title] - Optional title for the new conversation.
+ * @property {Message} [initialMessage] - Optional initial message to start the conversation.
+ * @property {object} [metadata] - Optional metadata for the conversation.
+ * @property {string} [metadata.model] - The AI model to use for the conversation.
+ * @property {number} [metadata.temperature] - The creativity temperature for the AI model (0-2).
+ * @property {number} [metadata.maxTokens] - The maximum number of tokens for AI responses.
+ * @property {string[]} [metadata.tags] - An array of tags associated with the conversation.
+ * @property {string} [metadata.category] - The category of the conversation.
+ * @property {Record<string, any>} [metadata.customData] - Custom key-value data for the conversation.
+ * @property {boolean} [is_deep_search] - Flag indicating if deep search should be enabled for this conversation.
+ */
+/**
+ * Zod schema for validating the request body when creating a new conversation.
+ * It allows for an optional title, initial message, and various metadata fields.
+ * @type {z.ZodObject<any, any, any, { body: CreateConversationBody }, any>}
+ */
 const createConversationSchema = z.object({
   body: z.object({
     title: z
@@ -43,6 +79,15 @@ const createConversationSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} AddMessageParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * Zod schema for validating the request when adding a new message to an existing conversation.
+ * Requires a message object in the body and the conversation ID in the parameters.
+ * @type {z.ZodObject<any, any, any, { body: Message, params: AddMessageParams }, any>}
+ */
 const addMessageSchema = z.object({
   body: messageSchema,
   params: z.object({
@@ -52,6 +97,19 @@ const addMessageSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} UpdateTitleBody
+ * @property {string} title - The new title for the conversation.
+ */
+/**
+ * @typedef {object} UpdateTitleParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * Zod schema for validating the request when updating the title of a conversation.
+ * Requires a non-empty title in the body and the conversation ID in the parameters.
+ * @type {z.ZodObject<any, any, any, { body: UpdateTitleBody, params: UpdateTitleParams }, any>}
+ */
 const updateTitleSchema = z.object({
   body: z.object({
     title: z
@@ -68,6 +126,25 @@ const updateTitleSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} UpdateMetadataBody
+ * @property {object} metadata - The metadata fields to update.
+ * @property {string} [metadata.model] - The AI model to use for the conversation.
+ * @property {number} [metadata.temperature] - The creativity temperature for the AI model (0-2).
+ * @property {number} [metadata.maxTokens] - The maximum number of tokens for AI responses.
+ * @property {string[]} [metadata.tags] - An array of tags associated with the conversation.
+ * @property {string} [metadata.category] - The category of the conversation.
+ * @property {Record<string, any>} [metadata.customData] - Custom key-value data for the conversation.
+ */
+/**
+ * @typedef {object} UpdateMetadataParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * Zod schema for validating the request when updating the metadata of a conversation.
+ * Allows partial updates to metadata fields and requires the conversation ID in parameters.
+ * @type {z.ZodObject<any, any, any, { body: UpdateMetadataBody, params: UpdateMetadataParams }, any>}
+ */
 const updateMetadataSchema = z.object({
   body: z.object({
     metadata: z.object({
@@ -86,6 +163,15 @@ const updateMetadataSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} ConversationParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * Zod schema for validating requests that only require a conversation ID in the parameters.
+ * Useful for operations like retrieving or deleting a specific conversation.
+ * @type {z.ZodObject<any, any, any, { params: ConversationParams }, any>}
+ */
 const conversationParamsSchema = z.object({
   params: z.object({
     conversationId: z.string({
@@ -94,6 +180,23 @@ const conversationParamsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetUserConversationsQuery
+ * @property {number} [page] - The page number for pagination (must be positive integer).
+ * @property {number} [limit] - The number of conversations per page (must be positive integer).
+ * @property {'active'|'archived'|'deleted'} [status] - Filter conversations by their status.
+ * @property {string} [sortBy] - The field to sort the conversations by.
+ * @property {1|-1} [sortOrder] - The sort order (1 for ascending, -1 for descending).
+ * @property {string} [search] - A search term to filter conversations by title or content.
+ * @property {string} [category] - Filter conversations by category.
+ * @property {boolean} [is_deep_search] - Flag to enable deep search functionality.
+ */
+/**
+ * Zod schema for validating query parameters when retrieving a list of user conversations.
+ * Supports pagination, filtering by status, sorting, searching, and category filtering.
+ * Coerces string query parameters to their appropriate types (number, boolean).
+ * @type {z.ZodObject<any, any, any, { query: GetUserConversationsQuery }, any>}
+ */
 const getUserConversationsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
@@ -112,6 +215,22 @@ const getUserConversationsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetConversationMessagesParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * @typedef {object} GetConversationMessagesQuery
+ * @property {number} [page] - The page number for pagination (must be positive integer).
+ * @property {number} [limit] - The number of messages per page (must be positive integer).
+ * @property {string} [beforeDate] - Retrieve messages before a specific datetime.
+ */
+/**
+ * Zod schema for validating requests to retrieve messages for a specific conversation.
+ * Requires the conversation ID in parameters and supports pagination and date-based filtering in queries.
+ * Coerces string query parameters to numbers.
+ * @type {z.ZodObject<any, any, any, { params: GetConversationMessagesParams, query: GetConversationMessagesQuery }, any>}
+ */
 const getConversationMessagesSchema = z.object({
   params: z.object({
     conversationId: z.string({
@@ -126,6 +245,18 @@ const getConversationMessagesSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} SearchConversationsQuery
+ * @property {string} q - The search term (required and non-empty).
+ * @property {number} [limit] - The maximum number of search results to return (positive integer).
+ * @property {string} [category] - Filter search results by category.
+ */
+/**
+ * Zod schema for validating query parameters when searching conversations.
+ * Requires a search term `q` and supports an optional limit and category filter.
+ * Coerces string query parameters to numbers.
+ * @type {z.ZodObject<any, any, any, { query: SearchConversationsQuery }, any>}
+ */
 const searchConversationsSchema = z.object({
   query: z.object({
     q: z
@@ -139,6 +270,15 @@ const searchConversationsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} BulkOperationBody
+ * @property {string[]} conversationIds - An array of conversation IDs for the bulk operation (at least one required).
+ */
+/**
+ * Zod schema for validating the request body for bulk operations on conversations.
+ * Requires an array of at least one conversation ID.
+ * @type {z.ZodObject<any, any, any, { body: BulkOperationBody }, any>}
+ */
 const bulkOperationSchema = z.object({
   body: z.object({
     conversationIds: z
@@ -151,6 +291,19 @@ const bulkOperationSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} AddTagsBody
+ * @property {string[]} tags - An array of tags to add to the conversation (at least one required and non-empty).
+ */
+/**
+ * @typedef {object} AddTagsParams
+ * @property {string} conversationId - The unique identifier of the conversation.
+ */
+/**
+ * Zod schema for validating the request when adding tags to a conversation.
+ * Requires an array of non-empty tags in the body and the conversation ID in parameters.
+ * @type {z.ZodObject<any, any, any, { body: AddTagsBody, params: AddTagsParams }, any>}
+ */
 const addTagsSchema = z.object({
   body: z.object({
     tags: z
@@ -164,6 +317,22 @@ const addTagsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetCategoryConversationsParams
+ * @property {string} category - The category name to filter conversations by.
+ */
+/**
+ * @typedef {object} GetCategoryConversationsQuery
+ * @property {number} [limit] - The maximum number of conversations to return (positive integer).
+ * @property {string} [sortBy] - The field to sort the conversations by.
+ * @property {1|-1} [sortOrder] - The sort order (1 for ascending, -1 for descending).
+ */
+/**
+ * Zod schema for validating requests to retrieve conversations by category.
+ * Requires a category name in parameters and supports optional limit, sortBy, and sortOrder in queries.
+ * Coerces string query parameters to numbers.
+ * @type {z.ZodObject<any, any, any, { params: GetCategoryConversationsParams, query: GetCategoryConversationsQuery }, any>}
+ */
 const getCategoryConversationsSchema = z.object({
   params: z.object({
     category: z.string({
@@ -181,6 +350,16 @@ const getCategoryConversationsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetRecentConversationsQuery
+ * @property {number} [limit] - The maximum number of recent conversations to return (positive integer).
+ */
+/**
+ * Zod schema for validating query parameters when retrieving recent conversations.
+ * Supports an optional limit for the number of conversations.
+ * Coerces string query parameters to numbers.
+ * @type {z.ZodObject<any, any, any, { query: GetRecentConversationsQuery }, any>}
+ */
 const getRecentConversationsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
@@ -189,6 +368,22 @@ const getRecentConversationsSchema = z.object({
 });
 
 // Share chat validation schemas
+
+/**
+ * @typedef {object} ShareChatBody
+ * @property {'public'|'private'} [shareType='public'] - The type of sharing (public or private). Defaults to 'public'.
+ * @property {string} [expiresAt] - Optional datetime when the shared link should expire (ISO 8601 format). Can be null.
+ * @property {boolean} [allowComments=false] - Whether comments are allowed on the shared chat. Defaults to false.
+ */
+/**
+ * @typedef {object} ShareChatParams
+ * @property {string} conversationId - The unique identifier of the conversation to share.
+ */
+/**
+ * Zod schema for validating the request when sharing a conversation.
+ * Requires the conversation ID in parameters and allows specifying share type, expiration, and comment permissions in the body.
+ * @type {z.ZodObject<any, any, any, { body: ShareChatBody, params: ShareChatParams }, any>}
+ */
 const shareChatSchema = z.object({
   body: z.object({
     shareType: z
@@ -206,6 +401,22 @@ const shareChatSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} UpdateShareSettingsBody
+ * @property {'public'|'private'} [shareType] - The new type of sharing (public or private).
+ * @property {string} [expiresAt] - The new datetime when the shared link should expire (ISO 8601 format). Can be null.
+ * @property {boolean} [allowComments] - Whether comments are allowed on the shared chat.
+ * @property {boolean} [isActive] - Whether the shared link is active.
+ */
+/**
+ * @typedef {object} UpdateShareSettingsParams
+ * @property {string} conversationId - The unique identifier of the conversation whose share settings are being updated.
+ */
+/**
+ * Zod schema for validating the request when updating share settings for a conversation.
+ * Requires at least one field in the body to be provided and the conversation ID in parameters.
+ * @type {z.ZodObject<any, any, any, { body: UpdateShareSettingsBody, params: UpdateShareSettingsParams }, any>}
+ */
 const updateShareSettingsSchema = z.object({
   body: z
     .object({
@@ -224,6 +435,15 @@ const updateShareSettingsSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetSharedChatParams
+ * @property {string} shareId - The unique identifier of the shared chat link.
+ */
+/**
+ * Zod schema for validating requests to retrieve a shared chat.
+ * Requires the share ID in the parameters.
+ * @type {z.ZodObject<any, any, any, { params: GetSharedChatParams }, any>}
+ */
 const getSharedChatSchema = z.object({
   params: z.object({
     shareId: z.string({
@@ -232,6 +452,18 @@ const getSharedChatSchema = z.object({
   }),
 });
 
+/**
+ * @typedef {object} GetUserSharedChatsQuery
+ * @property {number} [page] - The page number for pagination (must be positive integer).
+ * @property {number} [limit] - The number of shared chats per page (must be positive integer).
+ * @property {'active'|'expired'|'revoked'} [status] - Filter shared chats by their status.
+ */
+/**
+ * Zod schema for validating query parameters when retrieving a list of user's shared chats.
+ * Supports pagination and filtering by status.
+ * Coerces string query parameters to numbers.
+ * @type {z.ZodObject<any, any, any, { query: GetUserSharedChatsQuery }, any>}
+ */
 const getUserSharedChatsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
@@ -241,22 +473,92 @@ const getUserSharedChatsSchema = z.object({
   }),
 });
 
+/**
+ * @namespace ConversationValidation
+ * @description A collection of Zod schemas used for validating various API requests
+ * related to conversation management and sharing.
+ * These schemas ensure that incoming data conforms to expected formats and constraints.
+ */
 export const ConversationValidation = {
+  /**
+   * Schema for validating the request body when creating a new conversation.
+   * @type {typeof createConversationSchema}
+   */
   createConversationSchema,
+  /**
+   * Schema for validating the request when adding a new message to an existing conversation.
+   * @type {typeof addMessageSchema}
+   */
   addMessageSchema,
+  /**
+   * Schema for validating the request when updating the title of a conversation.
+   * @type {typeof updateTitleSchema}
+   */
   updateTitleSchema,
+  /**
+   * Schema for validating the request when updating the metadata of a conversation.
+   * @type {typeof updateMetadataSchema}
+   */
   updateMetadataSchema,
+  /**
+   * Schema for validating requests that only require a conversation ID in the parameters.
+   * @type {typeof conversationParamsSchema}
+   */
   conversationParamsSchema,
+  /**
+   * Schema for validating query parameters when retrieving a list of user conversations.
+   * @type {typeof getUserConversationsSchema}
+   */
   getUserConversationsSchema,
+  /**
+   * Schema for validating requests to retrieve messages for a specific conversation.
+   * @type {typeof getConversationMessagesSchema}
+   */
   getConversationMessagesSchema,
+  /**
+   * Schema for validating query parameters when searching conversations.
+   * @type {typeof searchConversationsSchema}
+   */
   searchConversationsSchema,
+  /**
+   * Schema for validating the request body for bulk operations on conversations.
+   * @type {typeof bulkOperationSchema}
+   */
   bulkOperationSchema,
+  /**
+   * Schema for validating the request when adding tags to a conversation.
+   * @type {typeof addTagsSchema}
+   */
   addTagsSchema,
+  /**
+   * Schema for validating requests to retrieve conversations by category.
+   * @type {typeof getCategoryConversationsSchema}
+   */
   getCategoryConversationsSchema,
+  /**
+   * Schema for validating query parameters when retrieving recent conversations.
+   * @type {typeof getRecentConversationsSchema}
+   */
   getRecentConversationsSchema,
   // Share chat validation schemas
+  /**
+   * Schema for validating the request when sharing a conversation.
+   * @type {typeof shareChatSchema}
+   */
   shareChatSchema,
+  /**
+   * Schema for validating the request when updating share settings for a conversation.
+   * @type {typeof updateShareSettingsSchema}
+   */
   updateShareSettingsSchema,
+  /**
+   * Schema for validating requests to retrieve a shared chat.
+   * @type {typeof getSharedChatSchema}
+   */
   getSharedChatSchema,
+  /**
+   * Schema for validating query parameters when retrieving a list of user's shared chats.
+   * @type {typeof getUserSharedChatsSchema}
+   */
   getUserSharedChatsSchema,
 };
