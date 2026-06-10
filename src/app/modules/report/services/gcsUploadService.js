@@ -1,17 +1,38 @@
+/**
+ * @file gcsUploadService.js
+ * @description Service for handling file uploads, downloads, and management with Google Cloud Storage (GCS).
+ * This service abstracts the GCS interactions for storing and retrieving report files.
+ * It provides methods for direct buffer uploads, stream-based uploads, and generating signed URLs
+ * for secure client-side uploads and downloads.
+ * @module services/gcsUploadService
+ */
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
+/**
+ * Google Cloud Storage client instance.
+ * Initialized with project ID and key file from configuration.
+ * @type {import('@google-cloud/storage').Storage}
+ */
 const storage = new Storage({
   projectId: config.google.gcp_project_id,
   keyFilename: 'alti_gcp.json',
 });
 
+/**
+ * The name of the GCS bucket used for storing report files.
+ * @type {string}
+ * @constant
+ */
 const REPORT_BUCKET = 'alti_assistant_reports';
 
 /**
- * Get content type based on file extension
+ * Determines the appropriate MIME content type for a file based on its extension.
+ * Defaults to 'application/octet-stream' if the extension is not recognized.
+ * @param {string} filePath - The full file name or path (e.g., 'report.pdf').
+ * @returns {string} The corresponding content type string.
  */
 const getContentType = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
@@ -35,11 +56,13 @@ const getContentType = (filePath) => {
 /**
  * Upload report file buffer to Google Cloud Storage.
  * This is suitable for files generated in memory and avoids local filesystem writes.
+ * The file path in GCS is structured as `userId/conversationId/fileName` to provide multi-tenant separation.
  * @param {Buffer} fileBuffer - The file content as a buffer.
  * @param {string} fileName - Name for the file in GCS.
- * @param {string} userId - User ID for organizing files.
- * @param {string} conversationId - Conversation ID for organizing files.
- * @returns {Promise<Object>} - Upload result with GCS path information.
+ * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
+ * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
+ * @returns {Promise<Object>} - An object containing the upload result with GCS path information.
+ * @throws {Error} If the file buffer is empty or if the upload fails.
  */
 export const uploadReportToGCS = async (
   fileBuffer,
@@ -92,9 +115,10 @@ export const uploadReportToGCS = async (
  * This allows for streaming large files without buffering them entirely in memory.
  * The caller is responsible for piping a readable stream to the returned writable stream
  * and handling 'error' and 'finish' events.
+ * The file path in GCS is structured as `userId/conversationId/fileName`.
  * @param {string} fileName - Name for the file in GCS.
- * @param {string} userId - User ID for organizing files.
- * @param {string} conversationId - Conversation ID for organizing files.
+ * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
+ * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
  * @returns {{stream: import('stream').Writable, gcsPath: string}} - An object containing the GCS Writable stream and the file's GCS path.
  */
 export const getGCSReportUploadStream = (fileName, userId, conversationId) => {
@@ -126,11 +150,13 @@ export const getGCSReportUploadStream = (fileName, userId, conversationId) => {
  * Generates a v4 signed URL for uploading a file directly to GCS from a client.
  * This offloads the upload traffic from the backend server.
  * The client should use this URL to make a PUT request with the file content.
+ * The file path in GCS is structured as `userId/conversationId/fileName`.
  * @param {string} fileName - The name the file will have in GCS.
- * @param {string} contentType - The MIME type of the file being uploaded (e.g., 'image/jpeg').
- * @param {string} userId - User ID for organizing files.
- * @param {string} conversationId - Conversation ID for organizing files.
+ * @param {string} contentType - The MIME type of the file being uploaded (e.g., 'application/pdf').
+ * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
+ * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
  * @returns {Promise<{url: string, gcsPath: string}>} - The signed URL for PUT requests and the GCS path.
+ * @throws {Error} If URL generation fails.
  */
 export const generateV4UploadSignedUrl = async (
   fileName,
@@ -164,8 +190,11 @@ export const generateV4UploadSignedUrl = async (
 /**
  * Generates a signed URL for securely downloading a report from GCS.
  * This provides temporary, secure access to a private GCS object.
- * @param {string} gcsPath - Path of the file in GCS.
+ * Access control (e.g., ensuring the requesting user owns the file) should be handled by the calling service
+ * before invoking this function.
+ * @param {string} gcsPath - Path of the file in GCS (e.g., 'userId/conversationId/fileName.pdf').
  * @returns {Promise<string>} - The signed URL for GET requests.
+ * @throws {Error} If URL generation fails.
  */
 export const getGCSReportSignedUrl = async (gcsPath) => {
   try {
@@ -189,9 +218,10 @@ export const getGCSReportSignedUrl = async (gcsPath) => {
 };
 
 /**
- * Delete a report file from GCS
- * @param {string} gcsPath - Path of the file in GCS
- * @returns {Promise<boolean>} - Success status
+ * Deletes a report file from GCS.
+ * Access control should be handled by the calling service.
+ * @param {string} gcsPath - Path of the file in GCS to be deleted.
+ * @returns {Promise<boolean>} - True if deletion was successful, false otherwise.
  */
 export const deleteReportFromGCS = async (gcsPath) => {
   try {
@@ -207,9 +237,9 @@ export const deleteReportFromGCS = async (gcsPath) => {
 };
 
 /**
- * Check if a file exists in GCS
- * @param {string} gcsPath - Path of the file in GCS
- * @returns {Promise<boolean>} - True if exists, false otherwise
+ * Checks if a file exists in GCS at the specified path.
+ * @param {string} gcsPath - Path of the file in GCS.
+ * @returns {Promise<boolean>} - True if the file exists, false otherwise.
  */
 export const checkReportExistsInGCS = async (gcsPath) => {
   try {
