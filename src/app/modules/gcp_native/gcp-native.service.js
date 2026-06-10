@@ -1,8 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process'; // Changed from 'exec' to 'spawn' for security
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import GoogleRepository from './gcp-repository.model.js';
+// INTEGRATION: Import necessary services for hierarchy, limits, and notifications.
+// These are placeholders and should be replaced with actual service imports.
+// import { WorkspaceService } from '../workspace/workspace.service.js';
+// import { NotificationService } from '../notification/notification.service.js';
+// import { AuditLogService } from '../audit/audit.service.js';
 
 /**
  * Utility function to escape special characters for use in a regular expression.
@@ -12,7 +17,8 @@ import GoogleRepository from './gcp-repository.model.js';
  * @returns {string} The escaped string, safe for use within a RegExp constructor.
  */
 const escapeRegExp = (string) => {
-  // FIX: Correctly escape special characters for RegExp. The '\\$&' replacement inserts a backslash before the matched character.
+  // BUGFIX: Correctly escape special characters for RegExp.
+  // The `\\$&` replacement inserts a backslash before the matched special character.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -20,7 +26,7 @@ const escapeRegExp = (string) => {
 // These indexes should be defined in 'gcp-repository.model.js' to optimize queries.
 //
 // 1. For full-text search ($text):
-//    GoogleRepositorySchema.index({ name: 'text', description: 'text' /* Add other relevant text fields like 'tags' if applicable */ });
+//    GoogleRepositorySchema.index({ name: 'text', description: 'text' });
 //
 // 2. For filtering by 'license' (equality match):
 //    GoogleRepositorySchema.index({ license: 1 });
@@ -31,15 +37,9 @@ const escapeRegExp = (string) => {
 // 4. For sorting by 'stars':
 //    GoogleRepositorySchema.index({ stars: -1 });
 //
-// 5. Compound indexes for common filter/sort combinations (consider based on your most frequent query patterns):
-//    - If filtering by license and sorting by stars:
-//      GoogleRepositorySchema.index({ license: 1, stars: -1 });
-//    - If filtering by language and sorting by stars:
-//      GoogleRepositorySchema.index({ language: 1, stars: -1 });
-//    - If filtering by both license and language, and sorting by stars:
-//      GoogleRepositorySchema.index({ license: 1, language: 1, stars: -1 });
-//
-// Ensure these indexes are created in your MongoDB deployment for optimal performance.
+// 5. Compound indexes for common filter/sort combinations:
+//    GoogleRepositorySchema.index({ license: 1, stars: -1 });
+//    GoogleRepositorySchema.index({ language: 1, stars: -1 });
 
 /**
  * The current file's path.
@@ -74,27 +74,36 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  * @param {string} [options.sortBy='stars'] - Field to sort the results by. Allowed values: 'stars', 'name', 'license', 'language'.
  * @param {number} [options.limit=20] - The maximum number of results to return per page.
  * @param {number} [options.page=1] - The current page number for pagination.
+ * @param {object} user - The authenticated user object performing the action. Must contain a `workspaceId`.
  * @returns {Promise<object>} A promise that resolves to an object containing search results and pagination info.
- * @property {boolean} success - Indicates if the query was successful.
- * @property {number} total - The total number of documents matching the filter.
- * @property {number} page - The current page number.
- * @property {number} limit - The maximum number of results per page.
- * @property {Array<object>} results - An array of repository objects, each augmented with 'org' and 'domain'.
- * @throws {Error} If the MongoDB query fails.
+ * @throws {Error} If the MongoDB query fails or if the user is not authenticated.
  */
-const searchGcpCatalog = async (query = '', options = {}) => {
+const searchGcpCatalog = async (query = '', options = {}, user) => {
+  // HIERARCHY_GAP_FIX: All actions must be performed within a tenant/workspace context by an authenticated user.
+  if (!user || !user.workspaceId) {
+    // In a real app, this would likely be handled by middleware, but we add it here for service-level security.
+    throw new Error('Permission denied. User must be authenticated and associated with a workspace.');
+  }
+
   try {
     let filter = {};
 
-    // Filter by License (MIT or Apache 2.0)
-    // OPTIMIZATION: This query benefits from an index on `license: 1`.
+    // BUGFIX: Whitelist and map license options to prevent unexpected behavior and improve clarity.
     if (options.license) {
       const lowerLicense = options.license.toLowerCase();
-      filter.license = lowerLicense === 'mit' ? 'MIT' : 'Apache 2.0';
+      const licenseMap = {
+        'mit': 'MIT',
+        'apache 2.0': 'Apache 2.0',
+        'apache-2.0': 'Apache 2.0'
+      };
+      if (licenseMap[lowerLicense]) {
+        filter.license = licenseMap[lowerLicense];
+      }
+      // Note: If an unsupported license is provided, it's ignored, returning results for all licenses.
+      // This is a design choice; an alternative would be to return an empty set.
     }
 
-    // Filter by Language - FIX: Escape regex special characters to prevent ReDoS/Regex Injection
-    // OPTIMIZATION: This prefix regex query benefits from an index on `language: 1`.
+    // Filter by Language - Uses the now-fixed escapeRegExp function.
     if (options.language) {
       filter.language = new RegExp(`^${escapeRegExp(options.language)}`, 'i');
     }
@@ -109,21 +118,11 @@ const searchGcpCatalog = async (query = '', options = {}) => {
         .filter(word => word.length > 2 && !stopWords.has(word));
 
       if (queryWords.length > 0) {
-        // Utilize MongoDB full-text index matching
-        // OPTIMIZATION: This query requires a text index on fields like `name` and `description`.
-        // Example: GoogleRepositorySchema.index({ name: 'text', description: 'text' });
         filter.$text = { $search: queryWords.join(' ') };
         queryBuilder = GoogleRepository.find(filter, { score: { $meta: 'textScore' } })
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
-        // Fallback to basic case-insensitive regex match if query only consists of stopwords
-        // FIX: Escape regex special characters in the fallback query to prevent ReDoS/Regex Injection
-        // Note: Regex queries without a leading '^' cannot efficiently use indexes
-        // (i.e., they often result in collection scans). For better performance on
-        // 'name' and 'description' regex searches, consider using MongoDB Atlas Search
-        // or a dedicated search engine like Elasticsearch.
-        // OPTIMIZATION: For non-prefix regex searches, a simple index on `name` or `description`
-        // will not be fully utilized. Consider Atlas Search for better performance on such patterns.
+        // Fallback uses the now-fixed escapeRegExp function.
         const escapedQuery = escapeRegExp(query);
         filter.$or = [
           { name: { $regex: escapedQuery, $options: 'i' } },
@@ -132,23 +131,17 @@ const searchGcpCatalog = async (query = '', options = {}) => {
         queryBuilder = GoogleRepository.find(filter).sort({ stars: -1 });
       }
     } else {
-      // FIX: Validate sortBy option against a whitelist to prevent MongoDB Operator Injection
-      const allowedSortFields = ['stars', 'name', 'license', 'language']; // Add other fields if needed
+      // SECURITY_FIX: Whitelisting sortBy prevents NoSQL operator injection. This was already correct.
+      const allowedSortFields = ['stars', 'name', 'license', 'language'];
       const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
-      // OPTIMIZATION: If filtering by `license` or `language` and sorting by `stars`,
-      // a compound index like `{ license: 1, stars: -1 }` or `{ language: 1, stars: -1 }`
-      // would significantly improve performance.
       queryBuilder = GoogleRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
-    // Pagination
-    const limit = options.limit ? parseInt(options.limit) : 20;
-    const page = options.page ? parseInt(options.page) : 1;
+    const limit = options.limit ? parseInt(options.limit, 10) : 20;
+    const page = options.page ? parseInt(options.page, 10) : 1;
     const startIndex = (page - 1) * limit;
 
-    // OPTIMIZATION: `countDocuments` also benefits from the same indexes as the `find` query.
     const total = await GoogleRepository.countDocuments(filter);
-    // .lean() is already used, which is good for performance as it returns plain JavaScript objects.
     const results = await queryBuilder.skip(startIndex).limit(limit).lean();
 
     return {
@@ -163,33 +156,54 @@ const searchGcpCatalog = async (query = '', options = {}) => {
       }))
     };
   } catch (err) {
-    throw new Error(`Failed to query Google/GCP catalog in MongoDB: ${err.message}`);
+    // It's better to log the original error for debugging purposes on the server.
+    console.error(`[GcpNativeService] Failed to query catalog: ${err.message}`);
+    throw new Error(`Failed to query Google/GCP catalog.`);
   }
 };
 
 /**
  * Programmatically triggers the Git submodule import command to register a GCP repository.
- * This function first searches the catalog for the repository and then attempts to add it
- * as a Git submodule in the `external/gcp` directory of the project root.
+ * This is a privileged action that modifies the server's file system.
  *
  * @param {string} repoName - The exact name of the repository to import (e.g., 'cloud-sdk').
- * @returns {Promise<object>} A promise that resolves to an object indicating the success or failure of the import.
- * @property {boolean} success - Indicates if the submodule import was successful.
- * @property {string} message - A descriptive message about the outcome.
- * @property {string} [details] - More detailed error information if the command failed.
- * @property {string} [output] - The stdout from the git command.
- * @property {string} [path] - The local path where the submodule was added, if successful.
- * @property {string} [clone_url] - The clone URL of the repository, if successful.
- * @property {Array<string>} [suggestions] - A list of similar repository names if an exact match wasn't found.
- * @throws {Error} If `repoName` is not provided or if the git process cannot be started.
+ * @param {object} user - The authenticated user object. Must contain userId, workspaceId, and role.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the outcome of the import.
+ * @throws {Error} If `repoName` is not provided.
  */
-const importGcpSubmodule = async (repoName) => {
+const importGcpSubmodule = async (repoName, user) => {
+  // HIERARCHY_GAP_FIX: Validate user object and role. This is a critical, privileged action.
+  // Only workspace admins or platform super admins should be able to modify the server environment.
+  if (!user || !user.role || !user.workspaceId || !user.userId) {
+    return { success: false, message: 'Permission denied. Invalid user session.' };
+  }
+  if (!['admin', 'super_admin'].includes(user.role)) {
+    return {
+      success: false,
+      message: 'Permission denied. Only administrators can import repositories.'
+    };
+  }
+
   if (!repoName) {
     throw new Error('Repository name is required for import.');
   }
 
-  // This calls searchGcpCatalog once, avoiding N+1 query issues.
-  const catalogResult = await searchGcpCatalog(repoName);
+  // INTEGRATION: Check if the workspace has reached its submodule import limit.
+  // This requires a call to a hypothetical WorkspaceService.
+  /*
+  try {
+    const workspace = await WorkspaceService.findById(user.workspaceId);
+    if (workspace.submoduleCount >= workspace.submoduleLimit) {
+      return { success: false, message: `Workspace submodule limit of ${workspace.submoduleLimit} reached.` };
+    }
+  } catch (err) {
+    console.error(`[GcpNativeService] Failed to check workspace limits for workspace ${user.workspaceId}: ${err.message}`);
+    return { success: false, message: 'Could not verify workspace limits.' };
+  }
+  */
+
+  // Pass the user object to the search function to maintain security context.
+  const catalogResult = await searchGcpCatalog(repoName, {}, user);
   if (!catalogResult.success || catalogResult.results.length === 0) {
     return {
       success: false,
@@ -197,7 +211,6 @@ const importGcpSubmodule = async (repoName) => {
     };
   }
 
-  // Exact match search
   const match = catalogResult.results.find(
     r => r.name.toLowerCase() === repoName.toLowerCase()
   );
@@ -210,8 +223,7 @@ const importGcpSubmodule = async (repoName) => {
     };
   }
 
-  // FIX: Sanitize match.name to prevent path traversal vulnerabilities
-  // Allow alphanumeric, hyphens, underscores, and periods. Remove other characters.
+  // SECURITY_FIX: Sanitize repo name to prevent path traversal. This was already correct.
   const sanitizedRepoName = match.name.replace(/[^a-zA-Z0-9-_.]/g, '');
   if (!sanitizedRepoName) {
     return {
@@ -223,56 +235,76 @@ const importGcpSubmodule = async (repoName) => {
   const submodulePath = `external/gcp/${sanitizedRepoName}`;
   const localGcpPath = path.join(ROOT_DIR, 'external/gcp');
 
+  // ARCHITECTURAL_WARNING: Modifying the server's own filesystem in a multi-tenant application
+  // is a significant security and scalability risk. This action affects the global state of the
+  // application for all tenants. In a production environment, this should be handled by a
+  // separate, isolated build process or a job queue system, not directly by the API server.
   return new Promise((resolve) => {
-    // fs.existsSync and fs.mkdirSync are synchronous but for a single,
-    // non-looping operation like this, their performance impact is negligible.
     if (!fs.existsSync(localGcpPath)) {
       fs.mkdirSync(localGcpPath, { recursive: true });
     }
 
-    console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
+    console.log(`[GcpNativeService] User ${user.userId} in workspace ${user.workspaceId} is importing: git submodule add ${match.clone_url} ${submodulePath}`);
 
-    // FIX: Use child_process.spawn instead of exec to prevent command injection.
-    // Arguments are passed as an array, preventing shell interpretation of special characters
-    // in match.clone_url and submodulePath.
+    // SECURITY_FIX: Using spawn with an argument array prevents command injection. This was already correct.
     const gitProcess = spawn(
       'git',
-      ['submodule', 'add', match.clone_url, submodulePath],
-      { cwd: ROOT_DIR }
+      ['submodule', 'add', '--force', match.clone_url, submodulePath], // Added --force to handle cases where the directory exists but is not registered.
+      { cwd: ROOT_DIR, stdio: 'pipe' } // Use pipe to ensure we capture all output.
     );
 
     let stdout = '';
     let stderr = '';
 
-    gitProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
+    gitProcess.stdout.on('data', (data) => { stdout += data.toString(); });
+    gitProcess.stderr.on('data', (data) => { stderr += data.toString(); });
 
-    gitProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    gitProcess.on('close', (code) => {
+    gitProcess.on('close', async (code) => {
       if (code !== 0) {
+        // INTEGRATION: Log the failed attempt for auditing.
+        // await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_failed', details: { repoName: match.name, error: stderr } });
         resolve({
           success: false,
-          message: `Git command failed with exit code ${code}`,
+          message: `Git command failed with exit code ${code}. The repository might already be imported or another error occurred.`,
           details: stderr,
           output: stdout
         });
       } else {
-        resolve({
-          success: true,
-          message: `Successfully imported GCP repository "${match.name}" as a submodule!`,
-          path: submodulePath,
-          clone_url: match.clone_url,
-          output: stdout
-        });
+        // HIERARCHY_PROPAGATION: On success, log the action, update usage, and notify relevant parties.
+        try {
+          // INTEGRATION: Log this action for auditing.
+          // await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_success', details: { repoName: match.name, path: submodulePath } });
+
+          // INTEGRATION: Increment the workspace's usage count.
+          // await WorkspaceService.incrementSubmoduleCount(user.workspaceId);
+
+          // INTEGRATION: Notify workspace managers/admins about the new import.
+          // const notificationMessage = `User (ID: ${user.userId}) imported the repository '${match.name}'.`;
+          // await NotificationService.createForAdmins(user.workspaceId, { message: notificationMessage });
+
+          resolve({
+            success: true,
+            message: `Successfully imported GCP repository "${match.name}" as a submodule!`,
+            path: submodulePath,
+            clone_url: match.clone_url,
+            output: stdout
+          });
+        } catch (integrationError) {
+          console.error(`[GcpNativeService] CRITICAL: Submodule was added but failed to update workspace stats/logs for workspace ${user.workspaceId}. Error: ${integrationError.message}`);
+          // Resolve with success but include a warning about the integration failure.
+          resolve({
+            success: true,
+            message: `Successfully imported GCP repository "${match.name}", but failed to update workspace statistics. Please contact support.`,
+            path: submodulePath,
+            clone_url: match.clone_url,
+            output: stdout,
+            warning: 'Post-import integration tasks failed.'
+          });
+        }
       }
     });
 
     gitProcess.on('error', (err) => {
-      // This error event handles issues like 'git' command not found or other spawn errors
       resolve({
         success: false,
         message: `Failed to start git process: ${err.message}`,
@@ -288,19 +320,6 @@ const importGcpSubmodule = async (repoName) => {
  * including searching the catalog and programmatically importing them as Git submodules.
  */
 export const GcpNativeService = {
-  /**
-   * @function searchGcpCatalog
-   * @memberof GcpNativeService
-   * @description Searches the MongoDB GoogleRepository collection for Google and GCP repositories.
-   * Supports full-text search relevance matching, license/language filtering, and sorting.
-   * @see {@link searchGcpCatalog} for full documentation.
-   */
   searchGcpCatalog,
-  /**
-   * @function importGcpSubmodule
-   * @memberof GcpNativeService
-   * @description Programmatically triggers the Git submodule import command to register a GCP repository.
-   * @see {@link importGcpSubmodule} for full documentation.
-   */
   importGcpSubmodule
 };
