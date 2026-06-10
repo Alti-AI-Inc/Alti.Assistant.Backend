@@ -38,7 +38,13 @@ class ConnectionDiagnosticsService {
    * It aggregates general performance statistics, app-specific health, error distributions,
    * and forecasts rate limit usage based on recent activity trends.
    *
+   * This method is designed to be plan-aware. It accepts plan limits to ensure that
+   * metrics and warnings are relevant to the specific user's or workspace's subscription tier.
+   *
    * @param {string|string[]} userId The ID of the user or an array of user IDs (e.g., workspace members) for whom to run diagnostics.
+   * @param {Object} [planLimits={}] - The plan limits for the user/workspace.
+   * @param {number} [planLimits.hourlyLimit=120] - The hourly action limit for the current plan.
+   * @param {number} [planLimits.dailyLimit=1000] - The daily action limit for the current plan.
    * @returns {Promise<Object>} A promise that resolves to a comprehensive diagnostics report.
    * @property {boolean} success - Indicates if the diagnostics report was generated successfully.
    * @property {Object} diagnostics - The main diagnostics object.
@@ -49,8 +55,8 @@ class ConnectionDiagnosticsService {
    * @property {number} diagnostics.performanceSummary.successRate24h - Success rate percentage in the last 24 hours.
    * @property {number} diagnostics.performanceSummary.avgLatencyMs - Average latency in milliseconds for actions in the last 24 hours.
    * @property {Object} diagnostics.rateLimiting - Information regarding rate limit usage and prediction.
-   * @property {number} diagnostics.rateLimiting.hourlyLimit - The defined hourly action limit.
-   * @property {number} diagnostics.rateLimiting.dailyLimit - The defined daily action limit.
+   * @property {number} diagnostics.rateLimiting.hourlyLimit - The defined hourly action limit from the user/workspace plan.
+   * @property {number} diagnostics.rateLimiting.dailyLimit - The defined daily action limit from the user/workspace plan.
    * @property {number} diagnostics.rateLimiting.currentHourCount - Total actions in the current hour.
    * @property {number} diagnostics.rateLimiting.hourlyUsagePercent - Percentage of hourly limit used.
    * @property {number} diagnostics.rateLimiting.dailyUsagePercent - Percentage of daily limit used.
@@ -70,8 +76,13 @@ class ConnectionDiagnosticsService {
    * @property {number} diagnostics.errorDistribution[].count - The number of occurrences of this error.
    * @throws {Error} If an error occurs during the aggregation or processing of diagnostics.
    */
-  async getConnectionDiagnostics(userId) {
+  async getConnectionDiagnostics(userId, planLimits = {}) {
     try {
+      // Improvement: Use plan-specific limits passed as arguments, with sensible defaults.
+      // This decouples the service from billing logic and allows managers to see metrics
+      // relevant to their specific workspace plan.
+      const { hourlyLimit: HOURLY_LIMIT = 120, dailyLimit: DAILY_LIMIT = 1000 } = planLimits;
+
       const now = new Date();
       const pastHour = new Date(now.getTime() - 60 * 60 * 1000);
       const pastDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -126,14 +137,12 @@ class ConnectionDiagnosticsService {
         ]),
 
         // 10-minute intervals over the past hour for trend analysis
-        // Fix: Group by actual 10-minute timestamp intervals, not just the minute component,
-        // to correctly represent trends within the past hour.
         ActionAuditLog.aggregate([
-          { 
-            $match: { 
-              userId: Array.isArray(userId) ? { $in: userId } : userId, 
-              createdAt: { $gte: pastHour } 
-            } 
+          {
+            $match: {
+              userId: Array.isArray(userId) ? { $in: userId } : userId,
+              createdAt: { $gte: pastHour }
+            }
           },
           {
             $group: {
@@ -187,13 +196,9 @@ class ConnectionDiagnosticsService {
       // Predicted actions next hour based on current velocity and acceleration
       const predictedNextHour = Math.max(0, Math.round(totalPastHour * (1 + Math.max(-0.5, Math.min(2, accelerationFactor)))));
 
-      // Quotas (standard soft limits)
-      const HOURLY_LIMIT = 120;
-      const DAILY_LIMIT = 1000;
-
-      const hourlyQuotaUsedPercent = (totalPastHour / HOURLY_LIMIT) * 100;
-      const dailyQuotaUsedPercent = (stats.total24h / DAILY_LIMIT) * 100;
-      const predictedQuotaUsedPercent = (predictedNextHour / HOURLY_LIMIT) * 100;
+      const hourlyQuotaUsedPercent = HOURLY_LIMIT > 0 ? (totalPastHour / HOURLY_LIMIT) * 100 : 0;
+      const dailyQuotaUsedPercent = DAILY_LIMIT > 0 ? (stats.total24h / DAILY_LIMIT) * 100 : 0;
+      const predictedQuotaUsedPercent = HOURLY_LIMIT > 0 ? (predictedNextHour / HOURLY_LIMIT) * 100 : 0;
 
       let status = 'healthy';
       const warnings = [];
@@ -301,7 +306,7 @@ class ConnectionDiagnosticsService {
       const successes = logs.filter(l => l.status === 'success').length;
       const failures = logs.filter(l => l.status === 'failed').length;
       const successRate = total > 0 ? (successes / total) * 100 : 100;
-      
+
       const totalDuration = logs.reduce((sum, l) => sum + (l.durationMs || 0), 0);
       const avgDuration = total > 0 ? totalDuration / total : 0;
 
@@ -324,7 +329,7 @@ class ConnectionDiagnosticsService {
         status = 'degraded';
         recommendations.push('Connection is displaying high failure rates. Trigger connection recovery to re-verify OAuth tokens.');
       }
-      
+
       const slowRuns = logs.filter(l => l.durationMs > 5000).length;
       if (slowRuns > total * 0.3 && total > 3) {
         recommendations.push('High latency (latency > 5000ms) detected on 30% of requests. Investigate third-party service latency.');
