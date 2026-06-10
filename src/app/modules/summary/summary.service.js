@@ -7,8 +7,10 @@ import mongoose from 'mongoose';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 
 /**
- * Generate unique guest user ID
- * @returns {string}
+ * Generate unique guest user ID.
+ * This function creates a new MongoDB ObjectId and converts it to a string,
+ * ensuring a unique and valid ID format for guest users.
+ * @returns {string} A unique string representing a guest user ID.
  */
 const generateGuestUserId = () => {
   // Generate a proper MongoDB ObjectId for guest users
@@ -16,12 +18,19 @@ const generateGuestUserId = () => {
 };
 
 /**
- * Create or get summary conversation (supports both authenticated and guest users)
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} summaryQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Manages the lifecycle of a summary conversation.
+ * It attempts to retrieve an existing conversation by ID. If not found, not accessible,
+ * or no ID is provided, a new summary conversation is created.
+ * Supports both authenticated and guest users.
+ *
+ * @param {string} userId - The ID of the user (authenticated or guest) initiating or accessing the conversation.
+ * @param {string} [conversationId] - Optional. The ID of an existing conversation to retrieve. If null, undefined,
+ *                                    or if the conversation is not found/accessible, a new one is created.
+ * @param {string} summaryQuery - The initial query or topic for the summary conversation, used for title generation.
+ * @param {boolean} [isGuest=false] - Optional. True if the user is a guest; otherwise, false.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<object>} A promise that resolves to the conversation object (either existing or newly created).
+ * @throws {ApiError} If there's an internal server error handling the conversation.
  */
 const handleSummaryConversation = async (
   userId,
@@ -121,12 +130,17 @@ const handleSummaryConversation = async (
 };
 
 /**
- * Add summary query message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} summaryQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a user's summary query message to a specified conversation.
+ * This message is stored in the conversation history and optionally persisted in OpenMemory.
+ * Supports both authenticated and guest users.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user (authenticated or guest) sending the message.
+ * @param {string} summaryQuery - The content of the user's summary query.
+ * @param {boolean} [isGuest=false] - Optional. True if the user is a guest; otherwise, false.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If there's an internal server error adding the message to the conversation.
  */
 const addSummaryQueryMessage = async (
   conversationId,
@@ -188,13 +202,18 @@ const addSummaryQueryMessage = async (
 };
 
 /**
- * Add summary result message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} summaryResult
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an assistant's summary result message to a specified conversation.
+ * This message is stored in the conversation history and optionally persisted in OpenMemory.
+ * Supports both authenticated and guest users.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
+ * @param {string} summaryResult - The content of the assistant's summary result.
+ * @param {object} [metadata={}] - Optional. Additional metadata to store with the message and in OpenMemory.
+ * @param {boolean} [isGuest=false] - Optional. True if the user is a guest; otherwise, false.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If there's an internal server error adding the message to the conversation.
  */
 const addSummaryResultMessage = async (
   conversationId,
@@ -259,13 +278,17 @@ const addSummaryResultMessage = async (
 };
 
 /**
- * Add error message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} errorMessage
- * @param {Error} originalError
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an error message from the assistant to a specified conversation.
+ * This function is designed to log and store error details without throwing further exceptions,
+ * preventing cascading failures. Supports both authenticated and guest users.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the error message to.
+ * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
+ * @param {string} errorMessage - The user-friendly error message content to be displayed.
+ * @param {Error} originalError - The original error object, used for logging and detailed metadata storage.
+ * @param {boolean} [isGuest=false] - Optional. True if the user is a guest; otherwise, false.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<object | void>} A promise that resolves to the saved message object, or void if an error occurs during saving.
  */
 const addErrorMessage = async (
   conversationId,
@@ -302,11 +325,19 @@ const addErrorMessage = async (
 };
 
 /**
- * Process summary history for context
- * @param {string} conversationId
- * @param {string} userId
- * @param {number} limit
- * @returns {Promise<Array>}
+ * Retrieves a limited history of messages for a given summary conversation.
+ * The messages are formatted to include role, content, and timestamp.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve history from.
+ * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
+ * @param {number} [limit=10] - Optional. The maximum number of recent messages to retrieve. Defaults to 10.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of formatted message objects.
+ *   Each object has:
+ *   - `role` {string}: The role of the message sender (e.g., 'user', 'assistant').
+ *   - `content` {string}: The content of the message.
+ *   - `timestamp` {string}: The ISO string timestamp of when the message was created.
+ *   Returns an empty array if the conversation is not found, has no messages, or an error occurs.
  */
 const getSummaryHistory = async (
   conversationId,
@@ -343,11 +374,15 @@ const getSummaryHistory = async (
 };
 
 /**
- * Update conversation title based on summary query
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} summaryQuery
- * @returns {Promise<void>}
+ * Updates the title of a summary conversation based on the initial summary query.
+ * The title is truncated if it exceeds 50 characters.
+ * This function logs a warning but does not throw an error if the update fails, as it's not critical.
+ *
+ * @param {string} conversationId - The ID of the conversation to update.
+ * @param {string} userId - The ID of the user (authenticated or guest) who owns the conversation.
+ * @param {string} summaryQuery - The query string used to generate the new title.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<void>} A promise that resolves when the title update operation is complete.
  */
 const updateConversationTitle = async (
   conversationId,
@@ -370,8 +405,10 @@ const updateConversationTitle = async (
 };
 
 /**
- * Generate unique conversation ID for summary
- * @returns {string}
+ * Generates a unique ID for a new summary conversation.
+ * The ID is a string combining a prefix, current timestamp, and a random alphanumeric string.
+ *
+ * @returns {string} A unique string ID for a summary conversation.
  */
 const generateSummaryConversationId = () => {
   // Using a custom string for summary conversation IDs.
@@ -381,9 +418,17 @@ const generateSummaryConversationId = () => {
 };
 
 /**
- * Get summary conversation statistics
- * @param {string} userId
- * @returns {Promise<Object>}
+ * Retrieves statistics related to a user's summary conversations.
+ * This includes the total number of summary conversations, total messages within them,
+ * and the average messages per conversation.
+ *
+ * @param {string} userId - The ID of the user for whom to retrieve statistics.
+ * @param {object} [req=null] - Optional. The Express request object, used for context or tracing.
+ * @returns {Promise<object>} A promise that resolves to an object containing summary statistics.
+ *   - `totalSummaryConversations` {number}: The total number of summary conversations for the user.
+ *   - `totalSummaryMessages` {number}: The total number of messages across all summary conversations for the user.
+ *   - `averageMessagesPerConversation` {number}: The average number of messages per summary conversation, rounded to the nearest integer.
+ *   Returns default zero values if an error occurs.
  */
 const getSummaryStats = async (userId, req = null) => {
   try {
@@ -435,6 +480,23 @@ const getSummaryStats = async (userId, req = null) => {
   }
 };
 
+/**
+ * @typedef {object} SummaryService
+ * @property {function(string, string, string, boolean, object): Promise<object>} handleSummaryConversation - Manages the lifecycle of a summary conversation, creating or retrieving it.
+ * @property {function(string, string, string, boolean, object): Promise<object>} addSummaryQueryMessage - Adds a user's summary query message to a conversation.
+ * @property {function(string, string, string, object, boolean, object): Promise<object>} addSummaryResultMessage - Adds an assistant's summary result message to a conversation.
+ * @property {function(string, string, string, Error, boolean, object): Promise<object | void>} addErrorMessage - Adds an error message to a conversation, handling potential failures gracefully.
+ * @property {function(string, string, number, object): Promise<Array<object>>} getSummaryHistory - Retrieves a limited history of messages for a summary conversation.
+ * @property {function(string, string, string, object): Promise<void>} updateConversationTitle - Updates the title of a summary conversation based on the query.
+ * @property {function(): string} generateSummaryConversationId - Generates a unique ID for a new summary conversation.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for a guest user.
+ * @property {function(string, object): Promise<object>} getSummaryStats - Retrieves statistics related to a user's summary conversations.
+ */
+
+/**
+ * Exports an object containing all summary-related service functions.
+ * @type {SummaryService}
+ */
 export const summaryService = {
   handleSummaryConversation,
   addSummaryQueryMessage,
