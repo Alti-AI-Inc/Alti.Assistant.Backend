@@ -47,6 +47,10 @@ const handlePresentationConversation = async (
     if (conversationId) {
       try {
         // Ensure conversation belongs to the user for security (IDOR prevention)
+        // Optimization Note: If conversationHelpers.getConversationById were only used for read-only purposes
+        // without subsequent .save() calls, adding .lean() to the underlying Mongoose query would improve performance.
+        // However, in this service, the fetched conversation object is often modified and saved,
+        // so it needs to be a full Mongoose document.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -163,20 +167,29 @@ const updateConversationMetadata = async (
 
 /**
  * Save conversation summary to metadata
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {string} summary
+ * @param {object} req
+ * @param {object} existingConversation - Optional: Pass an already fetched Mongoose conversation document to avoid re-fetching.
  */
 const saveConversationSummary = async (
   conversationId,
   userId,
   summary,
-  req = null
+  req = null,
+  existingConversation = null // Optimization: Accept existing conversation object
 ) => {
   try {
-    // Ensure conversation belongs to the user for security (IDOR prevention)
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId,
-      req
-    );
+    let conversation = existingConversation;
+    if (!conversation) {
+      // Ensure conversation belongs to the user for security (IDOR prevention)
+      conversation = await conversationHelpers.getConversationById(
+        conversationId,
+        userId,
+        req
+      );
+    }
 
     if (conversation) {
       conversation.metadata = {
@@ -285,11 +298,13 @@ const processConversationalRequest = async (
         existingParams
       );
 
+      // Optimization: Pass the already fetched conversation object to avoid a redundant database read
       await saveConversationSummary(
         actualConversationId,
         userId,
         conversationSummary,
-        req
+        req,
+        conversation // Pass existing conversation
       );
     }
 
@@ -1062,3 +1077,17 @@ export const presentationService = {
   addMessage,
   processConversationalRequest,
 };
+
+/*
+Optimization Recommendation: Database Indexing
+
+For the 'Conversation' schema (managed by conversationService and conversationHelpers),
+it is highly recommended to ensure appropriate indexes are in place to optimize query performance,
+especially for lookups involving 'conversationId' and 'userId'.
+
+Consider adding a compound index on `{ conversationId: 1, userId: 1 }` or
+`{ userId: 1, conversationId: 1 }` if queries frequently filter by both fields.
+If `conversationId` is unique and the primary lookup key, an index on `{ conversationId: 1 }`
+is crucial. This will significantly speed up operations like `getConversationById`,
+`addMessageToConversation`, and `updateConversationMetadata` which rely on these fields for efficient document retrieval and authorization checks.
+*/

@@ -32,7 +32,7 @@ import mongoose from 'mongoose';
  * @property {string} [toolSlug] - The machine-readable slug of the tool used.
  * @property {Object} [parameters] - The input parameters provided to the tool action. Defaults to an empty object.
  * @property {Object|null} [result] - The output or result returned by the tool action. Null if no result or action failed.
- * @property {ActionAuditLogError} [error] - Details of any error that occurred during execution.
+ * @property {ActionAuditLogError|null} [error] - Details of any error that occurred during execution. Null if no error.
  * @property {'pending'|'executing'|'success'|'failed'|'retried'|'rolled_back'} status - The current status of the action execution.
  * @property {number} [durationMs] - The duration of the action execution in milliseconds. Defaults to 0.
  * @property {number} [attempts] - The number of attempts made to execute the action. Defaults to 1.
@@ -145,13 +145,19 @@ const ActionAuditLogSchema = new mongoose.Schema(
       default: null,
     },
     /**
-     * Details of any error that occurred during execution.
-     * @type {ActionAuditLogError}
+     * Details of any error that occurred during execution. Null if no error.
+     * Defined as a sub-schema to allow for `default: null` and prevent an empty object `{}`
+     * from being stored when no error is present, aligning with `result` field's behavior.
+     * @type {ActionAuditLogError|null}
+     * @default null
      */
     error: {
-      message: String,
-      code: String,
-      stack: String,
+      type: new mongoose.Schema({
+        message: String,
+        code: String,
+        stack: String,
+      }, { _id: false }), // _id: false prevents Mongoose from adding an _id to the subdocument
+      default: null, // Explicitly default to null if no error is provided
     },
 
     // Execution metadata
