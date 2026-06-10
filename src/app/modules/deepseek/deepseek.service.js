@@ -48,7 +48,8 @@ const geminiResponseService = async (prompt, userId, sessionId) => {
   if (!memory) {
     // Fix: Initialize BufferMemory with existing chat history from the database if available.
     // This ensures continuity of conversation context across application restarts.
-    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId });
+    // Optimization: Added .lean() for performance as the document is only read and not modified.
+    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId }).lean();
     const chatHistory = new InMemoryChatMessageHistory();
 
     if (existingChatSession && existingChatSession.responses.length > 0) {
@@ -118,8 +119,8 @@ const geminiResponseService = async (prompt, userId, sessionId) => {
 
     // Fix: Used `upsert: true` with `findOneAndUpdate` to simplify logic.
     // This creates the document if it doesn't exist, eliminating the need for a separate `if (!deepseekSession)` block.
-    // Recommendation: Ensure that `user` and `sessionId` fields in the `ChatHistory` model are indexed
-    // for efficient lookups: `ChatHistorySchema.index({ user: 1, sessionId: 1 });`
+    // Optimization: For efficient lookups and updates, ensure that `user` and `sessionId` fields in the `ChatHistory` model are indexed.
+    // Example: `ChatHistorySchema.index({ user: 1, sessionId: 1 });`
     const geminiSession = await ChatHistory.findOneAndUpdate(
       { user: userId, sessionId },
       { $push: { responses: responseData } },
