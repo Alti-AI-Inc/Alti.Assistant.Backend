@@ -6,11 +6,28 @@
 import mongoose from 'mongoose';
 
 /**
+ * @typedef {import('mongoose').Document & {
+ *   name: string;
+ *   description: string;
+ *   license: 'MIT' | 'Apache 2.0' | 'GPL-3.0' | 'BSD-3-Clause' | 'Unlicense' | 'Other';
+ *   html_url: string;
+ *   clone_url: string;
+ *   stars: number;
+ *   forks: number;
+ *   language: string;
+ *   workspaceId: mongoose.Schema.Types.ObjectId | null;
+ *   ownerId?: mongoose.Schema.Types.ObjectId;
+ *   isPublic: boolean;
+ *   createdAt: Date;
+ *   updatedAt: Date;
+ * }} ComposioRepositoryDocument
+ */
+
+/**
  * Mongoose schema for storing information about Composio repositories.
  * These repositories are typically sourced from platforms like GitHub and represent
  * tools or integrations available through Composio.
- * @class ComposioRepositorySchema
- * @type {mongoose.Schema}
+ * @type {mongoose.Schema<ComposioRepositoryDocument>}
  */
 const ComposioRepositorySchema = new mongoose.Schema(
   {
@@ -163,11 +180,8 @@ const ComposioRepositorySchema = new mongoose.Schema(
     }
   },
   {
-    /**
-     * Mongoose schema options.
-     * @property {boolean} timestamps - If true, Mongoose adds createdAt and updatedAt properties to the schema.
-     */
-    timestamps: true // This option automatically adds 'createdAt' and 'updatedAt' fields.
+    // This option automatically adds 'createdAt' and 'updatedAt' fields.
+    timestamps: true
   }
 );
 
@@ -177,7 +191,6 @@ const ComposioRepositorySchema = new mongoose.Schema(
  * matches in the repository name over the description.
  * 'language_override: 'none'' is used to prevent stemming and stop words for more literal matching.
  */
-// Enable full-text search on name and description for highly relevant queries
 ComposioRepositorySchema.index(
   { name: 'text', description: 'text' },
   { weights: { name: 10, description: 2 }, name: 'TextIndex', language_override: 'none' }
@@ -187,8 +200,7 @@ ComposioRepositorySchema.index(
  * The Mongoose model for a Composio Repository.
  * This model is used to interact with the 'composiorepositories' collection in MongoDB.
  * It prevents model recompilation by checking if the model already exists in `mongoose.models`.
- * @model ComposioRepository
- * @type {mongoose.Model<ComposioRepositorySchema>}
+ * @type {mongoose.Model<ComposioRepositoryDocument>}
  */
 const ComposioRepository = mongoose.models.ComposioRepository || mongoose.model('ComposioRepository', ComposioRepositorySchema);
 

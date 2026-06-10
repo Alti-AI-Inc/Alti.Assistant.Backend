@@ -49,6 +49,21 @@ export const STORAGE_CONFIG = {
   BOT_FILES_PREFIX: 'bots',
 };
 
+// Asynchronous Processing Configuration (GCP Pub/Sub & Cloud Tasks)
+// Configuration for offloading long-running tasks like file parsing, chunking, and embedding.
+export const ASYNC_PROCESSING_CONFIG = {
+  // GCP Project ID is required for both Pub/Sub and Cloud Tasks clients.
+  GCP_PROJECT_ID: process.env.GCP_PROJECT_ID,
+
+  // Pub/Sub topic for triggering knowledge file processing when a file is uploaded.
+  // This decouples the upload API from the processing workload, enabling stateless scaling.
+  PUBSUB_TOPIC_FILE_PROCESS: process.env.PUBSUB_TOPIC_FILE_PROCESS || 'knowledge-file-processing',
+
+  // Cloud Tasks queue for handling processing, especially for retries, scheduled jobs, or as an HTTP-based alternative to Pub/Sub.
+  CLOUD_TASKS_QUEUE_FILE_PROCESS: process.env.CLOUD_TASKS_QUEUE_FILE_PROCESS || 'knowledge-processing-queue',
+  CLOUD_TASKS_LOCATION: process.env.CLOUD_TASKS_LOCATION || 'us-central1',
+};
+
 // Owner types for unified knowledge system
 export const OWNER_TYPES = {
   USER: 'user',
