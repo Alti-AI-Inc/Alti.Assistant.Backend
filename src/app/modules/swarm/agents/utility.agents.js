@@ -14,6 +14,114 @@
  */
 
 /**
+ * Global Platform Owner overrides for utility agents.
+ * Allows super admins to dynamically reconfigure models, system instructions, or tools system-wide or per tenant.
+ */
+export const globalAgentOverrides = {
+  enabled: true,
+  globalModelOverride: null, // e.g., 'gemini-2.5-pro' to upgrade all agents globally
+  overrides: {}, // Map of agentId -> Partial<AgentDefinition>
+  tenantOverrides: {}, // Map of tenantId -> Map of agentId -> Partial<AgentDefinition>
+  disabledAgents: new Set(), // Set of agent IDs disabled globally by Platform Owner
+  tenantDisabledAgents: {} // Map of tenantId -> Set of agent IDs disabled for that tenant
+};
+
+/**
+ * Resolves an agent definition, applying any global or tenant-specific overrides configured by the Platform Owner.
+ * @param {AgentDefinition} baseAgent - The base agent definition.
+ * @param {string} [tenantId] - The tenant ID requesting the agent.
+ * @returns {AgentDefinition|null} The resolved agent definition with overrides applied, or null if disabled.
+ */
+export function resolveAgent(baseAgent, tenantId = null) {
+  if (!baseAgent) return null;
+
+  // Check if agent is globally disabled by Platform Owner
+  if (globalAgentOverrides.disabledAgents.has(baseAgent.id)) {
+    return null;
+  }
+
+  // Check if agent is disabled for this specific tenant by Platform Owner
+  if (tenantId && globalAgentOverrides.tenantDisabledAgents[tenantId]?.has(baseAgent.id)) {
+    return null;
+  }
+  
+  const resolved = { ...baseAgent };
+
+  // 1. Apply global model override if set by Platform Owner (e.g., for system-wide model upgrades)
+  if (globalAgentOverrides.globalModelOverride) {
+    resolved.model = globalAgentOverrides.globalModelOverride;
+  }
+
+  // 2. Apply global agent-specific overrides (e.g., system instruction tuning)
+  const globalOverride = globalAgentOverrides.overrides[baseAgent.id];
+  if (globalOverride) {
+    Object.assign(resolved, globalOverride);
+  }
+
+  // 3. Apply tenant-specific overrides (configured by Platform Owner or Tenant Admin with Platform Owner approval)
+  if (tenantId && globalAgentOverrides.tenantOverrides[tenantId]) {
+    const tenantOverride = globalAgentOverrides.tenantOverrides[tenantId][baseAgent.id];
+    if (tenantOverride) {
+      Object.assign(resolved, tenantOverride);
+    }
+  }
+
+  return resolved;
+}
+
+/**
+ * Retrieves all utility agents with optional Platform Owner overrides applied.
+ * Filters out any agents disabled globally or for the specific tenant.
+ * @param {string} [tenantId] - Optional tenant ID to apply tenant-specific overrides.
+ * @returns {Array<AgentDefinition>} List of resolved agent definitions.
+ */
+export function getAllUtilityAgents(tenantId = null) {
+  const agents = [
+    summarizer,
+    translator,
+    transcriber,
+    documenter,
+    brainstormer,
+    creativeCopywriter,
+    uxStrategist,
+    seoContentSpecialist,
+    emailCorrespondenceExpert,
+    youtubeTranscriptSummarizer,
+    resumeCvCoach,
+    socialMediaWriter,
+    pressReleaseWriter,
+    grantProposalWriter
+  ];
+  return agents
+    .map(agent => resolveAgent(agent, tenantId))
+    .filter(agent => agent !== null);
+}
+
+/**
+ * Updates the global agent overrides. Restricted to Platform Owner / Super Admin.
+ * @param {object} newOverrides - The new overrides configuration.
+ */
+export function updateGlobalAgentOverrides(newOverrides) {
+  if (newOverrides.globalModelOverride !== undefined) {
+    globalAgentOverrides.globalModelOverride = newOverrides.globalModelOverride;
+  }
+  if (newOverrides.overrides) {
+    Object.assign(globalAgentOverrides.overrides, newOverrides.overrides);
+  }
+  if (newOverrides.tenantOverrides) {
+    Object.assign(globalAgentOverrides.tenantOverrides, newOverrides.tenantOverrides);
+  }
+  if (newOverrides.disabledAgents) {
+    globalAgentOverrides.disabledAgents = new Set(newOverrides.disabledAgents);
+  }
+  if (newOverrides.tenantDisabledAgents) {
+    for (const [tId, disabledList] of Object.entries(newOverrides.tenantDisabledAgents)) {
+      globalAgentOverrides.tenantDisabledAgents[tId] = new Set(disabledList);
+    }
+  }
+}
+
+/**
  * The Executive Summarizer agent.
  * Specializes in condensing long texts, transcripts, reports, or documentation into high-density insights.
  * @type {AgentDefinition}

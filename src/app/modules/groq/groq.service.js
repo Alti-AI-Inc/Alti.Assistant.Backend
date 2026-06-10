@@ -33,9 +33,12 @@ const MAX_MEMORY_SIZE = 12; // Limits stored messages per session
  *                            delegated from the Gemini AI service.
  */
 const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
-  logger.info(
-    `Redirecting Groq completions Request to Google Gemini 3.1 Flash exclusively.`
-  );
+  logger.info({
+    message: 'Redirecting Groq completions Request to Google Gemini 3.1 Flash exclusively.',
+    severity: 'INFO',
+    sessionId,
+    userId
+  });
   return GeminiAiService.geminiService(sessionId, prompt, userId);
 };
 
@@ -58,7 +61,11 @@ const toLangchainMessages = (dbMessages) => {
     } else if (msg.type === 'ai') {
       return new AIMessage(msg.content);
     }
-    logger.warn(`Unknown message type encountered in DB: ${msg.type}`);
+    logger.warn({
+      message: `Unknown message type encountered in DB: ${msg.type}`,
+      severity: 'WARNING',
+      type: msg.type
+    });
     return null; // Filter out unknown types
   }).filter(Boolean);
 };
@@ -296,7 +303,11 @@ const deleteOneLlamaAiSession = async (objectId) => {
       { $pull: { llamaAiSessions: objectId } }
     );
 
-    logger.info(userUpdateResult, 'userUpdateResult userUpdateResult');
+    logger.info({
+      message: 'userUpdateResult userUpdateResult',
+      severity: 'INFO',
+      userUpdateResult
+    });
 
     if (userUpdateResult.modifiedCount === 1) {
       return {
@@ -386,7 +397,12 @@ const deleteAllAiSessionsService = async (userId) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error('An error occurred:', error);
+    logger.error({
+      message: 'An error occurred during deleteAllAiSessionsService execution',
+      severity: 'ERROR',
+      error: error.message || error,
+      stack: error.stack
+    });
     return {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR, // Added status code for consistency in error returns
       success: false,

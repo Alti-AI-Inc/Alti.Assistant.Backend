@@ -9,6 +9,11 @@ import UsageLog from './usageLog.model.js'; // Consider adding indexes to UsageL
 //    to avoid the overhead of Mongoose document instantiation.
 import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
+import { PubSub } from '@google-cloud/pubsub';
+
+// Initialize GCP Pub/Sub client
+const pubsub = new PubSub();
+const TOPIC_NAME = process.env.USAGE_LOG_TOPIC || 'usage-logs';
 
 /**
  * Maps an API endpoint and HTTP method to a specific module and action for usage logging.
@@ -185,9 +190,9 @@ const getErrorType = (statusCode) => {
 };
 
 /**
- * Asynchronously creates a usage log entry in the database.
- * This operation is deferred using `setImmediate` to ensure it does not block the main event loop
- * and allows the API response to be sent quickly. Errors during log creation are caught and logged.
+ * Asynchronously publishes a usage log entry to GCP Pub/Sub.
+ * This ensures that database writes are offloaded from the main application process,
+ * allowing for stateless, container-friendly scaling.
  *
  * @param {object} logData - The data object for the usage log entry.
  * @param {Date} logData.timestamp - The timestamp of the request.
@@ -215,24 +220,29 @@ const getErrorType = (statusCode) => {
  * @returns {void}
  */
 const createLogAsync = (logData) => {
-  // Use setImmediate to defer execution and not block response
-  setImmediate(() => {
-    UsageLog.create(logData)
-      .then(() => {
-        // Silent success
-      })
-      .catch((error) => {
-        logger.error('Failed to create usage log:', {
-          error: error.message,
-          logData: {
-            userId: logData.userId,
-            tenantId: logData.tenantId,
-            module: logData.module,
-            endpoint: logData.endpoint,
-          },
-        });
+  const dataBuffer = Buffer.from(JSON.stringify(logData));
+
+  pubsub
+    .topic(TOPIC_NAME)
+    .publishMessage({ data: dataBuffer })
+    .then(() => {
+      // Silent success
+    })
+    .catch((error) => {
+      logger.error('Failed to publish usage log to Pub/Sub, falling back to direct database write:', {
+        error: error.message,
+        logData: {
+          userId: logData.userId,
+          tenantId: logData.tenantId,
+          module: logData.module,
+          endpoint: logData.endpoint,
+        },
       });
-  });
+      // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable
+      UsageLog.create(logData).catch((dbError) => {
+        logger.error('Fallback database write also failed:', dbError);
+      });
+    });
 };
 
 /**
@@ -314,7 +324,7 @@ const logRequest = (data) => {
     metadata,
   };
 
-  // Log asynchronously (non-blocking)
+  // Log asynchronously (non-blocking) via Pub/Sub
   createLogAsync(logData);
 };
 
