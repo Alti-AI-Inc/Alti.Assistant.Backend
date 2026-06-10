@@ -31,9 +31,11 @@ import mongoose from 'mongoose'; // Optimization: Imported mongoose for ObjectId
  * /api/v1/support:
  *   post:
  *     summary: Create a new support request
- *     description: Allows a user to submit a new support request with details like subject and description.
+ *     description: Allows an authenticated user to submit a new support request. The request is automatically associated with the logged-in user.
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -41,14 +43,9 @@ import mongoose from 'mongoose'; // Optimization: Imported mongoose for ObjectId
  *           schema:
  *             type: object
  *             required:
- *               - id
  *               - subject
  *               - description
  *             properties:
- *               id:
- *                 type: string
- *                 description: The ID of the user making the request.
- *                 example: "60d0fe4f5311236168a109ca"
  *               subject:
  *                 type: string
  *                 description: The subject of the support request.
@@ -83,15 +80,18 @@ import mongoose from 'mongoose'; // Optimization: Imported mongoose for ObjectId
  *                   $ref: '#/components/schemas/SupportRequestResponse'
  *       400:
  *         description: Bad Request - Invalid input data.
+ *       401:
+ *         description: Unauthorized - User must be logged in.
  *       500:
  *         description: Internal Server Error
  */
 /**
  * Handles the creation of a new support request.
- * Extracts user ID and request data from the request body and passes it to the support service.
+ * Extracts user ID from the authenticated user session and request data from the request body,
+ * then passes it to the support service.
  *
  * @function
- * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Request} req - The Express request object, containing the authenticated user's info.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  * @throws {Error} If an error occurs during the support request creation process.
@@ -144,10 +144,12 @@ const reqForSupport = catchAsync(async (req, res) => {
  * @swagger
  * /api/v1/support:
  *   get:
- *     summary: Retrieve all support requests
- *     description: Fetches a list of all support requests available in the system.
+ *     summary: Retrieve all support requests (Admin)
+ *     description: Fetches a list of all support requests in the system. **Requires admin or support role.**
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully Get all Support Requests
@@ -169,12 +171,17 @@ const reqForSupport = catchAsync(async (req, res) => {
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/SupportRequestResponse'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - User does not have the required permissions.
  *       500:
  *         description: Internal Server Error
  */
 /**
  * Handles the retrieval of all support requests.
  * Calls the support service to get all requests and sends them as a response.
+ * **Permissions:** Requires admin or support role.
  *
  * @function
  * @param {import('express').Request} req - The Express request object.
@@ -203,9 +210,11 @@ const getAllSupportReq = catchAsync(async (req, res) => {
  * /api/v1/support/{id}:
  *   get:
  *     summary: Retrieve a single support request by ID
- *     description: Fetches a specific support request using its unique identifier.
+ *     description: Fetches a specific support request. **Requires ownership of the request, or an admin/support role.**
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -233,6 +242,10 @@ const getAllSupportReq = catchAsync(async (req, res) => {
  *                   example: "Get Support Reqest by id successfully"
  *                 data:
  *                   $ref: '#/components/schemas/SupportRequestResponse'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - User does not have permission to view this request.
  *       404:
  *         description: Support request not found.
  *       500:
@@ -241,6 +254,7 @@ const getAllSupportReq = catchAsync(async (req, res) => {
 /**
  * Handles the retrieval of a single support request by its ID.
  * Extracts the ID from request parameters and calls the support service.
+ * **Permissions:** Requires the user to be the owner of the request, or to have an admin/support role.
  *
  * @function
  * @param {import('express').Request} req - The Express request object.
@@ -276,9 +290,11 @@ const getSupportById = catchAsync(async (req, res) => {
  * /api/v1/support/{id}:
  *   patch:
  *     summary: Update an existing support request
- *     description: Modifies the details of an existing support request identified by its ID.
+ *     description: Modifies an existing support request. **Requires ownership of the request, or an admin/support role.**
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -328,6 +344,10 @@ const getSupportById = catchAsync(async (req, res) => {
  *                   $ref: '#/components/schemas/SupportRequestResponse'
  *       400:
  *         description: Bad Request - Invalid input data.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - User does not have permission to update this request.
  *       404:
  *         description: Support request not found.
  *       500:
@@ -337,6 +357,7 @@ const getSupportById = catchAsync(async (req, res) => {
  * Handles the update of an existing support request.
  * Extracts the ID from request parameters and update data from the request body,
  * then calls the support service to perform the update.
+ * **Permissions:** Requires the user to be the owner of the request, or to have an admin/support role.
  *
  * @function
  * @param {import('express').Request} req - The Express request object.
@@ -373,9 +394,11 @@ const updateSupportReq = catchAsync(async (req, res) => {
  * /api/v1/support/{id}:
  *   delete:
  *     summary: Delete a support request
- *     description: Removes a specific support request from the system using its unique identifier.
+ *     description: Removes a support request. **Requires ownership of the request, or an admin/support role.**
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -403,6 +426,10 @@ const updateSupportReq = catchAsync(async (req, res) => {
  *                   example: "Support Request Delete Successfully"
  *                 data:
  *                   $ref: '#/components/schemas/SupportRequestResponse'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - User does not have permission to delete this request.
  *       404:
  *         description: Support request not found.
  *       500:
@@ -411,6 +438,7 @@ const updateSupportReq = catchAsync(async (req, res) => {
 /**
  * Handles the deletion of a single support request.
  * Extracts the ID from request parameters and calls the support service to delete the request.
+ * **Permissions:** Requires the user to be the owner of the request, or to have an admin/support role.
  *
  * @function
  * @param {import('express').Request} req - The Express request object.
@@ -438,10 +466,12 @@ const deleteSupportReq = catchAsync(async (req, res) => {
  * @swagger
  * /api/v1/support/bulk-delete:
  *   delete:
- *     summary: Delete multiple support requests
- *     description: Deletes multiple support requests based on a list of provided IDs.
+ *     summary: Delete multiple support requests (Admin)
+ *     description: Deletes multiple support requests based on a list of IDs. **Requires admin or support role.**
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -455,7 +485,6 @@ const deleteSupportReq = catchAsync(async (req, res) => {
  *                 type: array
  *                 items:
  *                   type: string
- *                   format: uuid
  *                 description: An array of unique IDs of the support requests to delete.
  *                 example: ["60d0fe4f5311236168a109cb", "60d0fe4f5311236168a109cc"]
  *     responses:
@@ -483,7 +512,11 @@ const deleteSupportReq = catchAsync(async (req, res) => {
  *                       description: The number of support requests successfully deleted.
  *                       example: 2
  *       400:
- *         description: Bad Request - Invalid IDs provided.
+ *         description: Bad Request - Invalid or empty IDs array provided.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - User does not have the required permissions.
  *       500:
  *         description: Internal Server Error
  */
@@ -491,6 +524,7 @@ const deleteSupportReq = catchAsync(async (req, res) => {
  * Handles the bulk deletion of multiple support requests.
  * Extracts an array of IDs from the request body, validates them, and calls the support service
  * to perform the bulk deletion.
+ * **Permissions:** Requires admin or support role.
  *
  * @function
  * @param {import('express').Request} req - The Express request object.
