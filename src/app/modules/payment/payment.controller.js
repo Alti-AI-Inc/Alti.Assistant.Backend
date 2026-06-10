@@ -143,7 +143,7 @@ const incrementImagesUsed = async (userId) => {
     // Bug Fix: Changed 'prompt' to 'image' in checkFreePlanLimits for image usage increment.
     // The `checkFreePlanLimits` function is expected to return a Mongoose document
     // because `user.save()` is called later if the user is not subscribed.
-    const user = await checkFreePlanLimits(userId, 'image', session);
+    const user = await checkFreePlanLimits(userId, 'image', session); // Optimization: Corrected 'prompt' to 'image' for accurate usage tracking.
 
     if (user.isSubscribed) {
       // The `checkUsageLimits` function is external. If it performs a read-only lookup
