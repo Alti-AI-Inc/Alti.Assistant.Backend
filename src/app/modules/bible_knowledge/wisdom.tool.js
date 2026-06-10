@@ -62,24 +62,30 @@ export const WisdomSearchTool = new DynamicStructuredTool({
                 if (!book || !chapter || !startVerse) {
                     return "Error: For lookup, you must provide 'book', 'chapter', and 'startVerse'.";
                 }
-                const passages = wisdomService.lookupPassage(book, chapter, startVerse, endVerse);
+                // BUG FIX: Await the asynchronous call to wisdomService.lookupPassage
+                const passages = await wisdomService.lookupPassage(book, chapter, startVerse, endVerse);
                 if (passages.length === 0) return `No passages found for ${book} ${chapter}:${startVerse}`;
                 return wisdomService.formatVerses(passages);
             } else if (action === "search") {
                 if (!query) {
                     return "Error: For search, you must provide a 'query'.";
                 }
-                const passages = wisdomService.search(query, 5, book);
+                // BUG FIX: Await the asynchronous call to wisdomService.search
+                const passages = await wisdomService.search(query, 5, book);
                 if (passages.length === 0) return `No passages found matching '${query}'.`;
                 
                 let resultText = `Top matches for '${query}':\n`;
+                // SECURITY/DESIGN FIX: Remove book, chapter, and verse information from the output
+                // to adhere to the "YOU MUST NOT reveal the names of the books, the authors, or the chapters" directive.
                 passages.forEach(v => {
-                    resultText += `- [${v.book} ${v.chapter}:${v.verse}] ${v.text}\n`;
+                    resultText += `- ${v.text}\n`; // Only include the text of the wisdom
                 });
                 return resultText;
             }
             return "Invalid action.";
         } catch (error) {
+            // Ensure error message is safe and doesn't leak sensitive internal details.
+            // The current message is generic enough.
             return `Error accessing Wisdom data: ${error.message}`;
         }
     }
