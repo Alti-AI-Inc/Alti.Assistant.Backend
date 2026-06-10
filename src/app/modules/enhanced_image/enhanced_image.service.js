@@ -5,6 +5,8 @@ import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
+// Enterprise-grade Rate Limiting & DDOS Guard Agent import
+import { rateLimiter } from '../../shared/rateLimiter.js';
 import { imagen3 } from './utils/imagegen2.5.service.js';
 import { imagegen_4 } from './utils/imagegen4.service.js';
 import { routeImageGenRequest } from './utils/intentClassifier.js';
@@ -55,6 +57,20 @@ const handleImageConversation = async (
   req = null
 ) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects against rapid conversation creation/access, preventing database abuse.
+    // Guests are identified by IP, authenticated users by their user ID.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 30, duration: 3600 } // GUESTS: 30 conversation actions per hour
+      : { limit: 200, duration: 3600 }; // AUTHENTICATED: 200 conversation actions per hour
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'handle_image_conversation',
+    });
+
     let conversation;
 
     if (conversationId) {
@@ -133,6 +149,10 @@ const handleImageConversation = async (
     return conversation;
   } catch (error) {
     logger.error('Error handling image conversation:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to handle image conversation'
@@ -338,8 +358,12 @@ const addErrorMessage = async (
  * @param {string|null} [options.referenceImage] - A reference image for the generation process.
  * @param {string|null} [options.aspectRatio] - The desired aspect ratio (e.g., "16:9").
  * @param {string|null} [options.negativePrompt] - A prompt describing what to avoid in the image.
+ * @param {object} context - The request context for rate limiting.
+ * @param {string} context.userId - The user's ID.
+ * @param {boolean} context.isGuest - True if the user is a guest.
+ * @param {import('express').Request} context.req - The Express request object.
  * @returns {Promise<object>} A promise that resolves to an object containing the filename, public URL, and metadata about the generation service.
- * @throws {ApiError} If image generation fails.
+ * @throws {ApiError} If image generation fails or rate limit is exceeded.
  */
 const generateImage = async (
   prompt,
@@ -348,9 +372,24 @@ const generateImage = async (
     referenceImage: null,
     aspectRatio: null,
     negativePrompt: null,
-  }
+  },
+  { userId, isGuest, req }
 ) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects expensive image generation endpoints from abuse, DDOS, and cost overruns.
+    // Guests are identified by IP, authenticated users by their user ID.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 5, duration: 3600 } // GUESTS: 5 images per hour
+      : { limit: 50, duration: 3600 }; // AUTHENTICATED: 50 images per hour
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'image_generation',
+    });
+
     // SECURITY FIX: Sanitize filename to prevent path traversal vulnerabilities.
     // This ensures that 'filename' does not contain directory separators (e.g., '..')
     // which could allow an attacker to write files outside the intended 'uploads/images' directory.
@@ -387,6 +426,10 @@ const generateImage = async (
     };
   } catch (error) {
     logger.error('Error generating image:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to generate image'
@@ -400,11 +443,35 @@ const generateImage = async (
  * @param {string} imageBase64 - The base64 encoded string of the image to edit.
  * @param {string} filename - The desired filename for the output image.
  * @param {object} [options={}] - Optional parameters for the editing process.
+ * @param {object} context - The request context for rate limiting.
+ * @param {string} context.userId - The user's ID.
+ * @param {boolean} context.isGuest - True if the user is a guest.
+ * @param {import('express').Request} context.req - The Express request object.
  * @returns {Promise<object>} A promise that resolves to an object containing the filename, public URL, and service metadata.
- * @throws {ApiError} If image editing fails.
+ * @throws {ApiError} If image editing fails or rate limit is exceeded.
  */
-const editImage = async (prompt, imageBase64, filename, options = {}) => {
+const editImage = async (
+  prompt,
+  imageBase64,
+  filename,
+  options = {},
+  { userId, isGuest, req }
+) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects expensive image editing endpoints from abuse, DDOS, and cost overruns.
+    // Guests are identified by IP, authenticated users by their user ID.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 5, duration: 3600 } // GUESTS: 5 image edits per hour
+      : { limit: 50, duration: 3600 }; // AUTHENTICATED: 50 image edits per hour
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'image_editing',
+    });
+
     // SECURITY FIX: Sanitize filename to prevent path traversal vulnerabilities.
     // This ensures that 'filename' does not contain directory separators (e.g., '..')
     // which could allow an attacker to write files outside the intended directory.
@@ -426,6 +493,10 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
     };
   } catch (error) {
     logger.error('Error editing image:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to edit image'
@@ -436,11 +507,28 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
 /**
  * Analyzes a user's prompt to determine the intent related to image generation or editing.
  * @param {string} prompt - The user's prompt.
+ * @param {object} context - The request context for rate limiting.
+ * @param {string} context.userId - The user's ID.
+ * @param {boolean} context.isGuest - True if the user is a guest.
+ * @param {import('express').Request} context.req - The Express request object.
  * @returns {Promise<object>} A promise that resolves to the intent analysis result.
- * @throws {ApiError} If intent analysis fails.
+ * @throws {ApiError} If intent analysis fails or rate limit is exceeded.
  */
-const analyzeImageIntent = async (prompt) => {
+const analyzeImageIntent = async (prompt, { userId, isGuest, req }) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects AI analysis endpoints from abuse and cost overruns.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 20, duration: 600 } // GUESTS: 20 analyses per 10 minutes
+      : { limit: 100, duration: 600 }; // AUTHENTICATED: 100 analyses per 10 minutes
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'image_intent_analysis',
+    });
+
     const apiKey = config.gemini_secret_key;
     const result = await analyzeIntent(prompt, false, 'No previous context.', {
       apiKey,
@@ -448,6 +536,10 @@ const analyzeImageIntent = async (prompt) => {
     return result;
   } catch (error) {
     logger.error('Error analyzing image intent:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to analyze image intent'
@@ -460,11 +552,33 @@ const analyzeImageIntent = async (prompt) => {
  * @param {string} prompt - The user's prompt.
  * @param {boolean} hasImage - Whether the current context includes an image.
  * @param {string} context - The preceding conversation history or context.
+ * @param {object} rateLimitContext - The request context for rate limiting.
+ * @param {string} rateLimitContext.userId - The user's ID.
+ * @param {boolean} rateLimitContext.isGuest - True if the user is a guest.
+ * @param {import('express').Request} rateLimitContext.req - The Express request object.
  * @returns {Promise<object>} A promise that resolves to the intent analysis result.
- * @throws {ApiError} If intent analysis fails.
+ * @throws {ApiError} If intent analysis fails or rate limit is exceeded.
  */
-const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
+const analyzeImageIntentWithContext = async (
+  prompt,
+  hasImage,
+  context,
+  { userId, isGuest, req }
+) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects AI analysis endpoints from abuse and cost overruns.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 20, duration: 600 } // GUESTS: 20 analyses per 10 minutes
+      : { limit: 100, duration: 600 }; // AUTHENTICATED: 100 analyses per 10 minutes
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'image_intent_analysis_context',
+    });
+
     const apiKey = config.gemini_secret_key;
     const { analyzeImageIntent: analyzeIntentFull } = await import(
       './utils/imageIntentAnalyzer.js'
@@ -475,6 +589,10 @@ const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
     return result;
   } catch (error) {
     logger.error('Error analyzing image intent with context:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to analyze image intent'
@@ -486,11 +604,32 @@ const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
  * Evaluates the quality and clarity of a user's prompt for image generation.
  * @param {string} prompt - The user's prompt to evaluate.
  * @param {string} history - The conversation history for context.
+ * @param {object} context - The request context for rate limiting.
+ * @param {string} context.userId - The user's ID.
+ * @param {boolean} context.isGuest - True if the user is a guest.
+ * @param {import('express').Request} context.req - The Express request object.
  * @returns {Promise<object>} A promise that resolves to the evaluation result.
- * @throws {ApiError} If prompt evaluation fails.
+ * @throws {ApiError} If prompt evaluation fails or rate limit is exceeded.
  */
-const evaluatePromptQuality = async (prompt, history) => {
+const evaluatePromptQuality = async (
+  prompt,
+  history,
+  { userId, isGuest, req }
+) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects AI analysis endpoints from abuse and cost overruns.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 20, duration: 600 } // GUESTS: 20 evaluations per 10 minutes
+      : { limit: 100, duration: 600 }; // AUTHENTICATED: 100 evaluations per 10 minutes
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'evaluate_prompt_quality',
+    });
+
     const apiKey = config.gemini_secret_key;
     const { evaluatePromptQuality: evaluatePrompt } = await import(
       './utils/promptEvaluator.js'
@@ -499,6 +638,10 @@ const evaluatePromptQuality = async (prompt, history) => {
     return result;
   } catch (error) {
     logger.error('Error evaluating prompt quality:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to evaluate prompt quality'
@@ -509,17 +652,41 @@ const evaluatePromptQuality = async (prompt, history) => {
 /**
  * Constructs an enhanced, more detailed prompt for image generation by synthesizing information from the conversation history.
  * @param {Array<object>} conversationHistory - An array of message objects from the conversation.
+ * @param {object} context - The request context for rate limiting.
+ * @param {string} context.userId - The user's ID.
+ * @param {boolean} context.isGuest - True if the user is a guest.
+ * @param {import('express').Request} context.req - The Express request object.
  * @returns {Promise<string>} A promise that resolves to the enhanced prompt string.
- * @throws {ApiError} If prompt enhancement fails.
+ * @throws {ApiError} If prompt enhancement fails or rate limit is exceeded.
  */
-const buildEnhancedPromptFromHistory = async (conversationHistory) => {
+const buildEnhancedPromptFromHistory = async (
+  conversationHistory,
+  { userId, isGuest, req }
+) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects AI analysis endpoints from abuse and cost overruns.
+    const limiterKey = isGuest ? req.ip : userId;
+    const { limit, duration } = isGuest
+      ? { limit: 20, duration: 600 } // GUESTS: 20 enhancements per 10 minutes
+      : { limit: 100, duration: 600 }; // AUTHENTICATED: 100 enhancements per 10 minutes
+    await rateLimiter({
+      key: limiterKey,
+      limit,
+      duration,
+      context: 'build_enhanced_prompt',
+    });
+
     const apiKey = config.gemini_secret_key;
     const { buildEnhancedPrompt } = await import('./utils/promptEvaluator.js');
     const result = await buildEnhancedPrompt(conversationHistory, { apiKey });
     return result;
   } catch (error) {
     logger.error('Error building enhanced prompt:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to build enhanced prompt'
@@ -536,6 +703,15 @@ const buildEnhancedPromptFromHistory = async (conversationHistory) => {
  */
 const getImageStats = async (userId, req = null) => {
   try {
+    // Enterprise-grade Rate Limiting & DDOS Guard
+    // Protects against database strain from frequent stat requests.
+    await rateLimiter({
+      key: userId,
+      limit: 30, // 30 requests per minute
+      duration: 60,
+      context: 'get_image_stats',
+    });
+
     // Optimization: Use .lean() for read-only queries to improve performance.
     // The fetched conversations are only used for aggregation (length, messageCount),
     // not modified as Mongoose documents.
@@ -582,6 +758,10 @@ const getImageStats = async (userId, req = null) => {
     };
   } catch (error) {
     logger.error('Error getting image stats:', error);
+    // Re-throw rate limit errors directly
+    if (error.statusCode === httpStatus.TOO_MANY_REQUESTS) {
+      throw error;
+    }
     return {
       totalImageConversations: 0,
       totalGenerations: 0,
