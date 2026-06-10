@@ -293,7 +293,11 @@ router
 router
   .route('/all-support')
   .get(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // Bug fix: Restricting 'all-support' to ADMIN role only.
+    // A regular user should not be able to retrieve all support requests across the system.
+    // If a user needs to see their own requests, a separate endpoint or a more specific
+    // filtering mechanism enforced by middleware/controller should be used.
+    auth(ENUM_USER_ROLE.ADMIN),
     SupportController.getAllSupportReq
   );
 
@@ -347,7 +351,17 @@ router
  *       403:
  *         description: Forbidden. User does not have the necessary permissions.
  */
-router.route('/bulk-delete').delete(SupportController.bulkDeleteSupportReq);
+router
+  .route('/bulk-delete')
+  .delete(
+    // Bug fix: Added authentication middleware.
+    // This endpoint was previously exposed without any authentication,
+    // allowing unauthorized bulk deletion of support requests.
+    // Allowing both ADMIN and USER, assuming the controller will enforce
+    // ownership checks for USER role for the IDs provided.
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    SupportController.bulkDeleteSupportReq
+  );
 
 /**
  * @constant {express.Router} supportRoutes - Exported Express router for support module.
