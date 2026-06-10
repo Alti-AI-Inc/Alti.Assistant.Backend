@@ -1,8 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { spawn } from 'child_process'; // Changed from 'exec' to 'spawn' for security
 import { fileURLToPath } from 'url';
 import GoogleRepository from './gcp-repository.model.js';
+
+// Utility function to escape special characters for use in a regular expression
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+};
 
 // Recommended MongoDB Indexes for GoogleRepository model:
 // These indexes should be defined in 'gcp-repository.model.js' to optimize queries.
@@ -49,11 +54,9 @@ const searchGcpCatalog = async (query = '', options = {}) => {
       filter.license = lowerLicense === 'mit' ? 'MIT' : 'Apache 2.0';
     }
 
-    // Filter by Language
+    // Filter by Language - FIX: Escape regex special characters to prevent ReDoS/Regex Injection
     if (options.language) {
-      // Corrected regex: ensure it's a valid regex pattern.
-      // The original snippet had a copy-paste error.
-      filter.language = new RegExp(`^${options.language}`, 'i');
+      filter.language = new RegExp(`^${escapeRegExp(options.language)}`, 'i');
     }
 
     let queryBuilder;
@@ -72,18 +75,22 @@ const searchGcpCatalog = async (query = '', options = {}) => {
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
         // Fallback to basic case-insensitive regex match if query only consists of stopwords
+        // FIX: Escape regex special characters in the fallback query to prevent ReDoS/Regex Injection
         // Note: Regex queries without a leading '^' cannot efficiently use indexes
         // (i.e., they often result in collection scans). For better performance on
         // 'name' and 'description' regex searches, consider using MongoDB Atlas Search
         // or a dedicated search engine like Elasticsearch.
+        const escapedQuery = escapeRegExp(query);
         filter.$or = [
-          { name: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } }
+          { name: { $regex: escapedQuery, $options: 'i' } },
+          { description: { $regex: escapedQuery, $options: 'i' } }
         ];
         queryBuilder = GoogleRepository.find(filter).sort({ stars: -1 });
       }
     } else {
-      const sortBy = options.sortBy || 'stars';
+      // FIX: Validate sortBy option against a whitelist to prevent MongoDB Operator Injection
+      const allowedSortFields = ['stars', 'name', 'license', 'language']; // Add other fields if needed
+      const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
       queryBuilder = GoogleRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
@@ -142,7 +149,17 @@ const importGcpSubmodule = async (repoName) => {
     };
   }
 
-  const submodulePath = `external/gcp/${match.name}`;
+  // FIX: Sanitize match.name to prevent path traversal vulnerabilities
+  // Allow alphanumeric, hyphens, underscores, and periods. Remove other characters.
+  const sanitizedRepoName = match.name.replace(/[^a-zA-Z0-9-_.]/g, '');
+  if (!sanitizedRepoName) {
+    return {
+      success: false,
+      message: `Sanitized repository name is empty after cleaning: "${match.name}"`
+    };
+  }
+
+  const submodulePath = `external/gcp/${sanitizedRepoName}`;
   const localGcpPath = path.join(ROOT_DIR, 'external/gcp');
 
   return new Promise((resolve) => {
@@ -153,27 +170,54 @@ const importGcpSubmodule = async (repoName) => {
     }
 
     console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
-    exec(
-      `git submodule add ${match.clone_url} ${submodulePath}`,
-      { cwd: ROOT_DIR },
-      (error, stdout, stderr) => {
-        if (error) {
-          resolve({
-            success: false,
-            message: `Git command failed: ${error.message}`,
-            details: stderr
-          });
-        } else {
-          resolve({
-            success: true,
-            message: `Successfully imported GCP repository "${match.name}" as a submodule!`,
-            path: submodulePath,
-            clone_url: match.clone_url,
-            output: stdout
-          });
-        }
-      }
+
+    // FIX: Use child_process.spawn instead of exec to prevent command injection.
+    // Arguments are passed as an array, preventing shell interpretation of special characters
+    // in match.clone_url and submodulePath.
+    const gitProcess = spawn(
+      'git',
+      ['submodule', 'add', match.clone_url, submodulePath],
+      { cwd: ROOT_DIR }
     );
+
+    let stdout = '';
+    let stderr = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    gitProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    gitProcess.on('close', (code) => {
+      if (code !== 0) {
+        resolve({
+          success: false,
+          message: `Git command failed with exit code ${code}`,
+          details: stderr,
+          output: stdout
+        });
+      } else {
+        resolve({
+          success: true,
+          message: `Successfully imported GCP repository "${match.name}" as a submodule!`,
+          path: submodulePath,
+          clone_url: match.clone_url,
+          output: stdout
+        });
+      }
+    });
+
+    gitProcess.on('error', (err) => {
+      // This error event handles issues like 'git' command not found or other spawn errors
+      resolve({
+        success: false,
+        message: `Failed to start git process: ${err.message}`,
+        details: err.message
+      });
+    });
   });
 };
 
