@@ -1,7 +1,16 @@
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { geminiClient } from './llm.js'; // Removed 'llm' as it was unused.
+import { geminiClient } from './llm.js';
 
+/**
+ * Extracts a URL from a user's text input using an AI model (Gemini).
+ * It also determines if the extracted URL is a YouTube link.
+ * The function is designed to handle cases where no URL is found or an error occurs during AI processing.
+ * @async
+ * @function getUrlFromUserInputUsingAi
+ * @param {string} userInput - The raw text input from the user, which may contain a URL.
+ * @returns {Promise<{url: string|null, isYoutubeUrl: boolean}>} A promise that resolves to an object containing the extracted URL (or null if not found) and a boolean indicating if it's a YouTube URL.
+ */
 export const getUrlFromUserInputUsingAi = async (userInput) => {
   const prompt = PromptTemplate.fromTemplate(
     `You are an AI assistant helping a user find a URL to summarize.
