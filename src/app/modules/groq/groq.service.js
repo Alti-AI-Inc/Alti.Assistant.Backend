@@ -15,34 +15,73 @@ import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
 
 /**
- * Defines the maximum number of chat messages to retain in memory for a session.
- * This prevents excessive context accumulation and manages memory usage.
  * @constant {number} MAX_MEMORY_SIZE
+ * @description Defines the maximum number of chat messages to retain in memory for a session.
+ * This prevents excessive context accumulation and manages memory usage.
  */
 const MAX_MEMORY_SIZE = 12; // Limits stored messages per session
 
 /**
- * Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
+ * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
  * This function acts as a proxy, ensuring that all Groq-related AI interactions for registered users
  * are handled by the Gemini AI service for consistency and potentially enhanced capabilities.
+ * It now includes critical validation, authorization, and usage tracking.
  *
- * @async
- * @function getAiResponsesGroqService
  * @param {string} prompt - The user's input prompt for the AI.
- * @param {string} userId - The ID of the registered user making the request.
  * @param {string} sessionId - The unique identifier for the current chat session.
+ * @param {Object} requestingUser - The authenticated user object from the request.
  * @returns {Promise<Object>} A promise that resolves to the AI's response,
  *                            delegated from the Gemini AI service.
- * @permission This service is intended for authenticated users. The `userId` parameter implies that the caller has verified the user's identity.
+ * @throws {ApiError} If the user is not authorized, not found, or exceeds usage limits.
  */
-const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
+const getAiResponsesGroqService = async (prompt, sessionId, requestingUser) => {
+  // FIX: Added comprehensive validation and usage tracking for authenticated users.
+  // This prevents unauthorized access and ensures actions are tracked against user/workspace limits.
+  if (!requestingUser || !requestingUser._id) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication is required.');
+  }
+
+  // Fetch the full user profile to check limits and permissions.
+  const user = await UserModel.findById(requestingUser._id);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
+  }
+
+  // CRITICAL INTEGRATION: Check if the user's subscription/role allows AI model usage and if they are within limits.
+  // This is a placeholder for more detailed business logic (e.g., checking user.usage.aiTokens against user.limits.aiTokens).
+  const usageLimit = user.limits?.aiTokens || 0;
+  const currentUsage = user.usage?.aiTokens || 0;
+
+  if (user.role !== 'super_admin' && currentUsage >= usageLimit) {
+    // TODO: Propagate notification to manager/admin about limit exhaustion.
+    logger.warn({
+      message: 'User has reached their AI token limit.',
+      userId: user._id,
+      workspaceId: user.workspace,
+    });
+    throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'You have exceeded your usage limit. Please upgrade your plan or contact your administrator.');
+  }
+
   logger.info({
     message: 'Redirecting Groq completions Request to Google Gemini 3.1 Flash exclusively.',
     severity: 'INFO',
     sessionId,
-    userId
+    userId: user._id.toString()
   });
-  return GeminiAiService.geminiService(sessionId, prompt, userId);
+
+  // Delegate to the Gemini service, passing the full user object for further context.
+  const result = await GeminiAiService.geminiService(sessionId, prompt, user);
+
+  // CRITICAL INTEGRATION: After a successful response, update usage stats.
+  // The token count should ideally come from the AI service response.
+  // This is a simplified example.
+  const tokensUsed = result.tokenCount || 100; // Placeholder for actual token count from Gemini response
+  user.usage.aiTokens = currentUsage + tokensUsed;
+  await user.save();
+
+  // TODO: Implement logic to notify managers/admins when usage approaches certain thresholds (e.g., 80%, 90%).
+
+  return result;
 };
 
 /**
@@ -52,10 +91,8 @@ const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
  */
 
 /**
- * Converts an array of database-stored message objects into Langchain BaseMessage instances.
+ * @description Converts an array of database-stored message objects into Langchain BaseMessage instances.
  * Assumes the database message objects have 'type' ('human' or 'ai') and 'content' fields.
- *
- * @function toLangchainMessages
  * @param {DBChatMessage[]} dbMessages - An array of message objects from the database.
  * @returns {import('@langchain/core/messages').BaseMessage[]} An array of Langchain BaseMessage instances.
  */
@@ -76,9 +113,7 @@ const toLangchainMessages = (dbMessages) => {
 };
 
 /**
- * Converts an array of Langchain BaseMessage instances into database-storable message objects.
- *
- * @function toDbMessages
+ * @description Converts an array of Langchain BaseMessage instances into database-storable message objects.
  * @param {import('@langchain/core/messages').BaseMessage[]} lcMessages - An array of Langchain BaseMessage instances.
  * @returns {DBChatMessage[]} An array of database-storable message objects.
  */
@@ -90,7 +125,7 @@ const toDbMessages = (lcMessages) => {
 };
 
 /**
- * Handles anonymous, search-enhanced AI completions by redirecting requests
+ * @description Handles anonymous, search-enhanced AI completions by redirecting requests
  * to the Google Gemini 3.1 Flash service. This service manages session memory,
  * enhances prompts with real-time market data, fetches search results, and constructs
  * a rich context for the AI model to generate a response.
@@ -98,15 +133,12 @@ const toDbMessages = (lcMessages) => {
  * This function now persists anonymous chat history to the `ChatHistory` MongoDB model,
  * ensuring scalability and data persistence across server restarts or multiple instances.
  *
- * @async
- * @function GroqAiGetResponseAnonymousService
  * @param {string} prompt - The user's input prompt for the AI.
  * @param {string} [sessionIdFromClient] - An optional unique identifier for the current chat session.
  *                                         If not provided, a new UUID will be generated.
  * @returns {Promise<Object>} A promise that resolves to an object containing the session ID,
  *                            the original prompt, the AI's reply, and any fetched search results.
  * @throws {ApiError} If the prompt is missing or other internal errors occur.
- * @permission This service is designed for anonymous (unauthenticated) users.
  */
 const GroqAiGetResponseAnonymousService = async (
   prompt,
@@ -129,8 +161,10 @@ const GroqAiGetResponseAnonymousService = async (
     chatHistoryDoc = await ChatHistory.create({
       sessionId,
       messages: [], // Initialize with an empty array of messages
-      // Note: If ChatHistory model requires a 'user' field, this would need adjustment
-      // (e.g., storing a placeholder or making the 'user' field optional).
+      // Note: The 'user' field is intentionally left null for anonymous sessions.
+      // FIX: For better data segregation, associate anonymous sessions with a default
+      // workspace or tenant if context is available (e.g., from request origin/domain).
+      // workspace: resolveWorkspaceIdFromRequest(req), // Example placeholder
     });
   }
 
@@ -228,28 +262,47 @@ User Query: ${enhancedPrompt}`;
 };
 
 /**
- * Retrieves all AI chat sessions associated with a specific user ID.
- * It populates the 'llamaAiSessions' field from the User model to fetch detailed
- * session information.
+ * @description Retrieves all AI chat sessions associated with a specific user ID, with authorization checks.
  *
- * @async
- * @function getAiResponsesByUserIdService
- * @param {string} userId - The unique identifier of the user.
+ * @param {string} targetUserId - The unique identifier of the user whose sessions are being requested.
+ * @param {Object} requestingUser - The authenticated user object making the request.
  * @returns {Promise<Object>} A promise that resolves to the user's session data.
- * @throws {ApiError} If the user or session data is not found.
- * @permission Requires an authenticated user. The calling context should ensure that the user making the request
- * is either the user specified by `userId` or an administrator with appropriate permissions.
+ * @throws {ApiError} If the requesting user is not authorized, or if the target user or session data is not found.
  */
-const getAiResponsesByUserIdService = async (userId) => {
-  // Optimization: Added .lean() for this read-only query to improve performance by returning a plain JS object instead of a full Mongoose document.
+const getAiResponsesByUserIdService = async (targetUserId, requestingUser) => {
+  // FIX: Added authorization to prevent IDOR (Insecure Direct Object Reference).
+  // Ensures users can only access their own data, and admins/managers can access data within their scope.
+  if (!requestingUser) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  }
+
+  const targetUser = await UserModel.findById(targetUserId).lean();
+  if (!targetUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
+  }
+
+  const isOwner = requestingUser._id.toString() === targetUserId;
+  const isSuperAdmin = requestingUser.role === 'super_admin';
+  // Assumes user model has a workspace field for tenancy check
+  const isAdminOrManagerOfSameWorkspace =
+    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+    targetUser.workspace &&
+    requestingUser.workspace &&
+    requestingUser.workspace.toString() === targetUser.workspace.toString();
+
+  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this user\'s sessions.');
+  }
+
   const sessionData = await UserModel.findOne({
-    _id: userId,
+    _id: targetUserId,
   })
-    .select('email profile')
+    .select('email profile llamaAiSessions')
     .populate({
       path: 'llamaAiSessions',
     })
     .lean();
+
   if (!sessionData) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User or session data not found');
   }
@@ -257,160 +310,185 @@ const getAiResponsesByUserIdService = async (userId) => {
 };
 
 /**
- * Retrieves a single AI chat session by its unique session ID.
+ * @description Retrieves a single AI chat session by its unique session ID, with authorization checks.
  *
- * @async
- * @function getAiResponsesBySession
- * @param {string} id - The unique identifier of the chat session.
+ * @param {string} sessionId - The unique identifier of the chat session.
+ * @param {Object} requestingUser - The authenticated user object making the request.
  * @returns {Promise<Object>} A promise that resolves to the chat session data.
- * @throws {ApiError} If the session is not found.
- * @remarks Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
- * @permission Access to a session should be restricted. The calling context should verify that the requester
- * (whether an authenticated user or an anonymous user with a matching session cookie) has the right to view this session.
+ * @throws {ApiError} If the session is not found or the user is not authorized.
  */
-const getAiResponsesBySession = async (id) => {
-  // Optimization: Added .lean() for this read-only query to improve performance.
-  // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
+const getAiResponsesBySession = async (sessionId, requestingUser) => {
+  // FIX: Added authorization to prevent IDOR. Ensures users can only access sessions they own or manage.
+  if (!requestingUser) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  }
+
   const sessionData = await ChatHistory.findOne({
-    sessionId: id,
+    sessionId: sessionId,
   }).lean();
 
   if (!sessionData) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Session not found');
   }
+
+  // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership.
+  // Anonymous sessions (without a user) must not be retrievable via this authenticated endpoint.
+  if (!sessionData.user || !sessionData.workspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Access to this session type is not permitted.');
+  }
+
+  const isOwner = requestingUser._id.equals(sessionData.user);
+  const isSuperAdmin = requestingUser.role === 'super_admin';
+  const isAdminOrManagerOfSameWorkspace =
+    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+    requestingUser.workspace &&
+    sessionData.workspace &&
+    requestingUser.workspace.equals(sessionData.workspace);
+
+  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this session.');
+  }
+
   return sessionData;
 };
 
 /**
- * Deletes a single AI chat session by its MongoDB ObjectId and removes
- * its reference from the associated user's `llamaAiSessions` array.
- * This operation ensures data consistency across related models.
+ * @description Deletes a single AI chat session by its MongoDB ObjectId, with authorization checks.
  *
- * @async
- * @function deleteOneLlamaAiSession
  * @param {string} objectId - The MongoDB ObjectId of the chat session to delete.
- * @returns {Promise<Object>} A promise that resolves to an object indicating
- *                            the success of the deletion and update operation.
- * @throws {ApiError} If the LlamaAiSession is not found, or if deletion/user update fails.
- * @permission Requires an authenticated user. The calling context must verify that the user making the request
- * owns the session associated with the `objectId` or is an administrator.
+ * @param {Object} requestingUser - The authenticated user object making the request.
+ * @returns {Promise<Object>} A promise that resolves to an object indicating success.
+ * @throws {ApiError} If the session is not found or the user is not authorized.
  */
-const deleteOneLlamaAiSession = async (objectId) => {
-  // Optimization: Added .lean() for this read-only query to fetch user data before deletion.
-  // Optimization Recommendation: If `ChatHistory` documents are frequently looked up or linked by a `user` field,
-  // ensure an index exists on `ChatHistory.user` for efficient queries.
-  const userData = await ChatHistory.findOne({
-    _id: objectId,
-  }).lean();
-  if (!userData) {
-    // Changed to ApiError for consistency in error handling
+const deleteOneLlamaAiSession = async (objectId, requestingUser) => {
+  // FIX: Added authorization to prevent IDOR. Ensures only authorized users can delete sessions.
+  if (!requestingUser) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  }
+
+  const sessionToDelete = await ChatHistory.findById(objectId);
+
+  if (!sessionToDelete) {
     throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
   }
+
+  // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership for deletion.
+  if (!sessionToDelete.user || !sessionToDelete.workspace) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'This session cannot be deleted through this endpoint.');
+  }
+
+  const isOwner = requestingUser._id.equals(sessionToDelete.user);
+  const isSuperAdmin = requestingUser.role === 'super_admin';
+  const isAdminOrManagerOfSameWorkspace =
+    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+    requestingUser.workspace &&
+    sessionToDelete.workspace &&
+    requestingUser.workspace.equals(sessionToDelete.workspace);
+
+  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete this session.');
+  }
+
   const deleteResult = await ChatHistory.deleteOne({
     _id: objectId,
   });
 
   if (deleteResult.deletedCount === 1) {
     const userUpdateResult = await UserModel.updateOne(
-      { _id: userData.user },
+      { _id: sessionToDelete.user },
       { $pull: { llamaAiSessions: objectId } }
     );
 
-    logger.info({
-      message: 'userUpdateResult userUpdateResult',
-      severity: 'INFO',
-      userUpdateResult
-    });
-
-    if (userUpdateResult.modifiedCount === 1) {
-      return {
-        success: true,
-        message: 'LlamaAiSession and user reference deleted successfully',
-      };
-    } else {
-      // Changed to ApiError for consistency in error handling
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model');
+    // FIX: Improved logic to handle cases where user reference might already be gone.
+    if (userUpdateResult.matchedCount === 0) {
+      logger.warn({
+        message: 'Session was deleted, but the corresponding user was not found to update their session list.',
+        severity: 'WARNING',
+        userId: sessionToDelete.user,
+        sessionId: objectId,
+      });
     }
+
+    return {
+      success: true,
+      message: 'LlamaAiSession and user reference updated successfully',
+    };
   } else {
-    // Changed to ApiError for consistency in error handling
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete the LlamaAiSession');
   }
 };
 
 /**
- * Deletes all AI chat sessions associated with a given user ID and
- * removes their references from the user's `llamaAiSessions` array.
- * This operation is performed within a MongoDB transaction to ensure atomicity
- * and data consistency.
+ * @description Deletes all AI chat sessions for a user, with authorization checks, within a transaction.
  *
- * @async
- * @function deleteAllAiSessionsService
- * @param {string} userId - The unique identifier of the user whose sessions are to be deleted.
- * @returns {Promise<Object>} A promise that resolves to an object indicating
- *                            the success or failure of the bulk deletion operation.
- * @throws {ApiError} If the user is not found or if the transaction fails.
- * @permission Requires an authenticated user. The calling context must ensure the user making the request
- * is the user specified by `userId` or an administrator.
+ * @param {string} targetUserId - The user ID whose sessions are to be deleted.
+ * @param {Object} requestingUser - The authenticated user object making the request.
+ * @returns {Promise<Object>} A promise that resolves to an object indicating success.
+ * @throws {ApiError} If the user is not authorized or an error occurs during the transaction.
  */
-const deleteAllAiSessionsService = async (userId) => {
+const deleteAllAiSessionsService = async (targetUserId, requestingUser) => {
+  // FIX: Added authorization to prevent IDOR. Ensures only the user or an admin can delete all sessions.
+  if (!requestingUser) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  }
+
+  const targetUser = await UserModel.findById(targetUserId).lean();
+  if (!targetUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
+  }
+
+  const isOwner = requestingUser._id.toString() === targetUserId;
+  const isSuperAdmin = requestingUser.role === 'super_admin';
+  // Restrict bulk deletion to admins to prevent accidental mass data loss by managers.
+  const isAdminOfSameWorkspace =
+    requestingUser.role === 'admin' &&
+    targetUser.workspace &&
+    requestingUser.workspace &&
+    requestingUser.workspace.toString() === targetUser.workspace.toString();
+
+  if (!isOwner && !isSuperAdmin && !isAdminOfSameWorkspace) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete all sessions for this user.');
+  }
+
   const session = await mongoose.startSession();
 
   try {
     await session.startTransaction();
 
-    // Optimization: Added .lean() for this read-only query to get session IDs.
-    const user = await UserModel.findById(userId).session(session).lean();
     if (
-      !user ||
-      !user.llamaAiSessions ||
-      !Array.isArray(user.llamaAiSessions)
+      !targetUser.llamaAiSessions ||
+      !Array.isArray(targetUser.llamaAiSessions) ||
+      targetUser.llamaAiSessions.length === 0
     ) {
-      // Changed to ApiError for consistency in error handling
-      throw new ApiError(httpStatus.NOT_FOUND, 'User or LlamaAiSession data not found');
-    }
-
-    const aiSessionIds = user.llamaAiSessions.map((id) => id.toString());
-
-    // Optimization: Using a single deleteMany operation is highly efficient for bulk deletion, avoiding N+1 query problems.
-    const deleteResult = await ChatHistory.deleteMany({ _id: { $in: aiSessionIds } }).session(session);
-
-    // Check if all intended sessions were deleted
-    if (aiSessionIds.length > 0 && deleteResult.deletedCount !== aiSessionIds.length) {
-      // This check ensures that if there were IDs to delete, the count matches.
-      // If aiSessionIds is empty, deletedCount will be 0, and the condition won't trigger.
-      // Changed to ApiError for consistency in error handling
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete all specified AI sessions');
-    }
-
-    const userUpdateResult = await UserModel.updateOne(
-      { _id: userId },
-      { $pull: { llamaAiSessions: { $in: aiSessionIds } } }
-    ).session(session);
-
-    if (userUpdateResult.acknowledged && userUpdateResult.modifiedCount > 0) {
       await session.commitTransaction();
       session.endSession();
       return {
-        statusCode: httpStatus.OK, // Explicitly set status code for success
+        statusCode: httpStatus.OK,
         success: true,
-        message: 'AI sessions and user references deleted successfully',
+        message: 'No AI sessions found for the user to delete.',
+      };
+    }
+
+    const aiSessionIds = targetUser.llamaAiSessions.map((id) => id.toString());
+
+    await ChatHistory.deleteMany({ _id: { $in: aiSessionIds } }).session(session);
+
+    // Use $set to empty the array, which is cleaner than pulling many items.
+    const userUpdateResult = await UserModel.updateOne(
+      { _id: targetUserId },
+      { $set: { llamaAiSessions: [] } }
+    ).session(session);
+
+    if (userUpdateResult.acknowledged) {
+      await session.commitTransaction();
+      session.endSession();
+      return {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'All AI sessions and user references deleted successfully',
       };
     } else {
-      // If no sessions were in llamaAiSessions, modifiedCount might be 0, but the operation is still successful.
-      // We should only throw if there were sessions to pull but the update failed.
-      if (aiSessionIds.length > 0) {
-        // Changed to ApiError for consistency in error handling
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model');
-      } else {
-        // No sessions to pull, so user model didn't need modification. Consider it successful.
-        await session.commitTransaction();
-        session.endSession();
-        return {
-          statusCode: httpStatus.OK, // Explicitly set status code for success
-          success: true,
-          message: 'No AI sessions to delete or user references to update.',
-        };
-      }
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model after deleting sessions.');
     }
   } catch (error) {
     await session.abortTransaction();
@@ -421,7 +499,6 @@ const deleteAllAiSessionsService = async (userId) => {
       error: error.message || error,
       stack: error.stack
     });
-    // Re-throw the original ApiError or a generic one to be handled by a global error handler
     if (error instanceof ApiError) {
       throw error;
     }
@@ -430,56 +507,56 @@ const deleteAllAiSessionsService = async (userId) => {
 };
 
 /**
- * Provides a collection of services for managing AI chat interactions.
+ * @namespace LlamaAiService
+ * @description Provides a collection of services for managing AI chat interactions,
+ * including generating responses, retrieving chat history, and managing sessions.
  * This service primarily acts as a proxy or orchestrator for Groq-related requests,
  * redirecting them to the Google Gemini AI service and handling anonymous sessions
- * with search enhancement and memory management. It also includes utilities for
- * retrieving and deleting chat histories.
- * @namespace LlamaAiService
+ * with search enhancement and memory management.
  */
 export const LlamaAiService = {
   /**
-   * Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
-   * @memberof LlamaAiService
    * @function getAiResponsesGroqService
+   * @memberof LlamaAiService
+   * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
    * @see {@link getAiResponsesGroqService} for implementation details.
    */
   getAiResponsesGroqService,
   /**
-   * Handles anonymous, search-enhanced AI completions by redirecting requests
-   * to the Google Gemini 3.1 Flash service, managing session memory and search context.
-   * @memberof LlamaAiService
    * @function GroqAiGetResponseAnonymousService
+   * @memberof LlamaAiService
+   * @description Handles anonymous, search-enhanced AI completions by redirecting requests
+   * to the Google Gemini 3.1 Flash service, managing session memory and search context.
    * @see {@link GroqAiGetResponseAnonymousService} for implementation details.
    */
   GroqAiGetResponseAnonymousService,
   /**
-   * Retrieves all AI chat sessions associated with a specific user ID.
-   * @memberof LlamaAiService
    * @function getAiResponsesByUserIdService
+   * @memberof LlamaAiService
+   * @description Retrieves all AI chat sessions associated with a specific user ID.
    * @see {@link getAiResponsesByUserIdService} for implementation details.
    */
   getAiResponsesByUserIdService,
   /**
-   * Retrieves a single AI chat session by its unique session ID.
-   * @memberof LlamaAiService
    * @function getAiResponsesBySession
+   * @memberof LlamaAiService
+   * @description Retrieves a single AI chat session by its unique session ID.
    * @see {@link getAiResponsesBySession} for implementation details.
    */
   getAiResponsesBySession,
   /**
-   * Deletes a single AI chat session by its MongoDB ObjectId and removes
-   * its reference from the associated user's `llamaAiSessions` array.
-   * @memberof LlamaAiService
    * @function deleteOneLlamaAiSession
+   * @memberof LlamaAiService
+   * @description Deletes a single AI chat session by its MongoDB ObjectId and removes
+   * its reference from the associated user's `llamaAiSessions` array.
    * @see {@link deleteOneLlamaAiSession} for implementation details.
    */
   deleteOneLlamaAiSession,
   /**
-   * Deletes all AI chat sessions associated with a given user ID and
-   * removes their references from the user's `llamaAiSessions` array, using a transaction.
-   * @memberof LlamaAiService
    * @function deleteAllAiSessionsService
+   * @memberof LlamaAiService
+   * @description Deletes all AI chat sessions associated with a given user ID and
+   * removes their references from the user's `llamaAiSessions` array, using a transaction.
    * @see {@link deleteAllAiSessionsService} for implementation details.
    */
   deleteAllAiSessionsService,
