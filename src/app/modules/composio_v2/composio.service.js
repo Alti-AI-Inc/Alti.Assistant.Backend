@@ -15,18 +15,35 @@ import crypto from 'crypto';
 
 // --- Security Enhancements ---
 
-// Default options for sanitize-html to strip all HTML tags and attributes, preventing Stored XSS.
+/**
+ * Default options for sanitize-html to strip all HTML tags and attributes, preventing Stored XSS.
+ * @type {import('sanitize-html').IOptions}
+ */
 const sanitizeOptions = {
   allowedTags: [],
   allowedAttributes: {},
 };
 
-// Configuration for AES-256-GCM encryption.
+/**
+ * Configuration for AES-256-GCM encryption.
+ * @type {string}
+ */
 const ALGORITHM = 'aes-256-gcm';
+/**
+ * GCM standard IV size is 12 bytes.
+ * @type {number}
+ */
 const IV_LENGTH_BYTES = 12; // GCM standard IV size is 12 bytes.
+/**
+ * The name of the secret in GCP Secret Manager containing the 64-char hex-encoded key.
+ * @type {string}
+ */
 const ENCRYPTION_KEY_SECRET = 'db-encryption-key'; // The name of the secret in GCP Secret Manager containing the 64-char hex-encoded key.
 
-// In-memory cache for the encryption key to reduce Secret Manager calls.
+/**
+ * In-memory cache for the encryption key to reduce Secret Manager calls.
+ * @type {Buffer | undefined}
+ */
 let encryptionKey;
 
 /**
@@ -132,8 +149,15 @@ async function decrypt(encryptedText) {
 
 // --- GCP Secret Manager Integration ---
 
-// GCP Secret Manager client for securely fetching secrets.
+/**
+ * GCP Secret Manager client for securely fetching secrets.
+ * @type {SecretManagerServiceClient}
+ */
 const secretManagerClient = new SecretManagerServiceClient();
+/**
+ * In-memory cache for secrets to reduce latency and API calls.
+ * @type {Map<string, string>}
+ */
 const secretCache = new Map();
 
 /**
@@ -164,6 +188,10 @@ async function getSecret(secretName) {
   }
 }
 
+/**
+ * Singleton instance of the Composio SDK.
+ * @type {Composio | undefined}
+ */
 let composioInstance;
 
 /**
@@ -195,10 +223,13 @@ async function getComposioInstance() {
  * It checks for existing authentication, creates a default AuthConfig if not found,
  * and then initiates a new connection with Composio.
  *
+ * @description This service is multi-tenant aware. If an Express `req` object is provided,
+ * it will automatically filter queries and scope new records to the user's tenant.
+ *
  * @param {object} body - The request body containing authentication details.
  * @param {string} body.app_name - The name of the application for which to initiate authentication.
  * @param {string} body.user_id - The ID of the user initiating the authentication.
- * @param {object} [req=null] - Optional Express request object, used for tenant context filtering.
+ * @param {import('express').Request} [req=null] - Optional Express request object, used for tenant context filtering.
  * @returns {Promise<object>} An object containing either the existing `authConfig` if already authenticated,
  *   or the `connectionUrl` details for a new authentication flow.
  * @throws {Error} If the authentication initiation fails.
@@ -209,7 +240,7 @@ const initiateComposioAuth = async (body, req = null) => {
   try {
     // AuthConfig is potentially modified and saved later, so .lean() is not suitable here.
     let auth_config = await AuthConfig.findOne({ app: app_name });
-    if (!auth__config) {
+    if (!auth_config) {
       console.log(`AuthConfig for app ${app_name} not found in DB. Proactively creating default...`);
       auth_config = new AuthConfig({
         app: app_name,
@@ -316,7 +347,7 @@ const initiateComposioAuth = async (body, req = null) => {
 
 /**
  * Waits for a Composio connection to be established and updates the database
- * with the connection status and tokens.
+ * with the connection status and tokens. Tokens are encrypted before being stored.
  *
  * @param {string} connectedAccountId - The ID of the connected account to wait for.
  * @returns {Promise<object>} An object containing the established `connection` details.
@@ -361,16 +392,16 @@ const waitForConnection = async (connectedAccountId) => {
 };
 
 /**
- * Generate a unique conversation ID for Composio conversations
- * @returns {string} A unique conversation ID
+ * Generate a unique conversation ID for Composio conversations.
+ * @returns {string} A unique conversation ID in the format `composio-timestamp-randomstring`.
  */
 const generateComposioConversationId = () => {
   return `composio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Generate a guest user ID
- * @returns {string} A unique guest user ID
+ * Generate a guest user ID.
+ * @returns {string} A unique guest user ID in the format `guest-timestamp-randomstring`.
  */
 const generateGuestUserId = () => {
   return `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -382,10 +413,10 @@ const generateGuestUserId = () => {
  * Otherwise, it creates a new conversation with a generated ID and initial message.
  *
  * @param {string} userId - The ID of the user associated with the conversation.
- * @param {string} conversationId - The ID of an existing conversation, or null/undefined to create a new one.
+ * @param {string | null | undefined} conversationId - The ID of an existing conversation, or null/undefined to create a new one.
  * @param {string} message - The initial message for a new conversation, or a message to update the title if existing.
  * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
- * @returns {Promise<object>} The conversation object (either newly created or retrieved).
+ * @returns {Promise<import('mongoose').Document>} The conversation document (either newly created or retrieved).
  * @throws {Error} If an existing conversation is not found or if there's an error during creation/retrieval.
  */
 const handleComposioConversation = async (
@@ -604,13 +635,13 @@ const processComposioConversation = async (inputs) => {
 
 /**
  * @typedef {object} ComposioService
- * @property {function(object, object): Promise<object>} initiateComposioAuth - Initiates the Composio authentication flow.
+ * @property {function(object, import('express').Request=): Promise<object>} initiateComposioAuth - Initiates the Composio authentication flow.
  * @property {function(string): Promise<object>} waitForConnection - Waits for a Composio connection to be established.
  * @property {function(): string} generateComposioConversationId - Generates a unique ID for Composio conversations.
  * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
- * @property {function(string, string, string, boolean): Promise<object>} handleComposioConversation - Creates or retrieves a Composio conversation.
- * @property {function(string, string, string, boolean): Promise<void>} addComposioQueryMessage - Adds a user's query message to a conversation.
- * @property {function(string, string, string, object, boolean): Promise<void>} addComposioResponseMessage - Adds an assistant's response message to a conversation.
+ * @property {function(string, string | null | undefined, string, boolean=): Promise<import('mongoose').Document>} handleComposioConversation - Creates or retrieves a Composio conversation.
+ * @property {function(string, string, string, boolean=): Promise<void>} addComposioQueryMessage - Adds a user's query message to a conversation.
+ * @property {function(string, string, string, object=, boolean=): Promise<void>} addComposioResponseMessage - Adds an assistant's response message to a conversation.
  * @property {function(object): Promise<object>} processComposioConversation - Processes a Composio conversation query using AI classification.
  */
 

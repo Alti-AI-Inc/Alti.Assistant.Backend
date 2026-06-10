@@ -261,6 +261,9 @@ const handleWebhookService = async (req, res) => {
   }
 
   // Webhook Replay Protection Guard
+  // RECOMMENDATION: Ensure a unique index exists on `eventId` in the `StripeEvent` schema
+  // to optimize this lookup and enforce uniqueness at the database level.
+  // Example: `StripeEventSchema.index({ eventId: 1 }, { unique: true });`
   const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Payment Service.`);
@@ -330,6 +333,9 @@ const processStripeEventService = async (event) => {
         throw new Error(`User not found for event ${event.id}, userId: ${stripeSession.metadata.userId}`);
       }
 
+      // RECOMMENDATION: Ensure a unique index exists on `transactionId` in the `SubscriptionModel` schema
+      // to optimize this lookup and prevent duplicate subscriptions for the same checkout session.
+      // Example: `SubscriptionSchema.index({ transactionId: 1 }, { unique: true, sparse: true });`
       const existingSubscription = await SubscriptionModel.findOne({ transactionId: stripeSession.id }).session(session).lean();
       if (existingSubscription) {
         logger.warn(`[BACKGROUND_WORKER] Subscription already exists for event ${event.id}, transactionId: ${stripeSession.id}. Skipping.`);
@@ -413,6 +419,9 @@ const processStripeEventService = async (event) => {
 
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
+      // RECOMMENDATION: Ensure an index exists on `stripeSubscriptionId` in the `SubscriptionModel` schema
+      // to optimize lookups when handling subscription update/cancellation webhooks. A unique index is preferred.
+      // Example: `SubscriptionSchema.index({ stripeSubscriptionId: 1 }, { unique: true, sparse: true });`
       const existingSubscription = await SubscriptionModel.findOne({ stripeSubscriptionId: subscription.id }).session(session);
 
       if (existingSubscription) {

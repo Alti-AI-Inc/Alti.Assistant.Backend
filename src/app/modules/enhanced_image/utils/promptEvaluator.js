@@ -1,6 +1,7 @@
 /**
  * @file Utility functions for evaluating and enhancing image generation prompts using Google Generative AI.
  * @module promptEvaluator
+ * @description This module provides functions to analyze the quality of a user's prompt and to consolidate a conversation history into a single, enhanced prompt for image generation. It includes robust error handling and sensible fallbacks to ensure a smooth end-user experience.
  */
 
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
@@ -8,6 +9,9 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import config from '../../../../../config/index.js';
+
+// Centralized API key retrieval for consistency and to avoid misconfiguration.
+const GEMINI_API_KEY = config.gemini_secret_key || process.env.GEMINI_API_KEY;
 
 /**
  * @typedef {object} PromptQualityAssessment
@@ -19,7 +23,7 @@ import config from '../../../../../config/index.js';
 
 /**
  * Zod schema defining the structure for prompt quality assessment.
- * This schema is used to validate and parse the output from the LLM.
+ * This schema is used to validate and parse the output from the LLM, ensuring type safety.
  * @type {z.ZodObject<any, any, any, PromptQualityAssessment, any>}
  */
 const promptQualitySchema = z.object({
@@ -80,24 +84,41 @@ Analyze the prompt quality and provide specific, actionable suggestions if it's 
  * @param {object} [options={}] - Configuration options for the AI model.
  * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the Google Generative AI model to use (e.g., 'gemini-pro', 'gemini-3.5-flash').
  * @returns {Promise<PromptQualityAssessment>} A promise that resolves to an object containing the prompt quality assessment.
- * @throws {Error} If there's a critical error during LLM invocation or parsing that cannot be gracefully handled.
  */
 export async function evaluatePromptQuality(
   prompt,
   history = 'No previous conversation.',
   { modelName = 'gemini-3.5-flash' } = {}
 ) {
+  if (!GEMINI_API_KEY) {
+    console.error('Gemini API key is not configured. Cannot evaluate prompt quality.');
+    // Return a default error-like response if the API key is missing.
+    // This prevents a crash and provides a clear signal to the user/system.
+    return {
+      isComplete: false,
+      missingElements: ['Configuration Error'],
+      suggestions: ['The prompt evaluation service is currently unavailable. Please try again later.'],
+      score: 0,
+    };
+  }
+
+  // NOTE: For high-throughput applications, consider caching or memoizing the model instance
+  // to avoid repeated initializations. However, per-call instantiation is safer
+  // for handling dynamic configurations like different model names.
   const model = new ChatGoogleGenerativeAI({
-    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
+    apiKey: GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',
-    temperature: 0,
+    temperature: 0, // Use 0 for deterministic, analytical tasks.
   });
 
   const chain = qualityPromptTemplate.pipe(model).pipe(qualityParser);
-  console.log('Evaluating prompt quality for prompt:', prompt);
-  console.log('Conversation history:', history);
+
+  // In a production environment, replace console.log with a structured logger (e.g., Winston, Pino)
+  // at an appropriate level (e.g., 'info' or 'debug').
+  console.log(`Evaluating prompt quality for: "${prompt}"`);
+
   try {
     const result = await chain.invoke({
       prompt,
@@ -107,46 +128,47 @@ export async function evaluatePromptQuality(
 
     return result;
   } catch (error) {
-    // Handle parsing errors by extracting JSON from markdown code blocks
-    // LangChain's OutputParserException typically has the raw LLM output in the 'output' property.
+    // Gracefully handle LLM output parsing errors, which are common.
     if (error.message && error.message.includes('Failed to parse')) {
       try {
-        // Extract the raw LLM output string that failed to parse
+        // Attempt to recover by cleaning the raw LLM output.
         const llmOutput = error.output || '';
-
-        // Remove markdown code blocks
         let jsonString = llmOutput
           .replace(/```json\n?/g, '')
           .replace(/```\n?/g, '')
           .trim();
 
-        // Try to find and fix common JSON errors
-        // Remove any trailing text after the last closing brace
         const lastBraceIndex = jsonString.lastIndexOf('}');
         if (lastBraceIndex !== -1) {
           jsonString = jsonString.substring(0, lastBraceIndex + 1);
         }
 
-        // Parse the cleaned JSON
         const parsed = JSON.parse(jsonString);
-
-        // Validate against schema
-        return promptQualitySchema.parse(parsed);
+        return promptQualitySchema.parse(parsed); // Re-validate with Zod.
       } catch (fallbackError) {
-        // If all parsing fails, return a safe default response
         console.error(
-          'Failed to parse LLM output, returning default:',
-          fallbackError
+          'Critical failure: Could not parse LLM output even after cleanup. Returning a safe default.',
+          { originalError: error.message, fallbackError: fallbackError.message }
         );
+        // This safe default ensures the user-facing application doesn't crash.
         return {
           isComplete: false,
-          missingElements: ['Unable to fully evaluate prompt quality'],
-          suggestions: ['Please try again with a clearer prompt description'],
-          score: 50,
+          missingElements: ['Unable to evaluate prompt'],
+          suggestions: ['There was an issue evaluating your prompt. Please try rephrasing or try again.'],
+          score: 50, // Neutral score.
         };
       }
     }
-    throw error;
+
+    // For non-parsing errors (e.g., API errors, network issues), return a safe default.
+    // This is better for user experience than throwing an unhandled exception.
+    console.error('An unexpected error occurred during prompt evaluation:', error);
+    return {
+      isComplete: false,
+      missingElements: ['Service Error'],
+      suggestions: ['The prompt evaluation service is currently unavailable. Please try again later.'],
+      score: 0,
+    };
   }
 }
 
@@ -159,7 +181,7 @@ export async function evaluatePromptQuality(
 const enhancePromptTemplate = PromptTemplate.fromTemplate(
   `You are an expert prompt engineer. Based on the conversation below, create a single, comprehensive image generation prompt that incorporates all the details the user has provided.
 
-The prompt should be clear, detailed, and optimized for image generation.
+The final prompt should be clear, detailed, and optimized for an image generation model. Do not add any conversational text or explanations, only the prompt itself.
 
 Conversation:
 {conversation}
@@ -181,21 +203,49 @@ export async function buildEnhancedPrompt(
   conversationHistory,
   { modelName = 'gemini-3.5-flash' } = {}
 ) {
+  // --- Input Validation ---
+  // Ensure conversationHistory is a processable array to prevent runtime errors.
+  if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+    console.warn('buildEnhancedPrompt called with empty or invalid conversation history.');
+    return ''; // Return an empty string as a safe, neutral default.
+  }
+
+  // If there's only one message, there's nothing to consolidate. Return it directly to save an API call.
+  if (conversationHistory.length === 1) {
+    return conversationHistory[0];
+  }
+
+  if (!GEMINI_API_KEY) {
+    console.error('Gemini API key is not configured. Cannot build enhanced prompt.');
+    // Fallback to the last user message if the API is unavailable. This is often the most complete version.
+    return conversationHistory[conversationHistory.length - 1];
+  }
+
   const model = new ChatGoogleGenerativeAI({
-    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
+    apiKey: GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',
-    temperature: 0.3,
+    temperature: 0.3, // Allow for some creativity in rephrasing and combining ideas.
   });
 
   const chain = enhancePromptTemplate.pipe(model);
 
+  // Format the conversation history clearly for the LLM.
   const conversation = conversationHistory
-    .map((item, idx) => `${idx + 1}. ${item}`)
+    .map((item, idx) => `User Message ${idx + 1}: ${item}`)
     .join('\n');
 
-  const result = await chain.invoke({ conversation });
+  try {
+    const result = await chain.invoke({ conversation });
 
-  return result.content;
+    // Sanitize the LLM's raw output for cleaner integration.
+    // .content can be a string or a complex object, ensure it's a string before processing.
+    const content = result.content.toString();
+    return content.trim().replace(/^"|"$/g, ''); // Remove surrounding quotes and trim whitespace.
+  } catch (error) {
+    console.error('Failed to build enhanced prompt via LLM. Returning last message as fallback.', error);
+    // A graceful fallback ensures the user can still proceed with their last known good prompt.
+    return conversationHistory[conversationHistory.length - 1];
+  }
 }
