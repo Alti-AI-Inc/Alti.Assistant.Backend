@@ -7,11 +7,94 @@ import {
   PLAN_DEPTH,
 } from '../plan_generator.constant.js';
 
-// Initialize Gemini client
+/**
+ * @typedef {object} PlanAnalysis
+ * @property {string} plan_type - The type of plan (e.g., "Project Plan", "Product Roadmap").
+ * @property {string} complexity - The estimated complexity of the idea (e.g., "low", "medium", "high").
+ * @property {string[]} domains - An array of domains or areas the idea touches.
+ */
+
+/**
+ * @typedef {object} PlanObjective
+ * @property {string} objective - A SMART objective statement.
+ * @property {string} description - A brief description of the objective.
+ * @property {'high'|'medium'|'low'} priority - The priority level of the objective.
+ * @property {string} timeline - The estimated timeline to achieve the objective.
+ */
+
+/**
+ * @typedef {object} PlanPhase
+ * @property {number} phase_number - The sequential number of the phase.
+ * @property {string} name - The name of the phase.
+ * @property {string} duration - The estimated duration of the phase.
+ * @property {string[]} deliverables - An array of key deliverables for the phase.
+ */
+
+/**
+ * @typedef {object} PlanActionItem
+ * @property {string} task - The description of the action item.
+ * @property {'high'|'medium'|'low'} priority - The priority level of the action item.
+ * @property {string} estimated_effort - The estimated time or effort for the action item.
+ * @property {string[]} [dependencies] - Optional array of tasks this item depends on.
+ */
+
+/**
+ * @typedef {object} PlanResources
+ * @property {string} budget_estimate - An estimate of the total budget required.
+ * @property {string[]} team_roles - An array of key team roles needed.
+ * @property {string[]} tools - An array of essential tools required.
+ */
+
+/**
+ * @typedef {object} PlanRisk
+ * @property {string} risk - Description of the potential risk.
+ * @property {'high'|'medium'|'low'} probability - The probability of the risk occurring.
+ * @property {string} mitigation - Strategy to mitigate the risk.
+ */
+
+/**
+ * @typedef {object} PlanSuccessMetrics
+ * @property {string[]} kpis - An array of Key Performance Indicators.
+ * @property {string[]} milestones - An array of major project milestones.
+ */
+
+/**
+ * @typedef {object} PlanTimeline
+ * @property {string} estimated_completion - The estimated total completion duration.
+ * @property {string[]} critical_path - An array of critical tasks or milestones.
+ */
+
+/**
+ * @typedef {object} GeneratedPlan
+ * @property {string} title - The title of the generated plan.
+ * @property {string} executive_summary - A 1-2 paragraph overview of the plan.
+ * @property {PlanObjective[]} objectives - An array of SMART objectives.
+ * @property {PlanPhase[]} phases - An array of project phases.
+ * @property {PlanActionItem[]} action_items - An array of actionable tasks.
+ * @property {PlanResources} resources - Details about required resources.
+ * @property {PlanRisk[]} risks - An array of identified risks and their mitigation strategies.
+ * @property {PlanSuccessMetrics} success_metrics - Metrics and milestones for success.
+ * @property {PlanTimeline} timeline - Overall project timeline details.
+ * @property {string[]} next_steps - Immediate next actions to take.
+ */
+
+/**
+ * Initializes the Google Generative AI client.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate a comprehensive plan from brainstorming insights
+ * Generates a comprehensive project plan based on an idea, analysis, brainstorming insights, and optional constraints.
+ * It leverages the Google Generative AI model to create a structured JSON plan.
+ *
+ * @param {string} ideaText - The core idea or problem statement for which the plan is being generated.
+ * @param {PlanAnalysis} analysis - An object containing the initial analysis of the idea.
+ * @param {object} brainstorm - Detailed brainstorming insights and raw data, which can be any JSON structure.
+ * @param {string} [planDepth=PLAN_DEPTH.STANDARD] - The desired depth or level of detail for the plan. Defaults to standard.
+ * @param {object} [constraints={}] - Optional constraints or limitations to consider during plan generation.
+ * @returns {Promise<GeneratedPlan>} A promise that resolves to a structured JSON object representing the generated plan.
+ * @throws {Error} If there is an error during plan generation, API call, or JSON parsing.
  */
 export const generatePlan = async (
   ideaText,
@@ -189,7 +272,12 @@ Only return the JSON object itself.`;
 };
 
 /**
- * Generate quick action items from idea
+ * Generates a list of immediate, quick action items for a given idea using the Generative AI model.
+ *
+ * @param {string} ideaText - The core idea for which action items are needed.
+ * @param {PlanAnalysis} analysis - An object containing the initial analysis of the idea (currently not directly used in prompt but kept for consistency).
+ * @returns {Promise<PlanActionItem[]>} A promise that resolves to an array of action item objects, or an empty array if generation fails or no items are found.
+ * @throws {Error} If there is an error during action item generation or API call.
  */
 export const generateQuickActionItems = async (ideaText, analysis) => {
   try {
@@ -240,7 +328,16 @@ Return only JSON:
 };
 
 /**
- * Create a phased timeline
+ * Creates a phased timeline for a project. If brainstorming insights provide phases, they are used;
+ * otherwise, default phases are generated based on project complexity.
+ *
+ * @param {object} brainstorm - Detailed brainstorming insights, potentially containing a 'timeline_estimation' property.
+ * @param {object[]} [brainstorm.timeline_estimation.phases] - An array of predefined phases from brainstorming.
+ * @param {string} complexity - The estimated complexity of the project (e.g., "low", "medium", "high").
+ * @returns {Array<object>} An array of phase objects, each with a name, duration, and key activities.
+ * @returns {string} return.name - The name of the phase.
+ * @returns {string} return.duration - The estimated duration of the phase.
+ * @returns {string[]} return.key_activities - An array of key activities within the phase.
  */
 export const createPhasedTimeline = (brainstorm, complexity) => {
   const phases = brainstorm.timeline_estimation?.phases || [];
@@ -285,7 +382,14 @@ export const createPhasedTimeline = (brainstorm, complexity) => {
 };
 
 /**
- * Prioritize tasks
+ * Prioritizes a list of action items into high, medium, and low categories based on their `priority` property.
+ * Items without a specified priority default to 'medium'.
+ *
+ * @param {PlanActionItem[]} actionItems - An array of action item objects.
+ * @returns {object} An object containing arrays of action items categorized by priority.
+ * @returns {PlanActionItem[]} return.high - Action items with high priority.
+ * @returns {PlanActionItem[]} return.medium - Action items with medium priority.
+ * @returns {PlanActionItem[]} return.low - Action items with low priority.
  */
 export const prioritizeTasks = (actionItems) => {
   const prioritized = {
@@ -307,7 +411,12 @@ export const prioritizeTasks = (actionItems) => {
 };
 
 /**
- * Calculate critical path
+ * Identifies critical tasks from a list of action items. Tasks are considered critical if they have
+ * 'high' priority or if they explicitly list dependencies.
+ *
+ * @param {PlanActionItem[]} actionItems - An array of action item objects.
+ * @param {PlanPhase[]} phases - An array of phase objects (currently not directly used in logic but can provide context).
+ * @returns {string[]} An array of task descriptions identified as critical.
  */
 export const calculateCriticalPath = (actionItems, phases) => {
   const criticalTasks = actionItems
@@ -318,7 +427,10 @@ export const calculateCriticalPath = (actionItems, phases) => {
 };
 
 /**
- * Format plan for presentation
+ * Formats a structured plan object into a human-readable Markdown string suitable for presentation.
+ *
+ * @param {GeneratedPlan} plan - The structured plan object generated by the AI.
+ * @returns {string} A Markdown formatted string representing the plan.
  */
 export const formatPlanForPresentation = (plan) => {
   let markdown = `# ${plan.title}\n\n`;
@@ -350,6 +462,17 @@ export const formatPlanForPresentation = (plan) => {
   return markdown;
 };
 
+/**
+ * An object consolidating all plan generation and related utility functions.
+ * This serves as a single export point for the plan generator module's services.
+ * @namespace
+ * @property {function(string, PlanAnalysis, object, string, object): Promise<GeneratedPlan>} generatePlan - Function to generate a comprehensive plan.
+ * @property {function(string, PlanAnalysis): Promise<PlanActionItem[]>} generateQuickActionItems - Function to generate quick action items.
+ * @property {function(object, string): Array<object>} createPhasedTimeline - Function to create a phased timeline.
+ * @property {function(PlanActionItem[]): object} prioritizeTasks - Function to prioritize action items.
+ * @property {function(PlanActionItem[], PlanPhase[]): string[]} calculateCriticalPath - Function to calculate the critical path.
+ * @property {function(GeneratedPlan): string} formatPlanForPresentation - Function to format a plan into Markdown.
+ */
 export const planGenerator = {
   generatePlan,
   generateQuickActionItems,
