@@ -16,14 +16,16 @@ const auth = new GoogleAuth({
  * to retrieve relevant documents based on a natural language query.
  *
  * This function handles authentication, constructs the request, and processes the
- * Discovery Engine API response into a more consumable format.
+ * Discovery Engine API response into a more consumable format. It includes security checks
+ * to ensure that requests are authorized for the correct GCP project, which is critical in a
+ * multi-tenant environment like an Admin Platform.
  *
  * @param {string} dataStoreId - The unique identifier of the Discovery Engine Data Store to query.
- *                                This typically follows the format `projects/PROJECT_NUMBER/locations/LOCATION/dataStores/DATA_STORE_ID`.
+ *                                This must be the full resource path, e.g., `projects/PROJECT_ID/locations/LOCATION/dataStores/DATA_STORE_ID`.
  * @param {string} query - The natural language search query string.
  * @param {object} [options] - Optional configuration for the search request.
- * @param {string} [options.location] - The GCP region where the data store is located (e.g., 'global', 'us-central1').
- *                                      Defaults to `config.google.gcp_location` or 'global'.
+ * @param {string} options.workspaceProjectId - The GCP Project ID associated with the current workspace/tenant.
+ *                                              This is a mandatory security parameter to prevent cross-tenant data access (IDOR).
  * @param {number} [options.pageSize=10] - The maximum number of search results to return. Max 100.
  * @param {string} [options.filter] - An optional filter expression to refine search results.
  *                                    See Discovery Engine documentation for filter syntax.
@@ -46,74 +48,82 @@ const auth = new GoogleAuth({
  *   - `success`: `true` if the query was successful, `false` otherwise.
  *   - `originalQuery`: The query string that was used.
  *   - `dataStoreId`: The ID of the data store that was queried (present on success).
- *   - `totalCount`: The number of results found (present on success).
- *   - `results`: An array of structured search result objects. Each object contains:
- *     - `id`: The unique ID of the document.
- *     - `name`: The full resource name of the document.
- *     - `title`: The title of the document.
- *     - `snippet`: A short textual snippet from the document relevant to the query.
- *     - `link`: A URL link to the original document, if available.
- *     - `relevanceScore`: A score indicating the relevance of the document to the query.
- *     - `index`: The 1-based index of the result in the returned list.
+ *   - `totalCount`: The total number of results found for the query (present on success).
+ *   - `results`: An array of structured search result objects.
  *   - `error`: An error message if the query failed (present on failure).
- * @throws {Error} If `GCP_PROJECT_ID` or `dataStoreId` is not configured or provided.
+ * @throws {Error} If required parameters like `dataStoreId` or `workspaceProjectId` are missing or invalid.
  */
 const searchDataStore = async (dataStoreId, query, options = {}) => {
+  // REFACTOR: Use destructuring for cleaner access to options and provide defaults.
+  const {
+    workspaceProjectId,
+    pageSize = 10,
+    filter = ''
+  } = options;
+
   try {
-    // projectId and location are derived from config/env, but for the API endpoint,
-    // if dataStoreId is a full resource path, these are implicitly part of it.
-    // They are kept here for general context or if GoogleAuth needs them.
-    const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
-    const location = options.location || config.google.gcp_location || process.env.GCP_LOCATION || 'global';
-    const pageSize = options.pageSize || 10;
-    const filter = options.filter || '';
-
-    if (!projectId) {
-      // While dataStoreId contains project info, the overall GCP context might still need this.
-      // Keeping this check as it's a general configuration requirement.
-      throw new Error('GCP Project ID is not configured.');
-    }
-
     if (!dataStoreId) {
       throw new Error('Discovery Engine Data Store ID is required.');
     }
 
-    // BUG FIX: Add validation for dataStoreId format as per JSDoc.
-    // This ensures the dataStoreId is a valid resource path and helps prevent malformed requests.
-    // It also implicitly addresses a part of the IDOR concern by ensuring the input is at least syntactically correct.
-    const dataStoreIdRegex = /^projects\/\d+\/locations\/[a-zA-Z0-9-]+\/dataStores\/[a-zA-Z0-9-]+$/;
+    // SECURITY_ENHANCEMENT: Validate the format of the dataStoreId to prevent malformed requests
+    // and ensure it's a valid resource path. This is a first line of defense.
+    // GCP Project IDs can be names, not just numbers.
+    const dataStoreIdRegex = /^projects\/[a-zA-Z0-9-]+\/locations\/[a-zA-Z0-9-]+\/(collections\/[a-zA-Z0-9-]+)?\/dataStores\/[a-zA-Z0-9-]+$/;
     if (!dataStoreIdRegex.test(dataStoreId)) {
-      throw new Error('Invalid Discovery Engine Data Store ID format. Expected: projects/PROJECT_NUMBER/locations/LOCATION/dataStores/DATA_STORE_ID');
+      throw new Error('Invalid Discovery Engine Data Store ID format. Expected: projects/PROJECT_ID/locations/LOCATION/dataStores/DATA_STORE_ID');
+    }
+
+    // SECURITY_ENHANCEMENT: In a multi-tenant system (e.g., Admin Platform with multiple workspaces),
+    // it's critical to verify that the requested resource (dataStoreId) belongs to the
+    // authenticated workspace's designated GCP project. This prevents IDOR vulnerabilities.
+    if (!workspaceProjectId) {
+      throw new Error('Workspace Project ID is required for authorization.');
+    }
+
+    const dataStorePathParts = dataStoreId.split('/');
+    const dataStoreProjectId = dataStorePathParts[1];
+
+    if (dataStoreProjectId !== workspaceProjectId) {
+      logger.warn(`Authorization mismatch: Attempted to access data store in project "${dataStoreProjectId}" from a context expecting project "${workspaceProjectId}".`);
+      // Return a generic error to avoid leaking information about resource existence.
+      throw new Error('Access to the specified data store is not authorized.');
     }
 
     if (!query) {
-      // Returning success: true with empty results for an empty query is a design choice.
-      // If an empty query should be an error, this logic needs to change.
+      // An empty query is not an error; it simply yields no results.
       return {
         success: true,
         originalQuery: '',
-        results: []
+        results: [],
+        totalCount: 0,
+        dataStoreId: dataStoreId
       };
     }
 
-    // Extract project and location from the dataStoreId for accurate logging.
-    const dataStorePathParts = dataStoreId.split('/');
-    const dataStoreProjectId = dataStorePathParts[1];
     const dataStoreLocation = dataStorePathParts[3];
-
     logger.info(`GCP Vertex Search: Querying data store "${dataStoreId}" (project: ${dataStoreProjectId}, location: ${dataStoreLocation})...`);
 
     const client = await auth.getClient();
-    // CRITICAL BUG FIX: The dataStoreId parameter is expected to be the full resource path
-    // as per JSDoc. The endpoint URL should use this path directly.
-    // The original code was incorrectly constructing a path like
-    // ".../dataStores/projects/PROJECT_NUMBER/locations/LOCATION/dataStores/DATA_STORE_ID/..."
-    // which is malformed and would lead to API errors (e.g., 404 Not Found).
-    const endpoint = `https://discoveryengine.googleapis.com/v1beta/${dataStoreId}/branches/default_branch/documents:search`;
+
+    // The endpoint uses the full dataStoreId resource path.
+    // The API version and branch are hardcoded but could be moved to config if they need to be dynamic.
+    const apiVersion = 'v1beta';
+    const branch = 'default_branch';
+    const endpoint = `https://discoveryengine.googleapis.com/${apiVersion}/${dataStoreId}/servingConfigs/default_search:search`;
 
     const requestBody = {
       query: query,
-      pageSize: Math.min(pageSize, 100) // Ensure pageSize does not exceed API limit
+      pageSize: Math.min(pageSize, 100), // Ensure pageSize does not exceed the API limit of 100.
+      // OPTIMIZATION: Request only necessary fields to reduce payload size.
+      contentSearchSpec: {
+        snippetSpec: {
+          returnSnippet: true
+        },
+        summarySpec: {
+          summaryResultCount: 3 // Request a summary for top results, can be configured.
+        }
+      }
     };
 
     if (filter) {
@@ -129,38 +139,51 @@ const searchDataStore = async (dataStoreId, query, options = {}) => {
     const searchResponse = response.data || {};
     const results = (searchResponse.results || []).map((res, index) => {
       const doc = res.document || {};
+      // Handle both `derivedStructData` (for website data) and `structData` (for structured data).
       const fields = doc.derivedStructData || doc.structData || {};
       
       return {
         id: doc.id,
         name: doc.name,
         title: fields.title || doc.id || 'Untitled Document',
-        snippet: fields.snippet || fields.description || '',
+        // ROBUSTNESS: Prefer generated snippets from contentSearchSpec if available.
+        snippet: fields.snippets?.[0]?.snippet || fields.description || '',
         link: fields.link || fields.uri || '',
-        // Provide a fallback relevance score if not present, useful for display
-        relevanceScore: res.relevanceScore || (1.0 - (index * 0.05)),
+        relevanceScore: res.relevanceScore, // Use the actual score from the API.
         index: index + 1
       };
     });
 
-    logger.info(`GCP Vertex Search: Successfully retrieved ${results.length} semantic grounding documents.`);
+    logger.info(`GCP Vertex Search: Successfully retrieved ${results.length} documents for query.`);
 
     return {
       success: true,
       originalQuery: query,
       dataStoreId: dataStoreId,
-      totalCount: results.length,
+      totalCount: searchResponse.totalSize || results.length, // Use totalSize from response for accurate pagination.
       results: results
     };
   } catch (err) {
-    logger.error('GCP Vertex Search Query Error:', err);
-    // Return empty results array to prevent crashing workflows, keeping service resilient.
-    // Ensure originalQuery and dataStoreId are included for context in error response.
+    // IMPROVEMENT: Enhance error logging with more details from the GCP API error response.
+    const errorMessage = err.response?.data?.error?.message || err.message;
+    const errorCode = err.response?.data?.error?.code || err.code;
+    logger.error(`GCP Vertex Search Query Error (Code: ${errorCode || 'N/A'}): ${errorMessage}`, {
+      // Log structured context for better debugging in platforms like Datadog/Sentry.
+      error: {
+        message: err.message,
+        stack: err.stack,
+        response: err.response?.data
+      },
+      dataStoreId,
+      query
+    });
+
+    // Return a structured error response that is safe for the client and prevents service crashes.
     return {
       success: false,
       originalQuery: query,
       dataStoreId: dataStoreId,
-      error: err.message,
+      error: `Failed to query data store. Please check configuration and permissions.`,
       results: []
     };
   }
