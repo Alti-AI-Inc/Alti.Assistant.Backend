@@ -1,3 +1,9 @@
+/**
+ * @file Defines the API routes for the Groq AI module.
+ * This router handles all endpoints related to interacting with the Groq AI,
+ * including generating responses and managing conversation history.
+ * @module routes/groq
+ */
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
@@ -5,6 +11,13 @@ import auth from '../../middlewares/auth/auth.js';
 // and Swagger documentation (Groq AI). This allows the route file to use a consistent name
 // without requiring changes to the groq.controller.js file's export name.
 import { LlamaAiController as GroqAiController } from './groq.controller.js';
+
+/**
+ * The main router for Groq AI related routes.
+ * Handles operations such as getting AI responses, retrieving conversation history,
+ * and managing AI sessions in the database.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
 /**
@@ -158,56 +171,56 @@ router.post(
  *     security:
  *       - BearerAuth: [admin, user]
  *     responses:
-     *       200:
-     *         description: AI responses retrieved successfully.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: true
-     *                 statusCode:
-     *                   type: number
-     *                   example: 200
-     *                 message:
-     *                   type: string
-     *                   example: "AI responses retrieved successfully"
-     *                 data:
-     *                   type: array
-     *                   items:
-     *                     $ref: '#/components/schemas/AiSession'
-     *               example:
-     *                 success: true
-     *                 statusCode: 200
-     *                 message: "AI responses retrieved successfully"
-     *                 data:
-     *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b3"
-     *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
-     *                     messages:
-     *                       - role: "user"
-     *                         content: "Hello"
-     *                       - role: "assistant"
-     *                         content: "Hi there! How can I help you today?"
-     *                     createdAt: "2024-03-05T10:00:00.000Z"
-     *                     updatedAt: "2024-03-05T10:05:00.000Z"
-     *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b4"
-     *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
-     *                     messages:
-     *                       - role: "user"
-     *                         content: "Tell me a joke."
-     *                       - role: "assistant"
-     *                         content: "Why don't scientists trust atoms? Because they make up everything!"
-     *                     createdAt: "2024-03-05T11:00:00.000Z"
-     *                     updatedAt: "2024-03-05T11:02:00.000Z"
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     *       403:
-     *         $ref: '#/components/responses/Forbidden'
-     *       500:
-     *         $ref: '#/components/responses/InternalServerError'
-     */
+ *       200:
+ *         description: AI responses retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "AI responses retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AiSession'
+ *               example:
+ *                 success: true
+ *                 statusCode: 200
+ *                 message: "AI responses retrieved successfully"
+ *                 data:
+ *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b3"
+ *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
+ *                     messages:
+ *                       - role: "user"
+ *                         content: "Hello"
+ *                       - role: "assistant"
+ *                         content: "Hi there! How can I help you today?"
+ *                     createdAt: "2024-03-05T10:00:00.000Z"
+ *                     updatedAt: "2024-03-05T10:05:00.000Z"
+ *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b4"
+ *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
+ *                     messages:
+ *                       - role: "user"
+ *                         content: "Tell me a joke."
+ *                       - role: "assistant"
+ *                         content: "Why don't scientists trust atoms? Because they make up everything!"
+ *                     createdAt: "2024-03-05T11:00:00.000Z"
+ *                     updatedAt: "2024-03-05T11:02:00.000Z"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get(
   '/get-response-from-db',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
@@ -321,23 +334,23 @@ router.get(
  *                   type: object
  *                   properties:
  *                     deletedCount:
-     *                       type: number
-     *                       example: 1
-     *               example:
-     *                 success: true
-     *                 statusCode: 200
-     *                 message: "AI session deleted successfully"
-     *                 data:
-     *                   deletedCount: 1
-     *       401:
-     *         $ref: '#/components/responses/Unauthorized'
-     *       403:
-     *         $ref: '#/components/responses/Forbidden'
-     *       404:
-     *         $ref: '#/components/responses/NotFound'
-     *       500:
-     *         $ref: '#/components/responses/InternalServerError'
-     */
+ *                       type: number
+ *                       example: 1
+ *               example:
+ *                 success: true
+ *                 statusCode: 200
+ *                 message: "AI session deleted successfully"
+ *                 data:
+ *                   deletedCount: 1
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.delete(
   '/delete-single-response/:objectId',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
@@ -509,14 +522,8 @@ router.delete(
  */
 
 /**
- * @typedef {import('express').Router} Router
- */
-
-/**
- * @type {Router}
- * @description The main router for Groq/Llama AI related routes.
- *   Handles operations such as getting AI responses, retrieving conversation history,
- *   and managing AI sessions in the database.
+ * The exported router for all Groq AI module routes.
+ * @type {import('express').Router}
  */
 // BUG FIX: Renamed exported router from llamaAiRoutes to groqAiRoutes for consistency with the module's context.
 export const groqAiRoutes = router;
