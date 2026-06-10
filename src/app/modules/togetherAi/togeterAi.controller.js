@@ -124,6 +124,19 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  */
 const TogetherAiImgGeneration = catchAsync(async (req, res) => {
   const { user, sessionId, prompt } = req.body;
+
+  // GCP Cloud Logging: Structured log for tracking the request initiation.
+  console.log(JSON.stringify({
+    severity: 'INFO',
+    message: `Image generation request received for user ${user?._id}`,
+    serviceContext: { service: 'togetherAi.controller' },
+    context: {
+      user: { id: user?._id, email: user?.email },
+      sessionId: sessionId,
+      promptLength: prompt?.length || 0
+    }
+  }));
+
   if (!prompt) throw new Error('Prompt is required for image generation.');
 
   const response = await ai.models.generateImages({
@@ -137,6 +150,8 @@ const TogetherAiImgGeneration = catchAsync(async (req, res) => {
 
   const generatedImage = response.generatedImages?.[0];
   if (!generatedImage?.image?.imageBytes) {
+    // This error will be caught by catchAsync and should be logged by a global error handler.
+    // For GCP, it's better to have a single point of logging for unhandled errors.
     throw new Error('Imagen 4 returned no image data.');
   }
 
@@ -150,17 +165,54 @@ const TogetherAiImgGeneration = catchAsync(async (req, res) => {
   try {
     const paymentResult = await paymentController.incrementImagesUsed(user);
     if (!paymentResult.success) {
+      // GCP Cloud Logging: Business logic failure (e.g., insufficient credits) is a WARNING.
+      console.warn(JSON.stringify({
+        severity: 'WARNING',
+        message: `Image usage increment failed for user ${user?._id}: ${paymentResult.message}`,
+        serviceContext: { service: 'togetherAi.controller' },
+        context: {
+          user: { id: user?._id, email: user?.email },
+          sessionId: sessionId,
+          paymentResultMessage: paymentResult.message
+        }
+      }));
       return res
         .status(400)
         .json({ success: false, message: paymentResult.message });
     }
   } catch (error) {
-    console.error('Error in incrementImagesUsed:', error);
+    // GCP Cloud Logging: Structured log for unexpected error during usage increment.
+    console.error(JSON.stringify({
+        severity: 'ERROR',
+        message: `Unexpected error incrementing image usage for user ${user?._id}: ${error.message}`,
+        serviceContext: { service: 'togetherAi.controller' },
+        context: {
+          user: { id: user?._id, email: user?.email },
+          sessionId: sessionId
+        },
+        // Including the full error object provides stack trace and other details in Cloud Logging.
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        }
+    }));
     return res.status(400).json({
       success: false,
       message: error.message || 'An error occurred while updating image usage.',
     });
   }
+
+  // GCP Cloud Logging: Structured log for successful image generation.
+  console.log(JSON.stringify({
+    severity: 'INFO',
+    message: `Image generated successfully for user ${user?._id}`,
+    serviceContext: { service: 'togetherAi.controller' },
+    context: {
+      user: { id: user?._id, email: user?.email },
+      sessionId: sessionId
+    }
+  }));
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
