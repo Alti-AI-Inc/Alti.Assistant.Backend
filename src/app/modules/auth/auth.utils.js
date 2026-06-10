@@ -1,21 +1,32 @@
-import otpGenerator from 'otp-generator';
+import crypto from 'crypto';
 import config from '../../../../config/index.js';
 
 /**
+ * Escapes HTML special characters to prevent HTML injection / XSS.
+ *
+ * @param {string} unsafe - The unsafe string to escape.
+ * @returns {string} The escaped safe string.
+ */
+const escapeHtml = (unsafe) => {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+/**
  * Generates a 6-digit numeric One-Time Password (OTP).
- * The OTP consists only of digits, with no lowercase, uppercase alphabets, or special characters.
+ * Uses cryptographically secure random number generation.
  *
  * @async
  * @returns {Promise<string>} A promise that resolves to the generated 6-digit OTP.
  */
 export const generateOTP = async () => {
-  // otpGenerator.generate is a synchronous function, but awaiting it doesn't cause harm
-  // and might be kept for future-proofing if the library ever changes to return a Promise.
-  const otp = await otpGenerator.generate(6, {
-    lowerCaseAlphabets: false,
-    upperCaseAlphabets: false,
-    specialChars: false,
-  });
+  // Using Node's built-in crypto module for cryptographically secure OTP generation.
+  const otp = crypto.randomInt(100000, 1000000).toString();
   return otp;
 };
 
@@ -30,9 +41,9 @@ export const generateOTP = async () => {
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const registrationOtpTemplate = (email, token) => { // Removed 'async' as no await operations are performed
+export const registrationOtpTemplate = (email, token) => {
   const frontendUrl = config.client_url || 'https://altiassistant.com';
-  const verificationLink = `${frontendUrl}/register?code=${token}`;
+  const verificationLink = `${frontendUrl}/register?code=${encodeURIComponent(token)}`;
 
   const mailData = {
     userEmail: email,
@@ -43,11 +54,11 @@ export const registrationOtpTemplate = (email, token) => { // Removed 'async' as
                   <p style="color: #666666; font-size: 18px;">Dear user,</p>
                   <p style="color: #666666; font-size: 18px;">Thank you for signing up on Alti AI! To complete your registration, please enter the following 6-digit verification code on the registration page:</p>
                   <div style="font-size: 32px; font-weight: bold; color: #242C36; text-align: center; letter-spacing: 5px; margin: 20px 0; background-color: #F5F5F7; padding: 15px; border-radius: 8px; border: 1px solid #E5E5E7;">
-                    ${token}
+                    ${escapeHtml(token)}
                   </div>
                   <p style="color: #666666; font-size: 18px;">Or click the button below to verify your email automatically:</p>
                   <div style="text-align: center; margin: 20px 0;">
-                    <a href="${verificationLink}" 
+                    <a href="${escapeHtml(verificationLink)}" 
                        style="display: inline-block; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 12px 24px; text-decoration: none; font-size: 18px; font-weight: bold;">
                       Verify Account
                     </a>
@@ -72,20 +83,20 @@ export const registrationOtpTemplate = (email, token) => { // Removed 'async' as
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const forgetPassOtpTemplate = (email, user, OTP) => { // Removed 'async' as no await operations are performed
+export const forgetPassOtpTemplate = (email, user, OTP) => {
   const mailData = {
     userEmail: email,
-    sub: 'Verify Your One-Time Password (OTP)', // Clear and informative subject
+    sub: 'Verify Your One-Time Password (OTP)',
     message: `
       <div style="max-width: 800px; font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 50%;">
         <div style="max-width: 100%; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
           <h2 style="color: #333333; text-align: center;">Verify Your OTP</h2>
           <p style="color: #666666; font-size: 18px;">
-            Dear ${user.username || 'User'},
+            Dear ${escapeHtml(user?.username || 'User')},
           </p>
           <p style="color: #666666; font-size: 18px;">
             To complete your reset password, please enter the following OTP: <span style="color: #333333; font-size: 20px; font-weight: bold; text-align: center;">
-            ${OTP}
+            ${escapeHtml(OTP)}
             </span>
           </p>
           <p style="color: #666666; font-size: 18px;">
@@ -112,7 +123,7 @@ export const forgetPassOtpTemplate = (email, user, OTP) => { // Removed 'async' 
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const deleteUserOtpTemplate = (user, OTP) => { // Removed 'async' as no await operations are performed
+export const deleteUserOtpTemplate = (user, OTP) => {
   const mailData = {
     userEmail: user?.email,
     sub: 'Delete Account OTP',
@@ -121,11 +132,11 @@ export const deleteUserOtpTemplate = (user, OTP) => { // Removed 'async' as no a
         <div style="max-width: 100%; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
           <h2 style="color: #333333; text-align: center;">Verify Your OTP</h2>
           <p style="color: #666666; font-size: 18px;">
-            Dear ${user?.username || 'User'},
+            Dear ${escapeHtml(user?.username || 'User')},
           </p>
           <p style="color: #666666; font-size: 18px;">
             To proceed with deleting your account, please enter the following OTP:
-            <span style="color: #333333; font-size: 20px; font-weight: bold; text-align: center;">${OTP}</span>
+            <span style="color: #333333; font-size: 20px; font-weight: bold; text-align: center;">${escapeHtml(OTP)}</span>
           </p>
           <p style="color: #666666; font-size: 18px;">
             This code is valid for 10 minutes. Please do not share it with anyone for your security.
