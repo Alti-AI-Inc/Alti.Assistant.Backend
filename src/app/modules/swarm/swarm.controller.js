@@ -99,6 +99,19 @@ import ApiError from '../../../errors/ApiError.js';
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+/**
+ * Express controller to handle streaming search requests via the Swarm agent.
+ * It establishes a Server-Sent Events (SSE) connection to stream the agent's response.
+ * The controller manages user identification for both authenticated and guest users,
+ * handles conversation state, and orchestrates the call to the Swarm service.
+ * For authenticated users, it also triggers asynchronous memory fact extraction.
+ *
+ * @function
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the stream is complete.
+ */
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
@@ -378,6 +391,18 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+/**
+ * Express controller to asynchronously trigger the pre-warming of a user's Docker sandbox.
+ * This endpoint is designed to be a "fire-and-forget" operation, returning an immediate
+ * success response while the sandbox creation happens in the background.
+ * It handles both authenticated and guest users.
+ *
+ * @function
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves after sending the response.
+ */
 const prewarmUserSandbox = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
@@ -426,6 +451,7 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
  * SwarmController provides a collection of controller functions for managing Swarm agent interactions,
  * including streaming search capabilities and Docker sandbox pre-warming.
  * These functions are designed to integrate with an Express.js application.
+ * @type {SwarmController}
  */
 export const SwarmController = {
   performSwarmStreamingSearch,
