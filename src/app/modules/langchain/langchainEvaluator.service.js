@@ -1,7 +1,9 @@
 // MODIFICATION: Switched from consumer-grade '@google/generative-ai' to the enterprise-ready '@google-cloud/vertexai' SDK.
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+import httpStatus from 'http-status'; // MODIFICATION: Added for standardized HTTP status codes.
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../shared/ApiError.js'; // MODIFICATION: Added for standardized error responses.
 import LangchainChain from './langchain-chain.model.js';
 import LangchainChainVersion from './langchain-version.model.js';
 import { LangchainExecutionService } from './langchainExecution.service.js';
@@ -301,263 +303,297 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
  * @param {BenchmarkTestCase[]} [testSuite] - An array of test cases, each containing inputs and expected criteria. If empty, a default test case is used.
  * @param {string} userId - The ID of the user initiating the benchmark, used for execution tracking.
  * @returns {Promise<BenchmarkResult>} A promise that resolves to an object containing the comprehensive benchmark results.
- * @throws {Error} If the specified chain or any of the version snapshots are not found.
+ * @throws {ApiError} If the specified chain or any of the version snapshots are not found, or if an unexpected error occurs.
  */
 const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId) => {
-  // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
-  logger.info({
-    message: 'Starting chain benchmark.',
-    component: 'LangchainEvaluatorService',
-    context: {
-      chainId,
-      versionA: String(versionA),
-      versionB: String(versionB),
-      userId,
-      testCaseCount: testSuite?.length || 0
+  // MODIFICATION: Added a comprehensive try-catch block to handle all errors, log them, and normalize them into ApiError responses.
+  try {
+    // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+    logger.info({
+      message: 'Starting chain benchmark.',
+      component: 'LangchainEvaluatorService',
+      context: {
+        chainId,
+        versionA: String(versionA),
+        versionB: String(versionB),
+        userId,
+        testCaseCount: testSuite?.length || 0
+      }
+    });
+
+    // PLATFORM-OWNER-OPTIMIZATION: Add a configurable limit to prevent excessive resource usage and cost overruns during benchmarks.
+    const maxTestCases = config.langchain?.max_benchmark_test_cases || 50;
+    if (testSuite && testSuite.length > maxTestCases) {
+      // MODIFICATION: Throw a specific ApiError for client-side errors (request too large).
+      throw new ApiError(httpStatus.BAD_REQUEST, `Test suite size (${testSuite.length}) exceeds the maximum allowed limit of ${maxTestCases}.`);
     }
-  });
 
-  // PLATFORM-OWNER-OPTIMIZATION: Add a configurable limit to prevent excessive resource usage and cost overruns during benchmarks.
-  const maxTestCases = config.langchain?.max_benchmark_test_cases || 50;
-  if (testSuite && testSuite.length > maxTestCases) {
-    throw new Error(`Test suite size (${testSuite.length}) exceeds the maximum allowed limit of ${maxTestCases}.`);
-  }
-
-  // Resolve chain
-  // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
-  const chain = await LangchainChain.findById(chainId).lean();
-  if (!chain) {
-    throw new Error(`Chain not found: ${chainId}`);
-  }
-
-  // Resolve steps for Version A
-  let stepsA = null;
-  let labelA = `v${versionA}`;
-  if (String(versionA).toLowerCase() === 'current') {
-    stepsA = chain.steps;
-    labelA = `Current (v${chain.version || 1})`;
-  } else {
+    // Resolve chain
     // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
-    // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
-    const snapA = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionA) }).lean();
-    if (!snapA) {
-      throw new Error(`Version snapshot v${versionA} not found for chain ${chainId}`);
+    const chain = await LangchainChain.findById(chainId).lean();
+    if (!chain) {
+      // MODIFICATION: Throw a specific ApiError for not found errors.
+      throw new ApiError(httpStatus.NOT_FOUND, `Chain not found: ${chainId}`);
     }
-    stepsA = snapA.steps;
-  }
 
-  // Resolve steps for Version B
-  let stepsB = null;
-  let labelB = `v${versionB}`;
-  if (String(versionB).toLowerCase() === 'current') {
-    stepsB = chain.steps;
-    labelB = `Current (v${chain.version || 1})`;
-  } else {
-    // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
-    // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
-    const snapB = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionB) }).lean();
-    if (!snapB) {
-      throw new Error(`Version snapshot v${versionB} not found for chain ${chainId}`);
+    // Resolve steps for Version A
+    let stepsA = null;
+    let labelA = `v${versionA}`;
+    if (String(versionA).toLowerCase() === 'current') {
+      stepsA = chain.steps;
+      labelA = `Current (v${chain.version || 1})`;
+    } else {
+      // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
+      // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
+      const snapA = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionA) }).lean();
+      if (!snapA) {
+        // MODIFICATION: Throw a specific ApiError for not found errors.
+        throw new ApiError(httpStatus.NOT_FOUND, `Version snapshot v${versionA} not found for chain ${chainId}`);
+      }
+      stepsA = snapA.steps;
     }
-    stepsB = snapB.steps;
-  }
 
-  const normalizedTestSuite = testSuite && testSuite.length > 0
-    ? testSuite
-    : [
-        {
-          inputs: chain.inputVariables.reduce((acc, curr) => ({ ...acc, [curr]: 'Test input value' }), {}),
-          expectedCriteria: 'Generate a structured response addressing inputs.'
-        }
-      ];
-
-  // PERFORMANCE FIX: Execute test cases in parallel using Promise.all to significantly improve benchmark speed
-  // by concurrently running chain executions and grading for multiple test cases.
-  const comparisonPromises = normalizedTestSuite.map(async (testCase, i) => {
-    const inputs = testCase.inputs || {};
-    const expected = testCase.expectedCriteria || '';
-
-    // Run Version A
-    const startA = Date.now();
-    let resultA;
-    try {
-      resultA = await LangchainExecutionService.executeSteps(stepsA, inputs, userId);
-    } catch (err) {
-      resultA = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
-      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
-      logger.error({
-        message: `Error executing version A for test case ${i}`,
-        component: 'LangchainEvaluatorService',
-        context: { chainId, version: String(versionA), testCaseIndex: i },
-        error: {
-          message: err.message,
-          stack: err.stack
-        }
-      });
+    // Resolve steps for Version B
+    let stepsB = null;
+    let labelB = `v${versionB}`;
+    if (String(versionB).toLowerCase() === 'current') {
+      stepsB = chain.steps;
+      labelB = `Current (v${chain.version || 1})`;
+    } else {
+      // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
+      // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
+      const snapB = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionB) }).lean();
+      if (!snapB) {
+        // MODIFICATION: Throw a specific ApiError for not found errors.
+        throw new ApiError(httpStatus.NOT_FOUND, `Version snapshot v${versionB} not found for chain ${chainId}`);
+      }
+      stepsB = snapB.steps;
     }
-    const durationA = Date.now() - startA;
 
-    // Run Version B
-    const startB = Date.now();
-    let resultB;
-    try {
-      resultB = await LangchainExecutionService.executeSteps(stepsB, inputs, userId);
-    } catch (err) {
-      resultB = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
-      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
-      logger.error({
-        message: `Error executing version B for test case ${i}`,
-        component: 'LangchainEvaluatorService',
-        context: { chainId, version: String(versionB), testCaseIndex: i },
-        error: {
-          message: err.message,
-          stack: err.stack
-        }
-      });
+    const normalizedTestSuite = testSuite && testSuite.length > 0
+      ? testSuite
+      : [
+          {
+            inputs: chain.inputVariables.reduce((acc, curr) => ({ ...acc, [curr]: 'Test input value' }), {}),
+            expectedCriteria: 'Generate a structured response addressing inputs.'
+          }
+        ];
+
+    // PERFORMANCE FIX: Execute test cases in parallel using Promise.all to significantly improve benchmark speed
+    // by concurrently running chain executions and grading for multiple test cases.
+    const comparisonPromises = normalizedTestSuite.map(async (testCase, i) => {
+      const inputs = testCase.inputs || {};
+      const expected = testCase.expectedCriteria || '';
+
+      // Run Version A
+      const startA = Date.now();
+      let resultA;
+      try {
+        resultA = await LangchainExecutionService.executeSteps(stepsA, inputs, userId);
+      } catch (err) {
+        resultA = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
+        // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
+        logger.error({
+          message: `Error executing version A for test case ${i}`,
+          component: 'LangchainEvaluatorService',
+          context: { chainId, version: String(versionA), testCaseIndex: i },
+          error: {
+            message: err.message,
+            stack: err.stack
+          }
+        });
+      }
+      const durationA = Date.now() - startA;
+
+      // Run Version B
+      const startB = Date.now();
+      let resultB;
+      try {
+        resultB = await LangchainExecutionService.executeSteps(stepsB, inputs, userId);
+      } catch (err) {
+        resultB = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
+        // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
+        logger.error({
+          message: `Error executing version B for test case ${i}`,
+          component: 'LangchainEvaluatorService',
+          context: { chainId, version: String(versionB), testCaseIndex: i },
+          error: {
+            message: err.message,
+            stack: err.stack
+          }
+        });
+      }
+      const durationB = Date.now() - startB;
+
+      // Grade outcomes
+      const outA = resultA.outputs || {};
+      const outB = resultB.outputs || {};
+
+      const gradesA = resultA.success
+        ? await gradeOutputWithGemini(inputs, outA, expected)
+        : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
+
+      const gradesB = resultB.success
+        ? await gradeOutputWithGemini(inputs, outB, expected)
+        : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
+
+      return {
+        testCaseIndex: i,
+        inputs,
+        expectedCriteria: expected,
+        versionA: {
+          success: resultA.success,
+          error: resultA.error,
+          durationMs: durationA,
+          tokenUsage: resultA.tokenUsage || { totalTokens: 0 },
+          grades: gradesA,
+          outputs: outA
+        },
+        versionB: {
+          success: resultB.success,
+          error: resultB.error,
+          durationMs: durationB,
+          tokenUsage: resultB.tokenUsage || { totalTokens: 0 },
+          grades: gradesB,
+          outputs: outB
+        },
+        // Include raw scores and durations for aggregation after Promise.all
+        _durationA: durationA,
+        _durationB: durationB,
+        _tokensA: resultA.tokenUsage?.totalTokens || 0,
+        _tokensB: resultB.tokenUsage?.totalTokens || 0,
+        _relevanceA: gradesA.relevance.score,
+        _relevanceB: gradesB.relevance.score,
+        _accuracyA: gradesA.factualAccuracy.score,
+        _accuracyB: gradesB.factualAccuracy.score,
+        _structureA: gradesA.structureAdherence.score,
+        _structureB: gradesB.structureAdherence.score,
+      };
+    });
+
+    const allComparisonsResults = await Promise.all(comparisonPromises);
+
+    // Aggregate results after all promises have resolved
+    let totalDurationA = 0;
+    let totalDurationB = 0;
+    let totalTokensA = 0;
+    let totalTokensB = 0;
+
+    let totalRelevanceA = 0;
+    let totalRelevanceB = 0;
+    let totalAccuracyA = 0;
+    let totalAccuracyB = 0;
+    let totalStructureA = 0;
+    let totalStructureB = 0;
+
+    const comparisons = [];
+
+    const numCases = normalizedTestSuite.length; // Use this for division, ensure it's not zero.
+
+    for (const compResult of allComparisonsResults) {
+      totalDurationA += compResult._durationA;
+      totalDurationB += compResult._durationB;
+      totalTokensA += compResult._tokensA;
+      totalTokensB += compResult._tokensB;
+
+      totalRelevanceA += compResult._relevanceA;
+      totalRelevanceB += compResult._relevanceB;
+      totalAccuracyA += compResult._accuracyA;
+      totalAccuracyB += compResult._accuracyB;
+      totalStructureA += compResult._structureA;
+      totalStructureB += compResult._structureB;
+
+      // Remove aggregation-specific properties before pushing to final comparisons array
+      const { _durationA, _durationB, _tokensA, _tokensB, _relevanceA, _relevanceB, _accuracyA, _accuracyB, _structureA, _structureB, ...rest } = compResult;
+      comparisons.push(rest);
     }
-    const durationB = Date.now() - startB;
 
-    // Grade outcomes
-    const outA = resultA.outputs || {};
-    const outB = resultB.outputs || {};
+    // BUG FIX: Handle division by zero if numCases is 0 (e.g., empty test suite and no default inputs).
+    const summaryA = {
+      label: labelA,
+      avgLatencyMs: numCases > 0 ? totalDurationA / numCases : 0,
+      avgTokens: numCases > 0 ? totalTokensA / numCases : 0,
+      avgRelevance: numCases > 0 ? totalRelevanceA / numCases : 0,
+      avgFactualAccuracy: numCases > 0 ? totalAccuracyA / numCases : 0,
+      avgStructureAdherence: numCases > 0 ? totalStructureA / numCases : 0,
+      overallQualityScore: numCases > 0 ? (totalRelevanceA + totalAccuracyA + totalStructureA) / (3 * numCases) : 0
+    };
 
-    const gradesA = resultA.success
-      ? await gradeOutputWithGemini(inputs, outA, expected)
-      : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
+    const summaryB = {
+      label: labelB,
+      avgLatencyMs: numCases > 0 ? totalDurationB / numCases : 0,
+      avgTokens: numCases > 0 ? totalTokensB / numCases : 0,
+      avgRelevance: numCases > 0 ? totalRelevanceB / numCases : 0,
+      avgFactualAccuracy: numCases > 0 ? totalAccuracyB / numCases : 0,
+      avgStructureAdherence: numCases > 0 ? totalStructureB / numCases : 0,
+      overallQualityScore: numCases > 0 ? (totalRelevanceB + totalAccuracyB + totalStructureB) / (3 * numCases) : 0
+    };
 
-    const gradesB = resultB.success
-      ? await gradeOutputWithGemini(inputs, outB, expected)
-      : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
+    const deltaQuality = summaryB.overallQualityScore - summaryA.overallQualityScore;
+    const deltaLatency = summaryB.avgLatencyMs - summaryA.avgLatencyMs;
+    const deltaTokens = summaryB.avgTokens - summaryA.avgTokens;
+
+    const resultSummary = {
+      versionA: summaryA,
+      versionB: summaryB,
+      deltas: {
+        qualityScoreImprovement: parseFloat(deltaQuality.toFixed(3)),
+        latencyDeltaMs: parseFloat(deltaLatency.toFixed(1)),
+        tokenEfficiencyDelta: parseFloat(deltaTokens.toFixed(1))
+      }
+    };
+
+    // PLATFORM-OWNER-OPTIMIZATION: Add a structured summary log upon completion for better global oversight and auditing of benchmark runs.
+    logger.info({
+      message: 'Chain benchmark completed successfully.',
+      component: 'LangchainEvaluatorService',
+      context: {
+        chainId,
+        userId,
+        versionA: String(versionA),
+        versionB: String(versionB),
+        summary: resultSummary
+      }
+    });
 
     return {
-      testCaseIndex: i,
-      inputs,
-      expectedCriteria: expected,
-      versionA: {
-        success: resultA.success,
-        error: resultA.error,
-        durationMs: durationA,
-        tokenUsage: resultA.tokenUsage || { totalTokens: 0 },
-        grades: gradesA,
-        outputs: outA
-      },
-      versionB: {
-        success: resultB.success,
-        error: resultB.error,
-        durationMs: durationB,
-        tokenUsage: resultB.tokenUsage || { totalTokens: 0 },
-        grades: gradesB,
-        outputs: outB
-      },
-      // Include raw scores and durations for aggregation after Promise.all
-      _durationA: durationA,
-      _durationB: durationB,
-      _tokensA: resultA.tokenUsage?.totalTokens || 0,
-      _tokensB: resultB.tokenUsage?.totalTokens || 0,
-      _relevanceA: gradesA.relevance.score,
-      _relevanceB: gradesB.relevance.score,
-      _accuracyA: gradesA.factualAccuracy.score,
-      _accuracyB: gradesB.factualAccuracy.score,
-      _structureA: gradesA.structureAdherence.score,
-      _structureB: gradesB.structureAdherence.score,
-    };
-  });
-
-  const allComparisonsResults = await Promise.all(comparisonPromises);
-
-  // Aggregate results after all promises have resolved
-  let totalDurationA = 0;
-  let totalDurationB = 0;
-  let totalTokensA = 0;
-  let totalTokensB = 0;
-
-  let totalRelevanceA = 0;
-  let totalRelevanceB = 0;
-  let totalAccuracyA = 0;
-  let totalAccuracyB = 0;
-  let totalStructureA = 0;
-  let totalStructureB = 0;
-
-  const comparisons = [];
-
-  const numCases = normalizedTestSuite.length; // Use this for division, ensure it's not zero.
-
-  for (const compResult of allComparisonsResults) {
-    totalDurationA += compResult._durationA;
-    totalDurationB += compResult._durationB;
-    totalTokensA += compResult._tokensA;
-    totalTokensB += compResult._tokensB;
-
-    totalRelevanceA += compResult._relevanceA;
-    totalRelevanceB += compResult._relevanceB;
-    totalAccuracyA += compResult._accuracyA;
-    totalAccuracyB += compResult._accuracyB;
-    totalStructureA += compResult._structureA;
-    totalStructureB += compResult._structureB;
-
-    // Remove aggregation-specific properties before pushing to final comparisons array
-    const { _durationA, _durationB, _tokensA, _tokensB, _relevanceA, _relevanceB, _accuracyA, _accuracyB, _structureA, _structureB, ...rest } = compResult;
-    comparisons.push(rest);
-  }
-
-  // BUG FIX: Handle division by zero if numCases is 0 (e.g., empty test suite and no default inputs).
-  const summaryA = {
-    label: labelA,
-    avgLatencyMs: numCases > 0 ? totalDurationA / numCases : 0,
-    avgTokens: numCases > 0 ? totalTokensA / numCases : 0,
-    avgRelevance: numCases > 0 ? totalRelevanceA / numCases : 0,
-    avgFactualAccuracy: numCases > 0 ? totalAccuracyA / numCases : 0,
-    avgStructureAdherence: numCases > 0 ? totalStructureA / numCases : 0,
-    overallQualityScore: numCases > 0 ? (totalRelevanceA + totalAccuracyA + totalStructureA) / (3 * numCases) : 0
-  };
-
-  const summaryB = {
-    label: labelB,
-    avgLatencyMs: numCases > 0 ? totalDurationB / numCases : 0,
-    avgTokens: numCases > 0 ? totalTokensB / numCases : 0,
-    avgRelevance: numCases > 0 ? totalRelevanceB / numCases : 0,
-    avgFactualAccuracy: numCases > 0 ? totalAccuracyB / numCases : 0,
-    avgStructureAdherence: numCases > 0 ? totalStructureB / numCases : 0,
-    overallQualityScore: numCases > 0 ? (totalRelevanceB + totalAccuracyB + totalStructureB) / (3 * numCases) : 0
-  };
-
-  const deltaQuality = summaryB.overallQualityScore - summaryA.overallQualityScore;
-  const deltaLatency = summaryB.avgLatencyMs - summaryA.avgLatencyMs;
-  const deltaTokens = summaryB.avgTokens - summaryA.avgTokens;
-
-  const resultSummary = {
-    versionA: summaryA,
-    versionB: summaryB,
-    deltas: {
-      qualityScoreImprovement: parseFloat(deltaQuality.toFixed(3)),
-      latencyDeltaMs: parseFloat(deltaLatency.toFixed(1)),
-      tokenEfficiencyDelta: parseFloat(deltaTokens.toFixed(1))
-    }
-  };
-
-  // PLATFORM-OWNER-OPTIMIZATION: Add a structured summary log upon completion for better global oversight and auditing of benchmark runs.
-  logger.info({
-    message: 'Chain benchmark completed successfully.',
-    component: 'LangchainEvaluatorService',
-    context: {
+      success: true,
       chainId,
-      userId,
+      chainName: chain.name,
+      userId, // PLATFORM-OWNER-OPTIMIZATION: Include userId in the result for clear audit trails.
       versionA: String(versionA),
       versionB: String(versionB),
-      summary: resultSummary
-    }
-  });
+      summary: resultSummary,
+      comparisons
+    };
+  } catch (error) {
+    // GCP-LOGGING-AUDIT: Log any unexpected errors during the benchmark process.
+    logger.error({
+      message: 'Benchmark versions failed with an unexpected error.',
+      component: 'LangchainEvaluatorService',
+      context: {
+        chainId,
+        versionA: String(versionA),
+        versionB: String(versionB),
+        userId
+      },
+      error: {
+        message: error.message,
+        stack: error.stack,
+        // Include status if it's already an ApiError, for better context.
+        status: error.statusCode,
+        isApiError: error.isApiError || false
+      }
+    });
 
-  return {
-    success: true,
-    chainId,
-    chainName: chain.name,
-    userId, // PLATFORM-OWNER-OPTIMIZATION: Include userId in the result for clear audit trails.
-    versionA: String(versionA),
-    versionB: String(versionB),
-    summary: resultSummary,
-    comparisons
-  };
+    // If the error is one we threw intentionally (like NOT_FOUND), re-throw it.
+    // Otherwise, wrap it in a generic internal server error to avoid leaking details.
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An unexpected error occurred during the benchmark process.');
+  }
 };
 
 /**
