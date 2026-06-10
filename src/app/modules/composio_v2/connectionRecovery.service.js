@@ -169,7 +169,10 @@ const runHeartbeatRecovery = async (userId) => {
     for (const conn of warningConnections) {
       // Fire-and-forget background recovery execution
       // This pattern correctly avoids blocking the event loop with a synchronous loop.
-      attemptAutoRecovery(conn._id, userId).catch(() => {});
+      // BUG FIX: Added error logging to the fire-and-forget catch block to improve observability.
+      attemptAutoRecovery(conn._id, userId).catch(err => {
+        logger.error(`ConnectionRecovery: Heartbeat failed to auto-recover connection ${conn._id} for user ${userId}:`, err.message);
+      });
       recoveredCount++;
     }
 
