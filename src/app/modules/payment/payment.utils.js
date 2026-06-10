@@ -1,6 +1,22 @@
 import moment from 'moment';
 
-export const purchasePlanTemplate = async (email, user, subscription) => {
+// Helper function to escape HTML entities to prevent Cross-Site Scripting (XSS)
+// when embedding user-provided data into HTML email templates.
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string') {
+    return unsafe; // Return as is if not a string (e.g., null, undefined, number)
+  }
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+// Removed 'async' keyword as there are no 'await' calls within the function,
+// making it a synchronous operation.
+export const purchasePlanTemplate = (email, user, subscription) => {
   const mailData = {
     userEmail: email,
     sub: 'Subscription Activated Successfully',
@@ -9,10 +25,10 @@ export const purchasePlanTemplate = async (email, user, subscription) => {
           <div style="max-width: 100%; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
             <h2 style="color: #333333; text-align: center;">Subscription Confirmation</h2>
             <p style="color: #666666; font-size: 18px;">
-              Hello ${user.username || 'User'},
+              Hello ${escapeHtml(user.username) || 'User'},
             </p>
             <p style="color: #666666; font-size: 18px;">
-              We are pleased to inform you that your <span style="color: #333333; font-size: 20px; font-weight: bold;">${subscription.plan_name}</span> plan subscription has been successfully activated.
+              We are pleased to inform you that your <span style="color: #333333; font-size: 20px; font-weight: bold;">${escapeHtml(subscription.plan_name)}</span> plan subscription has been successfully activated.
             </p>
             <p style="color: #666666; font-size: 18px;">
               Your subscription will remain active until <span style="color: #333333; font-size: 20px; font-weight: bold;">${moment(subscription.expiresAt).format('ddd MMM DD YYYY')}</span>.
