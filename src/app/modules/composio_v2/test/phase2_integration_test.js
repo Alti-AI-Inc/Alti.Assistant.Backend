@@ -133,7 +133,7 @@ const mockPlans = {
 };
 
 /**
- * Mock workspace data.
+ * Mock workspace data. This is a `let` to allow modification during tests.
  * @type {Workspace}
  */
 let mockWorkspace = {
@@ -152,7 +152,20 @@ let mockWorkspace = {
  * These would be replaced by actual service imports in a real application.
  */
 const workspaceService = {
+  /**
+   * Retrieves a mock workspace by its ID.
+   * @param {string} workspaceId - The ID of the workspace to retrieve.
+   * @returns {Promise<Workspace>} A deep copy of the mock workspace.
+   */
   getWorkspaceById: async (workspaceId) => JSON.parse(JSON.stringify(mockWorkspace)),
+  /**
+   * Simulates inviting a new member to a workspace.
+   * @permission Requires 'owner' or 'manager' role.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} inviterId - The ID of the user sending the invitation.
+   * @param {string} inviteeEmail - The email of the user to invite.
+   * @returns {Promise<{success: boolean, error?: string, inviteId?: string}>} The result of the invitation attempt.
+   */
   inviteMember: async (workspaceId, inviterId, inviteeEmail) => {
     const workspace = await workspaceService.getWorkspaceById(workspaceId);
     const plan = mockPlans[workspace.plan];
@@ -166,6 +179,15 @@ const workspaceService = {
     }
     return { success: true, inviteId: `invite_${Date.now()}` };
   },
+  /**
+   * Simulates updating a member's role within a workspace.
+   * @permission Requires 'owner' or 'manager' role. The owner's role cannot be changed.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} managerId - The ID of the user performing the update.
+   * @param {string} memberId - The ID of the member whose role is being updated.
+   * @param {'manager' | 'member'} newRole - The new role to assign.
+   * @returns {Promise<{success: boolean, error?: string, updatedMember?: WorkspaceMember}>} The result of the role update.
+   */
   updateMemberRole: async (workspaceId, managerId, memberId, newRole) => {
     const workspace = await workspaceService.getWorkspaceById(workspaceId);
     // VERIFICATION: Ensure the updater is a manager/owner and not demoting the owner.
@@ -176,6 +198,13 @@ const workspaceService = {
     }
     return { success: true, updatedMember: { userId: memberId, role: newRole } };
   },
+  /**
+   * Simulates retrieving workspace metrics.
+   * @permission Requires 'owner' or 'manager' role and a plan with `metricsAccess`.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} requesterId - The ID of the user requesting the metrics.
+   * @returns {Promise<{success: boolean, error?: string, data?: {activeUsers: number, workflowsRun: number}}>} The metrics data or an error.
+   */
   getMetrics: async (workspaceId, requesterId) => {
     const workspace = await workspaceService.getWorkspaceById(workspaceId);
     const requester = workspace.members.find(m => m.userId === requesterId);
@@ -187,7 +216,17 @@ const workspaceService = {
   }
 };
 
+/**
+ * Mock billing service to simulate billing-related backend logic.
+ */
 const billingService = {
+  /**
+   * Simulates retrieving billing information for a workspace.
+   * @permission Requires 'owner' role.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} requesterId - The ID of the user requesting the billing info.
+   * @returns {Promise<{success: boolean, error?: string, data?: {plan: string, nextBillingDate: string}}>} The billing data or an error.
+   */
   getBillingInfo: async (workspaceId, requesterId) => {
     const workspace = await workspaceService.getWorkspaceById(workspaceId);
     // VERIFICATION: Ensure only the workspace owner can access billing information.
@@ -218,6 +257,12 @@ const billingService = {
  * @property {ServiceInitializationResult} results.queueManager - Results for queueManager service.
  * @property {string} [error] - Error message if the test failed.
  */
+
+/**
+ * Tests the dynamic import and basic integrity of all core Phase 2 services.
+ * It verifies that each service module can be loaded and that it exports the expected methods.
+ * @returns {Promise<Phase2ServicesInitializationTestResult>} A promise that resolves with the test results.
+ */
 export const testPhase2ServicesInitialization = async () => {
   try {
     logger.info('🧪 Testing Phase 2 Services Initialization...');
@@ -244,6 +289,12 @@ export const testPhase2ServicesInitialization = async () => {
  * @typedef {object} WorkflowSchedulingTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
+ */
+
+/**
+ * Tests the full lifecycle of a scheduled workflow using the cronManager service.
+ * This includes initializing the manager, scheduling a job, checking its status, and unscheduling it.
+ * @returns {Promise<WorkflowSchedulingTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
  */
 export const testWorkflowScheduling = async () => {
   try {
@@ -274,6 +325,12 @@ export const testWorkflowScheduling = async () => {
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
  */
+
+/**
+ * Tests the workflowExecutor service's ability to run single-step and multi-step workflows.
+ * It also validates the connection validation logic for a given workflow.
+ * @returns {Promise<WorkflowExecutionTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
+ */
 export const testWorkflowExecution = async () => {
   try {
     logger.info('🧪 Testing Workflow Execution...');
@@ -302,6 +359,12 @@ export const testWorkflowExecution = async () => {
  * @typedef {object} QueueManagementTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
+ */
+
+/**
+ * Tests the queueManager service for adding, canceling, and monitoring queued workflows.
+ * It verifies that workflows can be queued with different priorities and that the queue status is reported correctly.
+ * @returns {Promise<QueueManagementTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
  */
 export const testQueueManagement = async () => {
   try {
@@ -338,6 +401,12 @@ export const testQueueManagement = async () => {
  * @typedef {object} ScheduleDetectionIntegrationTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
+ */
+
+/**
+ * Tests the integration of AI nodes for detecting scheduling intent from user input.
+ * It verifies that the `scheduleDetectionNode` correctly identifies scheduling requests and that the `saveWorkflowNode` can persist a scheduled workflow.
+ * @returns {Promise<ScheduleDetectionIntegrationTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
  */
 export const testScheduleDetectionIntegration = async () => {
   try {
@@ -376,6 +445,12 @@ export const testScheduleDetectionIntegration = async () => {
  * @typedef {object} TeamManagementTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
+ */
+
+/**
+ * Tests team management functionalities from a manager's perspective.
+ * This includes inviting new members, updating member roles, and verifying that actions are blocked when plan limits are reached.
+ * @returns {Promise<TeamManagementTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
  */
 export const testManagerTeamManagement = async () => {
   try {
@@ -416,6 +491,12 @@ export const testManagerTeamManagement = async () => {
  * @typedef {object} MetricsAndAccessTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
+ */
+
+/**
+ * Tests role-based access control for sensitive workspace features.
+ * It verifies that managers can access metrics (on appropriate plans) but not billing info, while members can access neither, and owners can access both.
+ * @returns {Promise<MetricsAndAccessTestOutput & { results?: object, error?: string }>} A promise that resolves with the test results.
  */
 export const testManagerMetricsAndAccessControl = async () => {
     try {

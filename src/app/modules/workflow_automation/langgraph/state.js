@@ -5,6 +5,16 @@
  * @property {string} userId - The ID of the user initiating the workflow.
  * @property {string} conversationId - The ID of the current conversation.
  *
+ * @property {string} workspaceId - The ID of the workspace the user belongs to.
+ * @property {boolean} isOwnerOrAdmin - Flag indicating if the user has admin/owner privileges for the workspace.
+ * @property {string} planTier - The subscription plan tier for the workspace (e.g., 'free', 'pro', 'enterprise').
+ * @property {string} subscriptionStatus - The status of the workspace's subscription (e.g., 'active', 'past_due').
+ * @property {object} usageLimits - Object containing usage limits and current consumption for the workspace.
+ * @property {number} usageLimits.maxWorkflows - Maximum number of workflows allowed by the subscription plan.
+ * @property {number} usageLimits.currentWorkflowCount - Current number of workflows in the workspace.
+ * @property {number} usageLimits.maxExecutionsPerMonth - Monthly execution limit allowed by the subscription plan.
+ * @property {number} usageLimits.currentExecutionsThisMonth - Executions used in the current billing cycle.
+ *
  * @property {string} userIntent - The detected intent of the user's prompt (e.g., "create workflow", "get status").
  * @property {string} taskType - The type of task identified from the user's intent.
  * @property {string} complexity - The estimated complexity of the task.
@@ -83,6 +93,33 @@ export const workflowAutomationState = {
     default: () => '',
   },
 
+  // Workspace & Billing Context (for authorization and limit checks during workflow processing)
+  workspaceId: {
+    reducer: (x, y) => y ?? x,
+    default: () => '',
+  },
+  isOwnerOrAdmin: {
+    reducer: (x, y) => y ?? x,
+    default: () => false,
+  },
+  planTier: {
+    reducer: (x, y) => y ?? x,
+    default: () => 'free',
+  },
+  subscriptionStatus: {
+    reducer: (x, y) => y ?? x,
+    default: () => 'inactive',
+  },
+  usageLimits: {
+    reducer: (x, y) => ({ ...x, ...y }), // Merge updates into the existing limits object
+    default: () => ({
+      maxWorkflows: 5,
+      currentWorkflowCount: 0,
+      maxExecutionsPerMonth: 100,
+      currentExecutionsThisMonth: 0,
+    }),
+  },
+
   // Intent analysis
   userIntent: {
     reducer: (x, y) => y ?? x,
@@ -99,11 +136,11 @@ export const workflowAutomationState = {
 
   // App and action detection
   detectedApps: {
-    reducer: (x, y) => [...(x || []), ...(y || [])],
+    reducer: (x, y) => [...new Set([...(x || []), ...(y || [])])], // Use Set to avoid duplicates
     default: () => [],
   },
   requiredActions: {
-    reducer: (x, y) => [...(x || []), ...(y || [])],
+    reducer: (x, y) => [...new Set([...(x || []), ...(y || [])])], // Use Set to avoid duplicates
     default: () => [],
   },
 
@@ -113,7 +150,7 @@ export const workflowAutomationState = {
     default: () => ({}),
   },
   workflowSteps: {
-    reducer: (x, y) => [...(x || []), ...(y || [])],
+    reducer: (x, y) => y ?? x, // Replace steps, don't append, to allow for replanning
     default: () => [],
   },
 
@@ -133,11 +170,11 @@ export const workflowAutomationState = {
 
   // Parameter extraction
   extractedParameters: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => ({ ...x, ...y }), // Merge extracted parameters
     default: () => ({}),
   },
   missingParameters: {
-    reducer: (x, y) => [...(x || []), ...(y || [])],
+    reducer: (x, y) => [...new Set([...(x || []), ...(y || [])])],
     default: () => [],
   },
 
@@ -167,7 +204,7 @@ export const workflowAutomationState = {
 
   // Execution context
   executionContext: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => ({ ...x, ...y }),
     default: () => ({}),
   },
   currentStep: {
@@ -199,7 +236,7 @@ export const workflowAutomationState = {
     default: () => 'info',
   },
   suggestions: {
-    reducer: (x, y) => [...(x || []), ...(y || [])],
+    reducer: (x, y) => y ?? x, // Suggestions should be replaced, not accumulated across turns
     default: () => [],
   },
 
@@ -235,19 +272,19 @@ export const workflowAutomationState = {
 
   // Connection health
   connectionUrls: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => ({ ...x, ...y }),
     default: () => ({}),
   },
   missingConnections: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => y ?? x, // Replace with the latest assessment
     default: () => [],
   },
   availableApps: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => y ?? x, // Replace with the latest assessment
     default: () => [],
   },
   invalidApps: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => y ?? x, // Replace with the latest assessment
     default: () => [],
   },
   connectionStatus: {
@@ -261,7 +298,7 @@ export const workflowAutomationState = {
 
   // Debug and logging
   debugInfo: {
-    reducer: (x, y) => y ?? x,
+    reducer: (x, y) => ({ ...x, ...y }),
     default: () => ({}),
   },
   currentStage: {

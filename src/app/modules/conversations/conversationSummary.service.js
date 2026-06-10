@@ -1,12 +1,76 @@
 import ConversationSummary from './conversationSummary.model.js';
 import Conversation from './conversation.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import config from '../../../../config/index.js';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 /**
  * @module conversationSummaryService
  * @description Provides services for managing and generating summaries of conversations using Google Gemini.
  */
+
+// The GoogleGenerativeAI client will be initialized asynchronously and cached.
+let genAI;
+// The API key will be fetched once and cached.
+let geminiApiKey;
+
+/**
+ * Asynchronously retrieves the Gemini API key.
+ * It prioritizes the GEMINI_SECRET_KEY environment variable for direct injection (e.g., Cloud Run, local .env).
+ * If not found, it falls back to fetching the secret from GCP Secret Manager using the GEMINI_SECRET_NAME environment variable.
+ * @returns {Promise<string>} The Gemini API key.
+ * @throws {Error} If the API key cannot be resolved.
+ */
+const getGeminiApiKey = async () => {
+  // Return cached key if already fetched
+  if (geminiApiKey) {
+    return geminiApiKey;
+  }
+
+  // 1. Prefer the directly injected environment variable (common in Cloud Run/local dev)
+  if (process.env.GEMINI_SECRET_KEY) {
+    geminiApiKey = process.env.GEMINI_SECRET_KEY;
+    return geminiApiKey;
+  }
+
+  // 2. Fallback to GCP Secret Manager
+  if (process.env.GEMINI_SECRET_NAME) {
+    try {
+      const client = new SecretManagerServiceClient();
+      const [version] = await client.accessSecretVersion({
+        name: process.env.GEMINI_SECRET_NAME,
+      });
+      const key = version.payload.data.toString('utf8');
+      if (!key) {
+        throw new Error('Fetched secret payload from Secret Manager is empty.');
+      }
+      geminiApiKey = key;
+      return geminiApiKey;
+    } catch (error) {
+      console.error('Failed to fetch secret from GCP Secret Manager:', error);
+      throw new Error(
+        'Could not retrieve Gemini API key from Secret Manager.'
+      );
+    }
+  }
+
+  // 3. If neither is configured, throw a configuration error.
+  throw new Error(
+    'Gemini API key is not configured. Set GEMINI_SECRET_KEY or GEMINI_SECRET_NAME environment variables.'
+  );
+};
+
+/**
+ * Initializes and returns the Google Generative AI client.
+ * Uses a singleton pattern to ensure the client is initialized only once.
+ * @returns {Promise<GoogleGenerativeAI>} The initialized GoogleGenerativeAI client instance.
+ */
+const getGenAIClient = async () => {
+  if (!genAI) {
+    const apiKey = await getGeminiApiKey();
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+  return genAI;
+};
 
 /**
  * @typedef {Object} Message
@@ -39,12 +103,6 @@ import config from '../../../../config/index.js';
  * @property {Date} createdAt - The timestamp when the summary was created.
  * @property {Date} updatedAt - The timestamp when the summary was last updated.
  */
-
-/**
- * Initializes the Google Generative AI client with the API key from the configuration.
- * @type {GoogleGenerativeAI}
- */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Estimates the token count for a given text string.
@@ -113,7 +171,9 @@ TOPICS: [topic1, topic2, topic3]
 ENTITIES: [entity1, entity2, entity3]
 APPS: [app1, app2, app3]`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Lazily initialize the Gemini client on first use.
+    const genAIClient = await getGenAIClient();
+    const model = genAIClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 

@@ -140,8 +140,11 @@ export async function updateExecutionToRunningActivity(executionId, totalSteps) 
 export async function completeExecutionActivity(executionId, summary, currentContext, completedSteps, failedSteps) {
   try {
     const endTime = new Date();
-    const execution = await WorkflowExecution.findById(executionId);
-    const duration = execution?.startTime ? (endTime - execution.startTime) : 0;
+    // OPTIMIZATION: Fetch only the 'startTime' field instead of the entire document.
+    // Using .select() reduces the data transferred from DB to the app.
+    // Using .lean() returns a plain JavaScript object, which is faster and uses less memory than a full Mongoose document.
+    const execution = await WorkflowExecution.findById(executionId).select('startTime').lean();
+    const duration = execution?.startTime ? (endTime - new Date(execution.startTime)) : 0;
     
     await WorkflowExecution.updateOne(
       { _id: executionId },
