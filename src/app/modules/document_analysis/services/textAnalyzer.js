@@ -1,3 +1,8 @@
+/**
+ * @file This service provides functionalities for analyzing text content using Google Gemini AI.
+ * It includes methods for general analysis and analysis with conversation context.
+ */
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
@@ -8,11 +13,20 @@ import {
   OUTPUT_FORMATS,
 } from '../document_analysis.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client using the API key from the configuration.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Build analysis prompt based on type and format
+ * Builds a comprehensive prompt for the Gemini AI based on the content, desired analysis type,
+ * output format, and an optional user-specific message.
+ *
+ * @param {string} content - The main text content to be analyzed.
+ * @param {ANALYSIS_TYPES} analysisType - The type of analysis to perform (e.g., GENERAL, SUMMARY, KEYWORDS).
+ * @param {OUTPUT_FORMATS} outputFormat - The desired format for the AI's output (e.g., NARRATIVE, STRUCTURED).
+ * @param {string | null} userMessage - An optional specific request or instruction from the user to guide the analysis.
+ * @returns {string} The complete prompt string ready to be sent to the Gemini AI.
  */
 const buildAnalysisPrompt = (
   content,
@@ -41,7 +55,19 @@ const buildAnalysisPrompt = (
 };
 
 /**
- * Analyze content using Gemini 3.5 Flash
+ * Analyzes the provided content using the Google Gemini AI model (configured as Gemini 3.5 Flash).
+ * It constructs a prompt based on the analysis type and output format, then sends it to the AI.
+ *
+ * @async
+ * @param {string} content - The text content to be analyzed.
+ * @param {ANALYSIS_TYPES} [analysisType=ANALYSIS_TYPES.GENERAL] - The type of analysis to perform. Defaults to general analysis.
+ * @param {OUTPUT_FORMATS} [outputFormat=OUTPUT_FORMATS.NARRATIVE] - The desired format for the AI's output. Defaults to narrative.
+ * @param {string | null} [userMessage=null] - An optional specific request from the user.
+ * @returns {Promise<object>} An object containing the analysis result, success status, and metadata.
+ * @returns {boolean} return.success - True if the analysis was successful, false otherwise.
+ * @returns {string} return.analysis - The text result of the analysis from Gemini.
+ * @returns {object} return.metadata - Additional information about the analysis, including model, type, format, and timestamp.
+ * @throws {Error} If the analysis fails due to an API error or other issues.
  */
 const analyzeWithGemini = async (
   content,
@@ -100,7 +126,22 @@ const analyzeWithGemini = async (
 };
 
 /**
- * Analyze content with conversation context
+ * Analyzes content using Gemini AI, incorporating a conversation history for contextual understanding.
+ * This function builds a chat history including a system prompt, recent user/model exchanges,
+ * and the current content/user message, then sends it to the AI.
+ *
+ * @async
+ * @param {string} content - The main text content to be analyzed in the current turn.
+ * @param {Array<object>} conversationHistory - An array of previous messages in the conversation.
+ *   Each object should have `role` ('user' or 'model') and `content` (the message text).
+ * @param {ANALYSIS_TYPES} analysisType - The type of analysis to perform for the current turn.
+ * @param {OUTPUT_FORMATS} outputFormat - The desired format for the AI's output.
+ * @param {string | null} userMessage - An optional specific request from the user for the current turn.
+ * @returns {Promise<object>} An object containing the analysis result, success status, and metadata.
+ * @returns {boolean} return.success - True if the analysis was successful, false otherwise.
+ * @returns {string} return.analysis - The text result of the contextual analysis from Gemini.
+ * @returns {object} return.metadata - Additional information about the analysis, including model, type, format, context flag, and timestamp.
+ * @throws {Error} If the contextual analysis fails due to an API error or other issues.
  */
 const analyzeWithContext = async (
   content,
@@ -160,14 +201,14 @@ const analyzeWithContext = async (
 
     // Start chat and get response
     const chat = model.startChat({
-      history: messages.slice(0, -1),
+      history: messages.slice(0, -1), // All messages except the last one (current prompt) form the history
       generationConfig: {
         temperature: DOCUMENT_ANALYSIS_CONFIG.TEMPERATURE,
         maxOutputTokens: DOCUMENT_ANALYSIS_CONFIG.MAX_OUTPUT_TOKENS,
       },
     });
 
-    const result = await chat.sendMessage(currentPrompt);
+    const result = await chat.sendMessage(currentPrompt); // Send the last message (current prompt)
     const analysisResult = result.response.text();
 
     logger.info(`Contextual analysis completed successfully`);
@@ -189,6 +230,11 @@ const analyzeWithContext = async (
   }
 };
 
+/**
+ * @namespace textAnalyzer
+ * @description Provides a collection of functions for performing text analysis using Google Gemini AI,
+ * including general analysis and analysis with conversation context.
+ */
 export const textAnalyzer = {
   analyzeWithGemini,
   analyzeWithContext,
