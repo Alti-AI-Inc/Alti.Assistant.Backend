@@ -147,14 +147,13 @@ const addAiEndpoint = async (req, res) => {
     }
 
     // Check if the title or _id already exists
-    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects,
-    // which bypasses Mongoose document instantiation overhead.
-    const existingEndpoint = await AiEndpoint.findOne({
-      $or: [
-        { title }, // Check for matching title
-        { _id: id }, // Check for matching _id
-      ],
-    }).lean();
+    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects.
+    // Also, only query by _id if a valid 24-character hex string is provided to prevent CastError.
+    const query = id && typeof id === 'string' && id.length === 24
+      ? { $or: [{ title }, { _id: id }] }
+      : { title };
+
+    const existingEndpoint = await AiEndpoint.findOne(query).lean();
 
     if (existingEndpoint) {
       return res.status(400).json({
@@ -412,18 +411,19 @@ const updateWebAiEndpoint = async (req, res) => {
 
     // If isDefault is true, first set all other AI endpoints to false
     if (isDefault === true) {
-      // Optimization: For updateMany, consider using write concerns if atomicity across multiple updates is critical
-      // or if you need to ensure the update is applied before proceeding.
-      await AiEndpoint.updateMany({}, { default: false });
+      // Optimization: Only update documents where default is currently true,
+      // avoiding a full collection write scan.
+      await AiEndpoint.updateMany({ default: true }, { default: false });
     }
 
     // Update the AI endpoint without modifying the title
     // Optimization: Ensure an index exists on the 'title' field for efficient lookup.
+    // Optimization: Use .lean() to return a plain JavaScript object instead of a full Mongoose document.
     const updatedEndpoint = await AiEndpoint.findOneAndUpdate(
       { title }, // Find by title
       { enabled, default: isDefault }, // Only update enabled & default
       { new: true, runValidators: true }
-    );
+    ).lean();
 
     if (!updatedEndpoint) {
       return res.status(404).json({
