@@ -143,4 +143,8 @@ async function testVectorSearch() {
 
 // Run the test
 console.log('🚀 Starting vector search test...\n');
-testVectorSearch();
+// Ensure that the promise returned by testVectorSearch is handled to catch any unhandled rejections.
+testVectorSearch().catch(error => {
+  console.error('❌ Unhandled error during vector search test execution:', error);
+  process.exit(1); // Exit the process if an unhandled error occurs at the top level.
+});
