@@ -247,8 +247,8 @@ const GroqAiGetResponseAnonymously = catchAsync(async (req, res) => {
  */
 const LlamaAiGetResponseFromDbByUserId = catchAsync(async (req, res) => {
   const userId = req.user?._id;
-  // Log userId for debugging purposes, consider using logger.debug in production
-  console.log(userId, 'userId from token in controller');
+  // Using logger.debug for internal debugging information, which is more appropriate than console.log
+  logger.debug('User ID from token in controller:', userId);
 
   // Ensure userId is present (should be handled by auth middleware, but good to be explicit)
   if (!userId) {
@@ -257,6 +257,10 @@ const LlamaAiGetResponseFromDbByUserId = catchAsync(async (req, res) => {
     throw error;
   }
 
+  // Optimization recommendation: In LlamaAiService.getAiResponsesByUserIdService,
+  // consider adding .lean() to Mongoose queries if only plain JavaScript objects are needed
+  // and Mongoose document methods/virtuals are not used.
+  // Also, ensure an index exists on 'userId' in the database schema for efficient lookup.
   const responseData =
     await LlamaAiService.getAiResponsesByUserIdService(userId);
 
@@ -360,7 +364,11 @@ const LlamaAiGetResponseFromDbBySessionId = catchAsync(async (req, res) => {
     throw error;
   }
 
-  // Pass userId to the service to enforce ownership check and prevent IDOR
+  // Optimization recommendation: In LlamaAiService.getAiResponsesBySession,
+  // consider adding .lean() to Mongoose queries if only plain JavaScript objects are needed.
+  // Also, ensure a compound index exists on '{ sessionId: 1, userId: 1 }'
+  // or at least on 'sessionId' and 'userId' individually in the database schema
+  // for efficient lookup and ownership checks.
   const responseData = await LlamaAiService.getAiResponsesBySession(sessionId, userId);
 
   sendResponse(res, {
@@ -443,7 +451,8 @@ const deleteOneAiSession = catchAsync(async (req, res) => {
     throw error;
   }
 
-  // Pass userId to the service to enforce ownership check and prevent IDOR
+  // Optimization recommendation: Ensure an index exists on '{ _id: 1, userId: 1 }'
+  // in the database schema for efficient deletion with ownership check.
   const result = await LlamaAiService.deleteOneLlamaAiSession(objectId, userId);
   // logger.info(result, 'resultttt');
   if (!result.success) {
@@ -507,8 +516,8 @@ const deleteOneAiSession = catchAsync(async (req, res) => {
  */
 const deleteAllAiSessions = catchAsync(async (req, res) => {
   const userId = req.user?._id;
-  // Log userId for debugging purposes, consider using logger.debug in production
-  console.log(userId, 'userId from token in controller');
+  // Using logger.debug for internal debugging information, which is more appropriate than console.log
+  logger.debug('User ID from token in controller:', userId);
 
   // Ensure userId is present (should be handled by auth middleware, but good to be explicit)
   if (!userId) {
@@ -517,6 +526,8 @@ const deleteAllAiSessions = catchAsync(async (req, res) => {
     throw error;
   }
 
+  // Optimization recommendation: Ensure an index exists on 'userId' in the database schema
+  // for efficient bulk deletion.
   const result = await LlamaAiService.deleteAllAiSessionsService(userId);
   // logger.info(result, 'resultttt');
 
