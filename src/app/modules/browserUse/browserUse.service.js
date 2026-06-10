@@ -14,11 +14,13 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
  */
 
 /**
- * Masks Personally Identifiable Information (PII) such as emails, phone numbers,
- * social security numbers, and credit card numbers from a given string before transmission.
+ * Masks Personally Identifiable Information (PII) from a given string.
+ * This function replaces common PII patterns like emails, phone numbers,
+ * Social Security Numbers (SSN), and credit card numbers with generic placeholders.
+ * It is used to sanitize data before sending it to external services.
  *
  * @param {string} text - The input text to sanitize.
- * @returns {string} The sanitized text with PII masked.
+ * @returns {string} The sanitized text with PII masked. Returns the original input if it's not a non-empty string.
  */
 const maskPII = (text) => {
   if (!text || typeof text !== 'string') return text;
@@ -31,11 +33,17 @@ const maskPII = (text) => {
 
 /**
  * Validates the user and tenant context to ensure proper role-based access control
- * and tenant boundary isolation.
+ * and tenant boundary isolation. This function checks if the requesting user (actor)
+ * has the appropriate role and tenant access to perform an action on a target user.
  *
- * @param {string} userId - The ID of the target user.
- * @param {Request | null} req - The Express request object.
- * @throws {ApiError} If validation fails.
+ * **Permissions:**
+ * - `super_admin`: Can access any user across any tenant.
+ * - `admin`, `manager`, `user`: Can only access users within their own tenant.
+ *
+ * @param {string} userId - The ID of the target user for the action.
+ * @param {Request | null} req - The Express request object, containing the authenticated user (`req.user`) and tenant context.
+ * @throws {ApiError} Throws a `NOT_FOUND` error if the target user doesn't exist.
+ * @throws {ApiError} Throws a `FORBIDDEN` error for invalid actor roles or tenant boundary violations.
  */
 const validateUserAndTenantContext = async (userId, req) => {
   if (!req || !req.user) return;
@@ -64,11 +72,18 @@ const validateUserAndTenantContext = async (userId, req) => {
 
 /**
  * Checks usage limits based on user roles and propagates usage details
- * and notifications up to managers and administrators.
+ * and notifications up to managers and administrators within the same tenant.
+ *
+ * **Role-based Limits:**
+ * - `user`: 10 sessions
+ * - `manager`: 50 sessions
+ * - `admin`: 200 sessions
+ * - `super_admin`: Infinity
  *
  * @param {string} userId - The ID of the user initiating the task.
- * @param {string | null} tenantId - The active tenant ID.
- * @throws {ApiError} If usage limits are exceeded.
+ * @param {string | null} tenantId - The active tenant ID for scoping notifications.
+ * @throws {ApiError} Throws a `NOT_FOUND` error if the user doesn't exist.
+ * @throws {ApiError} Throws a `PAYMENT_REQUIRED` error if the user's usage limit is exceeded.
  */
 const propagateUsageAndCheckLimits = async (userId, tenantId) => {
   const user = await User.findById(userId);
@@ -129,14 +144,21 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
 /**
  * Initiates a browser automation task via an external API and records it in a user's session.
  * If a sessionId is provided, the task is added to an existing session. Otherwise, a new session is created.
+ * This service enforces role-based permissions, tenant boundaries, and usage limits.
+ *
+ * **Permissions:**
+ * - Requires an authenticated user.
+ * - `super_admin` can initiate tasks for any user.
+ * - Other roles (`admin`, `manager`, `user`) can only initiate tasks for themselves or users within their tenant, subject to hierarchy rules.
  *
  * @param {string} userId - The ID of the user initiating the task.
  * @param {string | null} sessionId - The ID of an existing browser session to add the task to, or null to create a new session.
- * @param {string} prompt - The natural language prompt/task for the browser automation.
+ * @param {string} prompt - The natural language prompt/task for the browser automation. This prompt will be sanitized for PII.
  * @param {object | null} structuredOutputSchema - An optional JSON schema for the desired structured output from the browser task.
- * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @param {Request | null} [req=null] - The Express request object, used for user authentication, role checks, and tenant filtering.
  * @returns {Promise<IBrowserSession>} A promise that resolves to the updated or newly created browser session document.
  * @throws {ApiError} If the external API does not return a task ID, or if the specified session is not found.
+ * @throws {ApiError} Throws errors from `validateUserAndTenantContext` and `propagateUsageAndCheckLimits` on validation or limit failures.
  */
 const initiateTaskInSessionService = async (
   userId,
@@ -221,11 +243,15 @@ const initiateTaskInSessionService = async (
  * Fetches the latest status of a browser automation task from the external API and updates the corresponding entry
  * within a specific browser session in the database.
  *
+ * **Permissions:**
+ * - Requires an authenticated user.
+ * - Access is restricted by tenant boundaries. A user can only update tasks in sessions they have access to within their tenant.
+ *
  * @param {string} sessionId - The ID of the browser session containing the task.
  * @param {string} taskId - The ID of the specific task to update.
- * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @param {Request | null} [req=null] - The Express request object, used for user authentication and tenant filtering.
  * @returns {Promise<IBrowserSession>} A promise that resolves to the updated browser session document.
- * @throws {ApiError} If the task or session is not found in the database.
+ * @throws {ApiError} If the task or session is not found in the database or if access is denied due to tenant restrictions.
  */
 const updateTaskStatusService = async (sessionId, taskId, req = null) => {
   const query = req
@@ -270,11 +296,17 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
 };
 
 /**
- * Retrieves a list of browser sessions for a specific user.
+ * Retrieves a list of browser sessions for a specific user. The returned data is a summary,
+ * containing only the first prompt of each session for display in a list.
+ *
+ * **Permissions:**
+ * - Requires an authenticated user.
+ * - `super_admin` can retrieve sessions for any user.
+ * - Other roles can only retrieve sessions for users within their own tenant.
  *
  * @param {string} userId - The ID of the user whose sessions are to be retrieved.
- * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
- * @returns {Promise<Array<IBrowserSession>>} A promise that resolves to an array of browser session documents (lean objects).
+ * @param {Request | null} [req=null] - The Express request object, used for user authentication, role checks, and tenant filtering.
+ * @returns {Promise<Array<IBrowserSession>>} A promise that resolves to an array of summarized browser session documents (lean objects).
  */
 const getSessionsForUserService = async (userId, req = null) => {
   if (req) {
@@ -301,11 +333,16 @@ const getSessionsForUserService = async (userId, req = null) => {
 };
 
 /**
- * Fetches a single, complete session by its ID, ensuring it belongs to the user and the active tenant.
+ * Fetches a single, complete session by its ID, ensuring it belongs to the specified user and the active tenant.
+ *
+ * **Permissions:**
+ * - Requires an authenticated user.
+ * - `super_admin` can retrieve any session.
+ * - Other roles can only retrieve sessions belonging to users within their own tenant.
  *
  * @param {string} sessionId - The ID of the session to retrieve.
  * @param {string} userId - The ID of the user who owns the session.
- * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @param {Request | null} [req=null] - The Express request object, used for user authentication, role checks, and tenant filtering.
  * @returns {Promise<IBrowserSession>} A promise that resolves to the complete browser session document (lean object).
  * @throws {ApiError} If the session is not found or if the user does not have access to it.
  */
@@ -324,6 +361,13 @@ const getSessionByIdService = async (sessionId, userId, req = null) => {
   return session;
 };
 
+/**
+ * A collection of services for managing browser automation tasks and sessions.
+ * These services handle interactions with an external browser automation API,
+ * manage session data in the database, and enforce business logic such as
+ * role-based access control, tenant isolation, and usage limits.
+ * @namespace BrowserUseServices
+ */
 export const BrowserUseServices = {
   initiateTaskInSessionService,
   updateTaskStatusService,
