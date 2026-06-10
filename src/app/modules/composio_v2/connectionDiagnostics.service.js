@@ -1,8 +1,8 @@
-import ActionAuditLog from './models/actionAuditLog.model.js';
-import { logger } from '../../../shared/logger.js';
-
 /**
- * Connection Diagnostics & Rate Limit Prediction Service
+ * @file This service provides comprehensive connection diagnostics and rate limit prediction
+ *       for user interactions with various applications, based on `ActionAuditLog` data.
+ *       It aggregates performance metrics, identifies error trends, and forecasts
+ *       potential rate limit breaches.
  *
  * Database Indexing Recommendations for ActionAuditLog model:
  * To significantly optimize database query performance in this service,
@@ -21,12 +21,53 @@ import { logger } from '../../../shared/logger.js';
  *    schema.index({ userId: 1, createdAt: 1, status: 1 });
  *    This index will improve performance for aggregations involving `userId`, `createdAt`, and `status`.
  */
+import ActionAuditLog from './models/actionAuditLog.model.js';
+import { logger } from '../../../shared/logger.js';
+
+/**
+ * Connection Diagnostics & Rate Limit Prediction Service
+ *
+ * This service provides methods to analyze user connection performance,
+ * identify issues, and predict potential rate limiting based on historical
+ * `ActionAuditLog` data.
+ */
 class ConnectionDiagnosticsService {
   /**
-   * Run full diagnostics for a user's connections.
-   * 
-   * @param {string} userId
-   * @returns {Object} Diagnostics report
+   * Runs a full diagnostic report for a user's connections across all applications.
+   * It aggregates general performance statistics, app-specific health, error distributions,
+   * and forecasts rate limit usage based on recent activity trends.
+   *
+   * @param {string} userId The ID of the user for whom to run diagnostics.
+   * @returns {Promise<Object>} A promise that resolves to a comprehensive diagnostics report.
+   * @property {boolean} success - Indicates if the diagnostics report was generated successfully.
+   * @property {Object} diagnostics - The main diagnostics object.
+   * @property {string} diagnostics.status - Overall health status ('healthy', 'warning', 'critical').
+   * @property {string[]} diagnostics.warnings - A list of warning messages if any issues are detected.
+   * @property {Object} diagnostics.performanceSummary - Summary of overall performance.
+   * @property {number} diagnostics.performanceSummary.totalActions24h - Total actions in the last 24 hours.
+   * @property {number} diagnostics.performanceSummary.successRate24h - Success rate percentage in the last 24 hours.
+   * @property {number} diagnostics.performanceSummary.avgLatencyMs - Average latency in milliseconds for actions in the last 24 hours.
+   * @property {Object} diagnostics.rateLimiting - Information regarding rate limit usage and prediction.
+   * @property {number} diagnostics.rateLimiting.hourlyLimit - The defined hourly action limit.
+   * @property {number} diagnostics.rateLimiting.dailyLimit - The defined daily action limit.
+   * @property {number} diagnostics.rateLimiting.currentHourCount - Total actions in the current hour.
+   * @property {number} diagnostics.rateLimiting.hourlyUsagePercent - Percentage of hourly limit used.
+   * @property {number} diagnostics.rateLimiting.dailyUsagePercent - Percentage of daily limit used.
+   * @property {Object} diagnostics.rateLimiting.forecast - Predicted future rate limit usage.
+   * @property {number} diagnostics.rateLimiting.forecast.predictedNextHourCount - Predicted actions in the next hour.
+   * @property {number} diagnostics.rateLimiting.forecast.predictedUsagePercent - Predicted percentage of hourly limit to be used in the next hour.
+   * @property {number} diagnostics.rateLimiting.forecast.accelerationFactor - Factor indicating acceleration/deceleration of activity.
+   * @property {Array<Object>} diagnostics.appDiagnostics - An array of diagnostic reports for each connected application.
+   * @property {string} diagnostics.appDiagnostics[].app - The name of the application.
+   * @property {number} diagnostics.appDiagnostics[].totalActions24h - Total actions for this app in the last 24 hours.
+   * @property {number} diagnostics.appDiagnostics[].successRate - Success rate percentage for this app.
+   * @property {number} diagnostics.appDiagnostics[].avgLatencyMs - Average latency in milliseconds for this app.
+   * @property {string} diagnostics.appDiagnostics[].status - Health status for this specific app ('healthy', 'degraded').
+   * @property {Array<Object>} diagnostics.errorDistribution - A list of top error messages and their counts across all apps.
+   * @property {string} diagnostics.errorDistribution[].app - The application associated with the error.
+   * @property {string} diagnostics.errorDistribution[].error - The error message.
+   * @property {number} diagnostics.errorDistribution[].count - The number of occurrences of this error.
+   * @throws {Error} If an error occurs during the aggregation or processing of diagnostics.
    */
   async getConnectionDiagnostics(userId) {
     try {
@@ -218,11 +259,26 @@ class ConnectionDiagnosticsService {
   }
 
   /**
-   * Run detailed diagnostics for a single connection (by app name).
-   * 
-   * @param {string} userId
-   * @param {string} app
-   * @returns {Object} App-specific diagnostics report
+   * Runs detailed diagnostics for a specific application connection for a given user.
+   * It fetches recent logs, calculates app-specific performance metrics,
+   * identifies top errors, and provides recommendations.
+   *
+   * @param {string} userId The ID of the user.
+   * @param {string} app The name of the application to diagnose.
+   * @returns {Promise<Object>} A promise that resolves to an app-specific diagnostics report.
+   * @property {boolean} success - Indicates if the diagnostics report was generated successfully.
+   * @property {string} app - The name of the application diagnosed.
+   * @property {Object} diagnostics - The app-specific diagnostics object.
+   * @property {string} diagnostics.status - Health status for this specific app ('healthy', 'degraded').
+   * @property {number} diagnostics.successRate - Success rate percentage for this app in the last 24 hours.
+   * @property {number} diagnostics.totalActions24h - Total actions for this app in the last 24 hours.
+   * @property {number} diagnostics.avgLatencyMs - Average latency in milliseconds for this app.
+   * @property {number} diagnostics.failures - Total failures for this app in the last 24 hours.
+   * @property {Array<Object>} diagnostics.topErrors - A list of top error messages and their counts for this app.
+   * @property {string} diagnostics.topErrors[].message - The error message.
+   * @property {number} diagnostics.topErrors[].count - The number of occurrences of this error.
+   * @property {string[]} diagnostics.recommendations - A list of recommendations based on the diagnostics.
+   * @throws {Error} If an error occurs during the fetching or processing of app-specific diagnostics.
    */
   async getSingleConnectionDiagnostics(userId, app) {
     try {
@@ -292,4 +348,9 @@ class ConnectionDiagnosticsService {
   }
 }
 
+/**
+ * An instance of the ConnectionDiagnosticsService, providing methods to analyze
+ * and report on user connection health and potential rate limiting issues.
+ * @type {ConnectionDiagnosticsService}
+ */
 export const connectionDiagnosticsService = new ConnectionDiagnosticsService();
