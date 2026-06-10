@@ -8,27 +8,65 @@ import {
 } from './report.constant.js';
 
 /**
+ * Generate GCS Signed Upload URL schema.
+ * This endpoint is the first step in the file upload process.
+ * The client requests a secure, short-lived URL to upload a file directly to GCS.
+ * This avoids processing large file uploads on the application server, making the architecture stateless and scalable.
+ */
+const generateUploadUrlSchema = z.object({
+  body: z.object({
+    fileName: z
+      .string({
+        required_error: 'File name is required',
+      })
+      .min(1, 'File name cannot be empty')
+      .max(1024, 'File name is too long')
+      .describe('The name of the file to be uploaded, e.g., "financial-data.csv"'),
+    contentType: z
+      .string({
+        required_error: 'Content type is required',
+      })
+      .regex(/^[\w-]+\/[\w-+\.]+$/, 'Invalid content type format')
+      .describe('The MIME type of the file, e.g., "text/csv" or "application/pdf"'),
+    // conversationId is optional, but if provided, helps associate the upload
+    // with an ongoing conversation before the file is even processed.
+    conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
+  }),
+});
+
+/**
  * Conversational assistant request schema
- * Supports both text messages and file uploads
+ * Supports both text messages and references to files already uploaded to GCS.
  */
 const conversationalRequestSchema = z.object({
-  body: z.object({
-    // Message is optional if a file is uploaded instead, so 'required_error' is contradictory.
-    // Removed 'required_error' as the field is marked 'optional()'.
-    message: z
-      .string()
-      .min(1, 'Message cannot be empty')
-      .max(10000, 'Message too long')
-      .optional(),
-    // SECURITY: conversationId should be a valid UUID if provided to prevent potential enumeration issues.
-    conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
-    // VULNERABILITY FIX: Removed `userId` from the request body.
-    // User identity MUST be determined from the authenticated session (e.g., JWT) on the server-side
-    // to prevent impersonation vulnerabilities. Guest user handling should be managed by the backend,
-    // not by trusting a client-provided ID.
-    outputFormat: z.enum(SUPPORTED_OUTPUT_FORMATS).optional(),
-    reportType: z.enum(REPORT_TYPES).optional(),
-  }),
+  body: z
+    .object({
+      message: z
+        .string()
+        .min(1, 'Message cannot be empty')
+        .max(10000, 'Message too long')
+        .optional(),
+      // The GCS object name for a file previously uploaded via a signed URL.
+      // This is the second step of the upload process, where the client notifies the backend
+      // about the successfully uploaded file so it can be processed.
+      gcsObjectName: z
+        .string()
+        .min(1, 'GCS object name cannot be empty')
+        .optional(),
+      // SECURITY: conversationId should be a valid UUID if provided to prevent potential enumeration issues.
+      conversationId: z.string().uuid('Invalid Conversation ID format').optional(),
+      // VULNERABILITY FIX: Removed `userId` from the request body.
+      // User identity MUST be determined from the authenticated session (e.g., JWT) on the server-side
+      // to prevent impersonation vulnerabilities. Guest user handling should be managed by the backend,
+      // not by trusting a client-provided ID.
+      outputFormat: z.enum(SUPPORTED_OUTPUT_FORMATS).optional(),
+      reportType: z.enum(REPORT_TYPES).optional(),
+    })
+    // Ensure that either a message or a file reference is provided.
+    .refine(data => data.message || data.gcsObjectName, {
+      message: 'Either a message or a gcsObjectName must be provided.',
+      path: ['message'], // Point the error to a relevant field.
+    }),
 });
 
 /**
@@ -57,10 +95,16 @@ const generateReportSchema = z.object({
 
 /**
  * Analyze files schema
- * For analyzing multiple uploaded files
+ * For analyzing multiple files that have already been uploaded to GCS.
  */
 const analyzeFilesSchema = z.object({
   body: z.object({
+    // An array of GCS object names for files previously uploaded via signed URLs.
+    // The client first gets signed URLs for each file, uploads them, and then calls this endpoint
+    // with the list of resulting object names.
+    gcsObjectNames: z
+      .array(z.string().min(1, 'GCS object name cannot be empty'))
+      .min(1, 'At least one file must be provided for analysis'),
     analysisType: z
       .enum(['summary', 'detailed', 'comparison', 'extraction'])
       .optional(),
@@ -75,7 +119,9 @@ const analyzeFilesSchema = z.object({
 
 /**
  * Export report schema
- * For exporting existing report to different format
+ * For exporting existing report to different format.
+ * The controller will generate the file, upload it to a GCS bucket,
+ * and return a signed URL for the client to download it directly.
  */
 const exportReportSchema = z.object({
   body: z.object({
@@ -174,6 +220,7 @@ const listReportsSchema = z.object({
 });
 
 export const ReportValidation = {
+  generateUploadUrlSchema,
   conversationalRequestSchema,
   generateReportSchema,
   analyzeFilesSchema,
