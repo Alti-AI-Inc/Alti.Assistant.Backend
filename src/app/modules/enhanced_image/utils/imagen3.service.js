@@ -1,8 +1,56 @@
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { createClient } from 'redis';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'url';
 import { GCPStorageService } from '../services/gcpStorageService.js';
+
+// --- Rate Limiting & DDOS Guard Setup ---
+
+// Initialize Redis Client for Rate Limiting.
+// It's recommended to use environment variables for the Redis URL in a production environment.
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  enable_offline_queue: false, // Prevents commands from queuing up if the connection is lost.
+});
+
+redisClient.on('error', (err) => {
+  console.error('Rate Limiter Redis Client Error:', err);
+  // In a production environment, consider adding monitoring or a fallback mechanism.
+});
+
+// Asynchronously connect to Redis. The rate-limiter-flexible library will await the connection.
+redisClient.connect().catch(console.error);
+
+// Define common Rate Limiting options.
+const rateLimiterOptions = {
+  storeClient: redisClient,
+  points: 10, // Default points, will be overridden.
+  duration: 1, // Default duration, will be overridden.
+};
+
+// Rate Limiter for Authenticated Users (more generous).
+// This protects against API abuse from authenticated users and controls costs.
+// Limit: 30 image operations per hour per user ID.
+const authRateLimiter = new RateLimiterRedis({
+  ...rateLimiterOptions,
+  keyPrefix: 'rate_limit_image_auth_user',
+  points: 30,
+  duration: 60 * 60, // 1 hour in seconds
+});
+
+// Rate Limiter for Public/Unauthenticated Users (stricter).
+// This protects against DDOS attempts and anonymous API abuse.
+// Limit: 5 image operations per hour per IP address.
+const publicRateLimiter = new RateLimiterRedis({
+  ...rateLimiterOptions,
+  keyPrefix: 'rate_limit_image_public_ip',
+  points: 5,
+  duration: 60 * 60, // 1 hour in seconds
+});
+
+// --- End of Rate Limiting Setup ---
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,20 +79,35 @@ const gcpStorage = new GCPStorageService(
 /**
  * Edits an existing image using the Gemini 3.1 Flash Image model (Imagen 3).
  * The edited image is then uploaded to Google Cloud Storage.
+ * This function is rate-limited to prevent abuse and control costs.
  *
  * @param {string} prompt - The instruction for editing the image.
  * @param {string} imageBase64 - Base64 encoded image data. Can include or omit the data URL prefix (e.g., 'data:image/png;base64,').
  * @param {string} filename - The desired filename for the output image in GCP Storage (e.g., 'edited_image.png').
  * @param {string} apiKey - Your Google API key with access to Gemini models.
+ * @param {string} limiterKey - The identifier for rate limiting (e.g., user ID for authenticated users, IP address for public).
+ * @param {boolean} [isAuth=false] - A boolean indicating if the request is from an authenticated user.
  * @returns {Promise<GeneratedImageInfo>} A promise that resolves to an object containing the URL, filename, service, and reasoning for the generated image.
- * @throws {Error} If no image is generated in the response from the AI model or if the AI model call fails.
+ * @throws {Error} If the rate limit is exceeded, if no image is generated, or if the AI model call fails.
  */
 export async function editImageWithImagen3(
   prompt,
   imageBase64,
   filename,
-  apiKey
+  apiKey,
+  limiterKey,
+  isAuth = false
 ) {
+  // Apply rate limiting before calling the expensive AI service.
+  const limiter = isAuth ? authRateLimiter : publicRateLimiter;
+  try {
+    await limiter.consume(limiterKey);
+  } catch (rateLimiterRes) {
+    // The rate-limiter-flexible library throws an error when the limit is exceeded.
+    // This error should be caught by the controller to send a 429 Too Many Requests response.
+    throw new Error(`Rate limit exceeded. Please try again later.`);
+  }
+
   const ai = new GoogleGenAI({ apiKey });
 
   // Remove data URL prefix if present (data:image/...;base64,)
@@ -79,7 +142,9 @@ export async function editImageWithImagen3(
       !response.candidates[0].content ||
       !response.candidates[0].content.parts
     ) {
-      throw new Error('Invalid or empty response from AI model: No candidates or content found.');
+      throw new Error(
+        'Invalid or empty response from AI model: No candidates or content found.'
+      );
     }
 
     // Process response and upload to GCP
@@ -116,14 +181,33 @@ export async function editImageWithImagen3(
 /**
  * Generates a new image from a text prompt using the Imagen 3.0 Generate 002 model.
  * The generated image is then uploaded to Google Cloud Storage.
+ * This function is rate-limited to prevent abuse and control costs.
  *
  * @param {string} prompt - The text prompt describing the image to generate.
  * @param {string} filename - The desired filename for the output image in GCP Storage (e.g., 'generated_art.png').
  * @param {string} apiKey - Your Google API key with access to Imagen models.
+ * @param {string} limiterKey - The identifier for rate limiting (e.g., user ID for authenticated users, IP address for public).
+ * @param {boolean} [isAuth=false] - A boolean indicating if the request is from an authenticated user.
  * @returns {Promise<GeneratedImageInfo>} A promise that resolves to an object containing the URL, filename, service, and reasoning for the generated image.
- * @throws {Error} If no image is generated in the response from the AI model or if the AI model call fails.
+ * @throws {Error} If the rate limit is exceeded, if no image is generated, or if the AI model call fails.
  */
-export async function generateImageWithImagen3(prompt, filename, apiKey) {
+export async function generateImageWithImagen3(
+  prompt,
+  filename,
+  apiKey,
+  limiterKey,
+  isAuth = false
+) {
+  // Apply rate limiting before calling the expensive AI service.
+  const limiter = isAuth ? authRateLimiter : publicRateLimiter;
+  try {
+    await limiter.consume(limiterKey);
+  } catch (rateLimiterRes) {
+    // The rate-limiter-flexible library throws an error when the limit is exceeded.
+    // This error should be caught by the controller to send a 429 Too Many Requests response.
+    throw new Error(`Rate limit exceeded. Please try again later.`);
+  }
+
   const ai = new GoogleGenAI({ apiKey });
 
   try {
@@ -144,7 +228,9 @@ export async function generateImageWithImagen3(prompt, filename, apiKey) {
       !response.candidates[0].content ||
       !response.candidates[0].content.parts
     ) {
-      throw new Error('Invalid or empty response from AI model: No candidates or content found.');
+      throw new Error(
+        'Invalid or empty response from AI model: No candidates or content found.'
+      );
     }
 
     // Process response and upload to GCP
@@ -174,6 +260,8 @@ export async function generateImageWithImagen3(prompt, filename, apiKey) {
   } catch (error) {
     console.error('Error during image generation with Imagen 3:', error);
     // Re-throw a more informative error for upstream handling
-    throw new Error(`Failed to generate image with Imagen 3: ${error.message}`);
+    throw new Error(
+      `Failed to generate image with Imagen 3: ${error.message}`
+    );
   }
 }

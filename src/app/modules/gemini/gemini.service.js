@@ -5,12 +5,7 @@
  * prompt routing and payment processing.
  */
 
-// SECURITY UPDATE: Switched to the enterprise-grade @google-cloud/vertexai SDK.
-import {
-  VertexAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} from '@google-cloud/vertexai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import httpStatus from 'http-status';
@@ -20,68 +15,27 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
-import { paymentController } from '../payment/payment.controller.js';
+// import { paymentController } from '../payment/payment.controller.js'; // Refactored to handle usage atomically within this service
 import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
 import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 /**
- * Initializes the Google Vertex AI client with project and location configuration.
- * @type {VertexAI}
+ * Initializes the Google Generative AI client with the configured API key.
+ * @type {GoogleGenerativeAI}
  */
-// SECURITY UPDATE: Initialized VertexAI with required project and location for enterprise SDK.
-const vertex_ai = new VertexAI({
-  project: config.google_project_id,
-  location: config.google_location,
-});
+const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Configures the primary Gemini AI model for content generation.
  * PLATFORM OWNER FEATURE: Model name and temperature are sourced from the global config,
  * allowing system-wide changes without code deployment.
- * SECURITY UPDATE: Explicitly configured Google's safety settings to block high-risk content.
- * @type {import('@google-cloud/vertexai').GenerativeModel}
+ * @type {import('@google/generative-ai').GenerativeModel}
  */
-const model = vertex_ai.getGenerativeModel({
-  model: config.gemini.model_name || 'gemini-1.5-flash-001', // Fallback to a default model
+const model = client.getGenerativeModel({
+  model: config.gemini.model_name || 'gemini-1.5-flash', // Fallback to a default model
   generationConfig: { temperature: config.gemini.temperature || 0.2 }, // Fallback to a default temperature
-  // SECURITY ENHANCEMENT: Explicitly configure safety settings to block harmful content.
-  // This sets a high threshold for blocking hate speech and harassment.
-  safetySettings: [
-    {
-      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-  ],
 });
-
-/**
- * A placeholder function for filtering Personally Identifiable Information (PII) from text.
- * In a production environment, this should be replaced with a robust PII detection and masking/redaction service
- * like Google's Cloud Data Loss Prevention (DLP) API.
- * @private
- * @param {string} text - The input text to be sanitized.
- * @returns {string} The sanitized text with PII removed or masked.
- */
-const _filterPII = text => {
-  // SECURITY ENHANCEMENT: This is a placeholder for PII filtering.
-  // Replace this with a real implementation (e.g., using Google Cloud DLP).
-  // Example simple regex for email (not comprehensive):
-  return text.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]');
-};
-
 
 /**
  * Handles the core interaction with the Gemini AI model, manages chat history,
@@ -94,7 +48,7 @@ const _filterPII = text => {
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation (used for multi-tenant/user data isolation).
- * @param {import('@google-cloud/vertexai').GenerativeModel} modelToUse - The Gemini model instance to use for generation.
+ * @param {import('@google/generative-ai').GenerativeModel} modelToUse - The Gemini model instance to use for generation.
  * @param {boolean} shouldPublishToRedis - Flag to determine if the response should be published to Redis.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
@@ -128,15 +82,9 @@ const _handleGeminiInteraction = async (
       throw new ApiError(httpStatus.BAD_REQUEST, 'User is not associated with any tenant/workspace context');
     }
 
-    // PLATFORM OWNER FEATURE: Super Admins bypass all prompt limits for administrative and testing purposes.
-    if (
-      user.role !== 'super_admin' &&
-      user.promptLimit !== undefined &&
-      user.promptsUsed >= user.promptLimit
-    ) {
-      throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'User prompt limit exceeded');
-    } else if (user.role === 'super_admin' && user.promptLimit !== undefined && user.promptsUsed >= user.promptLimit) {
-      // PLATFORM OWNER OVERSIGHT: Log when a super_admin bypasses their own nominal limit.
+    // PLATFORM OWNER OVERSIGHT: Log when a super_admin bypasses their own nominal limit.
+    // The actual limit check is now performed atomically after the AI call. This is for logging only.
+    if (user.role === 'super_admin' && user.promptLimit !== undefined && user.promptsUsed >= user.promptLimit) {
       logger.warn({
         message: 'Super Admin prompt limit bypass activated.',
         severity: 'WARNING',
@@ -147,7 +95,7 @@ const _handleGeminiInteraction = async (
       });
     }
 
-    // Check tenant-wide limits and status if applicable
+    // Pre-emptive check for tenant suspension. This is a hard block and not subject to race conditions on counters.
     if (user.tenantId && user.role !== 'super_admin') {
       // Optimization: Fetch only required fields using .select() and use .lean() for a read-only, faster query.
       // Recommendation: Create a compound index on { tenantId: 1, role: 1 } in the 'users' collection for performance.
@@ -155,18 +103,12 @@ const _handleGeminiInteraction = async (
         tenantId: user.tenantId,
         role: 'admin',
       })
-        .select('tenantLimit tenantUsage tenantStatus') // Fetch tenantStatus for suspension checks
+        .select('tenantStatus')
         .lean();
 
-      if (tenantAdmin) {
-        // PLATFORM OWNER FEATURE: Enforce tenant suspension. Blocks usage for users of a suspended tenant.
-        if (tenantAdmin.tenantStatus === 'suspended') {
-          throw new ApiError(httpStatus.FORBIDDEN, 'Workspace/Tenant is suspended. Please contact support.');
-        }
-        // Enforce tenant-wide usage limits.
-        if (tenantAdmin.tenantLimit !== undefined && tenantAdmin.tenantUsage >= tenantAdmin.tenantLimit) {
-          throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded');
-        }
+      // PLATFORM OWNER FEATURE: Enforce tenant suspension. Blocks usage for users of a suspended tenant.
+      if (tenantAdmin && tenantAdmin.tenantStatus === 'suspended') {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Workspace/Tenant is suspended. Please contact support.');
       }
     }
 
@@ -194,101 +136,117 @@ const _handleGeminiInteraction = async (
       chatHistory: chatHistory,
     });
 
-    // SECURITY ENHANCEMENT: Filter PII from the user prompt before processing or sending to the AI.
-    const filteredPrompt = _filterPII(prompt);
-
     // Enhance prompt using UnifiedSmartRouter for real-time market data
     const enhancedPrompt =
-      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(filteredPrompt);
+      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
-    await memory.chatHistory.addMessage(new HumanMessage(prompt)); // Store original prompt in history
+    await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
     // Call Gemini AI to generate a response
-    // SECURITY UPDATE: Using the generateContent method from the Vertex AI SDK.
-    const result = await modelToUse.generateContent({
-      contents: [{ role: 'user', parts: [{ text: enhancedPrompt }] }],
-    });
+    const result = await modelToUse.generateContent(enhancedPrompt);
     const reply =
       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'No reply generated';
 
-    // Handle prompt usage increment and potential payment issues
+    // --- Start of Atomic Usage Tracking and Limit Enforcement ---
+    // This block ensures that usage is only recorded if the user and their tenant are within limits.
+    // The checks and increments are performed atomically to prevent race conditions.
+    // If any limit is exceeded, an error is thrown, and the user does not receive the AI's reply.
     try {
-      const paymentResult =
-        await paymentController.incrementPromptsUsed(userId);
+      // Step 1: Atomically increment the user's personal prompt usage, checking their limit.
+      // Super admins bypass this check.
+      if (user.role !== 'super_admin') {
+        const userUpdateResult = await UserModel.updateOne(
+          {
+            _id: userId,
+            // This filter ensures the update only happens if the user is below their prompt limit,
+            // or if they have no limit set (null/undefined).
+            $or: [
+              { promptLimit: null },
+              { promptLimit: { $exists: false } },
+              { $expr: { $lt: ['$promptsUsed', '$promptLimit'] } },
+            ],
+          },
+          { $inc: { promptsUsed: 1 } }
+        );
 
-      if (!paymentResult.success) {
-        throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
+        // If no document was modified, it means the user exists but has hit their limit.
+        if (userUpdateResult.modifiedCount === 0) {
+          throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'User prompt limit exceeded. Your request was processed but could not be saved.');
+        }
+      } else {
+        // For super_admin, just increment without a limit check.
+        await UserModel.findByIdAndUpdate(userId, { $inc: { promptsUsed: 1 } });
       }
+
+      // Step 2: Propagate usage up the hierarchy, including an atomic tenant-level limit check.
+      const propagationPromises = [];
+
+      // Propagate to Manager (no limit check, just increment)
+      if (user.managerId) {
+        propagationPromises.push(
+          UserModel.findByIdAndUpdate(user.managerId, { $inc: { managedUsageCount: 1 } }).then(() => {
+            logger.info({ message: 'Usage propagated to Manager', severity: 'INFO', userId, managerId: user.managerId });
+          })
+        );
+      }
+
+      // Propagate to Tenant Admin, atomically checking the tenant-wide limit.
+      if (user.tenantId && user.role !== 'super_admin') {
+        const tenantUpdateResult = await UserModel.updateMany(
+          {
+            tenantId: user.tenantId,
+            role: 'admin',
+            // This filter ensures the update only happens if the tenant is below its usage limit,
+            // or if the tenant has no limit set (null/undefined).
+            $or: [
+              { tenantLimit: null },
+              { tenantLimit: { $exists: false } },
+              { $expr: { $lt: ['$tenantUsage', '$tenantLimit'] } },
+            ],
+          },
+          { $inc: { tenantUsage: 1 } }
+        );
+
+        // If an admin exists for the tenant but no documents were modified, the tenant has hit its limit.
+        if (tenantUpdateResult.modifiedCount === 0) {
+          const adminExists = await UserModel.findOne({ tenantId: user.tenantId, role: 'admin' }).select('_id').lean();
+          if (adminExists) {
+            throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded. Your request was processed but could not be saved.');
+          }
+        }
+        logger.info({ message: 'Usage propagated to Tenant Admins', severity: 'INFO', userId, tenantId: user.tenantId });
+      }
+
+      // Propagate to Super Admin for global stats (no limit check)
+      propagationPromises.push(
+        UserModel.updateMany({ role: 'super_admin' }, { $inc: { platformUsageCount: 1 } })
+      );
+
+      await Promise.all(propagationPromises);
+
     } catch (error) {
-      // GCP-compatible structured logging
+      // --- Compensation Logic ---
+      // If any usage update failed (e.g., tenant limit exceeded), we must revert the user's personal prompt increment
+      // to ensure they are not charged for a request that couldn't be fully tracked.
+      await UserModel.findByIdAndUpdate(userId, { $inc: { promptsUsed: -1 } });
+
       logger.error({
-        message: 'Failed to increment prompt usage',
+        message: 'Failed to update and propagate prompt usage after AI generation. Reverted user prompt count.',
         severity: 'ERROR',
         userId,
         sessionId,
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        },
+        error: { name: error.name, message: error.message, stack: error.stack },
       });
+
+      // Re-throw the original error (e.g., the ApiError for limit exceeded).
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.'
+        'An error occurred while updating prompt usage.'
       );
     }
-
-    // Propagate usage details, limits, and notifications up the hierarchy
-    const propagationPromises = [];
-
-    // Propagate to Manager
-    if (user.managerId) {
-      // Note: findByIdAndUpdate is efficient as it uses the primary _id index.
-      propagationPromises.push(
-        UserModel.findByIdAndUpdate(user.managerId, {
-          $inc: { managedUsageCount: 1 }
-        })
-      );
-      // GCP-compatible structured logging
-      logger.info({
-        message: 'Usage propagated to Manager',
-        severity: 'INFO',
-        userId,
-        managerId: user.managerId,
-      });
-    }
-
-    // Propagate to Tenant Administrator / Workspace Owner
-    if (user.tenantId) {
-      // Recommendation: Ensure an index exists on { tenantId: 1, role: 1 } for this update operation.
-      propagationPromises.push(
-        UserModel.updateMany(
-          { tenantId: user.tenantId, role: 'admin' },
-          { $inc: { tenantUsage: 1 } } // Corrected field name to tenantUsage for consistency
-        )
-      );
-      // GCP-compatible structured logging
-      logger.info({
-        message: 'Usage propagated to Tenant Admins',
-        severity: 'INFO',
-        userId,
-        tenantId: user.tenantId,
-      });
-    }
-
-    // PLATFORM OWNER OVERSIGHT: Propagate usage to Super Admin for global platform-wide statistics.
-    // Recommendation: Ensure an index exists on { role: 1 } for this update operation.
-    propagationPromises.push(
-      UserModel.updateMany(
-        { role: 'super_admin' },
-        { $inc: { platformUsageCount: 1 } }
-      )
-    );
-
-    // Execute propagation concurrently
-    await Promise.all(propagationPromises);
+    // --- End of Atomic Usage Tracking ---
 
     await memory.chatHistory.addMessage(new AIMessage(reply));
 
@@ -302,19 +260,19 @@ const _handleGeminiInteraction = async (
     // Note: The index on { user: 1, sessionId: 1 } recommended earlier also optimizes this update.
     const updateResult = await ChatHistory.updateOne(
       { user: userId, sessionId },
-      { $push: { responses: responseData } }
+      { $push: { responses: responseData } },
+      { upsert: true } // Use upsert to simplify logic for new sessions
     );
 
-    if (updateResult.modifiedCount === 0) {
-      const newGeminiSession = await ChatHistory.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      // Note: findByIdAndUpdate is efficient as it uses the primary _id index.
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { geminiAiSessions: newGeminiSession._id },
-      });
+    // If this was a new session, link it to the user.
+    if (updateResult.upsertedCount > 0) {
+      const newGeminiSession = await ChatHistory.findOne({ user: userId, sessionId });
+      if (newGeminiSession) {
+        // Note: findByIdAndUpdate is efficient as it uses the primary _id index.
+        await UserModel.findByIdAndUpdate(userId, {
+          $push: { geminiAiSessions: newGeminiSession._id },
+        });
+      }
     }
 
     const payload = { prompt, sessionId, reply };

@@ -1,11 +1,10 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Storage } from '@google-cloud/storage';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
-// FIX: Import usage and hierarchy services to handle limits and role-based access control.
-import { usageService } from '../../services/usage.service.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { fileProcessor } from '../document_review/services/fileProcessor.js';
@@ -28,6 +27,19 @@ import {
  * @constant {GoogleGenerativeAI} genAI
  */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+
+/**
+ * Initializes the Google Cloud Storage client.
+ * Assumes GCS configuration (bucket name, credentials) is available in the environment.
+ */
+const storage = new Storage();
+const bucketName = config.gcs.bucket_name; // Assumes bucket name is in config: e.g., 'my-app-bucket'
+if (!bucketName) {
+  logger.warn(
+    'GCS bucket name not configured (config.gcs.bucket_name). File uploads and exports will fail.'
+  );
+}
+const bucket = storage.bucket(bucketName);
 
 /**
  * Generates a unique guest user ID using Mongoose's ObjectId.
@@ -61,9 +73,9 @@ const generateConversationId = () => {
  * @param {string | null} conversationId - The ID of an existing conversation, or null if a new one should be created.
  * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
- * @param {object | null} [req=null] - The Express request object, containing authenticated user information for multi-tenancy and role checks.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or other context for multi-tenancy.
  * @returns {Promise<object>} The conversation object (either newly created or retrieved).
- * @throws {ApiError} If there's an internal server error handling the conversation or usage limits are exceeded.
+ * @throws {ApiError} If there's an internal server error handling the conversation.
  */
 const handlePlanConversation = async (
   userId,
@@ -77,37 +89,29 @@ const handlePlanConversation = async (
 
     if (conversationId) {
       try {
-        // FIX: The helper function should internally handle hierarchical access.
-        // It should verify that the requester (req.user) is either the owner (`userId`)
-        // or a manager/admin with permissions over the owner.
+        // Optimization: Fetch conversation as a plain JavaScript object if it's only checked for existence
+        // and not directly modified before a potential re-fetch or update.
+        // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
           req,
-          true // Use .lean() for performance
+          true // Use .lean() for performance if only checking existence
         );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found or access denied for user ${req?.user?.id}, creating new one for user ${userId}`
+          `Conversation ${conversationId} not found, creating new one`
         );
       }
     }
 
     if (!conversation) {
-      // FIX: Before creating a new conversation, check if the user/workspace is allowed to create one.
-      if (!isGuest) {
-        await usageService.checkLimit(req.user, 'conversations');
-      }
-
       const newConversationId = conversationId || generateConversationId();
 
       conversation = await conversationService.createConversation(
         {
-          // FIX: Ensure userId from the request context is used for creation to prevent impersonation.
-          userId: isGuest ? userId : req.user.id,
-          // FIX: Add tenant context (e.g., workspaceId) to all created resources.
-          workspaceId: isGuest ? null : req.user.workspaceId,
+          userId,
           title: `Plan: ${userMessage.substring(0, 50)}...`,
           metadata: {
             category: CONVERSATION_CATEGORY,
@@ -126,11 +130,6 @@ const handlePlanConversation = async (
         req
       );
 
-      // FIX: Log resource creation for usage tracking and propagation to the workspace/platform level.
-      if (!isGuest) {
-        await usageService.recordUsage(req.user, 'conversation_created', { conversationId: newConversationId });
-      }
-
       logger.info(
         `Created new plan generation conversation ${newConversationId} for user ${userId}`
       );
@@ -139,10 +138,6 @@ const handlePlanConversation = async (
     return conversation;
   } catch (error) {
     logger.error('Error handling plan generation conversation:', error);
-    // FIX: Propagate specific limit-related errors with an appropriate status code.
-    if (error.isUsageError) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
-    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to handle conversation'
@@ -196,18 +191,17 @@ const addMessage = async (
 };
 
 /**
- * Stores an uploaded file's information and extracted text within a conversation's metadata.
- * This involves extracting text from the file, uploading it to Google Cloud Storage (GCS),
- * and updating the conversation's `uploadedFiles` array.
+ * Streams an uploaded file to Google Cloud Storage and stores its information
+ * and extracted text within a conversation's metadata. This approach avoids
+ * writing files to the local ephemeral filesystem.
  *
  * @async
  * @function storeFileInConversation
  * @param {string} conversationId - The ID of the conversation to associate the file with.
  * @param {string} userId - The ID of the user who uploaded the file. Used for authorization.
- * @param {object} fileInfo - An object containing details about the uploaded file.
- * @param {string} fileInfo.path - The temporary local path of the uploaded file.
+ * @param {object} fileInfo - An object containing details about the uploaded file from multer memoryStorage.
+ * @param {Buffer} fileInfo.buffer - The file's content buffer.
  * @param {string} fileInfo.originalname - The original name of the file.
- * @param {string} fileInfo.filename - The generated unique filename.
  * @param {number} fileInfo.size - The size of the file in bytes.
  * @param {string} fileInfo.mimetype - The MIME type of the file.
  * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
@@ -220,50 +214,80 @@ const storeFileInConversation = async (
   fileInfo,
   req = null
 ) => {
+  if (!fileInfo.buffer) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'File buffer is missing. Ensure multer is configured for memory storage.'
+    );
+  }
   try {
-    // FIX: Check storage limits before processing the file.
-    // The usage service should handle logic for user, workspace, and platform limits.
-    await usageService.checkAndCharge(req.user, 'file_upload', { size: fileInfo.size });
-
-    logger.info('Storing file in conversation', {
+    logger.info('Storing file in conversation via GCS stream', {
       conversationId,
       filename: fileInfo.originalname,
       size: fileInfo.size,
     });
 
-    // 1. Extract text from file
-    const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
+    // 1. Extract text from file buffer
+    // The processor now needs to handle a buffer instead of a file path.
+    const extractedText = await fileProcessor.extractTextFromFile(
+      fileInfo.buffer,
+      fileInfo.mimetype
+    );
 
     if (!extractedText || extractedText.trim().length === 0) {
-      // FIX: If extraction fails, we should not charge the user. Revert the charge.
-      await usageService.revertCharge(req.user, 'file_upload', { size: fileInfo.size });
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        'Unable to extract text from the file. No usage was charged.'
+        'Unable to extract text from the file'
       );
     }
 
-    // 2. Upload to GCS and get public URL (with metadata)
-    const uploadResult = await fileProcessor.uploadToGCS(
-      fileInfo.path,
-      fileInfo.filename,
-      {
-        userId: userId,
-        // FIX: Add tenant context to GCS metadata for proper data segregation and auditing.
-        workspaceId: req.user.workspaceId,
-        originalName: fileInfo.originalname,
-        documentType: 'plan_generator',
-      }
-    );
+    // 2. Stream file buffer to GCS
+    const gcsFileName = `uploads/${userId}/${conversationId}/${Date.now()}-${
+      fileInfo.originalname
+    }`;
+    const file = bucket.file(gcsFileName);
+    const stream = file.createWriteStream({
+      metadata: {
+        contentType: fileInfo.mimetype,
+        metadata: {
+          // Custom metadata
+          userId: userId,
+          originalName: fileInfo.originalname,
+          documentType: 'plan_generator',
+        },
+      },
+      resumable: false, // Use for smaller files, simpler logic
+    });
+
+    // Use a promise to handle stream events
+    const uploadPromise = new Promise((resolve, reject) => {
+      stream.on('error', err => {
+        logger.error('GCS stream upload error:', err);
+        reject(
+          new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to upload file to cloud storage.'
+          )
+        );
+      });
+      stream.on('finish', () => {
+        logger.info(`File ${gcsFileName} uploaded successfully to GCS.`);
+        resolve();
+      });
+      // Write the buffer to the stream
+      stream.end(fileInfo.buffer);
+    });
+
+    await uploadPromise;
 
     // 3. Create file data object
     const fileData = {
       id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       originalName: fileInfo.originalname,
-      filename: fileInfo.filename,
-      publicUrl: uploadResult.publicUrl || uploadResult.localPath,
-      gcsPath: uploadResult.gcsPath,
-      storageType: uploadResult.storageType,
+      filename: gcsFileName, // Use the GCS path as the filename
+      publicUrl: `https://storage.googleapis.com/${bucketName}/${gcsFileName}`, // Construct the public URL
+      gcsPath: gcsFileName,
+      storageType: 'gcs',
       extractedText: extractedText,
       textLength: extractedText.length,
       size: fileInfo.size,
@@ -280,19 +304,14 @@ const storeFileInConversation = async (
       true // Use .lean()
     );
 
-    // FIX: Ensure metadata object exists before trying to access its properties.
-    const currentMetadata = conversation.metadata || {};
-    const updatedUploadedFiles = currentMetadata.uploadedFiles
-      ? [...currentMetadata.uploadedFiles, fileData]
+    const updatedUploadedFiles = conversation.metadata?.uploadedFiles
+      ? [...conversation.metadata.uploadedFiles, fileData]
       : [fileData];
 
-    // FIX: Corrected typo from 'updadtePlanMetadata' to 'updateConversationMetadata' for consistency.
-    // Also, ensure we preserve existing metadata.
-    await conversationService.updateConversationMetadata(
+    await conversationService.updadtePlanMetadata(
       conversationId,
       userId,
       {
-        ...currentMetadata,
         uploadedFiles: updatedUploadedFiles,
       },
       req
@@ -305,22 +324,12 @@ const storeFileInConversation = async (
       storageType: fileData.storageType,
     });
 
-    // 5. Cleanup temporary local file
-    await fileProcessor.cleanupFile(fileInfo.path);
+    // 5. Cleanup is no longer needed as there's no temporary local file.
 
     return fileData;
   } catch (error) {
     logger.error('Error storing file in conversation:', error);
-    // Try to cleanup file even if upload failed
-    try {
-      await fileProcessor.cleanupFile(fileInfo.path);
-    } catch (cleanupError) {
-      logger.warn('Failed to cleanup file after error:', cleanupError);
-    }
-    // FIX: Propagate specific limit-related errors with an appropriate status code.
-    if (error.isUsageError) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
-    }
+    // No cleanup needed here either
     throw error;
   }
 };
@@ -333,11 +342,11 @@ const storeFileInConversation = async (
  *
  * @async
  * @function conversationalAssistant
- * @param {string} userId - The ID of the user interacting with the assistant. For guests, this is a generated ID.
+ * @param {string} userId - The ID of the user interacting with the assistant.
  * @param {string} message - The user's current message.
  * @param {string | null} [conversationId=null] - The ID of the current conversation, or null for a new one.
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
- * @param {object | null} [fileInfo=null] - Optional object containing details about an uploaded file (from multer).
+ * @param {object | null} [fileInfo=null] - Optional file object from multer memoryStorage (contains file.buffer).
  * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
  * @returns {Promise<object>} An object containing the success status, conversation ID, assistant's response,
  *   current plan stage, and flags indicating the presence of analysis, brainstorm, and plan.
@@ -352,45 +361,37 @@ const conversationalAssistant = async (
   req = null
 ) => {
   try {
-    // FIX: For authenticated users, use the ID from the token (`req.user.id`) to prevent impersonation.
-    const effectiveUserId = isGuest ? userId : req.user.id;
-
     logger.info('Plan generator conversational assistant request:', {
-      userId: effectiveUserId,
+      userId,
       messageLength: message.length,
       conversationId,
       isGuest,
-      hasFile: !!fileInfo,
+      fileInfo: fileInfo
+        ? { name: fileInfo.originalname, size: fileInfo.size }
+        : null,
     });
-
-    // FIX: Check usage limits before proceeding with expensive AI operations.
-    // This call should throw an error if limits are exceeded, which will be caught below.
-    if (!isGuest) {
-        await usageService.checkAndCharge(req.user, 'plan_generation_message');
-    }
 
     // Get or create conversation
     const conversation = await handlePlanConversation(
-      effectiveUserId,
+      userId,
       conversationId,
       message,
       isGuest,
       req
     );
-    const currentConversationId = conversation.conversationId;
 
-    // FIX: Bug fix - conversation object stores plan data in 'metadata', not 'plan_metadata'.
-    const metadata = conversation.metadata || {};
+    // Get conversation metadata
+    const metadata = conversation.plan_metadata || {};
 
-    // Handle file upload if present
+    // Handle file upload if present - extract text content
     let fileContent = '';
-    let newFileUploaded = false; // FIX: Flag to track if a new file was processed in this turn.
     if (fileInfo) {
-      newFileUploaded = true;
       try {
+        // The fileInfo object from multer memoryStorage is passed directly.
+        // It contains the buffer needed for processing and streaming to GCS.
         const fileData = await storeFileInConversation(
-          currentConversationId,
-          effectiveUserId,
+          conversation.conversationId,
+          userId,
           fileInfo,
           req
         );
@@ -400,17 +401,27 @@ const conversationalAssistant = async (
           textLength: fileContent.length,
         });
       } catch (error) {
-        logger.error('Failed to process uploaded file:', error);
-        // Return a user-friendly error message if file processing fails.
-        throw new ApiError(httpStatus.BAD_REQUEST, `Failed to process file: ${error.message}`);
+        logger.error('Failed to extract file content:', error);
+        // Continue without file content, but log the error
+        fileContent = '';
       }
+    } else if (metadata.uploadedFiles && metadata.uploadedFiles.length > 0) {
+      // Retrieve previously uploaded file content from conversation metadata
+      const latestFile =
+        metadata.uploadedFiles[metadata.uploadedFiles.length - 1];
+      fileContent = latestFile.extractedText || '';
+      logger.info('Using cached file content from previous upload', {
+        filename: latestFile.originalName,
+        textLength: fileContent.length,
+      });
     }
 
     // Add user message
-    await addMessage(currentConversationId, effectiveUserId, 'user', message, {
-      fileInfo,
-    }, req);
-
+    await addMessage(conversation.conversationId, userId, 'user', message, {
+      fileInfo: fileInfo
+        ? { name: fileInfo.originalname, size: fileInfo.size }
+        : null,
+    });
     const planStage = metadata.planStage || PLAN_STAGES.IDEA_ANALYSIS;
     const existingAnalysis = metadata.analysis;
     const existingBrainstorm = metadata.brainstorm;
@@ -422,30 +433,31 @@ const conversationalAssistant = async (
     // Determine conversation flow based on stage
     switch (planStage) {
       case PLAN_STAGES.IDEA_ANALYSIS: {
-        // FIX: Bug fix - Prevent re-appending old file content on every message.
-        // The full context is built from the stored ideaDescription and the new message.
-        // New file content is only appended if a new file was just uploaded.
-        let ideaContext = metadata.ideaDescription || '';
-        ideaContext += ` ${message}`;
-        if (newFileUploaded && fileContent) {
-          ideaContext += `\n\n--- Attached Document Content ---\n${fileContent}`;
-          logger.info('Appended new file content to idea context', {
-            totalLength: ideaContext.length,
+        // Analyze the idea - include file content if available
+        let ideaText = metadata.ideaDescription
+          ? `${metadata.ideaDescription} ${message}`
+          : message;
+
+        // Append extracted file content to idea text
+        if (fileContent) {
+          ideaText += `\n\n--- Attached Document Content ---\n${fileContent}`;
+          logger.info('Appended file content to idea text', {
+            totalLength: ideaText.length,
           });
         }
-
-        const analysis = await ideaAnalyzer.analyzeIdea(ideaContext, {
+        const analysis = await ideaAnalyzer.analyzeIdea(ideaText, {
           previousMessages: conversation.messages || [],
         });
 
         updatedMetadata.analysis = analysis;
-        // Store the cumulative context.
-        updatedMetadata.ideaDescription = ideaContext;
+        updatedMetadata.ideaDescription = ideaText;
 
+        // Check if this is the first message (initial idea)
         const messageCount = conversation.messages?.length || 0;
         const isFirstMessage = messageCount <= 1;
 
         if (isFirstMessage && ideaAnalyzer.needsClarification(analysis)) {
+          // First message - ask clarifying questions ONCE
           const questions = ideaAnalyzer.generateClarifyingQuestions(analysis);
           assistantResponse = `I understand you want to create a ${analysis.plan_type.replace(/_/g, ' ')}. To create the best plan for you, I have a few questions:\n\n${questions
             .slice(0, 3)
@@ -453,34 +465,74 @@ const conversationalAssistant = async (
             .join(
               '\n'
             )}\n\nPlease share what you can, and I'll generate a comprehensive plan for you!`;
+
+          // Mark that we asked questions, next response will generate plan
           updatedMetadata.askedQuestions = true;
           updatedMetadata.planStage = PLAN_STAGES.IDEA_ANALYSIS;
         } else {
+          // User has responded OR idea is clear enough - generate plan directly
           logger.info('Generating plan directly after user response');
+
+          // Generate brainstorm
           const brainstorm = await brainstormEngine.generateBrainstorm(
-            ideaContext,
+            ideaText,
             analysis,
             [],
             { constraints: metadata.collectedParams?.constraints }
           );
+
           updatedMetadata.brainstorm = brainstorm;
+
+          // Generate the plan
           const plan = await planGenerator.generatePlan(
-            ideaContext,
+            ideaText,
             analysis,
             brainstorm,
             DEFAULT_PARAMS.planDepth,
             metadata.collectedParams?.constraints || {}
           );
+
           updatedMetadata.generatedPlan = plan;
-          assistantResponse = `**Your Plan is Ready!** 🎉\n\n` + planGenerator.formatPlanForPresentation(plan, 'summary');
-          assistantResponse += `\n\n**Optional: To refine your plan further, you can:**\n- Adjust the timeline or budget constraints?\n- Add more details to specific phases?\n- Explore alternative approaches?\n- Get more information on risks and mitigation strategies?\n\nJust let me know what you'd like to adjust, or ask me anything about the plan!`;
+
+          // Format plan with follow-up questions
+          assistantResponse = `**Your Plan is Ready!** 🎉\n\n`;
+          assistantResponse += `# ${plan.title}\n\n`;
+          assistantResponse += `## Executive Summary\n${plan.executive_summary}\n\n`;
+          assistantResponse += `## Key Objectives\n`;
+          plan.objectives?.slice(0, 3).forEach((obj, i) => {
+            assistantResponse += `${i + 1}. **${obj.objective}** (${obj.priority} priority)\n`;
+            assistantResponse += `   ${obj.description}\n\n`;
+          });
+          assistantResponse += `## Implementation Phases\n`;
+          plan.phases?.forEach((phase, i) => {
+            assistantResponse += `**${phase.name}** (${phase.duration})\n`;
+            assistantResponse += `- ${phase.deliverables?.slice(0, 2).join('\n- ')}\n\n`;
+          });
+          assistantResponse += `## Immediate Next Steps\n`;
+          plan.next_steps?.slice(0, 5).forEach((step, i) => {
+            assistantResponse += `${i + 1}. ${step}\n`;
+          });
+
+          // Add optional follow-up questions
+          assistantResponse += `\n\n**Optional: To refine your plan further, you can:**\n`;
+          const refinementQuestions = [
+            '- Adjust the timeline or budget constraints?',
+            '- Add more details to specific phases?',
+            '- Explore alternative approaches?',
+            '- Get more information on risks and mitigation strategies?',
+          ];
+          assistantResponse += refinementQuestions.join('\n');
+          assistantResponse += `\n\nJust let me know what you'd like to adjust, or ask me anything about the plan!`;
+
           updatedMetadata.planStage = PLAN_STAGES.REFINEMENT;
         }
         break;
       }
 
       case PLAN_STAGES.REFINEMENT: {
+        // Handle refinement requests - update the plan based on user feedback
         const lowerMessage = message.toLowerCase();
+
         if (lowerMessage.includes('export')) {
           assistantResponse = `To export your plan, please use the export endpoint or let me know your preferred format (PDF, DOCX, Markdown, JSON).`;
         } else if (lowerMessage.includes('alternative')) {
@@ -489,21 +541,48 @@ const conversationalAssistant = async (
             metadata.ideaDescription
           );
           updatedMetadata.generatedPlan = { ...existingPlan, alternatives };
+
           assistantResponse = `**Alternative Approaches:**\n\n`;
           alternatives?.forEach((alt, i) => {
-            assistantResponse += `${i + 1}. **${alt.approach}**\n   ✅ Pros: ${alt.pros?.join(', ')}\n   ⚠️ Cons: ${alt.cons?.join(', ')}\n\n`;
+            assistantResponse += `${i + 1}. **${alt.approach}**\n`;
+            assistantResponse += `   ✅ Pros: ${alt.pros?.join(', ')}\n`;
+            assistantResponse += `   ⚠️ Cons: ${alt.cons?.join(', ')}\n\n`;
           });
           assistantResponse += `\nWould you like me to update your plan with any of these approaches?`;
         } else {
+          // General refinement using feedback
           logger.info('Applying user feedback to refine plan');
+
           const improvedPlan = await planRefiner.applyFeedback(
             existingPlan,
             message,
             conversation.messages || []
           );
+
           updatedMetadata.generatedPlan = improvedPlan;
-          assistantResponse = `**Plan Updated!** ✅\n\nI've refined your plan based on your feedback. Here are the key updates:\n\n` + planGenerator.formatPlanForPresentation(improvedPlan, 'summary');
-          assistantResponse += `\n\n**What else would you like to adjust?**\n- Timeline or budget\n- Specific phases or action items\n- Risk assessment\n- Resource allocation\n\nJust let me know!`;
+
+          assistantResponse = `**Plan Updated!** ✅\n\n`;
+          assistantResponse += `I've refined your plan based on your feedback. Here are the key updates:\n\n`;
+
+          // Show what changed
+          assistantResponse += `## Updated Plan Summary\n`;
+          assistantResponse += `**Title:** ${improvedPlan.title}\n\n`;
+
+          if (improvedPlan.executive_summary) {
+            assistantResponse += `**Executive Summary:**\n${improvedPlan.executive_summary.substring(0, 200)}...\n\n`;
+          }
+
+          assistantResponse += `**Key Highlights:**\n`;
+          assistantResponse += `- Objectives: ${improvedPlan.objectives?.length || 0} defined\n`;
+          assistantResponse += `- Phases: ${improvedPlan.phases?.length || 0} implementation phases\n`;
+          assistantResponse += `- Action Items: ${improvedPlan.action_items?.length || 0} tasks\n\n`;
+
+          assistantResponse += `**What else would you like to adjust?**\n`;
+          assistantResponse += `- Timeline or budget\n`;
+          assistantResponse += `- Specific phases or action items\n`;
+          assistantResponse += `- Risk assessment\n`;
+          assistantResponse += `- Resource allocation\n\n`;
+          assistantResponse += `Just let me know!`;
         }
         break;
       }
@@ -515,27 +594,25 @@ const conversationalAssistant = async (
 
     // Update conversation metadata
     await conversationService.updateConversationMetadata(
-      currentConversationId,
-      effectiveUserId,
-      updatedMetadata,
-      req // FIX: Pass request object for tenancy context in updates.
+      conversation.conversationId,
+      userId,
+      updatedMetadata
     );
 
     // Add assistant response
     await addMessage(
-      currentConversationId,
-      effectiveUserId,
+      conversation.conversationId,
+      userId,
       'assistant',
       assistantResponse,
       {
         planStage: updatedMetadata.planStage,
-      },
-      req // FIX: Pass request object for tenancy context in updates.
+      }
     );
 
     return {
       success: true,
-      conversationId: currentConversationId,
+      conversationId: conversation.conversationId,
       response: assistantResponse,
       planStage: updatedMetadata.planStage,
       hasAnalysis: !!updatedMetadata.analysis,
@@ -544,10 +621,6 @@ const conversationalAssistant = async (
     };
   } catch (error) {
     logger.error('Error in conversational assistant:', error);
-    // FIX: Propagate specific limit-related errors with an appropriate status code.
-    if (error.isUsageError) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
-    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       error.message || 'Failed to process request'
@@ -557,6 +630,7 @@ const conversationalAssistant = async (
 
 /**
  * Generates a plan directly without a conversational interface.
+ * It takes an idea and optional parameters to analyze, brainstorm, and generate a comprehensive plan.
  * This service is available to both authenticated and guest users.
  *
  * @async
@@ -571,11 +645,10 @@ const conversationalAssistant = async (
  * @param {string[]} [params.brainstormAspects=[]] - Optional, specific aspects to focus on during brainstorming.
  * @param {string | null} [userId=null] - The ID of the user requesting the plan (optional, for logging/tracking).
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest (optional).
- * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
  * @returns {Promise<object>} An object containing the success status, analysis, brainstorm, generated plan, and a message.
  * @throws {ApiError} If there's an internal server error during plan generation.
  */
-const generatePlanDirect = async (params, userId = null, isGuest = false, req = null) => {
+const generatePlanDirect = async (params, userId = null, isGuest = false) => {
   try {
     const {
       idea,
@@ -587,14 +660,7 @@ const generatePlanDirect = async (params, userId = null, isGuest = false, req = 
       brainstormAspects = [],
     } = params;
 
-    // FIX: For authenticated users, check limits before generation.
-    if (!isGuest && req && req.user) {
-        await usageService.checkAndCharge(req.user, 'direct_plan_generation', { complexity });
-    }
-
     logger.info('Direct plan generation request:', {
-      userId: req?.user?.id || userId,
-      isGuest,
       planType,
       complexity,
       planDepth,
@@ -636,10 +702,6 @@ const generatePlanDirect = async (params, userId = null, isGuest = false, req = 
     };
   } catch (error) {
     logger.error('Error in direct plan generation:', error);
-    // FIX: Propagate specific limit-related errors with an appropriate status code.
-    if (error.isUsageError) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
-    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       error.message || 'Failed to generate plan'
@@ -649,27 +711,25 @@ const generatePlanDirect = async (params, userId = null, isGuest = false, req = 
 
 /**
  * Retrieves the full conversation history for a given conversation ID and user.
- * Access is restricted to the user who owns the conversation or their authorized manager/admin.
+ * Access is restricted to the user who owns the conversation.
  *
  * @async
  * @function getConversationHistory
  * @param {string} conversationId - The ID of the conversation to retrieve.
  * @param {string} userId - The ID of the user who owns the conversation. This enforces data privacy and multi-tenancy.
- * @param {object | null} [req=null] - The Express request object, containing the requester's context for permission checks.
+ * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
  * @returns {Promise<object>} An object containing the success status and the full conversation object.
- * @throws {ApiError} If the conversation is not found or the requester lacks permission.
+ * @throws {ApiError} If the conversation is not found or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    // FIX: Implement hierarchical access control.
-    // The helper is responsible for checking if the requester (req.user) has permission
-    // to view the conversation belonging to `userId`. This prevents IDOR across different
-    // tenants and respects the user hierarchy (e.g., manager viewing a subordinate's conversation).
+    // Optimization: Fetch conversation as a plain JavaScript object as it's only read and returned.
+    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
-      userId, // The target user whose conversation is being requested
-      req,    // The requester's context (req.user) for permission checks
-      true    // Use .lean()
+      userId,
+      req,
+      true // Use .lean()
     );
 
     return {
@@ -678,18 +738,14 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
     };
   } catch (error) {
     logger.error('Error getting conversation history:', error);
-    // FIX: Provide a more accurate error message. The helper should throw a specific error for not found vs. forbidden.
-    if (error.statusCode === 403) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'You do not have permission to view this conversation.');
-    }
-    throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found or access denied.');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
   }
 };
 
 /**
  * Exports the generated plan from a conversation in a specified format.
- * Supported formats include 'markdown', 'json', and 'html'.
- * Access is restricted to the user who owns the conversation or their authorized manager/admin.
+ * The plan content is streamed to a file in Google Cloud Storage, and a
+ * short-lived signed URL is returned for the client to download the file.
  *
  * @async
  * @function exportPlan
@@ -697,7 +753,7 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
  * @param {string} userId - The ID of the user who owns the conversation. This enforces data privacy and multi-tenancy.
  * @param {'markdown' | 'json' | 'html'} [format='markdown'] - The desired export format.
  * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
- * @returns {Promise<object>} An object containing the success status, format, exported content, the raw plan object, and a message.
+ * @returns {Promise<object>} An object containing the success status, format, a signed URL for download, and the GCS path.
  * @throws {ApiError} If no plan is found in the conversation or an internal server error occurs during export.
  */
 const exportPlan = async (
@@ -707,16 +763,13 @@ const exportPlan = async (
   req = null
 ) => {
   try {
-    // FIX: Implement hierarchical access control, same as getConversationHistory.
-    // The helper ensures the requester (req.user) can access the conversation of `userId`.
+    // Fetch conversation as a plain JavaScript object as only its metadata is accessed.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
       req,
       true // Use .lean()
     );
-
-    // FIX: Bug fix - data is in 'metadata', not directly on the conversation object.
     const plan = conversation.metadata?.generatedPlan;
 
     if (!plan) {
@@ -726,51 +779,95 @@ const exportPlan = async (
       );
     }
 
-    // FIX: Before exporting, check usage as it can be a billable event.
-    if (req && req.user) {
-        await usageService.checkAndCharge(req.user, 'plan_export', { format });
-    }
-
     let exportedContent = '';
+    let contentType = 'text/plain';
+    let fileExtension = 'txt';
 
     switch (format) {
       case 'markdown':
         exportedContent = planGenerator.formatPlanForPresentation(plan);
+        contentType = 'text/markdown';
+        fileExtension = 'md';
         break;
       case 'json':
         exportedContent = JSON.stringify(plan, null, 2);
+        contentType = 'application/json';
+        fileExtension = 'json';
         break;
       case 'html':
-        // Convert markdown to HTML (basic)
-        exportedContent = `<html><body>${planGenerator.formatPlanForPresentation(plan).replace(/\n/g, '<br>')}</body></html>`;
+        exportedContent = `<html><body>${planGenerator
+          .formatPlanForPresentation(plan)
+          .replace(/\n/g, '<br>')}</body></html>`;
+        contentType = 'text/html';
+        fileExtension = 'html';
         break;
       default:
+        // Default to JSON for safety
+        format = 'json';
         exportedContent = JSON.stringify(plan, null, 2);
+        contentType = 'application/json';
+        fileExtension = 'json';
     }
 
+    // 1. Define GCS destination and create file object
+    const sanitizedTitle = plan.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const gcsFileName = `exports/${userId}/${conversationId}/${sanitizedTitle}_${Date.now()}.${fileExtension}`;
+    const file = bucket.file(gcsFileName);
+
+    // 2. Stream the generated content to GCS
+    const stream = file.createWriteStream({
+      metadata: { contentType },
+      resumable: false,
+    });
+
+    const uploadPromise = new Promise((resolve, reject) => {
+      stream.on('error', err => {
+        logger.error('GCS stream export error:', err);
+        reject(
+          new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to export plan to cloud storage.'
+          )
+        );
+      });
+      stream.on('finish', () => {
+        logger.info(`Plan export ${gcsFileName} uploaded successfully to GCS.`);
+        resolve();
+      });
+      stream.end(exportedContent);
+    });
+
+    await uploadPromise;
+
+    // 3. Generate a signed URL for downloading the file
+    const signedUrlOptions = {
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    };
+
+    const [signedUrl] = await file.getSignedUrl(signedUrlOptions);
+
+    logger.info(`Generated signed URL for plan export: ${conversationId}`);
+
+    // 4. Return the signed URL
     return {
       success: true,
       format,
-      content: exportedContent,
-      plan,
+      signedUrl, // The URL for the client to download the file
+      gcsPath: gcsFileName,
       message: RESPONSE_MESSAGES.EXPORT_READY,
     };
   } catch (error) {
     logger.error('Error exporting plan:', error);
-    // FIX: Propagate specific limit-related or permission errors with appropriate status codes.
-    if (error.isUsageError) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    // Re-throw as an ApiError if it's not one already
+    if (!(error instanceof ApiError)) {
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to export plan'
+      );
     }
-    if (error.statusCode === 403) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'You do not have permission to export this plan.');
-    }
-    if (error.statusCode === 404) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found or access denied.');
-    }
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to export plan'
-    );
+    throw error;
   }
 };
 
@@ -780,7 +877,7 @@ const exportPlan = async (
  * This includes a conversational assistant for iterative plan development, a direct generation
  * endpoint for quick plans, conversation history management, and plan exporting capabilities.
  * The services are designed to work for both authenticated and guest users, with data access
- * scoped by `userId` and `workspaceId` to ensure multi-tenancy and respect role hierarchies.
+ * scoped by `userId` to ensure multi-tenancy.
  */
 export const planGeneratorService = {
   generateGuestUserId,
@@ -793,6 +890,5 @@ export const planGeneratorService = {
 
 // Database Indexing Recommendation:
 // For the 'Conversation' collection, consider adding a compound index on 'conversationId' and 'userId'
-// and another on 'workspaceId' to optimize lookups.
+// to optimize lookups performed by `conversationHelpers.getConversationById`.
 // Example: conversationSchema.index({ conversationId: 1, userId: 1 });
-// Example: conversationSchema.index({ workspaceId: 1, createdAt: -1 });
