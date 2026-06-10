@@ -9,6 +9,66 @@ import { openAIAiServices } from './openAi.service.js';
 // for OpenAiGetResponseAnonymously. It can be safely removed if not used elsewhere.
 import { LlamaAiService } from '../groq/groq.service.js';
 
+/**
+ * @openapi
+ * /openai/gpt4o-mini:
+ *   post:
+ *     summary: Get response from GPT-4o-mini model
+ *     description: Generates an AI response using the GPT-4o-mini model. Requires authenticated user context.
+ *     tags:
+ *       - OpenAI
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The input prompt for the AI model.
+ *               sessionId:
+ *                 type: string
+ *                 description: Optional session ID to track conversation history.
+ *     responses:
+ *       200:
+ *         description: Response processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Response processed successfully.
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad Request. Invalid prompt or missing parameters.
+ *       401:
+ *         description: Unauthorized. User authentication required.
+ */
+
+/**
+ * Handles requests to get a response from the GPT-4o-mini model.
+ * Requires user authentication context extracted via `validatePromptRequest`.
+ * 
+ * @async
+ * @function Gpt4oMiniGetResponse
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
+ */
 const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
 
@@ -26,6 +86,66 @@ const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /openai/gpt4-nano:
+ *   post:
+ *     summary: Get response from GPT-4-Nano model
+ *     description: Generates an AI response using the GPT-4-Nano model. Requires authenticated user context.
+ *     tags:
+ *       - OpenAI
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The input prompt for the AI model.
+ *               sessionId:
+ *                 type: string
+ *                 description: Optional session ID to track conversation history.
+ *     responses:
+ *       200:
+ *         description: Response processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Response processed successfully.
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad Request. Invalid prompt or missing parameters.
+ *       401:
+ *         description: Unauthorized. User authentication required.
+ */
+
+/**
+ * Handles requests to get a response from the GPT-4-Nano model.
+ * Requires user authentication context extracted via `validatePromptRequest`.
+ * 
+ * @async
+ * @function Gpt4NanoGetResponse
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
+ */
 const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
 
@@ -43,6 +163,62 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /openai/anonymous:
+ *   post:
+ *     summary: Get response anonymously from OpenAI
+ *     description: Generates an AI response anonymously without requiring user authentication.
+ *     tags:
+ *       - OpenAI
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The input prompt for the AI.
+ *               sessionId:
+ *                 type: string
+ *                 description: Optional session ID. If not provided, a random UUID will be generated.
+ *     responses:
+ *       200:
+ *         description: Response processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Response processed successfully.
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad Request. Prompt is required.
+ */
+
+/**
+ * Handles anonymous requests to get a response from OpenAI.
+ * Does not require user authentication. Generates a random session ID if none is provided.
+ * 
+ * @async
+ * @function OpenAiGetResponseAnonymously
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
+ */
 const OpenAiGetResponseAnonymously = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
   // BUG FIX: Added validation to ensure 'prompt' is provided.
@@ -75,6 +251,14 @@ const OpenAiGetResponseAnonymously = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller object containing handlers for OpenAI-related endpoints.
+ * @type {{
+ *   Gpt4oMiniGetResponse: import('express').RequestHandler,
+ *   Gpt4NanoGetResponse: import('express').RequestHandler,
+ *   OpenAiGetResponseAnonymously: import('express').RequestHandler
+ * }}
+ */
 export const openAIAiController = {
   Gpt4oMiniGetResponse,
   Gpt4NanoGetResponse,
