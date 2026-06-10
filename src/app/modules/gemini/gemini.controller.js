@@ -79,6 +79,18 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
  *                   nullable: true
  *                   example: null
  */
+
+/**
+ * Handles requests to get a response from the standard Gemini AI model.
+ * Validates the incoming prompt request, manages session/user context,
+ * and invokes the Gemini AI service.
+ *
+ * @async
+ * @function GeminiAiGetResponse
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} Resolves when the response has been sent.
+ */
 const GeminiAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
@@ -177,6 +189,18 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
  *                   nullable: true
  *                   example: null
  */
+
+/**
+ * Handles requests to get a response from the Gemini 2.5 Preview AI model.
+ * Validates the incoming prompt request, manages session/user context,
+ * and invokes the Gemini 2.5 Preview AI service.
+ *
+ * @async
+ * @function Gemini25PreviewAiGetResponse
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} Resolves when the response has been sent.
+ */
 const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
@@ -210,6 +234,7 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} GeminiAiGetResponse - Controller for getting a response from the standard Gemini AI model.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} Gemini25PreviewAiGetResponse - Controller for getting a response from the Gemini 2.5 Preview AI model.
  */
+
 /**
  * Controller object for handling Gemini AI related requests.
  * Exposes methods for interacting with different Gemini AI models.
