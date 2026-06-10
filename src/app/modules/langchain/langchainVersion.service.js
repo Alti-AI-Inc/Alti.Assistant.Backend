@@ -65,10 +65,28 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
       { new: true } // Return the updated document (optional, but good practice)
     );
 
-    logger.info(`LangchainVersion: created snapshot v${nextVersionNumber} for chain ${chainId}`);
+    logger.info({
+      message: `LangchainVersion: created snapshot v${nextVersionNumber} for chain ${chainId}`,
+      service: 'langchainVersionService',
+      method: 'createSnapshot',
+      chainId,
+      versionNumber: nextVersionNumber,
+      userId,
+    });
     return snapshot;
   } catch (err) {
-    logger.error('LangchainVersion: failed to create snapshot:', err);
+    logger.error({
+      message: `LangchainVersion: failed to create snapshot for chain ${chainId}`,
+      service: 'langchainVersionService',
+      method: 'createSnapshot',
+      chainId,
+      userId,
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+    });
     throw err;
   }
 };
@@ -113,14 +131,33 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     chain.steps = versionRecord.steps;
     await chain.save();
 
-    logger.info(`LangchainVersion: successfully rolled back chain ${chainId} to version v${versionNumber}`);
+    logger.info({
+      message: `LangchainVersion: successfully rolled back chain ${chainId} to version v${versionNumber}`,
+      service: 'langchainVersionService',
+      method: 'rollbackToVersion',
+      chainId,
+      versionNumber,
+      userId,
+    });
     return {
       success: true,
       message: `LangChain custom chain rolled back successfully to version v${versionNumber}!`,
       chain,
     };
   } catch (err) {
-    logger.error(`LangchainVersion: failed to rollback chain ${chainId} to v${versionNumber}:`, err);
+    logger.error({
+      message: `LangchainVersion: failed to rollback chain ${chainId} to v${versionNumber}`,
+      service: 'langchainVersionService',
+      method: 'rollbackToVersion',
+      chainId,
+      versionNumber,
+      userId,
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+    });
     throw err;
   }
 };
@@ -151,7 +188,18 @@ const getVersionHistory = async (chainId, userId) => {
       history,
     };
   } catch (err) {
-    logger.error(`LangchainVersion: failed to retrieve version history for chain ${chainId}:`, err);
+    logger.error({
+      message: `LangchainVersion: failed to retrieve version history for chain ${chainId}`,
+      service: 'langchainVersionService',
+      method: 'getVersionHistory',
+      chainId,
+      userId,
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+    });
     throw err;
   }
 };
