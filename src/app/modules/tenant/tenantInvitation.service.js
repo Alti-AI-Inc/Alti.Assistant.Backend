@@ -21,7 +21,27 @@ import subscriptionService from '../subscription/subscription.service.js';
 // TenantMemberSchema.index({ userId: 1, tenantId: 1 });
 
 /**
- * Create a new invitation
+ * @typedef {Object} CreateInvitationData
+ * @property {string} tenantId - The ID of the tenant to which the invitation belongs.
+ * @property {string} email - The email address of the person being invited.
+ * @property {'admin' | 'member'} role - The role assigned to the invited person within the tenant.
+ * @property {string} invitedBy - The ID of the user who sent the invitation.
+ */
+
+/**
+ * Creates a new tenant invitation.
+ * Generates a unique token, sets an expiry, and attempts to send an invitation email.
+ * If email sending fails, the invitation status is updated to 'pending_email'.
+ *
+ * @param {CreateInvitationData} invitationData - The data for creating the invitation.
+ * @returns {Promise<Object>} An object containing details of the created invitation.
+ * @returns {string} return.id - The ID of the invitation.
+ * @returns {string} return.email - The email of the invited person.
+ * @returns {'admin' | 'member'} return.role - The role assigned.
+ * @returns {Date} return.expiresAt - The expiration date of the invitation.
+ * @returns {'pending' | 'pending_email'} return.status - The current status of the invitation.
+ * @throws {ApiError} If the tenant or inviter is not found (httpStatus.NOT_FOUND).
+ * @throws {Error} If any other error occurs during invitation creation.
  */
 const createInvitation = async (invitationData) => {
   const { tenantId, email, role, invitedBy } = invitationData;
@@ -98,7 +118,20 @@ const createInvitation = async (invitationData) => {
 };
 
 /**
- * Verify invitation token
+ * Verifies an invitation token.
+ * Checks if the invitation exists and has not expired.
+ *
+ * @param {string} token - The unique token associated with the invitation.
+ * @returns {Promise<Object>} An object containing invitation details and user existence status.
+ * @returns {string} return.id - The ID of the invitation.
+ * @returns {string} return.email - The email of the invited person.
+ * @returns {'admin' | 'member'} return.role - The role assigned.
+ * @returns {boolean} return.isUserExistWithEmail - True if a user with the invitation email already exists, false otherwise.
+ * @returns {string} return.tenantName - The name of the tenant.
+ * @returns {string} return.inviterName - The name or email of the inviter.
+ * @returns {Date} return.expiresAt - The expiration date of the invitation.
+ * @throws {ApiError} If the invitation is invalid or not found (httpStatus.NOT_FOUND).
+ * @throws {ApiError} If the invitation has expired (httpStatus.GONE).
  */
 const verifyInvitationToken = async (token) => {
   // No .lean() here as invitation object might be modified and saved later (e.g., status update)
@@ -130,7 +163,22 @@ const verifyInvitationToken = async (token) => {
 };
 
 /**
- * Accept invitation
+ * Accepts a tenant invitation.
+ * Validates the token and user, updates the user's tenant information,
+ * creates a TenantMember record, increments the tenant's user count,
+ * and marks the invitation as accepted. Also attempts to add a seat to the subscription if applicable.
+ *
+ * @param {string} token - The unique token from the invitation.
+ * @param {string} userId - The ID of the user accepting the invitation.
+ * @returns {Promise<Object>} An object containing the tenant ID, role, and tenant name.
+ * @returns {string} return.tenantId - The ID of the tenant.
+ * @returns {'admin' | 'member'} return.role - The role assigned to the user within the tenant.
+ * @returns {string} return.tenantName - The name of the tenant.
+ * @throws {ApiError} If the invitation is invalid or not found (httpStatus.NOT_FOUND).
+ * @throws {ApiError} If the invitation has expired (httpStatus.GONE).
+ * @throws {ApiError} If the user is not found (httpStatus.NOT_FOUND).
+ * @throws {ApiError} If the invitation email does not match the user's email (httpStatus.FORBIDDEN).
+ * @throws {ApiError} If the tenant's seat limit is reached (httpStatus.FORBIDDEN).
  */
 const acceptInvitation = async (token, userId) => {
   // No .lean() here as invitation object will be modified and saved later
@@ -249,7 +297,12 @@ const acceptInvitation = async (token, userId) => {
 };
 
 /**
- * Cancel invitation
+ * Cancels a pending tenant invitation.
+ *
+ * @param {string} invitationId - The ID of the invitation to cancel.
+ * @returns {Promise<void>}
+ * @throws {ApiError} If the invitation is not found (httpStatus.NOT_FOUND).
+ * @throws {ApiError} If the invitation is not in 'pending' status (httpStatus.BAD_REQUEST).
  */
 const cancelInvitation = async (invitationId) => {
   // No .lean() here as invitation object will be modified and saved later
@@ -272,7 +325,14 @@ const cancelInvitation = async (invitationId) => {
 };
 
 /**
- * Resend invitation
+ * Resends a pending or pending_email tenant invitation.
+ *
+ * @param {string} invitationId - The ID of the invitation to resend.
+ * @returns {Promise<void>}
+ * @throws {ApiError} If the invitation is not found (httpStatus.NOT_FOUND).
+ * @throws {ApiError} If the invitation is not in 'pending' or 'pending_email' status (httpStatus.BAD_REQUEST).
+ * @throws {ApiError} If the invitation has expired (httpStatus.GONE).
+ * @throws {ApiError} If the email sending fails (httpStatus.INTERNAL_SERVER_ERROR).
  */
 const resendInvitation = async (invitationId) => {
   // No .lean() here as invitation object might be modified and saved later
@@ -330,7 +390,28 @@ const resendInvitation = async (invitationId) => {
 };
 
 /**
- * Get pending invitations for a tenant
+ * @typedef {Object} GetTenantInvitationsOptions
+ * @property {number} [page=1] - The page number for pagination.
+ * @property {number} [limit=20] - The number of invitations per page.
+ * @property {'pending' | 'accepted' | 'expired' | 'cancelled' | 'pending_email'} [status='pending'] - Filter invitations by status.
+ */
+
+/**
+ * @typedef {Object} PaginatedInvitations
+ * @property {Array<Object>} invitations - An array of invitation objects.
+ * @property {Object} pagination - Pagination details.
+ * @property {number} pagination.page - The current page number.
+ * @property {number} pagination.limit - The limit of items per page.
+ * @property {number} pagination.total - The total number of invitations matching the query.
+ * @property {number} pagination.pages - The total number of pages.
+ */
+
+/**
+ * Retrieves a paginated list of invitations for a specific tenant.
+ *
+ * @param {string} tenantId - The ID of the tenant.
+ * @param {GetTenantInvitationsOptions} [options] - Options for pagination and filtering.
+ * @returns {Promise<PaginatedInvitations>} An object containing the list of invitations and pagination information.
  */
 const getTenantInvitations = async (tenantId, options = {}) => {
   const { page = 1, limit = 20, status = 'pending' } = options;
@@ -363,6 +444,10 @@ const getTenantInvitations = async (tenantId, options = {}) => {
   };
 };
 
+/**
+ * Service functions for managing tenant invitations.
+ * @namespace tenantInvitationService
+ */
 export const tenantInvitationService = {
   createInvitation,
   verifyInvitationToken,
