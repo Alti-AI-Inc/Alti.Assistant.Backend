@@ -1,13 +1,14 @@
 /**
  * @file gcsUploadService.js
  * @description Service for handling file uploads, downloads, and management with Google Cloud Storage (GCS).
- * This service abstracts the GCS interactions for storing and retrieving report files.
- * It provides methods for direct buffer uploads, stream-based uploads, and generating signed URLs
- * for secure client-side uploads and downloads.
+ * This file also includes the main Express server setup for Cloud Run compatibility,
+ * including health checks and graceful shutdown procedures.
  * @module services/gcsUploadService
  */
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
+import express from 'express';
+import http from 'http';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
@@ -252,3 +253,107 @@ export const checkReportExistsInGCS = async (gcsPath) => {
     return false;
   }
 };
+
+// --- Cloud Run Server Lifecycle Management ---
+
+const app = express();
+
+// A flag to indicate the server is in the process of shutting down
+let isShuttingDown = false;
+
+// --- Health and Readiness Probes ---
+
+/**
+ * Liveness probe endpoint (/healthz).
+ * Cloud Run uses this to check if the container's main process is still running.
+ * As long as the server is up, it should return 200 OK.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+/**
+ * Readiness probe endpoint (/readyz).
+ * Cloud Run uses this to determine if the container is ready to accept new traffic.
+ * When shutting down, this will return a 503 status, signaling the load balancer
+ * to stop sending requests to this instance.
+ */
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown) {
+    res.status(503).send('Service Unavailable: Server is shutting down.');
+  } else {
+    // TODO: Add checks for critical dependencies (e.g., database connection) if needed.
+    // If a dependency is not ready, return 503.
+    res.status(200).send('OK');
+  }
+});
+
+// TODO: Add your application-specific routes here.
+// For example:
+// import reportRoutes from './reportRoutes.js';
+// app.use('/api/reports', reportRoutes);
+
+// --- Server Startup and Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+
+// Create an HTTP server from the Express app to allow for graceful shutdown.
+const server = http.createServer(app);
+
+// Start listening for requests.
+server.listen(PORT, () => {
+  logger.info(`Server is running and listening on port ${PORT}`);
+});
+
+/**
+ * Handles graceful shutdown of the server.
+ * @param {string} signal - The signal received (e.g., 'SIGTERM').
+ */
+const gracefulShutdown = (signal) => {
+  if (isShuttingDown) {
+    logger.warn('Shutdown already in progress. Ignoring signal.');
+    return;
+  }
+
+  logger.warn(`Received ${signal}. Starting graceful shutdown...`);
+  isShuttingDown = true;
+
+  // 1. Stop the server from accepting new connections.
+  // The `server.close()` method stops new connections and waits for existing
+  // persistent connections to close before firing the callback.
+  server.close((err) => {
+    if (err) {
+      logger.error('Error during server shutdown:', err);
+      process.exit(1);
+    }
+
+    logger.info('Server has closed successfully. All connections handled.');
+
+    // 2. Close any other resources like database connections or message queue clients.
+    // The @google-cloud/storage client manages its own connections and does not
+    // require an explicit close() call for this purpose.
+    // Example:
+    // database.close().then(() => {
+    //   logger.info('Database connection closed.');
+    //   process.exit(0);
+    // });
+
+    // 3. Exit the process cleanly.
+    process.exit(0);
+  });
+
+  // 4. Set a timeout to force shutdown if graceful shutdown takes too long.
+  // Cloud Run's default grace period is 10 seconds before it sends a SIGKILL.
+  setTimeout(() => {
+    logger.error('Graceful shutdown timed out. Forcing exit.');
+    process.exit(1);
+  }, 9500); // Set slightly less than the Cloud Run default to log the event.
+};
+
+// Listen for termination signals from the OS or container orchestrator (like Cloud Run).
+// Cloud Run sends a SIGTERM signal to the container to initiate shutdown.
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Listen for interrupt signal (e.g., Ctrl+C in a terminal) for local development.
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
