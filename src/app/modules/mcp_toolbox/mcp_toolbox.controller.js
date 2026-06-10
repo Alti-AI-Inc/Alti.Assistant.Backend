@@ -2,13 +2,51 @@ import { mcpToolboxService } from './mcp_toolbox.service.js';
 import { mcpOrchestratorService } from './mcp_orchestrator.service.js';
 import { mcpCatalog } from './mcp_catalog.js';
 
+// SECURITY PATCH: Helper function to sanitize output and prevent reflected XSS.
+// This should be used for any user-provided input that is reflected in responses (e.g., error messages).
+const sanitizeForOutput = (str) => {
+  if (typeof str !== 'string') return str;
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  };
+  return str.replace(/[&<>"'`=/]/g, (m) => map[m]);
+};
+
+// SECURITY PATCH: Helper function to validate identifiers (e.g., userId, serverId, appId, toolName).
+// This helps prevent path traversal, command injection, and other injection attacks by enforcing a strict format.
+const isValidIdentifier = (id) => {
+    if (typeof id !== 'string' || id.length === 0 || id.length > 128) return false;
+    // Allows alphanumeric characters, hyphens, and underscores.
+    const validIdentifierRegex = /^[a-zA-Z0-9_-]+$/;
+    return validIdentifierRegex.test(id);
+};
+
 // ==========================================
 // A. Legacy Database MCP Toolbox Endpoints
 // ==========================================
 
 const connectController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
+    // SECURITY WARNING: The connectionDetails object contains sensitive credentials.
+    // Ensure this data is handled securely, encrypted in transit (with TLS), and not logged.
+    // A schema validation should be performed on this object.
     const { connectionDetails, customTools } = req.body;
 
     if (!connectionDetails || !connectionDetails.type) {
@@ -21,44 +59,86 @@ const connectController = async (req, res) => {
     const result = await mcpToolboxService.startMcpServer(userId, connectionDetails, customTools || []);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in connectController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const queryController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
-    const { query } = req.body;
-
-    if (!query) {
-      return res.status(400).json({ success: false, error: 'query prompt is required.' });
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
     }
 
-    const result = await mcpToolboxService.querySecureDatabase(userId, query);
+    const { query } = req.body;
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ success: false, error: 'query prompt is required and must be a string.' });
+    }
+
+    // SECURITY WARNING: The 'query' parameter is passed to the service layer. This is a high-risk area for SQL injection.
+    // The mcpToolboxService.querySecureDatabase service MUST use parameterized queries to prevent SQL injection.
+    // As a defense-in-depth measure, we add a basic check to block queries containing multiple statements.
+    const sanitizedQuery = query.trim();
+    if (sanitizedQuery.includes(';')) {
+        return res.status(400).json({ success: false, error: 'Multiple statements are not allowed in a single query.' });
+    }
+
+    const result = await mcpToolboxService.querySecureDatabase(userId, sanitizedQuery);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in queryController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const disconnectController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const result = await mcpToolboxService.stopMcpServer(userId);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in disconnectController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const statusController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
-    // BUG FIX: mcpToolboxService.getStatus is likely an async operation and should be awaited.
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const result = await mcpToolboxService.getStatus(userId);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in statusController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
@@ -68,51 +148,97 @@ const statusController = async (req, res) => {
 
 const connectServerController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId } = req.body;
 
     if (!serverId) {
       return res.status(400).json({ success: false, error: 'serverId is required.' });
+    }
+
+    // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+    if (!isValidIdentifier(serverId)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
     }
 
     const result = await mcpOrchestratorService.startServer(userId, serverId);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in connectServerController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const stopServerController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId } = req.body;
 
     if (!serverId) {
       return res.status(400).json({ success: false, error: 'serverId is required.' });
     }
 
+    // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+    if (!isValidIdentifier(serverId)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
+    }
+
     const result = await mcpOrchestratorService.stopServer(userId, serverId);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in stopServerController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const listToolsController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId } = req.params;
 
     if (!serverId) {
       return res.status(400).json({ success: false, error: 'serverId parameter is required.' });
     }
 
-    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
+    // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+    if (!isValidIdentifier(serverId)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
+    }
+
     const userServers = await mcpOrchestratorService.getUserServers(userId);
     const active = userServers.get(serverId);
 
     if (!active) {
-      return res.status(404).json({ success: false, error: `MCP Server "${serverId}" is not active.` });
+      // SECURITY PATCH: Sanitize serverId before including it in the response to prevent reflected XSS.
+      return res.status(404).json({ success: false, error: `MCP Server "${sanitizeForOutput(serverId)}" is not active.` });
     }
 
     res.status(200).json({
@@ -120,34 +246,64 @@ const listToolsController = async (req, res) => {
       tools: active.tools
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in listToolsController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const callToolController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId, toolName, arguments: toolArgs } = req.body;
 
     if (!serverId || !toolName) {
       return res.status(400).json({ success: false, error: 'serverId and toolName are required.' });
     }
 
+    // SECURITY PATCH: Validate serverId and toolName format to prevent injection attacks.
+    if (!isValidIdentifier(serverId) || !isValidIdentifier(toolName)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId or toolName format.' });
+    }
+
+    // SECURITY WARNING: The toolArgs object is passed directly to the service.
+    // It should be validated against a schema specific to the tool being called to prevent unexpected behavior or injection.
     const result = await mcpOrchestratorService.callTool(userId, serverId, toolName, toolArgs || {});
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in callToolController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const dashboardStatusController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
-    // BUG FIX: mcpOrchestratorService.getDashboardStatus is likely an async operation and should be awaited.
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const status = await mcpOrchestratorService.getDashboardStatus(userId);
     res.status(200).json({ success: true, servers: status });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in dashboardStatusController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
@@ -155,41 +311,55 @@ const dashboardStatusController = async (req, res) => {
  * Server-Sent Events (SSE) dynamic connection bridge
  * Exposes full compatibility with SSE-based web transports
  */
-const sseConnectionHandler = async (req, res) => { // BUG FIX: Made function async to properly await service calls.
-  const userId = req.user?.userId || req.user?.id || 'default_user';
-  const serverId = req.query.serverId;
+const sseConnectionHandler = async (req, res) => {
+  // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+  const userId = req.user?.userId || req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+  }
+  // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+  if (!isValidIdentifier(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+  }
+
+  const { serverId } = req.query;
 
   if (!serverId) {
     return res.status(400).json({ success: false, error: 'serverId parameter is required for SSE transport.' });
   }
 
+  // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+  if (!isValidIdentifier(serverId)) {
+      return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
+  }
+
   try {
-    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
     const userServers = await mcpOrchestratorService.getUserServers(userId);
     const server = userServers.get(serverId);
 
     if (!server || !server.process) {
-      // BUG FIX: If server is not running, send a standard HTTP error before setting SSE headers.
       return res.status(404).json({ success: false, error: 'Server is not running or process not found.' });
     }
 
-    // Set SSE Headers only if everything is ready to establish the connection.
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      // SECURITY PATCH: Add security headers for SSE endpoints.
+      'X-Content-Type-Options': 'nosniff'
     });
 
     res.write(`event: endpoint\ndata: ${JSON.stringify({ message: 'SSE Connection Established.' })}\n\n`);
 
-    // Handle standard stdout redirects straight into the open EventStream channel
     const onData = (data) => {
-      // BUG FIX: Check if the response stream is still writable before writing.
       if (res.writableEnded) {
-        server.process.stdout.off('data', onData); // Clean up listener if stream ended
+        server.process.stdout.off('data', onData);
         return;
       }
-      res.write(`event: message\ndata: ${data.toString()}\n\n`);
+      // SECURITY PATCH: Ensure data sent over SSE is properly formatted as a JSON string.
+      // This prevents multi-line data chunks from breaking the SSE message framing.
+      const message = data.toString();
+      res.write(`event: message\ndata: ${JSON.stringify(message)}\n\n`);
     };
 
     server.process.stdout.on('data', onData);
@@ -198,22 +368,17 @@ const sseConnectionHandler = async (req, res) => { // BUG FIX: Made function asy
       if (server.process) {
         server.process.stdout.off('data', onData);
       }
-      // BUG FIX: Explicitly end the response if not already ended on client disconnect.
       if (!res.writableEnded) {
         res.end();
       }
     });
   } catch (error) {
-    // BUG FIX: Handle errors that occur during setup before headers are sent.
+    console.error('Error in SSE handler:', error);
     if (!res.headersSent) {
-      res.status(500).json({ success: false, error: error.message });
-    } else {
-      // If headers were already sent, log the error and try to send an SSE error event.
-      console.error('Error in SSE handler after headers sent:', error);
-      if (!res.writableEnded) {
-        res.write(`event: error\ndata: ${JSON.stringify({ message: 'Internal server error.' })}\n\n`);
-        res.end();
-      }
+      res.status(500).json({ success: false, error: 'An internal server error occurred.' });
+    } else if (!res.writableEnded) {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: 'An internal server error occurred.' })}\n\n`);
+      res.end();
     }
   }
 };
@@ -223,22 +388,42 @@ const sseConnectionHandler = async (req, res) => { // BUG FIX: Made function asy
  */
 const mcpMessageHandler = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId, message } = req.body;
 
     if (!serverId || !message) {
       return res.status(400).json({ success: false, error: 'serverId and message payload are required.' });
     }
 
-    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
+    // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+    if (!isValidIdentifier(serverId)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
+    }
+
+    // SECURITY WARNING: The 'message' object is passed to a remote process.
+    // It should be validated against a strict schema of allowed methods and parameters
+    // to prevent remote code execution or other exploits.
+    if (typeof message !== 'object' || message === null || !message.method) {
+        return res.status(400).json({ success: false, error: 'Invalid message payload format.' });
+    }
+
     const userServers = await mcpOrchestratorService.getUserServers(userId);
     const server = userServers.get(serverId);
 
     if (!server || !server.initialized) {
-      return res.status(404).json({ success: false, error: `MCP Server "${serverId}" is not running.` });
+      // SECURITY PATCH: Sanitize serverId before including it in the response to prevent reflected XSS.
+      return res.status(404).json({ success: false, error: `MCP Server "${sanitizeForOutput(serverId)}" is not running.` });
     }
 
-    // Direct JSON-RPC delivery over stdio
     const response = await server.sendRequest(message.method, message.params || {});
     res.status(200).json({
       jsonrpc: '2.0',
@@ -246,78 +431,117 @@ const mcpMessageHandler = async (req, res) => {
       id: message.id
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in mcpMessageHandler:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const registerServerController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { serverId, serverConfig } = req.body;
 
     if (!serverId || !serverConfig) {
       return res.status(400).json({ success: false, error: 'serverId and serverConfig details are required.' });
     }
 
+    // SECURITY PATCH: Validate serverId format to prevent injection attacks.
+    if (!isValidIdentifier(serverId)) {
+        return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
+    }
+
+    // SECURITY WARNING: The 'serverConfig' object is written to disk and used to spawn processes.
+    // This is a high-risk operation. The config MUST be validated against a strict schema
+    // to prevent arbitrary code execution, path traversal, or other exploits.
+    // Example: Whitelist allowed 'command' and 'args' values.
+
     const result = await mcpOrchestratorService.registerServer(userId, serverId, serverConfig);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in registerServerController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const installAppController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal in file paths.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { appId, env, databaseUrl } = req.body;
 
     if (!appId) {
       return res.status(400).json({ success: false, error: 'appId parameter is required.' });
     }
 
-    const blueprint = mcpCatalog[appId];
-    if (!blueprint) {
-      return res.status(404).json({ success: false, error: `MCP Application "${appId}" not found in catalog.` });
+    // SECURITY PATCH: Validate appId format to prevent injection attacks.
+    if (!isValidIdentifier(appId)) {
+        return res.status(400).json({ success: false, error: 'Invalid appId format.' });
     }
 
-    // Clone to prevent modifying original static catalog
+    const blueprint = mcpCatalog[appId];
+    if (!blueprint) {
+      // SECURITY PATCH: Sanitize appId before including it in the response to prevent reflected XSS.
+      return res.status(404).json({ success: false, error: `MCP Application "${sanitizeForOutput(appId)}" not found in catalog.` });
+    }
+
     const config = JSON.parse(JSON.stringify(blueprint));
 
-    // 1. Enforce environment variable requirements
     if (config.requiredEnv) {
       for (const requiredKey of config.requiredEnv) {
         const clientVal = env?.[requiredKey];
         if (!clientVal) {
           return res.status(400).json({
             success: false,
-            error: `Missing required environment variable "${requiredKey}" for app "${appId}".`
+            // SECURITY PATCH: Sanitize identifiers in error messages.
+            error: `Missing required environment variable "${sanitizeForOutput(requiredKey)}" for app "${sanitizeForOutput(appId)}".`
           });
         }
         config.env[requiredKey] = clientVal;
       }
     }
 
-    // Merge custom env properties if supplied
+    // SECURITY WARNING: Merging a user-provided 'env' object can be dangerous.
+    // An attacker could override sensitive variables (e.g., PATH, NODE_OPTIONS).
+    // It is safer to use an allow-list of environment variables that can be set by the user.
     if (env) {
       config.env = { ...config.env, ...env };
     }
 
-    // 2. Map dynamic argument parameters
+    // SECURITY WARNING: User-provided URLs or arguments can lead to command injection
+    // if not handled carefully by the process execution service. The service layer
+    // must ensure arguments are passed securely and not interpreted by a shell.
     if (appId === 'postgres' || appId === 'postgresql') {
       if (!databaseUrl) {
         return res.status(400).json({ success: false, error: 'databaseUrl is required to install postgres/postgresql app.' });
       }
+      // Further validation on databaseUrl (e.g., format) is recommended.
       config.args.push(databaseUrl);
     } else if (appId === 'sqlite') {
-      // Dynamic path isolation per tenant sandbox
+      // The userId has been validated, mitigating path traversal risk here.
       const tenantDbPath = `storage/users/${userId}/databases/sqlite.db`;
       config.args[2] = tenantDbPath;
     }
 
-    // 3. Register the server configuration (writes to disk, triggers dynamic hot-reloader)
     const regResult = await mcpOrchestratorService.registerServer(userId, appId, config);
-
-    // 4. Synchronously boot the application process (auto-fetches dependencies over npx)
     const startResult = await mcpOrchestratorService.startServer(userId, appId);
 
     res.status(200).json({
@@ -328,33 +552,64 @@ const installAppController = async (req, res) => {
       connection: startResult
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in installAppController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const listUnifiedToolsController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const tools = await mcpOrchestratorService.getUnifiedTools(userId);
     res.status(200).json({ success: true, tools });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in listUnifiedToolsController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
 const callUnifiedToolController = async (req, res) => {
   try {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
+    // SECURITY PATCH: Removed fallback to 'default_user'. A valid user context is required.
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: User not authenticated.' });
+    }
+    // SECURITY PATCH: Validate userId format to prevent path traversal and other injection attacks.
+    if (!isValidIdentifier(userId)) {
+        return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
+    }
+
     const { toolName, arguments: toolArgs } = req.body;
 
     if (!toolName) {
       return res.status(400).json({ success: false, error: 'toolName is required.' });
     }
 
+    // SECURITY PATCH: Validate toolName format to prevent injection attacks.
+    if (!isValidIdentifier(toolName)) {
+        return res.status(400).json({ success: false, error: 'Invalid toolName format.' });
+    }
+
+    // SECURITY WARNING: The toolArgs object is passed directly to the service.
+    // It should be validated against a schema specific to the tool being called.
     const result = await mcpOrchestratorService.callUnifiedTool(userId, toolName, toolArgs || {});
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    // SECURITY PATCH: Avoid leaking internal error details. Log them instead.
+    console.error('Error in callUnifiedToolController:', error);
+    res.status(500).json({ success: false, error: 'An internal server error occurred.' });
   }
 };
 
