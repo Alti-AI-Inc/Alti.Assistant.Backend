@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google-generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { REVIEW_INTENTS } from '../document_review.constant.js';
@@ -6,7 +6,34 @@ import { REVIEW_INTENTS } from '../document_review.constant.js';
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Analyze user intent from message
+ * Analyzes the user's message to determine their primary intent and extract specific parameters
+ * related to document review. It leverages a Generative AI model to understand natural language
+ * and contextualize the request based on conversation history and already collected parameters.
+ *
+ * The function aims to identify the type of review requested (e.g., grammar check, content analysis)
+ * and any specific details like review depth, document type, or aspects to focus on.
+ *
+ * @param {string} userMessage - The current message from the user to be analyzed.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation.
+ *   Each object should have `role` (e.g., 'user', 'model') and `content` (the message text).
+ *   Example: `[{ role: 'user', content: 'Can you check my essay?' }, { role: 'model', content: 'Sure, what kind of review?' }]`
+ * @param {Object} [existingParams={}] - An object containing parameters that have already been collected
+ *   or inferred in the current session. These parameters provide additional context to the AI.
+ *   Example: `{ reviewType: 'grammar_check', documentType: 'academic' }`
+ * @returns {Promise<Object>} A promise that resolves to an object containing the analysis result.
+ *   The object has the following structure:
+ *   - `intent`: {string} The primary intent identified (e.g., 'general_review', 'grammar_check', 'unknown').
+ *     Defaults to `REVIEW_INTENTS.GENERAL_REVIEW` on error or parsing failure.
+ *   - `confidence`: {number} A confidence score (0.0-1.0) for the identified intent.
+ *     Defaults to 0.5 on error or parsing failure.
+ *   - `parameters`: {Object} An object containing extracted parameters. Null or empty values are removed.
+ *     - `reviewType`: {string|null} The specific type of review requested (e.g., 'grammar_check', 'content_analysis').
+ *     - `reviewDepth`: {string|null} The desired depth of the review ('quick', 'standard', 'detailed', 'comprehensive').
+ *     - `documentType`: {string|null} The type of document being reviewed ('academic', 'business', 'technical', etc.).
+ *     - `aspects`: {Array<string>} An array of specific aspects to focus on (e.g., ['grammar', 'clarity', 'structure']).
+ *     - `additionalInstructions`: {string|null} Any other specific instructions or requests from the user.
+ *   - `reasoning`: {string} A brief explanation from the AI about its intent determination.
+ *     Defaults to an empty string or an error message on failure.
  */
 const analyzeIntent = async (
   userMessage,
@@ -137,7 +164,19 @@ Respond in JSON format only:
 };
 
 /**
- * Summarize conversation history to reduce token usage
+ * Summarizes the ongoing conversation history to extract key context relevant to document review.
+ * This helps in reducing token usage for subsequent AI calls by providing a concise overview
+ * of what has been discussed so far, including user requests and collected parameters.
+ *
+ * @param {Array<Object>} conversationHistory - An array of previous messages in the conversation.
+ *   Each object should have `role` (e.g., 'user', 'model') and `content` (the message text).
+ *   Example: `[{ role: 'user', content: 'I uploaded a report.' }, { role: 'model', content: 'What kind of review?' }]`
+ * @param {Object} collectedParams - An object containing parameters that have been collected
+ *   or inferred during the conversation. These are explicitly included in the prompt to ensure
+ *   they are part of the summary.
+ *   Example: `{ reviewType: 'content_analysis', documentType: 'business' }`
+ * @returns {Promise<string>} A promise that resolves to a concise summary of the conversation
+ *   (maximum 200 words). Returns a generic fallback string on error.
  */
 const summarizeConversation = async (conversationHistory, collectedParams) => {
   try {
@@ -182,6 +221,19 @@ Provide a concise summary (max 200 words) that captures the essential context:`;
   }
 };
 
+/**
+ * @typedef {Object} ConversationAnalyzer
+ * @property {function(string, Array<Object>, Object): Promise<Object>} analyzeIntent - Function to analyze user intent and extract parameters.
+ * @property {function(Array<Object>, Object): Promise<string>} summarizeConversation - Function to summarize conversation history.
+ */
+
+/**
+ * An object containing utility functions for analyzing user conversations
+ * and extracting relevant information for document review processes.
+ * It leverages Google's Generative AI models for natural language understanding.
+ *
+ * @type {ConversationAnalyzer}
+ */
 export const conversationAnalyzer = {
   analyzeIntent,
   summarizeConversation,
