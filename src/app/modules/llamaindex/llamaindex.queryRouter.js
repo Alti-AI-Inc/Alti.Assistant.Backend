@@ -94,7 +94,11 @@ class QueryRouterService {
       } catch (dbError) {
         // PATCH: Improved logging for non-fatal DB errors. Log the full error object for better diagnostics.
         // This is a non-fatal error for routing; log as a warning and continue with degraded accuracy.
-        logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`, { error: dbError });
+        // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
+        logger.warn({
+          message: `QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`,
+          error: dbError,
+        });
       }
 
       // Step 1: Classify query profile and analyze user document corpus in one pass
@@ -130,12 +134,25 @@ class QueryRouterService {
         scores,
       };
 
-      logger.info(`QueryRouter: "${query.substring(0, 50)}..." → ${bestEngine} (${profile.name}, conf=${decision.confidence})`);
+      // GCP-AUDIT: Deconstructed log message into a structured JSON object for better filterability in GCP Cloud Logging.
+      logger.info({
+        message: `QueryRouter: Routed query to ${bestEngine}`,
+        query: query.substring(0, 50),
+        engine: bestEngine,
+        profile: profile.name,
+        confidence: decision.confidence,
+      });
 
       return decision;
     } catch (error) {
       // PATCH: Catch any unexpected errors during the routing logic.
-      logger.error('QueryRouter: an unexpected error occurred during query routing.', { query, options, error });
+      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
+      logger.error({
+        message: 'QueryRouter: an unexpected error occurred during query routing.',
+        query,
+        options,
+        error,
+      });
       // PATCH: Normalize the error for the controller/service layer to ensure a consistent error response format.
       throw new ApiError(500, 'Failed to route query due to an internal system error.');
     }
@@ -176,7 +193,8 @@ class QueryRouterService {
       // Call _saveState asynchronously without awaiting, but attach a .catch() handler
       // to prevent unhandled promise rejections and avoid blocking the event loop.
       // PATCH: Improved log message and ensures the full error object is captured.
-      this._saveState().catch(err => logger.error('QueryRouter: background state persistence failed.', { error: err }));
+      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
+      this._saveState().catch(err => logger.error({ message: 'QueryRouter: background state persistence failed.', error: err }));
     }
   }
 
@@ -377,12 +395,20 @@ class QueryRouterService {
           this.performanceScores = new Map(Object.entries(data.performanceScores));
         }
         this.totalRouted = data.totalRouted || 0;
-        logger.info(`QueryRouter: loaded state — ${this.performanceScores.size} profile:engine entries`);
+        // GCP-AUDIT: Deconstructed log message into a structured JSON object for better filterability in GCP Cloud Logging.
+        logger.info({
+          message: 'QueryRouter: loaded state',
+          entryCount: this.performanceScores.size,
+        });
       }
     } catch (error) {
       // PATCH: Improved logging to include the full error object for better diagnostics in GCP/structured logging.
       // This is a non-fatal warning as the service can start with a fresh state.
-      logger.warn('QueryRouter: failed to load state, starting fresh. State file might be corrupted or inaccessible.', { error });
+      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
+      logger.warn({
+        message: 'QueryRouter: failed to load state, starting fresh. State file might be corrupted or inaccessible.',
+        error,
+      });
     }
   }
 
@@ -406,7 +432,8 @@ class QueryRouterService {
 
     // Use async writeFile to prevent blocking the event loop. Throws on error.
     await fs.promises.writeFile(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
-    logger.info('QueryRouter: state persisted');
+    // GCP-AUDIT: Switched to single-object structured logging for consistency.
+    logger.info({ message: 'QueryRouter: state persisted' });
   }
 }
 
