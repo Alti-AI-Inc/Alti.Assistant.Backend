@@ -20,25 +20,41 @@ import {
 } from './legal_contract_review.constant.js';
 import Conversation from '../conversations/conversation.model.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using MongoDB's ObjectId.
+ * @returns {string} A unique string representing a guest user ID.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for legal contract review.
+ * The ID is prefixed with 'contract_review_' and includes a timestamp and a random string.
+ * @returns {string} A unique string representing a conversation ID.
  */
 const generateConversationId = () => {
   return `contract_review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle legal contract review conversation (create or retrieve)
+ * Handles the creation or retrieval of a legal contract review conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
+ *
+ * @async
+ * @param {string} userId - The ID of the user initiating the conversation.
+ * @param {string|null} conversationId - The ID of an existing conversation, or null to create a new one.
+ * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The conversation object (either newly created or retrieved).
+ * @throws {ApiError} If there's an internal server error handling the conversation.
  */
 const handleLegalContractReviewConversation = async (
   userId,
@@ -110,7 +126,18 @@ const handleLegalContractReviewConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message to an existing conversation.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user'|'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The text content of the message.
+ * @param {object} [metadata={}] - Optional metadata to associate with the message.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The updated conversation document after adding the message.
+ * @throws {ApiError} If there's an internal server error adding the message.
  */
 const addMessage = async (
   conversationId,
@@ -145,7 +172,15 @@ const addMessage = async (
 };
 
 /**
- * Update conversation metadata
+ * Updates the `collectedParams` within the metadata of a specific conversation.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to update.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {object} params - An object containing the parameters to be stored or updated in `collectedParams`.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<void>}
+ * @throws {ApiError} If there's an internal server error updating the metadata.
  */
 const updateConversationMetadata = async (
   conversationId,
@@ -168,7 +203,21 @@ const updateConversationMetadata = async (
 };
 
 /**
- * Store uploaded contract in conversation metadata with text extraction and GCS upload
+ * Stores an uploaded contract's information and extracted text within a conversation's metadata.
+ * This involves extracting text from the file, uploading the file to GCS, and updating the conversation document.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to associate the contract with.
+ * @param {string} userId - The ID of the user who uploaded the contract.
+ * @param {object} fileInfo - Information about the uploaded file.
+ * @param {string} fileInfo.path - The temporary path where the file is stored locally.
+ * @param {string} fileInfo.filename - The generated unique filename for storage.
+ * @param {string} fileInfo.originalName - The original name of the file as uploaded by the user.
+ * @param {string} fileInfo.mimetype - The MIME type of the file.
+ * @param {number} fileInfo.size - The size of the file in bytes.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The contract data object that was stored in the conversation.
+ * @throws {ApiError} If text extraction fails, GCS upload fails, or the conversation update fails.
  */
 const storeContractInConversation = async (
   conversationId,
@@ -268,7 +317,35 @@ const storeContractInConversation = async (
 };
 
 /**
- * Process contract and perform review using cached contract data
+ * Performs a legal contract review using a generative AI model (Gemini).
+ * It constructs a detailed prompt based on the contract content, review parameters, and conversation history.
+ *
+ * @async
+ * @param {object|null} contractData - The cached contract data object, or null if using direct text input.
+ * @param {string} [contractData.id] - Unique identifier for the contract.
+ * @param {string} [contractData.originalName] - Original filename of the contract.
+ * @param {string} [contractData.filename] - Stored filename of the contract.
+ * @param {string} [contractData.publicUrl] - Public URL to access the stored contract (e.g., GCS URL).
+ * @param {string} [contractData.gcsPath] - GCS path if stored in Google Cloud Storage.
+ * @param {string} [contractData.storageType] - Type of storage used (e.g., 'GCS', 'local').
+ * @param {string} [contractData.extractedText] - The extracted text content of the contract.
+ * @param {number} [contractData.textLength] - The total length of the extracted text.
+ * @param {boolean} [contractData.textTruncated] - True if the extracted text was truncated for caching.
+ * @param {number} [contractData.size] - Original file size in bytes.
+ * @param {string} [contractData.mimetype] - MIME type of the original file.
+ * @param {Date} [contractData.uploadedAt] - Timestamp when the contract was uploaded.
+ * @param {Date} [contractData.extractedAt] - Timestamp when text was extracted.
+ * @param {object} reviewParams - Parameters defining the contract review.
+ * @param {string} [reviewParams.reviewType='GENERAL_REVIEW'] - The type of review to perform (e.g., 'GENERAL_REVIEW', 'RISK_ASSESSMENT').
+ * @param {string} [reviewParams.reviewDepth='standard'] - The depth of the review (e.g., 'quick', 'standard', 'detailed', 'comprehensive').
+ * @param {string} [reviewParams.contractType='general'] - The specific type of contract (e.g., 'NDA', 'MSA', 'Lease Agreement').
+ * @param {string[]} [reviewParams.aspects] - Specific aspects to focus on during the review.
+ * @param {string} [reviewParams.additionalInstructions] - Any additional specific instructions for the AI.
+ * @param {string} [reviewParams.contractText] - Direct contract text provided by the user (if no file was uploaded).
+ * @param {Array<object>} [conversationHistory=[]] - An array of previous messages in the conversation for context.
+ * @param {string} [outputFormat='text'] - Desired output format for the review ('text', 'markdown', 'pdf', 'docx').
+ * @returns {Promise<object>} An object containing the review result, contract info, and parameters.
+ * @throws {ApiError} If the contract content is empty or the AI generation fails.
  */
 const performContractReview = async (
   contractData,
@@ -402,7 +479,15 @@ ${RESPONSE_MESSAGES.DISCLAIMER}`;
 };
 
 /**
- * Build review instructions based on parameters
+ * Builds a set of detailed instructions for the AI based on provided review parameters.
+ * These instructions guide the AI on the focus, depth, and specific aspects of the contract review.
+ *
+ * @param {object} params - Parameters for building review instructions.
+ * @param {string[]} [params.aspects] - Specific contractual aspects to focus on (e.g., ['indemnification', 'termination clauses']).
+ * @param {string} [params.contractType] - The type of contract being reviewed (e.g., 'NDA', 'MSA').
+ * @param {string} [params.additionalInstructions] - Any additional specific instructions for the AI.
+ * @param {'quick'|'standard'|'detailed'|'comprehensive'} [params.reviewDepth='standard'] - The desired depth of the review.
+ * @returns {string} A formatted string containing the review instructions for the AI.
  */
 const buildContractReviewInstructions = (params) => {
   let instructions = '\nReview Instructions:';
@@ -448,7 +533,24 @@ const buildContractReviewInstructions = (params) => {
 };
 
 /**
- * Main conversational handler - processes user messages intelligently
+ * Main conversational handler for legal contract review.
+ * It manages conversation state, processes user messages, handles file uploads,
+ * analyzes intent, collects parameters, and orchestrates the contract review process.
+ *
+ * @async
+ * @param {string} userId - The ID of the user.
+ * @param {string} userMessage - The message sent by the user.
+ * @param {string|null} conversationId - The ID of the current conversation, or null for a new one.
+ * @param {object|null} [fileInfo=null] - Optional: Information about an uploaded file.
+ * @param {string} [fileInfo.path] - The temporary path where the file is stored locally.
+ * @param {string} [fileInfo.filename] - The generated unique filename for storage.
+ * @param {string} [fileInfo.originalName] - The original name of the file as uploaded by the user.
+ * @param {string} [fileInfo.mimetype] - The MIME type of the file.
+ * @param {number} [fileInfo.size] - The size of the file in bytes.
+ * @param {string} [outputFormat='text'] - Desired output format for the AI's response ('text', 'markdown', etc.).
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<object>} An object containing the conversation ID, AI response, contract info, and other relevant flags.
+ * @throws {ApiError} If any step in the conversational process fails.
  */
 const processConversationalRequest = async (
   userId,
@@ -629,7 +731,27 @@ const processConversationalRequest = async (
 };
 
 /**
- * Direct review endpoint (non-conversational)
+ * Provides a direct, non-conversational contract review.
+ * This function handles file extraction, performs the AI review, and cleans up temporary files.
+ *
+ * @async
+ * @param {object} fileInfo - Information about the uploaded file.
+ * @param {string} fileInfo.path - The temporary path where the file is stored locally.
+ * @param {string} fileInfo.filename - The generated unique filename for storage.
+ * @param {string} fileInfo.originalName - The original name of the file as uploaded by the user.
+ * @param {string} fileInfo.mimetype - The MIME type of the file.
+ * @param {number} fileInfo.size - The size of the file in bytes.
+ * @param {object} reviewParams - Parameters defining the contract review.
+ * @param {string} [reviewParams.reviewType='GENERAL_REVIEW'] - The type of review to perform.
+ * @param {string} [reviewParams.reviewDepth='standard'] - The depth of the review.
+ * @param {string} [reviewParams.contractType='general'] - The specific type of contract.
+ * @param {string[]} [reviewParams.aspects] - Specific aspects to focus on.
+ * @param {string} [reviewParams.additionalInstructions] - Any additional specific instructions.
+ * @param {string} [reviewParams.outputFormat='text'] - Desired output format for the review.
+ * @param {string} userId - The ID of the user initiating the review.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<object>} An object containing the review result, contract info, and parameters.
+ * @throws {ApiError} If file processing or AI review fails.
  */
 const reviewContract = async (
   fileInfo,
@@ -681,6 +803,13 @@ const reviewContract = async (
   }
 };
 
+/**
+ * @constant {object} legalContractReviewService - Service object for legal contract review operations.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
+ * @property {function(): string} generateConversationId - Generates a unique ID for new conversations.
+ * @property {function(string, string, string, object|null, string, boolean): Promise<object>} processConversationalRequest - Handles conversational contract review requests, including file uploads and AI interaction.
+ * @property {function(object, object, string, boolean): Promise<object>} reviewContract - Performs a direct, non-conversational contract review from an uploaded file.
+ */
 export const legalContractReviewService = {
   generateGuestUserId,
   generateConversationId,
