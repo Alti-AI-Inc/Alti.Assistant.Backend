@@ -52,11 +52,13 @@ try {
  * Uploads a legal contract file to Google Cloud Storage.
  * If GCS is not configured or if the upload fails, it gracefully falls back
  * to returning information about the local file.
- * The file is stored in a user-specific folder within GCS to support multi-tenancy.
+ * The file is stored in a workspace- and user-specific folder within GCS to enforce multi-tenancy.
  *
  * @param {string} localFilePath - The local path to the file to be uploaded.
+ * @param {object} userContext - The authenticated user's context, required for security and tenancy.
+ * @param {string} userContext.userId - The ID of the user uploading the contract.
+ * @param {string} userContext.workspaceId - The ID of the user's workspace to ensure tenant isolation.
  * @param {object} [contractMetadata={}] - Optional metadata about the contract.
- * @param {string} [contractMetadata.userId] - The ID of the user uploading the contract. Used for creating a user-specific folder.
  * @param {string} [contractMetadata.contractType] - The type of the contract (e.g., 'NDA', 'MSA').
  * @param {string} [contractMetadata.conversationId] - The ID of the conversation associated with this upload.
  * @returns {Promise<object>} A promise that resolves to an object containing the upload result.
@@ -65,8 +67,18 @@ try {
  */
 export const uploadContractToGCS = async (
   localFilePath,
+  userContext,
   contractMetadata = {}
 ) => {
+  // BUGFIX: Enforce user context for security and multi-tenancy.
+  // The userContext object, containing workspaceId and userId, must be provided from a trusted source (e.g., authenticated session).
+  // This prevents IDOR vulnerabilities where a user could potentially specify another user's ID to upload files to their directory.
+  if (!userContext || !userContext.userId || !userContext.workspaceId) {
+    logger.error('uploadContractToGCS called without a valid userContext.');
+    // Throw an error instead of proceeding, as this is a critical security and integration failure.
+    throw new Error('User context (userId, workspaceId) is required for file uploads.');
+  }
+
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
@@ -78,8 +90,10 @@ export const uploadContractToGCS = async (
       };
     }
 
+    // SECURITY: Use path.basename to prevent path traversal attacks from the local file path.
     const fileName = path.basename(localFilePath);
-    const destination = `${GCS_CONFIG.FOLDER_PREFIX}${contractMetadata.userId || 'anonymous'}/${fileName}`;
+    // HIERARCHY_GAP_FIX: Construct a multi-tenant destination path using both workspaceId and userId to ensure strict data isolation.
+    const destination = `${GCS_CONFIG.FOLDER_PREFIX}${userContext.workspaceId}/${userContext.userId}/${fileName}`;
 
     logger.info(`Uploading contract to GCS: ${destination}`);
 
@@ -91,13 +105,16 @@ export const uploadContractToGCS = async (
         metadata: {
           contractType: contractMetadata.contractType || 'general',
           uploadedAt: new Date().toISOString(),
-          userId: contractMetadata.userId || 'anonymous',
+          // Use the trusted userId and workspaceId from the userContext.
+          userId: userContext.userId,
+          workspaceId: userContext.workspaceId,
           conversationId: contractMetadata.conversationId || '',
         },
       },
     });
 
-    // Get public URL
+    // Note: This creates a publicly accessible URL. For sensitive documents, signed URLs with a short expiry are recommended.
+    // This implementation assumes the bucket has appropriate permissions (e.g., not publicly readable by default).
     const publicUrl = `https://storage.googleapis.com/${GCS_CONFIG.BUCKET_NAME}/${destination}`;
 
     logger.info(`Contract uploaded successfully to GCS: ${destination}`);
@@ -144,19 +161,38 @@ const getContentType = (fileName) => {
 
 /**
  * Deletes a contract file from Google Cloud Storage.
+ * This function constructs the file path from trusted user context to prevent IDOR vulnerabilities.
  *
- * @param {string} gcsPath - The GCS URI of the file to delete (e.g., 'gs://bucket-name/path/to/file.pdf').
+ * @param {object} userContext - The authenticated user's context, required for security and tenancy.
+ * @param {string} userContext.userId - The ID of the user who owns the file.
+ * @param {string} userContext.workspaceId - The ID of the user's workspace.
+ * @param {string} fileName - The name of the file to delete (e.g., 'contract.pdf').
  * @returns {Promise<{success: boolean, message: string}>} A promise that resolves to an object indicating the result of the deletion.
  */
-export const deleteContractFromGCS = async (gcsPath) => {
+export const deleteContractFromGCS = async (userContext, fileName) => {
+  // BUGFIX: Enforce user context and require a fileName instead of a full GCS path.
+  // This prevents IDOR vulnerabilities where a user could craft a request to delete arbitrary files
+  // by providing a path to a file outside of their own directory.
+  if (!userContext || !userContext.userId || !userContext.workspaceId) {
+    logger.error('deleteContractFromGCS called without a valid userContext.');
+    return { success: false, message: 'User context (userId, workspaceId) is required for file deletion.' };
+  }
+  if (!fileName) {
+    logger.error('deleteContractFromGCS called without a fileName.');
+    return { success: false, message: 'File name is required for deletion.' };
+  }
+
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Cannot delete from GCS.');
       return { success: false, message: 'GCS not configured' };
     }
 
-    // Extract file path from gs:// URL
-    const filePath = gcsPath.replace(`gs://${GCS_CONFIG.BUCKET_NAME}/`, '');
+    // HIERARCHY_GAP_FIX: Construct the full, tenant-isolated path from trusted context.
+    // This ensures a user can only attempt to delete files within their own designated folder.
+    // Use path.basename on the incoming fileName as an extra precaution against path traversal.
+    const safeFileName = path.basename(fileName);
+    const filePath = `${GCS_CONFIG.FOLDER_PREFIX}${userContext.workspaceId}/${userContext.userId}/${safeFileName}`;
 
     await bucket.file(filePath).delete();
 
@@ -164,7 +200,9 @@ export const deleteContractFromGCS = async (gcsPath) => {
 
     return { success: true, message: 'Contract deleted successfully' };
   } catch (error) {
-    logger.error('Error deleting contract from GCS:', error);
-    return { success: false, message: error.message };
+    // GCS throws an error if the file doesn't exist, which might not be a critical failure.
+    // For simplicity and to report other potential errors (like permissions), we'll report failure.
+    logger.error(`Error deleting contract from GCS (${userContext.workspaceId}/${userContext.userId}/${fileName}):`, error);
+    return { success: false, message: `Failed to delete file from storage: ${error.message}` };
   }
 };
