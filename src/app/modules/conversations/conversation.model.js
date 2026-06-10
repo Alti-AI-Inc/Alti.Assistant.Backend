@@ -5,6 +5,9 @@ import crypto from 'crypto';
 const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012'; // Must be 32 characters
 const IV_LENGTH = 16;
 
+// Optimization: Pre-allocate the key buffer once to avoid repeated Buffer creation overhead during serialization/deserialization
+const ENCRYPTION_KEY_BUF = Buffer.from(ENCRYPTION_KEY);
+
 function encryptText(text) {
   if (!text || typeof text !== 'string') return text;
   // Check if already encrypted to avoid double encryption (heuristic)
@@ -12,7 +15,7 @@ function encryptText(text) {
   
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY_BUF, iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return iv.toString('hex') + ':' + encrypted.toString('hex');
@@ -28,7 +31,7 @@ function decryptText(text) {
     if (textParts.length !== 2) return text; // Not encrypted
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUF, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
@@ -182,6 +185,10 @@ ConversationSchema.index({ tenantId: 1, 'metadata.category': 1 });
 ConversationSchema.index({ tenantId: 1, lastActivity: -1 });
 ConversationSchema.index({ tenantId: 1, userId: 1, is_deep_search: 1 }); // Index for deep search filtering
 
+// Optimization: Compound indexes to support sorting by lastActivity on active queries (prevents in-memory sorting)
+ConversationSchema.index({ tenantId: 1, userId: 1, status: 1, lastActivity: -1 });
+ConversationSchema.index({ userId: 1, status: 1, lastActivity: -1 });
+
 // Legacy / fallback simple indexes (retained for direct cross-tenant or admin queries)
 ConversationSchema.index({ userId: 1, createdAt: -1 });
 ConversationSchema.index({ userId: 1, status: 1 });
@@ -241,11 +248,14 @@ ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
     sortOrder = -1,
   } = options;
 
+  // Optimization: Added .lean({ getters: true }) to bypass Mongoose document hydration overhead 
+  // while still allowing the decryption getters to run on the title field.
   return this.find({ userId, status: 'active' })
     .sort({ [sortBy]: sortOrder })
     .limit(limit)
     .skip(skip)
-    .select('-messages'); // Exclude messages for list view
+    .select('-messages') // Exclude messages for list view
+    .lean({ getters: true });
 };
 
 // Static method to find conversation by conversationId and userId
