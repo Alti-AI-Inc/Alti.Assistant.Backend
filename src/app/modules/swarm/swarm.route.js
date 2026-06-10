@@ -9,6 +9,50 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 const router = express.Router();
 
 /**
+ * Middleware to validate the /prewarm request for security and proper user context.
+ * It ensures that:
+ * 1. If a `userId` is provided in the request body, the user must be authenticated,
+ *    and the provided `userId` must match the authenticated user's ID.
+ *    This prevents IDOR (Insecure Direct Object Reference) where an unauthenticated
+ *    or unauthorized user could attempt to pre-warm another user's sandbox.
+ * 2. If no `userId` is provided in the request body, the user must be authenticated
+ *    so that their ID can be derived from the authentication token.
+ *    This ensures there's always a clear user context for the pre-warming operation.
+ * @param {express.Request} req - The Express request object.
+ * @param {express.Response} res - The Express response object.
+ * @param {express.NextFunction} next - The next middleware function.
+ */
+const validatePrewarmRequest = (req, res, next) => {
+    const { userId } = req.body;
+    // Assuming `optionalAuth` middleware populates `req.user` with user information if a valid token is present.
+    // `req.user` might be undefined or null if no token or an invalid token was provided.
+    const authenticatedUserId = req.user ? req.user.id : null; // Adjust 'id' based on actual user object structure
+
+    if (userId) {
+        // Case: userId is provided in the request body.
+        // An unauthenticated user should not be able to specify a userId.
+        if (!authenticatedUserId) {
+            return res.status(401).json({ message: "Unauthorized: Authentication is required to specify a user ID for pre-warming." });
+        }
+        // An authenticated user should only be able to pre-warm their own sandbox,
+        // unless specific admin roles are implemented (which are not in scope here).
+        if (userId !== authenticatedUserId) {
+            return res.status(403).json({ message: "Forbidden: You can only pre-warm your own sandbox." });
+        }
+        // If userId is provided and matches authenticated user, proceed.
+    } else {
+        // Case: No userId is provided in the request body.
+        // In this scenario, the operation must be for the authenticated user.
+        if (!authenticatedUserId) {
+            return res.status(400).json({ message: "Bad Request: User ID is required if no authentication token is provided." });
+        }
+        // If no userId is provided but user is authenticated, proceed.
+        // The controller will use req.user.id.
+    }
+    next();
+};
+
+/**
  * @swagger
  * /api/swarm/stream:
  *   post:
@@ -86,6 +130,8 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *     summary: Pre-warm a user's isolated container sandbox
  *     description: Asynchronously pre-warms an isolated container sandbox for a user, reducing latency for subsequent operations.
  *                  Authentication is optional but can be used to identify the user for whom the sandbox should be pre-warmed.
+ *                  If `userId` is provided in the request body, authentication is required, and the `userId` must match the authenticated user's ID.
+ *                  If `userId` is not provided, authentication is required to derive the user ID from the token.
  *     requestBody:
  *       required: false
  *       content:
@@ -122,7 +168,7 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *                   type: string
  *                   example: "User ID is required if no authentication token is provided."
  *       401:
- *         description: Unauthorized - Invalid or expired authentication token provided.
+ *         description: Unauthorized - Invalid or expired authentication token provided, or authentication required to specify userId.
  *         content:
  *           application/json:
  *             schema:
@@ -131,6 +177,16 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *                 message:
  *                   type: string
  *                   example: "Unauthorized: Invalid token."
+ *       403:
+ *         description: Forbidden - Authenticated user attempted to pre-warm a sandbox for another user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Forbidden: You can only pre-warm your own sandbox."
  *       500:
  *         description: Internal Server Error - An unexpected error occurred on the server.
  *         content:
@@ -144,7 +200,7 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *     security:
  *       - bearerAuth: []
  */
-router.post('/prewarm', optionalAuth(), SwarmController.prewarmUserSandbox);
+router.post('/prewarm', optionalAuth(), validatePrewarmRequest, SwarmController.prewarmUserSandbox);
 
 /**
  * Exposes the Swarm API routes.
