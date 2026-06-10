@@ -155,16 +155,18 @@ const TenantMemberSchema = new mongoose.Schema(
 TenantMemberSchema.index({ userId: 1, tenantId: 1 }, { unique: true });
 
 /**
- * Index for efficiently finding all tenants a specific user is a member of, filtered by status.
+ * OPTIMIZATION: Index for efficiently finding all tenants a specific user is a member of,
+ * filtered by status and sorted by last access time. This covers the query in `getUserTenants`.
  * @index
  */
-TenantMemberSchema.index({ userId: 1, status: 1 });
+TenantMemberSchema.index({ userId: 1, status: 1, lastAccessedAt: -1 });
 
 /**
- * Index for efficiently finding all members of a specific tenant, filtered by status.
+ * OPTIMIZATION: Index for efficiently finding all members of a specific tenant,
+ * filtered by status and sorted by creation time. This covers the query in `getTenantMembers`.
  * @index
  */
-TenantMemberSchema.index({ tenantId: 1, status: 1 });
+TenantMemberSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 
 /**
  * INTEGRATION: Index for efficiently finding all members managed by a specific manager.
@@ -197,11 +199,15 @@ TenantMemberSchema.statics.isMember = async function (userId, tenantId) {
  * @returns {Promise<{role: string, permissions: string[]}|null>} - An object containing the role and permissions if the user is an active member, otherwise null.
  */
 TenantMemberSchema.statics.getUserRole = async function (userId, tenantId) {
+  // OPTIMIZATION: Use .lean() for read-only queries. It returns a plain JavaScript object
+  // instead of a full Mongoose document, which is much faster and uses less memory.
   const membership = await this.findOne({
     userId,
     tenantId,
     status: 'active',
-  }).select('role permissions');
+  })
+    .select('role permissions')
+    .lean();
 
   return membership;
 };
@@ -215,12 +221,15 @@ TenantMemberSchema.statics.getUserRole = async function (userId, tenantId) {
  *   populated with selected tenant details (name, slug, subdomain, plan, status).
  */
 TenantMemberSchema.statics.getUserTenants = async function (userId) {
+  // OPTIMIZATION: Use .lean() for read-only list queries. It significantly improves performance
+  // by returning plain JavaScript objects, which is ideal for sending data to the client.
   return this.find({
     userId,
     status: 'active',
   })
     .populate('tenantId', 'name slug subdomain plan status')
-    .sort({ lastAccessedAt: -1 });
+    .sort({ lastAccessedAt: -1 })
+    .lean();
 };
 
 /**
@@ -232,6 +241,9 @@ TenantMemberSchema.statics.getUserTenants = async function (userId) {
  *   populated with selected user details (email, firstName, lastName, avatar), inviter details, and manager details.
  */
 TenantMemberSchema.statics.getTenantMembers = async function (tenantId) {
+  // OPTIMIZATION: Use .lean() for complex, read-only list queries with multiple populates.
+  // This avoids the overhead of Mongoose document instantiation for each member and their
+  // populated fields, resulting in a major performance gain.
   return this.find({
     tenantId,
     status: { $in: ['active', 'invited'] },
@@ -247,7 +259,8 @@ TenantMemberSchema.statics.getTenantMembers = async function (tenantId) {
         select: 'email firstName lastName',
       },
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 };
 
 /**

@@ -27,6 +27,10 @@ const __dirname = path.dirname(__filename);
  *   - chat: Condense question chat (best for conversational follow-ups)
  */
 
+/**
+ * An array of available LlamaIndex engine identifiers.
+ * @type {string[]}
+ */
 const ENGINES = [
   'vector', 'hybrid', 'fullspectrum', 'selfcorrect',
   'cached', 'objectagent', 'chat',
@@ -37,9 +41,23 @@ const ENGINES = [
 // The path C:\Users\hyper\workspace\Alti.Assistant\Alti.Assistant.Backend\src\app\modules\llamaindex\llamaindex.queryRouter.js
 // requires going up 4 levels from 'src/app/modules/llamaindex' to reach 'Alti.Assistant.Backend',
 // then navigating into 'storage/ragsystem/telemetry'.
+/**
+ * The directory where telemetry and router state data is stored.
+ * @type {string}
+ */
 const TELEMETRY_DIR = path.resolve(__dirname, '../../../../storage/ragsystem/telemetry');
+
+/**
+ * The file path for persisting the router's learned state.
+ * @type {string}
+ */
 const ROUTER_STATE_FILE = path.join(TELEMETRY_DIR, 'router_state.json');
 
+/**
+ * Defines profiles for classifying queries based on keywords.
+ * Each profile has a set of keywords and a list of preferred engines.
+ * @type {Object<string, {keywords: string[], preferredEngines: string[]}>}
+ */
 const DOCUMENT_PROFILES = {
   technical: { keywords: ['code', 'api', 'function', 'class', 'module', 'error', 'debug'], preferredEngines: ['vector', 'selfcorrect'] },
   research: { keywords: ['study', 'research', 'paper', 'analysis', 'findings', 'methodology', 'hypothesis'], preferredEngines: ['fullspectrum', 'hybrid'] },
@@ -49,12 +67,25 @@ const DOCUMENT_PROFILES = {
   structured: { keywords: ['table', 'column', 'row', 'field', 'record', 'schema', 'database'], preferredEngines: ['objectagent', 'vector'] },
 };
 
+/**
+ * A smart query router that uses historical telemetry and document characteristics
+ * to automatically route queries to the optimal LlamaIndex engine.
+ */
 class QueryRouterService {
+  /**
+   * Initializes the QueryRouterService, loading any persisted state from disk.
+   */
   constructor() {
-    /** @type {Map<string, Object>} Engine performance scores per document profile */
+    /**
+     * Stores engine performance scores, keyed by `profile:engine`.
+     * @type {Map<string, Object>}
+     */
     this.performanceScores = new Map();
     // Bug Fix: Removed unused 'this.cacheHits' property. Cache hit counts are stored within performanceScores.
-    /** @type {number} Total routed queries */
+    /**
+     * The total number of queries routed by this service instance.
+     * @type {number}
+     */
     this.totalRouted = 0;
 
     // _loadState remains synchronous to ensure state is loaded before the first use
@@ -63,18 +94,17 @@ class QueryRouterService {
   }
 
   /**
-   * Route a query to the optimal engine based on:
-   * 1. Query profile classification (keyword matching)
-   * 2. Semantic Document Metadata lookup (topics, complexity)
-   * 3. Historical performance data (latency, quality)
+   * Routes a query to the optimal engine based on query profile, document metadata,
+   * and historical performance data.
    *
-   * @param {string} query - The user's query text
-   * @param {Object} [options]
-   * @param {string} [options.userId] - User ID for personalized routing
-   * @param {number} [options.documentCount] - Number of indexed documents
-   * @param {boolean} [options.isFollowUp] - Whether this is a follow-up question
-   * @param {string} [options.previousEngine] - Engine used for the previous query
-   * @returns {Promise<Object>} Routing decision with engine, confidence, and reasoning
+   * @param {string} query - The user's query text.
+   * @param {object} [options={}] - Optional parameters to refine routing.
+   * @param {string} [options.userId] - The ID of the user making the query, used for personalized routing based on their document corpus.
+   * @param {number} [options.documentCount] - The total number of documents indexed for the user.
+   * @param {boolean} [options.isFollowUp] - Flag indicating if this is a follow-up question in a conversation.
+   * @param {string} [options.previousEngine] - The engine used for the previous query in the conversation.
+   * @returns {Promise<object>} A routing decision object containing the chosen engine, confidence score, and reasoning.
+   * @throws {ApiError} Throws an ApiError if an unexpected internal error occurs during routing.
    */
   async route(query, options = {}) {
     // PATCH: Added a top-level try/catch block to handle any unexpected errors during routing logic.
@@ -94,11 +124,7 @@ class QueryRouterService {
       } catch (dbError) {
         // PATCH: Improved logging for non-fatal DB errors. Log the full error object for better diagnostics.
         // This is a non-fatal error for routing; log as a warning and continue with degraded accuracy.
-        // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
-        logger.warn({
-          message: `QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`,
-          error: dbError,
-        });
+        logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`, { error: dbError });
       }
 
       // Step 1: Classify query profile and analyze user document corpus in one pass
@@ -134,40 +160,29 @@ class QueryRouterService {
         scores,
       };
 
-      // GCP-AUDIT: Deconstructed log message into a structured JSON object for better filterability in GCP Cloud Logging.
-      logger.info({
-        message: `QueryRouter: Routed query to ${bestEngine}`,
-        query: query.substring(0, 50),
-        engine: bestEngine,
-        profile: profile.name,
-        confidence: decision.confidence,
-      });
+      logger.info(`QueryRouter: "${query.substring(0, 50)}..." → ${bestEngine} (${profile.name}, conf=${decision.confidence})`);
 
       return decision;
     } catch (error) {
       // PATCH: Catch any unexpected errors during the routing logic.
-      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
-      logger.error({
-        message: 'QueryRouter: an unexpected error occurred during query routing.',
-        query,
-        options,
-        error,
-      });
+      logger.error('QueryRouter: an unexpected error occurred during query routing.', { query, options, error });
       // PATCH: Normalize the error for the controller/service layer to ensure a consistent error response format.
       throw new ApiError(500, 'Failed to route query due to an internal system error.');
     }
   }
 
   /**
-   * Record the outcome of a routed query for learning.
+   * Records the performance outcome of a routed query to train the router for future decisions.
+   * This method updates the in-memory performance scores and periodically persists them to disk.
    *
-   * @param {string} engine - Engine that was used
-   * @param {string} profile - Document profile classification
-   * @param {Object} metrics - Performance metrics
-   * @param {number} metrics.latencyMs
-   * @param {number} [metrics.qualityScore] - 0-1 score
-   * @param {boolean} [metrics.cacheHit]
-   * @param {boolean} [metrics.success]
+   * @param {string} engine - The engine that was used for the query.
+   * @param {string} profile - The query profile classification (e.g., 'technical', 'research').
+   * @param {object} metrics - Performance metrics from the query execution.
+   * @param {number} metrics.latencyMs - The time taken to execute the query in milliseconds.
+   * @param {number} [metrics.qualityScore] - An optional quality score from 0 to 1.
+   * @param {boolean} [metrics.cacheHit] - An optional flag indicating if the result was served from a cache.
+   * @param {boolean} [metrics.success] - An optional flag indicating if the query was successful. Defaults to true.
+   * @returns {void}
    */
   recordOutcome(engine, profile, metrics) {
     const key = `${profile}:${engine}`;
@@ -193,15 +208,15 @@ class QueryRouterService {
       // Call _saveState asynchronously without awaiting, but attach a .catch() handler
       // to prevent unhandled promise rejections and avoid blocking the event loop.
       // PATCH: Improved log message and ensures the full error object is captured.
-      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
-      this._saveState().catch(err => logger.error({ message: 'QueryRouter: background state persistence failed.', error: err }));
+      this._saveState().catch(err => logger.error('QueryRouter: background state persistence failed.', { error: err }));
     }
   }
 
   /**
-   * Get routing analytics.
+   * Retrieves a summary of routing analytics, including total queries routed,
+   * performance per engine, and the distribution of query profiles.
    *
-   * @returns {Object} Analytics summary
+   * @returns {object} An object containing analytics data.
    */
   getAnalytics() {
     const analytics = {
@@ -249,8 +264,12 @@ class QueryRouterService {
   }
 
   /**
-   * Classify a query and analyze the user's document corpus.
+   * Classifies a query into a profile and analyzes the user's document corpus
+   * to extract key characteristics in a single pass.
    * @private
+   * @param {string} queryLower - The lowercased user query.
+   * @param {Array<object>} userMetadataList - A list of document metadata objects for the user.
+   * @returns {{profile: object, docCharacteristics: object}} An object containing the determined profile and document characteristics.
    */
   _classifyProfile(queryLower, userMetadataList) {
     // OPTIMIZATION: This function now iterates over userMetadataList only ONCE to extract all
@@ -307,8 +326,15 @@ class QueryRouterService {
   }
 
   /**
-   * Score an engine for a given query profile and context.
+   * Calculates a score for a given engine based on the query profile, context,
+   * historical performance, and document characteristics.
    * @private
+   * @param {string} engine - The engine to score.
+   * @param {object} profile - The classified query profile.
+   * @param {string} queryLower - The lowercased user query.
+   * @param {object} options - The original routing options.
+   * @param {object} docCharacteristics - Pre-calculated characteristics of the user's document corpus.
+   * @returns {number} The calculated score for the engine.
    */
   _scoreEngine(engine, profile, queryLower, options, docCharacteristics) {
     let score = 0;
@@ -352,8 +378,13 @@ class QueryRouterService {
   }
 
   /**
-   * Build a human-readable reasoning string.
+   * Constructs a human-readable string explaining the routing decision.
    * @private
+   * @param {string} engine - The chosen engine.
+   * @param {object} profile - The classified query profile.
+   * @param {object} options - The original routing options.
+   * @param {object} docCharacteristics - Pre-calculated characteristics of the user's document corpus.
+   * @returns {string} A semicolon-separated string of reasons for the routing choice.
    */
   _buildReasoning(engine, profile, options, docCharacteristics) {
     const parts = [];
@@ -382,8 +413,11 @@ class QueryRouterService {
   }
 
   /**
-   * Load persisted router state.
+   * Loads the router's state from a JSON file on disk.
+   * This is a synchronous operation performed in the constructor to ensure
+   * the state is ready before any routing occurs.
    * @private
+   * @returns {void}
    */
   _loadState() {
     try {
@@ -395,26 +429,20 @@ class QueryRouterService {
           this.performanceScores = new Map(Object.entries(data.performanceScores));
         }
         this.totalRouted = data.totalRouted || 0;
-        // GCP-AUDIT: Deconstructed log message into a structured JSON object for better filterability in GCP Cloud Logging.
-        logger.info({
-          message: 'QueryRouter: loaded state',
-          entryCount: this.performanceScores.size,
-        });
+        logger.info(`QueryRouter: loaded state — ${this.performanceScores.size} profile:engine entries`);
       }
     } catch (error) {
       // PATCH: Improved logging to include the full error object for better diagnostics in GCP/structured logging.
       // This is a non-fatal warning as the service can start with a fresh state.
-      // GCP-AUDIT: Switched to single-object structured logging for GCP Cloud Logging compatibility.
-      logger.warn({
-        message: 'QueryRouter: failed to load state, starting fresh. State file might be corrupted or inaccessible.',
-        error,
-      });
+      logger.warn('QueryRouter: failed to load state, starting fresh. State file might be corrupted or inaccessible.', { error });
     }
   }
 
   /**
-   * Persist router state to disk.
+   * Persists the current router state (performance scores, total routed count) to a JSON file.
+   * This is an asynchronous operation to avoid blocking the event loop.
    * @private
+   * @returns {Promise<void>}
    */
   async _saveState() {
     // PATCH: Removed the try/catch block. This method now throws on failure, allowing the caller
@@ -432,9 +460,12 @@ class QueryRouterService {
 
     // Use async writeFile to prevent blocking the event loop. Throws on error.
     await fs.promises.writeFile(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
-    // GCP-AUDIT: Switched to single-object structured logging for consistency.
-    logger.info({ message: 'QueryRouter: state persisted' });
+    logger.info('QueryRouter: state persisted');
   }
 }
 
+/**
+ * A singleton instance of the QueryRouterService.
+ * @type {QueryRouterService}
+ */
 export const queryRouterService = new QueryRouterService();
