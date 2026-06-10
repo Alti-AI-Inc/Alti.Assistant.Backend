@@ -1,5 +1,16 @@
 import httpStatus from 'http-status';
+// GCP Pub/Sub client for asynchronous task offloading.
+import { PubSub } from '@google-cloud/pubsub';
 import { TemporalCatalogService } from './temporal-catalog.service.js';
+
+// Initialize the GCP Pub/Sub client.
+// In a production environment, the client will automatically use the service account
+// credentials of the environment (e.g., Cloud Run, GKE, GCE).
+const pubSubClient = new PubSub();
+
+// The name of the Pub/Sub topic to which sync requests will be published.
+// It's recommended to configure this via an environment variable.
+const temporalSyncTopicName = process.env.TEMPORAL_SYNC_TOPIC || 'temporal-catalog-sync-requests';
 
 /**
  * @typedef {object} Repository
@@ -182,25 +193,28 @@ const getStats = async (req, res, next) => {
  * @swagger
  * /v1/temporal/sync:
  *   post:
- *     summary: Synchronize the temporal catalog.
- *     description: Triggers a synchronization process to update the temporal catalog with the latest data from external sources.
+ *     summary: Asynchronously trigger a temporal catalog synchronization.
+ *     description: >
+ *       Initiates a background job to synchronize the temporal catalog with the latest data from external sources.
+ *       This is a long-running process that is offloaded via GCP Pub/Sub. The API returns immediately with a 202 Accepted status.
  *     tags:
  *       - Temporal Catalog
  *     responses:
- *       200:
- *         description: Synchronization process successfully initiated or completed.
+ *       202:
+ *         description: Synchronization process successfully initiated.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SyncResult'
- *       400:
- *         description: Synchronization failed due to a specific issue.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SyncResult'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Synchronization process successfully initiated. Message ID: 123456789
  *       500:
- *         description: Internal server error during the synchronization process.
+ *         description: Internal server error or failure to publish the sync request.
  *         content:
  *           application/json:
  *             schema:
@@ -208,10 +222,12 @@ const getStats = async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: An unexpected error occurred during sync.
+ *                   example: Failed to initiate synchronization process.
  */
 /**
  * Handles the request to synchronize the temporal catalog.
+ * This is a long-running task, so it's offloaded to a background worker
+ * by publishing a message to a GCP Pub/Sub topic.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
@@ -220,13 +236,32 @@ const getStats = async (req, res, next) => {
  */
 const syncCatalog = async (req, res, next) => {
   try {
-    const result = await TemporalCatalogService.syncCatalog();
-    if (result.success) {
-      res.status(httpStatus.OK).json(result);
-    } else {
-      res.status(httpStatus.BAD_REQUEST).json(result);
-    }
+    // The synchronization process can be long-running.
+    // Instead of running it in-memory within the HTTP request-response cycle,
+    // we offload it by publishing a message to a GCP Pub/Sub topic.
+    // A separate, scalable worker service (e.g., a Cloud Function or Cloud Run service)
+    // will subscribe to this topic and perform the actual synchronization by calling
+    // TemporalCatalogService.syncCatalog().
+    const messageData = {
+      triggeredBy: 'api',
+      timestamp: new Date().toISOString()
+      // Add any other relevant context if needed
+    };
+    const messageBuffer = Buffer.from(JSON.stringify(messageData));
+
+    // Publishes the message to the pre-configured topic.
+    const messageId = await pubSubClient.topic(temporalSyncTopicName).publishMessage({ data: messageBuffer });
+
+    // Respond immediately to the client with 202 Accepted,
+    // indicating the request has been accepted for processing.
+    res.status(httpStatus.ACCEPTED).json({
+      success: true,
+      message: `Synchronization process successfully initiated. Message ID: ${messageId}`
+    });
   } catch (error) {
+    // If publishing to Pub/Sub fails, we treat it as a server error.
+    // It's crucial to have monitoring/logging here to catch such failures.
+    error.message = `Failed to publish sync request to Pub/Sub: ${error.message}`;
     next(error);
   }
 };
