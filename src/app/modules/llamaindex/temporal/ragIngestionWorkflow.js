@@ -7,15 +7,24 @@ import { ApiError } from '../../../core/ApiError.js';
  * resilient document loading, structured Markdown parsing, metadata extraction,
  * text-embedding-004 embedding generation, and pgvector RAG database synchronization.
  * Implements the transactional Saga pattern for compensating compensating rollbacks.
+ * This workflow is tenant-aware and enforces workspace-level usage limits.
  *
  * @param {string} filePath - Absolute path to the source file (local or GCS prefix).
  * @param {string} originalName - User-provided original filename.
- * @param {string} userId - User identifier for isolated storage workspace.
+ * @param {string} userId - User identifier for auditing and ownership.
  * @param {string} docId - Unique document identifier.
+ * @param {string} workspaceId - The identifier for the tenant workspace to ensure data isolation and limit enforcement.
  * @returns {Promise<object>} Ingestion execution report containing success status, docId, originalName, and a message.
- * @throws {ApiError} If any step of the ingestion process fails, or if the rollback compensation fails.
+ * @throws {ApiError} If any step of the ingestion process fails, if usage limits are exceeded, or if the rollback compensation fails.
  */
-export async function resilientRAGIngestionWorkflow(filePath, originalName, userId, docId) {
+export async function resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId) {
+  // Integration Fix: Validate that workspaceId is provided, as it's critical for multi-tenancy.
+  if (!workspaceId) {
+    // This is a fundamental logic error. The workflow should not have been started without a workspace context.
+    // Fail fast to prevent any potential data corruption or cross-tenant operations.
+    throw new ApiError(httpStatus.BAD_REQUEST, 'FATAL: workspaceId is required for RAG ingestion workflow.', true);
+  }
+
   let activities;
   
   // Safeguard: Check if running in mock offline/test environment
@@ -26,7 +35,12 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
     activities = await import('./ragIngestionActivities.js');
   } else {
     const { proxyActivities } = await import('@temporalio/workflow');
-    activities = proxyActivities({
+    // Integration Fix: Define a separate, shorter timeout for activities that should fail fast, like limit checks.
+    const fastActivities = proxyActivities({
+      startToCloseTimeout: '1 minute', // Shorter timeout for quick checks
+      retry: { maximumAttempts: 2 }
+    });
+    const longRunningActivities = proxyActivities({
       startToCloseTimeout: '60 minutes',
       retry: {
         initialInterval: '5s',
@@ -35,32 +49,47 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
         maximumAttempts: 3
       }
     });
+    activities = { ...fastActivities, ...longRunningActivities };
   }
 
+  let embeddingResult = null; // To hold the result for usage tracking
+
   try {
+    // Integration Fix (Step 0): Pre-flight check for usage and limits against the workspace.
+    // This prevents running expensive jobs if the user/workspace has exceeded their quota.
+    await activities.checkUsageAndLimitsActivity(workspaceId, filePath);
+
     // 1. Download/Load file, checking for absolute GCS/local paths
-    const loadResult = await activities.downloadAndLoadFileActivity(filePath, originalName, docId);
+    // Pass workspaceId for context, e.g., for scoped temporary storage.
+    const loadResult = await activities.downloadAndLoadFileActivity(filePath, originalName, docId, workspaceId);
     if (!loadResult.success) {
       throw new Error(`Temporal Ingestion failed during file loading step.`);
     }
 
     // 2. High-fidelity parsing to structured HTML/Markdown
-    const parseResult = await activities.parseToMarkdownActivity(filePath, originalName, docId);
+    const parseResult = await activities.parseToMarkdownActivity(filePath, originalName, docId, workspaceId);
     if (!parseResult.success) {
       throw new Error(`Temporal Ingestion failed during high-fidelity HTML-to-Markdown parsing step.`);
     }
 
     // 3. Structured chunking, Title/Keyword auto-extraction, and text-embedding-004 vector embedding
-    const embeddingResult = await activities.chunkAndEmbedActivity(filePath, originalName, docId, userId);
-    if (!embeddingResult.success) {
-      throw new Error(`Temporal Ingestion failed during embedding generation step.`);
+    // Integration Fix: Pass workspaceId to ensure embeddings are associated with the correct tenant.
+    embeddingResult = await activities.chunkAndEmbedActivity(filePath, originalName, docId, userId, workspaceId);
+    if (!embeddingResult.success || typeof embeddingResult.chunkCount === 'undefined') {
+      // The activity must return chunkCount for usage tracking.
+      throw new Error(`Temporal Ingestion failed during embedding generation step or did not return chunkCount.`);
     }
 
     // 4. pgvector database sync and Manifest DB commit
-    const commitResult = await activities.commitToVectorStoreActivity(filePath, originalName, docId, userId);
+    // Integration Fix: Pass workspaceId to ensure data is committed to the correct tenant's vector space.
+    const commitResult = await activities.commitToVectorStoreActivity(filePath, originalName, docId, userId, workspaceId);
     if (!commitResult.success) {
       throw new Error(`Temporal Ingestion failed during vector database commit step.`);
     }
+
+    // Integration Fix (Step 5): After a successful commit, update the usage metrics for the workspace.
+    // This is a critical step for billing and enforcing limits accurately.
+    await activities.updateUsageActivity(workspaceId, docId, embeddingResult.chunkCount);
 
     return {
       success: true,
@@ -75,6 +104,7 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
       message: `[Temporal RAG Ingestion Orchestrator] Critical ingestion failure. Initiating rollback compensation.`,
       docId,
       userId,
+      workspaceId, // Integration Fix: Add workspaceId to logging for better context.
       originalName,
       filePath,
       error: error.message,
@@ -83,13 +113,15 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
     
     try {
       // Attempt to execute the compensating activity to clean up resources
-      await activities.cleanupFailedIngestionActivity(filePath, originalName, docId, userId);
+      // Integration Fix: Pass workspaceId to ensure cleanup happens in the correct tenant context.
+      await activities.cleanupFailedIngestionActivity(filePath, originalName, docId, userId, workspaceId);
     } catch (purgeError) {
       // Log the failure of the cleanup activity itself, as this is a critical state
       logger.error({
         message: `[Temporal RAG Ingestion Orchestrator] FATAL: Failed to execute compensating rollback activity. Manual cleanup may be required.`,
         docId,
         userId,
+        workspaceId, // Integration Fix: Add workspaceId to logging for better context.
         originalName,
         filePath,
         error: purgeError.message,
@@ -102,7 +134,8 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
     // Normalize the error and re-throw it to fail the workflow execution.
     // The client that invoked this workflow will receive this normalized error.
     throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
+      // Integration Fix: If the error is due to limits, return a more appropriate status code.
+      error.message.includes('Usage limit exceeded') ? httpStatus.PAYMENT_REQUIRED : httpStatus.INTERNAL_SERVER_ERROR,
       `Resilient RAG Ingestion Workflow Failed: ${error.message}`,
       true, // isOperational
       error.stack
