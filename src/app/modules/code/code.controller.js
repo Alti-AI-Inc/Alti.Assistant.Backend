@@ -1,12 +1,23 @@
 import httpStatus from 'http-status';
+import { PubSub } from '@google-cloud/pubsub'; // GCP Pub/Sub import for asynchronous offloading
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { codeService } from './code.service.js';
-import { codeAssistantApp } from './code_assistant/workflow.js';
+// The AI workflow is no longer invoked directly in the controller.
+// It will be handled by a separate background worker.
+// import { codeAssistantApp } from './code_assistant/workflow.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { codeHelpers } from './code.helper.js';
+
+// Initialize the Google Cloud Pub/Sub client.
+// This should be a singleton instance in a real application.
+const pubSubClient = new PubSub();
+
+// Define the Pub/Sub topic name. It's best practice to use an environment variable.
+const codeAssistantTopicName =
+  process.env.CODE_ASSISTANT_TOPIC || 'code-assistant-requests';
 
 /**
  * @swagger
@@ -16,8 +27,7 @@ import { codeHelpers } from './code.helper.js';
  *     description: |
  *       Handles requests for code generation or assistance from both authenticated and guest users.
  *       For authenticated users, it checks monthly subscription limits before processing the request.
- *       It interacts with an AI assistant to generate or modify code based on the user's message,
- *       manages conversation history, and saves messages and responses.
+ *       This endpoint accepts the task and queues it for asynchronous processing. The final result should be retrieved via another endpoint or a notification system (e.g., WebSockets).
  *     tags:
  *       - Code
  *     security:
@@ -41,8 +51,8 @@ import { codeHelpers } from './code.helper.js';
  *                 description: Optional. The ID of an existing conversation to continue. If not provided, a new conversation is started.
  *                 example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
  *     responses:
- *       200:
- *         description: Code task completed successfully.
+ *       202:
+ *         description: Task accepted for processing.
  *         content:
  *           application/json:
  *             schema:
@@ -50,29 +60,21 @@ import { codeHelpers } from './code.helper.js';
  *               properties:
  *                 statusCode:
  *                   type: number
- *                   example: 200
+ *                   example: 202
  *                 success:
  *                   type: boolean
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Code task completed successfully"
+ *                   example: "Your request has been accepted and is being processed."
  *                 data:
  *                   type: object
  *                   properties:
- *                     response:
- *                       type: string
- *                       description: The AI assistant's response, potentially containing code.
- *                       example: "```javascript\n// Your generated code here\n```"
  *                     conversationId:
  *                       type: string
  *                       format: uuid
- *                       description: The ID of the conversation.
+ *                       description: The ID of the conversation for tracking the task.
  *                       example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
- *                     messageCount:
- *                       type: number
- *                       description: The total number of messages in the conversation after this interaction.
- *                       example: 4
  *                     userType:
  *                       type: string
  *                       enum: [guest, authenticated]
@@ -106,7 +108,7 @@ import { codeHelpers } from './code.helper.js';
 /**
  * Controller function to handle code generation and assistance tasks.
  * It manages both authenticated and guest user requests, checks subscription limits for authenticated users,
- * interacts with the AI code assistant, and persists the conversation.
+ * and queues the task for a background worker via GCP Pub/Sub.
  * @function performCodeTask
  * @async
  * @param {import('express').Request} req - The Express request object. It contains the user's message, optional conversationId, and user authentication details.
@@ -123,27 +125,16 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
   // Skip subscription check for guest users
   if (!isGuest) {
-    // Optimization: Add .lean() for read-only query to return a plain JavaScript object, reducing Mongoose overhead.
-    // Indexing Recommendation: For SubscriptionModel, consider creating an index on `userId`
-    // and a compound index on `{ userId: 1, createdAt: -1 }` to optimize this query and sort.
     const userSubscription = await SubscriptionModel.findOne({ userId })
       .sort({
         createdAt: -1,
       })
-      .lean(); // Added .lean()
+      .lean();
 
-    // Bug Fix: The previous logic for checking limits was flawed.
-    // `totalConversationWithConvId` was incorrectly derived from `getConversationById`
-    // which likely returns a conversation object, not a monthly message count.
-    // We need to get the actual monthly message count for the user.
-    // Also, `promptUsage` (from `userSubscription.usage`) represents the limit,
-    // and if no subscription, a default free tier limit should apply.
     const monthlyLimit = userSubscription
-      ? userSubscription.usage // Assuming 'usage' field stores the monthly limit
-      : codeService.getDefaultFreeTierLimit(); // Assuming this service method provides a default limit for non-subscribers
+      ? userSubscription.usage
+      : codeService.getDefaultFreeTierLimit();
 
-    // Optimization Note: If codeService.getMonthlyMessageCount performs a read-only DB query,
-    // consider adding .lean() within that function for similar performance benefits.
     const currentMonthlyUsage = await codeService.getMonthlyMessageCount(userId);
 
     if (currentMonthlyUsage >= monthlyLimit) {
@@ -173,11 +164,10 @@ export const performCodeTask = catchAsync(async (req, res) => {
   }
 
   const thread_id = conversationId || codeService.generateCodeConversationId();
+  let actualConversationId;
 
   try {
-    // Handle conversation creation/retrieval
-    // Optimization Note: If codeService.handleCodeConversation performs read-only DB queries,
-    // consider adding .lean() within that function.
+    // Perform initial synchronous database operations
     const conversation = await codeService.handleCodeConversation(
       userId,
       conversationId,
@@ -185,11 +175,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
       isGuest,
       req
     );
-    const actualConversationId = conversation.conversationId || thread_id;
+    actualConversationId = conversation.conversationId || thread_id;
 
-    // Add user message to conversation
-    // Optimization Note: If codeService.addCodeQueryMessage performs read-only DB queries,
-    // consider adding .lean() within that function.
     await codeService.addCodeQueryMessage(
       actualConversationId,
       userId,
@@ -198,86 +185,52 @@ export const performCodeTask = catchAsync(async (req, res) => {
       req
     );
 
-    // Bug Fix: The AI assistant needs the full conversation history for context.
-    // The previous implementation only sent the latest message.
-    // Assuming `codeService.getConversationHistory` retrieves messages in the format
-    // `{ role: 'user' | 'assistant', content: string }[]`.
-    // Indexing Recommendation: For the collection used by `codeService.getConversationHistory`,
-    // consider creating an index on `conversationId` to optimize retrieval of conversation history.
-    const conversationHistory =
-      await codeService.getConversationHistory(actualConversationId);
+    // REFACTOR: Instead of invoking the AI model in-process, we offload it to a background worker.
+    // This makes the API endpoint fast, responsive, and prevents it from tying up server resources
+    // or hitting timeout limits for long-running AI tasks.
 
-    const inputs = {
-      userInput: message, // The user's latest message
-      history: conversationHistory, // Now includes full conversation history
+    // 1. Prepare the payload for the background worker.
+    const taskPayload = {
+      conversationId: actualConversationId,
+      userId,
+      message, // The latest user message
+      isGuest,
+      // Pass any other necessary context for the worker.
+      // Avoid passing the full `req` object for security and serialization reasons.
     };
 
-    // This is an external AI model invocation, which is expected to be compute-intensive.
-    // Optimizations for this part would be within the 'codeAssistantApp' implementation itself
-    // or by scaling the underlying AI service.
-    const result = await codeAssistantApp.invoke(inputs, {
-      configurable: { thread_id: actualConversationId },
-    });
+    // 2. Publish a message to the GCP Pub/Sub topic.
+    const dataBuffer = Buffer.from(JSON.stringify(taskPayload));
+    const messageId = await pubSubClient
+      .topic(codeAssistantTopicName)
+      .publishMessage({ data: dataBuffer });
+
     logger.info(
-      `Code Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Queued code assistant task ${messageId} for conversation: ${actualConversationId}`
     );
 
-    const fullResponse = result.response;
-
-    // Add assistant response to conversation
-    // Optimization Note: If codeService.addCodeResultMessage performs read-only DB queries,
-    // consider adding .lean() within that function.
-    await codeService.addCodeResultMessage(
-      actualConversationId,
-      userId,
-      fullResponse,
-      {},
-      isGuest,
-      req
-    );
-
+    // 3. Respond immediately to the client with HTTP 202 Accepted.
+    // The client will need to poll for the result or receive it via a WebSocket/SSE connection.
     return sendResponse(res, {
-      statusCode: httpStatus.OK,
+      statusCode: httpStatus.ACCEPTED,
       success: true,
-      message: 'Code task completed successfully',
+      message: 'Your request has been accepted and is being processed.',
       data: {
-        ...codeHelpers.formatCodeResponse(
-          fullResponse,
-          actualConversationId,
-          conversation.messageCount + 2 // Assuming messageCount is before this interaction, +2 for user query + AI response
-        ),
+        conversationId: actualConversationId,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
       },
     });
   } catch (error) {
-    logger.error('Code Assistant Error:', error);
-
-    // Try to save error message to conversation if possible
-    const errorConversationId =
-      conversationId || codeService.generateCodeConversationId();
-    try {
-      if (errorConversationId && userId) {
-        // Optimization Note: If codeService.addErrorMessage performs read-only DB queries,
-        // consider adding .lean() within that function.
-        await codeService.addErrorMessage(
-          errorConversationId,
-          userId,
-          codeHelpers.formatErrorMessage(error, message),
-          error,
-          req
-        );
-      }
-    } catch (convError) {
-      logger.error('Failed to save error to conversation:', convError);
-    }
-
+    logger.error('Error queuing code assistant task:', error);
+    // This catch block now handles errors during the initial DB writes or publishing to Pub/Sub.
+    // Errors from the AI model itself will be handled by the background worker.
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'An internal error occurred while processing your code request',
+      message: 'An internal error occurred while queueing your code request',
       data: {
-        conversationId: errorConversationId,
+        conversationId: actualConversationId || thread_id,
         userType: isGuest ? 'guest' : 'authenticated',
       },
     });
@@ -378,10 +331,7 @@ const getCodeStats = catchAsync(async (req, res) => {
     });
   }
 
-  // Optimization Note: If codeService.getCodeStats performs read-only DB queries,
-  // consider adding .lean() within that function for similar performance benefits.
-  // Indexing Recommendation: For the collection(s) used by `codeService.getCodeStats`,
-  // consider creating an index on `userId` to optimize statistics retrieval.
+  // This is a fast, read-only operation and does not need to be offloaded.
   const stats = await codeService.getCodeStats(userId, req);
 
   sendResponse(res, {
