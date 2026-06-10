@@ -1,6 +1,16 @@
 import express from 'express';
+import { PubSub } from '@google-cloud/pubsub';
 import { TemporalController } from './temporal.controller.js';
 import auth from '../../middlewares/auth/auth.js';
+
+// Initialize Google Cloud Pub/Sub client.
+// Ensure your environment is authenticated, e.g., via GOOGLE_APPLICATION_CREDENTIALS
+// or by running on a GCP service with appropriate permissions.
+const pubSubClient = new PubSub();
+
+// The name of the Pub/Sub topic to which sync requests will be published.
+// It's recommended to configure this via environment variables.
+const syncTopicName = process.env.TEMPORAL_SYNC_TOPIC || 'temporal-catalog-sync-requests';
 
 /**
  * @constant {express.Router} router - The Express router instance for handling Temporal API routes.
@@ -110,8 +120,8 @@ router.get('/stats', auth(), TemporalController.getStats);
  * @swagger
  * /temporal/sync:
  *   post:
- *     summary: Initiate synchronization of the Temporal catalog.
- *     description: Triggers a synchronization process for the Temporal catalog. This operation updates the catalog with the latest information from all connected repositories, which might include new workflows, activities, or changes to existing ones. This can be a long-running operation. This endpoint requires JWT authentication.
+ *     summary: Request synchronization of the Temporal catalog.
+ *     description: Triggers an asynchronous background job to synchronize the Temporal catalog. This operation updates the catalog with the latest information from all connected repositories. Since this can be a long-running operation, the request is queued via Google Cloud Pub/Sub and processed by a background worker. This endpoint requires JWT authentication.
  *     tags:
  *       - Temporal
  *     security:
@@ -130,8 +140,8 @@ router.get('/stats', auth(), TemporalController.getStats);
  *           example:
  *             force: true
  *     responses:
- *       200:
- *         description: Synchronization process initiated successfully.
+ *       202:
+ *         description: Synchronization request accepted and queued for processing.
  *         content:
  *           application/json:
  *             schema:
@@ -139,17 +149,50 @@ router.get('/stats', auth(), TemporalController.getStats);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Temporal catalog synchronization initiated."
- *                 syncId:
+ *                   example: "Temporal catalog synchronization request accepted and queued for processing."
+ *                 messageId:
  *                   type: string
- *                   description: Optional ID for tracking the synchronization process.
- *                   example: "sync_abc123"
+ *                   description: The unique ID of the message published to the Pub/Sub topic.
+ *                   example: "1234567890123456"
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/sync', auth(), TemporalController.syncCatalog);
+router.post('/sync', auth(), async (req, res, next) => {
+  try {
+    // This is a long-running operation and must not be handled in-memory within the request-response cycle.
+    // We offload the synchronization task to a background worker via Google Cloud Pub/Sub.
+    const { force } = req.body;
+    const payload = {
+      force: force || false,
+      // Assuming the auth middleware attaches user information to the request object.
+      requestedBy: req.user ? req.user.id : 'unknown',
+      requestTimestamp: new Date().toISOString(),
+    };
+
+    const dataBuffer = Buffer.from(JSON.stringify(payload));
+
+    // Publish the message to the specified Pub/Sub topic.
+    // A separate background service (e.g., a Cloud Function, Cloud Run service)
+    // must be subscribed to this topic to perform the actual sync logic from TemporalController.syncCatalog.
+    const messageId = await pubSubClient.topic(syncTopicName).publishMessage({ data: dataBuffer });
+
+    // Respond immediately to the client with a 202 Accepted status,
+    // confirming the task has been successfully queued.
+    res.status(202).json({
+      message: 'Temporal catalog synchronization request accepted and queued for processing.',
+      messageId: messageId,
+    });
+  } catch (error) {
+    // Log the error and pass it to the Express error handling middleware.
+    console.error(`Failed to publish sync request to Pub/Sub topic '${syncTopicName}':`, error);
+    // Provide a user-friendly error message.
+    const serviceError = new Error('Failed to queue the synchronization task. Please try again later.');
+    serviceError.statusCode = 500;
+    next(serviceError);
+  }
+});
 
 /**
  * @exports {express.Router} temporalRoutes - The Express router containing all Temporal API routes.

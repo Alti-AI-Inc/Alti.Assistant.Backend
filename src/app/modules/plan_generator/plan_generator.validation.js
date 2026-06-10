@@ -3,9 +3,14 @@
  * It ensures that incoming data for conversational requests, plan generation, refinement, export,
  * conversation history retrieval, and brainstorming adheres to predefined structures and constraints.
  * These schemas are used by middleware to validate request bodies and parameters before processing.
+ * This file also defines and exports rate-limiting middleware to protect the API from abuse and DDOS attacks.
  */
 
 import * as zod from 'zod';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { createClient } from 'redis';
+
 const { z } = zod;
 
 /**
@@ -289,6 +294,115 @@ const brainstormSchema = z.object({
   }),
 });
 
+// --- Rate Limiting & DDOS Protection ---
+
+// NOTE: Ensure your Redis client is configured and connected in your main application entry point.
+// This is a placeholder for demonstration.
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+});
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
+// It's recommended to connect the client once in your app's startup logic.
+// await redisClient.connect();
+
+/**
+ * Creates a Redis store for the rate limiter.
+ * This allows for distributed rate limiting across multiple server instances.
+ */
+const redisStore = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+/**
+ * Generates a unique key for each request to track for rate limiting.
+ * It prioritizes the authenticated user's ID, falls back to a guest user ID from the body,
+ * and finally uses the request's IP address for anonymous users.
+ * This ensures fair usage limits per user rather than per IP, which is crucial for users behind a NAT.
+ * @param {import('express').Request} req - The Express request object.
+ * @returns {string} The identifier for the client.
+ */
+const keyGenerator = (req) => {
+  // Prioritize authenticated user ID (assuming it's set by an auth middleware)
+  if (req.user && req.user.id) {
+    return `user:${req.user.id}`;
+  }
+  // Fallback to userId in body for guest sessions (use with caution)
+  if (req.body && req.body.userId) {
+    return `guest:${req.body.userId}`;
+  }
+  // Fallback to IP address for anonymous users
+  return `ip:${req.ip}`;
+};
+
+/**
+ * A dynamic rate limit function that applies different limits for authenticated users vs. guests/IPs.
+ * @param {number} authenticatedLimit - The request limit for an authenticated user.
+ * @param {number} guestLimit - The request limit for a guest or IP address.
+ * @returns {Function} A function that returns the appropriate limit based on the request.
+ */
+const tieredLimit = (authenticatedLimit, guestLimit) => (req) =>
+  req.user && req.user.id ? authenticatedLimit : guestLimit;
+
+/**
+ * Rate limiter for computationally expensive AI-driven operations like plan generation,
+ * refinement, and brainstorming. This is a strict limit to prevent abuse and control costs.
+ */
+const aiLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: tieredLimit(20, 5), // 20 requests per hour for authenticated users, 5 for guests/IPs
+  keyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many AI-intensive requests. Please try again after an hour.',
+  },
+});
+
+/**
+ * Rate limiter for standard conversational/chat interactions.
+ * Allows for more frequent requests than heavy AI tasks but prevents spamming.
+ */
+const chatLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: tieredLimit(100, 30), // 100 requests per 15 mins for authenticated users, 30 for guests/IPs
+  keyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'You are sending messages too quickly. Please slow down.',
+  },
+});
+
+/**
+ * Rate limiter for resource-intensive operations like exporting files (e.g., PDF generation).
+ */
+const exportLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: tieredLimit(10, 3), // 10 exports per hour for authenticated users, 3 for guests/IPs
+  keyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many export requests. Please try again after an hour.' },
+});
+
+/**
+ * Rate limiter for light, data-retrieval endpoints like fetching conversation history.
+ * This is more lenient but still protects against rapid, repeated requests.
+ */
+const dataLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: tieredLimit(200, 50), // 200 requests per 5 mins for authenticated users, 50 for guests/IPs
+  keyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many data requests. Please try again later.' },
+});
+
 /**
  * @typedef {object} PlanGeneratorValidation
  * @property {z.ZodObject<any, any, any, any, any>} conversationalRequestSchema - Schema for validating conversational requests.
@@ -310,4 +424,23 @@ export const PlanGeneratorValidation = {
   exportPlanSchema,
   getConversationHistorySchema,
   brainstormSchema,
+};
+
+/**
+ * @typedef {object} PlanGeneratorRateLimiters
+ * @property {Function} aiLimiter - Strict rate limiter for heavy AI tasks.
+ * @property {Function} chatLimiter - Moderate rate limiter for conversational endpoints.
+ * @property {Function} exportLimiter - Rate limiter for file export operations.
+ * @property {Function} dataLimiter - Lenient rate limiter for data retrieval endpoints.
+ */
+/**
+ * An object containing all rate-limiting middleware for the plan generator module.
+ * These should be applied to the corresponding routes to prevent API abuse.
+ * @type {PlanGeneratorRateLimiters}
+ */
+export const PlanGeneratorRateLimiters = {
+  aiLimiter,
+  chatLimiter,
+  exportLimiter,
+  dataLimiter,
 };
