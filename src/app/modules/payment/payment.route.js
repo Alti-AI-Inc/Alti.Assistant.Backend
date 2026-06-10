@@ -1,6 +1,11 @@
 import express from 'express';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { paymentController } from './payment.controller.js';
+// BUGFIX: Import authentication and authorization middlewares to secure endpoints.
+import { authenticate } from '../../middlewares/auth/authenticate.js';
+import { authorize } from '../../middlewares/auth/authorize.js';
+// BUGFIX: Import roles for clear and consistent role-based access control.
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Express router for handling payment and subscription-related routes.
@@ -13,7 +18,7 @@ const router = express.Router();
  * /api/v1/subscriptions/create-checkout-session:
  *   post:
  *     summary: Create a Stripe Checkout Session
- *     description: Initiates a new Stripe Checkout session for a user to subscribe to a plan. The user must be authenticated.
+ *     description: Initiates a new Stripe Checkout session for the authenticated user to subscribe to a plan.
  *     tags:
  *       - Payment
  *     security:
@@ -29,10 +34,8 @@ const router = express.Router();
  *                 type: string
  *                 description: The ID of the Stripe Price object for the subscription plan.
  *                 example: "price_1Hh2iJ2eZvKYlo2CqXqXqXqX"
- *               userId:
- *                 type: string
- *                 description: The ID of the user initiating the subscription.
- *                 example: "60d0fe4f5311236168a109ca"
+ *               // SECURITY-FIX: Removed userId from the request body to prevent IDOR vulnerabilities.
+ *               // The user ID will be derived from the authenticated user's session/token.
  *     responses:
  *       200:
  *         description: Successfully created checkout session.
@@ -57,13 +60,15 @@ const router = express.Router();
  */
 router
   .route('/create-checkout-session')
-  .post(extractTenantContext, paymentController.createCheckoutSession);
+  // SECURITY-FIX: Added authentication middleware. The controller must use req.user.id
+  // instead of a userId from the request body to prevent IDOR.
+  .post(extractTenantContext, authenticate, paymentController.createCheckoutSession);
 
 /**
  * @openapi
  * /api/v1/subscriptions/admin/all:
  *   get:
- *     summary: Get all subscriptions (Admin)
+ *     summary: Get all subscriptions (Admin/Super Admin)
  *     description: Retrieves a list of all subscriptions across all users within the tenant. Requires administrative privileges.
  *     tags:
  *       - Payment
@@ -85,22 +90,33 @@ router
  *       500:
  *         description: Internal Server Error.
  *     x-role-permissions:
- *       - required: ['Admin']
- *         description: Only users with the 'Admin' role can access this endpoint.
+ *       - required: ['super_admin', 'admin']
+ *         description: Only users with the 'super_admin' or 'admin' role can access this endpoint.
  *     x-multi-tenant-context:
  *       - required: true
  *         description: The tenant context is extracted to retrieve subscriptions for the correct tenant.
  */
 router
   .route('/admin/all')
-  .get(extractTenantContext, paymentController.getAllSubscriptions);
+  // SECURITY-FIX: Added authentication and role-based authorization.
+  // Only super_admins and admins can access all tenant subscriptions.
+  .get(
+    extractTenantContext,
+    authenticate,
+    authorize([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
+    paymentController.getAllSubscriptions
+  );
 
 /**
  * @openapi
  * /api/v1/subscriptions/{userId}:
  *   get:
  *     summary: Get subscriptions for a specific user
- *     description: Retrieves the subscription details for a specific user. An admin can retrieve any user's subscription, while a regular user can only retrieve their own.
+ *     description: >
+ *       Retrieves the subscription details for a specific user.
+ *       - A user can retrieve their own subscription.
+ *       - A manager can retrieve subscriptions for users they manage.
+ *       - An admin/super_admin can retrieve any user's subscription within the tenant.
  *     tags:
  *       - Payment
  *     security:
@@ -122,21 +138,26 @@ router
  *       401:
  *         description: Unauthorized - User is not authenticated.
  *       403:
- *         description: Forbidden - User is trying to access another user's data without admin rights.
+ *         description: Forbidden - User is trying to access another user's data without permission.
  *       404:
  *         description: Not Found - No subscriptions found for the user.
  *       500:
  *         description: Internal Server Error.
  *     x-role-permissions:
- *       - required: ['Admin']
- *         description: Required to access another user's subscription data. Regular users can only access their own.
+ *       - required: ['super_admin', 'admin', 'manager', 'user']
+ *         description: Access is conditional. A user can access their own data. A manager can access their team's data. An admin can access any user's data in the tenant.
  *     x-multi-tenant-context:
  *       - required: true
  *         description: The tenant context is extracted to ensure the user and their subscription belong to the correct tenant.
  */
 router
   .route('/:userId')
-  .get(extractTenantContext, paymentController.getSubscriptionsByUserId);
+  // SECURITY-FIX: Added authentication. The controller MUST perform authorization checks
+  // to prevent IDOR. It must verify that the authenticated user (req.user) is either:
+  // 1. The same as the requested userId (req.params.userId).
+  // 2. An admin/super_admin.
+  // 3. A manager responsible for the user specified by req.params.userId.
+  .get(extractTenantContext, authenticate, paymentController.getSubscriptionsByUserId);
 
 /**
  * @openapi
@@ -176,6 +197,8 @@ router
  */
 router
   .route('/webhook')
+  // This endpoint is public facing for Stripe, security is handled by verifying the
+  // Stripe signature in the controller, so no user authentication middleware is needed.
   .post(
     express.raw({ type: 'application/json' }),
     extractTenantContext,

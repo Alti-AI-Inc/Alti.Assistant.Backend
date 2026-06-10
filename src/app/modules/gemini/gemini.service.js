@@ -28,12 +28,13 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Configures the primary Gemini AI model for content generation.
- * Uses 'gemini-2.5-flash' with a low temperature for more deterministic responses.
+ * PLATFORM OWNER FEATURE: Model name and temperature are sourced from the global config,
+ * allowing system-wide changes without code deployment.
  * @type {import('@google/generative-ai').GenerativeModel}
  */
 const model = client.getGenerativeModel({
-  model: 'gemini-2.5-flash',
-  generationConfig: { temperature: 0.1 },
+  model: config.gemini.model_name || 'gemini-1.5-flash', // Fallback to a default model
+  generationConfig: { temperature: config.gemini.temperature || 0.2 }, // Fallback to a default temperature
 });
 
 /**
@@ -43,8 +44,6 @@ const model = client.getGenerativeModel({
  * ensuring consistent behavior and avoiding code duplication.
  *
  * @private
- * @async
- * @function _handleGeminiInteraction
  * @security User-Scoped Isolation: This operation is strictly isolated to the provided `userId`.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
@@ -83,12 +82,26 @@ const _handleGeminiInteraction = async (
       throw new ApiError(httpStatus.BAD_REQUEST, 'User is not associated with any tenant/workspace context');
     }
 
-    // Check individual user limits
-    if (user.promptLimit !== undefined && user.promptsUsed >= user.promptLimit) {
+    // PLATFORM OWNER FEATURE: Super Admins bypass all prompt limits for administrative and testing purposes.
+    if (
+      user.role !== 'super_admin' &&
+      user.promptLimit !== undefined &&
+      user.promptsUsed >= user.promptLimit
+    ) {
       throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'User prompt limit exceeded');
+    } else if (user.role === 'super_admin' && user.promptLimit !== undefined && user.promptsUsed >= user.promptLimit) {
+      // PLATFORM OWNER OVERSIGHT: Log when a super_admin bypasses their own nominal limit.
+      logger.warn({
+        message: 'Super Admin prompt limit bypass activated.',
+        severity: 'WARNING',
+        userId,
+        sessionId,
+        promptsUsed: user.promptsUsed,
+        promptLimit: user.promptLimit,
+      });
     }
 
-    // Check tenant-wide limits if applicable
+    // Check tenant-wide limits and status if applicable
     if (user.tenantId && user.role !== 'super_admin') {
       // Optimization: Fetch only required fields using .select() and use .lean() for a read-only, faster query.
       // Recommendation: Create a compound index on { tenantId: 1, role: 1 } in the 'users' collection for performance.
@@ -96,11 +109,18 @@ const _handleGeminiInteraction = async (
         tenantId: user.tenantId,
         role: 'admin',
       })
-        .select('tenantLimit tenantUsage')
+        .select('tenantLimit tenantUsage tenantStatus') // Fetch tenantStatus for suspension checks
         .lean();
 
-      if (tenantAdmin && tenantAdmin.tenantLimit !== undefined && tenantAdmin.tenantUsage >= tenantAdmin.tenantLimit) {
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded');
+      if (tenantAdmin) {
+        // PLATFORM OWNER FEATURE: Enforce tenant suspension. Blocks usage for users of a suspended tenant.
+        if (tenantAdmin.tenantStatus === 'suspended') {
+          throw new ApiError(httpStatus.FORBIDDEN, 'Workspace/Tenant is suspended. Please contact support.');
+        }
+        // Enforce tenant-wide usage limits.
+        if (tenantAdmin.tenantLimit !== undefined && tenantAdmin.tenantUsage >= tenantAdmin.tenantLimit) {
+          throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded');
+        }
       }
     }
 
@@ -194,7 +214,7 @@ const _handleGeminiInteraction = async (
       propagationPromises.push(
         UserModel.updateMany(
           { tenantId: user.tenantId, role: 'admin' },
-          { $inc: { tenantUsageCount: 1 } }
+          { $inc: { tenantUsage: 1 } } // Corrected field name to tenantUsage for consistency
         )
       );
       // GCP-compatible structured logging
@@ -206,7 +226,7 @@ const _handleGeminiInteraction = async (
       });
     }
 
-    // Propagate to Super Admin / Platform Owner
+    // PLATFORM OWNER OVERSIGHT: Propagate usage to Super Admin for global platform-wide statistics.
     // Recommendation: Ensure an index exists on { role: 1 } for this update operation.
     propagationPromises.push(
       UserModel.updateMany(
@@ -222,7 +242,7 @@ const _handleGeminiInteraction = async (
 
     const responseData = {
       prompt,
-      model: 'gemini-2.5-flash',
+      model: config.gemini.model_name || 'gemini-1.5-flash', // Log the configured model
       reply,
       total_time: result?.usage?.total_time || 0,
     };
@@ -277,57 +297,42 @@ const _handleGeminiInteraction = async (
 };
 
 /**
- * Processes a user's prompt through the primary Gemini AI model.
- * This service orchestrates the entire lifecycle of a user interaction:
- * 1. Validates user permissions, roles, and usage limits (both individual and tenant-wide).
- * 2. Retrieves and manages the conversation history for the given session.
- * 3. Enhances the prompt with real-time data via the `UnifiedSmartRouter`.
- * 4. Generates a response from the Gemini model.
- * 5. Increments user and tenant prompt usage counters.
- * 6. Persists the new prompt and reply to the database.
- * 7. Publishes the final response to a Redis channel for real-time updates.
+ * Handles interaction with the Gemini AI model, manages chat history, tracks prompt usage,
+ * and persists conversation data for a given session and user. This is the primary service.
  *
  * @async
  * @function geminiService
  * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
- *           Enforces role-based permissions and multi-tenant context boundaries.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
- * @throws {ApiError} Throws an `ApiError` for issues like user not found, permission denied,
- *                    usage limit exceeded, or internal failures in AI generation or database operations.
+ * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const geminiService = async (sessionId, prompt, userId) => {
   return _handleGeminiInteraction(sessionId, prompt, userId, model, true);
 };
 
 /**
- * Processes a user's prompt through a Gemini AI model for preview or alternative purposes.
- * This service follows the same logic as `geminiService` (permission checks, history management,
- * usage tracking, and persistence) but with one key difference: it **does not** publish the
- * final response to the Redis channel. This makes it suitable for scenarios where real-time
- * broadcasting is not required.
+ * Handles interaction with a Gemini AI model instance (currently identical to the primary model),
+ * manages chat history, tracks prompt usage, and persists conversation data for a given session and user.
+ * This service is functionally very similar to `geminiService` but does not publish to Redis.
  *
  * @async
  * @function gemini25PreviewService
  * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
- *           Enforces role-based permissions and multi-tenant context boundaries.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
- * @throws {ApiError} Throws an `ApiError` for issues like user not found, permission denied,
- *                    usage limit exceeded, or internal failures in AI generation or database operations.
+ * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const gemini25PreviewService = async (sessionId, prompt, userId) => {
   return _handleGeminiInteraction(sessionId, prompt, userId, model, false);
 };
 
 /**
- * A collection of services for interacting with the Google Gemini AI.
- * This includes the primary service for standard chat interactions and
- * specialized services for different use cases like previews.
+ * Exports an object containing various Gemini AI service functions.
  * @namespace GeminiAiService
  */
 export const GeminiAiService = {
