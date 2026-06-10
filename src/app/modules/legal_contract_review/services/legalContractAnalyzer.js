@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { PubSub } from '@google-cloud/pubsub';
+import { GoogleGenerativeAI } from '@google-generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import {
@@ -14,32 +15,83 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Analyzes the user's message to determine their primary intent and extract specific parameters
- * related to legal contract review. It leverages the Google Gemini AI model for natural language understanding.
- * Includes a fallback mechanism using keyword detection if the AI analysis fails or encounters an error.
+ * Google Cloud Pub/Sub client for offloading tasks.
+ */
+const pubSubClient = new PubSub();
+const intentAnalysisTopic = config.gcp_pubsub_intent_analysis_topic;
+
+/**
+ * Requests an asynchronous analysis of the user's message by publishing a task
+ * to a GCP Pub/Sub topic. This prevents the main server thread from being blocked
+ * by the potentially long-running AI API call, enabling better scalability.
  *
- * The AI prompt is carefully constructed to guide the model to identify:
- * 1. Primary intent (e.g., general_review, clause_analysis, risk_assessment).
- * 2. Specific parameters like review depth, contract type, and aspects to focus on.
- * It also incorporates recent conversation history and already collected parameters for better context.
+ * The actual analysis is performed by a separate background worker that subscribes
+ * to the topic. The application's architecture must be adapted to handle the
+ * asynchronous result (e.g., via webhooks, WebSockets, or another Pub/Sub topic for results).
  *
  * @param {string} userMessage - The current message from the user.
- * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation,
- *   each object having `role` (e.g., 'user', 'model') and `content` properties.
- * @param {Object} [existingParams={}] - An object containing parameters already collected or known
- *   from previous interactions. These are used to provide context to the AI.
- * @returns {Promise<Object>} A promise that resolves to an object containing:
- *   - `intent` {string}: The determined primary intent (e.g., 'general_review', 'clause_analysis').
- *     Defaults to `CONTRACT_REVIEW_INTENTS.GENERAL_REVIEW` on failure.
- *   - `confidence` {number}: A confidence score (0.0-1.0) for the determined intent.
- *     Defaults to 0.5 on failure.
- *   - `parameters` {Object}: An object containing extracted parameters like `reviewType`, `reviewDepth`,
- *     `contractType`, `aspects`, `additionalInstructions`. Null or empty values are cleaned.
- *   - `reasoning` {string}: A brief explanation for the determined intent and parameters.
- * @throws {Error} If there's a critical error during AI model interaction or response parsing
- *   that cannot be handled by the internal fallback mechanisms.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation.
+ * @param {Object} [existingParams={}] - An object containing parameters already collected.
+ * @param {string} [correlationId] - A unique identifier to track the request through the async workflow.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been successfully offloaded, including the Pub/Sub message ID.
+ * @throws {Error} If the Pub/Sub topic is not configured or if publishing fails.
  */
 const analyzeIntent = async (
+  userMessage,
+  conversationHistory = [],
+  existingParams = {},
+  correlationId = null
+) => {
+  if (!intentAnalysisTopic) {
+    const errorMessage =
+      'Pub/Sub topic for intent analysis is not configured.';
+    logger.error(errorMessage, { correlationId });
+    throw new Error('Application is not configured for background processing.');
+  }
+
+  const payload = {
+    userMessage,
+    conversationHistory,
+    existingParams,
+    correlationId,
+  };
+
+  const dataBuffer = Buffer.from(JSON.stringify(payload));
+
+  try {
+    const messageId = await pubSubClient
+      .topic(intentAnalysisTopic)
+      .publishMessage({ data: dataBuffer });
+    logger.info(
+      `[${correlationId}] Offloaded intent analysis task ${messageId} to topic ${intentAnalysisTopic}.`
+    );
+    // The caller receives a task ID, not the result.
+    // The system must have a way to deliver the result back to the user asynchronously.
+    return { status: 'PENDING', taskId: messageId };
+  } catch (error) {
+    logger.error(
+      `[${correlationId}] Failed to publish intent analysis task to ${intentAnalysisTopic}:`,
+      error
+    );
+    throw new Error('Failed to offload intent analysis task.');
+  }
+};
+
+/**
+ * [WORKER-ONLY] Performs the actual intent analysis using the Google Gemini AI model.
+ * This function contains the core logic that was previously in `analyzeIntent` and is
+ * intended to be executed by a background worker (e.g., a Cloud Function) that
+ * subscribes to the `intentAnalysisTopic`. It should not be called directly by the
+ * main web server.
+ *
+ * @param {string} userMessage - The current message from the user.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation.
+ * @param {Object} [existingParams={}] - An object containing parameters already collected.
+ * @returns {Promise<Object>} A promise that resolves to the analysis result object.
+ * @throws {Error} If there's a critical error during AI model interaction.
+ */
+const performIntentAnalysis = async (
   userMessage,
   conversationHistory = [],
   existingParams = {}
@@ -226,5 +278,6 @@ const needsMoreInfo = (intent, collectedParams, requiredParams) => {
  */
 export const legalContractAnalyzer = {
   analyzeIntent,
+  performIntentAnalysis, // Exported for use in the background worker service
   needsMoreInfo,
 };
