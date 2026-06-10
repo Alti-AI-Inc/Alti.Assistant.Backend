@@ -31,10 +31,28 @@ import {
 // for the findByConversationId method:
 // ConversationSchema.index({ conversationId: 1, userId: 1 });
 
+/**
+ * Composio SDK instance initialized with the organization API key from the configuration.
+ * This instance is used to interact with the Composio API for managing connected accounts and integrations.
+ * @type {Composio}
+ */
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
 
+/**
+ * Initiates the Composio authentication flow for a given application and user.
+ * It checks for existing authentication, creates a default AuthConfig if not found,
+ * and then initiates a new connection with Composio.
+ *
+ * @param {object} body - The request body containing authentication details.
+ * @param {string} body.app_name - The name of the application for which to initiate authentication.
+ * @param {string} body.user_id - The ID of the user initiating the authentication.
+ * @param {object} [req=null] - Optional Express request object, used for tenant context filtering.
+ * @returns {Promise<object>} An object containing either the existing `authConfig` if already authenticated,
+ *   or the `connectionUrl` details for a new authentication flow.
+ * @throws {Error} If the authentication initiation fails.
+ */
 const initiateComposioAuth = async (body, req = null) => {
   const { app_name, user_id } = body;
 
@@ -142,6 +160,14 @@ const initiateComposioAuth = async (body, req = null) => {
   }
 };
 
+/**
+ * Waits for a Composio connection to be established and updates the database
+ * with the connection status and tokens.
+ *
+ * @param {string} connectedAccountId - The ID of the connected account to wait for.
+ * @returns {Promise<object>} An object containing the established `connection` details.
+ * @throws {Error} If waiting for the connection fails.
+ */
 const waitForConnection = async (connectedAccountId) => {
   try {
     const connection =
@@ -183,12 +209,16 @@ const generateGuestUserId = () => {
 };
 
 /**
- * Handle Composio conversation creation or retrieval
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} message
- * @param {boolean} isGuest
- * @returns {Object} conversation object
+ * Handles the creation or retrieval of a Composio-related conversation.
+ * If a `conversationId` is provided, it attempts to find an existing conversation.
+ * Otherwise, it creates a new conversation with a generated ID and initial message.
+ *
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string} conversationId - The ID of an existing conversation, or null/undefined to create a new one.
+ * @param {string} message - The initial message for a new conversation, or a message to update the title if existing.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<object>} The conversation object (either newly created or retrieved).
+ * @throws {Error} If an existing conversation is not found or if there's an error during creation/retrieval.
  */
 const handleComposioConversation = async (
   userId,
@@ -238,11 +268,14 @@ const handleComposioConversation = async (
 };
 
 /**
- * Add user message to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} message
- * @param {boolean} isGuest
+ * Adds a user's query message to an existing Composio conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the message will be added.
+ * @param {string} userId - The ID of the user sending the message.
+ * @param {string} message - The content of the user's message.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<void>}
+ * @throws {Error} If an error occurs while adding the message to the conversation.
  */
 const addComposioQueryMessage = async (
   conversationId,
@@ -280,12 +313,15 @@ const addComposioQueryMessage = async (
 };
 
 /**
- * Add assistant response to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} response
- * @param {Object} metadata
- * @param {boolean} isGuest
+ * Adds an assistant's response message to an existing Composio conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the response will be added.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string} response - The content of the assistant's response.
+ * @param {object} [metadata={}] - Additional metadata to be stored with the message.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @returns {Promise<void>}
+ * @throws {Error} If an error occurs while adding the response message to the conversation.
  */
 const addComposioResponseMessage = async (
   conversationId,
@@ -325,9 +361,18 @@ const addComposioResponseMessage = async (
 };
 
 /**
- * Process Composio conversation using AI classification
- * @param {Object} inputs
- * @returns {Object} processing result
+ * Processes a Composio conversation query using the AI classification service.
+ * It takes user input, conversation context, and history to determine the appropriate
+ * action and application, then executes it.
+ *
+ * @param {object} inputs - The input object for processing the conversation.
+ * @param {string} inputs.query - The user's natural language query.
+ * @param {Array<object>} inputs.conversationContext - The context of the current conversation.
+ * @param {Array<object>} inputs.history - The historical messages of the conversation.
+ * @param {string} inputs.userId - The ID of the user making the query.
+ * @param {string} inputs.conversationId - The ID of the current conversation.
+ * @returns {Promise<object>} An object containing the AI's response, metadata about the classification
+ *   (identified app, action, confidence), and the execution result.
  */
 const processComposioConversation = async (inputs) => {
   try {
@@ -377,6 +422,23 @@ const processComposioConversation = async (inputs) => {
   }
 };
 
+/**
+ * @typedef {object} ComposioService
+ * @property {function(object, object): Promise<object>} initiateComposioAuth - Initiates the Composio authentication flow.
+ * @property {function(string): Promise<object>} waitForConnection - Waits for a Composio connection to be established.
+ * @property {function(): string} generateComposioConversationId - Generates a unique ID for Composio conversations.
+ * @property {function(): string} generateGuestUserId - Generates a unique ID for guest users.
+ * @property {function(string, string, string, boolean): Promise<object>} handleComposioConversation - Creates or retrieves a Composio conversation.
+ * @property {function(string, string, string, boolean): Promise<void>} addComposioQueryMessage - Adds a user's query message to a conversation.
+ * @property {function(string, string, string, object, boolean): Promise<void>} addComposioResponseMessage - Adds an assistant's response message to a conversation.
+ * @property {function(object): Promise<object>} processComposioConversation - Processes a Composio conversation query using AI classification.
+ */
+
+/**
+ * Service module for interacting with Composio functionalities, including authentication,
+ * connection management, and conversation handling.
+ * @type {ComposioService}
+ */
 export const composioService = {
   initiateComposioAuth,
   waitForConnection,
