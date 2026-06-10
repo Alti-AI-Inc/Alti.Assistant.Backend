@@ -102,6 +102,14 @@ const getRepositories = async (req, res, next) => {
     const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
 
     const { query, license, language } = req.query;
+
+    // SECURITY FIX: Sanitize string inputs to prevent NoSQL injection.
+    // This removes characters like '$' and '.' which can be used to manipulate Mongoose queries.
+    // This is a defense-in-depth measure, complementing proper query construction in the service layer.
+    const sanitizedQuery = query ? String(query).replace(/[$.]/g, '') : undefined;
+    const sanitizedLicense = license ? String(license).replace(/[$.]/g, '') : undefined;
+    const sanitizedLanguage = language ? String(language).replace(/[$.]/g, '') : undefined;
+
     // Parse limit and page to integers, providing default values if not present or invalid.
     const limit = parseInt(req.query.limit, 10) || 10; // Default limit to 10 items per page
     const page = parseInt(req.query.page, 10) || 1; // Default page to 1
@@ -126,10 +134,10 @@ const getRepositories = async (req, res, next) => {
     // filter fields (e.g., { language: 1, sortBy: 1 }) could further
     // improve performance for specific query patterns.
     const result = await ComposioCatalogService.searchComposioCatalog(
-      query,
+      sanitizedQuery,
       {
-        license,
-        language,
+        license: sanitizedLicense,
+        language: sanitizedLanguage,
         limit,
         page,
         sortBy,
@@ -310,6 +318,18 @@ const importSubmodule = async (req, res, next) => {
       return res.status(httpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Repository name is required and must be a non-empty string.',
+      });
+    }
+
+    // SECURITY FIX: Add strict validation for the repoName format to prevent command injection.
+    // The service layer might use this string to execute a shell command (e.g., git).
+    // This regex ensures the name conforms to the "owner/repository" pattern and contains
+    // only safe characters, mitigating risks of command injection and path traversal.
+    const repoNameRegex = /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/;
+    if (!repoNameRegex.test(repoName)) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid repository name format. Expected "owner/repo-name" with safe characters.',
       });
     }
 

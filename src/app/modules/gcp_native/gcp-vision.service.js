@@ -1,19 +1,67 @@
+/**
+ * @file Service for interacting with the Google Cloud Vision API.
+ * Provides functionality to analyze images for text, labels, and content moderation.
+ * @module gcp-vision.service
+ */
+
 import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-// Initialize auth helper with vision scope
+/**
+ * Google Authentication client configured for the Google Cloud Platform scope,
+ * which includes the Vision API.
+ * @private
+ */
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
 /**
- * Analyzes an image buffer using Google Cloud Vision API.
- * Supports OCR, Safe Search (content moderation), label detection, landmark, and logo detection.
- * 
- * @param {Buffer} fileBuffer - File raw binary buffer
- * @param {Array<string>} features - List of Vision features (e.g., TEXT_DETECTION, SAFE_SEARCH_DETECTION, LABEL_DETECTION, LANDMARK_DETECTION, LOGO_DETECTION)
- * @returns {Promise<object>} Vision API response report
+ * @typedef {object} SafeSearchResult
+ * @property {string} adult - Likelihood of adult content ('UNKNOWN', 'VERY_UNLIKELY', 'UNLIKELY', 'POSSIBLE', 'LIKELY', 'VERY_LIKELY').
+ * @property {string} spoof - Likelihood of spoofed content.
+ * @property {string} medical - Likelihood of medical content.
+ * @property {string} violence - Likelihood of violent content.
+ * @property {string} racy - Likelihood of racy content.
+ */
+
+/**
+ * @typedef {object} VisionAnnotation
+ * @property {string} description - The description of the detected entity.
+ * @property {number} score - The confidence score of the detection (0 to 1).
+ */
+
+/**
+ * @typedef {object} LandmarkAnnotation
+ * @property {string} description - The description of the detected landmark.
+ * @property {number} score - The confidence score of the detection (0 to 1).
+ * @property {object} [location] - The latitude and longitude of the landmark.
+ * @property {number} location.latitude
+ * @property {number} location.longitude
+ */
+
+/**
+ * @typedef {object} VisionAnalysisResult
+ * @property {boolean} success - Indicates if the analysis was successful.
+ * @property {string} text - The extracted OCR text from the image.
+ * @property {SafeSearchResult} safeSearch - The content moderation analysis results.
+ * @property {VisionAnnotation[]} labels - A list of detected labels/tags for the image.
+ * @property {LandmarkAnnotation[]} landmarks - A list of detected landmarks.
+ * @property {VisionAnnotation[]} logos - A list of detected logos.
+ * @property {object} raw - The raw annotation result from the Google Vision API for the first response.
+ */
+
+/**
+ * Analyzes an image buffer using the Google Cloud Vision API.
+ * This function supports various features like Optical Character Recognition (OCR),
+ * Safe Search (content moderation), and detection of labels, landmarks, and logos.
+ *
+ * @param {Buffer} fileBuffer - The raw binary buffer of the image file.
+ * @param {string[]} [features=['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION']] - An array of Vision API features to apply.
+ *        Valid features include 'TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION', 'LANDMARK_DETECTION', 'LOGO_DETECTION', etc.
+ * @returns {Promise<VisionAnalysisResult>} A promise that resolves to a structured report of the image analysis.
+ * @throws {Error} If the API request fails or an error occurs during processing.
  */
 const analyzeImage = async (fileBuffer, features = ['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION']) => {
   try {
@@ -77,6 +125,10 @@ const analyzeImage = async (fileBuffer, features = ['TEXT_DETECTION', 'SAFE_SEAR
   }
 };
 
+/**
+ * Service object for Google Cloud Vision API operations.
+ * @namespace GcpVisionService
+ */
 export const GcpVisionService = {
   analyzeImage
 };
