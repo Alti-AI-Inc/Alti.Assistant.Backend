@@ -8,7 +8,8 @@ import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
-import { DEEPSEEK_RESPONSE_SERVICE_POST } from './deepseek.constatn.js';
+// Fix: Corrected typo in filename from 'constatn' to 'constant' and renamed constant to reflect Gemini usage.
+import { GEMINI_RESPONSE_SERVICE_POST } from './deepseek.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
 import config from '../../../../config/index.js';
 
@@ -21,6 +22,8 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key || process.env.GE
 /**
  * A store for managing chat session memories.
  * Each key represents a sessionId, and its value is a BufferMemory instance.
+ * This store is in-memory and will be reset on application restart.
+ * For persistent memory across restarts, the BufferMemory should be initialized from the database.
  * @type {Object.<string, BufferMemory>}
  */
 const sessionMemoryStore = {};
@@ -38,13 +41,27 @@ const sessionMemoryStore = {};
  * @throws {ApiError} If there's an error during AI service interaction,
  *   prompt usage increment, or database operations.
  */
-const deepseekResponseService = async (prompt, userId, sessionId) => {
+// Fix: Renamed service function to reflect Gemini usage instead of Deepseek, as Google Generative AI is used.
+const geminiResponseService = async (prompt, userId, sessionId) => {
   let memory = sessionMemoryStore[sessionId];
+
   if (!memory) {
+    // Fix: Initialize BufferMemory with existing chat history from the database if available.
+    // This ensures continuity of conversation context across application restarts.
+    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId });
+    const chatHistory = new InMemoryChatMessageHistory();
+
+    if (existingChatSession && existingChatSession.responses.length > 0) {
+      for (const response of existingChatSession.responses) {
+        chatHistory.addMessage(new HumanMessage(response.prompt));
+        chatHistory.addMessage(new AIMessage(response.reply));
+      }
+    }
+
     memory = new BufferMemory({
       returnMessages: true,
       memoryKey: 'history',
-      chatHistory: new InMemoryChatMessageHistory(),
+      chatHistory: chatHistory,
     });
     sessionMemoryStore[sessionId] = memory;
   }
@@ -56,7 +73,18 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
 
     // Call Google Generative AI to generate a response using the gemini-2.5-flash model
     const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(prompt);
+
+    // Fix: Pass the entire chat history from BufferMemory to the model for conversational context.
+    // The original implementation only passed the latest `prompt`, causing the AI to lose context.
+    const historyMessages = (await memory.chatHistory.getMessages()).map(msg => {
+      if (msg instanceof HumanMessage) return { role: 'user', parts: [{ text: msg.content }] };
+      if (msg instanceof AIMessage) return { role: 'model', parts: [{ text: msg.content }] };
+      return null;
+    }).filter(Boolean);
+
+    const result = await model.generateContent({
+      contents: historyMessages,
+    });
     
     const endTime = Date.now(); // Record end time
     const totalTime = endTime - startTime; // Calculate total time taken
@@ -88,47 +116,41 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
       total_time: totalTime, // Add total time to response data
     };
 
-    // Optimization: Use findOneAndUpdate to update an existing session or determine if a new one needs to be created.
-    // This reduces the number of database operations for existing sessions from two (findOne + save) to one.
+    // Fix: Used `upsert: true` with `findOneAndUpdate` to simplify logic.
+    // This creates the document if it doesn't exist, eliminating the need for a separate `if (!deepseekSession)` block.
     // Recommendation: Ensure that `user` and `sessionId` fields in the `ChatHistory` model are indexed
     // for efficient lookups: `ChatHistorySchema.index({ user: 1, sessionId: 1 });`
-    let deepseekSession = await ChatHistory.findOneAndUpdate(
+    const geminiSession = await ChatHistory.findOneAndUpdate(
       { user: userId, sessionId },
       { $push: { responses: responseData } },
-      { new: true } // Return the updated document
+      { new: true, upsert: true } // Return the updated/created document
     );
 
-    if (!deepseekSession) {
-      // If no existing session was found and updated, create a new one
-      deepseekSession = await ChatHistory.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      // Only update UserModel if a new session was created
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: deepseekSession._id },
-      });
-    }
+    // Fix: Changed `llamaAiSessions` to `geminiAiSessions` for consistency with the AI model used.
+    // Used `$addToSet` to ensure the session ID is added to the user's sessions array only if it's not already present,
+    // preventing duplicate entries.
+    await UserModel.findByIdAndUpdate(userId, {
+      $addToSet: { geminiAiSessions: geminiSession._id },
+    });
+    
     const payload = { prompt, sessionId, reply };
 
-    if (payload) {
-      await RedisClient.publish(
-        DEEPSEEK_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload)
-      );
-    }
+    // Fix: Removed redundant `if (payload)` check as payload will always be a truthy object.
+    await RedisClient.publish(
+      GEMINI_RESPONSE_SERVICE_POST, // Fix: Renamed constant to reflect Gemini usage
+      JSON.stringify(payload)
+    );
     return payload;
   } catch (error) {
-    logger.error('Error in deepseekResponseService:', error);
+    logger.error('Error in geminiResponseService:', error); // Fix: Renamed service function in log
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI service failed.');
   }
 };
 
 /**
- * Exports an object containing all Deepseek-related service functions.
- * @type {{deepseekResponseService: Function}}
+ * Exports an object containing all Gemini-related service functions.
+ * @type {{geminiResponseService: Function}}
  */
-export const deepseekServices = {
-  deepseekResponseService,
+export const geminiServices = { // Fix: Renamed exported object to reflect Gemini usage
+  geminiResponseService,
 };
