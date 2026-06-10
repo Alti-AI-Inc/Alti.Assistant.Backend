@@ -170,6 +170,8 @@ router.post(
   '/chat',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // BUG FIX: Added input validation for conversational query.
+  validateRequest(KnowledgeValidation.conversationalQuerySchema),
   knowledgeController.conversationalQuery
 );
 
@@ -182,6 +184,8 @@ router.post(
   '/query',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // BUG FIX: Added input validation for direct query.
+  validateRequest(KnowledgeValidation.queryKnowledgeSchema),
   knowledgeController.queryKnowledge
 );
 
@@ -194,6 +198,8 @@ router.post(
   '/search',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // BUG FIX: Added input validation for semantic search.
+  validateRequest(KnowledgeValidation.semanticSearchSchema),
   knowledgeController.semanticSearch
 );
 
@@ -205,6 +211,8 @@ router.get(
   '/conversations/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // BUG FIX: Added input validation for getting conversation history.
+  validateRequest(KnowledgeValidation.getConversationHistorySchema),
   knowledgeController.getConversationHistory
 );
 
