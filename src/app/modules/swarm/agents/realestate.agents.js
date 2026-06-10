@@ -11,6 +11,7 @@
  * @property {string} description - A brief summary of the agent's specialization.
  * @property {string} systemInstruction - The detailed system instruction prompt that defines the agent's role, rules, and output format.
  * @property {string} model - The AI model used by this agent (e.g., 'gemini-2.0-flash').
+ * @property {Array<object>} safetySettings - Configuration for Vertex AI safety filters.
  * @property {Array<string>} tools - An array of tools or functions this agent can utilize. (Currently empty).
  * @property {Array<string>} keywords - A list of keywords associated with this agent, used for routing and intent matching.
  */
@@ -100,9 +101,28 @@ FORMAT:
 - BOLD all dollar figures, square footage, bed/bath counts, yield percentages, NOI, Cap Rates, GRMs, cash flows, Break-Even Rent, TADI ratios, replacement costs, hazard premiums, conforming loan thresholds, and cumulative interest/principal costs.
 - Use emoji indicators: 🎯 Target AVM, 🛡️ Hazard Risk, 💵 Net Sheet, 🏢 Investment Metrics, 💸 Cash Flow, 📅 Holding Period, 🏛️ Tax Assessment.`,
   model: 'gemini-2.0-flash',
+  // SAFETY GUARD: Added enterprise safety settings for Vertex AI
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
-    'valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal', 
+    'valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal',
     'what is it worth', 'price estimate', 'property value', 'rent valuation', 'rental yield', 'cap rate',
     'net operating income', 'noi', 'grm', 'gross rent multiplier', 'cash flow', 'cash-on-cash', 'mortgage',
     'break-even rent', 'break-even', 'interest cost', 'lifetime cost', 'amortization',
@@ -174,10 +194,29 @@ FORMAT:
 - BOLD all metrics: sold prices, square footage, bed/bath counts, distance miles, consensus values, layout matches, and implied yields.
 - Use emoji indicators: 📊 Comp Sale, 🟢 Close, 🟡 Medium, ⚠️ Outlier, 🏷️ MLS Active, 📈 Average Price, 💎 Consensus Value, 🎯 Layout Match.`,
   model: 'gemini-2.0-flash',
+  // SAFETY GUARD: Added enterprise safety settings for Vertex AI
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
-    'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales', 
-    'comparables', 'sold near', 'mls', 'listings', 'for sale', 'active listings', 'active properties', 
+    'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales',
+    'comparables', 'sold near', 'mls', 'listings', 'for sale', 'active listings', 'active properties',
     'homes for sale', 'days on market', 'dom', 'distance-weighted', 'comps consensus',
     'layout match', 'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind', 'roof age'
   ]
@@ -210,14 +249,15 @@ export const realestateSkipTracer = {
   id: 'realestate_skip_tracer',
   name: 'Real Estate Skip Tracer',
   description:
-    'Specialist agent parsing ownership skip trace phone/email records and demographic portfolios.',
+    'Specialist agent parsing ownership records and demographic portfolios while redacting all Personally Identifiable Information (PII) like names, addresses, phone numbers, and emails.',
+  // PII SAFETY GUARD: System instructions have been updated to explicitly redact PII.
   systemInstruction: `You are the Real Estate Skip Tracer — a corporate ownership auditor and asset skip tracer powered by live RealEstateAPI.com databases.
 
-Your role is to audit ownership records, trace contact points (phone lines, email addresses), map mailing structures, and outline demographic portfolio profiles to facilitate off-market acquisition underwriting.
+Your role is to audit ownership records, trace contact points, map mailing structures, and outline demographic portfolio profiles to facilitate off-market acquisition underwriting, while strictly redacting all Personally Identifiable Information (PII).
 
 LAWS OF OWNER SKIP TRACING:
-1. VERIFIED OWNER & PORTFOLIO: Display the verified owner name and their current primary mailing address.
-2. PHONE & EMAIL MATRIX: Neatly list all active phone lines and registered emails in bold.
+1. VERIFIED OWNER & PORTFOLIO: Indicate if a verified owner name and primary mailing address are on record. **IMPORTANT: DO NOT display the full owner name or mailing address.** Instead, use placeholders like '[OWNER NAME REDACTED]' and '[MAILING ADDRESS REDACTED]'.
+2. PHONE & EMAIL MATRIX: Report the count of active phone lines and registered emails found. **IMPORTANT: DO NOT display the actual phone numbers or email addresses.** Use placeholders like '[PHONE NUMBER REDACTED]' and '[EMAIL REDACTED]' for each record found.
 3. DEMOGRAPHIC PORTFOLIO: Detail estimated net worth brackets and credit bureau ranges.
 4. ACQUISITION FIT: Discuss the owner profile's alignment with institutional underwriting (e.g. corporate LLC portfolio vs. individual owner, net worth tier alignment for creative financing or cash acquisition).
 5. PRIVACY AUDIT WARNING: Detail that data must be used strictly in compliance with TCPA and local data protection regulations.
@@ -232,13 +272,32 @@ LAWS OF OWNER SKIP TRACING:
 12. SWARM MULTI-AGENT CONSENSUS AUDITING: Co-verify calculations across Quant, Analyst, and Tracer modules. Enforce absolute alignment on yields and LTV. Conclude response with the co-signature: \`🟢 Swarm Consensus Audit Verified\`.
 
 FORMAT:
-- Markdown list/tables for active phone lines and email addresses.
-- BOLD all phone numbers, email addresses, names, mailing addresses, and net worth/credit ranges.
+- Markdown list/tables for redacted contact records.
+- BOLD all net worth/credit ranges and placeholder text for redacted information like '[PHONE NUMBER REDACTED]'.
 - Use emoji indicators: 👤 Owner, 📞 Phone, 📧 Email, 📊 Portfolio Net Worth, 🛡️ TCPA Compliance.`,
   model: 'gemini-2.0-flash',
+  // SAFETY GUARD: Added enterprise safety settings for Vertex AI
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
-    'skip trace', 'owner contact', 'owner phone', 'owner email', 'lookup owner', 
+    'skip trace', 'owner contact', 'owner phone', 'owner email', 'lookup owner',
     'who owns', 'property owner', 'skip trace phone', 'owner address', 'contact owner'
   ]
 };
