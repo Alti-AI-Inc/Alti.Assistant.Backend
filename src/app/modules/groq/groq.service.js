@@ -103,6 +103,7 @@ const GroqAiGetResponseAnonymousService = async (
   }
 
   // Fetch or create chat history document for the anonymous session
+  // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
   let chatHistoryDoc = await ChatHistory.findOne({ sessionId });
 
   if (!chatHistoryDoc) {
@@ -248,6 +249,7 @@ const getAiResponsesByUserIdService = async (userId) => {
  */
 const getAiResponsesBySession = async (id) => {
   // Optimization: Added .lean() for read-only query to improve performance
+  // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
   const sessionData = await ChatHistory.findOne({
     sessionId: id,
   }).lean(); // Added .lean()
@@ -275,6 +277,8 @@ const getAiResponsesBySession = async (id) => {
  */
 const deleteOneLlamaAiSession = async (objectId) => {
   // Optimization: Added .lean() for read-only query to improve performance
+  // Optimization Recommendation: If `ChatHistory` documents are frequently looked up or linked by a `user` field,
+  // ensure an index exists on `ChatHistory.user` for efficient queries.
   const userData = await ChatHistory.findOne({
     _id: objectId,
   }).lean(); // Added .lean()
