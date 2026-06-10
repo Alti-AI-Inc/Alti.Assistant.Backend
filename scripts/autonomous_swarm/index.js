@@ -82,7 +82,7 @@ for (const zoneId of Object.keys(zones)) {
   }
 }
 
-console.log(`Successfully spawned all 28 workers! Monitoring logs...`);
+console.log(`Successfully spawned all 32 workers! Monitoring logs...`);
 
 // Graceful cleanup
 process.on('SIGINT', () => {
