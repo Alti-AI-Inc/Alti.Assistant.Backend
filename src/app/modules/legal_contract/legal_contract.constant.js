@@ -1,4 +1,22 @@
+/**
+ * @fileoverview This file defines various constants and configurations related to the legal contract generation module.
+ * It includes settings for AI models, contract types, intents, jurisdictions, complexity levels, system prompts,
+ * response messages, and default parameters for contract creation.
+ */
+
 // Legal Contract Configuration
+/**
+ * @constant {object} LEGAL_CONTRACT_CONFIG - Configuration settings for the legal contract generation AI.
+ * @property {string} MODEL - The AI model to use for contract generation.
+ * @property {number} TEMPERATURE - The creativity/randomness of the AI's output. Lower values (e.g., 0.3) are preferred for precise legal language.
+ * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens the AI model can generate in a single response.
+ * @property {number} MAX_FILE_SIZE - The maximum allowed size for uploaded files (e.g., contract drafts) in bytes (10MB).
+ * @property {number} MAX_CACHED_TEXT_SIZE - The maximum size for text content that can be cached for processing in bytes (1MB).
+ * @property {string[]} SUPPORTED_MIME_TYPES - An array of MIME types for documents that the system can process.
+ * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions for documents that the system can process.
+ * @property {number} MAX_QUESTIONS - The maximum number of AI-generated questions to ask the user for contract details.
+ * @property {number} MIN_QUESTIONS - The minimum number of AI-generated questions to ask before proceeding with contract generation.
+ */
 export const LEGAL_CONTRACT_CONFIG = {
   MODEL: 'gemini-2.5-flash',
   TEMPERATURE: 0.3, // Lower temperature for more precise legal language
@@ -17,6 +35,22 @@ export const LEGAL_CONTRACT_CONFIG = {
 };
 
 // Contract types
+/**
+ * @constant {object} CONTRACT_TYPES - Defines the various types of legal contracts supported by the system.
+ * @property {string} EMPLOYMENT - Represents an employment contract.
+ * @property {string} NDA - Represents a Non-Disclosure Agreement.
+ * @property {string} SERVICE_AGREEMENT - Represents a service agreement.
+ * @property {string} LEASE - Represents a lease agreement.
+ * @property {string} SALES - Represents a sales agreement.
+ * @property {string} PARTNERSHIP - Represents a partnership agreement.
+ * @property {string} CONSULTING - Represents a consulting agreement.
+ * @property {string} FREELANCE - Represents a freelance contract.
+ * @property {string} LICENSE - Represents a license agreement.
+ * @property {string} VENDOR - Represents a vendor agreement.
+ * @property {string} LOAN - Represents a loan agreement.
+ * @property {string} INDEPENDENT_CONTRACTOR - Represents an independent contractor agreement.
+ * @property {string} GENERAL - Represents a general or unspecified contract type.
+ */
 export const CONTRACT_TYPES = {
   EMPLOYMENT: 'employment',
   NDA: 'nda',
@@ -34,6 +68,15 @@ export const CONTRACT_TYPES = {
 };
 
 // Contract intents
+/**
+ * @constant {object} CONTRACT_INTENTS - Defines the different intentions or actions a user might have regarding a contract.
+ * @property {string} CREATE_CONTRACT - User intends to create a new contract.
+ * @property {string} ANSWER_QUESTION - User is providing an answer to a previously asked question.
+ * @property {string} MODIFY_CONTRACT - User intends to modify an existing contract.
+ * @property {string} CLARIFICATION - User is seeking or providing clarification.
+ * @property {string} REQUEST_FILE - User is requesting to upload a file.
+ * @property {string} UNKNOWN - The user's intent could not be determined.
+ */
 export const CONTRACT_INTENTS = {
   CREATE_CONTRACT: 'create_contract',
   ANSWER_QUESTION: 'answer_question',
@@ -44,6 +87,15 @@ export const CONTRACT_INTENTS = {
 };
 
 // Contract jurisdictions
+/**
+ * @constant {object} JURISDICTIONS - Defines various legal jurisdictions applicable to contracts.
+ * @property {string} US_FEDERAL - United States Federal jurisdiction.
+ * @property {string} US_STATE - United States State-specific jurisdiction.
+ * @property {string} UK - United Kingdom jurisdiction.
+ * @property {string} EU - European Union jurisdiction.
+ * @property {string} INTERNATIONAL - International jurisdiction.
+ * @property {string} OTHER - Other or unspecified jurisdiction.
+ */
 export const JURISDICTIONS = {
   US_FEDERAL: 'us_federal',
   US_STATE: 'us_state',
@@ -54,6 +106,13 @@ export const JURISDICTIONS = {
 };
 
 // Contract complexity levels
+/**
+ * @constant {object} COMPLEXITY_LEVELS - Defines the different levels of complexity for contracts.
+ * @property {string} SIMPLE - A basic contract with standard terms.
+ * @property {string} STANDARD - A standard business contract.
+ * @property {string} DETAILED - A comprehensive contract with many clauses.
+ * @property {string} COMPLEX - A complex multi-party or specialized contract.
+ */
 export const COMPLEXITY_LEVELS = {
   SIMPLE: 'simple', // Basic contract with standard terms
   STANDARD: 'standard', // Standard business contract
@@ -62,10 +121,22 @@ export const COMPLEXITY_LEVELS = {
 };
 
 // Conversation configuration
+/**
+ * @constant {string} CONVERSATION_CATEGORY - The category identifier for legal contract related conversations.
+ */
 export const CONVERSATION_CATEGORY = 'legal_contract';
+/**
+ * @constant {string} CONVERSATION_MODEL - The AI model to use for general conversation within the legal contract module.
+ */
 export const CONVERSATION_MODEL = 'gemini-2.5-pro';
 
 // Output formats
+/**
+ * @constant {object} OUTPUT_FORMATS - Defines the supported output formats for generated contracts.
+ * @property {string} TEXT - Plain text format.
+ * @property {string} DOCX - Microsoft Word document format.
+ * @property {string} PDF - Portable Document Format.
+ */
 export const OUTPUT_FORMATS = {
   TEXT: 'text',
   DOCX: 'docx',
@@ -73,6 +144,19 @@ export const OUTPUT_FORMATS = {
 };
 
 // System prompts for different contract types
+/**
+ * @constant {object} SYSTEM_PROMPTS - A collection of system prompts used to guide the AI for different tasks and contract types.
+ * @property {string} QUESTION_GENERATOR - System prompt for the AI to generate essential questions for contract drafting.
+ * @property {string} [CONTRACT_TYPES.EMPLOYMENT] - System prompt for generating an employment contract.
+ * @property {string} [CONTRACT_TYPES.NDA] - System prompt for generating a Non-Disclosure Agreement.
+ * @property {string} [CONTRACT_TYPES.SERVICE_AGREEMENT] - System prompt for generating a service agreement.
+ * @property {string} [CONTRACT_TYPES.FREELANCE] - System prompt for generating a freelance contract.
+ * @property {string} [CONTRACT_TYPES.CONSULTING] - System prompt for generating a consulting agreement.
+ * @property {string} [CONTRACT_TYPES.LEASE] - System prompt for generating a lease agreement.
+ * @property {string} [CONTRACT_TYPES.PARTNERSHIP] - System prompt for generating a partnership agreement.
+ * @property {string} [CONTRACT_TYPES.SALES] - System prompt for generating a sales agreement.
+ * @property {string} [CONTRACT_TYPES.GENERAL] - System prompt for generating a general contract.
+ */
 export const SYSTEM_PROMPTS = {
   QUESTION_GENERATOR: `You are a legal expert AI assistant specialized in contract drafting. Your task is to analyze the user's request and any provided context to generate ESSENTIAL questions that MUST be answered before creating a legally sound contract.
 
@@ -200,6 +284,17 @@ Format the contract professionally with proper organization.`,
 };
 
 // Response messages
+/**
+ * @constant {object} RESPONSE_MESSAGES - Standardized response messages used by the legal contract module.
+ * @property {string} QUESTIONS_GENERATED - Message indicating that essential questions have been generated for the user.
+ * @property {string} CONTRACT_GENERATED - Message indicating that the contract has been generated, along with a disclaimer.
+ * @property {string} FILE_PROCESSED - Message indicating that an uploaded document has been reviewed.
+ * @property {string} INSUFFICIENT_INFO - Message indicating that more information is needed from the user.
+ * @property {string} ERROR_GENERATING - Message for when an error occurs during contract generation.
+ * @property {string} FILE_REQUIRED - Message prompting the user to upload relevant documents or provide details.
+ * @property {string} CLARIFICATION_NEEDED - Message indicating that clarification is required from the user.
+ * @property {string} DISCLAIMER - A legal disclaimer to be appended to AI-generated contracts.
+ */
 export const RESPONSE_MESSAGES = {
   QUESTIONS_GENERATED:
     'I need to ask you a few essential questions to create a proper legal contract. Please provide answers to help me draft the contract accurately.',
@@ -220,6 +315,16 @@ export const RESPONSE_MESSAGES = {
 };
 
 // Default parameters
+/**
+ * @constant {object} DEFAULT_PARAMS - Default parameters used when initiating a contract generation request.
+ * @property {string} contractType - The default type of contract to generate, using values from {@link CONTRACT_TYPES}.
+ * @property {string} complexity - The default complexity level for the contract, using values from {@link COMPLEXITY_LEVELS}.
+ * @property {string} jurisdiction - The default legal jurisdiction for the contract, using values from {@link JURISDICTIONS}.
+ * @property {string} outputFormat - The default output format for the generated contract, using values from {@link OUTPUT_FORMATS}.
+ * @property {boolean} includeBoilerplate - Flag indicating whether standard boilerplate clauses should be included by default.
+ * @property {Array<object>} questionsAsked - An array to track questions that have been asked to the user.
+ * @property {object} answersProvided - An object to store answers provided by the user to questions.
+ */
 export const DEFAULT_PARAMS = {
   contractType: CONTRACT_TYPES.GENERAL,
   complexity: COMPLEXITY_LEVELS.STANDARD,
@@ -231,6 +336,12 @@ export const DEFAULT_PARAMS = {
 };
 
 // Question tracking
+/**
+ * @constant {object} QUESTION_STATUS - Defines the possible statuses for a question in the contract generation flow.
+ * @property {string} PENDING - The question has been asked but not yet answered.
+ * @property {string} ANSWERED - The question has been answered by the user.
+ * @property {string} SKIPPED - The question was skipped by the user or deemed unnecessary.
+ */
 export const QUESTION_STATUS = {
   PENDING: 'pending',
   ANSWERED: 'answered',
