@@ -16,8 +16,8 @@ const { z } = zod;
 /**
  * @typedef {object} ConversationalRequestBody
  * @property {string} message - The user's message for the conversational interaction. Must be between 1 and 5000 characters.
- * @property {string} [conversationId] - Optional ID of an existing conversation to continue.
- * @property {string} [userId] - Optional ID of the user, primarily for guest users.
+ * @property {string} [conversationId] - Optional UUID of an existing conversation to continue.
+ * @property {string} [userId] - Optional UUID of the user, primarily for guest users.
  */
 /**
  * @typedef {object} ConversationalRequestSchema
@@ -34,10 +34,11 @@ const conversationalRequestSchema = z.object({
       .string({
         required_error: 'Message is required',
       })
+      .trim() // OPTIMIZATION: Trim whitespace from user input for better data quality and UX.
       .min(1, 'Message cannot be empty')
       .max(5000, 'Message too long'),
-    conversationId: z.string().optional(),
-    userId: z.string().optional(), // For guest users
+    conversationId: z.string().uuid('Invalid Conversation ID format').optional(), // VERIFICATION: Enforce UUID format for IDs to ensure data integrity.
+    userId: z.string().uuid('Invalid User ID format').optional(), // VERIFICATION: Enforce UUID format for guest user IDs.
   }),
 });
 
@@ -76,6 +77,7 @@ const generatePlanSchema = z.object({
       .string({
         required_error: 'Idea description is required',
       })
+      .trim() // OPTIMIZATION: Trim whitespace from user input.
       .min(10, 'Please provide a more detailed description of your idea')
       .max(5000, 'Idea description is too long'),
     planType: z
@@ -113,10 +115,14 @@ const generatePlanSchema = z.object({
       .optional(),
     constraints: z
       .object({
-        budget: z.number().optional(),
-        timeline: z.string().optional(),
-        teamSize: z.number().optional(),
-        resources: z.array(z.string()).optional(),
+        budget: z.number().positive('Budget must be a positive number').optional(), // VERIFICATION: Ensure budget is a positive number.
+        timeline: z.string().trim().min(1).optional(), // OPTIMIZATION: Trim and ensure timeline is not empty.
+        teamSize: z
+          .number()
+          .int()
+          .positive('Team size must be a positive integer')
+          .optional(), // VERIFICATION: Ensure team size is a positive integer.
+        resources: z.array(z.string().trim().min(1)).optional(), // OPTIMIZATION: Ensure resource strings are not empty.
       })
       .optional(),
     brainstormAspects: z
@@ -140,10 +146,10 @@ const generatePlanSchema = z.object({
 
 /**
  * @typedef {object} RefinePlanRequestBody
- * @property {string} conversationId - The ID of the conversation associated with the plan to be refined. Required.
+ * @property {string} conversationId - The UUID of the conversation associated with the plan to be refined. Required.
  * @property {'executive_summary'|'objectives'|'phases'|'action_items'|'resources'|'risks'|'metrics'|'timeline'|'budget'|'stakeholders'|'alternatives'} [section] - The specific section of the plan to refine.
  * @property {string} refinementRequest - A detailed description of the refinement requested. Must be between 1 and 2000 characters.
- * @property {string} [userId] - Optional ID of the user, primarily for guest users.
+ * @property {string} [userId] - Optional UUID of the user, primarily for guest users.
  */
 /**
  * @typedef {object} RefinePlanSchema
@@ -160,7 +166,7 @@ const refinePlanSchema = z.object({
       .string({
         required_error: 'Conversation ID is required',
       })
-      .min(1, 'Conversation ID cannot be empty'),
+      .uuid('Invalid Conversation ID format'), // VERIFICATION: Enforce UUID format for IDs.
     section: z
       .enum([
         'executive_summary',
@@ -180,17 +186,18 @@ const refinePlanSchema = z.object({
       .string({
         required_error: 'Refinement request is required',
       })
+      .trim() // OPTIMIZATION: Trim whitespace from user input.
       .min(1, 'Please describe what you want to refine')
       .max(2000, 'Refinement request is too long'),
-    userId: z.string().optional(), // For guest users
+    userId: z.string().uuid('Invalid User ID format').optional(), // VERIFICATION: Enforce UUID format for guest user IDs.
   }),
 });
 
 /**
  * @typedef {object} ExportPlanRequestBody
- * @property {string} conversationId - The ID of the conversation associated with the plan to be exported. Required.
+ * @property {string} conversationId - The UUID of the conversation associated with the plan to be exported. Required.
  * @property {'pdf'|'docx'|'json'|'markdown'|'html'} [format='pdf'] - The desired export format for the plan. Defaults to 'pdf'.
- * @property {string} [userId] - Optional ID of the user, primarily for guest users.
+ * @property {string} [userId] - Optional UUID of the user, primarily for guest users.
  */
 /**
  * @typedef {object} ExportPlanSchema
@@ -207,18 +214,18 @@ const exportPlanSchema = z.object({
       .string({
         required_error: 'Conversation ID is required',
       })
-      .min(1, 'Conversation ID cannot be empty'),
+      .uuid('Invalid Conversation ID format'), // VERIFICATION: Enforce UUID format for IDs.
     format: z
       .enum(['pdf', 'docx', 'json', 'markdown', 'html'])
       .optional()
       .default('pdf'),
-    userId: z.string().optional(), // For guest users
+    userId: z.string().uuid('Invalid User ID format').optional(), // VERIFICATION: Enforce UUID format for guest user IDs.
   }),
 });
 
 /**
  * @typedef {object} GetConversationHistoryParams
- * @property {string} conversationId - The ID of the conversation whose history is to be retrieved. Required.
+ * @property {string} conversationId - The UUID of the conversation whose history is to be retrieved. Required.
  */
 /**
  * @typedef {object} GetConversationHistorySchema
@@ -231,9 +238,11 @@ const exportPlanSchema = z.object({
  */
 const getConversationHistorySchema = z.object({
   params: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    conversationId: z
+      .string({
+        required_error: 'Conversation ID is required',
+      })
+      .uuid('Invalid Conversation ID format'), // VERIFICATION: Enforce UUID format for consistency and correctness.
   }),
 });
 
@@ -265,6 +274,7 @@ const brainstormSchema = z.object({
       .string({
         required_error: 'Idea description is required',
       })
+      .trim() // OPTIMIZATION: Trim whitespace from user input.
       .min(10, 'Please provide a more detailed description of your idea')
       .max(5000, 'Idea description is too long'),
     aspects: z
@@ -285,10 +295,10 @@ const brainstormSchema = z.object({
       .optional(),
     context: z
       .object({
-        industry: z.string().optional(),
-        targetMarket: z.string().optional(),
-        budget: z.number().optional(),
-        timeline: z.string().optional(),
+        industry: z.string().trim().min(1).optional(), // OPTIMIZATION: Trim and ensure context strings are not empty.
+        targetMarket: z.string().trim().min(1).optional(),
+        budget: z.number().positive('Budget must be a positive number').optional(), // VERIFICATION: Ensure budget is a positive number.
+        timeline: z.string().trim().min(1).optional(),
       })
       .optional(),
   }),
@@ -296,42 +306,78 @@ const brainstormSchema = z.object({
 
 // --- Rate Limiting & DDOS Protection ---
 
-// NOTE: Ensure your Redis client is configured and connected in your main application entry point.
-// This is a placeholder for demonstration.
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
-// It's recommended to connect the client once in your app's startup logic.
-// await redisClient.connect();
+// OPTIMIZATION: Centralized Redis client management for rate limiting.
+// This IIFE (Immediately Invoked Function Expression) creates a single, managed Redis client instance
+// and connects it, making the module more robust and self-contained.
+const redisClient = (() => {
+  // VERIFICATION: Ensure Redis URL is configured, otherwise rate limiting will gracefully degrade.
+  if (!process.env.REDIS_URL) {
+    console.warn(
+      'WARNING: REDIS_URL is not set. Rate limiting will use in-memory store, which is not suitable for production clusters. Please configure it in your environment variables.'
+    );
+    // Fallback to allow express-rate-limit to use its default MemoryStore.
+    return null;
+  }
+
+  const client = createClient({
+    url: process.env.REDIS_URL,
+  });
+
+  client.on('error', (err) =>
+    console.error('Rate Limiter Redis Client Error:', err)
+  );
+  client.on('connect', () =>
+    console.log('Rate Limiter Redis Client connected.')
+  );
+  client.on('reconnecting', () =>
+    console.log('Rate Limiter Redis Client reconnecting...')
+  );
+
+  // Asynchronously connect the client. The rate-limiter will queue commands until the connection is ready.
+  client.connect().catch((err) => {
+    console.error('Failed to connect to Redis for rate limiting:', err);
+    // The application will continue, but rate limiting may be impaired until reconnection.
+  });
+
+  return client;
+})();
 
 /**
- * Creates a Redis store for the rate limiter.
+ * Creates a Redis store for the rate limiter if a client is available.
  * This allows for distributed rate limiting across multiple server instances.
+ * If Redis is not configured, express-rate-limit will default to an in-memory store.
  */
-const redisStore = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
-  sendCommand: (...args) => redisClient.sendCommand(args),
-});
+const redisStore = redisClient
+  ? new RedisStore({
+      // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
+      sendCommand: (...args) => redisClient.sendCommand(args),
+    })
+  : undefined;
 
 /**
  * Generates a unique key for each request to track for rate limiting.
  * It prioritizes the authenticated user's ID, falls back to a guest user ID from the body,
  * and finally uses the request's IP address for anonymous users.
  * This ensures fair usage limits per user rather than per IP, which is crucial for users behind a NAT.
+ *
+ * SECURITY NOTE: The `req.body.userId` for guest sessions should be a server-generated,
+ * secure identifier (e.g., a UUID stored in a secure, httpOnly cookie).
+ * Relying on a client-provided, mutable ID from the request body can allow users to bypass rate limits.
+ *
  * @param {import('express').Request} req - The Express request object.
  * @returns {string} The identifier for the client.
  */
 const keyGenerator = (req) => {
-  // Prioritize authenticated user ID (assuming it's set by an auth middleware)
+  // Prioritize authenticated user ID (assuming it's set by an auth middleware on `req.user`)
   if (req.user && req.user.id) {
     return `user:${req.user.id}`;
   }
-  // Fallback to userId in body for guest sessions (use with caution)
+  // Fallback to a validated guest userId from the body.
   if (req.body && req.body.userId) {
+    // The Zod validation middleware should have already validated this is a UUID.
     return `guest:${req.body.userId}`;
   }
-  // Fallback to IP address for anonymous users
+  // Fallback to IP address for truly anonymous users.
   return `ip:${req.ip}`;
 };
 
@@ -339,7 +385,7 @@ const keyGenerator = (req) => {
  * A dynamic rate limit function that applies different limits for authenticated users vs. guests/IPs.
  * @param {number} authenticatedLimit - The request limit for an authenticated user.
  * @param {number} guestLimit - The request limit for a guest or IP address.
- * @returns {Function} A function that returns the appropriate limit based on the request.
+ * @returns {(req: import('express').Request) => number} A function that returns the appropriate limit based on the request.
  */
 const tieredLimit = (authenticatedLimit, guestLimit) => (req) =>
   req.user && req.user.id ? authenticatedLimit : guestLimit;
@@ -349,11 +395,11 @@ const tieredLimit = (authenticatedLimit, guestLimit) => (req) =>
  * refinement, and brainstorming. This is a strict limit to prevent abuse and control costs.
  */
 const aiLimiter = rateLimit({
-  store: redisStore,
+  store: redisStore, // Will default to MemoryStore if redisStore is undefined.
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: tieredLimit(20, 5), // 20 requests per hour for authenticated users, 5 for guests/IPs
+  limit: tieredLimit(20, 5), // OPTIMIZATION: Use `limit` which is the current standard, `max` is legacy.
   keyGenerator,
-  standardHeaders: true,
+  standardHeaders: 'draft-7', // OPTIMIZATION: Use the latest IETF draft standard for rate limit headers.
   legacyHeaders: false,
   message: {
     error: 'Too many AI-intensive requests. Please try again after an hour.',
@@ -367,9 +413,9 @@ const aiLimiter = rateLimit({
 const chatLimiter = rateLimit({
   store: redisStore,
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: tieredLimit(100, 30), // 100 requests per 15 mins for authenticated users, 30 for guests/IPs
+  limit: tieredLimit(100, 30),
   keyGenerator,
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
     error: 'You are sending messages too quickly. Please slow down.',
@@ -382,9 +428,9 @@ const chatLimiter = rateLimit({
 const exportLimiter = rateLimit({
   store: redisStore,
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: tieredLimit(10, 3), // 10 exports per hour for authenticated users, 3 for guests/IPs
+  limit: tieredLimit(10, 3),
   keyGenerator,
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many export requests. Please try again after an hour.' },
 });
@@ -396,9 +442,9 @@ const exportLimiter = rateLimit({
 const dataLimiter = rateLimit({
   store: redisStore,
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: tieredLimit(200, 50), // 200 requests per 5 mins for authenticated users, 50 for guests/IPs
+  limit: tieredLimit(200, 50),
   keyGenerator,
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many data requests. Please try again later.' },
 });
@@ -428,10 +474,10 @@ export const PlanGeneratorValidation = {
 
 /**
  * @typedef {object} PlanGeneratorRateLimiters
- * @property {Function} aiLimiter - Strict rate limiter for heavy AI tasks.
- * @property {Function} chatLimiter - Moderate rate limiter for conversational endpoints.
- * @property {Function} exportLimiter - Rate limiter for file export operations.
- * @property {Function} dataLimiter - Lenient rate limiter for data retrieval endpoints.
+ * @property {import('express').RequestHandler} aiLimiter - Strict rate limiter for heavy AI tasks.
+ * @property {import('express').RequestHandler} chatLimiter - Moderate rate limiter for conversational endpoints.
+ * @property {import('express').RequestHandler} exportLimiter - Rate limiter for file export operations.
+ * @property {import('express').RequestHandler} dataLimiter - Lenient rate limiter for data retrieval endpoints.
  */
 /**
  * An object containing all rate-limiting middleware for the plan generator module.

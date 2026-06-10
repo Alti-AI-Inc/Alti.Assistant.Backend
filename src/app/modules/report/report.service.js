@@ -80,15 +80,11 @@ const handleReportConversation = async (
 
     if (conversationId) {
       try {
-        // Optimization Recommendation:
-        // For read-only operations like retrieving a conversation for display or checking existence,
-        // consider adding `.lean()` to the Mongoose query within `conversationHelpers.getConversationById`.
-        // This returns a plain JavaScript object instead of a Mongoose document,
-        // reducing overhead if no Mongoose-specific methods are needed.
-        // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
-        // on 'conversationId' and 'userId' for faster lookups. A compound index like
-        // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
-        // (Assuming conversationHelpers.getConversationById can accept a lean option or is updated internally)
+        // OPTIMIZATION: This is a read-only query to fetch a conversation.
+        // 1. LEAN QUERY: The implementation of `conversationHelpers.getConversationById` should use `.lean()`.
+        //    This returns a plain JavaScript object, which is faster and uses less memory than a full Mongoose document.
+        // 2. INDEXING: The 'Conversation' model must have an index for efficient lookups.
+        //    A compound index on `{ conversationId: 1, userId: 1 }` is recommended for this query.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -156,6 +152,8 @@ const addMessage = async (
       metadata,
     };
 
+    // This is a write operation, so .lean() is not applicable.
+    // The index recommendation from handleReportConversation also benefits this update operation.
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -360,15 +358,11 @@ const processConversationalRequest = async (
     );
 
     // Get conversation history
-    // Optimization Recommendation:
-    // For read-only operations like retrieving a conversation for display or history,
-    // consider adding `.lean()` to the Mongoose query within `conversationHelpers.getConversationById`.
-    // This returns a plain JavaScript object instead of a Mongoose document,
-    // reducing overhead if no Mongoose-specific methods are needed.
-    // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
-    // on 'conversationId' and 'userId' for faster lookups. A compound index like
-    // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
-    // (Assuming conversationHelpers.getConversationById can accept a lean option or is updated internally)
+    // OPTIMIZATION: This is a read-only query to fetch conversation history.
+    // 1. LEAN QUERY: The implementation of `conversationHelpers.getConversationById` should use `.lean()`.
+    //    This returns a plain JavaScript object, which is faster and uses less memory than a full Mongoose document.
+    // 2. INDEXING: The 'Conversation' model must have an index for efficient lookups.
+    //    A compound index on `{ conversationId: 1, userId: 1 }` is recommended for this query.
     const conversationData = await conversationHelpers.getConversationById(
       conversation.conversationId,
       userId,
