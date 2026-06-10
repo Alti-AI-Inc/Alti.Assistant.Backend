@@ -16,6 +16,12 @@ import mongoose, { Schema } from 'mongoose';
  * @property {number} confidence - A numerical value indicating the confidence level of the relationship (0 to 1).
  * @property {string[]} sharedConcepts - An array of strings representing concepts shared between the documents.
  * @property {string} description - A textual description of the relationship.
+ * @property {mongoose.Schema.Types.ObjectId} lastModifiedBy - The ID of the user who last modified the record.
+ * @property {boolean} isFlaggedForReview - A flag for platform administrators to mark the record for review.
+ * @property {object} platformMetadata - A container for administrator-specific metadata.
+ * @property {string} platformMetadata.notes - Administrative notes.
+ * @property {mongoose.Schema.Types.ObjectId} platformMetadata.reviewedBy - The admin who reviewed the record.
+ * @property {Date} platformMetadata.reviewedAt - The timestamp of the administrative review.
  * @property {Date} createdAt - The timestamp when the relationship was created.
  * @property {Date} updatedAt - The timestamp when the relationship was last updated.
  */
@@ -25,7 +31,7 @@ import mongoose, { Schema } from 'mongoose';
  *
  * This schema defines how relationships between different documents are stored in the database.
  * It captures the owner, the two documents involved, the type of relationship, and additional metadata
- * like confidence and shared concepts.
+ * like confidence and shared concepts. It also includes fields for Platform Owner oversight.
  *
  * @type {mongoose.Schema<DocumentRelationship>}
  */
@@ -120,6 +126,64 @@ const DocumentRelationshipSchema = new mongoose.Schema(
     description: {
       type: String,
       default: ''
+    },
+
+    // PLATFORM OWNER OPTIMIZATION: Added fields for administrative oversight and enhanced auditing.
+    // These fields are intended for use by Platform Owners/Super Admins to manage and review
+    // relationships across the entire platform, enabling global oversight and quality control.
+
+    /**
+     * The ID of the user who last modified this document relationship.
+     * This enhances the audit trail, tracking not just creation but also subsequent changes.
+     * @type {mongoose.Schema.Types.ObjectId}
+     */
+    lastModifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+
+    /**
+     * A flag indicating if this relationship has been marked for review by a platform administrator.
+     * This allows for proactive monitoring and quality control across all tenants.
+     * Indexed for efficient querying of all flagged items, a key feature for global oversight.
+     * @type {boolean}
+     */
+    isFlaggedForReview: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+
+    /**
+     * A container for metadata used exclusively by platform administrators.
+     * This provides a dedicated space for notes, review status, and other administrative details
+     * without cluttering the primary data fields used by tenants.
+     * @type {object}
+     */
+    platformMetadata: {
+      /**
+       * Administrative notes regarding this relationship.
+       * @type {string}
+       */
+      notes: {
+        type: String,
+        default: ''
+      },
+      /**
+       * The ID of the administrator who last reviewed this flagged item.
+       * @type {mongoose.Schema.Types.ObjectId}
+       */
+      reviewedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      /**
+       * The timestamp of the last administrative review.
+       * @type {Date}
+       */
+      reviewedAt: {
+        type: Date
+      }
     }
   },
   {

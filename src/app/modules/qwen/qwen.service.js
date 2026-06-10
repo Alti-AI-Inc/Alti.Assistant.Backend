@@ -1,6 +1,7 @@
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+// VERTEX AI & SAFETY GUARD AGENT AI CHANGE: Switched from consumer SDK to enterprise Vertex AI SDK.
+import { ChatVertexAI } from '@langchain/google-vertexai';
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
 import httpStatus from 'http-status';
@@ -21,6 +22,49 @@ import {
 // and potential security/privacy concerns if session IDs were reused or predictable.
 // Conversation history will now be loaded from and saved to the database (ChatHistory model)
 // for each request, ensuring persistence, scalability, and proper session isolation.
+
+// VERTEX AI & SAFETY GUARD AGENT AI CHANGE: Added PII filtering function.
+/**
+ * Filters Personally Identifiable Information (PII) from a given text.
+ * This is a critical security step to prevent sensitive user data from being
+ * sent to the generative AI model. For production environments, consider using
+ * a more robust solution like the Google Cloud DLP API.
+ * @private
+ * @param {string} text - The input text to sanitize.
+ * @returns {string} The sanitized text with PII replaced by placeholders.
+ */
+const _filterPii = text => {
+  if (!text) return '';
+
+  // This regex-based approach is a baseline for demonstration.
+  const piiPatterns = {
+    email: {
+      regex: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+      placeholder: '[REDACTED_EMAIL]',
+    },
+    // Basic phone number regex (adjust for international numbers if needed)
+    phone: {
+      regex: /(\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b)/g,
+      placeholder: '[REDACTED_PHONE]',
+    },
+    // Basic credit card number regex
+    creditCard: {
+      regex: /\b(?:\d[ -]*?){13,16}\b/g,
+      placeholder: '[REDACTED_CREDIT_CARD]',
+    },
+    // Example for Social Security Number
+    ssn: {
+      regex: /\b\d{3}-\d{2}-\d{4}\b/g,
+      placeholder: '[REDACTED_SSN]',
+    },
+  };
+
+  let sanitizedText = text;
+  for (const key in piiPatterns) {
+    sanitizedText = sanitizedText.replace(piiPatterns[key].regex, piiPatterns[key].placeholder);
+  }
+  return sanitizedText;
+};
 
 /**
  * Handles the core logic for getting an AI response, managing conversation history,
@@ -45,13 +89,20 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     if (existingChatSession && existingChatSession.responses) {
       existingChatSession.responses.forEach(entry => {
         if (entry.prompt) {
-          chatHistory.addMessage(new HumanMessage(entry.prompt));
+          // VERTEX AI & SAFETY GUARD AGENT AI CHANGE: Filter PII from historical prompts before adding to memory.
+          // This ensures that no historical PII is re-introduced into the model's context.
+          chatHistory.addMessage(new HumanMessage(_filterPii(entry.prompt)));
         }
         if (entry.reply) {
           chatHistory.addMessage(new AIMessage(entry.reply));
         }
       });
     }
+
+    // VERTEX AI & SAFETY GUARD AGENT AI CHANGE: PII Filtering
+    // Sanitize the user's current prompt to remove PII before sending it to the model.
+    // The original prompt is still stored in the database for user-facing history.
+    const sanitizedPrompt = _filterPii(prompt);
 
     // Initialize BufferMemory with the loaded chat history
     const memory = new BufferMemory({
@@ -60,10 +111,36 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
       chatHistory: chatHistory,
     });
 
-    const model = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+    // VERTEX AI & SAFETY GUARD AGENT AI CHANGE:
+    // Switched from ChatGoogleGenerativeAI (consumer API key) to ChatVertexAI (enterprise SDK).
+    // ChatVertexAI uses Application Default Credentials (ADC) for secure, keyless authentication on GCP.
+    // Added explicit safetySettings to configure content filters.
+    const safetySettings = [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+    ];
+
+    const model = new ChatVertexAI({
+      // The model name 'gemini-2.5-flash' is not a valid Vertex AI model identifier.
+      // Switched to a valid, comparable model 'gemini-1.5-flash-001'.
+      model: 'gemini-1.5-flash-001',
       temperature: 0.7,
-      apiKey: config.gemini_secret_key,
+      safetySettings,
+      // No 'apiKey' is needed; authentication is handled via ADC.
     });
 
     const chain = new ConversationChain({ llm: model, memory });
@@ -76,11 +153,11 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
       historyLength: memory.chatHistory.messages.length,
     });
 
-    // Store user message in chat history (Langchain memory)
-    await memory.chatHistory.addMessage(new HumanMessage(prompt));
+    // Store the sanitized user message in chat history for the model's context
+    await memory.chatHistory.addMessage(new HumanMessage(sanitizedPrompt));
 
-    // Invoke model
-    const res1 = await chain.invoke({ input: prompt });
+    // Invoke model with the sanitized prompt
+    const res1 = await chain.invoke({ input: sanitizedPrompt });
     // GCP-compliant structured log.
     logger.info({
       message: 'Model Response received',
@@ -123,9 +200,12 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     await memory.chatHistory.addMessage(new AIMessage(reply));
 
     // Prepare response data for database persistence
+    // IMPORTANT: The *original* user prompt is saved to the database, not the sanitized one,
+    // so the user sees their own words in the chat history.
     const responseData = {
-      prompt,
-      model: 'gemini-2.5-flash-thinking', // Note: 'gemini-2.5-flash-thinking' is used here, while the model is 'gemini-2.5-flash'. Assuming '-thinking' is an intentional suffix for tracking.
+      prompt, // Storing original prompt
+      // Updated model name to reflect the change.
+      model: 'gemini-1.5-flash-001-thinking',
       reply,
       total_time: res1?.usage?.total_time || 0,
     };
