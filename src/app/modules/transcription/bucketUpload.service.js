@@ -8,7 +8,6 @@
 
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
-import fs from 'fs';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import ApiError from '../../../errors/ApiError.js';
@@ -38,11 +37,11 @@ const BUCKET_NAME = config.gcs?.transcription_bucket || 'alti_assistant_transcri
 const bucket = storage.bucket(BUCKET_NAME);
 
 /**
- * Uploads an audio file from a local path to the configured Google Cloud Storage bucket.
- * The file is stored under a unique name within the 'transcriptions/' directory.
+ * Uploads an audio file from a buffer in memory to the configured Google Cloud Storage bucket.
+ * This function streams the file directly to GCS without writing to the local filesystem.
  *
  * @function uploadAudioToBucket
- * @param {string} filePath - The local file path of the audio file to be uploaded.
+ * @param {Buffer} fileBuffer - The buffer containing the audio file data.
  * @param {string} originalName - The original filename of the audio file (e.g., 'my_audio.mp3').
  * @param {string} mimeType - The MIME type of the audio file (e.g., 'audio/mpeg', 'audio/wav').
  * @returns {Promise<Object>} A promise that resolves with an object containing details of the uploaded file.
@@ -53,20 +52,17 @@ const bucket = storage.bucket(BUCKET_NAME);
  * @property {string} originalName - The original name of the file provided during upload.
  * @property {string} mimeType - The MIME type of the uploaded file.
  * @property {number} size - The size of the uploaded file in bytes.
- * @throws {ApiError} If the upload to GCP storage fails for any reason.
  */
-const uploadAudioToBucket = async (filePath, originalName, mimeType) => {
-  try {
+const uploadAudioToBucket = (fileBuffer, originalName, mimeType) => {
+  return new Promise((resolve, reject) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const extension = path.extname(originalName);
     const fileName = `${uniqueSuffix}-${originalName}`;
     const destination = `transcriptions/${fileName}`;
 
-    logger.info(`Uploading audio to GCP bucket: ${destination}`);
+    logger.info(`Uploading audio to GCP bucket via stream: ${destination}`);
 
-    // Upload file to GCS
-    await bucket.upload(filePath, {
-      destination: destination,
+    const file = bucket.file(destination);
+    const stream = file.createWriteStream({
       metadata: {
         contentType: mimeType,
         metadata: {
@@ -74,28 +70,80 @@ const uploadAudioToBucket = async (filePath, originalName, mimeType) => {
           uploadTimestamp: new Date().toISOString(),
         },
       },
+      resumable: false, // Use simple upload for in-memory buffers
     });
 
-    const file = bucket.file(destination);
-    const gsUri = `gs://${BUCKET_NAME}/${destination}`;
-    const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`;
+    stream.on('error', err => {
+      logger.error('Error uploading audio to GCP bucket via stream:', err);
+      reject(
+        new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          'Failed to upload audio to GCP storage'
+        )
+      );
+    });
 
-    logger.info(`Audio uploaded successfully: ${gsUri}`);
+    stream.on('finish', () => {
+      const gsUri = `gs://${BUCKET_NAME}/${destination}`;
+      const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`;
+      logger.info(`Audio uploaded successfully via stream: ${gsUri}`);
+
+      resolve({
+        gsUri: gsUri, // gs:// URI for Gemini
+        publicUrl: publicUrl,
+        bucketName: BUCKET_NAME,
+        fileName: destination,
+        originalName: originalName,
+        mimeType,
+        size: fileBuffer.length, // Get size from buffer
+      });
+    });
+
+    stream.end(fileBuffer);
+  });
+};
+
+/**
+ * Generates a v4 signed URL for uploading a file directly to GCS from the client.
+ * This allows the client to upload without the file data passing through the backend server,
+ * which is the recommended approach for stateless services.
+ *
+ * @function generateV4UploadSignedUrl
+ * @param {string} originalName - The original filename of the audio file (e.g., 'my_audio.mp3').
+ * @param {string} mimeType - The MIME type of the audio file (e.g., 'audio/mpeg', 'audio/wav').
+ * @returns {Promise<Object>} A promise that resolves with an object containing the signed URL and file details.
+ * @property {string} signedUrl - The URL the client should use to PUT the file.
+ * @property {string} fileName - The unique filename that will be created in GCS.
+ * @property {string} gsUri - The GCS URI of the file once uploaded.
+ * @throws {ApiError} If there is an error generating the signed URL.
+ */
+const generateV4UploadSignedUrl = async (originalName, mimeType) => {
+  try {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const fileName = `${uniqueSuffix}-${originalName.replace(/\s/g, '_')}`;
+    const destination = `transcriptions/${fileName}`;
+
+    const options = {
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      contentType: mimeType,
+    };
+
+    const [signedUrl] = await bucket.file(destination).getSignedUrl(options);
+
+    logger.info(`Generated v4 upload signed URL for: ${destination}`);
 
     return {
-      gsUri: gsUri, // gs:// URI for Gemini
-      publicUrl: publicUrl,
-      bucketName: BUCKET_NAME,
+      signedUrl,
       fileName: destination,
-      originalName: originalName,
-      mimeType,
-      size: fs.statSync(filePath).size,
+      gsUri: `gs://${BUCKET_NAME}/${destination}`,
     };
   } catch (error) {
-    logger.error('Error uploading audio to GCP bucket:', error);
+    logger.error('Error generating v4 upload signed URL:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to upload audio to GCP storage'
+      'Could not create a secure upload URL.'
     );
   }
 };
@@ -214,7 +262,8 @@ const getAudioMetadata = async (fileName) => {
 /**
  * @constant {Object} bucketUploadService - An object encapsulating all Google Cloud Storage bucket operations
  * related to audio file management for transcription.
- * @property {function(string, string, string): Promise<Object>} uploadAudioToBucket - Uploads an audio file to GCS.
+ * @property {function(Buffer, string, string): Promise<Object>} uploadAudioToBucket - Uploads an audio file from a buffer to GCS.
+ * @property {function(string, string): Promise<Object>} generateV4UploadSignedUrl - Generates a signed URL for direct client-side uploads.
  * @property {function(string, number): Promise<string>} getSignedUrl - Generates a signed URL for private file access.
  * @property {function(string): Promise<void>} deleteAudioFromBucket - Deletes an audio file from GCS.
  * @property {function(string): Promise<boolean>} audioExistsInBucket - Checks if an audio file exists in GCS.
@@ -222,6 +271,7 @@ const getAudioMetadata = async (fileName) => {
  */
 export const bucketUploadService = {
   uploadAudioToBucket,
+  generateV4UploadSignedUrl,
   getSignedUrl,
   deleteAudioFromBucket,
   audioExistsInBucket,

@@ -31,7 +31,24 @@ class TemporalClientCoordinator {
           throw new Error('Local offline/test environment mode is active.');
         }
 
-        this.connection = await Connection.connect({ address });
+        // GCP Resiliency: Configure gRPC keep-alive and timeouts to ensure stable connections
+        // through network proxies (e.g., Cloud SQL Auth Proxy, VPC Peering, Load Balancers)
+        // which may terminate idle connections.
+        const connectionOptions = {
+          address,
+          // connectTimeout: Specifies the timeout for the initial gRPC connection to the Temporal frontend.
+          // A 15-second timeout is a robust value for production environments.
+          connectTimeout: 15000, 
+          rpc: {
+            // keepaliveTimeMs: Sends a PING frame to the server if the connection has been idle
+            // for this duration. This is critical in GCP to prevent intermediaries like load balancers
+            // from closing the connection due to inactivity. 50 seconds is a safe value, well
+            // below the typical 10-minute idle timeouts.
+            keepaliveTimeMs: 50000,
+          }
+        };
+
+        this.connection = await Connection.connect(connectionOptions);
         this.client = new Client({
           connection: this.connection,
           namespace: config.temporal?.namespace || 'default',
