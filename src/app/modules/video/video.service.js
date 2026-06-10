@@ -290,6 +290,10 @@ const getGuestConversations = async (guestUserId, req = null) => {
     // Indexing Recommendation:
     // Ensure an index exists on the Conversation model for `{ userId: 1, 'metadata.category': 1, 'metadata.userType': 1 }`.
     // This will speed up filtering by user, category, and userType.
+    // Further Optimization:
+    // If possible, the filter `metadata.userType: 'guest'` should be passed directly
+    // to `conversationHelpers.getUserConversations` to perform filtering at the database level,
+    // reducing data transfer and in-memory processing.
     const conversations = await conversationHelpers.getUserConversations(
       guestUserId,
       {
