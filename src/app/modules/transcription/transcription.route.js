@@ -181,6 +181,9 @@ router.post(
   '/assistant',
   optionalAuth(),
   extractTenantContext,
+  // [DDOS GUARD]: Apply rate limiting early to protect this expensive, public-facing endpoint from abuse.
+  // Limits requests to 30 per 15 minutes per user/IP.
+  createRateLimiter({ max: 30, windowInMinutes: 15 }),
   checkDailyRequestLimit,
   checkStorageLimit,
   upload.fields([
@@ -188,7 +191,6 @@ router.post(
     { name: 'audios', maxCount: 10 },
   ]),
   checkRAGFeature,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
   transcriptionController.smartTranscriptionAssistant
 );
 
@@ -244,6 +246,9 @@ router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
+  // [DDOS GUARD]: Protect authenticated stats endpoint from API abuse and excessive DB queries.
+  // Limits requests to 60 per minute per user.
+  createRateLimiter({ max: 60, windowInMinutes: 1 }),
   transcriptionController.getTranscriptionStats
 );
 
