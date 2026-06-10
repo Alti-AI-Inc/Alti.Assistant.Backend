@@ -99,17 +99,19 @@ const getRepositories = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10; // Default limit to 10 items per page
     const page = parseInt(req.query.page, 10) || 1;     // Default page to 1
 
-    // Optimization Recommendation:
-    // For read-only operations like this, ensure the 'searchComposioCatalog'
-    // method in ComposioCatalogService uses .lean() on its Mongoose queries
-    // to return plain JavaScript objects instead of Mongoose documents.
-    // This reduces overhead if no Mongoose document methods are needed.
+    // Performance Optimization:
+    // The `ComposioCatalogService.searchComposioCatalog` method MUST utilize `.lean()`
+    // on its Mongoose queries. This returns plain JavaScript objects, significantly
+    // reducing overhead for read-only operations where Mongoose document methods
+    // are not required.
     //
-    // Indexing Recommendation:
-    // To improve query performance, ensure that the underlying Mongoose schema
-    // for the ComposioCatalog model has indexes on 'license', 'language', and
-    // 'sortBy' fields. If 'query' is used for text search, consider a text index.
-    // For 'sortBy', a compound index with other query fields might be beneficial.
+    // Database Indexing:
+    // For optimal query performance, ensure the Mongoose schema for the
+    // ComposioCatalog model has indexes on the 'license', 'language', and
+    // 'sortBy' fields. If 'query' is used for text search, a text index is
+    // highly recommended. A compound index involving 'sortBy' and other
+    // filter fields (e.g., { language: 1, sortBy: 1 }) could further
+    // improve performance for specific query patterns.
     const result = await ComposioCatalogService.searchComposioCatalog(query, {
       license,
       language,
@@ -165,14 +167,13 @@ const getRepositories = async (req, res, next) => {
  */
 const getStats = async (req, res, next) => {
   try {
-    // Optimization Recommendation:
-    // For read-only operations like this, ensure the 'getComposioStats'
-    // method in ComposioCatalogService uses .lean() on its Mongoose queries
-    // or aggregation pipelines to return plain JavaScript objects.
-    // This reduces overhead if no Mongoose document methods are needed.
+    // Performance Optimization:
+    // The `ComposioCatalogService.getComposioStats` method MUST utilize `.lean()`
+    // on its Mongoose queries or aggregation pipelines. This returns plain
+    // JavaScript objects, significantly reducing overhead for read-only operations.
     //
-    // Indexing Recommendation:
-    // If 'getComposioStats' involves aggregation or filtering on specific fields,
+    // Database Indexing:
+    // If `getComposioStats` involves aggregation or filtering on specific fields,
     // ensure those fields are indexed in the underlying Mongoose schema to
     // optimize aggregation performance.
     const result = await ComposioCatalogService.getComposioStats();
@@ -261,10 +262,11 @@ const importSubmodule = async (req, res, next) => {
       });
     }
 
-    // Indexing Recommendation:
-    // If 'importComposioSubmodule' uses 'repoName' to find an existing document
-    // before creating or updating, ensure the underlying Mongoose schema for
-    // the ComposioCatalog model has an index on the 'repoName' field for faster lookups.
+    // Database Indexing:
+    // If `ComposioCatalogService.importComposioSubmodule` performs lookups
+    // (e.g., `findOne`, `findOneAndUpdate`) based on `repoName` to check
+    // for existence or update, ensure the Mongoose schema for the
+    // ComposioCatalog model has an index on the 'repoName' field for faster operations.
     const result = await ComposioCatalogService.importComposioSubmodule(repoName);
     if (result.success) {
       res.status(httpStatus.OK).json(result);
