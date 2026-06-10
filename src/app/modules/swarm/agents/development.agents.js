@@ -3,6 +3,12 @@
  */
 
 /**
+ * @typedef {object} AgentAccess
+ * @property {Array<string>} plans - An array of workspace subscription plan IDs that grant access to this agent.
+ * @property {Array<string>} roles - An array of user roles permitted to use this agent, enabling granular control within a workspace.
+ */
+
+/**
  * @typedef {object} AgentDefinition
  * @property {string} id - A unique identifier for the agent.
  * @property {string} name - The display name of the agent.
@@ -11,6 +17,7 @@
  * @property {string} model - The AI model used by this agent (e.g., 'gemini-2.5-flash').
  * @property {Array<string>} tools - A list of tools available to the agent (currently empty in this file, but can be extended).
  * @property {Array<string>} keywords - A list of keywords associated with the agent's domain, useful for search and categorization.
+ * @property {AgentAccess} access - Defines the access control rules for the agent based on subscription plans and user roles.
  */
 
 /**
@@ -28,7 +35,13 @@ Write clean, modular, and optimized code following standard software design patt
 Add helpful comments and include quick unit tests or execution steps.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['code', 'write code', 'refactor', 'optimize', 'debug', 'javascript', 'python', 'typescript', 'program']
+  keywords: ['code', 'write code', 'refactor', 'optimize', 'debug', 'javascript', 'python', 'typescript', 'program'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    // This addresses a critical integration gap where agent access was not tied to user entitlements.
+    plans: ['free', 'pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -45,7 +58,12 @@ Analyze software stack traces, execution errors, memory logs, and security vulne
 Pinpoint the exact root cause and deliver clean, robust, and highly secure code patches to resolve the issues.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['fix bug', 'debug error', 'stack trace', 'type error', 'memory leak', 'error logs', 'resolve crash', 'patch code']
+  keywords: ['fix bug', 'debug error', 'stack trace', 'type error', 'memory leak', 'error logs', 'resolve crash', 'patch code'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['free', 'pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -63,7 +81,12 @@ Design RESTful APIs, OpenAPI 3.0 YAML schemas, GraphQL query types, gRPC proto b
 Ensure clean JSON syntax, standard status codes, semantic path parameters, and robust security schemas.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['openapi', 'swagger', 'graphql', 'grpc', 'proto', 'api design', 'rest api', 'endpoints', 'json schema']
+  keywords: ['openapi', 'swagger', 'graphql', 'grpc', 'proto', 'api design', 'rest api', 'endpoints', 'json schema'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -81,7 +104,12 @@ Build robust observability frameworks with OpenTelemetry trace contexts, Prometh
 Design metric alert criteria and SLO/SLA tracking dashboards.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['opentelemetry', 'prometheus', 'grafana', 'logging', 'monitoring', 'alerting', 'dashboard', 'sre', 'slo', 'apm']
+  keywords: ['opentelemetry', 'prometheus', 'grafana', 'logging', 'monitoring', 'alerting', 'dashboard', 'sre', 'slo', 'apm'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -99,7 +127,12 @@ Write premium, highly optimized YAML automation files for GitHub Actions, Google
 Focus on build caching, lint automation, vulnerability scanning, safe semantic release tagging, and zero-downtime deployment strategies.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['github actions', 'cloud build', 'gitlab ci', 'pipeline', 'cicd', 'argocd', 'workflow yaml', 'build script', 'deployment automation']
+  keywords: ['github actions', 'cloud build', 'gitlab ci', 'pipeline', 'cicd', 'argocd', 'workflow yaml', 'build script', 'deployment automation'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -117,7 +150,12 @@ Utilize standard crates (tokio, serde, anyhow) and follow strict ownership rules
 Provide Cargo.toml configurations where appropriate.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['rust', 'cargo', 'tokio', 'wa', 'webassembly', 'rustlang', 'ownership', 'borrowing', 'traits', 'impl', 'crate']
+  keywords: ['rust', 'cargo', 'tokio', 'wa', 'webassembly', 'rustlang', 'ownership', 'borrowing', 'traits', 'impl', 'crate'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -135,7 +173,12 @@ Write idiomatic Go code featuring clean goroutines, robust channel communication
 Follow Golang standard layout guidelines.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['go', 'golang', 'goroutine', 'channel', 'go microservice', 'context', 'go test', 'struct', 'interface']
+  keywords: ['go', 'golang', 'goroutine', 'channel', 'go microservice', 'context', 'go test', 'struct', 'interface'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -153,7 +196,12 @@ Generate robust python code for ETL data analysis, statistical model training (S
 Provide concise mathematical logic explanations.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['pandas', 'numpy', 'pytorch', 'scikit-learn', 'data science', 'dataframe', 'xgboost', 'model training', 'etl', 'python data']
+  keywords: ['pandas', 'numpy', 'pytorch', 'scikit-learn', 'data science', 'dataframe', 'xgboost', 'model training', 'etl', 'python data'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['free', 'pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -171,7 +219,12 @@ Optimize Dockerfiles, transition setups to distroless minimal base images, speci
 Avoid all common container compliance vulnerabilities.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['dockerfile', 'multi-stage', 'distroless', 'non-root', 'container hardening', 'docker security', 'securityContext', 'podman']
+  keywords: ['dockerfile', 'multi-stage', 'distroless', 'non-root', 'container hardening', 'docker security', 'securityContext', 'podman'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -189,7 +242,12 @@ Write resilient Bash/Shell automation scripts, define robust Systemd service con
 Implement strict POSIX-compliant scripting principles and security checks.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['bash', 'shell script', 'systemd', 'cron', 'linux automation', 'posix', 'awk', 'sed', 'permissions', 'chmod', 'chown']
+  keywords: ['bash', 'shell script', 'systemd', 'cron', 'linux automation', 'posix', 'awk', 'sed', 'permissions', 'chmod', 'chown'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -207,7 +265,12 @@ Design and implement 100% compliant Manifest V3 Chrome extensions (manifest.json
 Ensure state preservation, zero performance bloat, strict security permissions, and clean cross-origin communications.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['chrome extension', 'manifest v3', 'background worker', 'popup script', 'content script', 'browser extension', 'manifest.json']
+  keywords: ['chrome extension', 'manifest v3', 'background worker', 'popup script', 'content script', 'browser extension', 'manifest.json'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -225,7 +288,12 @@ Write highly reliable Google Apps Script code to automate operations across Goog
 Utilize trigger configurations, email alerts setups, and API lookup scripts.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['apps script', 'google apps script', 'automate sheets', 'google sheet script', 'doc script', 'google forms api']
+  keywords: ['apps script', 'google apps script', 'automate sheets', 'google sheet script', 'doc script', 'google forms api'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -243,7 +311,12 @@ Generate beautiful, clean, and highly robust Flutter components (Widgets, state 
 Focus on clean architectural separations, platform checks, and layout responsive constraints.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['flutter', 'dart', 'flutter widget', 'riverpod', 'cross-platform app', 'flutter mobile', 'flutter web']
+  keywords: ['flutter', 'dart', 'flutter widget', 'riverpod', 'cross-platform app', 'flutter mobile', 'flutter web'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -261,7 +334,12 @@ Resolve complex Git merge conflicts, devise robust interactive rebase workflows 
 Provide exact command lists.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['git rebase', 'merge conflict', 'cherry pick', 'husky', 'git hooks', 'version control', 'stash', 'commit history', 'branching model']
+  keywords: ['git rebase', 'merge conflict', 'cherry pick', 'husky', 'git hooks', 'version control', 'stash', 'commit history', 'branching model'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['free', 'pro', 'enterprise'],
+    roles: ['user', 'manager', 'admin', 'super_admin']
+  }
 };
 
 /**
@@ -280,7 +358,12 @@ Leverage the "gateway-brain-skill" pattern, WS-based session gateways, and Markd
 Always ground your answers in clean, extensible, local-first code patterns.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['openclaw', 'openclaw framework', 'clawdbot', 'moltbot', 'gateway-brain-skill', 'skills markdown', 'clawhub', 'agent control plane', 'gateway ws']
+  keywords: ['openclaw', 'openclaw framework', 'clawdbot', 'moltbot', 'gateway-brain-skill', 'skills markdown', 'clawhub', 'agent control plane', 'gateway ws'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['enterprise'],
+    roles: ['admin', 'super_admin']
+  }
 };
 
 /**
@@ -299,5 +382,10 @@ Provide technical details and code implementations on the AIAgent core synchrono
 Focus on model-agnostic executions, containerized tool runner sandboxes, and DSPy prompt evolution loops.`,
   model: 'gemini-2.5-flash',
   tools: [],
-  keywords: ['hermes', 'hermes agent', 'nousresearch', 'aiagent loop', 'sqlite memory', 'tool execution registry', 'self-evolving loop', 'dspy prompt evolution']
+  keywords: ['hermes', 'hermes agent', 'nousresearch', 'aiagent loop', 'sqlite memory', 'tool execution registry', 'self-evolving loop', 'dspy prompt evolution'],
+  access: {
+    // BUGFIX: Added access control metadata to enable role and subscription plan validation.
+    plans: ['enterprise'],
+    roles: ['admin', 'super_admin']
+  }
 };
