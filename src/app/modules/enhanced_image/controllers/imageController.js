@@ -5,9 +5,9 @@ import { editImageWithImagen3 } from '../utils/imagen3.service.js';
 
 /**
  * @typedef {object} SessionManager
- * @property {function(string): object} getSession - Retrieves a session by ID.
- * @property {function(string): Array<object>} getConversationHistory - Retrieves conversation history for a session.
- * @property {function(string): void} deleteSession - Deletes a session by ID.
+ * @property {function(string, string): object} getSession - Retrieves a session by ID, scoped to a user.
+ * @property {function(string, string): Array<object>} getConversationHistory - Retrieves conversation history for a session, scoped to a user.
+ * @property {function(string, string): void} deleteSession - Deletes a session by ID, scoped to a user.
  */
 
 /**
@@ -21,6 +21,19 @@ import { editImageWithImagen3 } from '../utils/imagen3.service.js';
  */
 
 /**
+ * @typedef {object} UsageService
+ * @property {function(object, string): Promise<boolean>} canPerformAction - Checks if a user has sufficient quota for an action.
+ * @property {function(object, string, object): Promise<void>} recordAction - Records a user's action for usage tracking.
+ * @property {function(object, string, object): Promise<void>} notifyOnThreshold - Notifies admins/managers if usage nears a threshold.
+ */
+
+/**
+ * @typedef {object} NotificationService
+ * // This is a placeholder for a service that would handle sending notifications (e.g., email, in-app).
+ */
+
+
+/**
  * Creates an image controller with various image manipulation and generation functionalities.
  * This controller handles requests related to editing existing images and generating new ones,
  * leveraging session management and prompt enhancement services.
@@ -28,13 +41,49 @@ import { editImageWithImagen3 } from '../utils/imagen3.service.js';
  * @param {SessionManager} sessionManager - The session manager instance for handling user sessions.
  * @param {ImageService} imageService - The image service instance for generating images.
  * @param {PromptService} promptService - The prompt service instance for enhancing prompts.
+ * @param {UsageService} usageService - The service for tracking and limiting resource usage.
+ * @param {NotificationService} notificationService - The service for sending notifications.
  * @returns {object} An object containing controller methods for image operations.
  */
 export const createImageController = (
   sessionManager,
   imageService,
-  promptService
+  promptService,
+  usageService,
+  notificationService
 ) => {
+  /**
+   * A helper to centralize authentication, authorization, and usage limit checks.
+   * This ensures that all image operations are secure and adhere to tenant/workspace limits.
+   * @param {object} req - The Express request object, expected to contain `req.user`.
+   * @param {object} res - The Express response object.
+   * @param {string} actionType - A string identifying the action for usage tracking (e.g., 'image_edit').
+   * @returns {Promise<boolean>} - True if the user is authorized and has sufficient usage quota, false otherwise.
+   */
+  const checkPermissionsAndUsage = async (req, res, actionType) => {
+    // INTEGRATION FIX: 1. Authentication Check. Assumes middleware populates req.user.
+    if (!req.user || !req.user.id) {
+      res.status(401).json({ success: false, error: 'Authentication required.' });
+      return false;
+    }
+
+    // INTEGRATION FIX: 2. Authorization Check (Role-based access).
+    // This is a placeholder for role-specific logic. For now, we allow all authenticated users.
+    // e.g., if (req.user.role === 'read_only') { res.status(403).json(...); return false; }
+
+    // INTEGRATION FIX: 3. Usage Limit Check.
+    // This respects tenant/workspace boundaries by checking limits for the user's hierarchy.
+    const canPerform = await usageService.canPerformAction(req.user, actionType);
+    if (!canPerform) {
+      res.status(429).json({ success: false, error: 'Usage limit reached. Please contact your administrator.' });
+      // Proactively notify the administrator that a user hit their limit.
+      await notificationService.notifyLimitExceeded(req.user, actionType);
+      return false;
+    }
+
+    return true; // All checks passed.
+  };
+
   return {
     /**
      * @swagger
@@ -42,9 +91,11 @@ export const createImageController = (
      *   post:
      *     summary: Edits an existing image based on a text prompt.
      *     description: Edits an image provided as a Base64 string using a text prompt and the Imagen3 service.
-     *                  Requires both a prompt and the image data.
+     *                  Requires both a prompt and the image data. This is a protected endpoint and requires authentication.
      *     tags:
      *       - Enhanced Image
+     *     security:
+     *       - bearerAuth: []
      *     requestBody:
      *       required: true
      *       content:
@@ -85,33 +136,19 @@ export const createImageController = (
      *                   example: "Make the cat wear a tiny hat"
      *       400:
      *         description: Bad request, missing prompt or imageBase64.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "prompt is required"
+     *       401:
+     *         description: Unauthorized, authentication token is missing or invalid.
+     *       429:
+     *         description: Too Many Requests, usage limit for the user/workspace has been reached.
      *       500:
      *         description: Internal server error during image editing.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "Failed to edit image due to external service error."
      */
     editImage: async (req, res) => {
       try {
+        // CRITICAL FIX: Check permissions and usage limits before proceeding.
+        const hasPermission = await checkPermissionsAndUsage(req, res, 'image_edit');
+        if (!hasPermission) return; // Response already sent by the helper
+
         const { prompt, imageBase64 } = req.body;
 
         if (!prompt) {
@@ -128,14 +165,9 @@ export const createImageController = (
           });
         }
 
-        // The imagen3 service is now statically imported at the top of the file
-        // const { editImageWithImagen3 } = await import(
-        //   '../utils/imagen3.service.js'
-        // );
         const apiKey = config.gemini_secret_key;
-
         const timestamp = Date.now();
-        const filename = `image-edit-${timestamp}.png`;
+        const filename = `image-edit-${req.user.id}-${timestamp}.png`;
 
         // Edit image using Imagen3
         const imageResult = await editImageWithImagen3(
@@ -144,6 +176,16 @@ export const createImageController = (
           filename,
           apiKey
         );
+
+        // CRITICAL FIX: Record the usage after the action is successfully completed.
+        // This propagates usage details up the hierarchy (user -> workspace -> tenant).
+        await usageService.recordAction(req.user, 'image_edit', {
+          promptLength: prompt.length,
+          service: 'imagen3',
+        });
+
+        // Check if usage is approaching the limit and notify managers/admins if necessary.
+        await usageService.notifyOnThreshold(req.user, 'image_edit', notificationService);
 
         res.json({
           success: true,
@@ -154,7 +196,7 @@ export const createImageController = (
         console.error('Error editing image:', error);
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'Failed to edit image due to an internal error.',
         });
       }
     },
@@ -166,8 +208,11 @@ export const createImageController = (
      *     summary: Generates an image based on a session's context or a custom prompt.
      *     description: Generates an image using either a provided custom prompt or by building an enhanced prompt
      *                  from the conversation history associated with a given session ID. The session is deleted after image generation.
+     *                  This is a protected endpoint and requires authentication.
      *     tags:
      *       - Enhanced Image
+     *     security:
+     *       - bearerAuth: []
      *     requestBody:
      *       required: true
      *       content:
@@ -188,65 +233,25 @@ export const createImageController = (
      *     responses:
      *       200:
      *         description: Image successfully generated.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: true
-     *                 image:
-     *                   type: string
-     *                   description: The URL or Base64 string of the generated image.
-     *                   example: "https://example.com/generated-image.png"
-     *                 prompt:
-     *                   type: string
-     *                   description: The final prompt used for generation.
-     *                   example: "A futuristic city at sunset, highly detailed, cyberpunk style."
      *       400:
      *         description: Bad request, missing sessionId.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "sessionId is required"
+     *       401:
+     *         description: Unauthorized, authentication token is missing or invalid.
      *       404:
-     *         description: Session not found for the provided sessionId.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "Session not found"
+     *         description: Session not found for the provided sessionId and authenticated user.
+     *       429:
+     *         description: Too Many Requests, usage limit for the user/workspace has been reached.
      *       500:
      *         description: Internal server error during image generation.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "Failed to generate image due to service error."
      */
     generateImage: async (req, res) => {
       try {
+        // CRITICAL FIX: Check permissions and usage limits.
+        const hasPermission = await checkPermissionsAndUsage(req, res, 'image_generate');
+        if (!hasPermission) return;
+
         const { sessionId, prompt: customPrompt } = req.body;
+        const { user } = req; // Get authenticated user from request.
 
         if (!sessionId) {
           return res.status(400).json({
@@ -255,26 +260,27 @@ export const createImageController = (
           });
         }
 
-        const session = sessionManager.getSession(sessionId);
+        // CRITICAL FIX (IDOR): Scope session access to the authenticated user.
+        // This prevents a user from accessing or deleting another user's session.
+        const session = sessionManager.getSession(sessionId, user.id);
         if (!session) {
           return res.status(404).json({
             success: false,
-            error: 'Session not found',
+            error: 'Session not found or you do not have permission to access it.',
           });
         }
 
         // Use custom prompt or build enhanced prompt
         let finalPrompt = customPrompt;
         if (!finalPrompt) {
+          // CRITICAL FIX (IDOR): Scope conversation history access to the authenticated user.
           const conversationHistory =
-            sessionManager.getConversationHistory(sessionId);
+            sessionManager.getConversationHistory(sessionId, user.id);
           finalPrompt =
             await promptService.buildEnhancedPrompt(conversationHistory);
         }
 
         const timestamp = Date.now();
-        // Security fix: Sanitize sessionId to prevent path traversal or invalid filenames.
-        // This ensures that if sessionId contains characters like '../', it won't affect the file path.
         const sanitizedSessionId = sessionId.replace(/[^a-zA-Z0-9-]/g, '_');
         const filename = `image-${sanitizedSessionId}-${timestamp}.png`;
 
@@ -284,13 +290,15 @@ export const createImageController = (
           filename
         );
 
-        // Clean up session
-        // Security consideration: The sessionId is taken directly from req.body and used to delete a session.
-        // This could be an Insecure Direct Object Reference (IDOR) if sessionIds are guessable or enumerable,
-        // allowing an attacker to delete other users' sessions.
-        // A robust solution would involve associating sessions with an authenticated user and validating ownership,
-        // or ensuring sessionIds are cryptographically secure and unguessable.
-        sessionManager.deleteSession(sessionId);
+        // CRITICAL FIX (IDOR): Scope session deletion to the authenticated user.
+        sessionManager.deleteSession(sessionId, user.id);
+
+        // CRITICAL FIX: Record usage and notify if necessary.
+        await usageService.recordAction(req.user, 'image_generate', {
+          promptLength: finalPrompt.length,
+          source: customPrompt ? 'custom' : 'session',
+        });
+        await usageService.notifyOnThreshold(req.user, 'image_generate', notificationService);
 
         res.json({
           success: true,
@@ -301,7 +309,7 @@ export const createImageController = (
         console.error('Error generating image:', error);
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'Failed to generate image due to an internal error.',
         });
       }
     },
@@ -312,9 +320,11 @@ export const createImageController = (
      *   post:
      *     summary: Generates an image directly from a provided prompt.
      *     description: Generates an image based solely on the `prompt` provided in the request body,
-     *                  without relying on session context or conversation history.
+     *                  without relying on session context or conversation history. This is a protected endpoint.
      *     tags:
      *       - Enhanced Image
+     *     security:
+     *       - bearerAuth: []
      *     requestBody:
      *       required: true
      *       content:
@@ -331,51 +341,21 @@ export const createImageController = (
      *     responses:
      *       200:
      *         description: Image successfully generated.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: true
-     *                 image:
-     *                   type: string
-     *                   description: The URL or Base64 string of the generated image.
-     *                   example: "https://example.com/direct-image.png"
-     *                 prompt:
-     *                   type: string
-     *                   description: The prompt used for generation.
-     *                   example: "A serene landscape with a flowing river and mountains."
      *       400:
      *         description: Bad request, missing prompt.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "prompt is required"
+     *       401:
+     *         description: Unauthorized, authentication token is missing or invalid.
+     *       429:
+     *         description: Too Many Requests, usage limit for the user/workspace has been reached.
      *       500:
      *         description: Internal server error during image generation.
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: "Failed to generate image directly."
      */
     generateImageDirect: async (req, res) => {
       try {
+        // CRITICAL FIX: Check permissions and usage limits.
+        const hasPermission = await checkPermissionsAndUsage(req, res, 'image_generate_direct');
+        if (!hasPermission) return;
+
         const { prompt } = req.body;
 
         if (!prompt) {
@@ -386,10 +366,16 @@ export const createImageController = (
         }
 
         const timestamp = Date.now();
-        const filename = `image-direct-${timestamp}.png`;
+        const filename = `image-direct-${req.user.id}-${timestamp}.png`;
 
         // Generate image
         const imageResult = await imageService.generateImage(prompt, filename);
+
+        // CRITICAL FIX: Record usage and notify if necessary.
+        await usageService.recordAction(req.user, 'image_generate_direct', {
+          promptLength: prompt.length,
+        });
+        await usageService.notifyOnThreshold(req.user, 'image_generate_direct', notificationService);
 
         res.json({
           success: true,
@@ -397,10 +383,10 @@ export const createImageController = (
           prompt,
         });
       } catch (error) {
-        console.error('Error generating image:', error);
+        console.error('Error generating image directly:', error);
         res.status(500).json({
           success: false,
-          error: error.message,
+          error: 'Failed to generate image due to an internal error.',
         });
       }
     },
