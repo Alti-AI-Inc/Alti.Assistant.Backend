@@ -1,4 +1,11 @@
 import express from 'express';
+// SECURITY-PATCH: Import validation and sanitization functions from express-validator.
+// This provides a robust way to validate incoming data against various rules (e.g., format, type, content)
+// and sanitize it to prevent injection attacks like XSS or NoSQL injection.
+import { body, param, validationResult } from 'express-validator';
+// SECURITY-PATCH: Import helmet to set various security-related HTTP headers.
+// This helps protect the application from common web vulnerabilities like XSS, clickjacking, etc.
+import helmet from 'helmet';
 import { chatbotController } from './chatbot.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import { checkPlanLimits } from '../../middlewares/subscription/planLimits.js';
@@ -6,6 +13,23 @@ import { requireWorkspace } from '../../middlewares/workspace/requireWorkspace.j
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 const router = express.Router();
+
+// SECURITY-PATCH: Apply helmet middleware to set secure HTTP headers for all routes in this router.
+// Headers like Content-Security-Policy, X-Content-Type-Options, and Strict-Transport-Security
+// provide an additional layer of defense in the browser against common attacks.
+router.use(helmet());
+
+// SECURITY-PATCH: Middleware to handle validation errors from express-validator.
+// This centralizes error handling, ensuring that any request failing validation
+// is rejected with a clear 400 Bad Request response, preventing malformed data
+// from reaching the application logic.
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
 
 // IMPROVEMENT: To align with the Manager Platform requirements, this file is updated to use an explicit 'MANAGER' role
 // for workspace-level administration, replacing the more ambiguous 'ADMIN' role.
@@ -16,6 +40,14 @@ const router = express.Router();
 // and attaching it to the request object for use in controllers and services.
 // This is crucial for security and multi-tenancy.
 router.use(requireWorkspace);
+
+// SECURITY-PATCH: Define validation rules for creating a chatbot.
+// - `name` is trimmed, checked for non-emptiness, and escaped to prevent XSS.
+// - `config` is validated to ensure it's an object, preventing unexpected data types.
+const createChatbotValidation = [
+  body('name').trim().notEmpty().withMessage('Chatbot name is required.').escape(),
+  body('config').isObject().withMessage('Config must be an object.'),
+];
 
 /**
  * @openapi
@@ -45,6 +77,8 @@ router.use(requireWorkspace);
  *     responses:
  *       201:
  *         description: Chatbot created successfully
+ *       400:
+ *         description: Bad Request - Invalid input data
  *       401:
  *         description: Unauthorized
  *       402:
@@ -74,12 +108,29 @@ router
   .post(
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
     checkPlanLimits('chatbot'), // Middleware to verify the workspace plan allows creating another chatbot.
+    // SECURITY-PATCH: Apply validation and error handling middleware before the controller.
+    createChatbotValidation,
+    handleValidationErrors,
     chatbotController.createChatbot
   )
   .get(
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
     chatbotController.getChatbots
   );
+
+// SECURITY-PATCH: Define validation rules for route parameters containing IDs.
+// This ensures that IDs conform to the expected format (e.g., MongoDB ObjectId),
+// preventing potential NoSQL injection or malformed query errors in the controller.
+const chatbotIdValidation = [
+  param('id').isMongoId().withMessage('Invalid chatbot ID format.'),
+];
+
+// SECURITY-PATCH: Define validation rules for updating a chatbot.
+// All fields are optional, but if provided, they are validated and sanitized to prevent XSS.
+const updateChatbotValidation = [
+  body('name').optional().trim().notEmpty().withMessage('Chatbot name cannot be empty.').escape(),
+  body('config').optional().isObject().withMessage('Config must be an object.'),
+];
 
 /**
  * @openapi
@@ -100,6 +151,8 @@ router
  *     responses:
  *       200:
  *         description: Chatbot details retrieved successfully
+ *       400:
+ *         description: Bad Request - Invalid ID format
  *       401:
  *         description: Unauthorized
  *       403:
@@ -133,6 +186,8 @@ router
  *     responses:
  *       200:
  *         description: Chatbot updated successfully
+ *       400:
+ *         description: Bad Request - Invalid input data
  *       401:
  *         description: Unauthorized
  *       403:
@@ -155,6 +210,8 @@ router
  *     responses:
  *       200:
  *         description: Chatbot deleted successfully
+ *       400:
+ *         description: Bad Request - Invalid ID format
  *       401:
  *         description: Unauthorized
  *       403:
@@ -166,14 +223,24 @@ router
   .route('/:id')
   .get(
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+    // SECURITY-PATCH: Apply ID validation and error handling.
+    chatbotIdValidation,
+    handleValidationErrors,
     chatbotController.getChatbotById
   )
   .patch(
     auth(ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+    // SECURITY-PATCH: Apply ID and body validation and error handling.
+    chatbotIdValidation,
+    updateChatbotValidation,
+    handleValidationErrors,
     chatbotController.updateChatbot
   )
   .delete(
     auth(ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+    // SECURITY-PATCH: Apply ID validation and error handling.
+    chatbotIdValidation,
+    handleValidationErrors,
     chatbotController.deleteChatbot
   );
 
@@ -236,6 +303,19 @@ managerRouter.get('/team/members', (req, res) => {
   });
 });
 
+// SECURITY-PATCH: Define validation rules for the user ID parameter.
+const userIdValidation = [
+  param('userId').isMongoId().withMessage('Invalid user ID format.'),
+];
+
+// SECURITY-PATCH: Define validation for the role update payload.
+// Ensures the 'role' field is one of the allowed enumerated values, preventing privilege escalation.
+const updateRoleValidation = [
+  body('role')
+    .isIn([ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER])
+    .withMessage('Invalid role specified.'),
+];
+
 /**
  * @openapi
  * /manager/team/members/{userId}/role:
@@ -266,6 +346,8 @@ managerRouter.get('/team/members', (req, res) => {
  *     responses:
  *       200:
  *         description: User role updated successfully.
+ *       400:
+ *         description: Bad Request - Invalid user ID or role
  *       401:
  *         description: Unauthorized
  *       403:
@@ -273,10 +355,31 @@ managerRouter.get('/team/members', (req, res) => {
  *       404:
  *         description: User not found in workspace.
  */
-managerRouter.patch('/team/members/:userId/role', (req, res) => {
-  // Placeholder for teamController.updateMemberRole
-  res.status(200).json({ message: `Role for user ${req.params.userId} updated.` });
-});
+managerRouter.patch(
+  '/team/members/:userId/role',
+  // SECURITY-PATCH: Apply ID and body validation and error handling.
+  userIdValidation,
+  updateRoleValidation,
+  handleValidationErrors,
+  (req, res) => {
+    // Placeholder for teamController.updateMemberRole
+    // SECURITY-PATCH: Removed reflected user input from the response message.
+    // This is a defense-in-depth measure against potential misuse on the client-side,
+    // even with a JSON content type.
+    res.status(200).json({ message: 'User role updated successfully.' });
+  }
+);
+
+// SECURITY-PATCH: Define validation for the invitation payload.
+// - `email` is validated and normalized to prevent malformed data and potential injection.
+// - `role` is validated against the allowed enum values.
+const inviteMemberValidation = [
+  body('email').isEmail().withMessage('A valid email is required.').normalizeEmail(),
+  body('role')
+    .optional()
+    .isIn([ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER])
+    .withMessage('Invalid role specified.'),
+];
 
 /**
  * @openapi
@@ -305,6 +408,8 @@ managerRouter.patch('/team/members/:userId/role', (req, res) => {
  *     responses:
  *       201:
  *         description: Invitation sent successfully.
+ *       400:
+ *         description: Bad Request - Invalid email or role
  *       401:
  *         description: Unauthorized
  *       402:
@@ -314,10 +419,19 @@ managerRouter.patch('/team/members/:userId/role', (req, res) => {
  *       409:
  *         description: Conflict - User is already a member of the workspace.
  */
-managerRouter.post('/team/invitations', checkPlanLimits('user'), (req, res) => {
-  // Placeholder for teamController.inviteMember
-  res.status(201).json({ message: `Invitation sent to ${req.body.email}.` });
-});
+managerRouter.post(
+  '/team/invitations',
+  checkPlanLimits('user'),
+  // SECURITY-PATCH: Apply body validation and error handling.
+  inviteMemberValidation,
+  handleValidationErrors,
+  (req, res) => {
+    // Placeholder for teamController.inviteMember
+    // SECURITY-PATCH: Removed reflected user input from the response message.
+    // The sanitized email is available in `req.body.email` for the controller to use.
+    res.status(201).json({ message: 'Invitation sent successfully.' });
+  }
+);
 
 // NOTE: Billing-related routes are intentionally omitted. They would be defined in a separate module
 // with access restricted to workspace OWNERS or SUPER_ADMINS, ensuring managers without billing permissions

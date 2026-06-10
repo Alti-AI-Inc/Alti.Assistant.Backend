@@ -11,45 +11,73 @@ const IV_LENGTH = 16;
 
 /**
  * Encryption key buffer used for securing message content and conversation titles.
- * Dynamically resolved from environment variables (e.g., injected by Cloud Run)
- * or fetched from GCP Secret Manager in production.
+ * This is initialized asynchronously at module load time from a secure source.
  * @type {Buffer}
  */
-let ENCRYPTION_KEY_BUF = Buffer.from(process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012');
+let ENCRYPTION_KEY_BUF;
 
-// If in production and the key is not injected via environment variables,
-// dynamically resolve it from GCP Secret Manager.
-if (process.env.NODE_ENV === 'production' && !process.env.CHAT_ENCRYPTION_KEY) {
+// Asynchronously initialize the encryption key from environment variables or GCP Secret Manager.
+// This self-invoking async function ensures the key is loaded when the module is imported.
+// The application will exit if a secure key cannot be configured, preventing insecure operation.
+(async () => {
   try {
-    const client = new SecretManagerServiceClient();
-    const secretName = process.env.GCP_CHAT_ENCRYPTION_KEY_SECRET || 'projects/alti-assistant/secrets/chat-encryption-key/versions/latest';
-    
-    client.accessSecretVersion({ name: secretName })
-      .then(([version]) => {
-        const payload = version.payload.data.toString().trim();
-        if (payload) {
-          ENCRYPTION_KEY_BUF = Buffer.from(payload);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to resolve CHAT_ENCRYPTION_KEY from GCP Secret Manager:', err);
-      });
+    // Priority 1: Use key injected directly into the environment (e.g., by Cloud Run).
+    if (process.env.CHAT_ENCRYPTION_KEY) {
+      ENCRYPTION_KEY_BUF = Buffer.from(process.env.CHAT_ENCRYPTION_KEY);
+      console.log('Chat encryption key initialized from CHAT_ENCRYPTION_KEY environment variable.');
+      return;
+    }
+
+    // Priority 2: In production, fetch from GCP Secret Manager if not injected via env var.
+    if (process.env.NODE_ENV === 'production') {
+      const client = new SecretManagerServiceClient();
+      const secretName = process.env.GCP_CHAT_ENCRYPTION_KEY_SECRET;
+
+      if (!secretName) {
+        throw new Error('GCP_CHAT_ENCRYPTION_KEY_SECRET environment variable is required in production but was not found.');
+      }
+      
+      const [version] = await client.accessSecretVersion({ name: secretName });
+      const payload = version.payload.data.toString().trim();
+
+      if (!payload) {
+        throw new Error(`Secret ${secretName} fetched from GCP Secret Manager is empty.`);
+      }
+      
+      ENCRYPTION_KEY_BUF = Buffer.from(payload);
+      console.log('Chat encryption key initialized successfully from GCP Secret Manager.');
+      return;
+    }
+
+    // If not in production and no key is provided, the app is misconfigured.
+    throw new Error('CHAT_ENCRYPTION_KEY environment variable must be set for development or testing environments.');
+
   } catch (err) {
-    console.error('Error initializing SecretManagerServiceClient:', err);
+    console.error('FATAL: Failed to initialize chat encryption key. Application cannot run securely.', err);
+    // Exit the process to prevent the application from running in an insecure or non-functional state.
+    process.exit(1);
   }
-}
+})();
+
 
 /**
  * Encrypts a plain text string using AES-256-CBC.
  * Prevents double encryption by checking if the text is already encrypted.
  *
  * @param {string} text - The plain text to encrypt.
- * @returns {string} The encrypted text in the format "iv:encryptedData", or the original text if encryption fails or is skipped.
+ * @returns {string} The encrypted text in the format "iv:encryptedData".
+ * @throws {Error} If encryption fails or the encryption key is not initialized.
  */
 function encryptText(text) {
   if (!text || typeof text !== 'string') return text;
-  // Check if already encrypted to avoid double encryption (heuristic)
+  // Check if already encrypted to avoid double encryption (heuristic: 16-byte IV in hex is 32 chars)
   if (text.includes(':') && text.split(':')[0].length === 32) return text;
+  
+  // This check serves as a safeguard. The async initializer should exit the process on failure,
+  // so this code path should not be reachable in a failed state.
+  if (!ENCRYPTION_KEY_BUF) {
+    throw new Error('Encryption key has not been initialized. Cannot encrypt data.');
+  }
   
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
@@ -58,7 +86,9 @@ function encryptText(text) {
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return iv.toString('hex') + ':' + encrypted.toString('hex');
   } catch (err) {
-    return text;
+    console.error('Encryption failed:', err);
+    // Returning plaintext on failure is a security vulnerability. Throw an error to halt the operation.
+    throw new Error('Failed to encrypt data due to an internal error.');
   }
 }
 
@@ -67,12 +97,22 @@ function encryptText(text) {
  *
  * @param {string} text - The encrypted text in the format "iv:encryptedData".
  * @returns {string} The decrypted plain text, or the original text if decryption fails or is not encrypted.
+ * @throws {Error} If the encryption key is not initialized.
  */
 function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
+
+  // Safeguard check, similar to encryptText.
+  if (!ENCRYPTION_KEY_BUF) {
+    throw new Error('Encryption key has not been initialized. Cannot decrypt data.');
+  }
+
   try {
     const textParts = text.split(':');
-    if (textParts.length !== 2) return text; // Not encrypted
+    // Validate that the text is in the expected "iv:encryptedData" format.
+    if (textParts.length !== 2 || textParts[0].length !== 32) {
+      return text; // Not a valid encrypted string, return as is.
+    }
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUF, iv);
@@ -80,7 +120,10 @@ function decryptText(text) {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (err) {
-    return text; // Fallback if decryption fails
+    // If decryption fails, it might be unencrypted legacy data or a key mismatch.
+    // Returning the original text is a safe fallback to avoid crashing on invalid data.
+    console.warn('Decryption failed for a value, returning original text. This may be expected for unencrypted legacy data.');
+    return text;
   }
 }
 
