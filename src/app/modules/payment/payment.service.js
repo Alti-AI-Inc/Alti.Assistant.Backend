@@ -311,11 +311,13 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Check for existing subscription to prevent duplicates
-      // OPTIMIZATION: Added .lean() as the subscription document is only checked for existence.
+      // The `withTenantFilter` helper is designed for user-initiated requests with `req.user` context.
+      // For webhooks, the `tenantId` is already explicitly provided in the Stripe metadata,
+      // so `withTenantFilter` is not applicable and could cause issues if `req` lacks the expected tenant context.
       // RECOMMENDATION: Consider adding an index to SubscriptionModel on `{ transactionId: 1 }` for faster lookups.
       const existingSubQuery = { transactionId: stripeSession.id };
       const existingSubscription = await SubscriptionModel.findOne(
-        req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
+        existingSubQuery
       ).session(session).lean();
       if (existingSubscription) {
         logger.warn('Subscription already exists', {
@@ -431,10 +433,14 @@ const handleWebhookService = async (req, res) => {
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
 
-      // No .lean() here as the existingSubscription document is modified later in the transaction.
-      const existingSubQuery = { transactionId: subscription.id };
+      // When a `customer.subscription.deleted` event occurs, `subscription.id` refers to the Stripe Subscription ID.
+      // Our `SubscriptionModel` stores this in the `stripeSubscriptionId` field, not `transactionId` (which holds the Checkout Session ID).
+      // The `withTenantFilter` helper is designed for user-initiated requests with `req.user` context.
+      // For webhooks, the `tenantId` is derived from the found subscription, so `withTenantFilter` is not applicable.
+      // RECOMMENDATION: Consider adding an index to SubscriptionModel on `{ stripeSubscriptionId: 1 }` for faster lookups.
+      const existingSubQuery = { stripeSubscriptionId: subscription.id };
       const existingSubscription = await SubscriptionModel.findOne(
-        req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
+        existingSubQuery
       ).session(session);
 
       if (existingSubscription) {
@@ -482,7 +488,7 @@ const handleWebhookService = async (req, res) => {
 
         await session.commitTransaction();
         logger.info('Subscription marked as expired', {
-          transactionId: subscription.id,
+          stripeSubscriptionId: subscription.id,
         });
       }
     }
