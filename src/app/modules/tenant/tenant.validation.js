@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Improvement: Centralize role definitions for consistency and maintainability across the application.
+const ROLES = ['admin', 'manager', 'user'] as const;
+
 /**
  * @typedef {object} CreateTenantBody
  * @property {string} name - The name of the tenant. Must be between 2 and 100 characters.
@@ -22,17 +25,21 @@ export const createTenantSchema = z.object({
       .string()
       .min(2, 'Slug must be at least 2 characters')
       .max(50, 'Slug cannot exceed 50 characters')
+      // Bug: The original regex /^[a-z0-9-]+$/ allowed leading, trailing, and consecutive hyphens (e.g., "-slug-", "my--slug"), which are invalid for URL paths or subdomains.
+      // Fix: Use a stricter regex to ensure slugs are valid URL components, preventing malformed identifiers.
       .regex(
-        /^[a-z0-9-]+$/,
-        'Slug can only contain lowercase letters, numbers, and hyphens'
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        'Slug can only contain lowercase letters, numbers, and non-consecutive hyphens. It cannot start or end with a hyphen.'
       ),
     subdomain: z
       .string()
       .min(2, 'Subdomain must be at least 2 characters')
       .max(50, 'Subdomain cannot exceed 50 characters')
+      // Bug: The original regex /^[a-z0-9-]+$/ allowed leading, trailing, and consecutive hyphens, which are invalid for hostnames.
+      // Fix: Use a stricter regex to ensure subdomains are valid, preventing DNS and routing issues.
       .regex(
-        /^[a-z0-9-]+$/,
-        'Subdomain can only contain lowercase letters, numbers, and hyphens'
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        'Subdomain can only contain lowercase letters, numbers, and non-consecutive hyphens. It cannot start or end with a hyphen.'
       ),
     plan: z
       .enum(['free', 'explore', 'analyze', 'execute', 'command', 'enterprise'])
@@ -77,13 +84,17 @@ export const updateTenantSchema = z.object({
             logo: z.string().url().optional(),
             primaryColor: z
               .string()
-              .regex(/^#[0-9A-Fa-f]{6}$/)
+              // Bug: Original regex /^#[0-9A-Fa-f]{6}$/ was too restrictive, only allowing 6-digit hex codes.
+              // Fix: Allow 3-digit (#RGB), 6-digit (#RRGGBB), and 8-digit (#RRGGBBAA) hex color codes for more flexibility in branding.
+              .regex(/^#([0-9A-Fa-f]{3}){1,2}([0-9A-Fa-f]{2})?$/i, 'Invalid hex color format')
               .optional(),
           })
           .optional(),
       })
       .optional(),
-    metadata: z.record(z.any()).optional(),
+    // Security Vulnerability: Using z.record(z.any()) is too permissive and can allow for NoSQL/Object injection if the backend does not properly sanitize the object keys and values (e.g., using keys like '$set', '$gt').
+    // Fix: Harden the metadata schema to only allow primitive values (string, number, boolean, null), preventing nested objects and potential injection attacks.
+    metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   }),
 });
 
@@ -100,7 +111,8 @@ export const updateTenantSchema = z.object({
 export const inviteMemberSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email address'),
-    role: z.enum(['admin', 'manager', 'user'], {
+    // Improvement: Use the centralized ROLES enum for consistency and to avoid magic strings.
+    role: z.enum(ROLES, {
       errorMap: () => ({ message: 'Role must be admin, manager, or user' }),
     }),
   }),
@@ -124,7 +136,8 @@ export const updateMemberRoleSchema = z.object({
     userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user ID'),
   }),
   body: z.object({
-    role: z.enum(['admin', 'manager', 'user'], {
+    // Improvement: Use the centralized ROLES enum for consistency.
+    role: z.enum(ROLES, {
       errorMap: () => ({ message: 'Role must be admin, manager, or user' }),
     }),
   }),
@@ -220,9 +233,11 @@ export const checkSubdomainSchema = z.object({
       .string()
       .min(2, 'Subdomain must be at least 2 characters')
       .max(50, 'Subdomain cannot exceed 50 characters')
+      // Bug: The original regex /^[a-z0-9-]+$/ allowed leading, trailing, and consecutive hyphens, which are invalid for hostnames.
+      // Fix: Use a stricter regex to ensure subdomains are valid, preventing DNS and routing issues.
       .regex(
-        /^[a-z0-9-]+$/,
-        'Subdomain can only contain lowercase letters, numbers, and hyphens'
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        'Subdomain can only contain lowercase letters, numbers, and non-consecutive hyphens. It cannot start or end with a hyphen.'
       ),
   }),
 });

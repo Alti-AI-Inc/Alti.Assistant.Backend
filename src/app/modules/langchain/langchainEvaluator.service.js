@@ -1,27 +1,70 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// MODIFICATION: Switched from consumer-grade '@google/generative-ai' to the enterprise-ready '@google-cloud/vertexai' SDK.
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainChainVersion from './langchain-version.model.js';
 import { LangchainExecutionService } from './langchainExecution.service.js';
 
-// BUG FIX: Ensure GoogleGenerativeAI is only initialized if the secret key is present.
-// If the key is missing, log a critical error and set genAI to null to prevent runtime errors
-// from attempting to use an uninitialized or improperly initialized client.
-let genAIInstance = null;
-if (config.gemini_secret_key) {
-  genAIInstance = new GoogleGenerativeAI(config.gemini_secret_key);
+// MODIFICATION: Initialize the enterprise VertexAI client.
+// This uses Application Default Credentials (ADC) and requires GCP Project ID and Location to be configured in the environment.
+// It is more secure and suitable for backend services than using a simple API key.
+let vertexAIClient = null;
+if (config.gcp_project_id && config.gcp_location) {
+  vertexAIClient = new VertexAI({
+    project: config.gcp_project_id,
+    location: config.gcp_location,
+  });
 } else {
-  logger.error('GEMINI_SECRET_KEY is not configured. Langchain evaluation services will not function.');
-  // Depending on application criticality, you might throw an error here to prevent startup:
-  // throw new Error('GEMINI_SECRET_KEY is not configured.');
+  logger.error('GCP_PROJECT_ID or GCP_LOCATION is not configured. Vertex AI services will not function.');
 }
 
 /**
- * @constant {GoogleGenerativeAI | null} genAI - An instance of GoogleGenerativeAI initialized with the Gemini secret key, or null if the key is missing.
- * This is used to interact with the Gemini AI model for grading purposes.
+ * MODIFICATION: Added PII (Personally Identifiable Information) redaction utilities.
+ * This is a crucial security and privacy measure to prevent sensitive user data
+ * from being transmitted to the generative model.
  */
-const genAI = genAIInstance;
+
+/**
+ * Masks common PII patterns in a given string.
+ * @param {string} text The text to sanitize.
+ * @returns {string} The sanitized text with PII masked.
+ */
+const maskPII = (text) => {
+  if (typeof text !== 'string') return text;
+  // Mask email addresses
+  let sanitizedText = text.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL_REDACTED]');
+  // Mask phone numbers (basic North American and international formats)
+  sanitizedText = sanitizedText.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}/g, '[PHONE_REDACTED]');
+  // Mask common social security numbers (USA)
+  sanitizedText = sanitizedText.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN_REDACTED]');
+  return sanitizedText;
+};
+
+/**
+ * Recursively traverses an object or array and masks PII in all string values.
+ * @param {any} data The data to process (object, array, string, etc.).
+ * @returns {any} A deep copy of the data with PII masked.
+ */
+const recursivelyMaskData = (data) => {
+  if (typeof data === 'string') {
+    return maskPII(data);
+  }
+  if (Array.isArray(data)) {
+    return data.map(item => recursivelyMaskData(item));
+  }
+  if (typeof data === 'object' && data !== null) {
+    const maskedObject = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        maskedObject[key] = recursivelyMaskData(data[key]);
+      }
+    }
+    return maskedObject;
+  }
+  return data;
+};
+
 
 /**
  * @typedef {object} GradeResult
@@ -46,36 +89,56 @@ const genAI = genAIInstance;
  * @returns {Promise<GradeResult>} A promise that resolves to an object containing relevance, factual accuracy, and structure adherence scores and justifications.
  */
 const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
-  // BUG FIX: Check if genAI was successfully initialized before attempting to use it.
-  if (!genAI) {
-    logger.warn('Attempted to grade output with Gemini, but Gemini AI is not initialized due to missing API key. Returning default scores.');
+  // MODIFICATION: Check for the correctly initialized Vertex AI client.
+  if (!vertexAIClient) {
+    logger.warn('Attempted to grade output, but Vertex AI is not initialized due to missing configuration. Returning default scores.');
     return {
-      relevance: { score: 0.0, justification: 'Grading skipped: API key missing' },
-      factualAccuracy: { score: 0.0, justification: 'Grading skipped: API key missing' },
-      structureAdherence: { score: 0.0, justification: 'Grading skipped: API key missing' }
+      relevance: { score: 0.0, justification: 'Grading skipped: Vertex AI not configured' },
+      factualAccuracy: { score: 0.0, justification: 'Grading skipped: Vertex AI not configured' },
+      structureAdherence: { score: 0.0, justification: 'Grading skipped: Vertex AI not configured' }
     };
   }
 
-  const modelName = 'gemini-2.5-flash';
-  const model = genAI.getGenerativeModel({ model: modelName });
+  // MODIFICATION: Use a Vertex AI compatible model name.
+  const modelName = 'gemini-1.5-flash-preview-0514';
+
+  // MODIFICATION: Define explicit safety settings to block harmful content.
+  // This is a critical security measure for enterprise applications to prevent
+  // the generation or processing of inappropriate content.
+  const safetySettings = [
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  ];
+
+  const model = vertexAIClient.getGenerativeModel({
+    model: modelName,
+    safetySettings, // Apply the safety settings to the model instance.
+    generationConfig: {
+      // MODIFICATION: Enforce JSON output from the model for more reliable parsing.
+      responseMimeType: 'application/json',
+      temperature: 0.2, // Lower temperature for more predictable, deterministic grading.
+    },
+  });
+
+  // MODIFICATION: Sanitize input and output data to remove PII before sending to the model.
+  const sanitizedInput = recursivelyMaskData(input);
+  const sanitizedOutput = recursivelyMaskData(output);
 
   const evaluationPrompt = `
 You are an expert AI evaluator. Grade the quality of an AI model's output based on a given input and evaluation criteria.
 
 Input Variables/Scope:
-${JSON.stringify(input, null, 2)}
+${JSON.stringify(sanitizedInput, null, 2)}
 
 Expected Evaluation Criteria:
 ${expectedCriteria || 'Produce a relevant, helpful, and high-quality response.'}
 
 AI Model Output to Grade:
-${typeof output === 'object' ? JSON.stringify(output, null, 2) : String(output)}
+${typeof sanitizedOutput === 'object' ? JSON.stringify(sanitizedOutput, null, 2) : String(sanitizedOutput)}
 
-You MUST grade this output on three vectors, providing a score between 0.0 and 1.0 (where 0.0 is completely failed/irrelevant, and 1.0 is absolute perfection) and a brief justification:
-
-1. Relevance: How well did the output address the inputs and context? Does it stay on topic and provide what is needed?
-2. Factual Accuracy: How accurate, logical, consistent, and factual is the output? Are there hallucinations or contradictions?
-3. Structure Adherence: Does the output follow specified format guidelines, styling, JSON structures, or other structural expectations?
+You MUST grade this output on three vectors, providing a score between 0.0 and 1.0 (where 0.0 is completely failed/irrelevant, and 1.0 is absolute perfection) and a brief justification.
 
 You MUST return your response as a valid JSON object ONLY, with no extra text or markdown formatting blocks. Do not put markdown like \`\`\`json. Return exactly this JSON structure:
 {
@@ -95,16 +158,26 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
 `;
 
   try {
-    const response = await model.generateContent({
+    // MODIFICATION: Updated model call to match the Vertex AI SDK structure.
+    const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: evaluationPrompt }] }]
     });
 
-    let text = response.response.text().trim();
-    if (text.startsWith('```')) {
-      text = text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+    const response = result.response;
+    // MODIFICATION: Robustly check the response structure from the Vertex AI SDK.
+    if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+      // Log the finish reason if available, which can help debug safety blocks or other issues.
+      const finishReason = response.candidates?.[0]?.finishReason;
+      const safetyRatings = response.candidates?.[0]?.safetyRatings;
+      logger.error(`Invalid or empty response structure from Vertex AI. Finish Reason: ${finishReason}`, { safetyRatings });
+      throw new Error(`Invalid response structure from Vertex AI. Finish Reason: ${finishReason || 'UNKNOWN'}`);
     }
 
+    // Since we requested JSON output via responseMimeType, the text should be a parsable JSON string.
+    const text = response.candidates[0].content.parts[0].text;
+
     try {
+      // The SDK should return a clean JSON string, so we can parse it directly.
       const parsed = JSON.parse(text);
       return {
         relevance: parsed.relevance || { score: 0.5, justification: 'Unknown' },
@@ -112,7 +185,6 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
         structureAdherence: parsed.structureAdherence || { score: 0.5, justification: 'Unknown' }
       };
     } catch (e) {
-      // BUG FIX: Removed fragile regex-based fallback parser.
       // If JSON parsing fails, it's better to log the raw response and return a default "failed to grade" result,
       // rather than attempting an unreliable partial parse.
       logger.warn(`Failed to parse Gemini grader output JSON. Raw response: ${text}. Error: ${e.message}`);
