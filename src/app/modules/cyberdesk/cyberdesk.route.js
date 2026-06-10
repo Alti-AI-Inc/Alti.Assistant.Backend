@@ -23,6 +23,18 @@ import express from 'express';
 import { cyberdeskController } from './cyberdesk.controller.js';
 
 /**
+ * Utility function to wrap async Express route handlers.
+ * This ensures that any errors (rejected promises) from async handlers
+ * are caught and passed to the Express error handling middleware,
+ * preventing unhandled promise rejections that could crash the application.
+ * @param {Function} fn - The async Express route handler function.
+ * @returns {Function} An Express-compatible middleware function.
+ */
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => next(err));
+};
+
+/**
  * Express router for Cyberdesk module routes.
  * This router handles all API endpoints related to managing and interacting with Cyberdesk instances.
  * @type {express.Router}
@@ -85,7 +97,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/launch', cyberdeskController.launch);
+router.post('/launch', catchAsync(cyberdeskController.launch));
 
 /**
  * @swagger
@@ -137,7 +149,7 @@ router.post('/launch', cyberdeskController.launch);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/info/:id', cyberdeskController.info);
+router.get('/info/:id', catchAsync(cyberdeskController.info));
 
 /**
  * @swagger
@@ -209,7 +221,7 @@ router.get('/info/:id', cyberdeskController.info);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/click/:id', cyberdeskController.click);
+router.post('/click/:id', catchAsync(cyberdeskController.click));
 
 /**
  * @swagger
@@ -274,7 +286,7 @@ router.post('/click/:id', cyberdeskController.click);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/bash/:id', cyberdeskController.bash);
+router.post('/bash/:id', catchAsync(cyberdeskController.bash));
 
 /**
  * @swagger
@@ -308,7 +320,7 @@ router.post('/bash/:id', cyberdeskController.bash);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete('/terminate/:id', cyberdeskController.terminate);
+router.delete('/terminate/:id', catchAsync(cyberdeskController.terminate));
 
 /**
  * Exports the Express router for Cyberdesk routes.
