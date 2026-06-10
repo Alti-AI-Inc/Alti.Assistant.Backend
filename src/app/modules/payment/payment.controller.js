@@ -8,6 +8,67 @@ import { PaymentService } from './payment.service.js';
 // import { checkFreePlanLimits } from '../../middlewares/checkFreePlanLimits/checkFreePlanLimits.js';
 import { checkFreePlanLimits } from '../../middlewares/checkFreePlanLimits/checkFreePlanLimits.js';
 
+/**
+ * @openapi
+ * /api/v1/payments/create-checkout-session:
+ *   post:
+ *     summary: Create a Stripe checkout session
+ *     description: Generates a Stripe checkout session URL for a specified user and subscription plan.
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - plan
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: The ID of the user purchasing the subscription.
+ *                 example: '60d0fe4f5311236168a109ca'
+ *               plan:
+ *                 type: string
+ *                 description: The subscription plan to purchase.
+ *                 enum: [monthly, yearly]
+ *                 example: 'monthly'
+ *     responses:
+ *       '200':
+ *         description: Checkout session created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                       description: The URL for the Stripe checkout session.
+ *       '400':
+ *         description: Bad Request - Invalid User ID provided.
+ *       '404':
+ *         description: Not Found - User with the provided ID does not exist.
+ *       '500':
+ *         description: Internal Server Error.
+ */
+/**
+ * Creates a Stripe checkout session for a user to subscribe to a plan.
+ * The user must be authenticated.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const createCheckoutSession = catchAsync(async (req, res, next) => {
   const { userId, plan } = req.body;
   // console.log(userId, plan);
@@ -35,10 +96,88 @@ const createCheckoutSession = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @openapi
+ * /api/v1/payments/webhook:
+ *   post:
+ *     summary: Handle Stripe webhook events
+ *     description: >
+ *       Listens for and processes incoming webhook events from Stripe to manage subscription statuses,
+ *       payment successes, and other billing-related events. This endpoint is intended to be called by Stripe's servers,
+ *       not by client applications. It relies on signature verification handled within the service layer.
+ *     tags:
+ *       - Payment
+ *     requestBody:
+ *       description: Stripe event object. The structure is determined by the event type from Stripe.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: A generic object to represent the Stripe event payload.
+ *     responses:
+ *       '200':
+ *         description: Acknowledges successful receipt of the event.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *                   example: true
+ *       '400':
+ *         description: Bad Request - Often due to a webhook signature verification error.
+ */
+/**
+ * Handles incoming webhooks from Stripe to update subscription status.
+ * This endpoint is publicly accessible but secured by Stripe's signature verification.
+ * @param {import('express').Request} req - The Express request object, containing the raw body for signature verification.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const handleWebhook = catchAsync(async (req, res, next) => {
   await PaymentService.handleWebhookService(req, res);
 });
 
+/**
+ * @openapi
+ * /api/v1/payments/subscriptions:
+ *   get:
+ *     summary: Get all subscriptions
+ *     description: Fetches a list of all user subscriptions in the system. Limited to the 500 most recent subscriptions.
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: A list of all subscriptions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Subscription'
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User does not have the required 'ADMIN' role.
+ */
+/**
+ * Retrieves a list of all subscriptions.
+ * @permission Requires `ADMIN` role.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const getAllSubscriptions = catchAsync(async (req, res, next) => {
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
   // improving performance by skipping Mongoose document instantiation.
@@ -55,6 +194,56 @@ const getAllSubscriptions = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @openapi
+ * /api/v1/payments/subscriptions/{userId}:
+ *   get:
+ *     summary: Get subscriptions for a specific user
+ *     description: Fetches all subscription records associated with a given user ID.
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The unique identifier of the user.
+ *     responses:
+ *       '200':
+ *         description: A list of subscriptions for the specified user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Subscription'
+ *       '400':
+ *         description: Bad Request - User ID is missing or invalid.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not an admin and is trying to access another user's subscriptions.
+ *       '404':
+ *         description: Not Found - No subscriptions found for this user.
+ */
+/**
+ * Retrieves all subscriptions for a specific user.
+ * @permission Requires `ADMIN` role or the authenticated user must be the owner of the subscriptions.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const getSubscriptionsByUserId = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   if (!userId) return res.status(400).json({ error: 'User ID is required' });
@@ -85,6 +274,15 @@ const getSubscriptionsByUserId = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * Increments the prompt usage count for a user.
+ * This function handles both free and subscribed users within a database transaction to ensure atomicity.
+ * If the user is on a free plan, it increments their `freePlanUsage.promptsUsed`.
+ * If the user is subscribed, it increments the `usage.promptsUsed` on their active subscription record.
+ * It gracefully handles database disconnection by bypassing the update.
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user whose prompt usage is to be incremented.
+ * @returns {Promise<{success: boolean, message: string}>} An object indicating the outcome of the operation.
+ */
 const incrementPromptsUsed = async (userId) => {
   if (mongoose.connection.readyState !== 1) {
     console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing prompt usage increment.');
@@ -132,6 +330,15 @@ const incrementPromptsUsed = async (userId) => {
   }
 };
 
+/**
+ * Increments the image generation usage count for a user.
+ * This function handles both free and subscribed users within a database transaction to ensure atomicity.
+ * If the user is on a free plan, it increments their `freePlanUsage.imagesUsed`.
+ * If the user is subscribed, it increments the `usage.imagesUsed` on their active subscription record.
+ * It gracefully handles database disconnection by bypassing the update.
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user whose image usage is to be incremented.
+ * @returns {Promise<{success: boolean, message: string}>} An object indicating the outcome of the operation.
+ */
 const incrementImagesUsed = async (userId) => {
   if (mongoose.connection.readyState !== 1) {
     console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing image usage increment.');
@@ -183,6 +390,10 @@ const incrementImagesUsed = async (userId) => {
   }
 };
 
+/**
+ * A collection of controller functions for handling payment and subscription-related operations.
+ * @namespace paymentController
+ */
 export const paymentController = {
   createCheckoutSession,
   handleWebhook,
