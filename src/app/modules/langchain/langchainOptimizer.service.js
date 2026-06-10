@@ -16,7 +16,12 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  */
 const optimizeChain = async (chainId, userContext) => {
   try {
-    logger.info(`LangchainOptimizer: running diagnostics on chain ${chainId}`);
+    // Structured log for GCP Cloud Logging compatibility
+    logger.info({
+      severity: 'INFO',
+      message: `LangchainOptimizer: running diagnostics on chain ${chainId}`,
+      chainId
+    });
 
     // Resolve user context and fetch full user details if only ID is provided
     let currentUser = null;
@@ -51,7 +56,15 @@ const optimizeChain = async (chainId, userContext) => {
     if (userRole !== 'super_admin') {
       // Ensure tenant isolation
       if (!tenantId || !chain.tenantId || chain.tenantId.toString() !== tenantId.toString()) {
-        logger.warn(`Security Alert: User ${userId} attempted to access chain ${chainId} across tenant boundaries.`);
+        // Structured log for GCP Cloud Logging compatibility
+        logger.warn({
+          severity: 'WARNING',
+          message: `Security Alert: User ${userId} attempted to access chain ${chainId} across tenant boundaries.`,
+          userId,
+          chainId,
+          tenantId: tenantId ? tenantId.toString() : null,
+          chainTenantId: chain.tenantId ? chain.tenantId.toString() : null
+        });
         throw new Error('Unauthorized: Access denied to this resource.');
       }
 
@@ -273,7 +286,13 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
       optimization: suggestions,
     };
   } catch (err) {
-    logger.error('LangchainOptimizer error:', err);
+    // Structured log for GCP Cloud Logging compatibility
+    logger.error({
+      severity: 'ERROR',
+      message: `LangchainOptimizer error: ${err.message}`,
+      error: err.stack || err.toString(),
+      chainId
+    });
     throw new Error(`Failed to generate chain optimizations: ${err.message}`);
   }
 };

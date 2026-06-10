@@ -18,9 +18,14 @@
  */
 
 import { createHmac, timingSafeEqual } from 'crypto';
+import { PubSub } from '@google-cloud/pubsub';
 import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
 import { invalidateCache } from './explorium.cache.js';
+
+// Initialize GCP Pub/Sub Client
+const pubsub = new PubSub();
+const TOPIC_NAME = process.env.EXPLORIUM_EVENTS_TOPIC || 'explorium-events';
 
 // ─── Event Category Sets ──────────────────────────────────────────────────────
 
@@ -264,25 +269,56 @@ export async function webhookHandler(req, res) {
     return res.status(400).json({ error: 'Invalid JSON payload' });
   }
 
-  // 3. Acknowledge immediately (Explorium requires <5s response)
-  res.status(200).json({ received: true, timestamp: new Date().toISOString() });
-
-  // 4. Process events asynchronously (don't block the HTTP response)
   const events = Array.isArray(payload) ? payload : [payload];
-  setImmediate(async () => {
-    logger.info(`[Explorium Webhook] Processing ${events.length} event(s)`);
-    for (const event of events) {
-      try {
-        await processWebhookEvent(event);
-      } catch (err) {
-        logger.error(`[Explorium Webhook] Handler error for "${event?.event_type}": ${err.message}`);
-      }
+  logger.info(`[Explorium Webhook] Offloading ${events.length} event(s) to GCP Pub/Sub topic: ${TOPIC_NAME}`);
+
+  // 3. Publish events to GCP Pub/Sub to avoid in-memory background processing
+  try {
+    const publishPromises = events.map(event => {
+      const dataBuffer = Buffer.from(JSON.stringify(event));
+      return pubsub.topic(TOPIC_NAME).publishMessage({ data: dataBuffer });
+    });
+    await Promise.all(publishPromises);
+  } catch (err) {
+    logger.error(`[Explorium Webhook] Failed to publish events to Pub/Sub: ${err.message}`);
+    return res.status(500).json({ error: 'Failed to queue events for processing' });
+  }
+
+  // 4. Acknowledge immediately once safely queued in Pub/Sub (Explorium requires <5s response)
+  res.status(200).json({ received: true, queued: true, timestamp: new Date().toISOString() });
+}
+
+/**
+ * Express route handler for GCP Pub/Sub Push Subscription.
+ * Mount at: POST /api/v1/explorium/webhook/process-subscription
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
+export async function pubSubSubscriptionHandler(req, res) {
+  try {
+    const message = req.body?.message;
+    if (!message || !message.data) {
+      return res.status(400).send('Bad Request: Missing Pub/Sub message data');
     }
-  });
+
+    const eventStr = Buffer.from(message.data, 'base64').toString('utf8');
+    const event = JSON.parse(eventStr);
+
+    logger.info(`[Explorium Pub/Sub Subscriber] Processing event: ${event?.event_type}`);
+    await processWebhookEvent(event);
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    logger.error(`[Explorium Pub/Sub Subscriber] Error processing event: ${err.message}`);
+    // Return 500 so Pub/Sub retries the message
+    return res.status(500).send(`Internal Error: ${err.message}`);
+  }
 }
 
 export const ExploriumWebhook = {
   webhookHandler,
+  pubSubSubscriptionHandler,
   verifyWebhookSignature,
   processWebhookEvent,
 };
