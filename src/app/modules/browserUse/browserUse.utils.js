@@ -155,10 +155,12 @@ async function takeScreenshot(userContext, url, options = {}) {
         return screenshot;
     } catch (error) {
         // Platform Owner Feature: Detailed error logging for global troubleshooting.
-        logger.error(`Failed to take screenshot for URL: ${url}. Error: ${error.message}`, {
+        // GCP AUDIT: For GCP Error Reporting compatibility, the full error stack is included directly in the message.
+        // This allows GCP to automatically parse, group, and alert on exceptions.
+        logger.error(`Failed to take screenshot for URL: ${url}. Stack: ${error.stack}`, {
             userContext,
             url,
-            stack: error.stack,
+            errorMessage: error.message, // Provide the clean error message as separate metadata for easier querying.
         });
         // Re-throw a user-friendly error to the client.
         throw new AppError(`Could not process the page at the specified URL. Please ensure the URL is correct and publicly accessible.`, 500);
