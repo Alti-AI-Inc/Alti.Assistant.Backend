@@ -146,6 +146,10 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
 
     // Handle conversation creation/retrieval
+    // OPTIMIZATION: If 'searchService.handleSearchConversation' primarily retrieves data for reading
+    // (e.g., conversationId, messages, messageCount), ensure the underlying Mongoose query in searchService.js
+    // uses '.lean()' to return plain JavaScript objects. This avoids Mongoose document overhead
+    // and can significantly improve performance for read-heavy operations.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -158,6 +162,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     // Get conversation history for context
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
+      // OPTIMIZATION: Ensure 'conversation.messages' is already a lean array of objects
+      // if '.lean()' was applied in 'handleSearchConversation' to avoid Mongoose hydration overhead here.
       conversationHistory = conversation.messages.slice(-10).map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -165,6 +171,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // OPTIMIZATION: For database operations involving 'userId' and 'conversationId' (e.g., finding, updating, inserting),
+    // ensure that these fields are indexed in your MongoDB schema for the relevant collections (e.g., 'conversations', 'messages').
+    // This will drastically speed up query times.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -233,6 +242,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       mode: 'agent_swarm'
     };
 
+    // OPTIMIZATION: For database operations involving 'userId' and 'actualConversationId' (e.g., finding, updating, inserting),
+    // ensure that these fields are indexed in your MongoDB schema for the relevant collections (e.g., 'conversations', 'messages').
+    // This will drastically speed up query times.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -243,6 +255,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     );
 
     // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
+    // This operation is already asynchronous and non-blocking.
     if (userId && !isGuest && fullText) {
       userMemoryService.asyncExtractFacts(userId, message, fullText);
     }
@@ -254,6 +267,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
         conversationId: actualConversationId,
         // messageCount assumes 2 messages (user query + agent response) were added.
         // This might be brittle; consider retrieving actual count from conversation object if available.
+        // OPTIMIZATION: If 'conversation.messageCount' is frequently accessed, consider making it a direct field
+        // in the Conversation model and ensuring it's efficiently retrieved (e.g., with '.lean()').
         messageCount: conversation.messageCount + 2, 
         userType: isGuest ? 'guest' : 'authenticated',
         timestamp: Date.now(),
@@ -269,6 +284,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     try {
       if (errorConversationId && userId) {
+        // OPTIMIZATION: For database operations involving 'userId' and 'errorConversationId',
+        // ensure that these fields are indexed in your MongoDB schema for the relevant collections.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
@@ -368,6 +385,8 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
   if (userId) {
     logger.info(`[DOCKER PREWARM] Asynchronously pre-warming sandbox container for user: ${userId}`);
     // Trigger in the background asynchronously so it does not block Express response
+    // OPTIMIZATION: If 'dockerWorkspaceService.prewarmWorkspace' involves database lookups (e.g., for user settings or existing workspaces),
+    // ensure those queries are optimized with appropriate indexing on 'userId' and use '.lean()' for read-only retrievals.
     dockerWorkspaceService.prewarmWorkspace(userId).catch((err) => {
       logger.error(`[DOCKER PREWARM ERROR] Failed to prewarm container for user ${userId}: ${err.message}`);
     });
