@@ -4,9 +4,22 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Checks a URL against Google's Safe Browsing API lists for security threat evaluation.
- * 
- * @param {string} url - Target URL to inspect
- * @returns {Promise<object>} Safety threat analysis report
+ * It queries the Google Safe Browsing API (v4) to determine if a given URL is associated
+ * with malware, social engineering, unwanted software, or potentially harmful applications.
+ *
+ * @param {string} url - The target URL to inspect for security threats.
+ * @returns {Promise<object>} A promise that resolves to an object containing the safety analysis report.
+ *   The object structure is as follows:
+ *   - `success`: {boolean} True if the API call was successful and a determination was made, false otherwise.
+ *   - `url`: {string} The URL that was checked.
+ *   - `isSecure`: {boolean} True if no threats were found for the URL, false if threats were detected or an error occurred.
+ *   - `threatCount`: {number} The number of threats identified for the URL.
+ *   - `threats`: {Array<object>} An array of threat details if any were found. Each object contains:
+ *     - `threatType`: {string} The type of threat (e.g., 'MALWARE', 'SOCIAL_ENGINEERING').
+ *     - `platformType`: {string} The platform type associated with the threat (e.g., 'ANY_PLATFORM').
+ *     - `threatEntryType`: {string} The entry type of the threat (e.g., 'URL').
+ *   - `error`: {string} (Optional) An error message if `success` is false, indicating why the check failed.
+ * @throws {Error} If the Google Search/Safe Browsing API Key is not configured or if the target URL is not provided.
  */
 const lookupUrlSafety = async (url) => {
   try {
@@ -76,6 +89,17 @@ const lookupUrlSafety = async (url) => {
   }
 };
 
+/**
+ * @typedef {object} GcpSafeBrowsingService
+ * @property {function(string): Promise<object>} lookupUrlSafety - Function to check a URL's safety using Google Safe Browsing API.
+ */
+
+/**
+ * Provides a service interface for interacting with Google's Safe Browsing API.
+ * This service allows checking URLs against Google's constantly updated lists of unsafe web resources.
+ *
+ * @type {GcpSafeBrowsingService}
+ */
 export const GcpSafeBrowsingService = {
   lookupUrlSafety
 };

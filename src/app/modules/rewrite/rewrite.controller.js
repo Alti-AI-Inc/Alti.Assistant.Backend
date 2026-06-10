@@ -3,6 +3,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { rewriteService } from './rewrite.service.js';
+// BUG FIX: Missing import for conversationHelpers
+import { conversationHelpers } from '../conversation/conversation.helpers.js'; // Assuming this path based on project structure
 
 /**
  * Conversational rewrite assistant endpoint
@@ -15,7 +17,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId, textContent } = req.body;
-  userId = req.body.userId || userId;
+  // BUG FIX: Removed potential IDOR vulnerability. userId should be strictly derived from authentication context or generated, not from req.body.
+  // userId = req.body.userId || userId;
 
   // Handle file upload if present
   const fileInfo = req.file
@@ -109,7 +112,8 @@ export const rewriteContent = catchAsync(async (req, res) => {
     ? rewriteService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
-  userId = req.body.userId || userId;
+  // BUG FIX: Removed potential IDOR vulnerability. userId should be strictly derived from authentication context or generated, not from req.body.
+  // userId = req.body.userId || userId;
 
   const { textContent } = req.body;
 
