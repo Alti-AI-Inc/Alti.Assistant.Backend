@@ -154,6 +154,7 @@ Valid filter keys and their accepted values:
 - is_public_company: { values: [true] } or { values: [false] }
 - website_keywords: { values: ["keyword1","keyword2"] }
 - number_of_locations: ["0-1","2-5","6-20","21-50","51-100","101-1000","1001+"]
+- business_intent_topics: { values: ["topic1","topic2"], topic_intent_level: "high_intent" }
 
 Output format:
 {
@@ -169,8 +170,15 @@ Output format:
   // ⚡ Post-process intent topics semantically to map them to verified Bombora taxonomy topics
   if (parsed.filters && parsed.filters.business_intent_topics) {
     const intentObj = parsed.filters.business_intent_topics;
-    const originalTopics = intentObj.topics || intentObj.values || [];
-    if (Array.isArray(originalTopics) && originalTopics.length > 0) {
+    let originalTopics = Array.isArray(intentObj.values) ? intentObj.values : [];
+
+    // If LLM mistakenly put topics in 'topics' property, merge them and clean up
+    if (Array.isArray(intentObj.topics) && intentObj.topics.length > 0) {
+      originalTopics = [...originalTopics, ...intentObj.topics];
+      delete intentObj.topics; // Remove the incorrect property
+    }
+
+    if (originalTopics.length > 0) {
       const verifiedTopics = [];
       for (const topic of originalTopics) {
         try {
@@ -181,6 +189,8 @@ Output format:
             verifiedTopics.push(suggestions[0]);
             logger.info(`[Explorium Agent] ICP Filter Topic mapped: "${topic}" -> "${suggestions[0]}"`);
           } else {
+            // If no semantic suggestion, keep the original topic, but log a warning
+            logger.warn(`[Explorium Agent] No semantic match for ICP topic "${topic}". Keeping original.`);
             verifiedTopics.push(topic);
           }
         } catch (err) {
@@ -188,11 +198,13 @@ Output format:
           verifiedTopics.push(topic);
         }
       }
-      intentObj.topics = verifiedTopics;
-      delete intentObj.values;
+      intentObj.values = verifiedTopics; // Correctly set the 'values' property as per system prompt
       if (!intentObj.topic_intent_level) {
         intentObj.topic_intent_level = 'high_intent';
       }
+    } else {
+      // If no valid topics were found after processing, remove the filter entirely
+      delete parsed.filters.business_intent_topics;
     }
   }
 
