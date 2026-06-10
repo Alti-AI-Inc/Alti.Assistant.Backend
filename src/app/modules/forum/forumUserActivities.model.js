@@ -4,17 +4,18 @@
  */
 
 const mongoose = require('mongoose');
-// const validator = require("validator");
 
 /**
  * Represents a user's activity (like or comment) on a specific forum post.
+ * This schema is designed for a multi-tenant environment, ensuring all activities
+ * are scoped to a specific user, workspace, and organization.
  * @typedef {object} ForumUserActivity
- * @property {string} [id] - A custom unique identifier. Mongoose's default '_id' is also available.
- * @property {string} [img] - URL to the user's avatar image.
- * @property {string} email - The email of the user who performed the activity.
+ * @property {mongoose.Schema.Types.ObjectId} userId - Reference to the user who performed the activity.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - Reference to the workspace where the activity occurred.
+ * @property {mongoose.Schema.Types.ObjectId} organizationId - Reference to the parent organization/platform.
+ * @property {mongoose.Schema.Types.ObjectId} forumPostId - Reference to the parent 'Forum' post this activity belongs to.
  * @property {boolean} like - A flag indicating if the activity is a 'like'. Defaults to false.
- * @property {string} comment - The text content of the comment. Required if the activity is a comment.
- * @property {mongoose.Schema.Types.ObjectId} forumPostId - A reference to the parent 'Forum' post this activity belongs to.
+ * @property {string} [comment] - The text content of the comment. Required if the activity is not a 'like'.
  * @property {Date} createdAt - Timestamp of when the activity was created.
  * @property {Date} updatedAt - Timestamp of when the activity was last updated.
  */
@@ -25,62 +26,44 @@ const mongoose = require('mongoose');
  */
 const forumUserActivitiesSchema = mongoose.Schema(
   {
-    // Optimization: If this 'id' is a custom unique identifier, it should be indexed.
-    // Mongoose's default '_id' is already indexed and unique.
-    // If this is intended to be the primary lookup key besides _id, making it unique is crucial.
     /**
-     * A custom, unique identifier for the activity.
-     * This is indexed for faster lookups. It's a sparse index,
-     * meaning uniqueness is only enforced for documents that have this field.
-     * @type {string}
-     */
-    id: {
-      type: String,
-      index: true,
-      unique: true, // Assuming this custom ID should be unique. Remove if not.
-      sparse: true, // Use a sparse index if the 'id' field is optional to enforce uniqueness only on documents that have the field.
-    },
-    /**
-     * The URL of the user's avatar image.
-     * @type {string}
-     */
-    img: {
-      type: String, // URL to user's avatar, presumably.
-    },
-    /**
-     * The email of the user who performed the activity. Used to identify the user.
-     * @type {string}
-     */
-    email: {
-      type: String,
-      // validate: [validator.isEmail, "Please provide a valid email"],
-    },
-    /**
-     * A boolean flag to indicate if the activity is a 'like'.
-     * @type {boolean}
-     * @default false
-     */
-    like: {
-      type: Boolean,
-      default: false,
-    },
-    // Optimization: Removed 'likeCount'. This field is better suited on the parent 'Forum' document.
-    // Storing it here is redundant and can lead to data inconsistency. The count should be
-    // calculated or updated on the Forum post itself when a 'like' activity occurs.
-    /**
-     * The text content of a user's comment.
-     * @type {string}
+     * Reference to the user who performed the activity.
+     * CRITICAL: This is essential for ownership, permissions, and tracking user actions
+     * for limits and notifications. Replaces denormalized 'email' and 'img' fields for data integrity.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
      * @required
      */
-    comment: {
-      type: String,
-      required: [true, 'Please provide a comment'],
-      minLength: [3, 'Comment must be at list 3 characters'],
-      maxLength: [200, 'Comment is too large'], // Corrected typo from 'learge'
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    // Optimization: Renamed 'userActivities' to 'forumPostId' and changed from an array to a single reference.
-    // An activity (like a specific comment or like) typically belongs to a single forum post.
-    // This simplifies the data model, improves query performance, and makes indexing more efficient.
+    /**
+     * Reference to the workspace this activity belongs to.
+     * CRITICAL: Enforces tenant boundaries, preventing data leakage (IDOR) and ensuring
+     * actions are contained within the correct workspace context for admins and managers.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @required
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+    },
+    /**
+     * Reference to the organization (platform owner context) this activity belongs to.
+     * CRITICAL: Provides the top-level tenant context for super_admin oversight and platform-wide analytics.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Organization
+     * @required
+     */
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     /**
      * A reference to the parent `Forum` post to which this activity belongs.
      * This is a required field to link the activity to its context.
@@ -93,9 +76,30 @@ const forumUserActivitiesSchema = mongoose.Schema(
       ref: 'Forum',
       required: true,
     },
+    /**
+     * A boolean flag to indicate if the activity is a 'like'.
+     * @type {boolean}
+     * @default false
+     */
+    like: {
+      type: Boolean,
+      default: false,
+    },
+    /**
+     * The text content of a user's comment.
+     * It is not strictly required, as an activity can be just a 'like'.
+     * However, an activity must be either a like or a comment.
+     * This is enforced by a pre-save hook.
+     * @type {string}
+     */
+    comment: {
+      type: String,
+      trim: true, // Good practice to trim whitespace
+      minLength: [1, 'Comment cannot be empty.'],
+      maxLength: [1000, 'Comment is too large'],
+    },
   },
   {
-    // The timestamps option automatically adds indexed `createdAt` and `updatedAt` fields.
     /**
      * Automatically adds `createdAt` and `updatedAt` timestamp fields.
      */
@@ -103,31 +107,68 @@ const forumUserActivitiesSchema = mongoose.Schema(
   }
 );
 
-// --- Optimizations: Compound Indexing ---
-// Indexes are crucial for read performance. Compound indexes can satisfy queries on multiple fields.
+// --- Schema Validation Logic ---
 
-// Performance: Index for fetching all activities for a specific forum post, sorted by most recent.
-// This is a very common query pattern (e.g., loading comments for a post).
-// This index also covers queries that only filter by `forumPostId`.
-forumUserActivitiesSchema.index({ forumPostId: 1, createdAt: -1 });
+/**
+ * Pre-save hook to ensure that an activity is valid.
+ * An activity must be either a 'like' or have a non-empty 'comment'.
+ * This prevents the creation of empty, meaningless activity documents.
+ */
+forumUserActivitiesSchema.pre('save', function (next) {
+  // The 'trim' option on the comment field ensures we don't have just whitespace.
+  const hasComment = this.comment && this.comment.length > 0;
 
-// Performance: Index for fetching all activities by a specific user, sorted by most recent.
-// Useful for user profile pages or activity feeds.
-// This index also covers queries that only filter by `email`.
-forumUserActivitiesSchema.index({ email: 1, createdAt: -1 });
+  if (!this.like && !hasComment) {
+    return next(new Error('Activity must be a like or have a comment.'));
+  }
+  next();
+});
+
+
+// --- Indexes for Performance and Security ---
+// Indexes are crucial for read performance and enforcing data constraints.
+// Compound indexes are used to optimize common query patterns, especially within a tenant context.
+
+/**
+ * Compound index to efficiently query activities within a specific workspace and for a specific forum post,
+ * sorted by most recent. This is a critical index for preventing cross-tenant data access and
+ * for performance when loading a post's comments/likes.
+ */
+forumUserActivitiesSchema.index({ workspaceId: 1, forumPostId: 1, createdAt: -1 });
+
+/**
+ * Compound index for fetching all activities by a specific user, sorted by most recent.
+ * Useful for user profile pages or activity feeds. The workspaceId is included for tenant scoping.
+ */
+forumUserActivitiesSchema.index({ workspaceId: 1, userId: 1, createdAt: -1 });
+
+/**
+ * A unique compound index to prevent a user from liking the same post more than once.
+ * A user can comment multiple times, so this index only applies to 'like' activities.
+ * A partialFilterExpression is used to apply the uniqueness constraint only to documents
+ * where 'like' is true. This prevents a common data integrity issue.
+ */
+forumUserActivitiesSchema.index(
+    { forumPostId: 1, userId: 1, like: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { like: true }
+    }
+);
+
 
 /**
  * Mongoose model for Forum User Activities.
  * Represents a collection of user interactions (likes, comments) on forum posts.
  * @const {mongoose.Model<ForumUserActivity>}
  */
-const UserForumActivities = mongoose.model(
-  'forum-User-Activities',
+const ForumUserActivity = mongoose.model(
+  'ForumUserActivity', // Corrected model name to follow convention
   forumUserActivitiesSchema
 );
 
 /**
- * Exports the UserForumActivities Mongoose model.
- * @exports UserForumActivities
+ * Exports the ForumUserActivity Mongoose model.
+ * @exports ForumUserActivity
  */
-module.exports = UserForumActivities;
+module.exports = ForumUserActivity;

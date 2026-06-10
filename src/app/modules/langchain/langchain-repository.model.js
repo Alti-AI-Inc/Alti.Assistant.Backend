@@ -16,7 +16,10 @@ import ApiError from '../../utils/ApiError';
  * @property {Date} [updated_at] - The last update timestamp from the remote repository.
  * @property {mongoose.Types.ObjectId|null} [tenantId=null] - The tenant owner of this repository (null for global/system-wide).
  * @property {boolean} [isGlobal=true] - Whether this repository is globally available to all tenants.
- * @property {boolean} [isApproved=true] - Whether this repository is approved for use (Platform Owner moderation).
+ * @property {'pending' | 'approved' | 'rejected'} [status='pending'] - The moderation status of the repository, controlled by the Platform Owner.
+ * @property {string} [statusReason=''] - A reason provided by the Platform Owner for rejecting a repository.
+ * @property {mongoose.Types.ObjectId|null} [submittedBy=null] - The user who submitted this repository.
+ * @property {mongoose.Types.ObjectId|null} [lastModifiedBy=null] - The Platform Owner/admin who last changed the status.
  * @property {Date} createdAt - The timestamp when the document was created in the database.
  * @property {Date} updatedAt - The timestamp when the document was last updated in the database.
  */
@@ -56,13 +59,11 @@ const LangchainRepositorySchema = new mongoose.Schema(
     stars: {
       type: Number,
       default: 0,
-      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
       index: true
     },
     forks: {
       type: Number,
       default: 0,
-      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
       index: true
     },
     language: {
@@ -72,10 +73,9 @@ const LangchainRepositorySchema = new mongoose.Schema(
     },
     updated_at: {
       type: Date,
-      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
       index: true
     },
-    // Multi-tenancy & Platform Owner Oversight Fields
+    // --- Multi-tenancy & Platform Owner Oversight Fields ---
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
@@ -87,10 +87,27 @@ const LangchainRepositorySchema = new mongoose.Schema(
       default: true, // Global repositories are visible to all tenants
       index: true
     },
-    isApproved: {
-      type: Boolean,
-      default: true, // Platform Owner can approve/reject tenant-submitted repositories
+    // --- PLATFORM OWNER ENHANCEMENTS: Moderation and Auditing ---
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending', // Safer default: requires explicit Platform Owner approval.
       index: true
+    },
+    statusReason: {
+      type: String,
+      default: '' // Platform Owner can provide a reason for rejection.
+    },
+    submittedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // Tracks which user (tenant or admin) submitted it.
+      default: null,
+      index: true
+    },
+    lastModifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // Tracks the admin who last changed the status for audit purposes.
+      default: null
     }
   },
   {
@@ -109,44 +126,76 @@ LangchainRepositorySchema.index(
 );
 
 // OPTIMIZATION: Compound index to support the common `forTenant` query.
-// This index covers the `isApproved` filter and the `isGlobal` part of the $or condition.
-LangchainRepositorySchema.index({ isApproved: 1, isGlobal: 1 });
+// This index covers the `status` filter and the `isGlobal` part of the $or condition.
+LangchainRepositorySchema.index({ status: 1, isGlobal: 1 });
 
 // OPTIMIZATION: Compound index to support the common `forTenant` query.
-// This index covers the `isApproved` filter and the `tenantId` part of the $or condition.
-LangchainRepositorySchema.index({ isApproved: 1, tenantId: 1 });
+// This index covers the `status` filter and the `tenantId` part of the $or condition.
+LangchainRepositorySchema.index({ status: 1, tenantId: 1 });
 
 /**
  * Static method for Platform Owners to retrieve global statistics across all tenants.
+ * Provides a comprehensive overview of the repository landscape, including moderation status.
  * @returns {Promise<Object>} Statistics object
  * @throws {ApiError} If there is a database error during the aggregation.
  */
 LangchainRepositorySchema.statics.getGlobalStats = async function () {
   try {
-    // OPTIMIZATION: The aggregation pipeline is the most efficient way to calculate stats on the DB side.
-    const stats = await this.aggregate([
+    // OPTIMIZATION: Use $facet to run multiple aggregation pipelines in a single stage for comprehensive stats.
+    const results = await this.aggregate([
       {
-        $group: {
-          _id: null,
-          totalRepositories: { $sum: 1 },
-          globalRepositories: { $sum: { $cond: [{ $eq: ['$isGlobal', true] }, 1, 0] } },
-          tenantRepositories: { $sum: { $cond: [{ $ne: ['$tenantId', null] }, 1, 0] } },
-          totalStars: { $sum: '$stars' },
-          totalForks: { $sum: '$forks' }
+        $facet: {
+          // Pipeline 1: Calculate main counts and sums.
+          mainStats: [
+            {
+              $group: {
+                _id: null,
+                totalRepositories: { $sum: 1 },
+                globalRepositories: { $sum: { $cond: [{ $eq: ['$isGlobal', true] }, 1, 0] } },
+                tenantRepositories: { $sum: { $cond: [{ $ne: ['$tenantId', null] }, 1, 0] } },
+                totalStars: { $sum: '$stars' },
+                totalForks: { $sum: '$forks' }
+              }
+            }
+          ],
+          // Pipeline 2: Count repositories by their moderation status.
+          statusCounts: [{ $group: { _id: '$status', count: { $sum: 1 } } }]
         }
       }
     ]);
-    // If the aggregation returns an empty array (no documents found), provide a default object.
-    return stats[0] || { totalRepositories: 0, globalRepositories: 0, tenantRepositories: 0, totalStars: 0, totalForks: 0 };
+
+    // Safely extract results and provide defaults if no documents exist.
+    const main = results[0]?.mainStats[0] || {
+      totalRepositories: 0,
+      globalRepositories: 0,
+      tenantRepositories: 0,
+      totalStars: 0,
+      totalForks: 0
+    };
+    const statuses = results[0]?.statusCounts || [];
+
+    // Remap the status counts array into a more developer-friendly object.
+    const statusBreakdown = statuses.reduce((acc, curr) => {
+      if (curr._id) {
+        // e.g., creates { pendingRepositories: 10, approvedRepositories: 50 }
+        acc[`${curr._id}Repositories`] = curr.count;
+      }
+      return acc;
+    }, {});
+
+    // Combine all stats into a single, comprehensive object for the Platform Owner dashboard.
+    return {
+      ...main,
+      approvedRepositories: statusBreakdown.approvedRepositories || 0,
+      pendingRepositories: statusBreakdown.pendingRepositories || 0,
+      rejectedRepositories: statusBreakdown.rejectedRepositories || 0
+    };
   } catch (error) {
-    // Log the internal database error for telemetry and debugging.
     logger.error('Error fetching global langchain repository stats from database.', {
       errorMessage: error.message,
       errorStack: error.stack,
       context: 'LangchainRepository.getGlobalStats'
     });
-    // Throw a normalized, user-friendly error to the service layer.
-    // Do not expose internal database error details to the client.
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to retrieve global repository statistics due to a database error.'
@@ -155,18 +204,64 @@ LangchainRepositorySchema.statics.getGlobalStats = async function () {
 };
 
 /**
+ * Static method for Platform Owners to retrieve a comprehensive, paginated list of all repositories.
+ * This bypasses multi-tenancy rules and allows filtering by any criteria, including status,
+ * providing the necessary tool for global oversight and moderation.
+ *
+ * @param {Object} [filters={}] - MongoDB query filters (e.g., { status: 'pending', tenantId: '...' }).
+ * @param {Object} [options={}] - Query options.
+ * @param {string} [options.sortBy] - Sort string in the format 'field:desc' or 'field:asc'.
+ * @param {number} [options.limit=10] - Maximum number of results per page.
+ * @param {number} [options.page=1] - Current page number.
+ * @returns {Promise<Object>} A promise that resolves to an object with results and pagination info.
+ */
+LangchainRepositorySchema.statics.getPlatformOwnerView = async function (filters = {}, options = {}) {
+  try {
+    // Platform owner view should not be constrained by tenant or status by default.
+    // The service layer will provide the filters (e.g., { status: 'pending' }).
+    const sort = options.sortBy ? options.sortBy.replace(':', ' ') : '-createdAt';
+    const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
+    const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+    const skip = (page - 1) * limit;
+
+    const countPromise = this.countDocuments(filters).exec();
+    const docsPromise = this.find(filters).sort(sort).skip(skip).limit(limit).exec();
+
+    const [totalResults, results] = await Promise.all([countPromise, docsPromise]);
+    const totalPages = Math.ceil(totalResults / limit);
+
+    return {
+      results,
+      page,
+      limit,
+      totalPages,
+      totalResults
+    };
+  } catch (error) {
+    logger.error('Error fetching platform owner view for langchain repositories.', {
+      errorMessage: error.message,
+      errorStack: error.stack,
+      context: 'LangchainRepository.getPlatformOwnerView',
+      filters,
+      options
+    });
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve repository list due to a database error.');
+  }
+};
+
+/**
  * Query helper to find repositories accessible by a specific tenant.
- * Returns global repositories and repositories owned by the specific tenant.
+ * Returns approved global repositories and approved repositories owned by the specific tenant.
  *
  * @param {string|mongoose.Types.ObjectId} tenantId - The tenant ID
  * @returns {mongoose.Query}
  */
 LangchainRepositorySchema.query.forTenant = function (tenantId) {
-  // OPTIMIZATION: This query is now supported by compound indexes on {isApproved, isGlobal} and {isApproved, tenantId},
+  // OPTIMIZATION: This query is now supported by compound indexes on {status, isGlobal} and {status, tenantId},
   // which is significantly faster than relying on single-field indexes for an $or query.
   // NOTE: This is a query builder, not an async operation. Error handling belongs where this query is executed (e.g., in a service).
   return this.find({
-    isApproved: true,
+    status: 'approved', // Only show approved repositories to tenants.
     $or: [{ isGlobal: true }, { tenantId: tenantId }]
   });
 };

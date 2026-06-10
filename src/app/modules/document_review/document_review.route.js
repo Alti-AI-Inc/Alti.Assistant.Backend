@@ -8,7 +8,6 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { documentReviewController } from './document_review.controller.js';
 import { DocumentReviewValidation } from './document_review.validation.js';
-// import { uploadDocumentReview } from './middlewares/uploadDocumentReview.js'; // REPLACED: Multer middleware that writes to local disk is replaced with a direct GCS stream.
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
@@ -17,6 +16,24 @@ import { Storage } from '@google-cloud/storage';
 import Busboy from 'busboy';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+
+// --- Upload Configuration ---
+// Max file size for document uploads, in megabytes. Sourced from environment variables with a sensible default.
+const MAX_UPLOAD_SIZE_MB = parseInt(
+  process.env.MAX_DOCUMENT_UPLOAD_SIZE_MB || '25',
+  10
+);
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+
+// A whitelist of allowed MIME types to enhance security and prevent processing of unsupported files.
+const ALLOWED_MIMETYPES = new Set([
+  'application/pdf',
+  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'text/plain', // .txt
+  'text/markdown', // .md
+  'text/csv', // .csv
+]);
 
 // --- GCS Setup ---
 // Instantiate a GCS client.
@@ -39,13 +56,23 @@ const bucket = storage.bucket(bucketName);
  * @description Middleware to stream a file upload from a multipart/form-data request directly to Google Cloud Storage.
  * This avoids saving the file to the local ephemeral filesystem, which is crucial for stateless containerized environments.
  * It uses 'busboy' to parse the stream and pipes the file content to a GCS write stream.
+ * It enforces strict limits on file size and MIME type for security and stability.
  * Non-file fields are populated into `req.body`.
- * The uploaded file's metadata (bucket, gcsObjectName, etc.) is attached to `req.file` to mimic multer's behavior for downstream controllers.
+ * The uploaded file's metadata (bucket, gcsObjectName, size, etc.) is attached to `req.file` to mimic multer's behavior for downstream controllers.
  * @param {string} fieldName - The name of the form field expected to contain the file.
  * @returns {function} Express middleware function.
  */
 const streamUploadToGCS = fieldName => (req, res, next) => {
-  const busboy = Busboy({ headers: req.headers });
+  let uploadError = null;
+
+  const busboy = Busboy({
+    headers: req.headers,
+    limits: {
+      fileSize: MAX_UPLOAD_SIZE_BYTES, // Enforce file size limit at the stream level.
+      files: 1, // Allow only one file per request.
+      fields: 10, // Limit the number of non-file fields to prevent abuse.
+    },
+  });
 
   req.body = req.body || {};
   const fields = {};
@@ -58,12 +85,41 @@ const streamUploadToGCS = fieldName => (req, res, next) => {
 
   // Process the file stream.
   busboy.on('file', (name, file, info) => {
+    // If an error has already occurred (e.g., from a previous file), discard subsequent files.
+    if (uploadError) {
+      return file.resume();
+    }
+
     // Skip if the field name doesn't match the one we're looking for.
     if (name !== fieldName) {
       return file.resume(); // Discard the stream.
     }
 
     const { filename, encoding, mimeType } = info;
+
+    // --- Validation: File Type ---
+    // Reject files with unsupported MIME types immediately.
+    if (!ALLOWED_MIMETYPES.has(mimeType)) {
+      uploadError = new Error(
+        `Unsupported file type: ${mimeType}. Allowed types are: ${[
+          ...ALLOWED_MIMETYPES,
+        ].join(', ')}`
+      );
+      uploadError.statusCode = 415; // 415 Unsupported Media Type
+      return file.resume(); // Discard the file stream.
+    }
+
+    // --- Validation: File Size ---
+    // Busboy will automatically truncate the file if it exceeds the limit.
+    // We listen for the 'limit' event to gracefully handle this and send a proper error response.
+    file.on('limit', () => {
+      uploadError = new Error(
+        `File size exceeds the ${MAX_UPLOAD_SIZE_MB}MB limit.`
+      );
+      uploadError.statusCode = 413; // 413 Payload Too Large
+      // The file stream is automatically stopped by busboy. We flag the error,
+      // and the 'finish' handler will prevent further processing.
+    });
 
     // Create a unique, secure object name for GCS.
     // Prefixing with tenant and user IDs helps organize files and enforce security policies.
@@ -73,11 +129,17 @@ const streamUploadToGCS = fieldName => (req, res, next) => {
     const fileExtension = path.extname(filename);
     const gcsObjectName = `${tenantId}/${userId}/${uniqueId}${fileExtension}`;
 
+    let fileSize = 0;
+    file.on('data', chunk => {
+      fileSize += chunk.length;
+    });
+
     uploads[name] = {
       gcsObjectName,
       filename,
       encoding,
       mimeType,
+      size: 0, // Will be updated on finish
     };
 
     const gcsFile = bucket.file(gcsObjectName);
@@ -85,6 +147,7 @@ const streamUploadToGCS = fieldName => (req, res, next) => {
       metadata: {
         contentType: mimeType,
       },
+      resumable: false, // Use simple upload for better performance with smaller files and streams.
     });
 
     // Pipe the incoming file stream from the request directly to GCS.
@@ -98,13 +161,19 @@ const streamUploadToGCS = fieldName => (req, res, next) => {
 
     // When the GCS stream finishes, the upload is complete.
     stream.on('finish', () => {
-      // We don't call next() here because busboy might still be processing other fields.
-      // We wait for the 'finish' event on busboy itself.
+      // Update the final file size.
+      uploads[name].size = fileSize;
     });
   });
 
   // When busboy finishes parsing all fields and files.
   busboy.on('finish', () => {
+    // --- Final Error Check ---
+    // If any validation error occurred during streaming, propagate it now and stop.
+    if (uploadError) {
+      return next(uploadError);
+    }
+
     // Populate req.body with the parsed fields.
     Object.assign(req.body, fields);
 
@@ -119,9 +188,16 @@ const streamUploadToGCS = fieldName => (req, res, next) => {
         bucket: bucket.name,
         gcsObjectName: uploadedFile.gcsObjectName,
         path: `gs://${bucket.name}/${uploadedFile.gcsObjectName}`,
-        // Note: File size is not easily available here without buffering.
-        // The controller should be adapted if it strictly depends on the size.
+        size: uploadedFile.size, // The final size of the uploaded file in bytes.
       };
+    } else if (req.method === 'POST' && !req.file) {
+      // Ensure a file was actually provided if the endpoint expects one.
+      // The validation schema should handle this, but this is an extra safeguard.
+      const fileMissingError = new Error(
+        `The form field '${fieldName}' is required.`
+      );
+      fileMissingError.statusCode = 400;
+      return next(fileMissingError);
     }
     next();
   });
@@ -217,6 +293,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       413:
+ *         $ref: '#/components/responses/PayloadTooLarge'
+ *       415:
+ *         $ref: '#/components/responses/UnsupportedMediaType'
  *       429:
  *         $ref: '#/components/responses/TooManyRequests'
  *       500:
@@ -227,8 +307,10 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  checkStorageLimit,
-  streamUploadToGCS('file'), // NEW: Streams file directly to GCS without saving to the local filesystem.
+  // IMPROVED: File upload middleware now runs before storage limit check.
+  // This ensures the check can use the actual size of the uploaded file.
+  streamUploadToGCS('file'),
+  checkStorageLimit, // Now accurately checks if the new file exceeds the user's quota.
   checkRAGFeature,
   createRateLimiter(30, 15),
   validateRequest(DocumentReviewValidation.conversationalRequestSchema),
@@ -310,6 +392,10 @@ router.post(
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       413:
+ *         $ref: '#/components/responses/PayloadTooLarge'
+ *       415:
+ *         $ref: '#/components/responses/UnsupportedMediaType'
  *       429:
  *         $ref: '#/components/responses/TooManyRequests'
  *       500:
@@ -320,8 +406,9 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  checkStorageLimit,
-  streamUploadToGCS('file'), // NEW: Streams file directly to GCS without saving to the local filesystem.
+  // IMPROVED: File upload middleware now runs before storage limit check.
+  streamUploadToGCS('file'),
+  checkStorageLimit, // Now accurately checks if the new file exceeds the user's quota.
   checkRAGFeature,
   createRateLimiter(20, 15),
   validateRequest(DocumentReviewValidation.reviewDocumentSchema),
