@@ -3,18 +3,39 @@ import { logger } from '../../../../shared/logger.js';
 import config from '../../../../../config/index.js';
 
 /**
- * Google Cloud Platform Native Events Service
- * Handles real-time event-driven workflow triggers via Google Cloud Pub/Sub subscriptions
+ * @class GcpEventsService
+ * @classdesc Google Cloud Platform Native Events Service.
+ * This service handles real-time event-driven workflow triggers via Google Cloud Pub/Sub subscriptions
  * and utilizes Vertex AI / Gemini Structured Outputs for compliant schema evaluations.
+ * It manages the lifecycle of Pub/Sub subscriptions dynamically based on workflow requirements.
  */
 class GcpEventsService {
+  /**
+   * @constructor
+   * @description Initializes the GcpEventsService.
+   * Sets up a map to store active Pub/Sub subscription handles and initializes the Pub/Sub client to null.
+   */
   constructor() {
-    this.activeSubscriptions = new Map(); // Store dynamic Pub/Sub subscription handles
+    /**
+     * @private
+     * @type {Map<string, object>}
+     * @description Stores dynamic Pub/Sub subscription handles, keyed by workflow ID.
+     */
+    this.activeSubscriptions = new Map();
+    /**
+     * @private
+     * @type {import('@google-cloud/pubsub').PubSub | null}
+     * @description The Google Cloud Pub/Sub client instance.
+     */
     this.pubSubClient = null;
   }
 
   /**
-   * Initialize dynamic Google Cloud Pub/Sub listeners for event-driven workflows
+   * Initializes dynamic Google Cloud Pub/Sub listeners for event-driven workflows.
+   * This method sets up the main Pub/Sub client. It should be called once on application startup.
+   * It handles mock/offline modes by skipping the actual GCP connection.
+   * @async
+   * @returns {Promise<void>} A promise that resolves when initialization is complete or skipped.
    */
   async initializePubSubTriggers() {
     try {
@@ -45,12 +66,15 @@ class GcpEventsService {
   }
 
   /**
-   * Dynamically subscribe a workflow to a Google Pub/Sub topic.
-   * When a message arrives, it triggers the workflow execution with the message attributes as context.
-   * 
-   * @param {string} topicName - GCP Pub/Sub topic to listen to
-   * @param {string} workflowId - Associated workflow ID
-   * @param {string} userId - User owner identifier
+   * Dynamically subscribes a workflow to a Google Pub/Sub topic.
+   * When a message arrives, it triggers the associated workflow execution with the message payload and attributes as context.
+   * The subscription is created if it doesn't already exist.
+   * @async
+   * @param {string} topicName - The name of the GCP Pub/Sub topic to listen to.
+   * @param {string} workflowId - The ID of the workflow to be triggered by messages on the topic.
+   * @param {string} userId - The identifier of the user who owns the workflow.
+   * @returns {Promise<{success: boolean, subscription: string, mocked: boolean}>} An object confirming the registration.
+   * @throws {Error} If the Pub/Sub client is not initialized or if subscription registration fails.
    */
   async registerPubSubTrigger(topicName, workflowId, userId) {
     try {
@@ -107,7 +131,7 @@ class GcpEventsService {
           // BUG FIX: The original code acknowledged the message immediately,
           // potentially losing the event if workflow execution failed later.
           // Now, message.ack() is called only upon successful workflow execution,
-          // and message.nack() is called if the workflow fails, ensuring at-least-once delivery.
+          * // and message.nack() is called if the workflow fails, ensuring at-least-once delivery.
           try {
             await workflowExecutionService.executeWorkflow(workflowId, userId, context);
             logger.info(`[GCP Pub/Sub] Event-driven workflow ${workflowId} executed successfully.`);
@@ -134,9 +158,11 @@ class GcpEventsService {
   }
 
   /**
-   * Stop and release a workflow Pub/Sub event listener
-   * 
-   * @param {string} workflowId - Associated workflow ID
+   * Stops and releases a workflow's Pub/Sub event listener.
+   * This is used when a workflow is disabled, deleted, or its trigger is changed.
+   * @async
+   * @param {string} workflowId - The ID of the workflow whose subscription should be unregistered.
+   * @returns {Promise<{success: boolean, error?: string}>} An object indicating the result of the operation.
    */
   async unregisterPubSubTrigger(workflowId) {
     try {
@@ -163,11 +189,13 @@ class GcpEventsService {
   }
 
   /**
-   * Natively trigger a structured Gemini JSON extraction query using Vertex AI to guarantee 100% compliant outputs.
-   * 
-   * @param {string} prompt - Prompt instruction
-   * @param {object} jsonSchema - Expected structured output JSON schema
-   * @returns {Promise<object>} Structured compliance response
+   * Natively triggers a structured Gemini JSON extraction query using Vertex AI.
+   * This function guarantees a 100% schema-compliant JSON output from the AI model.
+   * @async
+   * @param {string} prompt - The prompt or instruction for the AI model.
+   * @param {object} jsonSchema - The JSON schema that the AI's output must conform to.
+   * @returns {Promise<{success: boolean, mocked?: boolean, result: object}>} An object containing the structured, schema-compliant response from the AI.
+   * @throws {Error} If the Vertex AI generation fails or returns a malformed response.
    */
   async runCompliantVertexGeneration(prompt, jsonSchema) {
     try {
@@ -203,5 +231,9 @@ class GcpEventsService {
   }
 }
 
+/**
+ * @const {GcpEventsService} gcpEventsService
+ * @description A singleton instance of the GcpEventsService.
+ */
 export const gcpEventsService = new GcpEventsService();
 export default gcpEventsService;

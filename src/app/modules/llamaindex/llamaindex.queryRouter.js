@@ -10,12 +10,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * LlamaIndex Smart Query Router
- *
- * Uses historical telemetry data and document characteristics to
- * automatically route queries to the optimal engine. Instead of
- * relying solely on LLM-based classification, this router uses
- * empirical performance data to make routing decisions.
+ * @file LlamaIndex Smart Query Router
+ * @description This file implements a smart query router that uses historical telemetry data and document
+ * characteristics to automatically route queries to the optimal LlamaIndex engine. Instead of
+ * relying solely on LLM-based classification, this router uses empirical performance data
+ * to make routing decisions.
  *
  * Engines ranked:
  *   - vector: Standard vector similarity (best for factual lookups)
@@ -69,7 +68,10 @@ const DOCUMENT_PROFILES = {
 
 /**
  * A smart query router that uses historical telemetry and document characteristics
- * to automatically route queries to the optimal LlamaIndex engine.
+ * to automatically route queries to the optimal LlamaIndex engine. This service
+ * operates in a multi-tenant context, using `userId` to tailor routing decisions
+ * based on a user's specific document corpus.
+ * @class QueryRouterService
  */
 class QueryRouterService {
   /**
@@ -78,7 +80,8 @@ class QueryRouterService {
   constructor() {
     /**
      * Stores engine performance scores, keyed by `profile:engine`.
-     * @type {Map<string, Object>}
+     * The value is an object containing performance metrics like count, latency, quality, etc.
+     * @type {Map<string, {count: number, totalLatencyMs: number, totalQuality: number, successes: number, cacheHits: number}>}
      */
     this.performanceScores = new Map();
     // Bug Fix: Removed unused 'this.cacheHits' property. Cache hit counts are stored within performanceScores.
@@ -95,15 +98,16 @@ class QueryRouterService {
 
   /**
    * Routes a query to the optimal engine based on query profile, document metadata,
-   * and historical performance data.
+   * and historical performance data. This method is tenant-aware and uses the `userId`
+   * to fetch user-specific document metadata for more accurate routing.
    *
    * @param {string} query - The user's query text.
    * @param {object} [options={}] - Optional parameters to refine routing.
-   * @param {string} [options.userId] - The ID of the user making the query, used for personalized routing based on their document corpus.
+   * @param {string} [options.userId] - The ID of the user making the query. This is crucial for multi-tenant context, used for personalized routing based on their document corpus.
    * @param {number} [options.documentCount] - The total number of documents indexed for the user.
    * @param {boolean} [options.isFollowUp] - Flag indicating if this is a follow-up question in a conversation.
    * @param {string} [options.previousEngine] - The engine used for the previous query in the conversation.
-   * @returns {Promise<object>} A routing decision object containing the chosen engine, confidence score, and reasoning.
+   * @returns {Promise<{engine: string, confidence: number, profile: string, reasoning: string, alternatives: Array<{engine: string, score: number}>, scores: Record<string, number>}>} A routing decision object containing the chosen engine, confidence score, and reasoning.
    * @throws {ApiError} Throws an ApiError if an unexpected internal error occurs during routing.
    */
   async route(query, options = {}) {
@@ -179,9 +183,9 @@ class QueryRouterService {
    * @param {string} profile - The query profile classification (e.g., 'technical', 'research').
    * @param {object} metrics - Performance metrics from the query execution.
    * @param {number} metrics.latencyMs - The time taken to execute the query in milliseconds.
-   * @param {number} [metrics.qualityScore] - An optional quality score from 0 to 1.
+   * @param {number} [metrics.qualityScore] - An optional quality score from 0 to 1, where 1 is best.
    * @param {boolean} [metrics.cacheHit] - An optional flag indicating if the result was served from a cache.
-   * @param {boolean} [metrics.success] - An optional flag indicating if the query was successful. Defaults to true.
+   * @param {boolean} [metrics.success=true] - An optional flag indicating if the query was successful.
    * @returns {void}
    */
   recordOutcome(engine, profile, metrics) {
@@ -216,7 +220,7 @@ class QueryRouterService {
    * Retrieves a summary of routing analytics, including total queries routed,
    * performance per engine, and the distribution of query profiles.
    *
-   * @returns {object} An object containing analytics data.
+   * @returns {{totalRouted: number, enginePerformance: Record<string, {totalQueries: number, avgLatencyMs: number, avgQuality: number, successRate: number, cacheHitRate: number}>, profileDistribution: Record<string, number>}} An object containing analytics data.
    */
   getAnalytics() {
     const analytics = {
@@ -269,7 +273,7 @@ class QueryRouterService {
    * @private
    * @param {string} queryLower - The lowercased user query.
    * @param {Array<object>} userMetadataList - A list of document metadata objects for the user.
-   * @returns {{profile: object, docCharacteristics: object}} An object containing the determined profile and document characteristics.
+   * @returns {{profile: {name: string, score: number, preferredEngines: string[]}, docCharacteristics: {highlyTechnicalCount: number}}} An object containing the determined profile and document characteristics.
    */
   _classifyProfile(queryLower, userMetadataList) {
     // OPTIMIZATION: This function now iterates over userMetadataList only ONCE to extract all
@@ -465,7 +469,7 @@ class QueryRouterService {
 }
 
 /**
- * A singleton instance of the QueryRouterService.
+ * A singleton instance of the QueryRouterService, ready for use throughout the application.
  * @type {QueryRouterService}
  */
 export const queryRouterService = new QueryRouterService();

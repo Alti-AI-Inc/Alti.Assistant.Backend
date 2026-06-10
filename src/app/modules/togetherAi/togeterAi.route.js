@@ -5,6 +5,16 @@ import { VertexAiController } from './vertexAi.controller.js'; // Refactored to 
 import { auth } from '../../middlewares/auth.js';
 
 /**
+ * A utility function to wrap asynchronous route handlers,
+ * ensuring that any uncaught errors are passed to the Express error handling middleware.
+ * @param {Function} fn The async route handler function.
+ * @returns {Function} An Express route handler function.
+ */
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => next(err));
+};
+
+/**
  * Express router for Vertex AI integration.
  * Provides endpoints for image generation, global configuration management,
  * usage logging, and tenant-specific limit overrides.
@@ -77,7 +87,7 @@ const router = express.Router();
 router.route('/create-img')
   .post(
     auth('super_admin', 'tenant_admin', 'tenant_user'),
-    VertexAiController.vertexAiImgGeneration // Refactored to use VertexAiController
+    catchAsync(VertexAiController.vertexAiImgGeneration) // Refactored to use VertexAiController
   );
 
 /**
@@ -153,11 +163,11 @@ router.route('/create-img')
 router.route('/admin/config')
   .get(
     auth('super_admin'),
-    VertexAiController.getGlobalConfig // Refactored to use VertexAiController
+    catchAsync(VertexAiController.getGlobalConfig) // Refactored to use VertexAiController
   )
   .patch(
     auth('super_admin'),
-    VertexAiController.updateGlobalConfig // Refactored to use VertexAiController
+    catchAsync(VertexAiController.updateGlobalConfig) // Refactored to use VertexAiController
   );
 
 /**
@@ -206,7 +216,7 @@ router.route('/admin/config')
 router.route('/admin/logs')
   .get(
     auth('super_admin'),
-    VertexAiController.getGlobalLogs // Refactored to use VertexAiController
+    catchAsync(VertexAiController.getGlobalLogs) // Refactored to use VertexAiController
   );
 
 /**
@@ -261,7 +271,7 @@ router.route('/admin/logs')
 router.route('/admin/tenant-override')
   .post(
     auth('super_admin'),
-    VertexAiController.overrideTenantLimit // Refactored to use VertexAiController
+    catchAsync(VertexAiController.overrideTenantLimit) // Refactored to use VertexAiController
   );
 
 /**
