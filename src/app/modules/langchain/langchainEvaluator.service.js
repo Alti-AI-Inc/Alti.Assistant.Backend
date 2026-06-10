@@ -5,11 +5,23 @@ import LangchainChain from './langchain-chain.model.js';
 import LangchainChainVersion from './langchain-version.model.js';
 import { LangchainExecutionService } from './langchainExecution.service.js';
 
+// BUG FIX: Ensure GoogleGenerativeAI is only initialized if the secret key is present.
+// If the key is missing, log a critical error and set genAI to null to prevent runtime errors
+// from attempting to use an uninitialized or improperly initialized client.
+let genAIInstance = null;
+if (config.gemini_secret_key) {
+  genAIInstance = new GoogleGenerativeAI(config.gemini_secret_key);
+} else {
+  logger.error('GEMINI_SECRET_KEY is not configured. Langchain evaluation services will not function.');
+  // Depending on application criticality, you might throw an error here to prevent startup:
+  // throw new Error('GEMINI_SECRET_KEY is not configured.');
+}
+
 /**
- * @constant {GoogleGenerativeAI} genAI - An instance of GoogleGenerativeAI initialized with the Gemini secret key.
+ * @constant {GoogleGenerativeAI | null} genAI - An instance of GoogleGenerativeAI initialized with the Gemini secret key, or null if the key is missing.
  * This is used to interact with the Gemini AI model for grading purposes.
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
+const genAI = genAIInstance;
 
 /**
  * @typedef {object} GradeResult
@@ -34,9 +46,19 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
  * @returns {Promise<GradeResult>} A promise that resolves to an object containing relevance, factual accuracy, and structure adherence scores and justifications.
  */
 const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
+  // BUG FIX: Check if genAI was successfully initialized before attempting to use it.
+  if (!genAI) {
+    logger.warn('Attempted to grade output with Gemini, but Gemini AI is not initialized due to missing API key. Returning default scores.');
+    return {
+      relevance: { score: 0.0, justification: 'Grading skipped: API key missing' },
+      factualAccuracy: { score: 0.0, justification: 'Grading skipped: API key missing' },
+      structureAdherence: { score: 0.0, justification: 'Grading skipped: API key missing' }
+    };
+  }
+
   const modelName = 'gemini-2.5-flash';
   const model = genAI.getGenerativeModel({ model: modelName });
-  
+
   const evaluationPrompt = `
 You are an expert AI evaluator. Grade the quality of an AI model's output based on a given input and evaluation criteria.
 
@@ -90,23 +112,22 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
         structureAdherence: parsed.structureAdherence || { score: 0.5, justification: 'Unknown' }
       };
     } catch (e) {
-      logger.warn(`Failed to parse Gemini grader output JSON. Raw response: ${text}`);
-      // Fallback parser attempt
-      const relevanceScore = parseFloat(text.match(/"relevance"\s*:\s*{\s*"score"\s*:\s*([0-9.]+)/)?.[1] || 0.5);
-      const accuracyScore = parseFloat(text.match(/"factualAccuracy"\s*:\s*{\s*"score"\s*:\s*([0-9.]+)/)?.[1] || 0.5);
-      const structureScore = parseFloat(text.match(/"structureAdherence"\s*:\s*{\s*"score"\s*:\s*([0-9.]+)/)?.[1] || 0.5);
+      // BUG FIX: Removed fragile regex-based fallback parser.
+      // If JSON parsing fails, it's better to log the raw response and return a default "failed to grade" result,
+      // rather than attempting an unreliable partial parse.
+      logger.warn(`Failed to parse Gemini grader output JSON. Raw response: ${text}. Error: ${e.message}`);
       return {
-        relevance: { score: relevanceScore, justification: 'Parsed from fallback' },
-        factualAccuracy: { score: accuracyScore, justification: 'Parsed from fallback' },
-        structureAdherence: { score: structureScore, justification: 'Parsed from fallback' }
+        relevance: { score: 0.0, justification: 'Failed to parse Gemini response' },
+        factualAccuracy: { score: 0.0, justification: 'Failed to parse Gemini response' },
+        structureAdherence: { score: 0.0, justification: 'Failed to parse Gemini response' }
       };
     }
   } catch (err) {
     logger.error('Gemini grader failed:', err);
     return {
-      relevance: { score: 0.5, justification: `Grading failed: ${err.message}` },
-      factualAccuracy: { score: 0.5, justification: `Grading failed: ${err.message}` },
-      structureAdherence: { score: 0.5, justification: `Grading failed: ${err.message}` }
+      relevance: { score: 0.0, justification: `Grading failed: ${err.message}` },
+      factualAccuracy: { score: 0.0, justification: `Grading failed: ${err.message}` },
+      structureAdherence: { score: 0.0, justification: `Grading failed: ${err.message}` }
     };
   }
 };
@@ -182,7 +203,7 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
  */
 const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId) => {
   logger.info(`Benchmarking chain ${chainId} (v${versionA} vs v${versionB}) for user ${userId}`);
-  
+
   // Resolve chain
   // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
   const chain = await LangchainChain.findById(chainId).lean();
@@ -222,8 +243,8 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
     stepsB = snapB.steps;
   }
 
-  const normalizedTestSuite = testSuite && testSuite.length > 0 
-    ? testSuite 
+  const normalizedTestSuite = testSuite && testSuite.length > 0
+    ? testSuite
     : [
         {
           inputs: chain.inputVariables.reduce((acc, curr) => ({ ...acc, [curr]: 'Test input value' }), {}),
@@ -231,22 +252,9 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
         }
       ];
 
-  const comparisons = [];
-  
-  let totalDurationA = 0;
-  let totalDurationB = 0;
-  let totalTokensA = 0;
-  let totalTokensB = 0;
-  
-  let totalRelevanceA = 0;
-  let totalRelevanceB = 0;
-  let totalAccuracyA = 0;
-  let totalAccuracyB = 0;
-  let totalStructureA = 0;
-  let totalStructureB = 0;
-
-  for (let i = 0; i < normalizedTestSuite.length; i++) {
-    const testCase = normalizedTestSuite[i];
+  // PERFORMANCE FIX: Execute test cases in parallel using Promise.all to significantly improve benchmark speed
+  // by concurrently running chain executions and grading for multiple test cases.
+  const comparisonPromises = normalizedTestSuite.map(async (testCase, i) => {
     const inputs = testCase.inputs || {};
     const expected = testCase.expectedCriteria || '';
 
@@ -257,6 +265,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
       resultA = await LangchainExecutionService.executeSteps(stepsA, inputs, userId);
     } catch (err) {
       resultA = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
+      logger.error(`Error executing version A for test case ${i}:`, err);
     }
     const durationA = Date.now() - startA;
 
@@ -267,6 +276,7 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
       resultB = await LangchainExecutionService.executeSteps(stepsB, inputs, userId);
     } catch (err) {
       resultB = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
+      logger.error(`Error executing version B for test case ${i}:`, err);
     }
     const durationB = Date.now() - startB;
 
@@ -274,28 +284,15 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
     const outA = resultA.outputs || {};
     const outB = resultB.outputs || {};
 
-    const gradesA = resultA.success 
+    const gradesA = resultA.success
       ? await gradeOutputWithGemini(inputs, outA, expected)
-      : { relevance: { score: 0, justification: 'Execution failed' }, factualAccuracy: { score: 0, justification: 'Execution failed' }, structureAdherence: { score: 0, justification: 'Execution failed' } };
-      
-    const gradesB = resultB.success 
+      : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
+
+    const gradesB = resultB.success
       ? await gradeOutputWithGemini(inputs, outB, expected)
-      : { relevance: { score: 0, justification: 'Execution failed' }, factualAccuracy: { score: 0, justification: 'Execution failed' }, structureAdherence: { score: 0, justification: 'Execution failed' } };
+      : { relevance: { score: 0.0, justification: 'Execution failed' }, factualAccuracy: { score: 0.0, justification: 'Execution failed' }, structureAdherence: { score: 0.0, justification: 'Execution failed' } };
 
-    // Accrue
-    totalDurationA += durationA;
-    totalDurationB += durationB;
-    totalTokensA += resultA.tokenUsage?.totalTokens || 0;
-    totalTokensB += resultB.tokenUsage?.totalTokens || 0;
-
-    totalRelevanceA += gradesA.relevance.score;
-    totalRelevanceB += gradesB.relevance.score;
-    totalAccuracyA += gradesA.factualAccuracy.score;
-    totalAccuracyB += gradesB.factualAccuracy.score;
-    totalStructureA += gradesA.structureAdherence.score;
-    totalStructureB += gradesB.structureAdherence.score;
-
-    comparisons.push({
+    return {
       testCaseIndex: i,
       inputs,
       expectedCriteria: expected,
@@ -314,30 +311,77 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
         tokenUsage: resultB.tokenUsage || { totalTokens: 0 },
         grades: gradesB,
         outputs: outB
-      }
-    });
+      },
+      // Include raw scores and durations for aggregation after Promise.all
+      _durationA: durationA,
+      _durationB: durationB,
+      _tokensA: resultA.tokenUsage?.totalTokens || 0,
+      _tokensB: resultB.tokenUsage?.totalTokens || 0,
+      _relevanceA: gradesA.relevance.score,
+      _relevanceB: gradesB.relevance.score,
+      _accuracyA: gradesA.factualAccuracy.score,
+      _accuracyB: gradesB.factualAccuracy.score,
+      _structureA: gradesA.structureAdherence.score,
+      _structureB: gradesB.structureAdherence.score,
+    };
+  });
+
+  const allComparisonsResults = await Promise.all(comparisonPromises);
+
+  // Aggregate results after all promises have resolved
+  let totalDurationA = 0;
+  let totalDurationB = 0;
+  let totalTokensA = 0;
+  let totalTokensB = 0;
+
+  let totalRelevanceA = 0;
+  let totalRelevanceB = 0;
+  let totalAccuracyA = 0;
+  let totalAccuracyB = 0;
+  let totalStructureA = 0;
+  let totalStructureB = 0;
+
+  const comparisons = [];
+
+  const numCases = normalizedTestSuite.length; // Use this for division, ensure it's not zero.
+
+  for (const compResult of allComparisonsResults) {
+    totalDurationA += compResult._durationA;
+    totalDurationB += compResult._durationB;
+    totalTokensA += compResult._tokensA;
+    totalTokensB += compResult._tokensB;
+
+    totalRelevanceA += compResult._relevanceA;
+    totalRelevanceB += compResult._relevanceB;
+    totalAccuracyA += compResult._accuracyA;
+    totalAccuracyB += compResult._accuracyB;
+    totalStructureA += compResult._structureA;
+    totalStructureB += compResult._structureB;
+
+    // Remove aggregation-specific properties before pushing to final comparisons array
+    const { _durationA, _durationB, _tokensA, _tokensB, _relevanceA, _relevanceB, _accuracyA, _accuracyB, _structureA, _structureB, ...rest } = compResult;
+    comparisons.push(rest);
   }
 
-  const numCases = normalizedTestSuite.length;
-  
+  // BUG FIX: Handle division by zero if numCases is 0 (e.g., empty test suite and no default inputs).
   const summaryA = {
     label: labelA,
-    avgLatencyMs: totalDurationA / numCases,
-    avgTokens: totalTokensA / numCases,
-    avgRelevance: totalRelevanceA / numCases,
-    avgFactualAccuracy: totalAccuracyA / numCases,
-    avgStructureAdherence: totalStructureA / numCases,
-    overallQualityScore: (totalRelevanceA + totalAccuracyA + totalStructureA) / (3 * numCases)
+    avgLatencyMs: numCases > 0 ? totalDurationA / numCases : 0,
+    avgTokens: numCases > 0 ? totalTokensA / numCases : 0,
+    avgRelevance: numCases > 0 ? totalRelevanceA / numCases : 0,
+    avgFactualAccuracy: numCases > 0 ? totalAccuracyA / numCases : 0,
+    avgStructureAdherence: numCases > 0 ? totalStructureA / numCases : 0,
+    overallQualityScore: numCases > 0 ? (totalRelevanceA + totalAccuracyA + totalStructureA) / (3 * numCases) : 0
   };
 
   const summaryB = {
     label: labelB,
-    avgLatencyMs: totalDurationB / numCases,
-    avgTokens: totalTokensB / numCases,
-    avgRelevance: totalRelevanceB / numCases,
-    avgFactualAccuracy: totalAccuracyB / numCases,
-    avgStructureAdherence: totalStructureB / numCases,
-    overallQualityScore: (totalRelevanceB + totalAccuracyB + totalStructureB) / (3 * numCases)
+    avgLatencyMs: numCases > 0 ? totalDurationB / numCases : 0,
+    avgTokens: numCases > 0 ? totalTokensB / numCases : 0,
+    avgRelevance: numCases > 0 ? totalRelevanceB / numCases : 0,
+    avgFactualAccuracy: numCases > 0 ? totalAccuracyB / numCases : 0,
+    avgStructureAdherence: numCases > 0 ? totalStructureB / numCases : 0,
+    overallQualityScore: numCases > 0 ? (totalRelevanceB + totalAccuracyB + totalStructureB) / (3 * numCases) : 0
   };
 
   const deltaQuality = summaryB.overallQualityScore - summaryA.overallQualityScore;
