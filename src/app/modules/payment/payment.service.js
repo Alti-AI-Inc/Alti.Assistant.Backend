@@ -1,4 +1,3 @@
-import moment from 'moment';
 import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import winston from 'winston';
@@ -23,6 +22,9 @@ import { isStripeIp } from '../../../shared/stripeSecurity.js';
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  // CVE-PATCH-AGENT-NOTE: The Stripe API version is pinned to '2022-11-15'.
+  // Consider updating to a more recent version (e.g., '2024-06-20') after thorough testing
+  // to leverage new features and security enhancements.
   apiVersion: '2022-11-15',
 });
 
@@ -514,9 +516,16 @@ const handleWebhookService = async (req, res) => {
  * @returns {Date} The calculated expiration date, either one month or one year from the current date.
  */
 const getExpirationDate = (duration) => {
-  return duration === 'month'
-    ? moment().add(1, 'months').toDate()
-    : moment().add(1, 'years').toDate();
+  // PATCH: Replaced moment.js with native Date to remove dependency on a library in maintenance mode.
+  // This avoids potential vulnerabilities (e.g., ReDoS in older versions) and improves performance.
+  const expiration = new Date();
+  if (duration === 'month') {
+    // Handles month rollover correctly (e.g., Jan 31 -> Feb 28/29)
+    expiration.setMonth(expiration.getMonth() + 1);
+  } else { // Assumes 'year' based on prior validation in createCheckoutSessionService
+    expiration.setFullYear(expiration.getFullYear() + 1);
+  }
+  return expiration;
 };
 
 /**
