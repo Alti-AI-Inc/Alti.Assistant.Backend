@@ -1,6 +1,25 @@
+/**
+ * @file This file defines Zod schemas for validating search-related requests and rate limiting.
+ * @module app/modules/search/search.validation
+ * @author Your Name <your.email@example.com> (Replace with actual author info if known)
+ */
+
 import * as zod from 'zod';
 const { z } = zod;
 
+/**
+ * Zod schema for validating the body of a search query request.
+ * It ensures that the `message` field is a non-empty string and optionally includes
+ * a `conversationId` and a `deepSearch` flag.
+ *
+ * @type {z.ZodObject<{
+ *   body: z.ZodObject<{
+ *     message: z.ZodString,
+ *     conversationId: z.ZodOptional<z.ZodString>,
+ *     deepSearch: z.ZodOptional<z.ZodBoolean>
+ *   }>
+ * }>}
+ */
 const searchQuerySchema = z.object({
   body: z.object({
     message: z
@@ -14,7 +33,18 @@ const searchQuerySchema = z.object({
   }),
 });
 
-// Schema for guest user rate limiting (future enhancement)
+/**
+ * Zod schema for validating headers related to guest user rate limiting.
+ * This schema is intended for future enhancements to track and limit guest user requests.
+ * It optionally checks for `x-guest-id` and `x-forwarded-for` headers.
+ *
+ * @type {z.ZodObject<{
+ *   headers: z.ZodOptional<z.ZodObject<{
+ *     'x-guest-id': z.ZodOptional<z.ZodString>,
+ *     'x-forwarded-for': z.ZodOptional<z.ZodString>
+ *   }>>
+ * }>}
+ */
 const guestRateLimitSchema = z.object({
   headers: z
     .object({
@@ -24,6 +54,14 @@ const guestRateLimitSchema = z.object({
     .optional(),
 });
 
+/**
+ * An object containing all Zod validation schemas for search-related operations.
+ * This includes schemas for search queries and guest rate limiting.
+ *
+ * @exports SearchValidation
+ * @property {z.ZodObject} searchQuerySchema - Schema for validating search request bodies.
+ * @property {z.ZodObject} guestRateLimitSchema - Schema for validating guest rate limit headers.
+ */
 export const SearchValidation = {
   searchQuerySchema,
   guestRateLimitSchema,
