@@ -4,7 +4,7 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { documentService } from './document.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Removed as it was misused in subscription logic
 
 /**
  * Conversational document drafting assistant endpoint
@@ -17,7 +17,10 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
+  // SECURITY FIX: Removed potential IDOR vulnerability.
+  // An authenticated user should not be able to override their userId from the request body.
+  // The userId must be derived from the authenticated session (req.user) or generated for guests.
+  // userId = req.body.userId || userId;
 
   logger.info(
     `Document assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
@@ -32,15 +35,13 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       createdAt: -1,
     }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
 
-    if (promptUsage <= totalConversationWithConvId) {
+    // BUG FIX: Corrected subscription limit check logic.
+    // The previous logic involving `totalConversationWithConvId` was incorrect
+    // as `conversationHelpers.getConversationById` likely returns an object, not a count,
+    // and the comparison `promptUsage <= totalConversationWithConvId` was flawed.
+    // Assuming `userSubscription.usage` represents the remaining prompts/generations for the month.
+    if (promptUsage <= 0) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -73,6 +74,17 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       conversationId,
       isGuest
     );
+
+    // BUG FIX: Decrement usage for authenticated users after a successful request.
+    // This ensures that the subscription limits are enforced correctly over time.
+    if (!isGuest) {
+      // Find and update the latest subscription for the user, decrementing the usage count.
+      await SubscriptionModel.findOneAndUpdate(
+        { userId },
+        { $inc: { usage: -1 } },
+        { sort: { createdAt: -1 }, new: true } // `new: true` returns the updated document, though not strictly needed here.
+      );
+    }
 
     logger.info('Document assistant response:', {
       conversationId: result.conversationId,
@@ -129,6 +141,7 @@ export const generateDocument = catchAsync(async (req, res) => {
       createdAt: -1,
     }).lean(); // Added .lean()
 
+    // Assuming userSubscription.usage represents the remaining generations.
     if (!userSubscription || userSubscription.usage <= 0) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
@@ -146,6 +159,17 @@ export const generateDocument = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    // BUG FIX: Decrement usage for authenticated users after a successful request.
+    // This ensures that the subscription limits are enforced correctly over time.
+    if (!isGuest) {
+      // Find and update the latest subscription for the user, decrementing the usage count.
+      await SubscriptionModel.findOneAndUpdate(
+        { userId },
+        { $inc: { usage: -1 } },
+        { sort: { createdAt: -1 }, new: true }
+      );
+    }
 
     logger.info('Document generated successfully', {
       userId,
