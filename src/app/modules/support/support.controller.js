@@ -562,6 +562,14 @@ const bulkDeleteSupportReq = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} bulkDeleteSupportReq - Handles bulk deletion of multiple support requests.
  */
 export const SupportController = {
+  // Optimization Recommendation:
+  // For improved query performance, consider adding indexes to the Mongoose schema
+  // for the SupportRequest model, especially on fields that are frequently queried,
+  // filtered, or sorted. Key candidates include:
+  // - `userId`: If support requests are often fetched per user.
+  // - `status`: If filtering by status is common.
+  // - `priority`: If filtering or sorting by priority is common.
+  // - `createdAt` / `updatedAt`: For time-based queries or sorting.
   reqForSupport,
   getAllSupportReq,
   getSupportById,
