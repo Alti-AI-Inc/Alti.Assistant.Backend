@@ -13,12 +13,28 @@ import { captureException } from '../../../shared/sentry.js';
 // MODEL CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Read model from env or default to gemini-2.5-flash (the current valid model)
-const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+/**
+ * The name of the Google Gemini model used for prompt classification.
+ * Reads from environment variables `GEMINI_CLASSIFIER_MODEL` or `GEMINI_MODEL`,
+ * defaulting to a fast and efficient model if not set.
+ * @constant
+ * @type {string}
+ */
+const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
+/**
+ * The Google Generative AI client instance, authenticated with the secret key.
+ * @constant
+ * @type {GoogleGenerativeAI}
+ */
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
-// For lightning-fast classification, use Flash and force strict JSON response
+/**
+ * The specific Gemini model instance configured for high-accuracy, deterministic classification.
+ * It is configured with a very low temperature and forced JSON output to ensure reliable parsing.
+ * @constant
+ * @type {import('@google/generative-ai').GenerativeModel}
+ */
 const model = client.getGenerativeModel({
   model: CLASSIFIER_MODEL,
   generationConfig: {
@@ -31,6 +47,16 @@ const model = client.getGenerativeModel({
 // MODULE REGISTRY — Single source of truth for all routable modules
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * A registry of all available backend modules that can handle a user's prompt.
+ * This object serves as the single source of truth for routing decisions.
+ * Each key is a unique module name, and the value is an object containing:
+ * - `description`: A brief explanation of the module's capability, used to build the LLM prompt.
+ * - `dispatch`: The target service to which the request should be routed ('swarm' or 'composio').
+ * - `requireSearch`: (Optional) A boolean indicating if the module inherently requires a web search.
+ * @constant
+ * @type {Object.<string, {description: string, dispatch: 'swarm' | 'composio', requireSearch?: boolean}>}
+ */
 const MODULE_REGISTRY = {
   general_chat:      { description: 'Standard conversational AI queries, greetings, opinions, explanations, Q&A', dispatch: 'swarm' },
   web_search:        { description: 'Queries requiring real-time internet data: news, prices, weather, scores, current events', dispatch: 'swarm', requireSearch: true },
@@ -52,12 +78,26 @@ const MODULE_REGISTRY = {
   document_review:   { description: 'Reviewing, editing, proofreading, or providing feedback on existing documents', dispatch: 'swarm' },
 };
 
+/**
+ * An array of valid module names, derived from the keys of `MODULE_REGISTRY`.
+ * Used for validating the output of the classification model.
+ * @constant
+ * @type {string[]}
+ */
 const VALID_MODULES = Object.keys(MODULE_REGISTRY);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LLM SYSTEM PROMPT — Dynamically generated from registry
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * The system prompt provided to the Gemini model for classification.
+ * It is dynamically generated from the `MODULE_REGISTRY` to ensure the LLM
+ * is always aware of the available modules, their descriptions, and the rules for classification.
+ * It strictly enforces a JSON output format.
+ * @constant
+ * @type {string}
+ */
 const ORCHESTRATOR_SYSTEM_PROMPT = `You are the Master Orchestrator (Synapse) for the Alti Assistant platform.
 Your ONLY job is to classify the user's prompt into one of the supported backend modules and extract the required parameters.
 
@@ -89,6 +129,12 @@ Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 // Uses word-boundary matching to reduce false positives.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * A utility function to check if a text matches any of a given set of patterns.
+ * @param {string} text The text to check.
+ * @param {(string|RegExp)[]} patterns An array of strings or regular expressions to match against.
+ * @returns {boolean} True if any pattern is found in the text, false otherwise.
+ */
 const matchesPattern = (text, patterns) => {
   return patterns.some(pat => {
     if (pat instanceof RegExp) return pat.test(text);
@@ -96,6 +142,13 @@ const matchesPattern = (text, patterns) => {
   });
 };
 
+/**
+ * A local, rule-based intent classifier that serves as a fallback if the primary LLM classifier fails.
+ * It uses a series of keyword and regex matches to determine the most likely module.
+ * The rules are ordered by specificity to reduce misclassification.
+ * @param {string} prompt The user's input prompt.
+ * @returns {{target_module: string, confidence: number, parameters: {query: string, require_search?: boolean}}} The classification result.
+ */
 const localClassifyIntent = (prompt) => {
   const p = prompt.toLowerCase();
 
@@ -255,6 +308,50 @@ const localClassifyIntent = (prompt) => {
 // MAIN CLASSIFICATION & DISPATCH ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * The core orchestration function. It takes a user prompt, classifies its intent,
+ * dispatches it to the appropriate backend module, persists the conversation,
+ * and returns a structured response.
+ *
+ * @description
+ * This function follows a multi-step process:
+ * 1.  **Fast-Path**: Immediately handles common greetings and short queries.
+ * 2.  **Context Loading**: Fetches recent messages from the conversation history to provide context to the classifier.
+ * 3.  **Classification**: Attempts to classify the prompt using a powerful LLM (Gemini). If that fails, it uses a local, rule-based fallback classifier.
+ * 4.  **Credit Check**: Performs a non-blocking check to increment the user's prompt usage count.
+ * 5.  **Dispatch**: Routes the request to the determined module (e.g., `SwarmService` for generation/search, `aiClassificationService` for connected apps).
+ * 6.  **Persistence**: Saves the user's prompt and the assistant's final response to the database.
+ * 7.  **Memory Extraction**: Asynchronously triggers a service to extract and store key facts from the conversation.
+ *
+ * @multi-tenant
+ * This service is multi-tenant. The `userId` parameter is crucial for scoping all
+ * data operations, including fetching conversation history, checking credits, and
+ * saving new messages, to the currently authenticated user.
+ *
+ * @param {string} prompt The user's input message.
+ * @param {string} sessionId The session identifier for the user's connection.
+ * @param {string} userId The unique identifier for the authenticated user.
+ * @param {string} conversationId The unique identifier for the current conversation. Can be 'new-chat' for the first message.
+ * @returns {Promise<object>} A promise that resolves to a structured response object.
+ * @property {string|null} conversationId The ID of the conversation, which will be newly generated for the first message.
+ * @property {string} orchestrator_decision The name of the module chosen to handle the prompt.
+ * @property {object} extracted_parameters The parameters extracted from the prompt for the target module.
+ * @property {string} original_prompt The user's original input prompt.
+ * @property {string} reply The final, user-facing response from the assistant.
+ * @property {object} responseMessage A structured message object.
+ * @property {string} responseMessage.answer The final answer text.
+ * @property {Array} responseMessage.reference An array for references (if any).
+ * @property {object} classification Metadata about the classification process.
+ * @property {string} classification.source The source of the classification decision ('fast-path', 'gemini', 'local-fallback', 'error').
+ * @property {string} classification.model The model used for classification.
+ * @property {number|null} classification.confidence The confidence score of the classification (0.0 to 1.0).
+ * @property {number} classification.latency_ms The time taken for classification in milliseconds.
+ * @property {number} total_time_ms The total processing time for the entire request in milliseconds.
+ * @property {any} [executionResult] Optional result from connected app execution.
+ * @property {Array} [toolResults] Optional tool results from connected app execution.
+ * @property {Array} [webSearchQueries] Optional list of queries used for web search.
+ * @property {Array} [relatedQuestions] Optional list of suggested follow-up questions.
+ */
 const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) => {
   const startTime = Date.now();
   let classificationSource = 'unknown';
@@ -469,7 +566,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
             title: cleanTitle,
             messages: [
               { role: 'user', content: prompt, timestamp: new Date() },
-              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new Date() }
+              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new D }
             ],
             status: 'active'
           });
@@ -531,6 +628,11 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
   }
 };
 
+/**
+ * The Orchestrator Service, responsible for classifying user prompts and dispatching
+ * them to the appropriate backend modules for processing.
+ * @exports orchestratorService
+ */
 export const orchestratorService = {
   classifyAndDispatch,
 };
