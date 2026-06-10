@@ -10,6 +10,60 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 // import { USER_ROLE } from '../../../enums/user.js';
 
 // =================================================================================================
+// == PII Masking Utility
+// =================================================================================================
+
+/**
+ * Masks common PII patterns in a given text before sending to the model.
+ * This is a critical safety and privacy measure.
+ * @param {string} text The input text to sanitize.
+ * @returns {string} The text with PII masked.
+ */
+const maskPII = text => {
+  if (!text || typeof text !== 'string') return text;
+
+  let maskedText = text;
+
+  // Mask email addresses
+  maskedText = maskedText.replace(
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    '[EMAIL_REDACTED]',
+  );
+
+  // Mask phone numbers (various common formats)
+  maskedText = maskedText.replace(
+    /(\+\d{1,3}[- ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}/g,
+    '[PHONE_REDACTED]',
+  );
+
+  // Mask Social Security Numbers (SSN)
+  maskedText = maskedText.replace(
+    /\b\d{3}-\d{2}-\d{4}\b/g,
+    '[SSN_REDACTED]',
+  );
+
+  // Mask credit card numbers (basic check for 13-16 digits, with a simple Luhn check to reduce false positives)
+  maskedText = maskedText.replace(/\b(?:\d[ -]*?){13,16}\b/g, match => {
+    const s = match.replace(/\D/g, '');
+    if (s.length < 13 || s.length > 16) {
+      return match; // Not a typical CC length
+    }
+    let nCheck = 0;
+    let bEven = false;
+    for (let n = s.length - 1; n >= 0; n--) {
+      const cDigit = s.charAt(n);
+      let nDigit = parseInt(cDigit, 10);
+      if (bEven && (nDigit *= 2) > 9) nDigit -= 9;
+      nCheck += nDigit;
+      bEven = !bEven;
+    }
+    return nCheck % 10 == 0 ? '[CREDIT_CARD_REDACTED]' : match;
+  });
+
+  return maskedText;
+};
+
+// =================================================================================================
 // == Public Endpoints
 // =================================================================================================
 
@@ -90,6 +144,9 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
     });
   }
 
+  // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
+  const maskedPrompt = maskPII(prompt);
+
   // Platform Owner AI Enhancement: Pass role-based options to the service layer.
   // This allows the service to bypass throttling or apply special logic for admins.
   const serviceOptions = {
@@ -98,9 +155,9 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
 
   const result = await GeminiAiService.geminiService(
     sessionId,
-    prompt,
+    maskedPrompt, // Use the sanitized prompt
     userId,
-    serviceOptions
+    serviceOptions,
   );
 
   sendResponse(res, {
@@ -165,6 +222,9 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
     });
   }
 
+  // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
+  const maskedPrompt = maskPII(prompt);
+
   // Platform Owner AI Enhancement: Pass role-based options to the service layer.
   const serviceOptions = {
     isPlatformOwner: req.user?.role === 'PLATFORM_OWNER',
@@ -172,9 +232,9 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
 
   const result = await GeminiAiService.gemini25PreviewService(
     sessionId,
-    prompt,
+    maskedPrompt, // Use the sanitized prompt
     userId,
-    serviceOptions
+    serviceOptions,
   );
 
   sendResponse(res, {

@@ -10,7 +10,7 @@ import {
   PROCESSING_TYPES,
   ERROR_MESSAGES,
 } from './transcription.constant.js';
-import { transcriptionService } from './transcription.service.js';
+// Unused import removed: import { transcriptionService } from './transcription.service.js';
 import config from '../../../../config/index.js';
 
 // Initialize Gemini API
@@ -361,9 +361,10 @@ const countAudioTokens = async audioFile => {
  */
 const processBatchAudio = async (audioFiles, options = {}) => {
   try {
-    const results = [];
-
-    for (const audioConfig of audioFiles) {
+    // OPTIMIZATION: Use Promise.all to process audio files in parallel instead of sequentially.
+    // This significantly reduces the total processing time for batches by running the independent
+    // API calls concurrently, which is crucial for handling multiple files efficiently.
+    const processingPromises = audioFiles.map(async audioConfig => {
       const { file, prompt, processingType } = audioConfig;
 
       const result = await processAudioWithGemini(
@@ -373,12 +374,13 @@ const processBatchAudio = async (audioFiles, options = {}) => {
         options
       );
 
-      results.push({
+      return {
         fileName: file.fileName,
         result,
-      });
-    }
+      };
+    });
 
+    const results = await Promise.all(processingPromises);
     return results;
   } catch (error) {
     logger.error('Error processing batch audio:', error);
