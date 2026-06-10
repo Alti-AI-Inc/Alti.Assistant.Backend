@@ -23,6 +23,16 @@ const ALLOWED_TONES = [
 ];
 const ALLOWED_LENGTHS = ['short', 'medium', 'long'];
 
+// --- Constants for File Handling ---
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB limit for user-provided context files.
+const ALLOWED_MIMETYPES = [
+  'text/plain',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'text/markdown', // .md
+];
+
 /**
  * @swagger
  * /api/v1/article-writer/conversational-assistant:
@@ -70,7 +80,7 @@ const ALLOWED_LENGTHS = ['short', 'medium', 'long'];
  *         name: file
  *         type: file
  *         required: false
- *         description: Optional file to be used as context or source material for the article.
+ *         description: Optional file (up to 15MB) to be used as context or source material for the article. Allowed types: .txt, .pdf, .doc, .docx, .md.
  *     responses:
  *       200:
  *         description: Article generated successfully.
@@ -99,7 +109,7 @@ const ALLOWED_LENGTHS = ['short', 'medium', 'long'];
  *                   type: boolean
  *                   description: Indicates if the request was from a guest user.
  *       400:
- *         description: Bad Request - Invalid or missing parameters.
+ *         description: Bad Request - Invalid or missing parameters, or invalid file.
  *         schema:
  *           type: object
  *           properties:
@@ -112,6 +122,8 @@ const ALLOWED_LENGTHS = ['short', 'medium', 'long'];
  *             message:
  *               type: string
  *               example: The "message" field is required.
+ *       401:
+ *         description: Unauthorized - Failed to identify user.
  *       403:
  *         description: Forbidden - Subscription limit reached.
  *         schema:
@@ -127,7 +139,7 @@ const ALLOWED_LENGTHS = ['short', 'medium', 'long'];
  *               type: string
  *               example: You have reached your article writing limit for this month. Please upgrade your plan to continue.
  *       500:
- *         description: Internal Server Error - Failed to generate article or identify user.
+ *         description: Internal Server Error - Failed to generate article.
  *         schema:
  *           type: object
  *           properties:
@@ -161,23 +173,22 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     : req.user?.userId || req.user?._id;
 
   if (!userId) {
-    // This case should ideally not be reached if generateGuestUserId is robust
-    // and req.user is properly handled by auth middleware.
+    // This is an authentication/authorization issue, not an internal server error.
     return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Failed to identify user.',
+      message: 'Failed to identify user. Authentication may be required.',
     });
   }
 
   const { message, conversationId, articleType, tone, length } = req.body;
 
   // --- 2. Input Validation ---
-  if (!message) {
+  if (!message || typeof message !== 'string' || message.trim() === '') {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'The "message" field is required.',
+      message: 'The "message" field is required and cannot be empty.',
     });
   }
   if (articleType && !ALLOWED_ARTICLE_TYPES.includes(articleType)) {
@@ -202,7 +213,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
   }
 
-  // --- 3. File Handling ---
+  // --- 3. File Handling & Validation ---
   const fileInfo = req.file
     ? {
         filename: req.file.filename,
@@ -213,6 +224,27 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
         location: req.file.location || req.file.path,
       }
     : null;
+
+  if (fileInfo) {
+    // Validate file size to protect server resources and enforce user limits.
+    if (fileInfo.size > MAX_FILE_SIZE_BYTES) {
+      // NOTE: The file upload middleware (e.g., multer) should be configured to automatically
+      // clean up oversized files. If not, manual cleanup logic would be needed here.
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: `File size exceeds the limit of ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB.`,
+      });
+    }
+    // Validate file type to ensure the backend can process it and for security.
+    if (!ALLOWED_MIMETYPES.includes(fileInfo.mimetype)) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: `Invalid file type. Allowed types are: ${ALLOWED_MIMETYPES.join(', ')}.`,
+      });
+    }
+  }
 
   logger.info(
     `Article writer request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
@@ -227,43 +259,49 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // --- 4. Usage Metrics & Subscription Limits ---
   if (!isGuest) {
-    // OPTIMIZATION: Use .lean() for this read-only query to improve performance.
-    // INDEXING_RECOMMENDATION: Add a compound index on { userId: 1, createdAt: -1 } to the SubscriptionModel schema.
+    // OPTIMIZATION_NOTE: The `countDocuments` query below runs on every request for authenticated users.
+    // This can become a performance bottleneck at scale. A more performant architecture would involve
+    // a dedicated counter field (e.g., `monthlyUsageCount`) on the SubscriptionModel. This counter
+    // would be atomically incremented after each successful generation and reset by a monthly cron job.
+    // This would change the check to a single, fast read operation instead of a collection scan.
+
     const userSubscription = await SubscriptionModel.findOne({ userId })
-      .sort({
-        createdAt: -1,
-      })
+      .sort({ createdAt: -1 })
       .lean();
 
-    // The 'usage' field in the SubscriptionModel represents the user's monthly generation limit.
-    const monthlyLimit = userSubscription?.usage || 0;
+    // Convention: `usage: -1` for unlimited, `usage: 0` for no access, `usage > 0` for a specific limit.
+    // Default to 0 (no access) if no subscription or usage field is found.
+    const monthlyLimit = userSubscription?.usage ?? 0;
 
-    // Calculate the user's generation count for the current calendar month.
-    const currentMonthStart = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    );
-    // INDEXING_RECOMMENDATION: Ensure ConversationModel has a compound index on { userId: 1, createdAt: 1 }.
-    const userCurrentMonthUsage = await ConversationModel.countDocuments({
-      userId: userId,
-      createdAt: { $gte: currentMonthStart },
-    });
-
-    if (monthlyLimit > 0 && userCurrentMonthUsage >= monthlyLimit) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your article writing limit for this month. Please upgrade your plan to continue.',
+    // Skip check for unlimited plans.
+    if (monthlyLimit !== -1) {
+      const currentMonthStart = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1
+      );
+      // INDEXING_RECOMMENDATION: Ensure ConversationModel has a compound index on { userId: 1, createdAt: 1 }.
+      const userCurrentMonthUsage = await ConversationModel.countDocuments({
+        userId: userId,
+        createdAt: { $gte: currentMonthStart },
       });
+
+      if (userCurrentMonthUsage >= monthlyLimit) {
+        return sendResponse(res, {
+          statusCode: httpStatus.FORBIDDEN,
+          success: false,
+          // Provide a more specific message based on the user's plan.
+          message:
+            monthlyLimit === 0
+              ? 'Your current plan does not include article writing. Please upgrade to use this feature.'
+              : 'You have reached your article writing limit for this month. Please upgrade your plan to continue.',
+        });
+      }
     }
   }
 
   // --- 5. Prompt Execution ---
   try {
-    // OPTIMIZATION_RECOMMENDATION: Ensure articleWriterService.processConversationalRequest
-    // optimizes its internal database queries with .lean() for read operations and has appropriate indexing.
     const result = await articleWriterService.processConversationalRequest(
       userId,
       message,

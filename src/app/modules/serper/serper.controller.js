@@ -1,10 +1,40 @@
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { Redis } from 'ioredis';
 import { GoogleGenAI } from '@google/genai';
 import config from '../../../../config/index.js';
 import catchAsync from '../../../shared/catchAsync.js';
 
+// --- DDOS & API Abuse Protection ---
+// Initialize Redis client for rate limiting.
+// Connection details should be stored in environment variables and accessed via the config object.
+const redisClient = new Redis(config.redis.url);
+
+redisClient.on('error', err => console.error('Redis Client Error for Rate Limiter', err));
+
+// Create a rate limiter for the expensive Google AI search endpoint.
+// This helps prevent DDOS attacks, API abuse, and excessive costs.
+// It limits each IP address to 10 requests per minute.
+const serperApiLimiter = rateLimit({
+	store: new RedisStore({
+		// The `sendCommand` function is required by `rate-limit-redis` to send commands to Redis.
+		// `client.call` is the command for ioredis.
+		sendCommand: (...args) => redisClient.call(...args),
+	}),
+	windowMs: 1 * 60 * 1000, // 1 minute
+	max: 10, // Limit each IP to 10 requests per window (per minute)
+	message: {
+		status: 429,
+		message: 'Too many requests. Please try again after a minute.',
+	},
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
-const SerperAiGetResponse = catchAsync(async (req, res) => {
+const SerperAiGetResponseHandler = catchAsync(async (req, res) => {
   try {
     const prompt = req.body?.prompt;
 
@@ -44,5 +74,6 @@ const SerperAiGetResponse = catchAsync(async (req, res) => {
 });
 
 export const SerperAiController = {
-  SerperAiGetResponse,
+  // Apply the rate limiter as middleware before the controller handler.
+  SerperAiGetResponse: [serperApiLimiter, SerperAiGetResponseHandler],
 };
