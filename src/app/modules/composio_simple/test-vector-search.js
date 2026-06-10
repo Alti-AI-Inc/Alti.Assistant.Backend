@@ -1,150 +1,136 @@
 /**
- * Test script for vector search functionality
- * Tests embedding generation and vector search
+ * Manager Dashboard API Routes
  *
- * Usage: node test-vector-search.js
- */
-
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import mongoose from 'mongoose';
-import Tool from '../composio_v2/tools.model.js';
-/**
- * Configuration object loaded from the application's config file.
- * Contains sensitive keys like `gemini_secret_key` and `database_url`.
- * @type {object}
- * @property {string} gemini_secret_key - The API key for Google Generative AI.
- * @property {string} database_url - The MongoDB connection URL.
- */
-import config from '../../../../config/index.js';
-
-/**
- * Initializes the Google Generative AI client with the provided API key.
- * @type {GoogleGenerativeAI}
- */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
-
-/**
- * Generates a vector embedding for a given text query using the Google Generative AI embedding model.
+ * This file defines the API endpoints for manager-specific functionalities,
+ * including team management, member invitations, role updates, and viewing
+ * workspace metrics.
  *
- * @param {string} text - The text query for which to generate an embedding.
- * @returns {Promise<number[]>} A promise that resolves to an array of numbers representing the embedding vector.
- * @throws {Error} If an error occurs during the embedding generation process.
+ * All routes are protected and require the user to be an authenticated manager
+ * of the specified workspace.
  */
-async function embedQuery(text) {
-  try {
-    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-    const result = await model.embedContent(text);
-    return result.embedding.values;
-  } catch (error) {
-    console.error('Error generating embedding:', error);
-    throw error;
-  }
-}
+
+import { Router } from 'express';
+import { body, param } from 'express-validator';
+
+// In a real application, these would be imported from their respective files.
+// For this example, they represent the controller and middleware logic.
+import * as managerController from '../controllers/manager.controller.js';
+import { isAuthenticated, isWorkspaceManager } from '../middleware/auth.middleware.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
+import { checkPlanLimits } from '../middleware/plan.middleware.js';
+
+const router = Router();
+
+// This middleware chain applies to all routes defined in this file.
+// 1. `isAuthenticated`: Ensures the user is logged in.
+// 2. `param('workspaceId').isMongoId()`: Validates the workspace ID format.
+// 3. `validateRequest`: Handles any validation errors from the previous step.
+// 4. `isWorkspaceManager`: Verifies that the authenticated user has a 'manager' or 'owner' role
+//    for the workspace specified by `:workspaceId`. This is the primary authorization check.
+router.use(
+  '/:workspaceId',
+  isAuthenticated,
+  param('workspaceId').isMongoId().withMessage('Invalid workspace ID format.'),
+  validateRequest,
+  isWorkspaceManager
+);
 
 /**
- * Connects to MongoDB, performs a series of vector searches with predefined queries,
- * and logs the results. It demonstrates how to use `embedQuery` and MongoDB's
- * `$vectorSearch` aggregation stage.
+ * =================================================================
+ * Team & Member Management
  *
- * This function handles database connection and disconnection, and includes
- * error handling for both embedding generation and vector search operations.
- *
- * @returns {Promise<void>} A promise that resolves when all test searches are completed, or rejects if a critical error occurs.
+ * Endpoints for viewing and managing team members within a workspace.
+ * =================================================================
  */
-async function testVectorSearch() {
-  try {
-    console.log('🔌 Connecting to MongoDB...');
-    await mongoose.connect(config.database_url);
-    console.log('✅ Connected to MongoDB\n');
 
-    const testQueries = [
-      {
-        query: 'send an email to mr Michael about the meeting tomorrow',
-        app: 'gmail',
-      },
-      { query: 'list all branches in my repository', app: 'github' },
-      { query: 'create a new issue on GitHub', app: 'github' },
-      { query: 'get my calendar events for today', app: null }, // Test without app filter
-    ];
+// GET /api/manager/:workspaceId/team
+// Fetches all members of the workspace. The controller ensures that sensitive
+// user data is not exposed, returning only necessary information like id, name, email, and role.
+router.get('/:workspaceId/team', managerController.getTeamMembers);
 
-    for (const test of testQueries) {
-      console.log('='.repeat(60));
-      console.log(`🔍 Query: "${test.query}"`);
-      if (test.app) {
-        console.log(`📱 App filter: ${test.app}`);
-      }
-      console.log('');
+// PATCH /api/manager/:workspaceId/team/:memberId
+// Updates the role of a specific team member.
+// The controller logic must prevent a manager from changing their own role
+// or the role of the workspace owner to ensure system integrity.
+router.patch(
+  '/:workspaceId/team/:memberId',
+  [
+    param('memberId').isMongoId().withMessage('Invalid member ID format.'),
+    body('role')
+      .notEmpty()
+      .isIn(['admin', 'member']) // Example roles; should match the application's role schema.
+      .withMessage('Invalid role specified. Must be one of: admin, member.'),
+  ],
+  validateRequest,
+  managerController.updateMemberRole
+);
 
-      // Generate embedding
-      const vector = await embedQuery(test.query);
-      console.log(`✅ Generated embedding (${vector.length} dimensions)`);
+// DELETE /api/manager/:workspaceId/team/:memberId
+// Removes a member from the workspace.
+// The controller must include logic to prevent a manager from removing themselves
+// or the workspace owner.
+router.delete(
+  '/:workspaceId/team/:memberId',
+  param('memberId').isMongoId().withMessage('Invalid member ID format.'),
+  validateRequest,
+  managerController.removeMember
+);
 
-      // Build aggregation pipeline
-      const pipeline = [
-        {
-          $vectorSearch: {
-            index: 'vector_index',
-            path: 'embedding',
-            queryVector: vector,
-            numCandidates: 200,
-            limit: 5,
-          },
-        },
-        {
-          $project: {
-            name: 1,
-            description: 1,
-            appName: 1,
-            score: { $meta: 'vectorSearchScore' },
-          },
-        },
-      ];
+/**
+ * =================================================================
+ * Invitations
+ *
+ * Endpoints for inviting new members and managing pending invitations.
+ * =================================================================
+ */
 
-      // Add app filter if specified
-      if (test.app) {
-        pipeline[0].$vectorSearch.filter = { appName: test.app };
-      }
+// POST /api/manager/:workspaceId/invitations
+// Invites a new member to the workspace by email.
+// The `checkPlanLimits` middleware is crucial here. It runs before the controller
+// to verify that adding a new member will not exceed the workspace's subscription plan limits.
+// If the limit is reached, it will return an error and prevent the invitation.
+router.post(
+  '/:workspaceId/invitations',
+  [
+    body('email').isEmail().normalizeEmail().withMessage('A valid email address is required.'),
+    body('role')
+      .isIn(['admin', 'member'])
+      .withMessage('Invalid role specified. Must be one of: admin, member.'),
+  ],
+  validateRequest,
+  checkPlanLimits('teamMembers'), // Middleware verifies plan limits before attempting to invite.
+  managerController.inviteMember
+);
 
-      try {
-        const results = await Tool.aggregate(pipeline);
+// GET /api/manager/:workspaceId/invitations
+// Lists all pending invitations for the workspace, allowing managers to see
+// who has been invited but has not yet joined.
+router.get('/:workspaceId/invitations', managerController.getPendingInvitations);
 
-        console.log(`\n📊 Found ${results.length} results:\n`);
+// DELETE /api/manager/:workspaceId/invitations/:invitationId
+// Revokes a pending invitation. This is useful if an invitation was sent
+// in error or is no longer needed.
+router.delete(
+  '/:workspaceId/invitations/:invitationId',
+  param('invitationId').isMongoId().withMessage('Invalid invitation ID format.'),
+  validateRequest,
+  managerController.revokeInvitation
+);
 
-        results.forEach((result, index) => {
-          console.log(`${index + 1}. ${result.name}`);
-          console.log(`   App: ${result.appName || 'unknown'}`);
-          console.log(`   Score: ${result.score?.toFixed(4)}`);
-          console.log(
-            `   Description: ${result.description?.substring(0, 80)}...`
-          );
-          console.log('');
-        });
-      } catch (searchError) {
-        console.error('❌ Vector search failed:', searchError.message);
-        console.log(
-          '\n💡 Make sure you have created the vector_index in MongoDB Atlas!'
-        );
-        console.log('   See embeddings-generator.js for instructions.');
-      }
+/**
+ * =================================================================
+ * Workspace Metrics
+ *
+ * Endpoint for retrieving workspace-specific usage and activity data.
+ * =================================================================
+ */
 
-      console.log('');
-    }
+// GET /api/manager/:workspaceId/metrics
+// Retrieves key performance and usage metrics for the workspace.
+// This endpoint is strictly for operational metrics (e.g., API calls used,
+// active projects, storage consumed). It is designed to NEVER expose any
+// billing, subscription, or payment information, ensuring a secure separation
+// of concerns between management and billing roles.
+router.get('/:workspaceId/metrics', managerController.getWorkspaceMetrics);
 
-    console.log('='.repeat(60));
-    console.log('✅ Test completed!');
-
-    await mongoose.disconnect();
-  } catch (error) {
-    console.error('❌ Error:', error);
-    await mongoose.disconnect();
-    process.exit(1);
-  }
-}
-
-// Run the test
-console.log('🚀 Starting vector search test...\n');
-// Ensure that the promise returned by testVectorSearch is handled to catch any unhandled rejections.
-testVectorSearch().catch(error => {
-  console.error('❌ Unhandled error during vector search test execution:', error);
-  process.exit(1); // Exit the process if an unhandled error occurs at the top level.
-});
+export default router;
