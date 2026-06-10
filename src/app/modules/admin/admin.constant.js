@@ -21,7 +21,11 @@ export const USER_ROLES = {
 };
 
 /**
- * @constant {Object<string, string>} INVITATION_STATUS - Defines the status of workspace invitations.
+ * @constant {Object<string, string>} INVITATION_STATUS - Defines the possible statuses of a workspace invitation.
+ * @property {string} PENDING - The invitation has been sent but not yet responded to.
+ * @property {string} ACCEPTED - The invitation has been accepted by the user.
+ * @property {string} REJECTED - The invitation has been declined by the user.
+ * @property {string} EXPIRED - The invitation was not responded to within the allowed timeframe.
  */
 export const INVITATION_STATUS = {
   PENDING: 'pending',
@@ -31,8 +35,19 @@ export const INVITATION_STATUS = {
 };
 
 /**
- * @constant {Object} WORKSPACE_LIMITS - Default limits for workspaces based on subscription tiers.
- * Used to enforce plan limits when managers invite new members or create projects.
+ * @typedef {Object} PlanLimits
+ * @property {number} MAX_MEMBERS - The maximum number of members allowed in the workspace for this plan.
+ * @property {number} MAX_PROJECTS - The maximum number of projects allowed in the workspace for this plan.
+ */
+
+/**
+ * @constant {Object<string, PlanLimits>} WORKSPACE_LIMITS
+ * @description Default limits for workspaces based on subscription tiers (e.g., FREE, PRO, ENTERPRISE).
+ * These limits are used to enforce resource constraints, such as the number of members that can be invited
+ * or the number of projects that can be created within a workspace.
+ * @property {PlanLimits} FREE - Limits for the 'Free' subscription tier.
+ * @property {PlanLimits} PRO - Limits for the 'Pro' subscription tier.
+ * @property {PlanLimits} ENTERPRISE - Limits for the 'Enterprise' subscription tier.
  */
 export const WORKSPACE_LIMITS = {
   FREE: {
