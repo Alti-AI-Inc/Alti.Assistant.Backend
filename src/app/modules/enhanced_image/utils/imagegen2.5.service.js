@@ -21,6 +21,26 @@ const gcpStorage = new GCPStorageService(
   gcpKeyPath
 );
 
+/**
+ * Generates an image using the Google Gemini 3.1 Flash Image model based on a text prompt and optional reference images.
+ * The generated image is then uploaded to a Google Cloud Platform (GCP) storage bucket.
+ *
+ * @async
+ * @function imagen3
+ * @param {string} prompt - The text prompt to guide the image generation. If not provided, a default creative prompt is used.
+ * @param {string[]} [referenceImages] - An array of local file paths to reference images that provide additional context to the model.
+ * @param {string} [filename='image.png'] - The desired base filename for the generated image in GCP Storage. The file extension will be automatically corrected based on the MIME type of the generated image.
+ * @returns {Promise<string|null>} A promise that resolves to the public URL of the uploaded image. Returns `null` if the AI model does not generate an image.
+ * @throws {Error} Throws an error if there is a failure in reading reference images (e.g., path traversal attempt), communicating with the AI API, or uploading the image to GCP Storage.
+ * @example
+ * // Generate an image with a simple prompt
+ * const imageUrl = await imagen3('A futuristic cityscape at sunset.');
+ * console.log(imageUrl);
+ *
+ * // Generate an image with a prompt and a reference image
+ * const imageUrlWithRef = await imagen3('A cat wearing a hat, in the style of this image.', ['./path/to/style-reference.png']);
+ * console.log(imageUrlWithRef);
+ */
 export async function imagen3(prompt, referenceImages, filename = 'image.png') {
   try {
     const message = prompt
