@@ -71,9 +71,12 @@ const _filterPii = text => {
  * updating payment usage, and persisting data. This private helper function orchestrates
  * the interaction with the AI model, database, and Redis.
  *
+ * This service operates in a multi-tenant context, where each user's conversation
+ * history is isolated based on their `userId` and a specific `sessionId`.
+ *
  * @private
  * @param {string} prompt - The user's input prompt.
- * @param {string} userId - The ID of the user initiating the conversation.
+ * @param {string} userId - The ID of the user initiating the conversation. This is crucial for isolating user data.
  * @param {string} sessionId - The ID of the current chat session, used to retrieve and store history.
  * @param {string} redisChannel - The Redis channel to publish the AI response to.
  * @returns {Promise<object>} A promise that resolves to a payload containing sessionId, prompt, and the AI's reply.
@@ -282,13 +285,16 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
 };
 
 /**
- * Provides a public interface to get an AI response for a standard Qwen AI chat session.
- * It leverages the internal `_getAiResponseService` to handle the core logic.
+ * Provides a public interface to get an AI response for a standard AI chat session.
+ * It leverages the internal `_getAiResponseService` to handle the core logic of
+ * conversation management, PII filtering, and persistence.
+ *
+ * This service operates within the context of an authenticated user and their specific chat session.
  *
  * @param {string} prompt - The user's input prompt.
- * @param {string} userId - The ID of the user.
+ * @param {string} userId - The ID of the authenticated user.
  * @param {string} sessionId - The ID of the current chat session.
- * @returns {Promise<object>} A promise that resolves to a payload containing sessionId, prompt, and the AI's reply.
+ * @returns {Promise<{sessionId: string, prompt: string, reply: string}>} A promise that resolves to a payload containing sessionId, prompt, and the AI's reply.
  * @throws {ApiError} If the underlying AI service encounters an error.
  */
 const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
@@ -297,12 +303,15 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
 
 /**
  * Provides a public interface to get an AI response for a Qwen QWQ (specific variant) chat session.
- * It leverages the internal `_getAiResponseService` to handle the core logic.
+ * It leverages the internal `_getAiResponseService` to handle the core logic, publishing the
+ * result to a specific Redis channel for QWQ sessions.
+ *
+ * This service operates within the context of an authenticated user and their specific chat session.
  *
  * @param {string} prompt - The user's input prompt.
- * @param {string} userId - The ID of the user.
+ * @param {string} userId - The ID of the authenticated user.
  * @param {string} sessionId - The ID of the current chat session.
- * @returns {Promise<object>} A promise that resolves to a payload containing sessionId, prompt, and the AI's reply.
+ * @returns {Promise<{sessionId: string, prompt: string, reply: string}>} A promise that resolves to a payload containing sessionId, prompt, and the AI's reply.
  * @throws {ApiError} If the underlying AI service encounters an error.
  */
 const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
@@ -311,12 +320,14 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
 
 /**
  * @typedef {object} QwenAiServices
- * @property {function(string, string, string): Promise<object>} QwenAiGetResponseService - Function to get a standard Qwen AI response.
- * @property {function(string, string, string): Promise<object>} QwenQWQAiGetResponseService - Function to get a Qwen QWQ AI response.
+ * @property {function(string, string, string): Promise<{sessionId: string, prompt: string, reply: string}>} QwenAiGetResponseService - Function to get a standard AI response.
+ * @property {function(string, string, string): Promise<{sessionId: string, prompt: string, reply: string}>} QwenQWQAiGetResponseService - Function to get a Qwen QWQ (specific variant) AI response.
  */
 
 /**
  * An object containing all Qwen AI related service functions.
+ * These services handle interactions with the generative AI model, including
+ * conversation history management, PII filtering, and data persistence.
  * @type {QwenAiServices}
  */
 export const QwenAiServices = {
