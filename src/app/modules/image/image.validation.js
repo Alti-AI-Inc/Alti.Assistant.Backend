@@ -1,6 +1,63 @@
+/**
+ * @file This file defines Zod schemas for validating various image-related requests and data
+ *       within the Alti.Assistant backend. These schemas are used to ensure that incoming
+ *       request bodies, parameters, and file uploads conform to expected structures and constraints.
+ * @module ImageValidation
+ * @author Alti.Assistant Backend Team
+ */
+
 import * as zod from 'zod';
 const { z } = zod;
 
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     ImageGenerationRequest:
+ *       type: object
+ *       required:
+ *         - message
+ *       properties:
+ *         message:
+ *           type: string
+ *           description: The prompt message for generating the image.
+ *           minLength: 3
+ *           maxLength: 2000
+ *           example: "A futuristic city at sunset with flying cars."
+ *         conversationId:
+ *           type: string
+ *           description: Optional ID of the conversation associated with this image generation.
+ *           example: "65e8a2b1c3d4e5f6a7b8c9d0"
+ *         imageSize:
+ *           type: string
+ *           enum: [small, standard, large]
+ *           description: The desired size of the generated image.
+ *           default: standard
+ *         imageStyle:
+ *           type: string
+ *           enum: [realistic, cartoon, abstract, photorealistic]
+ *           description: The artistic style for the generated image.
+ *           default: photorealistic
+ *         imageModel:
+ *           type: string
+ *           description: Optional specific model to use for image generation.
+ *           example: "dall-e-3"
+ */
+/**
+ * Zod schema for validating image generation requests.
+ * Ensures the request body contains a valid prompt message and optional parameters
+ * like conversation ID, image size, style, and model.
+ *
+ * @type {z.ZodObject<{
+ *   body: z.ZodObject<{
+ *     message: z.ZodString,
+ *     conversationId: z.ZodOptional<z.ZodString>,
+ *     imageSize: z.ZodOptional<z.ZodEnum<['small', 'standard', 'large']>>,
+ *     imageStyle: z.ZodOptional<z.ZodEnum<['realistic', 'cartoon', 'abstract', 'photorealistic']>>,
+ *     imageModel: z.ZodOptional<z.ZodString>
+ *   }>
+ * }>}
+ */
 const imageGenerationSchema = z.object({
   body: z.object({
     message: z
@@ -18,6 +75,50 @@ const imageGenerationSchema = z.object({
   }),
 });
 
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     ImageAnalysisRequest:
+ *       type: object
+ *       required:
+ *         - imageData
+ *       properties:
+ *         imageData:
+ *           type: string
+ *           description: Base64 encoded image data for analysis.
+ *           minLength: 1
+ *           example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
+ *         message:
+ *           type: string
+ *           description: Optional prompt or question related to the image analysis.
+ *           minLength: 1
+ *           maxLength: 1000
+ *           example: "Describe the main objects in this image."
+ *         conversationId:
+ *           type: string
+ *           description: Optional ID of the conversation associated with this image analysis.
+ *           example: "65e8a2b1c3d4e5f6a7b8c9d0"
+ *         analysisType:
+ *           type: string
+ *           enum: [describe, extract_text, detect_objects, identify_style, compare]
+ *           description: The type of analysis to perform on the image.
+ *           default: describe
+ */
+/**
+ * Zod schema for validating image analysis requests.
+ * Ensures the request body contains required image data (Base64 encoded) and
+ * optional parameters like a message, conversation ID, and analysis type.
+ *
+ * @type {z.ZodObject<{
+ *   body: z.ZodObject<{
+ *     imageData: z.ZodString,
+ *     message: z.ZodOptional<z.ZodString>,
+ *     conversationId: z.ZodOptional<z.ZodString>,
+ *     analysisType: z.ZodOptional<z.ZodEnum<['describe', 'extract_text', 'detect_objects', 'identify_style', 'compare']>>
+ *   }>
+ * }>}
+ */
 const imageAnalysisSchema = z.object({
   body: z.object({
     imageData: z
@@ -39,6 +140,45 @@ const imageAnalysisSchema = z.object({
   }),
 });
 
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     ImagePreferencesRequest:
+ *       type: object
+ *       properties:
+ *         size:
+ *           type: string
+ *           enum: [small, standard, large]
+ *           description: Preferred default image size.
+ *         style:
+ *           type: string
+ *           enum: [realistic, cartoon, abstract, photorealistic]
+ *           description: Preferred default image style.
+ *         aspectRatio:
+ *           type: string
+ *           enum: ["1:1", "3:4", "4:3", "16:9"]
+ *           description: Preferred default image aspect ratio.
+ *         quality:
+ *           type: string
+ *           enum: [standard, high]
+ *           description: Preferred default image quality.
+ */
+/**
+ * Zod schema for validating image preferences updates.
+ * Allows updating various user preferences related to image generation,
+ * such as size, style, aspect ratio, and quality. All fields are optional,
+ * allowing partial updates.
+ *
+ * @type {z.ZodObject<{
+ *   body: z.ZodObject<{
+ *     size: z.ZodOptional<z.ZodEnum<['small', 'standard', 'large']>>,
+ *     style: z.ZodOptional<z.ZodEnum<['realistic', 'cartoon', 'abstract', 'photorealistic']>>,
+ *     aspectRatio: z.ZodOptional<z.ZodEnum<['1:1', '3:4', '4:3', '16:9']>>,
+ *     quality: z.ZodOptional<z.ZodEnum<['standard', 'high']>>
+ *   }>
+ * }>}
+ */
 const imagePreferencesSchema = z.object({
   body: z.object({
     size: z.enum(['small', 'standard', 'large']).optional(),
@@ -50,7 +190,18 @@ const imagePreferencesSchema = z.object({
   }),
 });
 
-// Schema for guest user rate limiting (future enhancement)
+/**
+ * Zod schema for validating headers related to guest user rate limiting.
+ * This schema is intended for future enhancements to manage guest user requests.
+ * It checks for optional 'x-guest-id' and 'x-forwarded-for' headers.
+ *
+ * @type {z.ZodObject<{
+ *   headers: z.ZodOptional<z.ZodObject<{
+ *     'x-guest-id': z.ZodOptional<z.ZodString>,
+ *     'x-forwarded-for': z.ZodOptional<z.ZodString>
+ *   }>>
+ * }>}
+ */
 const guestRateLimitSchema = z.object({
   headers: z
     .object({
@@ -60,15 +211,41 @@ const guestRateLimitSchema = z.object({
     .optional(),
 });
 
-// Schema for image file upload validation
-// BUG FIX: The original schema incorrectly wrapped the file properties in an optional 'file' object.
-// When validating 'req.file' (as typically provided by Multer), the 'mimetype' and 'size'
-// are direct properties of 'req.file', not nested under another 'file' key.
-// This corrected schema directly validates the expected properties of 'req.file' and makes them required.
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     ImageFile:
+ *       type: object
+ *       required:
+ *         - mimetype
+ *         - size
+ *       properties:
+ *         mimetype:
+ *           type: string
+ *           description: The MIME type of the uploaded image file.
+ *           enum: [image/png, image/jpeg, image/jpg, image/gif, image/bmp, image/webp]
+ *           example: "image/jpeg"
+ *         size:
+ *           type: number
+ *           format: int64
+ *           description: The size of the uploaded image file in bytes. Maximum 10MB.
+ *           maximum: 10485760
+ *           example: 1234567
+ */
+/**
+ * Zod schema for validating uploaded image files, typically from `req.file` (e.g., via Multer).
+ * Ensures the file has a valid MIME type (PNG, JPEG, GIF, BMP, WebP) and does not exceed 10MB in size.
+ *
+ * @type {z.ZodObject<{
+ *   mimetype: z.ZodString,
+ *   size: z.ZodNumber
+ * }>}
+ */
 const imageFileSchema = z.object({
   mimetype: z
     .string({
-      required_error: 'Image mimetype is required.', // Ensure mimetype is present
+      required_error: 'Image mimetype is required.',
     })
     .refine(
       (type) =>
@@ -84,12 +261,34 @@ const imageFileSchema = z.object({
     ),
   size: z
     .number({
-      required_error: 'Image size is required.', // Ensure size is present
+      required_error: 'Image size is required.',
     })
     .max(10 * 1024 * 1024, 'Image file too large. Maximum size is 10MB.'),
 });
 
-// Schema for conversation management
+/**
+ * @openapi
+ * components:
+ *   parameters:
+ *     conversationIdParam:
+ *       name: conversationId
+ *       in: path
+ *       required: true
+ *       description: The unique identifier of the conversation.
+ *       schema:
+ *         type: string
+ *         example: "65e8a2b1c3d4e5f6a7b8c9d0"
+ */
+/**
+ * Zod schema for validating conversation ID in request parameters.
+ * Ensures that a `conversationId` is present in the `params` object.
+ *
+ * @type {z.ZodObject<{
+ *   params: z.ZodObject<{
+ *     conversationId: z.ZodString
+ *   }>
+ * }>}
+ */
 const conversationSchema = z.object({
   params: z.object({
     conversationId: z.string({
@@ -98,7 +297,31 @@ const conversationSchema = z.object({
   }),
 });
 
-// Schema for guest user conversations
+/**
+ * @openapi
+ * components:
+ *   parameters:
+ *     guestUserIdParam:
+ *       name: guestUserId
+ *       in: path
+ *       required: true
+ *       description: The unique identifier of the guest user (24-character hex string).
+ *       schema:
+ *         type: string
+ *         pattern: '^[0-9a-fA-F]{24}$'
+ *         example: "65e8a2b1c3d4e5f6a7b8c9d0"
+ */
+/**
+ * Zod schema for validating guest user ID in request parameters.
+ * Ensures that a `guestUserId` is present in the `params` object and
+ * matches a 24-character hexadecimal format (MongoDB ObjectId format).
+ *
+ * @type {z.ZodObject<{
+ *   params: z.ZodObject<{
+ *     guestUserId: z.ZodString
+ *   }>
+ * }>}
+ */
 const guestUserSchema = z.object({
   params: z.object({
     guestUserId: z
@@ -109,12 +332,46 @@ const guestUserSchema = z.object({
   }),
 });
 
+/**
+ * @namespace ImageValidation
+ * @description A collection of Zod schemas used for validating various image-related
+ *              requests and data throughout the Alti.Assistant backend.
+ *              These schemas ensure data integrity and proper request formatting.
+ */
 export const ImageValidation = {
+  /**
+   * Zod schema for validating image generation requests.
+   * @see imageGenerationSchema
+   */
   imageGenerationSchema,
+  /**
+   * Zod schema for validating image analysis requests.
+   * @see imageAnalysisSchema
+   */
   imageAnalysisSchema,
+  /**
+   * Zod schema for validating image preferences updates.
+   * @see imagePreferencesSchema
+   */
   imagePreferencesSchema,
+  /**
+   * Zod schema for validating headers related to guest user rate limiting.
+   * @see guestRateLimitSchema
+   */
   guestRateLimitSchema,
+  /**
+   * Zod schema for validating uploaded image files.
+   * @see imageFileSchema
+   */
   imageFileSchema,
+  /**
+   * Zod schema for validating conversation ID in request parameters.
+   * @see conversationSchema
+   */
   conversationSchema,
+  /**
+   * Zod schema for validating guest user ID in request parameters.
+   * @see guestUserSchema
+   */
   guestUserSchema,
 };
