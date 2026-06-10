@@ -15,13 +15,6 @@ import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
 
 /**
- * @typedef {Object.<string, BufferMemory>} AnonymousSessionMemoryStore
- * @description Stores in-memory chat history for anonymous user sessions.
- * Each key is a session ID, and its value is a BufferMemory instance.
- */
-const AnonymousSessionMemoryStore = {}; // Stores session memory for each user session
-
-/**
  * @constant {number} MAX_MEMORY_SIZE
  * @description Defines the maximum number of chat messages to retain in memory for a session.
  * This prevents excessive context accumulation and manages memory usage.
@@ -47,17 +40,56 @@ const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
 };
 
 /**
+ * @typedef {Object} DBChatMessage
+ * @property {'human'|'ai'} type - The type of the message (human or AI).
+ * @property {string} content - The text content of the message.
+ */
+
+/**
+ * @description Converts an array of database-stored message objects into Langchain BaseMessage instances.
+ * Assumes the database message objects have 'type' ('human' or 'ai') and 'content' fields.
+ * @param {DBChatMessage[]} dbMessages - An array of message objects from the database.
+ * @returns {import('@langchain/core/messages').BaseMessage[]} An array of Langchain BaseMessage instances.
+ */
+const toLangchainMessages = (dbMessages) => {
+  return dbMessages.map(msg => {
+    if (msg.type === 'human') {
+      return new HumanMessage(msg.content);
+    } else if (msg.type === 'ai') {
+      return new AIMessage(msg.content);
+    }
+    logger.warn(`Unknown message type encountered in DB: ${msg.type}`);
+    return null; // Filter out unknown types
+  }).filter(Boolean);
+};
+
+/**
+ * @description Converts an array of Langchain BaseMessage instances into database-storable message objects.
+ * @param {import('@langchain/core/messages').BaseMessage[]} lcMessages - An array of Langchain BaseMessage instances.
+ * @returns {DBChatMessage[]} An array of database-storable message objects.
+ */
+const toDbMessages = (lcMessages) => {
+  return lcMessages.map(msg => ({
+    type: msg._getType(), // 'human' or 'ai'
+    content: msg.text,
+  }));
+};
+
+/**
  * @description Handles anonymous, search-enhanced AI completions by redirecting requests
  * to the Google Gemini 3.1 Flash service. This service manages session memory,
  * enhances prompts with real-time market data, fetches search results, and constructs
  * a rich context for the AI model to generate a response.
+ *
+ * This function now persists anonymous chat history to the `ChatHistory` MongoDB model,
+ * ensuring scalability and data persistence across server restarts or multiple instances.
  *
  * @param {string} prompt - The user's input prompt for the AI.
  * @param {string} [sessionIdFromClient] - An optional unique identifier for the current chat session.
  *                                         If not provided, a new UUID will be generated.
  * @returns {Promise<Object>} A promise that resolves to an object containing the session ID,
  *                            the original prompt, the AI's reply, and any fetched search results.
- * @throws {ApiError} If the prompt is missing.
+ * @throws {ApiError} If the prompt is missing or other internal errors occur.
  */
 const GroqAiGetResponseAnonymousService = async (
   prompt,
@@ -66,29 +98,48 @@ const GroqAiGetResponseAnonymousService = async (
   const sessionId = sessionIdFromClient || randomUUID(); // Unique session ID if not provided
 
   if (!prompt) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Prompt is required.');
+    // Changed httpStatus.NOT_FOUND to httpStatus.BAD_REQUEST for missing prompt
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Prompt is required.');
+  }
+
+  // Fetch or create chat history document for the anonymous session
+  let chatHistoryDoc = await ChatHistory.findOne({ sessionId });
+
+  if (!chatHistoryDoc) {
+    // Create a new chat history document if none exists for this session
+    chatHistoryDoc = await ChatHistory.create({
+      sessionId,
+      messages: [], // Initialize with an empty array of messages
+      // Note: If ChatHistory model requires a 'user' field, this would need adjustment
+      // (e.g., storing a placeholder or making the 'user' field optional).
+    });
+  }
+
+  // Initialize Langchain's InMemoryChatMessageHistory with messages loaded from the database
+  const existingLangchainMessages = toLangchainMessages(chatHistoryDoc.messages);
+  const inMemoryChatHistory = new InMemoryChatMessageHistory({
+    messages: existingLangchainMessages,
+  });
+
+  // Initialize BufferMemory with the persistent chat history
+  const memory = new BufferMemory({
+    returnMessages: true,
+    memoryKey: 'history',
+    chatHistory: inMemoryChatHistory,
+  });
+
+  // Retrieve previous chat history from the initialized memory
+  let previousMessages = await memory.chatHistory.getMessages();
+
+  // Limit memory size to prevent excessive context
+  if (previousMessages.length > MAX_MEMORY_SIZE) {
+    // Update the messages array directly in the InMemoryChatMessageHistory instance
+    memory.chatHistory.messages = previousMessages.slice(-MAX_MEMORY_SIZE);
+    previousMessages = memory.chatHistory.messages; // Ensure previousMessages reflects the sliced version
   }
 
   // Enhance prompt using massiveSmartRouter for real-time market data
   const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
-
-  // Initialize memory if it doesn't exist for this session
-  if (!AnonymousSessionMemoryStore[sessionId]) {
-    AnonymousSessionMemoryStore[sessionId] = new BufferMemory({
-      returnMessages: true,
-      memoryKey: 'history',
-      chatHistory: new InMemoryChatMessageHistory(), // Chat history storage
-    });
-  }
-  const memory = AnonymousSessionMemoryStore[sessionId];
-
-  // Retrieve previous chat history
-  const previousMessages = await memory.chatHistory.getMessages();
-
-  // Limit memory size to prevent excessive context
-  if (previousMessages.length > MAX_MEMORY_SIZE) {
-    memory.chatHistory.messages = previousMessages.slice(-MAX_MEMORY_SIZE);
-  }
 
   // Fetch real-time search results from Serper
   const searchResults = await fetchSearchResults(prompt);
@@ -99,7 +150,7 @@ const GroqAiGetResponseAnonymousService = async (
   // Prepare conversation context (previous memory + search results)
   const enrichedPrompt = searchResults.length
     ? `[SYSTEM INSTRUCTION - ACTIVE ELITE WEB SEARCH]
-You are a highly accurate, extremely fast real-time search engine competing with Perplexity. 
+You are a highly accurate, extremely fast real-time search engine competing with Perplexity.
 Follow these rules strictly:
 1. Answer the user query directly, simply, and clearly. Never include greeting, filler, conversational preamble, or throat-clearing.
 2. Rely 100% on the Real-Time Search Info provided below. Do not speculate or hallucinate.
@@ -141,6 +192,10 @@ User Query: ${enhancedPrompt}`;
 
   // Store AI response in chat history
   await memory.chatHistory.addMessage(new AIMessage(reply));
+
+  // Save the updated messages back to the database
+  chatHistoryDoc.messages = toDbMessages(await memory.chatHistory.getMessages());
+  await chatHistoryDoc.save();
 
   // Prepare response
   const responseData = {
@@ -216,7 +271,7 @@ const getAiResponsesBySession = async (id) => {
  * @param {string} objectId - The MongoDB ObjectId of the chat session to delete.
  * @returns {Promise<Object>} A promise that resolves to an object indicating
  *                            the success of the deletion and update operation.
- * @throws {Error} If the LlamaAiSession is not found, or if deletion/user update fails.
+ * @throws {ApiError} If the LlamaAiSession is not found, or if deletion/user update fails.
  */
 const deleteOneLlamaAiSession = async (objectId) => {
   // Optimization: Added .lean() for read-only query to improve performance
@@ -224,7 +279,8 @@ const deleteOneLlamaAiSession = async (objectId) => {
     _id: objectId,
   }).lean(); // Added .lean()
   if (!userData) {
-    throw new Error('LlamaAiSession not found');
+    // Changed to ApiError for consistency in error handling
+    throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
   }
   const deleteResult = await ChatHistory.deleteOne({
     _id: objectId,
@@ -244,10 +300,12 @@ const deleteOneLlamaAiSession = async (objectId) => {
         message: 'LlamaAiSession and user reference deleted successfully',
       };
     } else {
-      throw new Error('Failed to update the user model');
+      // Changed to ApiError for consistency in error handling
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model');
     }
   } else {
-    throw new Error('Failed to delete the LlamaAiSession');
+    // Changed to ApiError for consistency in error handling
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete the LlamaAiSession');
   }
 };
 
@@ -274,7 +332,8 @@ const deleteAllAiSessionsService = async (userId) => {
       !user.llamaAiSessions ||
       !Array.isArray(user.llamaAiSessions)
     ) {
-      throw new Error('User or LlamaAiSession data not found');
+      // Changed to ApiError for consistency in error handling
+      throw new ApiError(httpStatus.NOT_FOUND, 'User or LlamaAiSession data not found');
     }
 
     const aiSessionIds = user.llamaAiSessions.map((id) => id.toString());
@@ -286,7 +345,8 @@ const deleteAllAiSessionsService = async (userId) => {
     if (aiSessionIds.length > 0 && deleteResult.deletedCount !== aiSessionIds.length) {
       // This check ensures that if there were IDs to delete, the count matches.
       // If aiSessionIds is empty, deletedCount will be 0, and the condition won't trigger.
-      throw new Error('Failed to delete all specified AI sessions');
+      // Changed to ApiError for consistency in error handling
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete all specified AI sessions');
     }
 
     const userUpdateResult = await UserModel.updateOne(
@@ -298,7 +358,7 @@ const deleteAllAiSessionsService = async (userId) => {
       await session.commitTransaction();
       session.endSession();
       return {
-        statusCode: 200,
+        statusCode: httpStatus.OK, // Explicitly set status code for success
         success: true,
         message: 'AI sessions and user references deleted successfully',
       };
@@ -306,13 +366,14 @@ const deleteAllAiSessionsService = async (userId) => {
       // If no sessions were in llamaAiSessions, modifiedCount might be 0, but the operation is still successful.
       // We should only throw if there were sessions to pull but the update failed.
       if (aiSessionIds.length > 0) {
-        throw new Error('Failed to update the user model');
+        // Changed to ApiError for consistency in error handling
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model');
       } else {
         // No sessions to pull, so user model didn't need modification. Consider it successful.
         await session.commitTransaction();
         session.endSession();
         return {
-          statusCode: 200,
+          statusCode: httpStatus.OK, // Explicitly set status code for success
           success: true,
           message: 'No AI sessions to delete or user references to update.',
         };
@@ -323,6 +384,7 @@ const deleteAllAiSessionsService = async (userId) => {
     session.endSession();
     console.error('An error occurred:', error);
     return {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR, // Added status code for consistency in error returns
       success: false,
       message: 'An internal server error occurred',
       error: error.message,
