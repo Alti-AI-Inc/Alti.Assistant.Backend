@@ -307,16 +307,19 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   // If conversationId is provided, fetch taskId from conversation metadata
   if (conversationId && !taskId) {
     try {
+      // Optimization: For read-only operations like fetching a conversation,
+      // if 'conversationHelpers.getConversationById' uses Mongoose, consider adding '.lean()'
+      // to the Mongoose query to return a plain JavaScript object instead of a Mongoose document.
+      // This can improve performance by reducing overhead.
+      //
+      // Indexing Recommendation: To optimize queries for conversations, ensure that
+      // 'conversationId' and 'userId' fields are indexed in your database's Conversation model.
+      // This will significantly speed up lookups by these fields.
       const conversation = await conversationHelpers.getConversationById(
         conversationId,
         userId,
         req
       );
-      // Optimization Note: If 'conversationHelpers.getConversationById' performs a Mongoose query,
-      // consider adding '.lean()' to the query for read-only operations to improve performance
-      // by returning plain JavaScript objects instead of Mongoose documents.
-      // Also, ensure that 'conversationId' and 'userId' fields are indexed in the database
-      // if they are frequently used for querying conversations.
       taskId = conversation.metadata?.presentation_metadata?.taskId;
 
       if (!taskId) {
@@ -388,6 +391,9 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
             console.log(
               'Updating conversation metadata with presentation completion info'
             );
+            // Indexing Recommendation: For the update operation, ensure that
+            // 'conversationId' and 'userId' fields are indexed in your database's Conversation model.
+            // This will significantly speed up lookups for updates.
             await conversationService.updatePresentationMetadata(
               conversationId,
               userId,
