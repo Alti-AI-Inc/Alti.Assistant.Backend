@@ -3,11 +3,20 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
 
-// GCS Configuration for Legal Contracts
+/**
+ * Configuration object for Google Cloud Storage (GCS) related to legal contracts.
+ * Values are sourced from environment variables.
+ * @constant
+ * @type {{BUCKET_NAME: string, PROJECT_ID: string|undefined, KEY_FILE: string|undefined, FOLDER_PREFIX: string}}
+ */
 const GCS_CONFIG = {
+  /** The name of the GCS bucket where contracts are stored. */
   BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'alti_assistant_documents',
+  /** The Google Cloud Platform project ID. */
   PROJECT_ID: process.env.GCP_PROJECT_ID,
+  /** The path to the GCS key file for authentication. */
   KEY_FILE: process.env.GCS_KEY_FILE,
+  /** The prefix for all contract files stored in the bucket. */
   FOLDER_PREFIX: 'contract/',
 };
 
@@ -22,6 +31,7 @@ try {
       projectId: GCS_CONFIG.PROJECT_ID,
     });
   } else if (GCS_CONFIG.PROJECT_ID) {
+    // Authenticates using Application Default Credentials
     storage = new Storage({
       projectId: GCS_CONFIG.PROJECT_ID,
     });
@@ -39,7 +49,19 @@ try {
 }
 
 /**
- * Upload contract file to Google Cloud Storage
+ * Uploads a legal contract file to Google Cloud Storage.
+ * If GCS is not configured or if the upload fails, it gracefully falls back
+ * to returning information about the local file.
+ * The file is stored in a user-specific folder within GCS to support multi-tenancy.
+ *
+ * @param {string} localFilePath - The local path to the file to be uploaded.
+ * @param {object} [contractMetadata={}] - Optional metadata about the contract.
+ * @param {string} [contractMetadata.userId] - The ID of the user uploading the contract. Used for creating a user-specific folder.
+ * @param {string} [contractMetadata.contractType] - The type of the contract (e.g., 'NDA', 'MSA').
+ * @param {string} [contractMetadata.conversationId] - The ID of the conversation associated with this upload.
+ * @returns {Promise<object>} A promise that resolves to an object containing the upload result.
+ *   If successful GCS upload: { success: true, gcsPath: string, publicUrl: string, fileName: string, destination: string, storageType: 'gcs' }
+ *   If GCS is not configured or fails: { success: true, localPath: string, fileName: string, storageType: 'local', error?: string }
  */
 export const uploadContractToGCS = async (
   localFilePath,
@@ -103,7 +125,10 @@ export const uploadContractToGCS = async (
 };
 
 /**
- * Get content type based on file extension
+ * Determines the MIME content type of a file based on its extension.
+ * @private
+ * @param {string} fileName - The name of the file (e.g., 'contract.pdf').
+ * @returns {string} The corresponding MIME type, or a default 'application/octet-stream' if the extension is unknown.
  */
 const getContentType = (fileName) => {
   const ext = path.extname(fileName).toLowerCase();
@@ -118,7 +143,10 @@ const getContentType = (fileName) => {
 };
 
 /**
- * Delete contract from GCS
+ * Deletes a contract file from Google Cloud Storage.
+ *
+ * @param {string} gcsPath - The GCS URI of the file to delete (e.g., 'gs://bucket-name/path/to/file.pdf').
+ * @returns {Promise<{success: boolean, message: string}>} A promise that resolves to an object indicating the result of the deletion.
  */
 export const deleteContractFromGCS = async (gcsPath) => {
   try {
