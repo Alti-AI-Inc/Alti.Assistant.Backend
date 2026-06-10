@@ -105,7 +105,15 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
     for (const entry of recentEntries) {
       const similarity = jaccardSimilarity(queryTokens, entry.queryTokens || []);
       if (similarity > 0.85) {
-        logger.debug(`QueryMemory: skipping duplicate record (similarity=${similarity.toFixed(2)})`);
+        // GCP CLOUD LOGGING: Structured JSON log for better filterability and analysis.
+        logger.debug({
+          message: 'QueryMemory: skipping duplicate record',
+          component: 'QueryMemory',
+          details: {
+            userId,
+            similarity: similarity.toFixed(2),
+          },
+        });
         return;
       }
     }
@@ -119,10 +127,25 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
       confidence,
     });
 
-    logger.debug(`QueryMemory: recorded query for user ${userId}`);
+    // GCP CLOUD LOGGING: Structured JSON log for better filterability and analysis.
+    logger.debug({
+      message: 'QueryMemory: recorded query',
+      component: 'QueryMemory',
+      details: { userId },
+    });
   } catch (err) {
     // Non-blocking — never let memory recording break the query flow
-    logger.error('QueryMemory.recordQuery failed:', err.message);
+    // GCP CLOUD LOGGING: Structured JSON log with error object for automatic parsing.
+    logger.error({
+      message: 'QueryMemory.recordQuery failed',
+      component: 'QueryMemory',
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+      details: { userId },
+    });
   }
 };
 
@@ -168,7 +191,17 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
 
     return scored;
   } catch (err) {
-    logger.error('QueryMemory.getRelevantHistory failed:', err.message);
+    // GCP CLOUD LOGGING: Structured JSON log with error object for automatic parsing.
+    logger.error({
+      message: 'QueryMemory.getRelevantHistory failed',
+      component: 'QueryMemory',
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+      details: { userId },
+    });
     return [];
   }
 };
@@ -204,10 +237,28 @@ ${historyBlock}
 Current Query:
 ${currentQuery}`;
 
-    logger.info(`QueryMemory: enriched query with ${history.length} prior memory entries`);
+    // GCP CLOUD LOGGING: Structured JSON log for better filterability and analysis.
+    logger.info({
+      message: 'QueryMemory: enriched query with prior memory entries',
+      component: 'QueryMemory',
+      details: {
+        userId,
+        historyCount: history.length,
+      },
+    });
     return enriched;
   } catch (err) {
-    logger.error('QueryMemory.buildMemoryEnrichedQuery failed:', err.message);
+    // GCP CLOUD LOGGING: Structured JSON log with error object for automatic parsing.
+    logger.error({
+      message: 'QueryMemory.buildMemoryEnrichedQuery failed',
+      component: 'QueryMemory',
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+      details: { userId },
+    });
     return currentQuery;
   }
 };
@@ -268,7 +319,17 @@ const getMemorySummary = async (userId) => {
       newestEntry: newest ? { createdAt: newest.createdAt, queryPreview: newest.query.substring(0, 80) } : null,
     };
   } catch (err) {
-    logger.error('QueryMemory.getMemorySummary failed:', err.message);
+    // GCP CLOUD LOGGING: Structured JSON log with error object for automatic parsing.
+    logger.error({
+      message: 'QueryMemory.getMemorySummary failed',
+      component: 'QueryMemory',
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+      details: { userId },
+    });
     return { success: false, error: err.message };
   }
 };
