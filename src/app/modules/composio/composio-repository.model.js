@@ -37,13 +37,14 @@ const ComposioRepositorySchema = new mongoose.Schema(
       type: String,
       default: 'Unknown',
       index: true
-    },
-    updated_at: {
-      type: Date
     }
+    // Removed custom 'updated_at' field.
+    // The 'timestamps: true' option below automatically adds 'createdAt' and 'updatedAt' fields,
+    // making a custom 'updated_at' redundant and potentially confusing.
+    // Relying on Mongoose's automatic 'updatedAt' for consistency.
   },
   {
-    timestamps: true
+    timestamps: true // This option automatically adds 'createdAt' and 'updatedAt' fields.
   }
 );
 
