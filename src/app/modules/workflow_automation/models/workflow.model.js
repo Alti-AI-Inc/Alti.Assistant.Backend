@@ -18,6 +18,12 @@ import mongoose from 'mongoose';
  * @property {number} order - The sequential order of this step within the workflow.
  * @property {boolean} requireApproval - Indicates if this step requires manual approval before execution. Defaults to false.
  */
+
+/**
+ * Mongoose schema defining a single step within an automated workflow.
+ * Each step represents an action, condition, trigger, or delay in the execution pipeline.
+ * @type {mongoose.Schema<WorkflowStep>}
+ */
 const WorkflowStepSchema = new mongoose.Schema({
   stepId: {
     type: String,
@@ -89,6 +95,12 @@ const WorkflowStepSchema = new mongoose.Schema({
  * @property {WebhookConfig} [webhookConfig] - Configuration details for webhook triggers.
  * @property {EventConfig} [eventConfig] - Configuration details for event-based triggers.
  */
+
+/**
+ * Mongoose schema defining the trigger configuration for a workflow.
+ * Supports multiple trigger mechanisms including schedules, webhooks, manual execution, and events.
+ * @type {mongoose.Schema<WorkflowTrigger>}
+ */
 const WorkflowTriggerSchema = new mongoose.Schema({
   triggerType: {
     type: String,
@@ -130,7 +142,7 @@ const WorkflowTriggerSchema = new mongoose.Schema({
 
 /**
  * @typedef {object} Workflow
- * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this workflow. Indexed for efficient querying.
+ * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this workflow. Used for multi-tenant data isolation.
  * @property {string} name - The name of the workflow.
  * @property {string} [description] - A detailed description of the workflow.
  * @property {string} originalPrompt - The original user prompt that was used to create this workflow.
@@ -146,6 +158,17 @@ const WorkflowTriggerSchema = new mongoose.Schema({
  * @property {object} [metadata={}] - Additional metadata associated with the workflow.
  * @property {Date} createdAt - The timestamp when the workflow was created.
  * @property {Date} updatedAt - The timestamp when the workflow was last updated.
+ */
+
+/**
+ * Mongoose schema defining the core Workflow entity.
+ * 
+ * @security Multi-tenant Isolation:
+ * Workflows are strictly isolated by `userId`. Users should only be allowed to view,
+ * modify, or execute workflows that belong to their own `userId` unless they possess
+ * administrative privileges (e.g., 'admin' role).
+ * 
+ * @type {mongoose.Schema<Workflow>}
  */
 const WorkflowSchema = new mongoose.Schema(
   {
