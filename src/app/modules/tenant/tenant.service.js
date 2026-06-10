@@ -13,7 +13,32 @@ import SubscriptionModel from '../subscription/subscription.model.js'; // Index:
 import { createCustomerService } from '../stripe/customer/stripe.service.js';
 
 /**
- * Create a new tenant
+ * @typedef {object} TenantData
+ * @property {string} name - The name of the tenant.
+ * @property {string} slug - A unique URL-friendly identifier for the tenant.
+ * @property {string} subdomain - A unique subdomain for the tenant.
+ * @property {mongoose.Types.ObjectId} ownerId - The ID of the user who owns the tenant.
+ * @property {string} [plan='free'] - The subscription plan for the tenant (e.g., 'free', 'explore', 'pro').
+ */
+
+/**
+ * @typedef {object} TenantOutput
+ * @property {mongoose.Types.ObjectId} id - The ID of the created tenant.
+ * @property {string} name - The name of the tenant.
+ * @property {string} slug - The slug of the tenant.
+ * @property {string} subdomain - The subdomain of the tenant.
+ * @property {string} status - The current status of the tenant (e.g., 'trial', 'active').
+ * @property {string} plan - The subscription plan of the tenant.
+ */
+
+/**
+ * Create a new tenant, set the owner as an admin member, create a Stripe customer,
+ * and provision a free subscription.
+ *
+ * @async
+ * @param {TenantData} tenantData - The data for creating the new tenant.
+ * @returns {Promise<TenantOutput>} A promise that resolves to the essential details of the created tenant.
+ * @throws {ApiError} If the slug or subdomain is already taken, or if there's an issue during creation.
  */
 const createTenant = async (tenantData) => {
   try {
@@ -131,7 +156,12 @@ const createTenant = async (tenantData) => {
 };
 
 /**
- * Get tenant by ID
+ * Get a tenant by its ID, populating owner details and its active subscription.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant to retrieve.
+ * @returns {Promise<object>} A promise that resolves to the tenant object, including populated owner and subscription details.
+ * @throws {ApiError} If the tenantId is invalid or the tenant is not found.
  */
 const getTenantById = async (tenantId) => {
   if (!mongoose.Types.ObjectId.isValid(tenantId)) {
@@ -172,7 +202,16 @@ const getTenantById = async (tenantId) => {
 };
 
 /**
- * Update tenant
+ * Update an existing tenant's details.
+ * Only specific fields like 'name', 'settings', and 'metadata' are allowed to be updated.
+ * Requires 'admin' or 'manager' role for the updater.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant to update.
+ * @param {object} updates - An object containing the fields to update (e.g., { name: 'New Name' }).
+ * @param {string | mongoose.Types.ObjectId} [updaterId] - The ID of the user performing the update, used for permission checks.
+ * @returns {Promise<object>} A promise that resolves to the updated tenant object.
+ * @throws {ApiError} If the tenant is not found, updates are invalid, or the updater has insufficient permissions.
  */
 const updateTenant = async (tenantId, updates, updaterId) => {
   // 'tenantId' is _id, which is already indexed.
@@ -214,7 +253,12 @@ const updateTenant = async (tenantId, updates, updaterId) => {
 };
 
 /**
- * Delete tenant (soft delete)
+ * Soft deletes a tenant by marking it as deleted.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant to soft delete.
+ * @returns {Promise<void>} A promise that resolves when the tenant is soft deleted.
+ * @throws {ApiError} If the tenant is not found.
  */
 const deleteTenant = async (tenantId) => {
   // 'tenantId' is _id, which is already indexed.
@@ -229,7 +273,33 @@ const deleteTenant = async (tenantId) => {
   logger.info(`Tenant deleted: ${tenantId}`);
 };
 
-/** * Get all tenants/organizations for a user
+/**
+ * @typedef {object} UserTenant
+ * @property {mongoose.Types.ObjectId} id - The ID of the tenant.
+ * @property {string} name - The name of the tenant.
+ * @property {string} slug - The slug of the tenant.
+ * @property {string} subdomain - The subdomain of the tenant.
+ * @property {string} status - The status of the tenant.
+ * @property {string} plan - The plan of the tenant.
+ * @property {string} role - The user's role within this tenant.
+ * @property {string[]} permissions - The user's permissions within this tenant.
+ * @property {Date} joinedAt - The date the user joined this tenant.
+ */
+
+/**
+ * @typedef {object} UserTenantsResult
+ * @property {UserTenant[]} tenants - An array of tenant details the user is a member of.
+ * @property {number} total - The total number of tenants the user is a member of.
+ */
+
+/**
+ * Get all active tenants/organizations for a specific user.
+ * If the user has no tenants, it attempts to auto-create a default free tenant for them.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user.
+ * @returns {Promise<UserTenantsResult>} A promise that resolves to an object containing a list of tenants and their total count.
+ * @throws {ApiError} If there's an error fetching or auto-creating tenants.
  */
 const getUserTenants = async (userId) => {
   try {
@@ -322,7 +392,24 @@ const getUserTenants = async (userId) => {
 };
 
 /**
- * Switch user to a different tenant
+ * @typedef {object} SwitchedTenantInfo
+ * @property {mongoose.Types.ObjectId | null} tenantId - The ID of the switched tenant, or null for personal mode.
+ * @property {string} tenantName - The name of the switched tenant, or 'Personal'.
+ * @property {string} mode - The mode ('organization' or 'personal').
+ * @property {string | null} role - The user's role in the tenant, or null for personal mode.
+ * @property {string[]} permissions - The user's permissions in the tenant, or an empty array for personal mode.
+ */
+
+/**
+ * Switches the user's active tenant context.
+ * If `tenantId` is null, it switches to a 'personal' mode.
+ * Otherwise, it verifies the user is an active member of the specified tenant and returns its details.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user switching tenants.
+ * @param {string | mongoose.Types.ObjectId | null} tenantId - The ID of the tenant to switch to, or null for personal mode.
+ * @returns {Promise<SwitchedTenantInfo>} A promise that resolves to an object containing the details of the switched tenant or personal mode.
+ * @throws {ApiError} If the user is not a member of the specified tenant or the tenant is not found.
  */
 const switchTenant = async (userId, tenantId) => {
   try {
@@ -378,7 +465,35 @@ const switchTenant = async (userId, tenantId) => {
 };
 
 /**
- * Get tenant members
+ * @typedef {object} TenantMemberPopulated
+ * @property {mongoose.Types.ObjectId} _id - The ID of the tenant member record.
+ * @property {object} userId - Populated user object with 'name' and 'email'.
+ * @property {mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @property {string} role - The role of the member (e.g., 'admin', 'member').
+ * @property {string[]} permissions - The permissions assigned to the member.
+ * @property {string} status - The status of the membership (e.g., 'active').
+ * @property {Date} joinedAt - The date the member joined.
+ */
+
+/**
+ * @typedef {object} TenantMembersResult
+ * @property {TenantMemberPopulated[]} members - An array of tenant member objects with populated user details.
+ * @property {object} pagination - Pagination details.
+ * @property {number} pagination.page - The current page number.
+ * @property {number} pagination.limit - The number of items per page.
+ * @property {number} pagination.total - The total number of members.
+ * @property {number} pagination.pages - The total number of pages.
+ */
+
+/**
+ * Get a paginated list of active members for a specific tenant.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @param {object} [options] - Pagination options.
+ * @param {number} [options.page=1] - The page number for pagination.
+ * @param {number} [options.limit=20] - The maximum number of members per page.
+ * @returns {Promise<TenantMembersResult>} A promise that resolves to an object containing members and pagination info.
  */
 const getTenantMembers = async (tenantId, options = {}) => {
   const { page = 1, limit = 20 } = options;
@@ -410,7 +525,24 @@ const getTenantMembers = async (tenantId, options = {}) => {
 };
 
 /**
- * Invite member to tenant
+ * @typedef {object} InvitationData
+ * @property {mongoose.Types.ObjectId} tenantId - The ID of the tenant to invite to.
+ * @property {string} email - The email of the user to invite.
+ * @property {string} role - The role to assign to the invited user (e.g., 'member', 'manager', 'admin').
+ * @property {mongoose.Types.ObjectId} invitedBy - The ID of the user sending the invitation.
+ */
+
+/**
+ * Invites a new member to a tenant by creating a TenantInvitation record.
+ * Performs checks for tenant existence, inviter permissions, subscription limits,
+ * existing membership, and pending invitations.
+ *
+ * @async
+ * @param {InvitationData} invitationData - The data for the invitation.
+ * @returns {Promise<object>} A promise that resolves to the created invitation object.
+ * @throws {ApiError} If the tenant is not found, inviter has insufficient permissions,
+ *                     subscription limits are reached, user is already a member, or
+ *                     a pending invitation already exists for the user.
  */
 const inviteMember = async (invitationData) => {
   const { tenantId, email, role, invitedBy } = invitationData;
@@ -524,7 +656,16 @@ const inviteMember = async (invitationData) => {
 };
 
 /**
- * Update member role
+ * Updates the role of an existing tenant member or a pending invitation.
+ * Requires 'admin' or 'manager' role for the updater, with restrictions on promoting to 'admin'.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user (or invitation ID if pending) whose role is to be updated.
+ * @param {string} role - The new role for the member (e.g., 'member', 'manager', 'admin').
+ * @param {string | mongoose.Types.ObjectId} [updaterId] - The ID of the user performing the update, used for permission checks.
+ * @returns {Promise<object>} A promise that resolves to the updated tenant member or invitation object.
+ * @throws {ApiError} If the member or invitation is not found, or if the updater has insufficient permissions.
  */
 const updateMemberRole = async (tenantId, userId, role, updaterId) => {
   // Verify updater permissions
@@ -591,7 +732,25 @@ const updateMemberRole = async (tenantId, userId, role, updaterId) => {
 };
 
 /**
- * Remove member from tenant
+ * @typedef {object} RemoveMemberResult
+ * @property {string} message - A confirmation message.
+ * @property {mongoose.Types.ObjectId} userId - The ID of the user who was removed.
+ * @property {mongoose.Types.ObjectId} tenantId - The ID of the tenant from which the user was removed.
+ */
+
+/**
+ * Removes a member from a tenant.
+ * Prevents removal of the tenant owner (admin).
+ * Requires 'admin' or 'manager' role for the remover.
+ * Also updates user's active tenant if the removed tenant was active,
+ * adjusts tenant user count, and removes a seat from the subscription if applicable.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @param {string | mongoose.Types.ObjectId} userId - The ID of the user to remove.
+ * @param {string | mongoose.Types.ObjectId} removedBy - The ID of the user performing the removal.
+ * @returns {Promise<RemoveMemberResult>} A promise that resolves to a confirmation object.
+ * @throws {ApiError} If the member is not found, the member is the tenant owner, or the remover has insufficient permissions.
  */
 const removeMember = async (tenantId, userId, removedBy) => {
   // Find the member in TenantMember collection
@@ -672,7 +831,12 @@ const removeMember = async (tenantId, userId, removedBy) => {
 };
 
 /**
- * Get tenant usage statistics
+ * Get tenant usage statistics.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @returns {Promise<object>} A promise that resolves to the tenant's usage statistics object.
+ * @throws {ApiError} If the tenant is not found.
  */
 const getTenantUsage = async (tenantId) => {
   // OPTIMIZATION: Added .lean() as 'tenant' is only read for its 'usage' field.
@@ -687,7 +851,22 @@ const getTenantUsage = async (tenantId) => {
 };
 
 /**
- * Get tenant limits
+ * @typedef {object} TenantLimitsResult
+ * @property {object} limits - The defined limits for the tenant (e.g., maxApiCalls, maxStorage, maxUsers).
+ * @property {object} usage - The current usage statistics for the tenant (e.g., apiCallsUsed, storageUsed, usersCount).
+ * @property {object} percentageUsed - The percentage of each limit currently used.
+ * @property {number} percentageUsed.apiCalls - Percentage of API calls limit used.
+ * @property {number} percentageUsed.storage - Percentage of storage limit used.
+ * @property {number} percentageUsed.users - Percentage of user limit used.
+ */
+
+/**
+ * Get tenant limits and current usage, including percentage used for each metric.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @returns {Promise<TenantLimitsResult>} A promise that resolves to an object containing limits, usage, and percentage used.
+ * @throws {ApiError} If the tenant is not found.
  */
 const getTenantLimits = async (tenantId) => {
   // OPTIMIZATION: Added .lean() as 'tenant' is only read for its 'limits' and 'usage' fields.
@@ -710,7 +889,18 @@ const getTenantLimits = async (tenantId) => {
 };
 
 /**
- * Check if subdomain is available
+ * @typedef {object} SubdomainAvailabilityResult
+ * @property {string} subdomain - The subdomain that was checked.
+ * @property {boolean} available - True if the subdomain is available, false otherwise.
+ * @property {string} message - A message indicating availability status.
+ */
+
+/**
+ * Checks if a given subdomain is available for a new tenant.
+ *
+ * @async
+ * @param {string} subdomain - The subdomain to check.
+ * @returns {Promise<SubdomainAvailabilityResult>} A promise that resolves to an object indicating subdomain availability.
  */
 const checkSubdomainAvailability = async (subdomain) => {
   // OPTIMIZATION: Added .lean() as 'existingTenant' is only used for existence check.
@@ -729,7 +919,16 @@ const checkSubdomainAvailability = async (subdomain) => {
 };
 
 /**
- * Get tenant active user/member count
+ * @typedef {object} TenantUserCountResult
+ * @property {number} usersCount - The total count of active members in the tenant.
+ */
+
+/**
+ * Get the count of active users/members for a specific tenant.
+ *
+ * @async
+ * @param {string | mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @returns {Promise<TenantUserCountResult>} A promise that resolves to an object containing the count of active users.
  */
 const getTenantUserCount = async (tenantId) => {
   // INDEXING RECOMMENDATION: Ensure 'tenantId' and 'status' fields in TenantMember model are indexed.
@@ -743,6 +942,10 @@ const getTenantUserCount = async (tenantId) => {
   };
 };
 
+/**
+ * @namespace tenantService
+ * @description Provides service functions for managing tenants and their members.
+ */
 export const tenantService = {
   createTenant,
   getTenantById,

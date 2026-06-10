@@ -29,7 +29,8 @@ const getSearchSuggestions = async (query, language = 'en') => {
 
     logger.info(`GCP Suggest: Querying search autocomplete predictions for "${query}" (hl: ${language})...`);
 
-    const url = `http://suggestqueries.google.com/complete/search`;
+    // Use HTTPS for secure communication with Google's suggestion service.
+    const url = `https://suggestqueries.google.com/complete/search`;
     const params = {
       client: 'chrome',
       q: query,
