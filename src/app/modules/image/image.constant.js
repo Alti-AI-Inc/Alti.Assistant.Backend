@@ -98,15 +98,82 @@ export const IMAGE_ASSISTANT_CONSTANTS = {
   },
 
   /**
-   * Rate limiting configurations based on user roles.
+   * Rate limiting configurations to prevent DDOS, API abuse, and cost overruns.
+   * Defines multiple layers of protection: a global IP-based limit for all
+   * requests, and more specific, user-aware limits for costly API endpoints.
    */
   RATE_LIMITS: {
-    /** @type {number} Maximum requests per hour for unauthenticated (guest) users. */
-    GUEST_REQUESTS_PER_HOUR: 10,
-    /** @type {number} Maximum requests per hour for standard authenticated users. */
-    AUTHENTICATED_REQUESTS_PER_HOUR: 50,
-    /** @type {number} Maximum requests per hour for users with a premium subscription. */
-    PREMIUM_REQUESTS_PER_HOUR: 200,
+    /**
+     * A strict, global rate limit applied to every incoming request per IP address.
+     * This is the first line of defense against DDOS attacks and basic scrapers.
+     * @property {number} WINDOW_SECONDS - The time window in seconds (e.g., 60 for 1 minute).
+     * @property {number} MAX_REQUESTS - The max requests allowed from one IP in the window.
+     */
+    GLOBAL_PER_IP: {
+      WINDOW_SECONDS: 60,
+      MAX_REQUESTS: 120, // Allows for an average of 2 requests per second
+    },
+
+    /**
+     * Specific usage quotas for the resource-intensive image generation endpoint.
+     * These are applied after the global limit and are user-aware.
+     */
+    IMAGE_GENERATION_QUOTA: {
+      /** Quota for unauthenticated (guest) users, identified by IP address. */
+      GUEST: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 15,
+      },
+      /** Quota for standard authenticated users, identified by user ID. */
+      AUTHENTICATED: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 60,
+      },
+      /** Quota for premium users, identified by user ID. */
+      PREMIUM: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 250,
+      },
+    },
+
+    /**
+     * Specific usage quotas for the image analysis endpoint.
+     */
+    IMAGE_ANALYSIS_QUOTA: {
+      /** Quota for unauthenticated (guest) users, identified by IP address. */
+      GUEST: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 30,
+      },
+      /** Quota for standard authenticated users, identified by user ID. */
+      AUTHENTICATED: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 120,
+      },
+      /** Quota for premium users, identified by user ID. */
+      PREMIUM: {
+        WINDOW_SECONDS: 3600, // 1 hour
+        MAX_REQUESTS: 500,
+      },
+    },
+
+    /**
+     * Burst limits to prevent rapid, repeated requests to a single endpoint.
+     * These are short-term limits applied in addition to the hourly quotas to
+     * mitigate targeted API abuse.
+     */
+    BURST_PROTECTION: {
+      /** Burst limits for image generation, applied per user ID or IP. */
+      IMAGE_GENERATION: {
+        WINDOW_SECONDS: 60, // 1 minute
+        MAX_REQUESTS: 5, // Max 5 generation requests per minute, regardless of user tier
+      },
+      /** Burst limits for image analysis, applied per user ID or IP. */
+      IMAGE_ANALYSIS: {
+        WINDOW_SECONDS: 60, // 1 minute
+        MAX_REQUESTS: 10,
+      },
+    },
   },
 
   /**
