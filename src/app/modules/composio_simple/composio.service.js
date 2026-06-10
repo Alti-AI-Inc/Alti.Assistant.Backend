@@ -51,48 +51,73 @@ export const executeUserRequest = async (
       }
     }
 
-    const normalizedAppList = appList.map(a => a.toLowerCase());
+    // BUG FIX: The original logic for filtering appList based on connected accounts was overwriting
+    // the LLM-identified appList. This revised logic ensures that appList and toolKits
+    // only contain apps that were both identified/scoped AND for which the user has an active connection.
+    const identifiedAppSlugs = appList.map(a => a.toLowerCase());
     // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
     // reducing Mongoose overhead.
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
     // for the ComposioAuth model to optimize this query. Additional indexes on
     // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
     // is frequently used and highly selective.
-    const composioAuth = await ComposioAuth.find({
+    const connectedAuths = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
       $or: [
-        { 'toolkit.slug': { $in: normalizedAppList } },
-        { authConfigId: { $in: normalizedAppList } },
-        { authConfigId: { $in: normalizedAppList.map(a => `ac_${a}`) } },
+        { 'toolkit.slug': { $in: identifiedAppSlugs } },
+        { authConfigId: { $in: identifiedAppSlugs } },
+        { authConfigId: { $in: identifiedAppSlugs.map(a => `ac_${a}`) } },
       ],
-    }).lean(); // Added .lean()
-    console.log('Active Composio Auths for user:', composioAuth.length);
-    if (
-      composioAuth.length === 0 &&
-      appList.length > 0 &&
-      !(appList.length === 1 && appList[0] === 'none')
-    ) {
-      return {
-        success: false,
-        error:
-          'No connected accounts found for the identified apps. Please connect your accounts.',
-      };
+    }).lean();
+
+    const connectedAppSlugs = new Set(connectedAuths.map(auth => auth.toolkit.slug));
+    let effectiveAppList = identifiedAppSlugs.filter(slug => connectedAppSlugs.has(slug));
+    let effectiveToolKits = {};
+
+    if (identifiedAppSlugs.length > 0 && !(identifiedAppSlugs.length === 1 && identifiedAppSlugs[0] === 'none')) {
+        if (effectiveAppList.length === 0) {
+            return {
+                success: false,
+                error: 'No connected accounts found for the identified apps. Please connect your accounts.',
+            };
+        }
+        // Update appList and toolKits to only include those that are both identified and connected
+        appList = effectiveAppList;
+        for (const app of appList) {
+            if (toolKits[app]) {
+                effectiveToolKits[app] = toolKits[app];
+            } else {
+                effectiveToolKits[app] = 'latest'; // Fallback if toolKits didn't have a specific version for this app
+            }
+        }
+        toolKits = effectiveToolKits;
+    } else if (identifiedAppSlugs.length === 1 && identifiedAppSlugs[0] === 'none') {
+        // If LLM explicitly said 'none', then appList should be empty for tool search
+        appList = [];
+        toolKits = {};
     } else {
-      appList = composioAuth.map((auth) => auth.toolkit.slug);
+        // If no apps were identified by LLM (e.g., appList was empty initially),
+        // then proceed with an empty appList for tool search.
+        appList = [];
+        toolKits = {};
     }
+
     console.log('Final App List after checking connections:', appList);
+    console.log('Final Tool Kits after checking connections:', toolKits);
+
     let conciseUserMessage = '';
+    // BUG FIX: Inconsistent argument passing to generateUserMessasgeFromContext.
+    // Ensure the correct context (summary or full conversation) is passed as the second argument.
     if (conversationContext.needSummarization) {
       conciseUserMessage = await generateUserMessasgeFromContext(
         userMessage,
-        history
+        conversationContext.summary // Use summary as context
       );
     } else {
       conciseUserMessage = await generateUserMessasgeFromContext(
         userMessage,
-        '',
-        conversationContext.conversation
+        conversationContext.conversation // Use full conversation as context
       );
     }
     console.log('Concise User Message:', conciseUserMessage);
@@ -102,7 +127,8 @@ export const executeUserRequest = async (
       5,
       appList
     );
-    console.log('Using toolkits:', appList.toolKitVersions);
+    // BUG FIX: Corrected console.log to use the 'toolKits' object directly, as 'appList' is an array.
+    console.log('Using toolkits:', toolKits);
     // Generate and execute
     const result = await generateAndExecuteTools(
       conciseUserMessage,
@@ -128,7 +154,8 @@ export const executeUserRequest = async (
           ? 'The action has been completed successfully.'
           : result?.response?.candidates[0]?.content?.parts[0]?.text.trim(),
         conversationId,
-        toolsUsed: [],
+        // BUG FIX: Populate toolsUsed array from the result of generateAndExecuteTools.
+        toolsUsed: result?.toolsUsed || [],
         executionTime: `${Date.now() - startTime}ms`,
       },
     };
@@ -305,26 +332,90 @@ export const disconnectApp = async (userId, appName) => {
 };
 
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
-  // Find appropriate apps (multiple)
-  const appInfo = await findAppropriateApp(query, apps, toolKits);
+  // BUG FIX: Added try-catch block for robustness in this exported function.
+  const startTime = Date.now();
+  try {
+    // BUG FIX: The third argument to findAppropriateApp should be a summary (array/string), not toolKits (an object).
+    // Assuming 'apps' is intended to be the conversation history/context for app identification.
+    const appInfo = await findAppropriateApp(query, apps);
 
-  // Get relevant tools from all identified apps using vector search
-  const toolsData = await getVectorSearchResults(
-    query,
-    appInfo.appList.length * 5,
-    appInfo.appList
-  );
+    // BUG FIX: Missing ComposioAuth check. This is a security vulnerability and functional bug.
+    // Replicating the logic from executeUserRequest to ensure only connected apps are used.
+    const identifiedAppSlugs = appInfo.appList.map(a => a.toLowerCase());
+    const connectedAuths = await ComposioAuth.find({
+        userId: entityId, // Use entityId as userId for the auth check
+        status: 'ACTIVE',
+        $or: [
+            { 'toolkit.slug': { $in: identifiedAppSlugs } },
+            { authConfigId: { $in: identifiedAppSlugs } },
+            { authConfigId: { $in: identifiedAppSlugs.map(a => `ac_${a}`) } },
+        ],
+    }).lean();
 
-  console.log('Using toolkits:', appInfo.toolKitVersions);
+    const connectedAppSlugs = new Set(connectedAuths.map(auth => auth.toolkit.slug));
+    let effectiveAppList = identifiedAppSlugs.filter(slug => connectedAppSlugs.has(slug));
+    let effectiveToolKits = {};
 
-  // Generate and execute
-  const result = await generateAndExecuteTools(
-    query,
-    toolsData,
-    appInfo.toolKitVersions,
-    entityId
-  );
-  return result;
+    if (identifiedAppSlugs.length > 0 && !(identifiedAppSlugs.length === 1 && identifiedAppSlugs[0] === 'none')) {
+        if (effectiveAppList.length === 0) {
+            // If no apps are connected for the identified ones, throw an error.
+            throw new Error('No connected accounts found for the identified apps. Please connect your accounts.');
+        }
+        // Update appList and toolKits to only include those that are both identified and connected
+        appInfo.appList = effectiveAppList;
+        for (const app of appInfo.appList) {
+            if (appInfo.toolKitVersions[app]) {
+                effectiveToolKits[app] = appInfo.toolKitVersions[app];
+            } else {
+                effectiveToolKits[app] = 'latest'; // Fallback if toolKits didn't have a specific version for this app
+            }
+        }
+        appInfo.toolKitVersions = effectiveToolKits; // Update the toolKitVersions in appInfo
+    } else if (identifiedAppSlugs.length === 1 && identifiedAppSlugs[0] === 'none') {
+        // If LLM explicitly said 'none', then appList should be empty for tool search
+        appInfo.appList = [];
+        appInfo.toolKitVersions = {};
+    } else {
+        // If no apps were identified by LLM (e.g., appList was empty initially),
+        // then proceed with an empty appList for tool search.
+        appInfo.appList = [];
+        appInfo.toolKitVersions = {};
+    }
+
+    console.log('Final App List for multiAppWorkflow after checking connections:', appInfo.appList);
+    console.log('Final Tool Kits for multiAppWorkflow after checking connections:', appInfo.toolKitVersions);
+
+    // Get relevant tools from all identified apps using vector search
+    const toolsData = await getVectorSearchResults(
+      query,
+      appInfo.appList.length * 5, // Use the filtered appInfo.appList
+      appInfo.appList // Use the filtered appInfo.appList
+    );
+
+    console.log('Using toolkits:', appInfo.toolKitVersions);
+
+    // Generate and execute
+    const result = await generateAndExecuteTools(
+      query,
+      toolsData,
+      appInfo.toolKitVersions, // Use the filtered appInfo.toolKitVersions
+      entityId
+    );
+    // Return a structured response similar to executeUserRequest
+    return {
+      success: true,
+      data: {
+        response: result?.results[0]
+          ? 'The action has been completed successfully.'
+          : result?.response?.candidates[0]?.content?.parts[0]?.text.trim(),
+        toolsUsed: result?.toolsUsed || [],
+        executionTime: `${Date.now() - startTime}ms`,
+      },
+    };
+  } catch (error) {
+    console.error('Error in multiAppWorkflow:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export const composioService = {
