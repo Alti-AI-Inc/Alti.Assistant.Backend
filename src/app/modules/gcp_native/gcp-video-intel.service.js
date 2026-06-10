@@ -1,5 +1,7 @@
 import { GoogleAuth } from 'google-auth-library';
 import { logger } from '../../../shared/logger.js';
+import { TenantUsageService } from '../tenant/tenant-usage.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 /**
  * @constant {GoogleAuth} auth
@@ -23,6 +25,89 @@ const VALID_VIDEO_FEATURES = [
 ];
 
 /**
+ * Validates the user context, roles, and tenant boundaries to prevent IDOR and unauthorized access.
+ * Supports: super_admin (platform owner), admin (workspace owner), manager, user.
+ * 
+ * @param {object} context - The user/request context containing user details.
+ * @param {string} [operationTenantId=null] - Optional tenant ID of the resource being accessed to enforce boundaries.
+ * @throws {Error} If validation fails.
+ */
+const validateUserContext = (context, operationTenantId = null) => {
+  if (!context || !context.user) {
+    throw new Error('Unauthorized: User context is missing.');
+  }
+
+  const { role, tenantId } = context.user;
+  const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+
+  if (!validRoles.includes(role)) {
+    throw new Error(`Unauthorized: Invalid role '${role}'.`);
+  }
+
+  // super_admin (platform owner) has global access and bypasses tenant checks
+  if (role === 'super_admin') {
+    return;
+  }
+
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant context is missing.');
+  }
+
+  // Prevent IDOR / Tenant boundary violation
+  if (operationTenantId && tenantId !== operationTenantId) {
+    throw new Error('Unauthorized: Tenant context boundary violation.');
+  }
+};
+
+/**
+ * Propagates usage details, checks limits, and sends notifications up the hierarchy.
+ * 
+ * @param {object} context - The user/request context.
+ * @param {string} action - The action being performed (e.g., 'video_analysis').
+ * @param {number} amount - The usage amount.
+ */
+const propagateUsageAndNotifications = async (context, action, amount = 1) => {
+  const { user } = context;
+  const { id: userId, role, tenantId, managerId } = user;
+
+  // 1. Track and increment usage for the tenant
+  if (role !== 'super_admin') {
+    await TenantUsageService.trackUsage(tenantId, userId, action, amount);
+  }
+
+  // 2. Propagate notifications up the hierarchy
+  const notificationPayload = {
+    title: 'Video Analysis Triggered',
+    message: `User ${userId} (${role}) initiated video analysis.`,
+    metadata: { userId, tenantId, action, amount }
+  };
+
+  // Notify manager if the user has one
+  if (managerId) {
+    await NotificationService.sendNotification(managerId, {
+      ...notificationPayload,
+      message: `Your direct report (User ${userId}) initiated video analysis.`
+    });
+  }
+
+  // Notify tenant administrators
+  if (role !== 'super_admin' && role !== 'admin') {
+    await NotificationService.notifyTenantAdmins(tenantId, {
+      ...notificationPayload,
+      message: `Tenant user ${userId} initiated video analysis.`
+    });
+  }
+
+  // Notify platform owners (super_admins) for platform-level tracking
+  if (role === 'super_admin') {
+    await NotificationService.notifyPlatformOwners({
+      ...notificationPayload,
+      message: `Platform Super Admin ${userId} initiated video analysis.`
+    });
+  }
+};
+
+/**
  * Initiates a video annotation operation using Google Cloud Video Intelligence.
  * Supports various analysis features like label detection, text detection (OCR),
  * shot change detection, and content moderation.
@@ -33,29 +118,34 @@ const VALID_VIDEO_FEATURES = [
  * @param {string} [inputContent=null] - Base64 encoded video content string.
  *   Required if `inputUri` is not provided.
  * @param {Array<string>} [features=['LABEL_DETECTION', 'TEXT_DETECTION']] - List of analysis features to enable.
- *   Valid features include: 'LABEL_DETECTION', 'SHOT_CHANGE_DETECTION',
- *   'EXPLICIT_CONTENT_DETECTION', 'TEXT_DETECTION'.
+ * @param {object} [context={}] - User context for role validation, tenant boundaries, and usage tracking.
  * @returns {Promise<{ success: boolean, operationName: string, done: boolean, metadata: object | undefined }>}
- *   A promise that resolves with an object containing the operation details.
- *   - `success`: `true` if the operation was successfully initiated.
- *   - `operationName`: The full name of the long-running operation (e.g., 'projects/PROJECT_ID/locations/LOCATION_ID/operations/OPERATION_ID').
- *   - `done`: `true` if the operation is already complete (unlikely for video analysis), `false` otherwise.
- *   - `metadata`: Optional metadata about the operation.
- * @throws {Error} If neither `inputUri` nor `inputContent` is provided, or if the API call fails.
+ * @throws {Error} If validation fails, limits are exceeded, or the API call fails.
  */
-const startVideoAnalysis = async (inputUri = null, inputContent = null, features = ['LABEL_DETECTION', 'TEXT_DETECTION']) => {
+const startVideoAnalysis = async (inputUri = null, inputContent = null, features = ['LABEL_DETECTION', 'TEXT_DETECTION'], context = {}) => {
   try {
+    // Validate context and roles
+    validateUserContext(context);
+
     if (!inputUri && !inputContent) {
       throw new Error('Either inputUri (GCS link) or inputContent (base64) must be provided.');
     }
 
-    // Bug Fix: Validate provided features against a whitelist to prevent invalid API requests.
+    // Validate provided features against a whitelist to prevent invalid API requests.
     const invalidFeatures = features.filter(f => !VALID_VIDEO_FEATURES.includes(f));
     if (invalidFeatures.length > 0) {
       throw new Error(`Invalid video analysis features provided: ${invalidFeatures.join(', ')}. Valid features are: ${VALID_VIDEO_FEATURES.join(', ')}.`);
     }
 
-    logger.info(`Video Intel API: Starting annotation with features: ${features.join(', ')}`);
+    // Check quota limits before proceeding
+    if (context.user.role !== 'super_admin') {
+      const hasQuota = await TenantUsageService.checkQuota(context.user.tenantId, 'video_analysis', 1);
+      if (!hasQuota) {
+        throw new Error('QuotaExceeded: Tenant has exceeded the video analysis quota limit.');
+      }
+    }
+
+    logger.info(`Video Intel API: Starting annotation with features: ${features.join(', ')} for tenant: ${context.user.tenantId || 'platform'}`);
 
     const client = await auth.getClient();
     const requestData = { features };
@@ -77,6 +167,9 @@ const startVideoAnalysis = async (inputUri = null, inputContent = null, features
       throw new Error('GCP Video Intelligence API did not return an operation name.');
     }
 
+    // Propagate usage and notifications up the hierarchy
+    await propagateUsageAndNotifications(context, 'video_analysis', 1);
+
     return {
       success: true,
       operationName,
@@ -94,26 +187,18 @@ const startVideoAnalysis = async (inputUri = null, inputContent = null, features
  * If the operation is complete, it parses and returns the annotation results.
  *
  * @async
- * @param {string} operationName - The full name of the video annotation operation
- *   (e.g., 'projects/PROJECT_ID/locations/LOCATION_ID/operations/OPERATION_ID')
- *   returned by `startVideoAnalysis`.
+ * @param {string} operationName - The full name of the video annotation operation.
+ * @param {object} context - User context for role validation and tenant boundaries.
+ * @param {string} [operationTenantId=null] - Tenant ID associated with the operation to prevent IDOR.
  * @returns {Promise<{ success: boolean, operationName: string, done: boolean, results: object | null, raw: object }>}
- *   A promise that resolves with an object containing the current operation status and results.
- *   - `success`: `true` if the status check was successful.
- *   - `operationName`: The name of the operation.
- *   - `done`: `true` if the operation is complete, `false` otherwise.
- *   - `results`: An object containing parsed annotation results (`labels`, `text`, `explicit`, `shots`)
- *     if `done` is `true`, otherwise `null`.
- *     - `labels`: Array of detected labels, each with `entity`, `categories`, and `segments`.
- *     - `text`: Array of detected text, each with `text` and `segments`.
- *     - `explicit`: Array of explicit content frames, each with `timeOffset` and `pornographyLikelihood`.
- *     - `shots`: Array of shot change annotations, each with `start` and `end` time offsets.
- *   - `raw`: The raw response data from the Google Cloud Video Intelligence API.
- * @throws {Error} If the API call to check status fails.
+ * @throws {Error} If validation fails or the API call to check status fails.
  */
-const checkVideoAnalysisStatus = async (operationName) => {
+const checkVideoAnalysisStatus = async (operationName, context, operationTenantId = null) => {
   try {
-    logger.info(`Video Intel API: Querying status for operation: ${operationName}`);
+    // Validate context and tenant boundary (IDOR prevention)
+    validateUserContext(context, operationTenantId);
+
+    logger.info(`Video Intel API: Querying status for operation: ${operationName} (Tenant: ${operationTenantId || 'platform'})`);
 
     const client = await auth.getClient();
     const response = await client.request({
@@ -176,22 +261,21 @@ const checkVideoAnalysisStatus = async (operationName) => {
 
 /**
  * Synchronously polls a Google Cloud Video Intelligence operation until it completes or a timeout is reached.
- * This helper function repeatedly calls `checkVideoAnalysisStatus` at a specified interval.
  *
  * @async
  * @param {string} operationName - The full name of the video annotation operation to poll.
- * @param {number} [intervalMs=5000] - The interval in milliseconds between polling attempts. Defaults to 5000ms (5 seconds).
+ * @param {object} context - User context for role validation and tenant boundaries.
+ * @param {string} [operationTenantId=null] - Tenant ID associated with the operation to prevent IDOR.
+ * @param {number} [intervalMs=5000] - The interval in milliseconds between polling attempts.
  * @param {number} [maxAttempts=24] - The maximum number of polling attempts before timing out.
- *   Defaults to 24 attempts (2 minutes with the default interval).
  * @returns {Promise<{ success: boolean, operationName: string, done: boolean, results: object | null, raw: object }>}
- *   A promise that resolves with the final status and results of the operation once it's done.
- * @throws {Error} If polling times out after `maxAttempts` or if `checkVideoAnalysisStatus` throws an error.
+ * @throws {Error} If polling times out or if check status throws an error.
  */
-const pollVideoAnalysis = async (operationName, intervalMs = 5000, maxAttempts = 24) => {
+const pollVideoAnalysis = async (operationName, context, operationTenantId = null, intervalMs = 5000, maxAttempts = 24) => {
   let attempts = 0;
   while (attempts < maxAttempts) {
     logger.info(`Video Intel Polling: Attempt ${attempts + 1}/${maxAttempts} for ${operationName}...`);
-    const status = await checkVideoAnalysisStatus(operationName);
+    const status = await checkVideoAnalysisStatus(operationName, context, operationTenantId);
     if (status.done) {
       return status;
     }
@@ -210,26 +294,31 @@ export const GcpVideoIntelService = {
   /**
    * @function startVideoAnalysis
    * @memberof GcpVideoIntelService
-   * @description Initiates a video annotation operation.
+   * @description Initiates a video annotation operation with role validation, limits, and notifications.
    * @param {string} [inputUri=null] - GCS URI of the video file.
    * @param {string} [inputContent=null] - Base64 encoded video content string.
    * @param {Array<string>} [features=['LABEL_DETECTION', 'TEXT_DETECTION']] - List of analysis features.
+   * @param {object} [context={}] - User context for role validation, tenant boundaries, and usage tracking.
    * @returns {Promise<{ success: boolean, operationName: string, done: boolean, metadata: object | undefined }>}
    */
   startVideoAnalysis,
   /**
    * @function checkVideoAnalysisStatus
    * @memberof GcpVideoIntelService
-   * @description Checks the status and retrieves results of a video annotation operation.
+   * @description Checks the status and retrieves results of a video annotation operation with tenant boundary validation.
    * @param {string} operationName - The full name of the video annotation operation.
+   * @param {object} context - User context for role validation and tenant boundaries.
+   * @param {string} [operationTenantId=null] - Tenant ID associated with the operation to prevent IDOR.
    * @returns {Promise<{ success: boolean, operationName: string, done: boolean, results: object | null, raw: object }>}
    */
   checkVideoAnalysisStatus,
   /**
    * @function pollVideoAnalysis
    * @memberof GcpVideoIntelService
-   * @description Polls a video annotation operation until completion or timeout.
+   * @description Polls a video annotation operation until completion or timeout with tenant boundary validation.
    * @param {string} operationName - The full name of the video annotation operation to poll.
+   * @param {object} context - User context for role validation and tenant boundaries.
+   * @param {string} [operationTenantId=null] - Tenant ID associated with the operation to prevent IDOR.
    * @param {number} [intervalMs=5000] - The interval in milliseconds between polling attempts.
    * @param {number} [maxAttempts=24] - The maximum number of polling attempts.
    * @returns {Promise<{ success: boolean, operationName: string, done: boolean, results: object | null, raw: object }>}
