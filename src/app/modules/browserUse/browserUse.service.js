@@ -13,24 +13,102 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
  * @typedef {import('express').Request} Request
  */
 
-// Optimization Recommendation:
-// For the BrowserSession model (in browserUse.model.js), consider adding the following indexes for improved query performance:
-// 1. For filtering by 'user' and 'tenantId' (used in most queries):
-//    BrowserSessionSchema.index({ user: 1 });
-//    BrowserSessionSchema.index({ tenantId: 1 });
-// 2. For efficient sorting in getSessionsForUserService:
-//    BrowserSessionSchema.index({ updatedAt: -1 });
-// 3. For querying subdocuments within the 'responses' array (e.g., by 'taskId' in updateTaskStatusService):
-//    BrowserSessionSchema.index({ 'responses.taskId': 1 });
-// 4. Compound index for getSessionsForUserService for optimal performance (covering user, tenantId, and sort by updatedAt):
-//    BrowserSessionSchema.index({ user: 1, tenantId: 1, updatedAt: -1 });
-// 5. Compound index for findOne operations involving user and tenantId (e.g., initiateTaskInSessionService, getSessionByIdService):
-//    BrowserSessionSchema.index({ user: 1, tenantId: 1 });
+/**
+ * Validates the user and tenant context to ensure proper role-based access control
+ * and tenant boundary isolation.
+ *
+ * @param {string} userId - The ID of the target user.
+ * @param {Request | null} req - The Express request object.
+ * @throws {ApiError} If validation fails.
+ */
+const validateUserAndTenantContext = async (userId, req) => {
+  if (!req || !req.user) return;
 
-// Optimization Recommendation:
-// For the User model (in auth.model.js), consider adding an index for the 'browserSessions' array
-// if it grows very large and is frequently queried or modified:
-// UserSchema.index({ browserSessions: 1 });
+  const actor = req.user; // The authenticated user making the request
+  const targetUser = await User.findById(userId);
+
+  if (!targetUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found');
+  }
+
+  // Validate actor role
+  const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+  if (!validRoles.includes(actor.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: Invalid actor role');
+  }
+
+  // Tenant boundary check: non-super_admins cannot access other tenants
+  if (actor.role !== 'super_admin') {
+    const actorTenantId = actor.currentTenantId || req.tenantId;
+    if (actorTenantId && targetUser.tenantId && targetUser.tenantId.toString() !== actorTenantId.toString()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: Tenant boundary violation');
+    }
+  }
+};
+
+/**
+ * Checks usage limits based on user roles and propagates usage details
+ * and notifications up to managers and administrators.
+ *
+ * @param {string} userId - The ID of the user initiating the task.
+ * @param {string | null} tenantId - The active tenant ID.
+ * @throws {ApiError} If usage limits are exceeded.
+ */
+const propagateUsageAndCheckLimits = async (userId, tenantId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  // 1. Check Limits based on role
+  const sessionCount = await BrowserSession.countDocuments({ user: userId });
+  let limit = 100; // Default limit
+  if (user.role === 'user') limit = 10;
+  if (user.role === 'manager') limit = 50;
+  if (user.role === 'admin') limit = 200;
+  if (user.role === 'super_admin') limit = Infinity;
+
+  if (sessionCount >= limit) {
+    throw new ApiError(
+      httpStatus.PAYMENT_REQUIRED,
+      `Usage limit reached for role '${user.role}'. Limit: ${limit}, Current: ${sessionCount}`
+    );
+  }
+
+  // 2. Propagate usage details and notifications up the hierarchy
+  const managersAndAdmins = await User.find({
+    tenantId: tenantId || user.tenantId,
+    role: { $in: ['manager', 'admin'] },
+    _id: { $ne: userId } // Don't notify self
+  });
+
+  logger.info(
+    `[Usage Propagation] User ${userId} (${user.role}) initiated a browser session. Current count: ${sessionCount + 1}/${limit}.`
+  );
+
+  for (const supervisor of managersAndAdmins) {
+    logger.info(
+      `[Notification] Sent to ${supervisor.role} (ID: ${supervisor._id}): User ${userId} has consumed 1 browser session unit.`
+    );
+    
+    // Safely increment managed usage if tracked on the supervisor
+    if (supervisor.managedUsage) {
+      await User.findByIdAndUpdate(supervisor._id, {
+        $inc: { 'managedUsage.browserSessionsCount': 1 }
+      });
+    }
+  }
+
+  // Also notify direct manager if specified on the user document
+  if (user.managerId && user.managerId.toString() !== userId) {
+    const directManager = await User.findById(user.managerId);
+    if (directManager) {
+      logger.info(
+        `[Notification] Direct Manager (ID: ${directManager._id}) notified of user ${userId} activity.`
+      );
+    }
+  }
+};
 
 /**
  * Initiates a browser automation task via an external API and records it in a user's session.
@@ -51,108 +129,72 @@ const initiateTaskInSessionService = async (
   structuredOutputSchema,
   req = null
 ) => {
-  try {
-    const tenantId = req ? (req.user?.currentTenantId || req.tenantId || null) : null;
+  const tenantId = req ? (req.user?.currentTenantId || req.tenantId || null) : null;
 
-    const apiBody = {
-      task: prompt,
-      secrets: {},
-      allowed_domains: null,
-      save_browser_data: true,
-      llm_model: 'gemini-2.5-flash',
-      use_adblock: true,
-      use_proxy: true,
-      highlight_elements: true,
-    };
+  // Validate context and check limits before calling external API to save costs
+  await validateUserAndTenantContext(userId, req);
+  await propagateUsageAndCheckLimits(userId, tenantId);
 
-    if (structuredOutputSchema) {
-      apiBody.structured_output_json = structuredOutputSchema;
+  const apiBody = {
+    task: prompt,
+    secrets: {},
+    allowed_domains: null,
+    save_browser_data: true,
+    llm_model: 'gemini-2.5-flash',
+    use_adblock: true,
+    use_proxy: true,
+    highlight_elements: true,
+  };
+
+  if (structuredOutputSchema) {
+    apiBody.structured_output_json = structuredOutputSchema;
+  }
+
+  const apiResponse = await axios.post(
+    'https://api.browser-use.com/api/v1/run-task',
+    apiBody,
+    {
+      headers: {
+        Authorization: `Bearer ${config.browser_use_secret_key}`,
+        'Content-Type': 'application/json',
+      },
     }
+  );
+  const apiData = apiResponse.data;
 
-    let apiResponse;
-    try {
-      apiResponse = await axios.post(
-        'https://api.browser-use.com/api/v1/run-task',
-        apiBody,
-        {
-          headers: {
-            Authorization: `Bearer ${config.browser_use_secret_key}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    } catch (apiErr) {
-      logger.error('Error calling external browser-use API in initiateTaskInSessionService', {
-        error: apiErr.message,
-        stack: apiErr.stack,
-        userId,
-        sessionId,
-      });
-      throw new ApiError(
-        apiErr.response?.status || httpStatus.BAD_GATEWAY,
-        `External browser automation service error: ${apiErr.response?.data?.message || apiErr.message}`
-      );
-    }
+  if (!apiData.id) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'API did not return a task ID');
+  }
 
-    const apiData = apiResponse.data;
+  const newResponseObject = {
+    taskId: apiData.id,
+    status: apiData.status || 'created',
+    prompt: prompt,
+    live_url: apiData.live_url,
+    steps: apiData.steps || [],
+  };
 
-    if (!apiData || !apiData.id) {
-      logger.error('External browser-use API did not return a task ID', { apiData, userId, sessionId });
-      throw new ApiError(httpStatus.BAD_GATEWAY, 'API did not return a task ID');
-    }
+  if (sessionId) {
+    const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+    const session = await BrowserSession.findOne(query);
+    if (!session)
+      throw new ApiError(httpStatus.NOT_FOUND, 'Session not found.');
 
-    // --- CORRECTED: Save ALL initial data from the API response ---
-    const newResponseObject = {
-      taskId: apiData.id,
-      status: apiData.status || 'created',
-      prompt: prompt,
-      live_url: apiData.live_url,
-      steps: apiData.steps || [], // Save initial steps if they exist
-    };
-
-    // 2. Check if we are adding to an existing session or creating a new one
-    if (sessionId) {
-      // Find the existing session and push a new response, ensuring it belongs to the active tenant/user
-      // .lean() is not used here because we are modifying and saving the Mongoose document.
-      const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
-      const session = await BrowserSession.findOne(query);
-      if (!session) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Session not found.');
-      }
-
-      session.responses.push(newResponseObject);
-      await session.save();
-      return session;
-    } else {
-      // Create a new session document
-      const newSession = await BrowserSession.create({
-        user: userId,
-        tenantId: tenantId,
-        responses: [newResponseObject],
-      });
-
-      // Add the new session's ID to the user's document
-      // .lean() is not applicable here as we are modifying the document.
-      await User.findByIdAndUpdate(userId, {
-        $push: { browserSessions: newSession._id },
-      });
-
-      return newSession;
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    logger.error('Error in initiateTaskInSessionService', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      sessionId,
+    session.responses.push(newResponseObject);
+    await session.save();
+    return session;
+  } else {
+    const newSession = await BrowserSession.create({
+      user: userId,
+      tenantId: tenantId,
+      responses: [newResponseObject],
     });
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'An internal error occurred while initiating the browser task.'
-    );
+
+    await User.findByIdAndUpdate(userId, {
+      $push: { browserSessions: newSession._id },
+    });
+
+    return newSession;
   }
 };
 
@@ -167,117 +209,76 @@ const initiateTaskInSessionService = async (
  * @throws {ApiError} If the task or session is not found in the database.
  */
 const updateTaskStatusService = async (sessionId, taskId, req = null) => {
-  try {
-    let apiResponse;
-    try {
-      apiResponse = await axios.get(
-        `https://api.browser-use.com/api/v1/task/${taskId}`,
-        { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
-      );
-    } catch (apiErr) {
-      logger.error('Error fetching task status from external browser-use API', {
-        error: apiErr.message,
-        stack: apiErr.stack,
-        sessionId,
-        taskId,
-      });
-      throw new ApiError(
-        apiErr.response?.status || httpStatus.BAD_GATEWAY,
-        `External browser automation service error: ${apiErr.response?.data?.message || apiErr.message}`
-      );
-    }
+  const query = req
+    ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
+    : { _id: sessionId, 'responses.taskId': taskId };
 
-    const apiData = apiResponse.data;
-
-    // --- CORRECTED: Build the complete update object ---
-    const updateFields = {
-      'responses.$.status': apiData.status,
-      'responses.$.output': apiData.output,
-      'responses.$.structured_output': apiData.structured_output,
-      'responses.$.live_url': apiData.live_url,
-      'responses.$.error_message': apiData.error_message,
-      'responses.$.finished_at': apiData.finished_at,
-      'responses.$.steps': apiData.steps, // CRITICAL: Update the steps array
-    };
-
-    const query = req
-      ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
-      : { _id: sessionId, 'responses.taskId': taskId };
-
-    // .lean() is not used here as { new: true } returns a Mongoose document, which is then returned by the service.
-    const updatedSession = await BrowserSession.findOneAndUpdate(
-      query,
-      { $set: updateFields },
-      { new: true }
-    );
-
-    if (!updatedSession) {
-      throw new ApiError(
-        httpStatus.NOT_FOUND,
-        'Task to update was not found in the session.'
-      );
-    }
-
-    return updatedSession;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    logger.error('Error in updateTaskStatusService', {
-      error: error.message,
-      stack: error.stack,
-      sessionId,
-      taskId,
-    });
+  const session = await BrowserSession.findOne(query);
+  if (!session) {
     throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'An internal error occurred while updating the task status.'
+      httpStatus.NOT_FOUND,
+      'Task to update was not found in the session.'
     );
   }
+
+  if (req) {
+    await validateUserAndTenantContext(session.user, req);
+  }
+
+  const apiResponse = await axios.get(
+    `https://api.browser-use.com/api/v1/task/${taskId}`,
+    { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
+  );
+  const apiData = apiResponse.data;
+
+  const updateFields = {
+    'responses.$.status': apiData.status,
+    'responses.$.output': apiData.output,
+    'responses.$.structured_output': apiData.structured_output,
+    'responses.$.live_url': apiData.live_url,
+    'responses.$.error_message': apiData.error_message,
+    'responses.$.finished_at': apiData.finished_at,
+    'responses.$.steps': apiData.steps,
+  };
+
+  const updatedSession = await BrowserSession.findOneAndUpdate(
+    query,
+    { $set: updateFields },
+    { new: true }
+  );
+
+  return updatedSession;
 };
 
 /**
  * Retrieves a list of browser sessions for a specific user.
- * It selects only the first prompt from the responses array and excludes other detailed fields
- * for a lighter overview, sorted by the most recently updated session.
  *
  * @param {string} userId - The ID of the user whose sessions are to be retrieved.
  * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
  * @returns {Promise<Array<IBrowserSession>>} A promise that resolves to an array of browser session documents (lean objects).
  */
 const getSessionsForUserService = async (userId, req = null) => {
-  try {
-    const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
-    // Optimization: Added .lean() for read-only operations to improve performance
-    // by returning plain JavaScript objects instead of Mongoose documents.
-    const sessions = await BrowserSession.find(query)
-      .select({
-        'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
-        'responses.status': 0, // Exclude all other fields from the sub-document
-        'responses.output': 0,
-        'responses.taskId': 0,
-        'responses.live_url': 0,
-        'responses.error_message': 0,
-        'responses.finished_at': 0,
-        'responses.structured_output': 0,
-        'responses.createdAt': 0,
-        'responses.updatedAt': 0,
-      })
-      .sort({ updatedAt: -1 }) // Sort by most recently updated
-      .lean(); // Optimization: Use .lean() for read-only query
-
-    return sessions;
-  } catch (error) {
-    logger.error('Error in getSessionsForUserService', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-    });
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'An internal error occurred while retrieving browser sessions.'
-    );
+  if (req) {
+    await validateUserAndTenantContext(userId, req);
   }
+  const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
+  const sessions = await BrowserSession.find(query)
+    .select({
+      'responses.prompt': { $slice: 1 },
+      'responses.status': 0,
+      'responses.output': 0,
+      'responses.taskId': 0,
+      'responses.live_url': 0,
+      'responses.error_message': 0,
+      'responses.finished_at': 0,
+      'responses.structured_output': 0,
+      'responses.createdAt': 0,
+      'responses.updatedAt': 0,
+    })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return sessions;
 };
 
 /**
@@ -290,47 +291,20 @@ const getSessionsForUserService = async (userId, req = null) => {
  * @throws {ApiError} If the session is not found or if the user does not have access to it.
  */
 const getSessionByIdService = async (sessionId, userId, req = null) => {
-  try {
-    const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
-    // Optimization: Added .lean() for read-only operations to improve performance
-    // by returning plain JavaScript objects instead of Mongoose documents.
-    const session = await BrowserSession.findOne(query).lean(); // Optimization: Use .lean() for read-only query
-    if (!session) {
-      throw new ApiError(
-        httpStatus.NOT_FOUND,
-        'Session not found or access denied.'
-      );
-    }
-    return session;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    logger.error('Error in getSessionByIdService', {
-      error: error.message,
-      stack: error.stack,
-      sessionId,
-      userId,
-    });
+  if (req) {
+    await validateUserAndTenantContext(userId, req);
+  }
+  const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+  const session = await BrowserSession.findOne(query).lean();
+  if (!session) {
     throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'An internal error occurred while retrieving the browser session.'
+      httpStatus.NOT_FOUND,
+      'Session not found or access denied.'
     );
   }
+  return session;
 };
 
-/**
- * @typedef {object} BrowserUseServices
- * @property {function(string, string | null, string, object | null, Request | null): Promise<IBrowserSession>} initiateTaskInSessionService - Initiates a new browser automation task.
- * @property {function(string, string, Request | null): Promise<IBrowserSession>} updateTaskStatusService - Updates the status of an existing browser automation task.
- * @property {function(string, Request | null): Promise<Array<IBrowserSession>>} getSessionsForUserService - Retrieves a list of browser sessions for a user.
- * @property {function(string, string, Request | null): Promise<IBrowserSession>} getSessionByIdService - Retrieves a single browser session by ID.
- */
-
-/**
- * An object grouping all browser use related service functions.
- * @type {BrowserUseServices}
- */
 export const BrowserUseServices = {
   initiateTaskInSessionService,
   updateTaskStatusService,
