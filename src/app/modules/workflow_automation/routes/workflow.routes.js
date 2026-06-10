@@ -20,6 +20,18 @@ router.post(
   workflowController.compileWorkflowLayoutController
 );
 
+// Template routes (placed before /:workflowId to prevent route parameter collision)
+router.get(
+  '/templates/list',
+  optionalAuth(),
+  workflowController.getWorkflowTemplatesController
+);
+router.post(
+  '/templates/:templateId/create',
+  auth(),
+  workflowController.createFromTemplateController
+);
+
 router.get('/:workflowId', auth(), workflowController.getWorkflowController);
 router.put('/:workflowId', auth(), workflowController.updateWorkflowController);
 router.delete(
@@ -31,18 +43,6 @@ router.patch(
   '/:workflowId/status',
   auth(),
   workflowController.toggleWorkflowStatusController
-);
-
-// Template routes
-router.get(
-  '/templates/list',
-  optionalAuth(),
-  workflowController.getWorkflowTemplatesController
-);
-router.post(
-  '/templates/:templateId/create',
-  auth(),
-  workflowController.createFromTemplateController
 );
 
 export const workflowRoutes = router;
