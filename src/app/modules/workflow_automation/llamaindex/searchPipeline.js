@@ -23,13 +23,65 @@ import { logger } from '../../../../shared/logger.js';
 import path from 'path';
 import { existsSync } from 'node:fs';
 
-// Construct the custom event-driven search workflow
+/**
+ * @typedef {object} SearchCompleteEventData
+ * @property {boolean} success - Indicates if the search was successful.
+ * @property {string} query - The original search query.
+ * @property {string} userId - The ID of the user who initiated the search.
+ * @property {string} content - The synthesized response content.
+ * @property {Array<object>} sources - An array of source documents or snippets used for synthesis.
+ * @property {string} sources[].fileName - The name of the source file.
+ * @property {string} sources[].fileType - The type of the source file (e.g., 'pdf', 'txt').
+ * @property {number | null} sources[].pageNumber - The page number within the document, if applicable.
+ * @property {number | null} sources[].score - The similarity score of the node to the query.
+ * @property {string} sources[].snippet - A short snippet from the source node.
+ * @property {boolean} cacheHit - True if the response was retrieved from the semantic cache.
+ * @property {string} [cacheSimilarity] - The similarity score of the cache hit, if applicable.
+ */
+
+/**
+ * @typedef {object} CacheHitEventData
+ * @property {string} query - The original search query.
+ * @property {string} userId - The ID of the user who initiated the search.
+ * @property {object} response - The cached response object.
+ * @property {string} response.content - The cached response content.
+ * @property {Array<object>} response.sources - The cached source information.
+ * @property {string} [response._cacheSimilarity] - The similarity score of the cache hit.
+ */
+
+/**
+ * @typedef {object} RouteSelectedEventData
+ * @property {string} query - The original search query.
+ * @property {string} userId - The ID of the user who initiated the search.
+ * @property {string} route - The selected search route (e.g., 'vector').
+ */
+
+/**
+ * @typedef {object} ContextRetrievedEventData
+ * @property {string} query - The original search query.
+ * @property {string} userId - The ID of the user who initiated the search.
+ * @property {Array<import('llamaindex').NodeWithScore>} nodes - An array of retrieved and post-processed nodes.
+ */
+
+/**
+ * The core event-driven search workflow for RAG (Retrieval Augmented Generation).
+ * This workflow orchestrates the steps from query reception to response synthesis,
+ * incorporating semantic caching and vector store retrieval.
+ * @type {import('@llamaindex/workflow-core').Workflow}
+ */
 const searchWorkflow = createWorkflow();
 
 /**
  * Step 1: Query Reception & Semantic Cache Lookup
- * Triggers on: SearchStartEvent
- * Emits: CacheHitEvent (if cached) OR RouteSelectedEvent (if cache miss)
+ * This handler processes incoming search requests, attempts to find a response in the semantic cache,
+ * and if not found, prepares for vector store retrieval.
+ *
+ * @param {import('@llamaindex/workflow-core').WorkflowContext} context - The workflow context for sending events.
+ * @param {SearchStartEvent} event - The event that triggered this handler.
+ * @param {string} event.data.query - The user's search query.
+ * @param {string} event.data.userId - The ID of the user initiating the search.
+ * @emits {CacheHitEvent} If a cached response is found, bypassing further LLM execution.
+ * @emits {RouteSelectedEvent} If no cached response is found, indicating the next step for retrieval.
  */
 searchWorkflow.handle([SearchStartEvent], async (context, event) => {
   const { query, userId } = event.data;
@@ -60,8 +112,15 @@ searchWorkflow.handle([SearchStartEvent], async (context, event) => {
 
 /**
  * Step 2: Semantic Cache Fast-Track Completion
- * Triggers on: CacheHitEvent
- * Emits: SearchCompleteEvent (direct completion return)
+ * This handler is triggered when a semantic cache hit occurs, allowing for immediate completion
+ * of the search workflow without engaging the LLM or retrieval steps.
+ *
+ * @param {import('@llamaindex/workflow-core').WorkflowContext} context - The workflow context (not used for sending events in this step).
+ * @param {CacheHitEvent} event - The event indicating a cache hit.
+ * @param {string} event.data.query - The original search query.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {object} event.data.response - The cached response object.
+ * @returns {SearchCompleteEvent} An event signaling the successful completion of the search with cached data.
  */
 searchWorkflow.handle([CacheHitEvent], async (context, event) => {
   const { query, userId, response } = event.data;
@@ -80,8 +139,16 @@ searchWorkflow.handle([CacheHitEvent], async (context, event) => {
 
 /**
  * Step 3: Index Retrieval & Sentence Window Context Retrieval
- * Triggers on: RouteSelectedEvent
- * Emits: ContextRetrievedEvent
+ * This handler is responsible for loading the user's vector index, retrieving relevant nodes
+ * based on the query, and applying post-processing for context enrichment.
+ *
+ * @param {import('@llamaindex/workflow-core').WorkflowContext} context - The workflow context for sending events.
+ * @param {RouteSelectedEvent} event - The event indicating that a search route has been selected.
+ * @param {string} event.data.query - The user's search query.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {string} event.data.route - The selected retrieval route (expected to be 'vector').
+ * @emits {ContextRetrievedEvent} An event containing the retrieved and processed context nodes.
+ * @throws {Error} If no index store exists for the given user.
  */
 searchWorkflow.handle([RouteSelectedEvent], async (context, event) => {
   const { query, userId, route } = event.data;
@@ -125,8 +192,15 @@ searchWorkflow.handle([RouteSelectedEvent], async (context, event) => {
 
 /**
  * Step 4: Citation-Backed Response Synthesis & Cache Saving
- * Triggers on: ContextRetrievedEvent
- * Emits: SearchCompleteEvent (final stop return)
+ * This handler synthesizes a final response using the retrieved context nodes,
+ * formats the sources for citation, and persists the response to the semantic cache.
+ *
+ * @param {import('@llamaindex/workflow-core').WorkflowContext} context - The workflow context (not used for sending events in this step).
+ * @param {ContextRetrievedEvent} event - The event containing the retrieved context nodes.
+ * @param {string} event.data.query - The original search query.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {Array<import('llamaindex').NodeWithScore>} event.data.nodes - The array of context nodes to use for synthesis.
+ * @returns {SearchCompleteEvent} An event signaling the successful completion of the search with the synthesized response.
  */
 searchWorkflow.handle([ContextRetrievedEvent], async (context, event) => {
   const { query, userId, nodes } = event.data;
@@ -191,10 +265,14 @@ searchWorkflow.handle([ContextRetrievedEvent], async (context, event) => {
 });
 
 /**
- * Run the Search RAG Workflow asynchronously
- * @param {string} query - User question
- * @param {string} userId - User identifier
- * @returns {Promise<object>} The final citation-backed response report
+ * Runs the Search RAG Workflow asynchronously.
+ * This function initiates the event-driven search workflow and waits for its completion,
+ * returning the final synthesized response.
+ *
+ * @param {string} query - The user's question or search query.
+ * @param {string} userId - The unique identifier for the user, used for accessing their specific RAG storage.
+ * @returns {Promise<SearchCompleteEventData>} A promise that resolves to the final citation-backed response report.
+ * @throws {Error} If a critical workflow execution failure occurs, such as a missing index store.
  */
 export async function runSearchWorkflow(query, userId) {
   try {
