@@ -13,23 +13,22 @@ const optimizeChain = async (chainId, userId) => {
   try {
     logger.info(`LangchainOptimizer: running diagnostics on chain ${chainId}`);
 
-    // Fetch the chain and its last 15 executions
-    // Added .lean() and .select() to retrieve only required fields, minimizing memory and network overhead.
-    const chain = await LangchainChain.findById(chainId)
-      .select('name description steps')
-      .lean();
+    // Optimize performance by executing independent database queries in parallel using Promise.all.
+    // Both queries utilize .lean() and .select() to minimize memory footprint and network overhead.
+    const [chain, executions] = await Promise.all([
+      LangchainChain.findById(chainId)
+        .select('name description steps')
+        .lean(),
+      LangchainExecution.find({ chainId, userId })
+        .select('status totalDurationMs stepsExecution createdAt')
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean()
+    ]);
+
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
-
-    // For optimal performance with this query, consider adding a compound index to the LangchainExecution model:
-    // { chainId: 1, userId: 1, createdAt: -1 }
-    // Added .select() to retrieve only required fields, minimizing memory and network overhead.
-    const executions = await LangchainExecution.find({ chainId, userId })
-      .select('status totalDurationMs stepsExecution createdAt')
-      .sort({ createdAt: -1 })
-      .limit(15)
-      .lean();
 
     if (executions.length === 0) {
       return {

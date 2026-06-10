@@ -8,9 +8,11 @@ const storage = new Storage();
 /**
  * Creates a brand new Google Cloud Storage (GCS) bucket.
  * 
- * @param {string} bucketName - Name of the bucket to create
- * @param {string} [location] - Location of the bucket (e.g. 'us-central1')
- * @returns {Promise<object>} Bucket creation report
+ * @security Requires `storage.buckets.create` permission (typically provided by the `roles/storage.admin` role).
+ * @param {string} bucketName - Name of the bucket to create. Must be globally unique across GCS.
+ * @param {string} [location='us-central1'] - Geographic location of the bucket (e.g., 'us-central1', 'us', 'eu').
+ * @returns {Promise<{success: boolean, bucketName: string, location: string, created: string}>} Bucket creation report containing metadata.
+ * @throws {Error} If the bucket creation fails or if the bucket name is already taken.
  */
 const createBucket = async (bucketName, location = 'us-central1') => {
   try {
@@ -36,11 +38,14 @@ const createBucket = async (bucketName, location = 'us-central1') => {
 /**
  * Generates a secure, temporary pre-signed URL to read or write a file in GCS.
  * 
- * @param {string} bucketName - Bucket name
- * @param {string} fileName - File name / GCS object path
- * @param {string} [action] - 'read' or 'write' (read allows download, write allows upload directly)
- * @param {number} [expiresMinutes] - Expiration duration in minutes (defaults to 15)
- * @returns {Promise<object>} Pre-signed URL report
+ * @security Requires the service account to have the `iam.serviceAccounts.signBlob` permission (typically via `roles/iam.serviceAccountTokenCreator` role) to sign URLs.
+ * @multi-tenant Ensure the `fileName` includes a tenant-specific prefix (e.g., `tenants/{tenantId}/uploads/{fileId}`) to enforce logical multi-tenant isolation.
+ * @param {string} bucketName - Name of the target GCS bucket.
+ * @param {string} fileName - File path/object key inside the bucket.
+ * @param {'read'|'write'} [action='read'] - The allowed action. 'read' allows downloading/viewing, 'write' allows uploading directly.
+ * @param {number} [expiresMinutes=15] - Expiration duration in minutes.
+ * @returns {Promise<{success: boolean, bucketName: string, fileName: string, action: 'read'|'write', url: string, expiresAt: Date}>} Pre-signed URL report.
+ * @throws {Error} If validation fails (invalid action or expiration) or if GCS signed URL generation fails.
  */
 const generateSignedUrl = async (bucketName, fileName, action = 'read', expiresMinutes = 15) => {
   try {
@@ -85,11 +90,14 @@ const generateSignedUrl = async (bucketName, fileName, action = 'read', expiresM
 };
 
 /**
- * Lists metadata files inside a GCS storage bucket.
+ * Lists metadata files inside a GCS storage bucket, optionally filtered by a prefix.
  * 
- * @param {string} bucketName - Bucket name
- * @param {string} [prefix] - Optional prefix directory filter (e.g. 'users/123/')
- * @returns {Promise<object>} Listed files report
+ * @security Requires `storage.objects.list` permission (typically provided by `roles/storage.objectViewer` or `roles/storage.objectAdmin` roles).
+ * @multi-tenant To enforce tenant isolation, always pass the tenant's unique directory prefix (e.g., `tenants/{tenantId}/`) as the `prefix` parameter.
+ * @param {string} bucketName - Name of the GCS bucket.
+ * @param {string} [prefix=''] - Optional prefix directory filter (e.g., 'users/123/').
+ * @returns {Promise<{success: boolean, bucketName: string, prefix: string, files: Array<{name: string, id: string, size: number, updated: string, mimeType: string}>}>} Listed files report.
+ * @throws {Error} If listing files fails.
  */
 const listFiles = async (bucketName, prefix = '') => {
   try {
@@ -118,6 +126,17 @@ const listFiles = async (bucketName, prefix = '') => {
   }
 };
 
+/**
+ * Service for interacting with Google Cloud Storage (GCS).
+ * Provides utility functions for bucket creation, generating pre-signed URLs, and listing files.
+ * 
+ * @requires Google Cloud SDK credentials configured via `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+ * @security IAM Roles Required:
+ *   - `roles/storage.admin` (for bucket creation)
+ *   - `roles/storage.objectAdmin` or `roles/storage.objectViewer` (for listing and generating signed URLs)
+ *   - `roles/iam.serviceAccountTokenCreator` (required on the service account itself to sign URLs)
+ * @multi-tenant For multi-tenant isolation, it is recommended to use a single bucket with tenant-specific prefixes (e.g., `tenant-id/path/to/file`) rather than creating separate buckets per tenant, unless strict physical isolation is required.
+ */
 export const GcpStorageService = {
   createBucket,
   generateSignedUrl,

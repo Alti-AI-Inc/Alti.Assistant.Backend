@@ -14,6 +14,19 @@ import { llm } from './llm.js';
  *   set of questions if an error occurs during generation.
  */
 export const generateVideoClarifyingQuestions = async (initialPrompt) => {
+  const fallbackQuestions = [
+    'What is the main subject or scene in your video?',
+    'What visual style do you prefer (realistic, animated, cinematic, artistic)?',
+    'How long should the video be (in seconds)?',
+    'What kind of movement or action should happen in the video?',
+    "What's the desired mood or atmosphere?",
+    'Should there be any specific camera movements or angles?',
+  ];
+
+  if (!initialPrompt || typeof initialPrompt !== 'string' || !initialPrompt.trim()) {
+    return fallbackQuestions;
+  }
+
   const parser = new JsonOutputParser();
   const prompt = PromptTemplate.fromTemplate(
     `A user wants to generate a video. Their initial idea is: "{prompt}".
@@ -31,21 +44,13 @@ export const generateVideoClarifyingQuestions = async (initialPrompt) => {
   const chain = prompt.pipe(llm).pipe(parser);
   try {
     const result = await chain.invoke({
-      prompt: initialPrompt,
+      prompt: initialPrompt.trim(),
       format_instructions: parser.getFormatInstructions(),
     });
-    return result.questions || [];
+    return result && Array.isArray(result.questions) ? result.questions : fallbackQuestions;
   } catch (error) {
     console.error('Error generating video clarifying questions:', error);
-    // Fallback questions in case of an error
-    return [
-      'What is the main subject or scene in your video?',
-      'What visual style do you prefer (realistic, animated, cinematic, artistic)?',
-      'How long should the video be (in seconds)?',
-      'What kind of movement or action should happen in the video?',
-      "What's the desired mood or atmosphere?",
-      'Should there be any specific camera movements or angles?',
-    ];
+    return fallbackQuestions;
   }
 };
 
@@ -59,7 +64,10 @@ export const generateVideoClarifyingQuestions = async (initialPrompt) => {
  *   is deemed finished based on their response, `false` otherwise.
  */
 export const isUserFinishedVideo = async (userResponse) => {
-  if (!userResponse) return false;
+  if (!userResponse || typeof userResponse !== 'string' || !userResponse.trim()) {
+    return false;
+  }
+
   const prompt = PromptTemplate.fromTemplate(
     `Analyze the user's response to determine if they are finished providing details for the video.
         The user has been answering clarifying questions about their video concept.
@@ -78,13 +86,13 @@ export const isUserFinishedVideo = async (userResponse) => {
   try {
     const chain = prompt.pipe(llm);
     const result = await chain.invoke({
-      userResponse: userResponse,
+      userResponse: userResponse.trim(),
     });
 
-    const cleanResult = result.content
-      ? result.content.trim().toLowerCase()
-      : result.trim().toLowerCase();
-    return cleanResult === 'true';
+    const rawContent = result && typeof result === 'object' && result.content !== undefined ? result.content : result;
+    const cleanResult = String(rawContent || '').trim().toLowerCase();
+    
+    return cleanResult === 'true' || cleanResult.includes('true') || cleanResult.startsWith('yes');
   } catch (error) {
     console.error('Error checking if user is finished with video:', error);
     // If there's an error, assume they're not finished to allow more input
@@ -109,6 +117,16 @@ export const updateVideoRefinedPrompt = async (
   userResponse,
   conversationHistory
 ) => {
+  const safeCurrentPrompt = (currentPrompt || '').trim();
+  const safeUserResponse = (userResponse || '').trim();
+  const safeHistory = Array.isArray(conversationHistory) ? conversationHistory.slice(-6) : [];
+
+  if (!safeCurrentPrompt && !safeUserResponse) {
+    return '';
+  }
+  if (!safeCurrentPrompt) return safeUserResponse;
+  if (!safeUserResponse) return safeCurrentPrompt;
+
   const prompt = PromptTemplate.fromTemplate(
     `You are helping to refine a video generation prompt. 
         
@@ -131,16 +149,17 @@ export const updateVideoRefinedPrompt = async (
   try {
     const chain = prompt.pipe(llm);
     const result = await chain.invoke({
-      currentPrompt: currentPrompt,
-      userResponse: userResponse,
-      conversationHistory: JSON.stringify(conversationHistory.slice(-6)), // Last 6 messages for context
+      currentPrompt: safeCurrentPrompt,
+      userResponse: safeUserResponse,
+      conversationHistory: JSON.stringify(safeHistory),
     });
 
-    return result.content || result;
+    const finalPrompt = result && typeof result === 'object' && result.content !== undefined ? result.content : result;
+    return String(finalPrompt || '').trim() || `${safeCurrentPrompt}. ${safeUserResponse}`;
   } catch (error) {
     console.error('Error updating video refined prompt:', error);
     // Fallback: simple concatenation if LLM fails
-    return `${currentPrompt}. ${userResponse}`;
+    return `${safeCurrentPrompt}. ${safeUserResponse}`;
   }
 };
 
@@ -155,6 +174,11 @@ export const updateVideoRefinedPrompt = async (
  *   ready for video generation. In case of an error, it returns the refined prompt as-is.
  */
 export const compileVideoFinalPrompt = async (refinedPrompt) => {
+  const safeRefinedPrompt = (refinedPrompt || '').trim();
+  if (!safeRefinedPrompt) {
+    return '';
+  }
+
   const prompt = PromptTemplate.fromTemplate(
     `Take this refined video concept and create a final, optimized prompt for video generation:
         
@@ -176,13 +200,14 @@ export const compileVideoFinalPrompt = async (refinedPrompt) => {
   try {
     const chain = prompt.pipe(llm);
     const result = await chain.invoke({
-      refinedPrompt: refinedPrompt,
+      refinedPrompt: safeRefinedPrompt,
     });
 
-    return result.content || result;
+    const finalPrompt = result && typeof result === 'object' && result.content !== undefined ? result.content : result;
+    return String(finalPrompt || '').trim() || safeRefinedPrompt;
   } catch (error) {
     console.error('Error compiling final video prompt:', error);
     // Fallback: return the refined prompt as-is if LLM fails
-    return refinedPrompt;
+    return safeRefinedPrompt;
   }
 };
