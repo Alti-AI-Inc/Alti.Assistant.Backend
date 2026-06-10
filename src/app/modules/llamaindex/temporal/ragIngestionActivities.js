@@ -67,7 +67,7 @@ const tenantManagementService = {
   async suspendTenant(tenantId) {
     if (this._tenants.has(tenantId)) {
       this._tenants.get(tenantId).status = 'suspended';
-      logger.info({ message: `Tenant ${tenantId} has been suspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
+      logger.info({ severity: 'INFO', message: `Tenant ${tenantId} has been suspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
       return true;
     }
     return false;
@@ -77,7 +77,7 @@ const tenantManagementService = {
   async unsuspendTenant(tenantId) {
     if (this._tenants.has(tenantId)) {
       this._tenants.get(tenantId).status = 'active';
-      logger.info({ message: `Tenant ${tenantId} has been unsuspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
+      logger.info({ severity: 'INFO', message: `Tenant ${tenantId} has been unsuspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
       return true;
     }
     return false;
@@ -111,11 +111,11 @@ async function getResolvedConfig(tenantId, invoker) {
   // unless they are a platform owner. The tenant quota acts as the ultimate ceiling.
   if (invoker?.role !== 'platform_owner') {
     if (tenantConfig.storageQuotaMb && resolved.storageQuotaMb > tenantConfig.storageQuotaMb) {
-        logger.warn({ message: `User quota for ${invoker.userId} capped by tenant limit.`, tenantId, userQuota: resolved.storageQuotaMb, tenantQuota: tenantConfig.storageQuotaMb });
+        logger.warn({ severity: 'WARNING', message: `User quota for ${invoker.userId} capped by tenant limit.`, tenantId, userQuota: resolved.storageQuotaMb, tenantQuota: tenantConfig.storageQuotaMb });
         resolved.storageQuotaMb = tenantConfig.storageQuotaMb;
     }
     if (tenantConfig.maxDocSizeMb && resolved.maxDocSizeMb > tenantConfig.maxDocSizeMb) {
-        logger.warn({ message: `User file size limit for ${invoker.userId} capped by tenant limit.`, tenantId, userLimit: resolved.maxDocSizeMb, tenantLimit: tenantConfig.maxDocSizeMb });
+        logger.warn({ severity: 'WARNING', message: `User file size limit for ${invoker.userId} capped by tenant limit.`, tenantId, userLimit: resolved.maxDocSizeMb, tenantLimit: tenantConfig.maxDocSizeMb });
         resolved.maxDocSizeMb = tenantConfig.maxDocSizeMb;
     }
   }
@@ -157,7 +157,7 @@ function getSafePersistDir(tenantId) {
  */
 export async function downloadAndLoadFileActivity(filePath, originalName, docId, tenantId, invoker) {
   const activityName = 'downloadAndLoadFileActivity';
-  logger.info({ message: 'Starting document load and validation', activity: activityName, tenantId, docId, originalName, invoker });
+  logger.info({ severity: 'INFO', message: 'Starting document load and validation', activity: activityName, tenantId, docId, originalName, invoker });
 
   try {
     // Platform Owner Feature: Enforce tenant status and limits with override capability.
@@ -167,7 +167,7 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId,
     const tenantStatus = await tenantManagementService.getTenantStatus(tenantId);
     if (tenantStatus === 'suspended') {
       if (isPlatformOwner) {
-        logger.warn({ message: 'Platform Owner overriding suspension for tenant.', activity: activityName, tenantId, docId, audit: true });
+        logger.warn({ severity: 'WARNING', message: 'Platform Owner overriding suspension for tenant.', activity: activityName, tenantId, docId, audit: true });
       } else {
         throw new Error(`Operation forbidden: Tenant '${tenantId}' is suspended.`);
       }
@@ -184,7 +184,7 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId,
 
     if (fileSizeMb > resolvedConfig.maxDocSizeMb) {
       if (isPlatformOwner) {
-        logger.warn({ message: 'Platform Owner overriding file size limit for document.', activity: activityName, tenantId, docId, fileSizeMb, limitMb: resolvedConfig.maxDocSizeMb, audit: true });
+        logger.warn({ severity: 'WARNING', message: 'Platform Owner overriding file size limit for document.', activity: activityName, tenantId, docId, fileSizeMb, limitMb: resolvedConfig.maxDocSizeMb, audit: true });
       } else {
         throw new Error(`File size (${fileSizeMb.toFixed(2)}MB) exceeds the limit of ${resolvedConfig.maxDocSizeMb}MB for user '${invoker.userId}' in tenant '${tenantId}'.`);
       }
@@ -197,7 +197,7 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId,
       originalName
     };
   } catch (error) {
-    logger.error({ message: 'downloadAndLoadFileActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
+    logger.error({ severity: 'ERROR', message: 'downloadAndLoadFileActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -209,7 +209,7 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId,
  */
 export async function parseToMarkdownActivity(filePath, originalName, docId, tenantId, invoker) {
   const activityName = 'parseToMarkdownActivity';
-  logger.info({ message: 'High-fidelity parsing document', activity: activityName, tenantId, docId, originalName, invoker });
+  logger.info({ severity: 'INFO', message: 'High-fidelity parsing document', activity: activityName, tenantId, docId, originalName, invoker });
   try {
     const documents = await extractTextAndBuildDocuments(filePath, originalName, docId);
     if (!documents || documents.length === 0) {
@@ -224,7 +224,7 @@ export async function parseToMarkdownActivity(filePath, originalName, docId, ten
       isMarkdown: documents.some(d => d.metadata?.useMarkdownParser)
     };
   } catch (error) {
-    logger.error({ message: 'parseToMarkdownActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
+    logger.error({ severity: 'ERROR', message: 'parseToMarkdownActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -236,7 +236,7 @@ export async function parseToMarkdownActivity(filePath, originalName, docId, ten
  */
 export async function chunkAndEmbedActivity(documents, originalName, docId, tenantId, invoker) {
   const activityName = 'chunkAndEmbedActivity';
-  logger.info({ message: 'Segmenting and generating vector embeddings', activity: activityName, tenantId, docId, originalName, invoker });
+  logger.info({ severity: 'INFO', message: 'Segmenting and generating vector embeddings', activity: activityName, tenantId, docId, originalName, invoker });
   try {
     // BUG FIX: Use 'documents' passed as an argument instead of from a shared global state.
     if (!documents) {
@@ -249,23 +249,23 @@ export async function chunkAndEmbedActivity(documents, originalName, docId, tena
     // 1. Structure-aware Node Parser
     if (hasMarkdown) {
       transformations.push(new MarkdownNodeParser());
-      logger.info({ message: 'Using MarkdownNodeParser for structure-aware ingestion.', component: 'IngestionPipeline', tenantId, docId });
+      logger.info({ severity: 'INFO', message: 'Using MarkdownNodeParser for structure-aware ingestion.', component: 'IngestionPipeline', tenantId, docId });
     } else {
       transformations.push(new SentenceWindowNodeParser({
         windowSize: 3,
         windowMetadataKey: '_window',
         originalTextMetadataKey: '_original_text',
       }));
-      logger.info({ message: 'Using SentenceWindowNodeParser.', component: 'IngestionPipeline', tenantId, docId });
+      logger.info({ severity: 'INFO', message: 'Using SentenceWindowNodeParser.', component: 'IngestionPipeline', tenantId, docId });
     }
 
     // 2. High-performance LLM-driven metadata extraction
     try {
       transformations.push(new TitleExtractor({ llm: Settings.llm, nodes: 3 }));
       transformations.push(new KeywordExtractor({ llm: Settings.llm, keywords: 5 }));
-      logger.info({ message: 'Metadata TitleExtractor and KeywordExtractor active.', component: 'IngestionPipeline', tenantId, docId });
+      logger.info({ severity: 'INFO', message: 'Metadata TitleExtractor and KeywordExtractor active.', component: 'IngestionPipeline', tenantId, docId });
     } catch (metaErr) {
-      logger.warn({ message: 'Metadata extractors configuration warning', error: metaErr.message, component: 'IngestionPipeline', tenantId, docId });
+      logger.warn({ severity: 'WARNING', message: 'Metadata extractors configuration warning', error: metaErr.message, component: 'IngestionPipeline', tenantId, docId });
     }
 
     // 3. Vector Embedding generation via text-embedding-004
@@ -281,7 +281,7 @@ export async function chunkAndEmbedActivity(documents, originalName, docId, tena
       nodeCount: nodes.length
     };
   } catch (error) {
-    logger.error({ message: 'chunkAndEmbedActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
+    logger.error({ severity: 'ERROR', message: 'chunkAndEmbedActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -293,7 +293,7 @@ export async function chunkAndEmbedActivity(documents, originalName, docId, tena
  */
 export async function commitToVectorStoreActivity(nodes, originalName, docId, tenantId, invoker) {
   const activityName = 'commitToVectorStoreActivity';
-  logger.info({ message: 'Writing index and committing vector storage', activity: activityName, tenantId, docId, invoker });
+  logger.info({ severity: 'INFO', message: 'Writing index and committing vector storage', activity: activityName, tenantId, docId, invoker });
   try {
     // BUG FIX: Use 'nodes' passed as an argument.
     if (!nodes) {
@@ -314,7 +314,7 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
       }
     } catch (err) {
       if (err.code !== 'ENOENT') {
-        logger.warn({ message: 'Could not read or parse existing vector store, will create new one.', error: err.message, activity: activityName, tenantId, vectorStorePath });
+        logger.warn({ severity: 'WARNING', message: 'Could not read or parse existing vector store, will create new one.', error: err.message, activity: activityName, tenantId, vectorStorePath });
       }
     }
 
@@ -333,7 +333,7 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
 
     if (newStoreSizeMb > resolvedConfig.storageQuotaMb) {
       if (isPlatformOwner) {
-        logger.warn({ message: 'Platform Owner overriding storage quota for tenant.', activity: activityName, tenantId, newStoreSizeMb, limitMb: resolvedConfig.storageQuotaMb, audit: true });
+        logger.warn({ severity: 'WARNING', message: 'Platform Owner overriding storage quota for tenant.', activity: activityName, tenantId, newStoreSizeMb, limitMb: resolvedConfig.storageQuotaMb, audit: true });
       } else {
         throw new Error(`Commit failed: Adding this document would exceed the storage quota of ${resolvedConfig.storageQuotaMb}MB for tenant '${tenantId}'. Current usage: ${newStoreSizeMb.toFixed(2)}MB.`);
       }
@@ -359,7 +359,7 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
     });
 
     await saveManifest(persistDir, manifest);
-    logger.info({ message: 'Ingestion committed successfully. Manifest registered.', activity: activityName, tenantId, docId, nodeCount: nodes.length });
+    logger.info({ severity: 'INFO', message: 'Ingestion committed successfully. Manifest registered.', activity: activityName, tenantId, docId, nodeCount: nodes.length });
 
     return {
       success: true,
@@ -367,7 +367,7 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
       docId
     };
   } catch (error) {
-    logger.error({ message: 'commitToVectorStoreActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
+    logger.error({ severity: 'ERROR', message: 'commitToVectorStoreActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -377,7 +377,7 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
  */
 export async function cleanupFailedIngestionActivity(originalName, docId, tenantId, invoker) {
   const activityName = 'cleanupFailedIngestionActivity';
-  logger.warn({ message: 'Reverting RAG vectors and purging records', activity: activityName, saga: true, tenantId, docId, invoker });
+  logger.warn({ severity: 'WARNING', message: 'Reverting RAG vectors and purging records', activity: activityName, saga: true, tenantId, docId, invoker });
   try {
     const persistDir = getSafePersistDir(tenantId);
     const vectorStorePath = path.join(persistDir, 'vector_store.json');
@@ -390,13 +390,13 @@ export async function cleanupFailedIngestionActivity(originalName, docId, tenant
       if (Array.isArray(currentNodes)) {
         const cleanedNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName && n?.metadata?.docId !== docId);
         await fsPromises.writeFile(vectorStorePath, JSON.stringify(cleanedNodes, null, 2), 'utf-8');
-        logger.info({ message: 'Successfully purged transaction records from vector store.', activity: activityName, saga: true, tenantId, docId });
+        logger.info({ severity: 'INFO', message: 'Successfully purged transaction records from vector store.', activity: activityName, saga: true, tenantId, docId });
       }
     } catch (err) {
       if (err.code === 'ENOENT') {
-        logger.info({ message: 'Vector store file does not exist, no cleanup needed.', activity: activityName, saga: true, tenantId });
+        logger.info({ severity: 'INFO', message: 'Vector store file does not exist, no cleanup needed.', activity: activityName, saga: true, tenantId });
       } else {
-        logger.warn({ message: 'Could not revert vector store database records.', error: err.message, activity: activityName, saga: true, tenantId });
+        logger.warn({ severity: 'WARNING', message: 'Could not revert vector store database records.', error: err.message, activity: activityName, saga: true, tenantId });
       }
     }
 
@@ -409,7 +409,7 @@ export async function cleanupFailedIngestionActivity(originalName, docId, tenant
         manifest.documents[existingDocIdx].isProcessed = false;
         manifest.documents[existingDocIdx].processingError = 'Temporal execution crashed, transaction rolled back.';
         await saveManifest(persistDir, manifest);
-        logger.info({ message: 'Reverted document index manifest registers to failed state.', activity: activityName, saga: true, tenantId, docId });
+        logger.info({ severity: 'INFO', message: 'Reverted document index manifest registers to failed state.', activity: activityName, saga: true, tenantId, docId });
       }
     }
 
@@ -421,7 +421,7 @@ export async function cleanupFailedIngestionActivity(originalName, docId, tenant
       reverted: true
     };
   } catch (error) {
-    logger.error({ message: 'Compensating transaction failed', error: error.message, stack: error.stack, activity: activityName, saga: true, tenantId, docId });
+    logger.error({ severity: 'ERROR', message: 'Compensating transaction failed', error: error.message, stack: error.stack, activity: activityName, saga: true, tenantId, docId });
     throw error;
   }
 }

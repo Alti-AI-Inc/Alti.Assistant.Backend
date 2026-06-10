@@ -374,6 +374,49 @@ const validateToolArgs = (args, schema) => {
   return true;
 };
 
+// MANAGER PLATFORM IMPROVEMENT: Placeholder for a service that checks user permissions.
+// In a real application, this would query a database or an authentication/authorization service (e.g., Auth0, Okta).
+async function hasPermission(entityId, toolSlug) {
+  // TODO: Implement actual role-based access control (RBAC) logic.
+  // This function is critical for ensuring managers can perform actions (like inviting users)
+  // that regular members cannot.
+  // Example:
+  // 1. Fetch user/role details from your database using `entityId`.
+  // 2. Check a permissions table to see if the user's role is allowed to use `toolSlug`.
+  console.log(`[RBAC] Checking permission for entity '${entityId}' to use tool '${toolSlug}'.`);
+  // This is a simplified placeholder. A real implementation would be more robust.
+  // For example, a manager's entityId might be prefixed or their role stored in a DB.
+  const isManager = entityId.includes('manager');
+  if (isManager) return true; // Managers can do anything in this example.
+
+  // Prevent non-managers from performing sensitive or management-related tasks.
+  if (toolSlug.includes('invite') || toolSlug.includes('delete') || toolSlug.includes('update_role')) {
+      return false;
+  }
+  return true; // Allow other non-sensitive tools by default.
+}
+
+// MANAGER PLATFORM IMPROVEMENT: Placeholder for a service that checks usage against plan limits.
+// In a real application, this would connect to a billing/subscription management system (e.g., Stripe).
+async function checkUsageLimits(entityId, requestedExecutions) {
+    // TODO: Implement actual usage and quota checking logic.
+    // This function ensures that workspaces do not exceed their subscribed plan limits.
+    // Example:
+    // 1. Fetch the workspace's plan and current monthly usage from your database using `entityId`.
+    // 2. Compare `current_usage + requestedExecutions` against the `plan_limit`.
+    console.log(`[Usage] Checking if entity '${entityId}' can execute ${requestedExecutions} more tools.`);
+    // For now, we'll use a simple hardcoded limit for demonstration.
+    const usage = 50; // Example: Fetched from DB
+    const limit = 100; // Example: Fetched from DB based on plan
+    if (usage + requestedExecutions > limit) {
+        return {
+            allowed: false,
+            reason: `Execution limit exceeded. Plan allows ${limit} executions, but this request would bring usage to ${usage + requestedExecutions}.`
+        };
+    }
+    return { allowed: true };
+}
+
 /**
  * Executes multiple tool calls sequentially for a specific entity using the Composio SDK.
  * This function operates within a multi-tenant context, executing actions on behalf of the provided entityId.
@@ -404,6 +447,18 @@ export async function executeMultipleTools(
     }));
   }
 
+  // MANAGER PLATFORM IMPROVEMENT: Enforce plan limits before execution.
+  // This prevents users from exceeding their subscribed quota for tool executions.
+  const usageCheck = await checkUsageLimits(entityId, functionCalls.length);
+  if (!usageCheck.allowed) {
+    console.error(`[Usage] Entity '${entityId}' exceeded plan limits. Reason: ${usageCheck.reason}`);
+    return functionCalls.map((funcCall) => ({
+      tool: funcCall.name,
+      status: 'error',
+      error: `Plan limit exceeded. Please upgrade your plan to execute more actions.`,
+    }));
+  }
+
   const results = [];
   const composio = new Composio({
     apiKey: config.composio.orgApiKey,
@@ -411,20 +466,19 @@ export async function executeMultipleTools(
     toolkitVersions,
   });
 
-  console.log('Entity before tool execution:', entityId);
+  console.log(`[Execution] Starting tool execution for entity: ${entityId}`);
   for (const funcCall of functionCalls) {
-    console.log(`Attempting to call tool ${funcCall.name}`);
+    console.log(`[Execution] Attempting to call tool ${funcCall.name} for entity ${entityId}`);
     const functionCall = {
       name: funcCall.name || '',
       args: funcCall.args || {},
     };
 
-    // SECURITY PATCH: Validate LLM-generated arguments against the tool's schema
-    // before execution to prevent injection attacks or unexpected behavior.
+    // SECURITY PATCH: Find the full tool definition to validate against.
     const toolDef = toolDefinitions.find((t) => t.slug === functionCall.name);
     if (!toolDef) {
       console.error(
-        `Security Warning: Attempted to execute a non-existent or disallowed tool: '${functionCall.name}'. Skipping.`
+        `[Security] Entity '${entityId}' attempted to execute a non-existent or disallowed tool: '${functionCall.name}'. Skipping.`
       );
       results.push({
         tool: functionCall.name,
@@ -434,9 +488,27 @@ export async function executeMultipleTools(
       continue;
     }
 
+    // MANAGER PLATFORM IMPROVEMENT: Enforce Role-Based Access Control (RBAC) for each tool.
+    // This ensures that users (e.g., members vs. managers) can only execute tools
+    // they are authorized to use, preventing unauthorized invitations, role changes, etc.
+    const isAuthorized = await hasPermission(entityId, functionCall.name);
+    if (!isAuthorized) {
+      console.warn(
+        `[RBAC] Authorization DENIED for entity '${entityId}' to use tool '${functionCall.name}'. Skipping.`
+      );
+      results.push({
+        tool: functionCall.name,
+        status: 'error',
+        error: `You do not have permission to perform this action.`,
+      });
+      continue;
+    }
+
+    // SECURITY PATCH: Validate LLM-generated arguments against the tool's schema
+    // before execution to prevent injection attacks or unexpected behavior.
     if (!validateToolArgs(functionCall.args, toolDef.input_parameters)) {
       console.error(
-        `Security Warning: Invalid arguments for tool '${functionCall.name}'. Skipping execution.`,
+        `[Security] Invalid arguments for tool '${functionCall.name}' from entity '${entityId}'. Skipping execution.`,
         { args: functionCall.args }
       );
       results.push({
@@ -453,18 +525,19 @@ export async function executeMultipleTools(
         functionCall
       );
       console.log(
-        `Result for ${funcCall.name}:`,
+        `[Execution] Success for ${funcCall.name} by entity ${entityId}:`,
         JSON.stringify(result, null, 2)
       );
       results.push({ tool: funcCall.name, status: 'success', result });
     } catch (error) {
-      console.error(`Error executing tool ${funcCall.name}:`, error);
+      console.error(`[Execution] Error for tool ${funcCall.name} by entity ${entityId}:`, error);
       // Push error information to results array to indicate failure for this specific tool,
       // but do not rethrow to allow other tools to attempt execution.
       results.push({
         tool: funcCall.name,
         status: 'error',
-        error: error.message,
+        // Return a generic error to the user to avoid leaking implementation details.
+        error: `An error occurred while trying to perform this action.`,
       });
     }
   }
