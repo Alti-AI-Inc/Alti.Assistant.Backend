@@ -199,13 +199,14 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
     // Use Gemini with Google Search Grounding — replaces Tavily + Groq
     // BUG FIX: The `contents` field for `generateContent` typically expects an array of Part objects.
     // Using `[{ text: prompt }]` is more explicit and robust for the Gemini API.
+    // BUG FIX: In the @google/genai SDK, configuration options like temperature and tools must be passed inside the `config` object.
     const result = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ text: prompt }],
-      generationConfig: { // Renamed config to generationConfig for clarity and consistency with GenAI SDK
+      config: {
         temperature: 0.1,
+        tools: [{ googleSearch: {} }],
       },
-      tools: [{ googleSearch: {} }], // Tools are typically outside generationConfig
     });
 
     const candidate = result.candidates?.[0];
