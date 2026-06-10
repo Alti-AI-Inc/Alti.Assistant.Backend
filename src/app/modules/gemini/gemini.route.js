@@ -17,6 +17,10 @@ const catchAsync = fn => (req, res, next) => {
  */
 const router = express.Router();
 
+// =================================================================
+// ==                      USER-FACING ROUTES                     ==
+// =================================================================
+
 /**
  * @swagger
  * /api/v1/gemini/get-response:
@@ -155,6 +159,220 @@ router.post(
   // suggesting a different model version than intended for the '/flash' endpoint.
   // Enterprise Telemetry & Error Handling Patch: Wrapped the async controller with catchAsync to ensure proper error propagation.
   catchAsync(GeminiAiController.GeminiFlashAiGetResponse)
+);
+
+// =================================================================
+// ==           PLATFORM OWNER / SUPER ADMIN ROUTES               ==
+// =================================================================
+// PLATFORM OWNER ENHANCEMENT: Added a dedicated section for Super Admin routes
+// to provide global oversight, configuration, and management of the Gemini AI service
+// across all tenants. These endpoints are strictly protected and accessible only
+// by users with the SUPER_ADMIN role.
+
+/**
+ * @swagger
+ * /api/v1/gemini/admin/stats:
+ *   get:
+ *     summary: Get global Gemini AI usage statistics.
+ *     description: Retrieves platform-wide usage statistics, such as total requests, token counts, and usage by tenant.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Global statistics retrieved successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/stats',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.getGlobalStats)
+);
+
+/**
+ * @swagger
+ * /api/v1/gemini/admin/logs:
+ *   get:
+ *     summary: Get global Gemini AI interaction logs.
+ *     description: Retrieves a paginated list of all AI interactions across the platform. Supports filtering by tenant, user, and date range.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of logs per page.
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Filter logs by a specific tenant ID.
+ *     responses:
+ *       200:
+ *         description: Global logs retrieved successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/logs',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.getGlobalLogs)
+);
+
+/**
+ * @swagger
+ * /api/v1/gemini/admin/config:
+ *   get:
+ *     summary: Get platform-wide Gemini AI configuration.
+ *     description: Retrieves the current system-wide configuration for the Gemini AI service, such as enabled models, global rate limits, and feature flags.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Configuration retrieved successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *   put:
+ *     summary: Update platform-wide Gemini AI configuration.
+ *     description: Updates the system-wide configuration for the Gemini AI service. Allows the Platform Owner to change default models, adjust global limits, etc.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               defaultModel:
+ *                 type: string
+ *                 example: "gemini-1.5-pro-latest"
+ *               globalRequestLimit:
+ *                 type: number
+ *                 example: 10000
+ *     responses:
+ *       200:
+ *         description: Configuration updated successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/config',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.getPlatformConfig)
+);
+router.put(
+  '/admin/config',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.updatePlatformConfig)
+);
+
+/**
+ * @swagger
+ * /api/v1/gemini/admin/tenants/{tenantId}/suspend:
+ *   put:
+ *     summary: Suspend a tenant's access to Gemini AI.
+ *     description: Disables the Gemini AI service for a specific tenant.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to suspend.
+ *     responses:
+ *       200:
+ *         description: Tenant suspended successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.put(
+  '/admin/tenants/:tenantId/suspend',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.suspendTenantAccess)
+);
+
+/**
+ * @swagger
+ * /api/v1/gemini/admin/tenants/{tenantId}/unsuspend:
+ *   put:
+ *     summary: Unsuspend a tenant's access to Gemini AI.
+ *     description: Re-enables the Gemini AI service for a previously suspended tenant.
+ *                  Requires SUPER_ADMIN role.
+ *     tags:
+ *       - Gemini AI (Admin)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to unsuspend.
+ *     responses:
+ *       200:
+ *         description: Tenant unsuspended successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.put(
+  '/admin/tenants/:tenantId/unsuspend',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  catchAsync(GeminiAiController.unsuspendTenantAccess)
 );
 
 /**

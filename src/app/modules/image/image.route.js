@@ -80,6 +80,8 @@ const checkGuestUserOwnership = (req, res, next) => {
  *   post:
  *     summary: Generate an image based on a text prompt.
  *     description: Allows both authenticated users and guests to generate images.
+ *       The generated image is streamed directly to a GCS bucket, and a public URL is returned,
+ *       ensuring no files are written to the local container filesystem.
  *       This endpoint is subject to daily request limits and rate limiting.
  *     tags:
  *       - Image Generation
@@ -127,7 +129,7 @@ const checkGuestUserOwnership = (req, res, next) => {
  *                     imageUrl:
  *                       type: string
  *                       format: uri
- *                       example: "https://example.com/image/generated-image.png"
+ *                       example: "https://storage.googleapis.com/your-bucket/generated-image.png"
  *                     conversationId:
  *                       type: string
  *                       example: "65e7a2b3c4d5e6f7a8b9c0d1"
@@ -154,10 +156,84 @@ router.post(
 
 /**
  * @swagger
+ * /api/v1/image/generate-upload-url:
+ *   post:
+ *     summary: Generate a signed URL for direct image upload to GCS.
+ *     description: Creates a secure, short-lived URL that clients can use to upload an image file directly to Google Cloud Storage. This is the recommended first step for analyzing a user-uploaded image. After uploading, the client should call the `/analyze` endpoint with the public URL of the GCS object. This approach avoids server-side processing of file uploads, making the service stateless and scalable.
+ *     tags:
+ *       - Image Analysis
+ *     security:
+ *       - bearerAuth: []
+ *       - {} # Allows unauthenticated access
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - contentType
+ *             properties:
+ *               contentType:
+ *                 type: string
+ *                 description: "The MIME type of the file to be uploaded (e.g., 'image/jpeg', 'image/png')."
+ *                 example: "image/png"
+ *               guestUserId:
+ *                 type: string
+ *                 description: Optional ID of the guest user if no authentication token is provided. Required for guest uploads.
+ *                 example: "guest_12345"
+ *     responses:
+ *       200:
+ *         description: Signed URL generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Signed URL for upload generated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     uploadUrl:
+ *                       type: string
+ *                       format: uri
+ *                       description: The GCS v4 signed URL for the PUT request. The client should upload the file to this URL.
+ *                       example: "https://storage.googleapis.com/your-bucket-name/uploads/images/user-id/uuid.png?X-Goog-Algorithm=..."
+ *                     publicUrl:
+ *                       type: string
+ *                       format: uri
+ *                       description: The public URL of the object once uploaded. This URL should be passed to the /analyze endpoint.
+ *                       example: "https://storage.googleapis.com/your-bucket-name/uploads/images/user-id/uuid.png"
+ *       400:
+ *         description: Bad Request - Invalid content type or missing parameters.
+ *       401:
+ *         description: Unauthorized - Authentication required or failed.
+ *       429:
+ *         description: Too Many Requests - Rate limit exceeded.
+ *       500:
+ *         description: Internal Server Error.
+ */
+router.post(
+  '/generate-upload-url',
+  optionalAuth(),
+  extractTenantContext,
+  createRateLimiter(60, 5), // 60 URL generation requests per 5 minutes
+  validateRequest(ImageValidation.generateUploadUrlSchema), // Assumes a new validation schema exists for this route
+  imageController.generateUploadUrl // Assumes a new controller method exists to handle GCS signed URL generation
+);
+
+/**
+ * @swagger
  * /api/v1/image/analyze:
  *   post:
  *     summary: Analyze an image to extract information.
- *     description: Allows both authenticated users and guests to analyze images.
+ *     description: Allows both authenticated users and guests to analyze images from a public URL (e.g., a GCS public URL).
+ *       To analyze a local file, first obtain a signed upload URL from `/generate-upload-url`, upload the file, then provide the resulting public URL to this endpoint.
  *       This endpoint is subject to daily request limits and rate limiting.
  *     tags:
  *       - Image Analysis
@@ -177,7 +253,7 @@ router.post(
  *                 type: string
  *                 format: uri
  *                 description: The URL of the image to analyze.
- *                 example: "https://example.com/image/sample.png"
+ *                 example: "https://storage.googleapis.com/your-bucket/image/sample.png"
  *               conversationId:
  *                 type: string
  *                 description: Optional ID of an existing conversation to continue.
