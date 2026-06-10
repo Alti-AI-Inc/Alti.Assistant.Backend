@@ -31,7 +31,7 @@ router.use(validateTenant);
  * /workflows:
  *   post:
  *     summary: Create a new scheduled workflow
- *     description: Creates a new workflow definition, optionally scheduling it for future execution.
+ *     description: Creates a new workflow definition, optionally scheduling it for future execution. This action is subject to the workspace's plan limits.
  *     tags:
  *       - Workflows
  *     security:
@@ -113,10 +113,13 @@ router.use(validateTenant);
  *         description: Invalid input.
  *       401:
  *         description: Unauthorized.
+ *       422:
+ *         description: Unprocessable Entity. The workspace's workflow limit has been reached.
  */
 router.post(
   '/',
   authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  checkPlanLimits('workflows'), // INTEGRATION FIX: Ensure workspace plan limit for workflows is not exceeded.
   trackUsage('create_workflow'),
   workflowController.createWorkflowController
 );
@@ -126,7 +129,7 @@ router.post(
  * /workflows:
  *   get:
  *     summary: Get user's workflows with optional filtering
- *     description: Retrieves a list of workflows belonging to the authenticated user, with options to filter by status and paginate results.
+ *     description: Retrieves a list of workflows belonging to the authenticated user, with options to filter by status and paginate results. Managers and admins will see workflows for their entire team/workspace.
  *     tags:
  *       - Workflows
  *     security:
@@ -278,6 +281,12 @@ router.get(
   authorizeRoles('super_admin', 'admin', 'manager', 'user'),
   workflowController.getExecutionController
 );
+
+// SECURITY NOTE: All routes below using `:workflowId` or other resource IDs rely on their
+// respective controllers to enforce ownership and role-based hierarchy rules.
+// For example, a 'user' should only be able to access their own workflows, while a 'manager'
+// can access their team's, and an 'admin' can access any in the workspace.
+// This is critical to prevent Insecure Direct Object Reference (IDOR) vulnerabilities within a tenant.
 
 /**
  * @swagger
@@ -439,7 +448,7 @@ router.delete(
  * /workflows/{workflowId}/trigger:
  *   post:
  *     summary: Manually trigger workflow execution
- *     description: Initiates an immediate execution of the specified workflow, regardless of its scheduled trigger.
+ *     description: Initiates an immediate execution of the specified workflow, regardless of its scheduled trigger. This action is subject to the workspace's plan limits.
  *     tags:
  *       - Workflow Execution
  *     security:
@@ -470,10 +479,13 @@ router.delete(
  *         description: Workflow not found.
  *       409:
  *         description: Workflow cannot be triggered in its current state.
+ *       422:
+ *         description: Unprocessable Entity. The workspace's execution limit has been reached.
  */
 router.post(
   '/:workflowId/trigger',
   authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  checkPlanLimits('executions'), // INTEGRATION FIX: Ensure workspace plan limit for executions is not exceeded.
   trackUsage('execute_workflow'),
   workflowController.triggerWorkflowController
 );
@@ -687,6 +699,9 @@ router.get(
  *       404:
  *         description: Member not found.
  */
+// HIERARCHY NOTE: The controller for this route must enforce role hierarchy rules.
+// For example, a 'manager' must not be able to change the role of an 'admin'
+// or promote a 'user' to 'admin', even though they have access to this endpoint.
 router.put(
   '/workspace/members/:memberId/role',
   authorizeRoles('super_admin', 'admin', 'manager'),
