@@ -2,6 +2,8 @@ import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
+// SECURITY: Import the Redis-backed rate limiter to protect expensive endpoints.
+import { rateLimiter } from '../../../shared/rateLimiter.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 // User Experience Enhancement: Import a hypothetical usage service to enforce user-level limits.
@@ -232,6 +234,29 @@ const analyzeContent = async (
   isGuest = false,
   req = null
 ) => {
+  // SECURITY: Apply rate limiting at the entry point of this expensive operation.
+  // This protects against DDOS attacks and API abuse, preventing resource exhaustion
+  // and controlling costs associated with file processing and AI service calls.
+  if (isGuest) {
+    // Guest users are identified by IP and have a stricter limit.
+    await rateLimiter.limitByIp(req, {
+      points: 1, // Cost of this operation
+      duration: 60, // 1 minute window
+      maxPoints: 5, // Max 5 analysis requests per minute per IP
+      errorMessage:
+        'Too many analysis requests from this IP. Please try again later.',
+    });
+  } else {
+    // Authenticated users have a more lenient, user-ID-based limit.
+    await rateLimiter.limitByUserId(userId, {
+      points: 1,
+      duration: 60, // 1 minute window
+      maxPoints: 60, // Max 60 analysis requests per minute per user
+      errorMessage:
+        'You have made too many analysis requests. Please try again later.',
+    });
+  }
+
   try {
     // User Experience Enhancement: Check user-level usage limits before processing.
     // This provides immediate feedback if the user has exceeded their quota,
@@ -456,6 +481,16 @@ const analyzeContent = async (
  * @throws {ApiError} If the conversation is not found or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
+  // SECURITY: Apply rate limiting to protect the database from excessive read queries.
+  // This prevents a single user from overwhelming the service by repeatedly fetching history.
+  await rateLimiter.limitByUserId(userId, {
+    points: 1,
+    duration: 60, // 1 minute window
+    maxPoints: 120, // Max 120 history requests per minute per user
+    errorMessage:
+      'Too many requests for conversation history. Please try again later.',
+  });
+
   try {
     // Optimization Recommendation:
     // For read-only operations like fetching conversation history, adding .lean()
