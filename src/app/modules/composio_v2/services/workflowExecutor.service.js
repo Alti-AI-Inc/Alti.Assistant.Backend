@@ -151,12 +151,14 @@ class WorkflowExecutor {
         'info',
         `Executing single step: ${step.app} -> ${step.action}`
       );
+      
+      const startTime = new Date(); // Capture start time for duration calculation
       await execution.updateProgress(1, {
         step: 1,
         app: step.app,
         action: step.action,
         status: 'running',
-        startTime: new Date(),
+        startTime: startTime,
         parameters: step.parameters,
       });
 
@@ -178,14 +180,17 @@ class WorkflowExecutor {
         connectedAccount
       );
 
+      const endTime = new Date(); // Capture end time
+      const duration = endTime.getTime() - startTime.getTime(); // Calculate actual duration
+
       // Update step result
       await execution.updateProgress(1, {
         step: 1,
         app: step.app,
         action: step.action,
         status: result.success ? 'completed' : 'failed',
-        endTime: new Date(),
-        duration: 1000, // Calculate actual duration
+        endTime: endTime,
+        duration: duration, // Use calculated duration
         result: result.data,
         error: result.success ? null : { message: result.error },
       });
@@ -255,13 +260,14 @@ class WorkflowExecutor {
           }
         }
 
+        const stepStartTime = new Date(); // Capture start time for duration calculation
         // Update progress
         await execution.updateProgress(stepNumber, {
           step: stepNumber,
           app: step.app,
           action: step.action,
           status: 'running',
-          startTime: new Date(),
+          startTime: stepStartTime,
           parameters: step.parameters,
         });
 
@@ -300,12 +306,21 @@ class WorkflowExecutor {
 
           // Store step output for future steps
           if (step.outputMapping) {
+            // Bug Fix: Correctly map specific output keys from result.data to target keys in stepOutputs
             Object.entries(step.outputMapping).forEach(
-              ([outputKey, targetKey]) => {
-                stepOutputs[outputKey] = result.data;
+              ([sourceKeyInResult, targetKeyInOutputs]) => {
+                // Ensure sourceKeyInResult exists in result.data before mapping
+                if (result.data && typeof result.data === 'object' && sourceKeyInResult in result.data) {
+                  stepOutputs[targetKeyInOutputs] = result.data[sourceKeyInResult];
+                } else {
+                  logger.warn(`Output mapping failed: source key '${sourceKeyInResult}' not found in step result for step ${stepNumber}.`);
+                }
               }
             );
           }
+
+          const stepEndTime = new Date(); // Capture end time
+          const stepDuration = stepEndTime.getTime() - stepStartTime.getTime(); // Calculate actual duration
 
           // Update step result
           const stepResult = {
@@ -313,8 +328,8 @@ class WorkflowExecutor {
             app: step.app,
             action: step.action,
             status: result.success ? 'completed' : 'failed',
-            endTime: new Date(),
-            duration: 1000, // Calculate actual duration
+            endTime: stepEndTime,
+            duration: stepDuration, // Use calculated duration
             result: result.data,
             error: result.success ? null : { message: result.error },
           };
@@ -430,8 +445,9 @@ class WorkflowExecutor {
         const match = value.match(/from_step_(\d+)\.(.+)/);
         if (match) {
           const [, stepNum, outputKey] = match;
+          // outputKey here refers to the targetKeyInOutputs from step.outputMapping
           const stepOutput = stepOutputs[outputKey];
-          if (stepOutput) {
+          if (stepOutput !== undefined) { // Check for undefined to allow null/false values
             resolved[key] = stepOutput;
           }
         }
@@ -442,7 +458,8 @@ class WorkflowExecutor {
     if (crossStepParameters) {
       Object.entries(crossStepParameters).forEach(
         ([targetKey, sourceValue]) => {
-          if (stepOutputs[sourceValue]) {
+          // sourceValue here refers to the targetKeyInOutputs from step.outputMapping
+          if (stepOutputs[sourceValue] !== undefined) { // Check for undefined to allow null/false values
             resolved[targetKey] = stepOutputs[sourceValue];
           }
         }
