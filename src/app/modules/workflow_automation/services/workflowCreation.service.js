@@ -78,8 +78,10 @@ class WorkflowCreationService {
       if (result.needsConfirmation || result.responseType === 'confirmation') {
         // BUG FIX: Persist the workflow plan in the conversation context for later confirmation.
         // The confirmWorkflowCreation method relies on this plan being stored.
+        // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
+        // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups and upserts.
         await WorkflowChatHistory.updateOne(
-          { conversationId: processingResult.conversationId },
+          { conversationId: processingResult.conversationId, userId },
           {
             $set: {
               'context.workflowPlan': { // Store the plan in context
@@ -212,6 +214,7 @@ class WorkflowCreationService {
         );
 
         // Update conversation status to cancelled
+        // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
         await WorkflowChatHistory.updateOne(
           { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
           { $set: { status: 'cancelled' } }
@@ -226,7 +229,7 @@ class WorkflowCreationService {
 
       // Get conversation history to understand the workflow context
       // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
-      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
+      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
       // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
       const chatHistory = await WorkflowChatHistory.findOne({ conversationId, userId }).lean();
       if (!chatHistory) {
@@ -284,7 +287,7 @@ class WorkflowCreationService {
       );
 
       // Update conversation with workflow ID
-      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
+      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
       await WorkflowChatHistory.updateOne(
         { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
         {
@@ -385,6 +388,7 @@ class WorkflowCreationService {
   async createWorkflow(workflowData) {
     try {
       const workflow = new Workflow(workflowData);
+      // Index Recommendation: Consider adding an index on `userId` in the Workflow model for efficient retrieval of workflows by user.
       await workflow.save();
 
       logger.info(`Workflow created: ${workflow._id}`);
@@ -442,9 +446,11 @@ class WorkflowCreationService {
       // If role is 'assistant' and no metadata.title, we do not touch the title field,
       // preserving any existing title.
 
-      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster upserts.
+      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster upserts and IDOR prevention.
+      // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
+      // This ensures that a user can only update/create chat history for conversations they own.
       await WorkflowChatHistory.updateOne(
-        { conversationId },
+        { conversationId, userId },
         updateOperation,
         { upsert: true }
       );
