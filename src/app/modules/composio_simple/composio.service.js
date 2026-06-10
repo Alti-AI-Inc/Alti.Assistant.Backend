@@ -32,6 +32,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * the necessary tool calls. It also manages conversation context and summarization.
  *
  * @async
+ * @function executeUserRequest
  * @param {string} userMessage - The natural language message from the user.
  * @param {string} userId - The ID of the user making the request. Acts as the tenant isolation boundary.
  * @param {string | null} [conversationId=null] - The ID of the current conversation, used for context and history.
@@ -39,14 +40,14 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * @returns {Promise<object>} A promise that resolves to an object containing the success status,
  *   the AI's response or a success message, the conversation ID, tools used, and execution time,
  *   or an error message if the operation fails.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {object} returns.data - The data returned on success.
- * @returns {string} returns.data.response - The AI's response or a confirmation message.
- * @returns {string} returns.data.conversationId - The ID of the conversation.
- * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
- * @returns {string} returns.data.executionTime - The total time taken for the request execution.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {object} returns.data - The data returned on success.
+ * @property {string} returns.data.response - The AI's response or a confirmation message.
+ * @property {string} returns.data.conversationId - The ID of the conversation.
+ * @property {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
+ * @property {string} returns.data.executionTime - The total time taken for the request execution.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Operations are scoped strictly to the provided `userId`.
  * Ensures users can only access their own conversation history and connected tool accounts.
  */
@@ -209,13 +210,14 @@ export const executeUserRequest = async (
  * and provides the appropriate conversation context (full history or summary).
  *
  * @async
+ * @function countTokenFromConversationAndProvideContext
  * @param {string | null} conversationId - The ID of the conversation to analyze.
  * @returns {Promise<object>} A promise that resolves to an object containing
  *   `needSummarization` (boolean), `tokenCount` (number), and either `summary` (string)
  *   or `conversation` (Array<object>).
- * @returns {boolean} returns.needSummarization - True if the conversation exceeds the token limit and needs summarization.
- * @returns {number} returns.tokenCount - The total token count of the conversation.
- * @returns {Array<object> | string} returns.conversation | returns.summary - The full conversation messages or a summarized version.
+ * @property {boolean} returns.needSummarization - True if the conversation exceeds the token limit and needs summarization.
+ * @property {number} returns.tokenCount - The total token count of the conversation.
+ * @property {Array<object> | string} returns.conversation | returns.summary - The full conversation messages or a summarized version.
  */
 const countTokenFromConversationAndProvideContext = async (conversationId) => {
   // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
@@ -262,14 +264,15 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
  * and includes a fallback mechanism for connection initiation.
  *
  * @async
+ * @function initiateAuth
  * @param {string} appName - The slug or name of the application to initiate authentication for.
  * @param {string} userId - The ID of the user for whom the authentication is being initiated.
  * @returns {Promise<object>} A promise that resolves to an object containing the success status
  *   and the connection URL data, or an error message.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {object} returns.data - The data returned on success, including `redirectUrl` and `id`.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {object} returns.data - The data returned on success, including `redirectUrl` and `id`.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Scoped to the provided `userId` to prevent cross-tenant account linking.
  */
 export const initiateAuth = async (appName, userId) => {
@@ -301,13 +304,13 @@ export const initiateAuth = async (appName, userId) => {
       );
     } catch (initiateError) {
       console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${safeAppName}...`);
-      
+
       // Fallback: use appName directly as authConfigId
       connectionUrl = await composio.connectedAccounts.initiate(
         safeUserId,
         safeAppName
       );
-      
+
       // Persist the corrected config ID in database
       authConfig.authConfigId = safeAppName; // Modify the Mongoose document
       await authConfig.save(); // Save the Mongoose document
@@ -334,13 +337,14 @@ export const initiateAuth = async (appName, userId) => {
  * and updates the local database with the connection status and tokens.
  *
  * @async
+ * @function waitForConnection
  * @param {string} connectedAccountId - The ID of the connected account to wait for.
  * @returns {Promise<object>} A promise that resolves to an object containing the success status
  *   and the connection details, or an error message.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {object} returns.data - The data returned on success, including the connection status and tokens.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {object} returns.data - The data returned on success, including the connection status and tokens.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Updates are bound to the specific `connectedAccountId` which is mapped to a single user.
  */
 export const waitForConnection = async (connectedAccountId) => {
@@ -371,13 +375,14 @@ export const waitForConnection = async (connectedAccountId) => {
  * Retrieves all active connected accounts for a given user.
  *
  * @async
+ * @function getUserConnectedAccounts
  * @param {string} userId - The ID of the user.
  * @returns {Promise<object>} A promise that resolves to an object containing the success status
  *   and an array of connected accounts, or an error message.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {Array<object>} returns.data - An array of ComposioAuth documents representing the user's connected accounts.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {Array<object>} returns.data - An array of ComposioAuth documents representing the user's connected accounts.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Restricts account retrieval strictly to the requesting `userId`.
  */
 export const getUserConnectedAccounts = async (userId) => {
@@ -402,14 +407,15 @@ export const getUserConnectedAccounts = async (userId) => {
  * and removing its record from the database. It includes a fallback for Composio API deletion methods.
  *
  * @async
+ * @function disconnectApp
  * @param {string} userId - The ID of the user.
  * @param {string} appName - The name or slug of the application to disconnect.
  * @returns {Promise<object>} A promise that resolves to an object containing the success status
  *   and a message, or an error message.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {string} returns.message - A success message.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {string} returns.message - A success message.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Ensures a user can only disconnect apps belonging to their own `userId`.
  */
 export const disconnectApp = async (userId, appName) => {
@@ -462,6 +468,7 @@ export const disconnectApp = async (userId, appName) => {
  * retrieves relevant tools, and then generates and executes tool calls.
  *
  * @async
+ * @function multiAppWorkflow
  * @param {string} query - The user's natural language query.
  * @param {Array<object> | string} apps - Conversation history or context used for app identification.
  *   This parameter was previously misused as `toolKits` in a bug, now correctly used as context.
@@ -470,13 +477,13 @@ export const disconnectApp = async (userId, appName) => {
  * @param {string} entityId - The ID of the user or entity initiating the workflow (used for auth checks).
  * @returns {Promise<object>} A promise that resolves to an object containing the success status,
  *   the AI's response or a success message, tools used, and execution time, or an error message.
- * @returns {boolean} returns.success - Indicates if the operation was successful.
- * @returns {object} returns.data - The data returned on success.
- * @returns {string} returns.data.response - The AI's response or a confirmation message.
- * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
- * @returns {string} returns.data.executionTime - The total time taken for the workflow execution.
- * @returns {string} returns.error - The error message if the operation failed.
- * 
+ * @property {boolean} returns.success - Indicates if the operation was successful.
+ * @property {object} returns.data - The data returned on success.
+ * @property {string} returns.data.response - The AI's response or a confirmation message.
+ * @property {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
+ * @property {string} returns.data.executionTime - The total time taken for the workflow execution.
+ * @property {string} returns.error - The error message if the operation failed.
+ *
  * @security Multi-tenant Isolation: Scoped to the provided `entityId` (acting as the tenant/user identifier).
  */
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
@@ -589,5 +596,6 @@ export const composioService = {
   initiateAuth,
   waitForConnection,
   getUserConnectedAccounts,
+  disconnectApp,
   multiAppWorkflow,
 };

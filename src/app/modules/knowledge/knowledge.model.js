@@ -536,6 +536,48 @@ KnowledgeFileSchema.statics.getTotalStorageByOwner = async function (
   return result.length > 0 ? result[0].total : 0;
 };
 
+/**
+ * Counts the number of knowledge files for a given tenant (workspace).
+ * Essential for enforcing subscription plan limits on the number of documents.
+ *
+ * @static
+ * @param {mongoose.Types.ObjectId|string} tenantId - The ID of the tenant.
+ * @param {boolean} [activeOnly=true] - If true, only counts active files.
+ * @returns {Promise<number>} A promise that resolves to the count of knowledge files for the tenant.
+ */
+KnowledgeFileSchema.statics.countByTenant = async function (
+  tenantId,
+  activeOnly = true
+) {
+  const query = { tenantId };
+  if (activeOnly) query.isActive = true;
+  return this.countDocuments(query);
+};
+
+/**
+ * Calculates the total storage size (in bytes) used by a tenant (workspace).
+ * Crucial for billing calculations and enforcing storage limits based on subscription plans.
+ *
+ * @static
+ * @param {mongoose.Types.ObjectId|string} tenantId - The ID of the tenant.
+ * @param {boolean} [activeOnly=true] - If true, only sums sizes of active files.
+ * @returns {Promise<number>} A promise that resolves to the total storage size in bytes for the tenant.
+ */
+KnowledgeFileSchema.statics.getTotalStorageByTenant = async function (
+  tenantId,
+  activeOnly = true
+) {
+  const query = { tenantId };
+  if (activeOnly) query.isActive = true;
+
+  const result = await this.aggregate([
+    { $match: query },
+    { $group: { _id: null, total: { $sum: '$fileSize' } } },
+  ]);
+
+  return result.length > 0 ? result[0].total : 0;
+};
+
 // Instance methods
 /**
  * Marks the knowledge file as successfully processed for RAG.
