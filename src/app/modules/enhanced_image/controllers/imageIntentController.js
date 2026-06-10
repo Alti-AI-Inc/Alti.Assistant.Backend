@@ -1,4 +1,8 @@
 import config from '../../../../../config/index.js';
+// Import rate limiters for DDOS and API abuse protection.
+// This endpoint calls an external AI service, which can be expensive and slow.
+// Rate limiting by IP is crucial to prevent abuse and cost overruns.
+import { apiLimiterStrict, apiLimiterDaily } from '../../../../middleware/rateLimiter.js';
 
 /**
  * Factory function to create the image intent controller.
@@ -19,7 +23,7 @@ export const createImageIntentController = (sessionManager) => {
      *     description: >
      *       Analyzes a user's text request, along with session context and whether an image is present,
      *       to determine if the intent is to generate a new image, edit an existing one, or if more
-     *       information is needed.
+     *       information is needed. This is a public endpoint and is rate-limited.
      *     requestBody:
      *       required: true
      *       content:
@@ -84,6 +88,8 @@ export const createImageIntentController = (sessionManager) => {
      *                     type: string
      *                   description: A list of clarifying questions for the user if more info is needed.
      *                   example: []
+     *       '429':
+     *         description: Too Many Requests - The user has exceeded the rate limit.
      *       '400':
      *         description: Bad Request - 'request' or 'userMessage' is required in the request body.
      *         content:
@@ -122,60 +128,66 @@ export const createImageIntentController = (sessionManager) => {
      * @param {import('express').Response} res - The Express response object.
      * @returns {Promise<void>}
      */
-    analyzeIntent: async (req, res) => {
-      try {
-        const { sessionId, request, userMessage, hasImage } = req.body;
+    analyzeIntent: [
+      // Apply a strict rate limit (e.g., 20 requests/minute/IP) to prevent rapid-fire abuse.
+      apiLimiterStrict,
+      // Apply a daily limit (e.g., 200 requests/day/IP) to mitigate sustained abuse and control costs.
+      apiLimiterDaily,
+      async (req, res) => {
+        try {
+          const { sessionId, request, userMessage, hasImage } = req.body;
 
-        // Accept either 'request' or 'userMessage'
-        const userRequest = request || userMessage;
+          // Accept either 'request' or 'userMessage'
+          const userRequest = request || userMessage;
 
-        if (!userRequest) {
-          return res.status(400).json({
+          if (!userRequest) {
+            return res.status(400).json({
+              success: false,
+              error: 'request or userMessage is required',
+            });
+          }
+
+          // Get session context if sessionId provided
+          let context = 'No previous context.';
+          if (sessionId) {
+            const session = sessionManager.getSession(sessionId);
+            if (session) {
+              context =
+                sessionManager.getHistory(sessionId) || 'No previous context.';
+            }
+          }
+
+          // Import here to avoid circular dependencies
+          const { analyzeImageIntent } = await import(
+            '../utils/imageIntentAnalyzer.js'
+          );
+          const apiKey = config.gemini_secret_key;
+
+          // Analyze intent
+          const analysis = await analyzeImageIntent(
+            userRequest,
+            hasImage || false,
+            context,
+            { apiKey }
+          );
+
+          res.json({
+            success: true,
+            isEditable: analysis.isEditable,
+            intent: analysis.intent,
+            editType: analysis.editType,
+            reasoning: analysis.reasoning,
+            needsMoreInfo: analysis.needsMoreInfo,
+            questions: analysis.questions,
+          });
+        } catch (error) {
+          console.error('Error analyzing image intent:', error);
+          res.status(500).json({
             success: false,
-            error: 'request or userMessage is required',
+            error: error.message,
           });
         }
-
-        // Get session context if sessionId provided
-        let context = 'No previous context.';
-        if (sessionId) {
-          const session = sessionManager.getSession(sessionId);
-          if (session) {
-            context =
-              sessionManager.getHistory(sessionId) || 'No previous context.';
-          }
-        }
-
-        // Import here to avoid circular dependencies
-        const { analyzeImageIntent } = await import(
-          '../utils/imageIntentAnalyzer.js'
-        );
-        const apiKey = config.gemini_secret_key;
-
-        // Analyze intent
-        const analysis = await analyzeImageIntent(
-          userRequest,
-          hasImage || false,
-          context,
-          { apiKey }
-        );
-
-        res.json({
-          success: true,
-          isEditable: analysis.isEditable,
-          intent: analysis.intent,
-          editType: analysis.editType,
-          reasoning: analysis.reasoning,
-          needsMoreInfo: analysis.needsMoreInfo,
-          questions: analysis.questions,
-        });
-      } catch (error) {
-        console.error('Error analyzing image intent:', error);
-        res.status(500).json({
-          success: false,
-          error: error.message,
-        });
-      }
-    },
+      },
+    ],
   };
 };
