@@ -17,8 +17,8 @@ import GoogleRepository from './gcp-repository.model.js';
  * @returns {string} The escaped string, safe for use within a RegExp constructor.
  */
 const escapeRegExp = (string) => {
-  // BUGFIX: Correctly escape special characters for RegExp.
-  // The `\\$&` replacement inserts a backslash before the matched special character.
+  // OPTIMIZATION_FIX: Correctly escape special characters for RegExp.
+  // The `$&` replacement inserts the matched special character, which is the correct behavior.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -108,8 +108,6 @@ const searchGcpCatalog = async (query = '', options = {}, user) => {
       filter.language = new RegExp(`^${escapeRegExp(options.language)}`, 'i');
     }
 
-    let queryBuilder;
-
     if (query) {
       const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'google', 'cloud', 'platform', 'gcp', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
       const queryWords = query.toLowerCase()
@@ -119,8 +117,6 @@ const searchGcpCatalog = async (query = '', options = {}, user) => {
 
       if (queryWords.length > 0) {
         filter.$text = { $search: queryWords.join(' ') };
-        queryBuilder = GoogleRepository.find(filter, { score: { $meta: 'textScore' } })
-          .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
         // Fallback uses the now-fixed escapeRegExp function.
         const escapedQuery = escapeRegExp(query);
@@ -128,21 +124,50 @@ const searchGcpCatalog = async (query = '', options = {}, user) => {
           { name: { $regex: escapedQuery, $options: 'i' } },
           { description: { $regex: escapedQuery, $options: 'i' } }
         ];
-        queryBuilder = GoogleRepository.find(filter).sort({ stars: -1 });
       }
-    } else {
-      // SECURITY_FIX: Whitelisting sortBy prevents NoSQL operator injection. This was already correct.
-      const allowedSortFields = ['stars', 'name', 'license', 'language'];
-      const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
-      queryBuilder = GoogleRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
     const limit = options.limit ? parseInt(options.limit, 10) : 20;
     const page = options.page ? parseInt(options.page, 10) : 1;
     const startIndex = (page - 1) * limit;
 
-    const total = await GoogleRepository.countDocuments(filter);
-    const results = await queryBuilder.skip(startIndex).limit(limit).lean();
+    // PERFORMANCE_OPTIMIZATION: Use a single aggregation pipeline with $facet to get both
+    // the paginated results and the total count in one database round-trip. This is more
+    // efficient than running a .countDocuments() and a separate .find() query.
+    const pipeline = [];
+
+    // 1. Match documents based on the constructed filter
+    pipeline.push({ $match: filter });
+
+    // 2. Add sort stage based on query type
+    if (filter.$text) {
+      // For text search, sort by relevance score first, then by stars.
+      pipeline.push({ $sort: { score: { $meta: 'textScore' }, stars: -1 } });
+    } else {
+      // For other queries, sort by the specified field or a default.
+      const allowedSortFields = ['stars', 'name', 'license', 'language'];
+      let sortBy = 'stars'; // Default for regex fallback
+      if (!query) { // Only use options.sortBy if there's no query string
+        sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
+      }
+      pipeline.push({ $sort: { [sortBy]: -1 } });
+    }
+
+    // 3. Use $facet to process multiple aggregation pipelines within a single stage.
+    pipeline.push({
+      $facet: {
+        // The 'metadata' pipeline gets the total count of matched documents.
+        metadata: [{ $count: 'total' }],
+        // The 'data' pipeline gets the paginated slice of documents.
+        data: [{ $skip: startIndex }, { $limit: limit }]
+      }
+    });
+
+    // Execute the aggregation. Aggregation results are always plain JS objects (lean).
+    const [aggregationResult] = await GoogleRepository.aggregate(pipeline);
+
+    const results = aggregationResult.data;
+    const total = aggregationResult.metadata.length > 0 ? aggregationResult.metadata[0].total : 0;
 
     return {
       success: true,
