@@ -298,25 +298,27 @@ export const validateFile = (file, maxSize, allowedFormats) => {
  *   and an `error` message if parsing failed for that specific file.
  */
 export const extractContentFromFiles = async (files) => {
-  const results = [];
-
-  for (const file of files) {
+  // OPTIMIZATION: Process files in parallel instead of sequentially.
+  // The original for...of loop with `await` inside processes one file at a time.
+  // Using Promise.all allows all file parsing operations to run concurrently,
+  // significantly speeding up the process when multiple files are uploaded.
+  const promises = files.map(async (file) => {
     try {
       const parsed = await parseFile(file.path);
-      results.push({
+      return {
         filename: file.originalname,
         content: parsed.content,
         data: parsed.data,
         metadata: parsed.metadata,
-      });
+      };
     } catch (error) {
       logger.error(`Error processing file ${file.originalname}:`, error);
-      results.push({
+      return {
         filename: file.originalname,
         error: error.message,
-      });
+      };
     }
-  }
+  });
 
-  return results;
+  return Promise.all(promises);
 };

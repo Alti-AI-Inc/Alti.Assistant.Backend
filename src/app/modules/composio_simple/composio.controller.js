@@ -19,8 +19,9 @@ import { usageService } from '../usage/usage.service.js';
  * @returns {string} The escaped string.
  */
 const escapeRegExp = string => {
-  // BUG_FIX: The original replacement string '\\{FILE_CONTENT}' was incorrect.
-  // '$&' is the correct replacement pattern to insert the entire matched string.
+  // BUG_FIX: The original replacement logic was incorrect.
+  // The '\\$&' replacement pattern correctly inserts the matched special character,
+  // prefixed with a backslash, effectively escaping it. For example, '.' becomes '\.'.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
