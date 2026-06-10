@@ -60,6 +60,14 @@ const getRecommendations = async (userId) => {
       logger.warn(`AppDiscoveryService: No audit history found or error fetching for user ${userId}: ${error.message}`);
     }
 
+    // Optimization: Pre-process auditAnalytics.appBreakdown into a Map for O(1) lookups.
+    let appBreakdownMap = new Map();
+    if (auditAnalytics && auditAnalytics.appBreakdown) {
+      for (const item of auditAnalytics.appBreakdown) {
+        appBreakdownMap.set(item.app, item);
+      }
+    }
+
     const recommendations = [];
 
     // Pre-calculate categories of connected apps for performance optimization.
@@ -81,10 +89,9 @@ const getRecommendations = async (userId) => {
       const reasons = [];
 
       // Activity/Failed Attempts Boost: If user attempts actions on apps they don't have
-      if (auditAnalytics && auditAnalytics.appBreakdown) {
-        // Optimization: For very large auditAnalytics.appBreakdown, converting it to a Map
-        // keyed by 'app' could improve lookup from O(N) to O(1).
-        const attempted = auditAnalytics.appBreakdown.find((a) => a.app === appName);
+      // Optimized: Using appBreakdownMap for O(1) lookup instead of O(N) Array.find().
+      if (appBreakdownMap.size > 0) {
+        const attempted = appBreakdownMap.get(appName);
         if (attempted) {
           score += 30;
           reasons.push(`You recently attempted to use ${meta.displayName} actions (${attempted.total} requests)`);
