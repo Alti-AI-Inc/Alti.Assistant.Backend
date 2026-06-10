@@ -106,7 +106,7 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *           example: "654321098765432109876543"
  *         response:
  *           type: string
- *           description: The AI's response.
+           description: The AI's response.
  *           example: "In the neon-drenched alleys of Neo-Kyoto..."
  *         success:
  *           type: boolean
@@ -151,7 +151,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    // Optimization: Add .lean() for read-only query to improve performance by returning plain JavaScript objects
+    // Optimization: Added .lean() for read-only query to improve performance by returning plain JavaScript objects
     // instead of Mongoose documents.
     // Recommendation: Ensure an index exists on `userId` and `createdAt` in the SubscriptionModel
     // for efficient querying and sorting (e.g., `{ userId: 1, createdAt: -1 }`).
@@ -167,7 +167,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     // if `getConversationById` does not return a comparable numeric value.
     // If `getConversationById` fetches a Mongoose document for read-only purposes, consider adding `.lean()` inside that helper.
     // Recommendation: Ensure an index exists on `conversationId` and `userId` in the Conversation model
-    // for efficient lookup within `conversationHelpers.getConversationById`.
+    // for efficient lookup within `conversationHelpers.getConversationById` (e.g., `{ conversationId: 1, userId: 1 }`).
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
           conversationId,
