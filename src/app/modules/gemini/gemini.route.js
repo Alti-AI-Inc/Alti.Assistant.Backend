@@ -3,6 +3,15 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { GeminiAiController } from './gemini.controller.js';
 
+// Enterprise Telemetry & Error Handling Patch:
+// Added a utility function to wrap asynchronous route handlers. This ensures that any
+// promise rejections are caught and passed to the Express error handling middleware,
+// preventing the server from crashing on unhandled exceptions in async controllers.
+// This allows a centralized error handler to log the error and normalize the response.
+const catchAsync = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(err => next(err));
+};
+
 /**
  * @constant {express.Router} router - Express router for Gemini AI routes.
  */
@@ -72,7 +81,9 @@ router.post(
     ENUM_USER_ROLE.MANAGER,
     ENUM_USER_ROLE.USER
   ),
-  GeminiAiController.GeminiAiGetResponse
+  // Enterprise Telemetry & Error Handling Patch:
+  // Wrapped the async controller with catchAsync to ensure proper error propagation.
+  catchAsync(GeminiAiController.GeminiAiGetResponse)
 );
 
 /**
@@ -142,7 +153,8 @@ router.post(
   // BUG FIX: Renamed controller method to align with the route's purpose (Gemini 1.5 Flash).
   // The previous name 'Gemini25PreviewAiGetResponse' was misleading given the route path and description,
   // suggesting a different model version than intended for the '/flash' endpoint.
-  GeminiAiController.GeminiFlashAiGetResponse
+  // Enterprise Telemetry & Error Handling Patch: Wrapped the async controller with catchAsync to ensure proper error propagation.
+  catchAsync(GeminiAiController.GeminiFlashAiGetResponse)
 );
 
 /**
