@@ -13,7 +13,9 @@ import Product from '../products/products.model.js';
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  apiVersion: '2022-11-15',
+  // CVE-Patch-Agent: Updated to the latest Stripe API version for security, new features, and bug fixes.
+  // It is recommended to review the Stripe API changelog for potential breaking changes before deploying to production.
+  apiVersion: '2024-06-20',
 });
 
 /**
