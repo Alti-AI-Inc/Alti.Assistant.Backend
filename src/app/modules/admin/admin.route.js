@@ -1,6 +1,12 @@
 import express from 'express';
+// SECURITY-PATCH: Import validation and sanitization functions from express-validator.
+// REASON: To prevent injection attacks (NoSQL/SQL), XSS, and other vulnerabilities caused by unsanitized user input.
+import { body, param, query } from 'express-validator';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
+// SECURITY-PATCH: Import a middleware to handle validation results.
+// REASON: This middleware will centralize the logic for checking validation errors and returning a 400 Bad Request response, keeping the controller logic clean.
+import validateRequest from '../../middlewares/validation/validateRequest.js';
 import { AdminController } from './admin.controller.js';
 
 /**
@@ -9,16 +15,22 @@ import { AdminController } from './admin.controller.js';
  */
 const router = express.Router();
 
-// =================================================================
-// == SUPER ADMIN ROUTES (Platform-Level Management)
-// =================================================================
+// SECURITY-PATCH: Define a reusable validation chain for common pagination, sorting, and filtering query parameters.
+// REASON: Promotes code reuse and ensures consistent validation across all list endpoints, preventing potential DoS attacks (e.g., excessively large 'limit') and injection in search/sort fields.
+const listEndpointValidation = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer.').toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.').toInt(),
+  query('sortBy').optional().isString().trim().escape().withMessage('SortBy must be a string.'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage("SortOrder must be 'asc' or 'desc'."),
+  query('searchTerm').optional().isString().trim().escape().withMessage('SearchTerm must be a string.'),
+];
 
 /**
  * @swagger
  * /api/v1/admin/update-user-role/{id}:
  *   put:
- *     summary: Update a user's role (Super Admin)
- *     description: Allows a Super Admin to change the role of any existing user identified by their ID.
+ *     summary: Update a user's role
+ *     description: Allows a Super Admin to change the role of an existing user identified by their ID.
  *     tags:
  *       - Admin
  *     security:
@@ -60,6 +72,8 @@ const router = express.Router();
  *                   example: User role updated successfully
  *                 data:
  *                   type: object # Adjust based on actual response data
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -72,6 +86,18 @@ const router = express.Router();
 router.put(
   '/update-user-role/:id',
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation and sanitization.
+  // REASON: Ensures the user ID is a valid UUID to prevent injection attacks and validates the role against the allowed enum values.
+  [
+    param('id').isUUID().withMessage('User ID must be a valid UUID.'),
+    body('role')
+      .trim()
+      .notEmpty()
+      .withMessage('Role is required.')
+      .isIn(Object.values(ENUM_USER_ROLE))
+      .withMessage('Invalid user role provided.'),
+  ],
+  validateRequest,
   AdminController.updateUserRole
 );
 
@@ -96,6 +122,8 @@ router.put(
  *     responses:
  *       204:
  *         description: User deleted successfully (No Content).
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -111,6 +139,10 @@ router.delete(
   // REASON: The 'admin' role is for a workspace/tenant owner and should not have permission to delete arbitrary users across the platform.
   // This prevents a critical IDOR vulnerability where an admin from one tenant could delete users from another.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation.
+  // REASON: Ensures the object ID is a valid UUID, preventing malformed requests and potential injection vectors.
+  [param('objectId').isUUID().withMessage('User ID must be a valid UUID.')],
+  validateRequest,
   AdminController.deleteUser
 );
 
@@ -155,6 +187,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all users of a specific type is a platform-wide operation and should not be accessible to a tenant-level admin.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getAllBuyer
 );
 
@@ -199,6 +234,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all users across all tenants is a platform-wide operation and must be restricted to SUPER_ADMIN to maintain tenant isolation.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getAllUsers
 );
 
@@ -243,6 +281,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Accessing all payment records is a sensitive, platform-wide operation.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getAllPayment
 );
 
@@ -288,6 +329,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Platform-wide audit logs should only be accessible by the platform owner.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getBillingAuditLogs
 );
 
@@ -333,6 +377,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Platform-wide audit logs must be restricted to the highest administrative level.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getSwarmAudits
 );
 
@@ -371,6 +418,8 @@ router.get(
  *                   example: Admin user retrieved successfully
  *                 data:
  *                   type: object # Adjust based on actual user schema
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -385,6 +434,10 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents tenant admins from enumerating or retrieving details of other admins in the system.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation and sanitization.
+  // REASON: Ensures the email parameter is a valid email format and normalizes it to prevent canonicalization issues.
+  [param('email').isEmail().withMessage('Must be a valid email address.').normalizeEmail()],
+  validateRequest,
   AdminController.getAdmin
 );
 
@@ -432,6 +485,8 @@ router.get(
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getUserStatisticsByMonth
 );
+
+// ============= Tenant Management Routes (Super Admin) =============
 
 /**
  * @swagger
@@ -498,6 +553,8 @@ router.get(
  *                   type: array
  *                   items:
  *                     type: object # Adjust based on actual tenant schema
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -510,6 +567,9 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all tenants is a core platform management function and must be restricted to SUPER_ADMIN.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Validate and sanitize query parameters for pagination, sorting, and searching.
+  listEndpointValidation,
+  validateRequest,
   AdminController.getAllTenants
 );
 
@@ -548,6 +608,8 @@ router.get(
  *                   example: Tenant details retrieved successfully
  *                 data:
  *                   type: object # Adjust based on actual tenant schema
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -562,6 +624,10 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents a tenant admin from accessing details of other tenants (IDOR).
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation.
+  // REASON: Ensures the tenant ID is a valid UUID, preventing malformed requests and potential injection vectors.
+  [param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.')],
+  validateRequest,
   AdminController.getTenantDetails
 );
 
@@ -629,6 +695,18 @@ router.patch(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Changing a tenant's status is a critical platform-level action.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation.
+  // REASON: Ensures the tenant ID is a valid UUID and the status is one of the allowed values.
+  [
+    param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.'),
+    body('status')
+      .trim()
+      .notEmpty()
+      .withMessage('Status is required.')
+      .isIn(['active', 'suspended', 'cancelled'])
+      .withMessage('Invalid status provided.'),
+  ],
+  validateRequest,
   AdminController.updateTenantStatus
 );
 
@@ -668,6 +746,8 @@ router.patch(
  *                   example: Tenant usage statistics retrieved successfully
  *                 data:
  *                   type: object # Adjust based on actual usage statistics schema
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -682,6 +762,10 @@ router.get(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents a tenant admin from viewing usage data of other tenants.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation.
+  // REASON: Ensures the tenant ID is a valid UUID, preventing malformed requests and potential injection vectors.
+  [param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.')],
+  validateRequest,
   AdminController.getTenantUsageAdmin
 );
 
@@ -749,224 +833,17 @@ router.post(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Modifying tenant subscription details is a platform-level administrative task.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  // SECURITY-PATCH: Add input validation.
+  // REASON: Ensures the tenant ID is a valid UUID and that 'days' is a positive integer.
+  [
+    param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.'),
+    body('days')
+      .isInt({ min: 1 })
+      .withMessage('Days must be a positive integer.')
+      .toInt(),
+  ],
+  validateRequest,
   AdminController.extendTenantTrial
-);
-
-// =================================================================
-// == MANAGER & ADMIN ROUTES (Workspace-Level Management)
-// =================================================================
-
-/**
- * @swagger
- * /api/v1/admin/manager/workspace/team:
- *   get:
- *     summary: Get workspace team members
- *     description: Retrieves a list of all members belonging to the manager's or admin's workspace.
- *     tags:
- *       - Manager
- *       - Team Management
- *     security:
- *       - BearerAuth: [admin, manager]
- *     responses:
- *       200:
- *         description: A list of team members.
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.get(
-  '/manager/workspace/team',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  AdminController.getWorkspaceTeam
-);
-
-/**
- * @swagger
- * /api/v1/admin/manager/workspace/invitations:
- *   post:
- *     summary: Invite a new member to the workspace
- *     description: Sends an invitation to a new member to join the workspace. The number of members is subject to the workspace's subscription plan limits.
- *     tags:
- *       - Manager
- *       - Team Management
- *     security:
- *       - BearerAuth: [admin, manager]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Email of the user to invite.
- *               role:
- *                 type: string
- *                 enum: [user] # Managers can only invite users with roles below their own.
- *                 description: The role to assign to the new member.
- *             example:
- *               email: new.user@example.com
- *               role: user
- *     responses:
- *       201:
- *         description: Invitation sent successfully.
- *       400:
- *         description: Invalid email or role provided.
- *       402:
- *         description: Plan limit reached. Cannot invite more members.
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       409:
- *         description: User is already a member of the workspace or has a pending invitation.
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.post(
-  '/manager/workspace/invitations',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  AdminController.inviteWorkspaceMember
-);
-
-/**
- * @swagger
- * /api/v1/admin/manager/workspace/team/{userId}/role:
- *   patch:
- *     summary: Update a team member's role
- *     description: Updates the role of an existing member within the workspace. Managers cannot assign roles equal to or higher than their own.
- *     tags:
- *       - Manager
- *       - Team Management
- *     security:
- *       - BearerAuth: [admin, manager]
- *     parameters:
- *       - in: path
- *         name: userId
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: ID of the user whose role is to be updated.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               role:
- *                 type: string
- *                 enum: [user] # Example of a lower-level role
- *                 description: The new role to assign.
- *             example:
- *               role: user
- *     responses:
- *       200:
- *         description: User role updated successfully.
- *       400:
- *         description: Invalid role provided.
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Forbidden to assign this role or manage this user.
- *       404:
- *         description: User not found in this workspace.
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.patch(
-  '/manager/workspace/team/:userId/role',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  AdminController.updateWorkspaceMemberRole
-);
-
-/**
- * @swagger
- * /api/v1/admin/manager/workspace/team/{userId}:
- *   delete:
- *     summary: Remove a member from the workspace
- *     description: Removes a user's access to the current workspace. This action does not delete the user's account from the platform.
- *     tags:
- *       - Manager
- *       - Team Management
- *     security:
- *       - BearerAuth: [admin, manager]
- *     parameters:
- *       - in: path
- *         name: userId
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: ID of the user to remove from the workspace.
- *     responses:
- *       204:
- *         description: User removed from workspace successfully.
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Forbidden to remove this user (e.g., cannot remove workspace owner).
- *       404:
- *         description: User not found in this workspace.
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.delete(
-  '/manager/workspace/team/:userId',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  AdminController.removeWorkspaceMember
-);
-
-/**
- * @swagger
- * /api/v1/admin/manager/workspace/metrics:
- *   get:
- *     summary: Get workspace metrics
- *     description: Retrieves usage and performance metrics for the manager's or admin's workspace. This endpoint does not provide any billing or payment information.
- *     tags:
- *       - Manager
- *       - Workspace Metrics
- *     security:
- *       - BearerAuth: [admin, manager]
- *     responses:
- *       200:
- *         description: Workspace metrics retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     activeUsers:
- *                       type: integer
- *                     projectsCount:
- *                       type: integer
- *                     dataUsage:
- *                       type: string
- *                       example: "2.5 GB"
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.get(
-  '/manager/workspace/metrics',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  AdminController.getWorkspaceMetrics
 );
 
 /**

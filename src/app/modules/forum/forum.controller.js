@@ -22,6 +22,79 @@ const { checkUsageAndLimits, recordUsage } = require('../usage/usage.service');
 // SECURITY: All endpoints now require authentication and are scoped to the user's workspace/tenant.
 // Authorization logic (e.g., checking roles like 'admin', 'manager') is delegated to the service layer.
 
+/**
+ * @openapi
+ * /forums:
+ *   post:
+ *     summary: Create a new forum post
+ *     description: Creates a new forum post within the authenticated user's workspace. Checks usage limits before creation.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The title of the forum post.
+ *               content:
+ *                 type: string
+ *                 description: The main content of the forum post (can be HTML or markdown).
+ *               category:
+ *                 type: string
+ *                 description: The category of the forum post.
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: A list of tags associated with the post.
+ *             example:
+ *               title: "How to integrate with the new API?"
+ *               content: "<p>I'm having trouble understanding the authentication flow for the v2 API. Can someone provide an example?</p>"
+ *               category: "API Integration"
+ *               tags: ["api", "v2", "authentication"]
+ *     responses:
+ *       "201":
+ *         description: Created. The forum post was created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Forum created successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Forum'
+ *       "400":
+ *         description: Bad Request. Invalid input data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "403":
+ *         description: Forbidden. The user has reached their usage limit for creating forum posts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.addForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user from request object (populated by auth middleware)
   const data = req.body;
@@ -48,6 +121,86 @@ module.exports.addForum = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums:
+ *   get:
+ *     summary: Get all forum posts
+ *     description: Retrieves a paginated list of forum posts within the user's workspace. Supports filtering and searching.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *         description: A search term to filter posts by title or content.
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: Filter posts by exact title.
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter posts by category.
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: The number of results per page.
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: 'Sort order, e.g., `createdAt:desc`.'
+ *     responses:
+ *       "200":
+ *         description: OK. A list of forum posts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Forums retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     results:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Forum'
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalResults:
+ *                       type: integer
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.getForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const filters = pick(req.query, ['searchTerm', 'title', 'category']);
@@ -65,6 +218,51 @@ module.exports.getForum = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/{id}:
+ *   get:
+ *     summary: Get a forum post by ID
+ *     description: Retrieves a single forum post by its ID, ensuring it belongs to the user's workspace.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the forum post.
+ *     responses:
+ *       "200":
+ *         description: OK. The requested forum post.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Forum retrieved successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Forum'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The forum post with the specified ID was not found or is not in the user's workspace.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.getForumById = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -84,6 +282,40 @@ module.exports.getForumById = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/me:
+ *   get:
+ *     summary: Get my forum posts
+ *     description: Retrieves all forum posts created by the currently authenticated user.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       "200":
+ *         description: OK. A list of the user's forum posts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Your forums retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Forum'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // SECURITY: Replaced insecure `getForumByEmail` with `getMyForums` to prevent user information leakage.
 // This endpoint now fetches forums for the currently authenticated user only.
 module.exports.getMyForums = catchAsync(async (req, res) => {
@@ -99,6 +331,77 @@ module.exports.getMyForums = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/{id}:
+ *   patch:
+ *     summary: Update a forum post
+ *     description: Updates an existing forum post. Requires the user to be the author or have administrative privileges (e.g., 'manager', 'admin').
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the forum post to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *             example:
+ *               title: "Updated: How to integrate with the new API?"
+ *               content: "<p>Update: I figured it out. Here's the solution...</p>"
+ *     responses:
+ *       "200":
+ *         description: OK. The forum post was updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Forum updated successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Forum'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "403":
+ *         description: Forbidden. The user does not have permission to update this post.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The forum post was not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 exports.updateForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -116,6 +419,44 @@ exports.updateForum = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/{id}:
+ *   delete:
+ *     summary: Delete a forum post
+ *     description: Deletes a forum post. Requires the user to be the author or have administrative privileges (e.g., 'manager', 'admin').
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the forum post to delete.
+ *     responses:
+ *       "204":
+ *         description: No Content. The forum post was deleted successfully.
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "403":
+ *         description: Forbidden. The user does not have permission to delete this post.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The forum post was not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 exports.deleteForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -128,6 +469,47 @@ exports.deleteForum = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
+/**
+ * @openapi
+ * /forums/suggestions/{suggestion}:
+ *   get:
+ *     summary: Get forum suggestions
+ *     description: Retrieves forum post suggestions based on a search term, scoped to the user's workspace.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: suggestion
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The search term for which to find suggestions.
+ *     responses:
+ *       "200":
+ *         description: OK. A list of forum suggestions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Forum suggestions retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Forum'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.getForumSuggestion = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { suggestion } = req.params;
@@ -142,6 +524,69 @@ module.exports.getForumSuggestion = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/activities:
+ *   post:
+ *     summary: Add an activity to a forum post
+ *     description: Adds an activity, such as a comment, to a specific forum post. The target forum must be in the user's workspace. Checks usage limits.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - forumId
+ *               - comment
+ *             properties:
+ *               forumId:
+ *                 type: string
+ *                 description: The ID of the forum post to add the activity to.
+ *               comment:
+ *                 type: string
+ *                 description: The content of the comment.
+ *             example:
+ *               forumId: "60d0fe4f5311236168a109ca"
+ *               comment: "This is a very helpful post, thank you!"
+ *     responses:
+ *       "201":
+ *         description: Created. The activity was added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Activity added successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/ForumActivity'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "403":
+ *         description: Forbidden. The user has reached their usage limit for forum activities.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The target forum post was not found in the user's workspace.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.addUserForumActivity = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const activityData = req.body; // e.g., { forumId: '...', comment: '...' }
@@ -163,6 +608,51 @@ module.exports.addUserForumActivity = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/comments/{commentId}:
+ *   get:
+ *     summary: Get a comment by ID
+ *     description: Retrieves a single comment by its ID, ensuring it belongs to a forum within the user's workspace.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the comment.
+ *     responses:
+ *       "200":
+ *         description: OK. The requested comment.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Comment retrieved successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/ForumActivity'
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The comment was not found or is not in the user's workspace.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 module.exports.getComment = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { commentId } = req.params;
@@ -182,6 +672,44 @@ module.exports.getComment = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /forums/comments/{id}:
+ *   delete:
+ *     summary: Delete a comment
+ *     description: Deletes a comment. Requires the user to be the author of the comment, the author of the parent forum post, or have administrative privileges.
+ *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the comment to delete.
+ *     responses:
+ *       "204":
+ *         description: No Content. The comment was deleted successfully.
+ *       "401":
+ *         description: Unauthorized. Authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "403":
+ *         description: Forbidden. The user does not have permission to delete this comment.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       "404":
+ *         description: Not Found. The comment was not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 exports.deleteComment = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params; // This is the comment ID
