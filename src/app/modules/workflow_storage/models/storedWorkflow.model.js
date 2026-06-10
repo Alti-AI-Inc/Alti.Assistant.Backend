@@ -138,18 +138,12 @@ const storedWorkflowSchema = new mongoose.Schema(
     lastExecuted: {
       type: Date,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // `createdAt` and `updatedAt` fields are automatically managed by the `timestamps: true` option.
+    // Explicit definition of these fields and the `pre('save')` hook for `updatedAt` are redundant
+    // and have been removed to avoid potential conflicts and simplify the schema.
   },
   {
-    timestamps: true,
+    timestamps: true, // This option automatically adds and manages `createdAt` and `updatedAt` fields.
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
@@ -278,11 +272,12 @@ storedWorkflowSchema.methods.removeTags = function (tagsToRemove) {
   return this.save();
 };
 
-// Pre-save middleware
-storedWorkflowSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
+// The pre-save middleware for `updatedAt` is redundant when `timestamps: true` is used
+// and has been removed. Mongoose handles `updatedAt` automatically.
+// storedWorkflowSchema.pre('save', function (next) {
+//   this.updatedAt = new Date();
+//   next();
+// });
 
 const StoredWorkflow = mongoose.model('StoredWorkflow', storedWorkflowSchema);
 
