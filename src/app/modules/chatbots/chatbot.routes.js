@@ -18,6 +18,49 @@ const router = express.Router();
 //   and the `auth` middleware for these routes would need to include `ENUM_USER_ROLE.USER` again.
 //   For a safer default, restricting at the route level is preferred.
 
+/**
+ * @openapi
+ * /chatbots:
+ *   post:
+ *     summary: Create a new chatbot
+ *     description: Creates a new chatbot instance. Accessible by USER, ADMIN, and SUPER_ADMIN roles.
+ *     tags: [Chatbots]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Customer Support Bot"
+ *               config:
+ *                 type: object
+ *                 example: {}
+ *     responses:
+ *       201:
+ *         description: Chatbot created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *   get:
+ *     summary: Get all chatbots
+ *     description: Retrieves a list of chatbots. Regular users will only see their own chatbots, while admins/super_admins can see all.
+ *     tags: [Chatbots]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of chatbots retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 router
   .route('/')
   .post(
@@ -29,6 +72,87 @@ router
     chatbotController.getChatbots
   );
 
+/**
+ * @openapi
+ * /chatbots/{id}:
+ *   get:
+ *     summary: Get chatbot by ID
+ *     description: Retrieves details of a specific chatbot by its ID. Users can only access their own chatbots.
+ *     tags: [Chatbots]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The chatbot ID
+ *     responses:
+ *       200:
+ *         description: Chatbot details retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Chatbot not found
+ *   patch:
+ *     summary: Update chatbot by ID
+ *     description: Updates an existing chatbot. Restricted to ADMIN and SUPER_ADMIN roles.
+ *     tags: [Chatbots]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The chatbot ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               config:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Chatbot updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Chatbot not found
+ *   delete:
+ *     summary: Delete chatbot by ID
+ *     description: Deletes a specific chatbot. Restricted to ADMIN and SUPER_ADMIN roles.
+ *     tags: [Chatbots]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The chatbot ID
+ *     responses:
+ *       200:
+ *         description: Chatbot deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Chatbot not found
+ */
 router
   .route('/:id')
   .get(
@@ -44,4 +168,10 @@ router
     chatbotController.deleteChatbot
   );
 
+/**
+ * Express router for chatbot-related endpoints.
+ * Defines routes for creating, reading, updating, and deleting chatbots with role-based access control.
+ * 
+ * @type {import('express').Router}
+ */
 export const chatbotRoutes = router;

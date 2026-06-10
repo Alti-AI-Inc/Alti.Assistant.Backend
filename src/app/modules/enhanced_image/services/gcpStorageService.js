@@ -1,10 +1,4 @@
 import { Storage } from '@google-cloud/storage';
-// import path from 'path'; // Not used in this file
-// import { fileURLToPath } from 'url'; // Not used in this file
-// import fs from 'fs'; // Not used in this file
-
-// const __filename = fileURLToPath(import.meta.url); // Not used in this file
-// const __dirname = path.dirname(__filename); // Not used in this file
 
 export class GCPStorageService {
   constructor(bucketName, keyFilePath) {
@@ -16,7 +10,70 @@ export class GCPStorageService {
   }
 
   /**
-   * Upload a file to GCP bucket
+   * Generate a signed URL for uploading a file directly to GCS.
+   * This avoids writing files to the local ephemeral container filesystem.
+   * @param {string} destinationFileName - Destination file name in bucket
+   * @param {string} contentType - MIME type of the file to be uploaded
+   * @param {number} expiresMinutes - Expiration time in minutes (default 15)
+   * @returns {Promise<string>} - Signed URL for PUT request
+   */
+  async getSignedUrlForUpload(destinationFileName, contentType = 'image/png', expiresMinutes = 15) {
+    try {
+      const file = this.bucket.file(destinationFileName);
+      const [url] = await file.getSignedUrl({
+        version: 'v4',
+        action: 'write',
+        expires: Date.now() + expiresMinutes * 60 * 1000,
+        contentType: contentType,
+      });
+      return url;
+    } catch (error) {
+      console.error('Error generating signed upload URL:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a signed URL for downloading/viewing a file from GCS.
+   * @param {string} fileName - File name in bucket
+   * @param {number} expiresMinutes - Expiration time in minutes (default 15)
+   * @returns {Promise<string>} - Signed URL for GET request
+   */
+  async getSignedUrlForDownload(fileName, expiresMinutes = 15) {
+    try {
+      const file = this.bucket.file(fileName);
+      const [url] = await file.getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + expiresMinutes * 60 * 1000,
+      });
+      return url;
+    } catch (error) {
+      console.error('Error generating signed download URL:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a writable stream to upload data directly to GCS.
+   * This avoids writing files to the local ephemeral container filesystem.
+   * @param {string} destinationFileName - Destination file name in bucket
+   * @param {string} contentType - MIME type of the file
+   * @returns {import('stream').Writable} - Writable stream
+   */
+  getUploadStream(destinationFileName, contentType = 'image/png') {
+    const file = this.bucket.file(destinationFileName);
+    return file.createWriteStream({
+      metadata: {
+        contentType: contentType,
+        cacheControl: 'public, max-age=31536000',
+      },
+      resumable: false,
+    });
+  }
+
+  /**
+   * Upload a file to GCP bucket (Deprecated: Use getUploadStream or getSignedUrlForUpload to avoid local disk writes)
    * @param {string} localFilePath - Local file path. WARNING: Ensure this path is not user-controlled to prevent path traversal vulnerabilities.
    * @param {string} destinationFileName - Destination file name in bucket
    * @returns {Promise<string>} - Public URL of uploaded file
