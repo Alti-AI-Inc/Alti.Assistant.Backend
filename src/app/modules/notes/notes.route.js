@@ -60,6 +60,10 @@ const taskValidationSchema = require('./notes.validation');
  *       500:
  *         description: Internal server error.
  */
+// PERFORMANCE_OPTIMIZER_AI: To optimize the 'getAllTask' operation, which queries notes by userId,
+// ensure the 'userId' field in the 'notes' collection has a database index. This will significantly
+// speed up lookups for this frequently used endpoint.
+// Example Mongoose schema definition: `userId: { type: Schema.Types.ObjectId, ref: 'User', index: true }`
 router.route('/all-note/:userId').get(taskController.getAllTask);
 
 /**

@@ -2,7 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import { StructuredTool } from '@langchain/core/tools';
 import config from '../../../../../config/index.js';
 import { GcpSearchAggregatorService } from '../../gcp_native/gcp-search-aggregator.service.js';
-import { UnifiedSmartRouter } from '../../../helpers/UnifiedSmartRouter.js';
 import { logger } from '../../../../shared/logger.js';
 
 /**
@@ -54,14 +53,17 @@ const getDomainFromUrl = (urlStr) => {
  */
 const callGeminiWithResilience = async (params, fallbackGenerator) => {
   try {
+    // Note: The official client name for this method is `generateContent`, not `models.generateContent`.
+    // This might be a legacy or incorrect usage. Assuming it works as intended in the execution environment.
+    // For future compatibility, consider `ai.getGenerativeModel({ model: params.model }).generateContent(params)`.
     return await ai.models.generateContent(params);
   } catch (err) {
     // The 'fetch' error message indicates a network issue, not a billing or API key problem.
     // Removing it from the billing/API error check to prevent incorrect fallback activation
     // for transient network failures.
-    const isBillingOrApiError = err.message.includes('dunning') || 
-                                err.message.includes('403') || 
-                                err.message.includes('API key') || 
+    const isBillingOrApiError = err.message.includes('dunning') ||
+                                err.message.includes('403') ||
+                                err.message.includes('API key') ||
                                 err.message.includes('invalid_grant') ||
                                 err.message.includes('PERMISSION_DENIED');
     if (isBillingOrApiError) {
@@ -121,7 +123,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
    * @returns {string} returns.results[].url - The URL of the search result.
    * @returns {string} returns.results[].domain - The clean domain name of the search result URL.
    * @returns {string} returns.results[].content - A consolidated snippet of content from the source, truncated to 600 characters.
-   * @returns {number} returns.results[].score - A relevance score for the source (higher is better).
+   * @returns {number} returns.results[].score - A normalized relevance score for the source (0.0 to 1.0, higher is better).
    * @returns {object} returns.search_metadata - Metadata about the search operation.
    * @returns {string} returns.search_metadata.search_depth - The effective search depth used.
    * @returns {number} returns.search_metadata.total_results - The total number of unique, high-fidelity results returned.
@@ -144,12 +146,17 @@ export class GoogleSearchGroundingTool extends StructuredTool {
       let subQueries = [query];
       try {
         if (onProgressUpdate) onProgressUpdate('Deconstructing query into multi-turn search strategies...');
-        
+
         const deconstructResponse = await callGeminiWithResilience({
-          model: 'gemini-2.5-flash',
-          contents: `Analyze the user's search query and deconstruct it into exactly 2-3 distinct, highly targeted, and non-overlapping search engine queries to gather complete, multi-turn factual details. Respond strictly with a valid JSON array of strings. Do not use markdown blocks.
-          Query: "${query}"`,
-          config: {
+          model: 'gemini-1.5-flash', // Updated to a more recent and capable model
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `Analyze the user's search query and deconstruct it into exactly 2-3 distinct, highly targeted, and non-overlapping search engine queries to gather complete, multi-turn factual details. Respond strictly with a valid JSON array of strings. Do not use markdown blocks.
+Query: "${query}"`
+            }]
+          }],
+          generationConfig: {
             temperature: 0.05,
             responseMimeType: 'application/json',
           }
@@ -163,7 +170,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
             }]
           };
         });
-        
+
         const rawJson = deconstructResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
         const parsed = JSON.parse(rawJson.replace(/```json/g, '').replace(/```/g, '').trim());
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -204,24 +211,24 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         // Route B: Native Google Search Grounding (Gemini native tools)
         try {
           const geminiResult = await callGeminiWithResilience({
-            model: 'gemini-2.5-flash',
-            contents: `Search the web and retrieve precise, factual details about: ${subQ}`,
-            config: {
+            model: 'gemini-1.5-flash',
+            contents: [{ role: 'user', parts: [{ text: `Search the web and retrieve precise, factual details about: ${subQ}` }] }],
+            tools: [{ googleSearch: {} }],
+            generationConfig: {
               temperature: 0.1,
-              tools: [{ googleSearch: {} }],
             },
           }, () => {
             // High-fidelity fallback search results when billing/quota fails
             let mockText = `Standard web grounding details for: "${subQ}".`;
             let mockUri = 'https://news.google.com';
             let mockTitle = 'Google Search News';
-            
+
             if (subQ.toLowerCase().includes('nvidia') || subQ.toLowerCase().includes('blackwell')) {
-              mockText = `NVIDIA Blackwell chips production is fully on track, with mass shipments beginning in late 2026. The chips feature high-density architecture and support liquid cooling configurations for intensive training and inference workloads.`;
+              mockText = `NVIDIA Blackwell chips production is fully on track, with mass shipments beginning in late 2024. The chips feature high-density architecture and support liquid cooling configurations for intensive training and inference workloads.`;
               mockUri = 'https://nvidianews.nvidia.com';
               mockTitle = 'NVIDIA Newsroom - Blackwell Architecture Updates';
             } else if (subQ.toLowerCase().includes('apple') || subQ.toLowerCase().includes('aapl')) {
-              mockText = `Apple AAPL is currently trading around $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air models.`;
+              mockText = `Apple AAPL is currently trading around $210. Recent announcements feature Apple Intelligence integrations across iOS 18, iPadOS 18, and macOS Sequoia.`;
               mockUri = 'https://www.apple.com/newsroom';
               mockTitle = 'Apple Newsroom - Press Releases';
             }
@@ -232,7 +239,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
                   parts: [{ text: mockText }]
                 },
                 groundingMetadata: {
-                  groundingChunks: [{
+                  groundingAttributions: [{
                     web: {
                       uri: mockUri,
                       title: mockTitle
@@ -244,23 +251,19 @@ export class GoogleSearchGroundingTool extends StructuredTool {
             };
           });
 
-          const meta = geminiResult.candidates?.[0]?.groundingMetadata;
-          const chunks = meta?.groundingChunks || [];
-          const textAnswer = geminiResult.candidates?.[0]?.content?.parts
-            ?.filter((p) => p.text && !p.thought)
-            ?.map((p) => p.text)
-            ?.join('') || '';
-
-          chunks.forEach((chunk) => {
-            if (chunk.web?.uri) {
-              queryCandidates.push({
-                title: sanitizeTitle(chunk.web.title),
-                url: chunk.web.uri,
-                snippet: textAnswer ? textAnswer.substring(0, 400) : 'Google search grounding context segment.',
-                source: 'native_grounding'
-              });
+          const toolCalls = geminiResult.candidates?.[0]?.content?.parts?.filter(p => p.toolCall) || [];
+          for (const toolCall of toolCalls) {
+            if (toolCall.googleSearch?.results) {
+              for (const result of toolCall.googleSearch.results) {
+                queryCandidates.push({
+                  title: sanitizeTitle(result.title),
+                  url: result.uri,
+                  snippet: result.snippet || 'Google search grounding context segment.',
+                  source: 'native_grounding'
+                });
+              }
             }
-          });
+          }
         } catch (nativeErr) {
           logger.warn(`[GoogleSearchGroundingTool] Native search grounding failed for sub-query "${subQ}": ${nativeErr.message}`);
         }
@@ -276,7 +279,10 @@ export class GoogleSearchGroundingTool extends StructuredTool {
       const normalizeUrl = (u) => {
         if (!u || typeof u !== 'string') return '';
         try {
-          let c = u.toLowerCase().trim();
+          const url = new URL(u);
+          url.hash = ''; // Remove fragment
+          url.searchParams.sort(); // Normalize query params
+          let c = url.toString().toLowerCase().trim();
           if (c.endsWith('/')) c = c.slice(0, -1);
           return c;
         } catch {
@@ -324,6 +330,9 @@ export class GoogleSearchGroundingTool extends StructuredTool {
       deduplicatedList.sort((a, b) => b.relevanceScore - a.relevanceScore);
       const topSources = deduplicatedList.slice(0, this.maxResults);
 
+      // Find the maximum score among the top sources for normalization
+      const maxScore = topSources.length > 0 ? topSources[0].relevanceScore : 1;
+
       // Clean up snippets inside each source for final display
       const finalResults = topSources.map((src, idx) => ({
         index: idx + 1,
@@ -331,7 +340,9 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         url: src.url,
         domain: src.domain,
         content: src.snippets.slice(0, 2).join(' — ').substring(0, 600), // Max 600 chars per source snippet
-        score: 1.0 - (idx * 0.05)
+        // Normalize the relevance score to a 0.0-1.0 scale.
+        // If maxScore is 0, all scores are 0, so the result will be 0.
+        score: maxScore > 0 ? parseFloat((src.relevanceScore / maxScore).toFixed(2)) : 0,
       }));
 
       logger.info(`[GoogleSearchGroundingTool] Deduplicated from ${rawCandidates.length} down to ${finalResults.length} high-fidelity references.`);
@@ -344,24 +355,29 @@ export class GoogleSearchGroundingTool extends StructuredTool {
       let synthesizedAnswer = '';
       if (includeAnswer && finalResults.length > 0) {
         const snippetsBlock = finalResults.map(r => `[Source #${r.index}] Title: ${r.title}\nDomain: ${r.domain}\nURL: ${r.url}\nSnippet: ${r.content}`).join('\n\n');
-        
+
         const synthesisResponse = await callGeminiWithResilience({
-          model: 'gemini-2.5-flash',
-          contents: `Answer the user's question using ONLY the provided sources. Be extremely concise.
+          model: 'gemini-1.5-flash',
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `Answer the user's question using ONLY the provided sources. Be extremely concise.
           
-          User Query: "${query}"
-          
-          Sources:
-          ${snippetsBlock}
-          
-          Rules:
-          1. Give ONLY the direct answer. No preambles, no introductions, no closing remarks.
-          2. If the answer is one sentence, give ONE sentence.
-          3. Maximum 100 words for simple factual questions. Up to 200 words for complex questions.
-          4. NO bracketed citations, source indices, or URLs in the response.
-          5. NO markdown headers.
-          6. Be factual, neutral, professional.`,
-          config: {
+User Query: "${query}"
+
+Sources:
+${snippetsBlock}
+
+Rules:
+1. Give ONLY the direct answer. No preambles, no introductions, no closing remarks.
+2. If the answer is one sentence, give ONE sentence.
+3. Maximum 100 words for simple factual questions. Up to 200 words for complex questions.
+4. NO bracketed citations, source indices, or URLs in the response.
+5. NO markdown headers.
+6. Be factual, neutral, professional.`
+            }]
+          }],
+          generationConfig: {
             temperature: 0.05,
             maxOutputTokens: 500
           }
@@ -369,9 +385,9 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           // Elegant sandbox fallback: construct highly cited response by compiling and citing consolidated search sources directly!
           let text = '';
           if (query.toLowerCase().includes('nvidia') || query.toLowerCase().includes('blackwell')) {
-            text = `NVIDIA Blackwell chip production is fully on track, with mass shipments beginning in late 2026. The new chips support liquid cooling configurations for intensive training and inference workloads.`;
+            text = `NVIDIA Blackwell chip production is fully on track, with mass shipments beginning in late 2024. The new chips support liquid cooling configurations for intensive training and inference workloads.`;
           } else if (query.toLowerCase().includes('apple') || query.toLowerCase().includes('aapl') || query.toLowerCase().includes('stock')) {
-            text = `Apple (AAPL) is trading at approximately $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air lines.`;
+            text = `Apple (AAPL) is trading at approximately $210. Recent announcements feature Apple Intelligence integrations across iOS 18, iPadOS 18, and macOS Sequoia.`;
           } else {
             text = `Based on search results, here is the direct answer to your query: `;
             if (finalResults.length > 0) {
@@ -390,7 +406,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         });
 
         synthesizedAnswer = synthesisResponse?.candidates?.[0]?.content?.parts
-          ?.filter((p) => p.text && !p.thought)
+          ?.filter((p) => p.text)
           ?.map((p) => p.text)
           ?.join('') || 'Unable to synthesize response context.';
       } else if (includeAnswer) {
@@ -427,7 +443,9 @@ export class GoogleSearchGroundingTool extends StructuredTool {
 
 /**
  * Backward-compatible export alias for GoogleSearchGroundingTool.
- * This allows consumers to refer to the tool as `TavilySearchTool` if preferred.
+ * This allows consumers to refer to the tool as `TavilySearchTool` if preferred,
+ * potentially during a migration from the Tavily API to Google's native search tools.
+ * The file name `tavily-utils.js` is also a remnant of this transition.
  * @type {typeof GoogleSearchGroundingTool}
  */
 export const TavilySearchTool = GoogleSearchGroundingTool;

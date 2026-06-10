@@ -27,12 +27,33 @@ import { MongoDBSaver } from '../../code/code_assistant/MongoDBSaver.js';
 import config from '../../../../../config/index.js';
 import { Composio } from '@composio/core';
 
+// Security: Helper function to escape HTML entities and prevent XSS.
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string') return unsafe;
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+// Security: Helper function to validate identifiers like userId and conversationId.
+// Allows alphanumeric characters, dashes, and underscores. Prevents injection attacks.
+const isValidIdentifier = (id) => {
+  if (id === null || id === undefined) return true; // Allow null/undefined for new conversations
+  if (typeof id !== 'string' || id.length === 0) return false;
+  const identifierRegex = /^[a-zA-Z0-9-_]+$/;
+  return identifierRegex.test(id);
+};
+
 /**
  * Initializes the Composio SDK with the organization API key from the configuration.
  * This instance is used to interact with Composio's connected accounts API.
  * @type {Composio}
  */
 const composio = new Composio({
+  // Security: API keys are loaded from a central config, not hardcoded.
   apiKey: config.composio.orgApiKey,
 });
 
@@ -219,6 +240,26 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     retrieveHistory = true,
   } = options;
 
+  // Security: Validate identifiers to prevent NoSQL injection or other attacks.
+  if (!isValidIdentifier(userId) || !isValidIdentifier(conversationId)) {
+    const errorMessage = 'Invalid userId or conversationId format.';
+    console.error(`Security Alert: ${errorMessage}`);
+    return {
+      success: false,
+      message: 'Tool execution failed',
+      error: errorMessage,
+      data: {
+        responseMessage: {
+          text: `Sorry, I encountered an error: ${errorMessage}`,
+          type: 'error',
+        },
+        conversationId: null,
+        messageCount: 0,
+        userType: 'authenticated',
+      },
+    };
+  }
+
   const connectedAccounts = userId
     ? await composio.connectedAccounts.list({
         userIds: [userId],
@@ -313,10 +354,12 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       message: 'Tool execution completed successfully',
       data: {
         responseMessage: {
-          message:
+          // Security: Sanitize AI-generated output to prevent XSS vulnerabilities.
+          message: escapeHtml(
             result.finalResponse ||
             result.response ||
-            'Action completed successfully',
+            'Action completed successfully'
+          ),
           type: result.workflowType || 'single_step',
           executionResult: result.executionResult,
           toolResults: result.stepResults || [],
@@ -360,7 +403,8 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       error: error.message,
       data: {
         responseMessage: {
-          text: `Sorry, I encountered an error while processing your request: ${error.message}`,
+          // Security: Sanitize error messages before sending to client to prevent XSS.
+          text: `Sorry, I encountered an error while processing your request: ${escapeHtml(error.message)}`,
           type: 'error',
         },
         conversationId: threadId,
@@ -388,6 +432,21 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
  * @property {string} [error] - Error message if the operation failed.
  */
 export const getConversationHistory = async (conversationId) => {
+  // Security: Validate identifier to prevent NoSQL injection or other attacks.
+  if (!isValidIdentifier(conversationId)) {
+    const errorMessage = 'Invalid conversationId format.';
+    console.error(`Security Alert: ${errorMessage}`);
+    return {
+      success: false,
+      message: 'Failed to retrieve conversation history',
+      error: errorMessage,
+      data: {
+        conversationId,
+        messageCount: 0,
+      },
+    };
+  }
+
   try {
     const config = { configurable: { thread_id: conversationId } };
     const state = await aiClassificationApp.getState(config);
@@ -419,7 +478,8 @@ export const getConversationHistory = async (conversationId) => {
     return {
       success: false,
       message: 'Failed to retrieve conversation history',
-      error: error.message,
+      // Security: Sanitize error messages before sending to client to prevent XSS.
+      error: escapeHtml(error.message),
       data: {
         conversationId,
         messageCount: 0,
@@ -442,6 +502,21 @@ export const getConversationHistory = async (conversationId) => {
  * @property {string} [error] - Error message if the operation failed.
  */
 export const clearConversationHistory = async (conversationId) => {
+  // Security: Validate identifier to prevent NoSQL injection or other attacks.
+  if (!isValidIdentifier(conversationId)) {
+    const errorMessage = 'Invalid conversationId format.';
+    console.error(`Security Alert: ${errorMessage}`);
+    return {
+      success: false,
+      message: 'Failed to clear conversation history',
+      error: errorMessage,
+      data: {
+        conversationId,
+        messageCount: 0,
+      },
+    };
+  }
+
   try {
     const config = { configurable: { thread_id: conversationId } };
     // Get current state and reset conversation-specific fields
@@ -487,7 +562,8 @@ export const clearConversationHistory = async (conversationId) => {
     return {
       success: false,
       message: 'Failed to clear conversation history',
-      error: error.message,
+      // Security: Sanitize error messages before sending to client to prevent XSS.
+      error: escapeHtml(error.message),
       data: {
         conversationId,
         messageCount: 0,
