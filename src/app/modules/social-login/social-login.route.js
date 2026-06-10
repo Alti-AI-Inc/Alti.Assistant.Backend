@@ -3,11 +3,36 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import config from '../../../../config/index.js';
 
+/**
+ * Express router to handle social authentication routes.
+ * @type {import('express').Router}
+ */
 const router = Router();
 
+/**
+ * The frontend application URL used for redirection after authentication.
+ * Defaults to 'https://www.altihq.com' if not specified in the configuration.
+ * @type {string}
+ */
 const FRONTEND_URL = config.client_url || 'https://www.altihq.com';
+
+/**
+ * The URL to redirect to in case of authentication failure or cancellation.
+ * @type {string}
+ */
 const FAILURE_REDIRECT_URL = `${FRONTEND_URL}?showLogin=true&error=authentication_cancelled`;
 
+/**
+ * Generates a JWT access token for the authenticated user and redirects them to the frontend application.
+ * Resolves the user's role (e.g., checking for super_admin privileges) and appends the token to the redirect URL.
+ *
+ * @param {Object} user - The authenticated user object.
+ * @param {string} user._id - The unique identifier of the user.
+ * @param {string} [user.email] - The email address of the user.
+ * @param {string} user.role - The role assigned to the user.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {void} Redirects the client to the frontend callback URL with the token or an error query parameter.
+ */
 function sendTokenResponse(user, res) {
   if (!user || !user._id) {
     console.error(
@@ -55,6 +80,13 @@ function sendTokenResponse(user, res) {
 //   (req, res) => sendTokenResponse(req.user.user, res) // Use req.user.user
 // );
 
+/**
+ * Higher-order function that returns an Express middleware to handle Passport social authentication callbacks.
+ * Manages specific error scenarios such as email conflicts (e.g., email registered with password or another provider).
+ *
+ * @param {string} strategy - The Passport strategy name (e.g., 'google', 'apple', 'microsoft', 'facebook', 'twitter', 'discord', 'github').
+ * @returns {import('express').RequestHandler} Express middleware function.
+ */
 function handleSocialAuthCallback(strategy) {
   return (req, res, next) => {
     passport.authenticate(strategy, { session: false }, (err, user, info) => {
@@ -94,7 +126,18 @@ function handleSocialAuthCallback(strategy) {
   };
 }
 
-// Google
+/**
+ * @openapi
+ * /social-login/google:
+ *   get:
+ *     summary: Initiate Google OAuth2 authentication
+ *     description: Redirects the user to Google's OAuth consent screen to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Google's login page.
+ */
 router.get(
   '/google',
   passport.authenticate('google', {
@@ -102,34 +145,154 @@ router.get(
     session: false,
   })
 );
+
+/**
+ * @openapi
+ * /social-login/google/callback:
+ *   get:
+ *     summary: Google OAuth2 callback endpoint
+ *     description: Handles the callback from Google, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/google/callback', handleSocialAuthCallback('google'));
 
-// Apple (Note: Apple often uses POST for callbacks)
+/**
+ * @openapi
+ * /social-login/apple:
+ *   get:
+ *     summary: Initiate Apple OAuth authentication
+ *     description: Redirects the user to Apple's sign-in page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Apple's login page.
+ */
 router.get(
   '/apple',
   passport.authenticate('apple', { session: false, scope: ['name', 'email'] })
 );
+
+/**
+ * @openapi
+ * /social-login/apple/callback:
+ *   post:
+ *     summary: Apple OAuth callback endpoint
+ *     description: Handles the POST callback from Apple, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.post('/apple/callback', handleSocialAuthCallback('apple'));
 
-// Microsoft
+/**
+ * @openapi
+ * /social-login/microsoft:
+ *   get:
+ *     summary: Initiate Microsoft OAuth authentication
+ *     description: Redirects the user to Microsoft's login page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Microsoft's login page.
+ */
 router.get(
   '/microsoft',
   passport.authenticate('microsoft', { scope: ['user.read'], session: false })
 );
+
+/**
+ * @openapi
+ * /social-login/microsoft/callback:
+ *   get:
+ *     summary: Microsoft OAuth callback endpoint
+ *     description: Handles the callback from Microsoft, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/microsoft/callback', handleSocialAuthCallback('microsoft'));
 
-// Facebook
+/**
+ * @openapi
+ * /social-login/facebook:
+ *   get:
+ *     summary: Initiate Facebook OAuth authentication
+ *     description: Redirects the user to Facebook's login page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Facebook's login page.
+ */
 router.get(
   '/facebook',
   passport.authenticate('facebook', { scope: ['email'], session: false })
 );
+
+/**
+ * @openapi
+ * /social-login/facebook/callback:
+ *   get:
+ *     summary: Facebook OAuth callback endpoint
+ *     description: Handles the callback from Facebook, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/facebook/callback', handleSocialAuthCallback('facebook'));
 
-// Twitter
+/**
+ * @openapi
+ * /social-login/twitter:
+ *   get:
+ *     summary: Initiate Twitter OAuth authentication
+ *     description: Redirects the user to Twitter's login page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Twitter's login page.
+ */
 router.get('/twitter', passport.authenticate('twitter', { session: false }));
+
+/**
+ * @openapi
+ * /social-login/twitter/callback:
+ *   get:
+ *     summary: Twitter OAuth callback endpoint
+ *     description: Handles the callback from Twitter, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/twitter/callback', handleSocialAuthCallback('twitter'));
 
-// Discord
+/**
+ * @openapi
+ * /social-login/discord:
+ *   get:
+ *     summary: Initiate Discord OAuth authentication
+ *     description: Redirects the user to Discord's login page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to Discord's login page.
+ */
 router.get(
   '/discord',
   passport.authenticate('discord', {
@@ -137,13 +300,54 @@ router.get(
     session: false,
   })
 );
+
+/**
+ * @openapi
+ * /social-login/discord/callback:
+ *   get:
+ *     summary: Discord OAuth callback endpoint
+ *     description: Handles the callback from Discord, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/discord/callback', handleSocialAuthCallback('discord'));
 
-// GitHub
+/**
+ * @openapi
+ * /social-login/github:
+ *   get:
+ *     summary: Initiate GitHub OAuth authentication
+ *     description: Redirects the user to GitHub's login page to authenticate.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to GitHub's login page.
+ */
 router.get(
   '/github',
   passport.authenticate('github', { scope: ['user:email'], session: false })
 );
+
+/**
+ * @openapi
+ * /social-login/github/callback:
+ *   get:
+ *     summary: GitHub OAuth callback endpoint
+ *     description: Handles the callback from GitHub, processes authentication, and redirects to the frontend with a JWT token.
+ *     tags:
+ *       - Social Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend application with the JWT token or error query parameters.
+ */
 router.get('/github/callback', handleSocialAuthCallback('github'));
 
+/**
+ * Exported Express router containing all social login routes.
+ * @type {import('express').Router}
+ */
 export const socialLoginRotes = router;

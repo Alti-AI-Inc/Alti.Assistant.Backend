@@ -147,7 +147,7 @@ const moduleRoutes = [
   },
   {
     path: '/deepseek',
-    route: deepseekAiRoutes,
+    route: geminiAiRoutes,
   },
   // {
   //   path: '/serper',
