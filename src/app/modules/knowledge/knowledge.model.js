@@ -386,6 +386,13 @@ KnowledgeFileSchema.index({
 KnowledgeFileSchema.index({ tenantId: 1, ownerType: 1, ownerId: 1, processingStatus: 1 });
 
 /**
+ * Indexes optimized for tenant-wide statistics and manager/admin dashboards.
+ * Supports covered queries for calculating total storage and file counts.
+ */
+KnowledgeFileSchema.index({ tenantId: 1, isActive: 1, fileSize: 1 });
+KnowledgeFileSchema.index({ tenantId: 1, isActive: 1, createdAt: -1 });
+
+/**
  * Legacy fallback indexes (retained for direct cross-tenant or admin queries).
  * These indexes support queries that might not include tenantId.
  */
@@ -437,12 +444,14 @@ KnowledgeFileSchema.virtual('formattedFileSize').get(function () {
  * @param {OWNER_TYPES} ownerType - The type of the owner (e.g., 'USER', 'BOT').
  * @param {string} ownerId - The ID of the owner.
  * @param {object} [options={}] - Optional query parameters.
+ * @param {string} [options.tenantId] - Filter by tenant ID for multi-tenancy.
  * @param {string} [options.fileType] - Filter by file type.
  * @param {PROCESSING_STATUS} [options.processingStatus] - Filter by processing status.
  * @param {boolean} [options.isProcessed] - Filter by processing completion status.
  * @param {mongoose.Types.ObjectId|null} [options.folderId] - Filter by folder ID. Use `null` to find files not in any folder.
  * @param {number} [options.limit=100] - The maximum number of documents to return.
  * @param {number} [options.skip=0] - The number of documents to skip.
+ * @param {boolean} [options.lean=true] - Whether to return plain JavaScript objects instead of Mongoose documents.
  * @returns {Promise<KnowledgeFileSchemaProperties[]>} A promise that resolves to an array of knowledge file documents.
  */
 KnowledgeFileSchema.statics.findByOwner = async function (
@@ -456,6 +465,7 @@ KnowledgeFileSchema.statics.findByOwner = async function (
     isActive: true,
   };
 
+  if (options.tenantId) query.tenantId = options.tenantId;
   if (options.fileType) query.fileType = options.fileType;
   if (options.processingStatus)
     query.processingStatus = options.processingStatus;
@@ -463,10 +473,17 @@ KnowledgeFileSchema.statics.findByOwner = async function (
     query.isProcessed = options.isProcessed;
   if (options.folderId !== undefined) query.folderId = options.folderId;
 
-  return this.find(query)
+  const queryChain = this.find(query)
     .sort({ createdAt: -1 })
     .limit(options.limit || 100)
     .skip(options.skip || 0);
+
+  // Use lean by default for high performance, but allow opting out if full documents are needed
+  if (options.lean !== false) {
+    queryChain.lean();
+  }
+
+  return queryChain;
 };
 
 /**
@@ -476,14 +493,17 @@ KnowledgeFileSchema.statics.findByOwner = async function (
  * @param {OWNER_TYPES} ownerType - The type of the owner.
  * @param {string} ownerId - The ID of the owner.
  * @param {boolean} [activeOnly=true] - If true, only counts active files.
+ * @param {mongoose.Types.ObjectId|string|null} [tenantId=null] - Optional tenant ID to leverage multi-tenant indexes.
  * @returns {Promise<number>} A promise that resolves to the count of knowledge files.
  */
 KnowledgeFileSchema.statics.countByOwner = async function (
   ownerType,
   ownerId,
-  activeOnly = true
+  activeOnly = true,
+  tenantId = null
 ) {
   const query = { ownerType, ownerId };
+  if (tenantId) query.tenantId = tenantId;
   if (activeOnly) query.isActive = true;
   return this.countDocuments(query);
 };
@@ -495,14 +515,17 @@ KnowledgeFileSchema.statics.countByOwner = async function (
  * @param {OWNER_TYPES} ownerType - The type of the owner.
  * @param {string} ownerId - The ID of the owner.
  * @param {boolean} [activeOnly=true] - If true, only sums sizes of active files.
+ * @param {mongoose.Types.ObjectId|string|null} [tenantId=null] - Optional tenant ID to leverage multi-tenant indexes.
  * @returns {Promise<number>} A promise that resolves to the total storage size in bytes.
  */
 KnowledgeFileSchema.statics.getTotalStorageByOwner = async function (
   ownerType,
   ownerId,
-  activeOnly = true
+  activeOnly = true,
+  tenantId = null
 ) {
   const query = { ownerType, ownerId };
+  if (tenantId) query.tenantId = tenantId;
   if (activeOnly) query.isActive = true;
 
   const result = await this.aggregate([

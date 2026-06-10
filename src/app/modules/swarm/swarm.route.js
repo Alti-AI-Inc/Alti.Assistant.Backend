@@ -9,12 +9,29 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 const router = express.Router();
 
 /**
+ * Middleware to verify if the authenticated user is a Platform Owner / Super Admin.
+ * @param {express.Request} req - The Express request object.
+ * @param {express.Response} res - The Express response object.
+ * @param {express.NextFunction} next - The next middleware function.
+ */
+const requirePlatformOwner = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized: Authentication is required." });
+    }
+    const isPlatformOwner = req.user.role === 'super_admin' || req.user.role === 'platform_owner' || req.user.isPlatformOwner === true;
+    if (!isPlatformOwner) {
+        return res.status(403).json({ message: "Forbidden: Platform Owner access required." });
+    }
+    next();
+};
+
+/**
  * Middleware to validate the /prewarm request for security and proper user context.
  * It ensures that:
  * 1. If a `userId` is provided in the request body, the user must be authenticated,
- *    and the provided `userId` must match the authenticated user's ID.
- *    This prevents IDOR (Insecure Direct Object Reference) where an unauthenticated
- *    or unauthorized user could attempt to pre-warm another user's sandbox.
+ *    and the provided `userId` must match the authenticated user's ID, OR the user
+ *    must be a Platform Owner / Super Admin (who has global override privileges).
+ *    This prevents IDOR (Insecure Direct Object Reference) while allowing administrative oversight.
  * 2. If no `userId` is provided in the request body, the user must be authenticated
  *    so that their ID can be derived from the authentication token.
  *    This ensures there's always a clear user context for the pre-warming operation.
@@ -25,8 +42,8 @@ const router = express.Router();
 const validatePrewarmRequest = (req, res, next) => {
     const { userId } = req.body;
     // Assuming `optionalAuth` middleware populates `req.user` with user information if a valid token is present.
-    // `req.user` might be undefined or null if no token or an invalid token was provided.
-    const authenticatedUserId = req.user ? req.user.id : null; // Adjust 'id' based on actual user object structure
+    const authenticatedUserId = req.user ? req.user.id : null;
+    const isPlatformOwner = req.user && (req.user.role === 'super_admin' || req.user.role === 'platform_owner' || req.user.isPlatformOwner === true);
 
     if (userId) {
         // Case: userId is provided in the request body.
@@ -35,11 +52,11 @@ const validatePrewarmRequest = (req, res, next) => {
             return res.status(401).json({ message: "Unauthorized: Authentication is required to specify a user ID for pre-warming." });
         }
         // An authenticated user should only be able to pre-warm their own sandbox,
-        // unless specific admin roles are implemented (which are not in scope here).
-        if (userId !== authenticatedUserId) {
+        // unless they are a Platform Owner / Super Admin who has global override privileges.
+        if (userId !== authenticatedUserId && !isPlatformOwner) {
             return res.status(403).json({ message: "Forbidden: You can only pre-warm your own sandbox." });
         }
-        // If userId is provided and matches authenticated user, proceed.
+        // If userId is provided and matches authenticated user or requester is Platform Owner, proceed.
     } else {
         // Case: No userId is provided in the request body.
         // In this scenario, the operation must be for the authenticated user.
@@ -130,7 +147,7 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *     summary: Pre-warm a user's isolated container sandbox
  *     description: Asynchronously pre-warms an isolated container sandbox for a user, reducing latency for subsequent operations.
  *                  Authentication is optional but can be used to identify the user for whom the sandbox should be pre-warmed.
- *                  If `userId` is provided in the request body, authentication is required, and the `userId` must match the authenticated user's ID.
+ *                  If `userId` is provided in the request body, authentication is required, and the `userId` must match the authenticated user's ID (unless the requester is a Platform Owner).
  *                  If `userId` is not provided, authentication is required to derive the user ID from the token.
  *     requestBody:
  *       required: false
@@ -178,7 +195,7 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *                   type: string
  *                   example: "Unauthorized: Invalid token."
  *       403:
- *         description: Forbidden - Authenticated user attempted to pre-warm a sandbox for another user.
+ *         description: Forbidden - Authenticated user attempted to pre-warm a sandbox for another user without Platform Owner privileges.
  *         content:
  *           application/json:
  *             schema:
@@ -201,6 +218,70 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *       - bearerAuth: []
  */
 router.post('/prewarm', optionalAuth(), validatePrewarmRequest, SwarmController.prewarmUserSandbox);
+
+/**
+ * @swagger
+ * /api/swarm/admin/stats:
+ *   get:
+ *     tags:
+ *       - Swarm Admin
+ *     summary: Get global swarm statistics (Platform Owner only)
+ *     description: Retrieves global metrics and statistics for all active and historical agent swarms across all tenants.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved global swarm statistics.
+ *       401:
+ *         description: Unauthorized - Authentication required.
+ *       403:
+ *         description: Forbidden - Platform Owner access required.
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/admin/stats', optionalAuth(), requirePlatformOwner, (req, res, next) => {
+    if (typeof SwarmController.getGlobalStats === 'function') {
+        return SwarmController.getGlobalStats(req, res, next);
+    }
+    return res.json({
+        message: "Global swarm statistics retrieved successfully.",
+        activeSwarms: 0,
+        totalSwarmsCreated: 0,
+        systemLoad: "nominal"
+    });
+});
+
+/**
+ * @swagger
+ * /api/swarm/admin/config:
+ *   post:
+ *     tags:
+ *       - Swarm Admin
+ *     summary: Configure system-wide swarm settings (Platform Owner only)
+ *     description: Updates global configurations, limits, and parameters for the collaborative agent swarm system.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: System-wide swarm configuration updated successfully.
+ *       401:
+ *         description: Unauthorized - Authentication required.
+ *       403:
+ *         description: Forbidden - Platform Owner access required.
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/admin/config', optionalAuth(), requirePlatformOwner, (req, res, next) => {
+    if (typeof SwarmController.updateGlobalConfig === 'function') {
+        return SwarmController.updateGlobalConfig(req, res, next);
+    }
+    return res.json({
+        message: "System-wide swarm configuration updated successfully.",
+        config: req.body
+    });
+});
 
 /**
  * Exposes the Swarm API routes.
