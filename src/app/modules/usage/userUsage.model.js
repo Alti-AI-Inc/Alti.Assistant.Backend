@@ -45,6 +45,8 @@ const UserUsageSchema = new mongoose.Schema(
 
     // Cumulative storage used by this user (bytes).
     // Updated on upload/delete, not reset daily.
+    // This value should reflect the total storage for the user/tenant,
+    // carried over from the previous day's record if a new daily record is created.
     storageUsed: {
       type: Number,
       default: 0,
@@ -72,9 +74,17 @@ UserUsageSchema.statics.getOrCreateToday = async function (
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0); // normalize to UTC midnight
 
+  // Bug Fix: When a new daily document is created, storageUsed should be initialized
+  // from the latest previous day's record, not default to 0.
+  const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
+                                    .sort({ date: -1 })
+                                    .select('storageUsed');
+
+  const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
+
   const doc = await this.findOneAndUpdate(
     { userId, tenantId, date: today },
-    { $setOnInsert: { requestsUsed: 0 } },
+    { $setOnInsert: { requestsUsed: 0, storageUsed: initialStorageUsed } }, // Initialize storageUsed on insert
     { upsert: true, new: true }
   );
   return doc;
@@ -93,9 +103,17 @@ UserUsageSchema.statics.incrementRequest = async function (
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
+  // Bug Fix: When a new daily document is created via incrementRequest, storageUsed should be initialized
+  // from the latest previous day's record, not default to 0.
+  const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
+                                    .sort({ date: -1 })
+                                    .select('storageUsed');
+
+  const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
+
   const doc = await this.findOneAndUpdate(
     { userId, tenantId, date: today },
-    { $inc: { requestsUsed: 1 } },
+    { $inc: { requestsUsed: 1 }, $setOnInsert: { storageUsed: initialStorageUsed } }, // Initialize storageUsed on insert
     { upsert: true, new: true }
   );
   return doc;
@@ -134,18 +152,41 @@ UserUsageSchema.statics.updateStorage = async function (
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  // Use $max to prevent storageUsed going below 0
+  // Bug Fix: When a new daily document is created via updateStorage, storageUsed should be initialized
+  // from the latest previous day's record, not default to 0.
+  const latestPreviousDoc = await this.findOne({ userId, tenantId, date: { $lt: today } })
+                                    .sort({ date: -1 })
+                                    .select('storageUsed');
+
+  const initialStorageUsed = latestPreviousDoc ? latestPreviousDoc.storageUsed : 0;
+
+  // Bug Fix: The original clamping logic `if (doc.storageUsed < 0) { doc.storageUsed = 0; await doc.save(); }`
+  // was not atomic and could lead to race conditions.
+  // Using an aggregation pipeline for findOneAndUpdate allows for atomic increment and clamping.
   const doc = await this.findOneAndUpdate(
     { userId, tenantId, date: today },
-    { $inc: { storageUsed: bytes } },
+    [ // Use an aggregation pipeline for atomic update and clamping
+      {
+        $set: {
+          // Initialize storageUsed if it's a new document, otherwise use existing and add bytes, then clamp at 0
+          storageUsed: {
+            $max: [
+              0, // Ensure storageUsed does not go below 0
+              {
+                $add: [
+                  { $ifNull: ["$storageUsed", initialStorageUsed] }, // Use existing storageUsed or initialize
+                  bytes
+                ]
+              }
+            ]
+          },
+          // Ensure requestsUsed is initialized to 0 if this is the first operation of the day
+          requestsUsed: { $ifNull: ["$requestsUsed", 0] }
+        }
+      }
+    ],
     { upsert: true, new: true }
   );
-
-  // Clamp to 0 if went negative
-  if (doc.storageUsed < 0) {
-    doc.storageUsed = 0;
-    await doc.save();
-  }
 
   return doc;
 };
