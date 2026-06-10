@@ -47,10 +47,11 @@ const handleImageConversation = async (
 
     if (conversationId) {
       try {
-        // Optimization: Use .lean() for read-only query to improve performance
-        // if conversationHelpers.getConversationById fetches a Mongoose document.
+        // Optimization: Use .lean() for read-only query to improve performance.
         // The fetched conversation is only read from, not modified as a Mongoose document.
         // Assuming conversationHelpers.getConversationById accepts a 'lean' flag as the last argument.
+        // Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Conversation model
+        // for efficient lookups. A compound index on { conversationId: 1, userId: 1 } might be beneficial.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId,
@@ -486,11 +487,12 @@ const generateImageConversationId = () => {
  */
 const getImageStats = async (userId, req = null) => {
   try {
-    // Optimization: Use .lean() for read-only queries to improve performance
-    // if conversationHelpers.getUserConversations fetches Mongoose documents.
+    // Optimization: Use .lean() for read-only queries to improve performance.
     // The fetched conversations are only used for aggregation (length, messageCount),
     // not modified as Mongoose documents.
     // Assuming conversationHelpers.getUserConversations accepts a 'lean' flag as the last argument.
+    // Recommendation: Ensure 'userId' and 'metadata.category' fields are indexed in the Conversation model
+    // for efficient lookups. A compound index on { userId: 1, 'metadata.category': 1 } would be highly beneficial.
     const imageConversations = await conversationHelpers.getUserConversations(
       userId,
       {
