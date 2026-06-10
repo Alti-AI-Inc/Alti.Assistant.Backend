@@ -117,7 +117,16 @@ export async function withCache(type, params, fetcher, ttl) {
   // ── Cache miss — fetch fresh ──
   _stats.misses++;
   logger.debug(`[Explorium Cache] MISS ${type}`);
-  const data = await fetcher();
+  let data;
+  try {
+    // BUG FIX: Wrap fetcher call in try-catch to handle potential errors
+    data = await fetcher();
+  } catch (err) {
+    _stats.errors++;
+    logger.error(`[Explorium Cache] Fetcher error for type ${type}: ${err.message}`);
+    // Return null to indicate failure to fetch fresh data, allowing caller to handle
+    return null;
+  }
 
   // ── Store result ──
   if (data != null) {
@@ -188,6 +197,15 @@ export async function withCacheBatch(type, paramsList, fetcher, ttl) {
       if (!Array.isArray(freshData)) {
         throw new Error(`Batch fetcher did not return an array. Expected length: ${missParams.length}`);
       }
+      // Defensive check: Ensure the fetcher returns an array of the same length as missParams
+      if (freshData.length !== missParams.length) {
+        logger.warn(`[Explorium Cache] Batch fetcher returned ${freshData.length} items for ${missParams.length} requests. This might indicate an issue with the fetcher.`);
+        // Adjust freshData to match expected length, filling missing with null
+        while (freshData.length < missParams.length) {
+          freshData.push(null);
+        }
+        freshData.splice(missParams.length); // Truncate if too long
+      }
 
       const setsToCache = [];
       for (let j = 0; j < missParams.length; j++) {
@@ -200,18 +218,24 @@ export async function withCacheBatch(type, paramsList, fetcher, ttl) {
         }
       }
 
+      // BUG FIX: RedisClient.mset does not support a global TTL.
+      // Use a pipeline with individual SET commands with EX option for correct TTL application.
       if (setsToCache.length > 0) {
+        const pipeline = RedisClient.pipeline();
+        for (const [key, value] of setsToCache) {
+          pipeline.set(key, value, { EX: ttlSecs });
+        }
         try {
-          await RedisClient.mset(setsToCache, ttlSecs);
-          _stats.sets += setsToCache.length;
+          await pipeline.exec();
+          _stats.sets += setsToCache.length; // Increment stats only on successful pipeline execution
         } catch (err) {
           _stats.errors++;
-          logger.warn(`[Explorium Cache] mset error: ${err.message}`);
+          logger.warn(`[Explorium Cache] pipeline.exec error: ${err.message}`);
         }
       }
     } catch (err) {
       logger.error(`[Explorium Cache] Batch fetcher error: ${err.message}`);
-      // On fetcher error, make sure we return null or handle gracefully for missed items
+      // On fetcher error, ensure we return null for missed items that failed to fetch
       for (let j = 0; j < missParams.length; j++) {
         const originalIndex = missIndices[j];
         results[originalIndex] = null;
