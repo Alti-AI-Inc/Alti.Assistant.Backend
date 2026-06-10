@@ -7,15 +7,32 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // The global 'integrationId' constant was unused and has been removed.
 
+/**
+ * @constant {OpenAIToolSet} toolset - An instance of OpenAIToolSet initialized with the Composio API key.
+ * Used for interacting with Composio's integration management functionalities.
+ */
 const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
+
+/**
+ * @constant {Composio} composio - An instance of the Composio core library.
+ * Used for authorizing toolkits, fetching tools, and handling tool calls.
+ */
 const composio = new Composio();
 
-// Recursive helper to capitalize all parameter types and sanitize schemas for Gemini compatibility
+/**
+ * Recursively capitalizes 'type' fields in a JSON schema and sanitizes it for Gemini compatibility.
+ * This function modifies the schema to ensure that type values are uppercase (e.g., 'string' becomes 'STRING', 'int' becomes 'INTEGER')
+ * and removes unsupported complex schema structures like 'oneOf', 'anyOf', 'allOf', and specific keys like 'format', 'additionalProperties'.
+ * It also removes 'NULL' types as Gemini does not support them within properties.
+ *
+ * @param {object} schema - The JSON schema object to process.
+ * @returns {object} The sanitized and type-capitalized JSON schema.
+ */
 const capitalizeTypes = (schema) => {
   if (!schema || typeof schema !== 'object') {
     return schema;
   }
-  
+
   // Strip unsupported complex schema structures that fail Gemini validation
   if (schema.oneOf || schema.anyOf || schema.allOf) {
     const subSchema = schema.oneOf?.[0] || schema.anyOf?.[0] || schema.allOf?.[0];
@@ -27,7 +44,7 @@ const capitalizeTypes = (schema) => {
   }
 
   const newSchema = Array.isArray(schema) ? [] : {};
-  
+
   for (const [key, value] of Object.entries(schema)) {
     // Strip keys not supported by Gemini schemas
     if (['format', 'additionalProperties', 'anyOf', 'oneOf', 'allOf'].includes(key)) {
@@ -45,11 +62,19 @@ const capitalizeTypes = (schema) => {
       newSchema[key] = value;
     }
   }
-  
+
   return newSchema;
 };
 
-
+/**
+ * Retrieves details about the Gmail integration and its required input fields.
+ * This service fetches the specific Gmail integration by its ID and then
+ * gets the parameters needed to interact with it.
+ *
+ * @returns {Promise<object>} An object containing the integration details and its required input fields.
+ * @returns {object} .integration - The Gmail integration object.
+ * @returns {object} .inputFields - The required input fields for the Gmail integration.
+ */
 const getGmailIntegrationService = async () => {
   const integration = await toolset.integrations.get({
     integrationId: '32b20636-3b36-4aeb-8931-5bc614ddec45',
@@ -62,6 +87,15 @@ const getGmailIntegrationService = async () => {
   return data;
 };
 
+/**
+ * Initiates the OAuth authorization flow for Gmail integration for a given user.
+ * This service requests an authorization URL from Composio, which the user
+ * must visit to grant permissions.
+ *
+ * @param {string} userEmail - The email of the user for whom to authorize the Gmail integration.
+ * @returns {Promise<object>} An object containing the redirect URL for the OAuth flow.
+ * @returns {string} .redirectUrl - The URL to which the user should be redirected to authorize Gmail.
+ */
 const authorizeGmailIntegrationService = async (userEmail) => {
   const connectionRequest = await composio.toolkits.authorize(
     userEmail,
@@ -76,6 +110,22 @@ const authorizeGmailIntegrationService = async (userEmail) => {
   };
 };
 
+/**
+ * Sends an email using the Gmail integration via Composio, leveraging Gemini for function calling.
+ * This service takes email details and a connected account ID, fetches the `GMAIL_SEND_EMAIL` tool,
+ * translates its schema for Gemini, uses Gemini to generate the tool call, and then executes it
+ * through Composio's provider.
+ *
+ * @param {object} body - The request body containing email details and user information.
+ * @param {string} body.userEmail - The email of the user sending the email.
+ * @param {string} body.toEmail - The recipient's email address.
+ * @param {string} body.subject - The subject of the email.
+ * @param {string} body.content - The body content of the email.
+ * @param {string} body.connectedAccountId - The ID of the connected Gmail account to use for sending.
+ * @returns {Promise<object>} The result of the email sending operation from the Composio API.
+ * @throws {ApiError} 400 - If any required fields are missing.
+ * @throws {ApiError} 500 - If Gemini fails to generate a Gmail send tool call.
+ */
 const sendGmailFromAuthorizedAccountService = async (body) => {
   console.log('Sending email with Composio...', body);
 
@@ -175,6 +225,15 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
   // Removed unconditional success log, as 'result' should be checked for actual success/failure.
 };
 
+/**
+ * Retrieves a list of all connected accounts for a specific integration and entity.
+ *
+ * @param {string} integrationId - The ID of the integration (e.g., Gmail, YouTube).
+ * @param {string} entityId - The ID of the user/entity whose connected accounts are to be listed.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<Array<object>>} An array of connected account objects.
+ * @throws {ApiError} 400 - If `integrationId` or `entityId` is missing.
+ */
 const getAllConnectedAccountsService = async (integrationId, entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!integrationId) {
@@ -191,6 +250,14 @@ const getAllConnectedAccountsService = async (integrationId, entityId) => {
   return connected_accounts.items;
 };
 
+/**
+ * Retrieves a list of all available Composio integrations and specifically finds the Gmail integration.
+ *
+ * @returns {Promise<object>} An object containing all integrations, the Gmail integration object, and its ID.
+ * @returns {Array<object>} .allIntegrations - An array of all available integration objects.
+ * @returns {object} .gmailIntegration - The specific Gmail integration object.
+ * @returns {string} .gmailIntegrationId - The ID of the Gmail integration.
+ */
 const getAllIntegrationsService = async () => {
   const allIntegrations = await toolset.integrations.list();
 
@@ -210,6 +277,19 @@ const getAllIntegrationsService = async () => {
   };
 };
 
+/**
+ * Initiates the connection process for a Gmail account.
+ * This involves getting a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} integrationId - The ID of the Gmail integration.
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const initiateGmailConnectionService = async (integrationId, entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -228,6 +308,23 @@ const initiateGmailConnectionService = async (integrationId, entityId) => {
   return data;
 };
 
+/**
+ * Sends an email using a connected Gmail account via the Composio API.
+ * This service directly calls the Composio backend to execute the `GMAIL_SEND_EMAIL` action.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing email details.
+ * @param {string} req.body.integrationId - The ID of the Gmail integration.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Gmail account to use.
+ * @param {string} req.body.to - The recipient's email address.
+ * @param {string} req.body.subject - The subject of the email.
+ * @param {string} req.body.message - The body content of the email.
+ * @param {boolean} [req.body.isHtml=false] - Whether the email body is HTML.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the request was successfully sent to Composio.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If any required fields (`connectedAccountId`, `to`, `subject`, `message`) are missing.
+ */
 const sendEmailService = async (req) => {
   const {
     integrationId,
@@ -281,7 +378,18 @@ const sendEmailService = async (req) => {
 //      Youtub Services
 // =============================
 
+/**
+ * @constant {string} youtubeIntegrationId - The hardcoded ID for the YouTube integration.
+ */
 const youtubeIntegrationId = 'f16f5b45-f9fa-4d65-b319-e9046564edee';
+
+/**
+ * Retrieves details about the YouTube integration and its required input fields.
+ *
+ * @returns {Promise<object>} An object containing the integration details and its required input fields.
+ * @returns {object} .integration - The YouTube integration object.
+ * @returns {object} .inputFields - The required input fields for the YouTube integration.
+ */
 const getYouTubeIntegrationService = async () => {
   const integration = await toolset.integrations.get({
     integrationId: youtubeIntegrationId,
@@ -293,6 +401,19 @@ const getYouTubeIntegrationService = async () => {
 
   return { integration, inputFields };
 };
+
+/**
+ * Initiates the connection process for a YouTube account.
+ * This involves getting a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const initiateYouTubeConnectionService = async (entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -310,6 +431,16 @@ const initiateYouTubeConnectionService = async (entityId) => {
   };
 };
 
+/**
+ * Searches for YouTube videos using a connected YouTube account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing search parameters.
+ * @param {string} req.body.connectedAccountId - The ID of the connected YouTube account to use.
+ * @param {string} req.body.query - The search query string.
+ * @returns {Promise<object>} The response data from the Composio API containing search results.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `query` is missing.
+ */
 const searchYouTubeService = async (req) => {
   const { connectedAccountId, query } = req.body;
 
@@ -343,6 +474,16 @@ const searchYouTubeService = async (req) => {
   // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
+
+/**
+ * Disconnects a YouTube account from Composio.
+ *
+ * @param {string} connectedAccountId - The ID of the connected YouTube account to disconnect.
+ * @returns {Promise<object>} An object indicating success and the response from the Composio API.
+ * @returns {boolean} .success - True if the account was successfully disconnected.
+ * @returns {string} .message - A success message.
+ * @returns {object} .response - The raw response from the Composio API.
+ */
 const disconnectYouTubeAccountService = async (connectedAccountId) => {
   const response = await toolset.connectedAccounts.delete({
     connectedAccountId,
@@ -360,7 +501,23 @@ const disconnectYouTubeAccountService = async (connectedAccountId) => {
 //      Twitter Services
 // =============================
 
+/**
+ * @constant {string} twitterIntegrationId - The hardcoded ID for the Twitter integration.
+ */
 const twitterIntegrationId = '03615643-b71c-4a13-a012-4f7f94d92bc8';
+
+/**
+ * Initiates the connection process for a Twitter account.
+ * This involves getting a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const initiateTwitterConnectionService = async (entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -378,6 +535,18 @@ const initiateTwitterConnectionService = async (entityId) => {
   };
 };
 
+/**
+ * Posts a tweet using a connected Twitter account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing tweet details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} req.body.text - The content of the tweet.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the tweet was successfully posted.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `text` is missing.
+ */
 const postTweetService = async (req) => {
   const { connectedAccountId, text } = req.body;
 
@@ -410,6 +579,19 @@ const postTweetService = async (req) => {
     data: response.data,
   };
 };
+
+/**
+ * Deletes a tweet using a connected Twitter account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing tweet details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} req.body.tweetId - The ID of the tweet to delete.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the tweet was successfully deleted.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `tweetId` is missing.
+ */
 const deleteTweetService = async (req) => {
   const { connectedAccountId, tweetId } = req.body;
 
@@ -442,6 +624,18 @@ const deleteTweetService = async (req) => {
   return { success: true, data: response.data };
 };
 
+/**
+ * Follows a Twitter user using a connected Twitter account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing user details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} req.body.username - The username of the Twitter user to follow.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the user was successfully followed.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `username` is missing.
+ */
 const followTwitterUserService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
@@ -471,6 +665,19 @@ const followTwitterUserService = async (req) => {
   // Consider adding checks for response.data.success or specific error codes from the external API
   return { success: true, data: response.data };
 };
+
+/**
+ * Retrieves Twitter user information by username using a connected Twitter account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing user details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} req.body.username - The username of the Twitter user to look up.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the user lookup was successful.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `username` is missing.
+ */
 const getTwitterUserByUsernameService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
@@ -501,6 +708,15 @@ const getTwitterUserByUsernameService = async (req) => {
   return { success: true, data: response.data };
 };
 
+/**
+ * Retrieves the user ID of a Twitter user by their username using a connected Twitter account.
+ * This is a helper function used internally by other Twitter services.
+ *
+ * @param {string} connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} username - The username of the Twitter user.
+ * @returns {Promise<string>} The user ID of the Twitter user.
+ * @throws {ApiError} 404 - If the Twitter user is not found.
+ */
 const getUserIdFromUsername = async (connectedAccountId, username) => {
   const actionId = 'TWITTER_USER_LOOKUP_BY_USERNAMES';
   const url = `https://backend.composio.dev/api/v2/actions/${actionId}/execute`;
@@ -531,7 +747,21 @@ const getUserIdFromUsername = async (connectedAccountId, username) => {
   throw new ApiError(404, 'Twitter user not found'); // Throws ApiError for consistency
 };
 
-// Step 2: Send DM by user ID (participant_id)
+/**
+ * Sends a direct message to a Twitter user by their username using a connected Twitter account via the Composio API.
+ * This service first resolves the username to a user ID and then sends the message.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing message details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Twitter account to use.
+ * @param {string} req.body.username - The username of the recipient Twitter user.
+ * @param {string} req.body.text - The content of the direct message.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the direct message was successfully sent.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId`, `username`, or `text` is missing.
+ * @throws {ApiError} 500 - If there's an error sending the direct message (e.g., user not found).
+ */
 const sendDMByUsernameService = async (req) => {
   const { connectedAccountId, username, text } = req.body;
 
@@ -581,6 +811,15 @@ const sendDMByUsernameService = async (req) => {
 //      LinkedIn Services
 // =============================
 
+/**
+ * Retrieves the OAuth redirect URL for initiating a LinkedIn connection.
+ *
+ * @param {string} integrationId - The ID of the LinkedIn integration.
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<string>} The redirect URL for LinkedIn OAuth authorization.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const getLinkedInOAuthRedirectUrlService = async (integrationId, entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -593,6 +832,17 @@ const getLinkedInOAuthRedirectUrlService = async (integrationId, entityId) => {
   return connectedAccount.redirectUrl;
 };
 
+/**
+ * Exchanges an OAuth authorization code for a connected LinkedIn account.
+ * This completes the OAuth flow after the user has granted permissions.
+ *
+ * @param {string} code - The authorization code received from the LinkedIn OAuth redirect.
+ * @param {string} integrationId - The ID of the LinkedIn integration.
+ * @param {string} entityId - The ID of the user/entity for whom the code is being exchanged.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} The connected account object after successful code exchange.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const exchangeCodeLinkedInService = async (code, integrationId, entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -606,7 +856,15 @@ const exchangeCodeLinkedInService = async (code, integrationId, entityId) => {
   return connectedAccount;
 };
 
-// Renamed service to accurately reflect its functionality (fetching input fields, not posting)
+/**
+ * Retrieves the required input fields for posting to LinkedIn.
+ * This service primarily fetches the schema for what parameters are needed for a LinkedIn post action.
+ *
+ * @param {string} integrationId - The ID of the LinkedIn integration.
+ * @param {string} connectedAccountId - The ID of the connected LinkedIn account.
+ * @param {string} content - (Currently unused in this function, but might be for future validation/context).
+ * @returns {Promise<object>} The expected input fields schema for a LinkedIn post.
+ */
 const getLinkedInPostInputFieldsService = async (
   integrationId,
   connectedAccountId,
@@ -630,7 +888,23 @@ const getLinkedInPostInputFieldsService = async (
 //   Google Calender Services
 // =============================
 
+/**
+ * @constant {string} calendarIntegrationId - The hardcoded ID for the Google Calendar integration.
+ */
 const calendarIntegrationId = '21c69c18-54ef-464b-a181-dc82f3e5b089';
+
+/**
+ * Initiates the connection process for a Google Calendar account.
+ * This involves getting a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const initiateGoogleCalendarConnectionService = async (entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -647,6 +921,23 @@ const initiateGoogleCalendarConnectionService = async (entityId) => {
     connectionStatus: connectedAccount.connectionStatus,
   };
 };
+
+/**
+ * Creates a new Google Calendar event using a connected Google Calendar account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing event details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Google Calendar account to use.
+ * @param {string} req.body.summary - The summary (title) of the event.
+ * @param {string} [req.body.description] - The description of the event.
+ * @param {string} req.body.startTime - The start date and time of the event (ISO 8601 format).
+ * @param {string} req.body.endTime - The end date and time of the event (ISO 8601 format).
+ * @param {string} [req.body.timezone='Asia/Dhaka'] - The timezone for the event.
+ * @returns {Promise<object>} An object indicating success and the response data from the Composio API.
+ * @returns {boolean} .success - True if the event was successfully created.
+ * @returns {object} .data - The raw response data from the Composio API.
+ * @throws {ApiError} 400 - If `connectedAccountId`, `summary`, `startTime`, or `endTime` is missing.
+ */
 const createCalendarEventService = async (req) => {
   const {
     connectedAccountId,
@@ -696,6 +987,16 @@ const createCalendarEventService = async (req) => {
   };
 };
 
+/**
+ * Retrieves a list of calendar events from a connected Google Calendar account via the Composio API.
+ * By default, it fetches events from the 'primary' calendar.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing account details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Google Calendar account to use.
+ * @returns {Promise<object>} The response data from the Composio API containing calendar events.
+ * @throws {ApiError} 400 - If `connectedAccountId` is missing.
+ */
 const getCalendarEventsService = async (req) => {
   const { connectedAccountId } = req.body;
 
@@ -727,6 +1028,18 @@ const getCalendarEventsService = async (req) => {
   // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
+
+/**
+ * Deletes a Google Calendar event using a connected Google Calendar account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing event details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Google Calendar account to use.
+ * @param {string} req.body.eventId - The ID of the event to delete.
+ * @param {string} [req.body.calendarId='primary'] - The ID of the calendar from which to delete the event.
+ * @returns {Promise<object>} The response data from the Composio API after deleting the event.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `eventId` is missing.
+ */
 const deleteCalendarEventService = async (req) => {
   const { connectedAccountId, eventId, calendarId = 'primary' } = req.body;
 
@@ -762,6 +1075,23 @@ const deleteCalendarEventService = async (req) => {
   // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
+
+/**
+ * Updates an existing Google Calendar event using a connected Google Calendar account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing event details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected Google Calendar account to use.
+ * @param {string} req.body.eventId - The ID of the event to update.
+ * @param {string} [req.body.calendarId='primary'] - The ID of the calendar where the event is located.
+ * @param {string} [req.body.summary] - The new summary (title) of the event.
+ * @param {string} [req.body.description] - The new description of the event.
+ * @param {string} [req.body.startTime] - The new start date and time of the event (ISO 8601 format).
+ * @param {string} [req.body.endTime] - The new end date and time of the event (ISO 8601 format).
+ * @param {string} [req.body.timezone='Asia/Dhaka'] - The new timezone for the event.
+ * @returns {Promise<object>} The response data from the Composio API after updating the event.
+ * @throws {ApiError} 400 - If `connectedAccountId` or `eventId` is missing.
+ */
 const updateCalendarEventService = async (req) => {
   const {
     connectedAccountId,
@@ -813,8 +1143,18 @@ const updateCalendarEventService = async (req) => {
 //      GItHub Services
 // =============================
 
+/**
+ * @constant {string} githubIntegrationId - The hardcoded ID for the GitHub integration.
+ */
 const githubIntegrationId = '394bc42b-5fa8-4777-8e08-6fed12510deb';
 
+/**
+ * Retrieves details about the GitHub integration and its required input fields.
+ *
+ * @returns {Promise<object>} An object containing the integration details and its required input fields.
+ * @returns {object} .integration - The GitHub integration object.
+ * @returns {object} .inputFields - The required input fields for the GitHub integration.
+ */
 const getGithubIntegrationService = async () => {
   const integration = await toolset.integrations.get({
     integrationId: githubIntegrationId,
@@ -827,6 +1167,19 @@ const getGithubIntegrationService = async () => {
   return { integration, inputFields };
 };
 
+/**
+ * Initiates the connection process for a GitHub account.
+ * This involves getting a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} integrationId - The ID of the GitHub integration.
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ */
 const initiateGithubConnectionService = async (integrationId, entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -843,6 +1196,20 @@ const initiateGithubConnectionService = async (integrationId, entityId) => {
     connectionStatus: connectedAccount.connectionStatus,
   };
 };
+
+/**
+ * Creates a new GitHub issue in a specified repository using a connected GitHub account via the Composio API.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing issue details.
+ * @param {string} req.body.connectedAccountId - The ID of the connected GitHub account to use.
+ * @param {string} req.body.owner - The owner of the repository (e.g., username or organization name).
+ * @param {string} req.body.repo - The name of the repository.
+ * @param {string} req.body.title - The title of the new issue.
+ * @param {string} [req.body.body] - The body content of the new issue.
+ * @returns {Promise<object>} The response data from the Composio API after creating the issue.
+ * @throws {ApiError} 400 - If `connectedAccountId`, `owner`, `repo`, or `title` is missing.
+ */
 const createGithubIssueService = async (req) => {
   const { connectedAccountId, owner, repo, title, body } = req.body;
 
@@ -880,8 +1247,26 @@ const createGithubIssueService = async (req) => {
 // =============================
 //      Amazon Services
 // =============================
+/**
+ * @constant {string} amazonIntegrationId - Placeholder for the Amazon integration ID.
+ * This needs to be defined with the actual ID when Amazon integration is implemented.
+ */
 const amazonIntegrationId = 'YOUR_AMAZON_INTEGRATION_ID'; // Placeholder: Define the Amazon integration ID
 
+/**
+ * Initiates the connection process for an Amazon account.
+ * This service dynamically finds the Amazon integration ID and then
+ * gets a redirect URL for OAuth and details about the new connected account.
+ *
+ * @param {string} entityId - The ID of the user/entity initiating the connection.
+ *                            This should be derived from the authenticated user in a multi-user environment.
+ * @returns {Promise<object>} An object containing the redirect URL, connected account ID, and connection status.
+ * @returns {string} .redirectUrl - The URL to redirect the user to for OAuth authorization.
+ * @returns {string} .connectedAccountId - The ID of the newly initiated connected account.
+ * @returns {string} .connectionStatus - The current status of the connection.
+ * @throws {ApiError} 400 - If `entityId` is missing.
+ * @throws {ApiError} 404 - If the Amazon integration is not found.
+ */
 const initiateAmazonConnectionService = async (entityId) => {
   // entityId should be derived from the authenticated user in a multi-user environment.
   if (!entityId) {
@@ -913,6 +1298,16 @@ const initiateAmazonConnectionService = async (entityId) => {
   };
 };
 
+// /**
+//  * Searches for Amazon products using a connected Amazon account via the Composio API.
+//  *
+//  * @param {object} req - The Express request object.
+//  * @param {object} req.body - The request body containing search parameters.
+//  * @param {string} req.body.connectedAccountId - The ID of the connected Amazon account to use.
+//  * @param {string} req.body.query - The search query string.
+//  * @returns {Promise<object>} The response data from the Composio API containing search results.
+//  * @throws {ApiError} 400 - If `connectedAccountId` or `query` is missing.
+//  */
 // const searchAmazonProductService = async req => {
 //   const { connectedAccountId, query } = req.body;
 
@@ -941,6 +1336,12 @@ const initiateAmazonConnectionService = async (entityId) => {
 //   return response.data;
 // };
 
+/**
+ * @namespace composioService
+ * @description A collection of services for interacting with various integrations via Composio.
+ * This object exports functions to manage connections, authorize accounts, and perform actions
+ * across different platforms like Gmail, YouTube, LinkedIn, Google Calendar, GitHub, Twitter, and Amazon.
+ */
 export const composioService = {
   getGmailIntegrationService,
   initiateGmailConnectionService,
