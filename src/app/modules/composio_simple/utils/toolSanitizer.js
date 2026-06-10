@@ -4,8 +4,30 @@
  * Sanitize Composio tools for Gemini API compatibility
  * Removes unsupported fields and formats the tool schema
  */
+/**
+ * Sanitizes a Composio tool object to make it compatible with the Gemini API's tool calling specifications.
+ * This involves recursively removing fields from the parameter schema that are not supported by Gemini,
+ * and reformatting the overall tool structure.
+ *
+ * @param {object} tool - The Composio tool object to sanitize.
+ * @param {string} tool.name - The original name of the tool.
+ * @param {string} tool.slug - The unique slug/identifier for the tool, which will be used as the Gemini function name.
+ * @param {string} tool.description - A description of the tool's functionality.
+ * @param {object} tool.parameters - The original tool parameters object (may contain additional fields).
+ * @param {object} tool.input_parameters - Contains the schema for the tool's input parameters.
+ * @param {object} tool.input_parameters.properties - The JSON schema properties defining the input parameters for the tool.
+ * @returns {object} A new object formatted for the Gemini API, containing `name`, `description`, and `parameters`.
+ * @returns {string} return.name - The slug of the original tool, used as the function name for Gemini.
+ * @returns {string} return.description - The description of the original tool.
+ * @returns {object} return.parameters - The sanitized parameter schema, including `type: 'object'` and `properties`.
+ */
 export function sanitizeToolForGemini(tool) {
-  // Recursively clean properties to remove Gemini-unsupported fields
+  /**
+   * Recursively cleans a properties object by removing fields not supported by the Gemini API.
+   *
+   * @param {object | undefined | null} props - The properties object to clean. Can be undefined or null.
+   * @returns {object | undefined | null} The cleaned properties object, or the original value if not an object.
+   */
   function cleanProperties(props) {
     if (!props || typeof props !== 'object') return props;
 
@@ -13,7 +35,7 @@ export function sanitizeToolForGemini(tool) {
     for (const [key, value] of Object.entries(props)) {
       if (typeof value === 'object' && value !== null) {
         const cleanedValue = { ...value };
-        // Remove unsupported fields
+        // Remove unsupported fields for Gemini API
         delete cleanedValue.examples;
         delete cleanedValue.nullable;
         delete cleanedValue.file_uploadable;
@@ -45,8 +67,8 @@ export function sanitizeToolForGemini(tool) {
     name: tool.slug,
     description: tool.description,
     parameters: {
-      ...tool.parameters,
-      type: 'object',
+      ...tool.parameters, // Preserve any other top-level parameter fields if they exist and are supported
+      type: 'object', // Gemini expects parameters to be an object
       properties: cleanProperties(tool.input_parameters.properties),
     },
   };
@@ -56,6 +78,20 @@ export function sanitizeToolForGemini(tool) {
 
 /**
  * Build embedding text from tool document
+ */
+/**
+ * Constructs a concise text string from a tool document, suitable for use in embedding models.
+ * This text summarizes key information about the tool, including its name, description, tags,
+ * application name, and slug.
+ *
+ * @param {object} doc - The tool document object from which to build the embedding text.
+ * @param {string} [doc.name=''] - The name of the tool. Defaults to an empty string if not provided.
+ * @param {string} [doc.description=''] - A description of the tool's functionality. Defaults to an empty string.
+ * @param {string[]} [doc.tags=[]] - An array of tags associated with the tool. Defaults to an empty array.
+ * @param {string} [doc.appName=''] - The name of the application or integration the tool belongs to. Defaults to an empty string.
+ * @param {string} [doc.slug=''] - The unique slug/identifier of the tool. Defaults to an empty string.
+ * @returns {string} A formatted string containing the tool's name, description, tags, app name, and slug,
+ *                   with leading/trailing whitespace trimmed.
  */
 export function buildEmbeddingText(doc) {
   const name = doc.name ?? '';
