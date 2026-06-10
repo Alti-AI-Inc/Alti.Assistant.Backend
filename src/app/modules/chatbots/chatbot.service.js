@@ -28,7 +28,7 @@ const createChatbot = async (chatbotData, userId, req = null) => {
     const chatbot = new Chatbot(req ? withTenantContext(req, payload) : payload);
     await chatbot.save();
     logger.info(`Chatbot created: ${chatbot._id} for user: ${userId}`);
-    return chatbot;
+    return chatbot.toObject();
   } catch (error) {
     logger.error('Error creating chatbot:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to create chatbot');
@@ -108,11 +108,12 @@ const getChatbotById = async (chatbotId, userId, req = null) => {
 const updateChatbot = async (chatbotId, userId, updateData, req = null) => {
   try {
     const query = { _id: chatbotId, userId, isActive: true };
+    // Added .lean() to avoid overhead of Mongoose document instantiation.
     const chatbot = await Chatbot.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { $set: updateData },
       { new: true, runValidators: true }
-    );
+    ).lean();
     if (!chatbot) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Chatbot not found');
     }
@@ -137,11 +138,11 @@ const updateChatbot = async (chatbotId, userId, updateData, req = null) => {
 const deleteChatbot = async (chatbotId, userId, req = null) => {
   try {
     const query = { _id: chatbotId, userId };
+    // Optimized to only select `_id` and use `.lean()` since we only check for existence and do not return the document.
     const chatbot = await Chatbot.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
-      { isActive: false },
-      { new: true }
-    );
+      { isActive: false }
+    ).select('_id').lean();
     if (!chatbot) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Chatbot not found');
     }

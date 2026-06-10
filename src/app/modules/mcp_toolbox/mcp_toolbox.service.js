@@ -7,8 +7,20 @@ import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 /**
  * Standard-compliant Model Context Protocol (MCP) Stdio JSON-RPC Client Bridge.
  * Communicates with the Google MCP Database Toolbox Go process securely over stdio.
+ * Supports execution both locally and inside isolated Docker sandbox containers.
  */
 class McpStdioBridge {
+  /**
+   * Creates an instance of McpStdioBridge.
+   * 
+   * @param {string|null} binaryPath - Path to the Go binary or 'go' command.
+   * @param {string} configPath - Path to the tools.yaml configuration file.
+   * @param {function(string): void} onLog - Callback function to handle log output.
+   * @param {string|null} [runInDir=null] - Directory to run the process in.
+   * @param {Object|null} [dockerOptions=null] - Docker execution options.
+   * @param {boolean} dockerOptions.isDocker - Whether to run inside a Docker container.
+   * @param {string} dockerOptions.containerName - The target Docker container name.
+   */
   constructor(binaryPath, configPath, onLog, runInDir = null, dockerOptions = null) {
     this.binaryPath = binaryPath;
     this.configPath = configPath;
@@ -25,6 +37,9 @@ class McpStdioBridge {
   /**
    * Spawns the Go process (either locally or inside the Docker sandbox container)
    * and performs the standard MCP handshake.
+   * 
+   * @returns {Promise<boolean>} Resolves to true if the handshake succeeds.
+   * @throws {Error} If spawning or the handshake fails.
    */
   start() {
     return new Promise((resolve, reject) => {
@@ -151,7 +166,12 @@ class McpStdioBridge {
   }
 
   /**
-   * Sends a JSON-RPC 2.0 request over stdin
+   * Sends a JSON-RPC 2.0 request over stdin and awaits the response.
+   * 
+   * @param {string} method - The MCP JSON-RPC method name.
+   * @param {Object} [params={}] - Parameters for the method.
+   * @returns {Promise<any>} Resolves with the JSON-RPC result.
+   * @throws {Error} If the process is not running or the request fails.
    */
   sendRequest(method, params = {}) {
     return new Promise((resolve, reject) => {
@@ -173,7 +193,11 @@ class McpStdioBridge {
   }
 
   /**
-   * Sends a JSON-RPC 2.0 notification over stdin
+   * Sends a JSON-RPC 2.0 notification over stdin without awaiting a response.
+   * 
+   * @param {string} method - The MCP JSON-RPC notification method name.
+   * @param {Object} [params={}] - Parameters for the notification.
+   * @returns {void}
    */
   sendNotification(method, params = {}) {
     if (!this.process || this.process.killed) return;
@@ -188,7 +212,10 @@ class McpStdioBridge {
   }
 
   /**
-   * Dynamic cleanup of pending queries
+   * Dynamic cleanup of pending queries, rejecting them with the provided error.
+   * 
+   * @param {Error} error - The error to reject pending requests with.
+   * @returns {void}
    */
   cleanup(error) {
     this.rl = null;
@@ -197,7 +224,9 @@ class McpStdioBridge {
   }
 
   /**
-   * Terminate child process
+   * Terminates the child process and cleans up pending requests.
+   * 
+   * @returns {void}
    */
   stop() {
     if (this.process) {
@@ -209,13 +238,40 @@ class McpStdioBridge {
   }
 }
 
+/**
+ * Service managing multi-tenant Google MCP Database Toolbox server instances.
+ * Handles configuration generation, lifecycle management of stdio bridges,
+ * and secure query execution within isolated tenant environments.
+ */
 class McpToolboxService {
+  /**
+   * Initializes the McpToolboxService.
+   */
   constructor() {
     this.activeServers = new Map(); // Record<tenantId, { processBridge, configPath, connectionDetails, customTools, terminalLogs }>
   }
 
   /**
-   * Generates tools.yaml securely inside the user's isolated workspace directory
+   * Generates tools.yaml securely inside the user's isolated workspace directory.
+   * Provides multi-tenant isolation by writing to a tenant-specific path.
+   * 
+   * @param {string} tenantId - The unique identifier of the tenant.
+   * @param {Object} connectionDetails - Database connection credentials.
+   * @param {string} [connectionDetails.type='postgres'] - Database type (e.g., 'postgres', 'mysql').
+   * @param {string} [connectionDetails.host='127.0.0.1'] - Database host.
+   * @param {number} [connectionDetails.port=5432] - Database port.
+   * @param {string} [connectionDetails.database='alti_db'] - Database name.
+   * @param {string} [connectionDetails.user='postgres'] - Database user.
+   * @param {string} [connectionDetails.password] - Database password.
+   * @param {Array<Object>} [customTools=[]] - Custom SQL parameterized safe tools.
+   * @param {string} customTools[].name - Name of the custom tool.
+   * @param {string} [customTools[].description] - Description of the tool.
+   * @param {Array<Object>} [customTools[].parameters] - Parameters for the custom tool.
+   * @param {string} customTools[].parameters[].name - Parameter name.
+   * @param {string} [customTools[].parameters[].type='string'] - Parameter type.
+   * @param {string} [customTools[].parameters[].description] - Parameter description.
+   * @param {string} customTools[].statement - Parameterized SQL statement.
+   * @returns {{ configPath: string, yamlContent: string }} The path and content of the generated YAML config.
    */
   generateConfig(tenantId, connectionDetails, customTools = []) {
     const configDir = path.resolve(`storage/users/${tenantId}/workspace/mcp_config`);
@@ -279,7 +335,14 @@ class McpToolboxService {
   }
 
   /**
-   * Spawns or connects to the real Google MCP Database Toolbox server instance
+   * Spawns or connects to the real Google MCP Database Toolbox server instance.
+   * Supports multi-tenant isolation by running inside a Docker sandbox container
+   * if configured, or falling back to a local process or high-fidelity mock.
+   * 
+   * @param {string} tenantId - The unique identifier of the tenant.
+   * @param {Object} connectionDetails - Database connection credentials.
+   * @param {Array<Object>} [customTools=[]] - Custom SQL parameterized safe tools.
+   * @returns {Promise<Object>} Initialization result containing status, logs, and config info.
    */
   async startMcpServer(tenantId, connectionDetails, customTools = []) {
     const { configPath, yamlContent } = this.generateConfig(tenantId, connectionDetails, customTools);
@@ -386,7 +449,10 @@ class McpToolboxService {
   }
 
   /**
-   * Stops an active MCP Server instance
+   * Stops an active MCP Server instance for a specific tenant.
+   * 
+   * @param {string} tenantId - The unique identifier of the tenant.
+   * @returns {Promise<Object>} Success status and message.
    */
   async stopMcpServer(tenantId) {
     if (this.activeServers.has(tenantId)) {
@@ -401,7 +467,14 @@ class McpToolboxService {
   }
 
   /**
-   * Executes a query safely through the Google MCP Toolbox database client
+   * Executes a query safely through the Google MCP Toolbox database client.
+   * Introspects query intent to map it to pre-approved tools, preventing SQL injection.
+   * Supports both real Go MCP process execution and high-fidelity virtual fallback.
+   * 
+   * @param {string} tenantId - The unique identifier of the tenant.
+   * @param {string} queryPrompt - The natural language query or prompt.
+   * @returns {Promise<Object>} The execution result containing markdown answer, logs, and raw data.
+   * @throws {Error} If the MCP server is not connected for the tenant.
    */
   async querySecureDatabase(tenantId, queryPrompt) {
     const server = this.activeServers.get(tenantId);
@@ -544,7 +617,10 @@ class McpToolboxService {
   }
 
   /**
-   * Retrieves active server connection info
+   * Retrieves active server connection info for a specific tenant.
+   * 
+   * @param {string} tenantId - The unique identifier of the tenant.
+   * @returns {Object} Connection status, database details, and terminal logs.
    */
   getStatus(tenantId) {
     if (this.activeServers.has(tenantId)) {
@@ -563,4 +639,8 @@ class McpToolboxService {
   }
 }
 
+/**
+ * Singleton instance of the McpToolboxService.
+ * @type {McpToolboxService}
+ */
 export const mcpToolboxService = new McpToolboxService();
