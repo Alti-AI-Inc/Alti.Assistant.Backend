@@ -102,11 +102,16 @@ router.post(
   createRateLimiter(20, 15),
   optionalAuth(),
   extractTenantContext,
+  // OPTIMIZATION: Fail fast on daily limits before processing files.
   checkDailyRequestLimit,
-  checkStorageLimit,
+  // Process file uploads to make req.files and req.body available.
   uploadReportFiles,
-  checkRAGFeature,
+  // Validate the request payload (including text fields from multipart form).
   validateRequest(ReportValidation.conversationalRequestSchema),
+  // Check if the user has access to the RAG feature, especially if files were provided.
+  checkRAGFeature,
+  // OPTIMIZATION: Now that files are processed (in req.files), check if they exceed the user's storage quota.
+  checkStorageLimit,
   reportController.conversationalAssistant
 );
 
@@ -117,7 +122,7 @@ router.post(
  *     summary: Direct report generation (non-conversational)
  *     description: |
  *       Programmatic access to generate reports based on provided parameters, without conversational context.
- *       Supports both authenticated and guest users.
+ *       Supports both authenticated and guest users. Enforces daily request limits.
  *     tags:
  *       - Report
  *     security:
@@ -158,6 +163,8 @@ router.post(
   createRateLimiter(10, 15),
   optionalAuth(),
   extractTenantContext,
+  // IMPROVEMENT: Added to ensure direct generation counts towards user's daily usage limits for consistency.
+  checkDailyRequestLimit,
   validateRequest(ReportValidation.generateReportSchema),
   reportController.generateReport
 );
@@ -223,29 +230,41 @@ router.post(
   // Allows 15 requests per 15 minutes per user/IP.
   createRateLimiter(15, 15),
   optionalAuth(),
+  // CRITICAL-FIX: Added to ensure proper user/tenant context is set for authenticated requests, preventing data leaks.
+  extractTenantContext,
+  // OPTIMIZATION: Fail fast on daily limits before processing files.
   checkDailyRequestLimit,
-  checkStorageLimit,
+  // Process file uploads to make req.files and req.body available.
   uploadReportFiles,
-  checkRAGFeature,
+  // Validate the request payload.
   validateRequest(ReportValidation.analyzeFilesSchema),
+  // Check if the user has access to the RAG feature.
+  checkRAGFeature,
+  // OPTIMIZATION: Now that files are processed, check if they exceed the user's storage quota.
+  checkStorageLimit,
   reportController.analyzeFiles
 );
 
 /**
  * @swagger
- * /report/download/{filename}:
+ * /report/download/{reportId}:
  *   get:
  *     summary: Download a generated report
- *     description: Public endpoint to download a previously generated report file.
+ *     description: |
+ *       Downloads a report file by its ID.
+ *       Requires authentication to ensure only the report owner can download it, protecting user data.
  *     tags:
  *       - Report
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: filename
+ *         name: reportId
  *         schema:
  *           type: string
+ *           format: uuid
  *         required: true
- *         description: The name of the report file to download.
+ *         description: The unique identifier of the report to download.
  *     responses:
  *       200:
  *         description: Report file streamed successfully.
@@ -254,6 +273,10 @@ router.post(
  *             schema:
  *               type: string
  *               format: binary
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       429:
@@ -262,10 +285,13 @@ router.post(
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.get(
-  '/download/:filename',
-  // Protects against bandwidth abuse on the public download endpoint.
-  // Allows 30 downloads per minute per IP.
+  '/download/:reportId',
+  // Protects against bandwidth abuse. Allows 30 downloads per minute per user.
   createRateLimiter(30, 1),
+  // SECURITY-IMPROVEMENT: Added authentication to protect user data and ensure only the owner can download.
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  // Added validation for the reportId parameter.
+  validateRequest(ReportValidation.downloadReportSchema),
   reportController.downloadReport
 );
 
