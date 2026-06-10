@@ -107,13 +107,12 @@ const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
     };
   }
 
-  // MODIFICATION: Use a Vertex AI compatible model name.
-  const modelName = 'gemini-1.5-flash-preview-0514';
+  // PLATFORM-OWNER-OPTIMIZATION: Model name is now configurable, allowing platform owners to update the evaluator model without code changes.
+  const modelName = config.langchain?.evaluator_model_name || 'gemini-1.5-flash-preview-0514';
 
-  // MODIFICATION: Define explicit safety settings to block harmful content.
-  // This is a critical security measure for enterprise applications to prevent
-  // the generation or processing of inappropriate content.
-  const safetySettings = [
+  // PLATFORM-OWNER-OPTIMIZATION: Safety settings are now configurable. This is a critical security control
+  // that allows platform owners to enforce system-wide content policies.
+  const safetySettings = config.langchain?.evaluator_safety_settings || [
     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -126,7 +125,8 @@ const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
     generationConfig: {
       // MODIFICATION: Enforce JSON output from the model for more reliable parsing.
       responseMimeType: 'application/json',
-      temperature: 0.2, // Lower temperature for more predictable, deterministic grading.
+      // PLATFORM-OWNER-OPTIMIZATION: Temperature is now configurable, allowing fine-tuning of the evaluator's determinism.
+      temperature: config.langchain?.evaluator_temperature ?? 0.2,
     },
   });
 
@@ -278,6 +278,7 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
  * @property {boolean} success - Indicates if the benchmarking process completed successfully.
  * @property {string} chainId - The ID of the benchmarked chain.
  * @property {string} chainName - The name of the benchmarked chain.
+ * @property {string} userId - The ID of the user who initiated the benchmark, for auditing.
  * @property {string} versionA - The identifier for version A.
  * @property {string} versionB - The identifier for version B.
  * @property {object} summary - Overall summary of the benchmark.
@@ -311,9 +312,16 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
       chainId,
       versionA: String(versionA),
       versionB: String(versionB),
-      userId
+      userId,
+      testCaseCount: testSuite?.length || 0
     }
   });
+
+  // PLATFORM-OWNER-OPTIMIZATION: Add a configurable limit to prevent excessive resource usage and cost overruns during benchmarks.
+  const maxTestCases = config.langchain?.max_benchmark_test_cases || 50;
+  if (testSuite && testSuite.length > maxTestCases) {
+    throw new Error(`Test suite size (${testSuite.length}) exceeds the maximum allowed limit of ${maxTestCases}.`);
+  }
 
   // Resolve chain
   // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
@@ -517,21 +525,37 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
   const deltaLatency = summaryB.avgLatencyMs - summaryA.avgLatencyMs;
   const deltaTokens = summaryB.avgTokens - summaryA.avgTokens;
 
+  const resultSummary = {
+    versionA: summaryA,
+    versionB: summaryB,
+    deltas: {
+      qualityScoreImprovement: parseFloat(deltaQuality.toFixed(3)),
+      latencyDeltaMs: parseFloat(deltaLatency.toFixed(1)),
+      tokenEfficiencyDelta: parseFloat(deltaTokens.toFixed(1))
+    }
+  };
+
+  // PLATFORM-OWNER-OPTIMIZATION: Add a structured summary log upon completion for better global oversight and auditing of benchmark runs.
+  logger.info({
+    message: 'Chain benchmark completed successfully.',
+    component: 'LangchainEvaluatorService',
+    context: {
+      chainId,
+      userId,
+      versionA: String(versionA),
+      versionB: String(versionB),
+      summary: resultSummary
+    }
+  });
+
   return {
     success: true,
     chainId,
     chainName: chain.name,
+    userId, // PLATFORM-OWNER-OPTIMIZATION: Include userId in the result for clear audit trails.
     versionA: String(versionA),
     versionB: String(versionB),
-    summary: {
-      versionA: summaryA,
-      versionB: summaryB,
-      deltas: {
-        qualityScoreImprovement: parseFloat(deltaQuality.toFixed(3)),
-        latencyDeltaMs: parseFloat(deltaLatency.toFixed(1)),
-        tokenEfficiencyDelta: parseFloat(deltaTokens.toFixed(1))
-      }
-    },
+    summary: resultSummary,
     comparisons
   };
 };
