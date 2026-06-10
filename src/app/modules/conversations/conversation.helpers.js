@@ -1,8 +1,36 @@
+/**
+ * PERFORMANCE & INDEXING RECOMMENDATIONS for the 'conversations' collection:
+ *
+ * To ensure optimal performance for the queries in this file, please create the following indexes
+ * on the 'conversations' collection in your MongoDB database. The `tenantId` is assumed to be
+ * added by the `withTenantFilter` and `withTenantPipeline` helpers.
+ *
+ * 1. For fetching/accessing specific conversations:
+ *    db.conversations.createIndex({ tenantId: 1, userId: 1, conversationId: 1 }, { unique: true })
+ *
+ * 2. For general user conversation lists (sorting by last activity):
+ *    db.conversations.createIndex({ tenantId: 1, userId: 1, status: 1, lastActivity: -1 })
+ *
+ * 3. For fetching saved conversations:
+ *    db.conversations.createIndex({ tenantId: 1, userId: 1, is_saved: 1, lastActivity: -1 })
+ *
+ * 4. For fetching conversations by category:
+ *    db.conversations.createIndex({ tenantId: 1, userId: 1, "metadata.category": 1, status: 1, lastActivity: -1 })
+ *
+ * 5. For full-text search functionality (used in `searchConversations`):
+ *    db.conversations.createIndex({ title: "text", "messages.content": "text", "metadata.tags": "text" })
+ *
+ * 6. For user statistics aggregation:
+ *    db.conversations.createIndex({ tenantId: 1, userId: 1, status: 1 })
+ */
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Conversation from './conversation.model.js';
-import { withTenantFilter, withTenantPipeline } from '../../helpers/tenantQuery.js'; // Added withTenantPipeline
+import {
+  withTenantFilter,
+  withTenantPipeline,
+} from '../../helpers/tenantQuery.js'; // Added withTenantPipeline
 
 /**
  * Retrieves a single conversation by its ID, ensuring it belongs to the specified user
@@ -24,7 +52,7 @@ const getConversationById = async (
     const query = { conversationId, userId };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
-    );
+    ).lean(); // OPTIMIZATION: Use .lean() for faster read-only queries as Mongoose objects are not needed.
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -86,19 +114,28 @@ const getUserConversations = async (userId, options = {}, req = null) => {
       query.is_deep_search = is_deep_search;
     }
 
-    // Get conversations without messages for list view
-    const conversations = await Conversation.find(
-      req ? withTenantFilter(req, query) : query
-    )
-      .sort({ [sortBy]: sortOrder })
-      .limit(limit)
-      .skip(skip)
-      .select('-messages');
+    const finalQuery = req ? withTenantFilter(req, query) : query;
 
-    // Get total count for pagination
-    const total = await Conversation.countDocuments(
-      req ? withTenantFilter(req, query) : query
-    );
+    // OPTIMIZATION: Use a single aggregation query with $facet to get both data and total count
+    // in one database round trip, which is more efficient than find() + countDocuments().
+    const results = await Conversation.aggregate([
+      { $match: finalQuery },
+      {
+        $facet: {
+          data: [
+            { $sort: { [sortBy]: sortOrder } },
+            { $skip: skip },
+            { $limit: limit },
+            { $project: { messages: 0 } }, // Equivalent to .select('-messages')
+          ],
+          metadata: [{ $count: 'total' }],
+        },
+      },
+    ]);
+
+    const conversations = results[0].data;
+    const total =
+      results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
 
     return {
       conversations,
@@ -166,7 +203,9 @@ const getConversationMessages = async (
             $filter: {
               input: '$messages',
               as: 'msg',
-              cond: beforeDate ? { $lt: ['$$msg.timestamp', new Date(beforeDate)] } : true,
+              cond: beforeDate
+                ? { $lt: ['$$msg.timestamp', new Date(beforeDate)] }
+                : true,
             },
           },
         },
@@ -176,22 +215,25 @@ const getConversationMessages = async (
       {
         $facet: {
           metadata: [
-            { $count: 'total' } // Count total filtered messages
+            { $count: 'total' }, // Count total filtered messages
           ],
           data: [
             { $skip: skip }, // Apply pagination
             { $limit: limit },
             { $sort: { 'messages.timestamp': 1 } }, // Re-sort oldest first for response
-            { $replaceRoot: { newRoot: '$messages' } } // Promote the message subdocument to the root
-          ]
-        }
-      }
+            { $replaceRoot: { newRoot: '$messages' } }, // Promote the message subdocument to the root
+          ],
+        },
+      },
     ];
 
     const [messageResult] = await Conversation.aggregate(messagePipeline);
 
     const paginatedMessages = messageResult.data || [];
-    const total = messageResult.metadata.length > 0 ? messageResult.metadata[0].total : 0;
+    const total =
+      messageResult.metadata.length > 0
+        ? messageResult.metadata[0].total
+        : 0;
 
     return {
       conversationId: conversationMetadata.conversationId,
@@ -234,16 +276,13 @@ const searchConversations = async (
   try {
     const { limit = 10, category = null } = options;
 
+    // OPTIMIZATION: Switched from inefficient multiple $regex queries to a single, high-performance
+    // $text search. This requires a text index to be created on the collection.
+    // See index recommendations at the top of the file.
     const query = {
       userId,
       status: 'active',
-      $or: [
-        { title: { $regex: searchTerm, $options: 'i' } },
-        // Searching 'messages.content' can be inefficient for large embedded arrays without a text index.
-        // Consider creating a text index on 'messages.content' for better performance if this is a frequent operation.
-        { 'messages.content': { $regex: searchTerm, $options: 'i' } },
-        { 'metadata.tags': { $in: [new RegExp(searchTerm, 'i')] } },
-      ],
+      $text: { $search: searchTerm },
     };
 
     if (category) {
@@ -253,7 +292,8 @@ const searchConversations = async (
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
     )
-      .sort({ lastActivity: -1 })
+      // OPTIMIZATION: Sort by text search relevance score.
+      .sort({ score: { $meta: 'textScore' } })
       .limit(limit)
       .lean();
 
@@ -288,16 +328,28 @@ const getAllSavedConversations = async (
       userId,
       is_saved: true,
     };
-    const conversations = await Conversation.find(
-      req ? withTenantFilter(req, query) : query
-    )
-      .sort({ lastActivity: -1 })
-      .limit(limit)
-      .skip((page - 1) * limit);
+    const finalQuery = req ? withTenantFilter(req, query) : query;
+    const skip = (page - 1) * limit;
 
-    const total = await Conversation.countDocuments(
-      req ? withTenantFilter(req, query) : query
-    );
+    // OPTIMIZATION: Use a single aggregation query with $facet to get both data and total count
+    // in one database round trip, which is more efficient than find() + countDocuments().
+    const results = await Conversation.aggregate([
+      { $match: finalQuery },
+      {
+        $facet: {
+          data: [
+            { $sort: { lastActivity: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          metadata: [{ $count: 'total' }],
+        },
+      },
+    ]);
+
+    const conversations = results[0].data;
+    const total =
+      results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
 
     return {
       conversations,
@@ -353,7 +405,8 @@ const getConversationStats = async (userId, req = null) => {
       totalMessages: 0,
     };
 
-    stats.forEach((stat) => {
+    // This loop is not a performance concern as it runs on a very small, aggregated result set (max 3-4 items).
+    stats.forEach(stat => {
       result[stat._id] = stat.count;
       result.total += stat.count;
       result.totalMessages += stat.totalMessages;
@@ -429,9 +482,12 @@ const hasConversationAccess = async (conversationId, userId, req = null) => {
       conversationId,
       userId,
     };
+    // OPTIMIZATION: Use .lean() for a faster read-only existence check.
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
-    ).select('_id');
+    )
+      .select('_id')
+      .lean();
 
     return !!conversation;
   } catch (error) {
@@ -460,7 +516,8 @@ const getRecentConversations = async (userId, limit = 5, req = null) => {
     )
       .sort({ lastActivity: -1 })
       .limit(limit)
-      .select('conversationId title lastActivity messageCount');
+      .select('conversationId title lastActivity messageCount')
+      .lean(); // OPTIMIZATION: Use .lean() for faster read-only queries.
 
     return conversations;
   } catch (error) {

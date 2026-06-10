@@ -26,7 +26,8 @@ const router = express.Router();
  *     description: This endpoint receives a user prompt, applies security and rate-limiting measures,
  *       and then delegates the prompt to the orchestrator controller for intelligent routing
  *       to the most suitable backend AI service. It's designed for potentially high-cost
- *       operations, hence the stricter rate limiting.
+ *       operations, hence the stricter rate limiting. The user's identity is determined
+ *       solely by the authentication token to ensure proper usage tracking and tenant isolation.
  *     tags:
  *       - Orchestrator
  *     security:
@@ -46,12 +47,12 @@ const router = express.Router();
  *                 example: "What is the capital of France?"
  *               conversationId:
  *                 type: string
- *                 description: Optional ID to maintain conversation context across multiple requests.
+ *                 description: Optional ID to maintain conversation context across multiple requests. The controller must validate that this conversation belongs to the authenticated user.
  *                 example: "conv-12345"
- *               userId:
- *                 type: string
- *                 description: Optional ID of the user making the request. Can also be extracted from the auth token.
- *                 example: "user-abcde"
+ *               // SECURITY FIX (IDOR): Removed 'userId' from the request body.
+ *               // The user's identity MUST be derived from the authentication token (`req.user`)
+ *               // to prevent users from impersonating others and to ensure actions are correctly
+ *               // attributed for usage tracking, limit enforcement, and tenant isolation.
  *     responses:
  *       200:
  *         description: Successful routing and response from the AI service.
@@ -121,7 +122,11 @@ const router = express.Router();
  */
 router.post(
   '/route-prompt',
-  auth(), // Protect route with standard auth middleware
+  // INTEGRATION FIX: Explicitly define all roles that can access this core functionality.
+  // This prevents unauthorized access if new, more restricted roles are added in the future.
+  // The user's identity, role, and tenant context are attached to the request object by the auth middleware,
+  // which is critical for the controller to enforce limits and track usage correctly up the hierarchy.
+  auth('user', 'manager', 'admin', 'super_admin'),
   shieldOfLight(), // Filter out malicious requests before processing
   createRateLimiter(20, 15), // 20 requests per 15 minutes — most expensive endpoint
   catchAsync(orchestratorController.routePrompt) // Wrap async controller to ensure errors are passed to the global error handler
