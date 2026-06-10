@@ -107,7 +107,8 @@ class TelemetryCollector {
         // This is a synchronous operation, but it's critical for initialization.
         // If it fails, the catch block will handle it.
         mkdirSync(TELEMETRY_DIR, { recursive: true });
-        logger.info(`TelemetryCollector: Created telemetry directory at ${TELEMETRY_DIR}`);
+        // GCP Audit: Changed to structured log format.
+        logger.info('TelemetryCollector: Created telemetry directory', { path: TELEMETRY_DIR });
       }
 
       // Load existing entries from today's log file into the ring buffer.
@@ -195,7 +196,8 @@ class TelemetryCollector {
   endTrace(traceId, results = {}) {
     const trace = this.activeTraces.get(traceId);
     if (!trace) {
-      logger.warn(`TelemetryCollector: unknown or expired traceId ${traceId}`);
+      // GCP Audit: Changed to structured log format.
+      logger.warn('TelemetryCollector: unknown or expired traceId', { traceId });
       return;
     }
 
@@ -385,7 +387,11 @@ class TelemetryCollector {
 
       await fs.appendFile(filePath, lines, 'utf-8');
 
-      logger.info(`TelemetryCollector: flushed ${entriesToFlush.length} entries to ${filePath}`);
+      // GCP Audit: Changed to structured log format.
+      logger.info('TelemetryCollector: flushed entries to disk', {
+        count: entriesToFlush.length,
+        path: filePath,
+      });
     } catch (err) {
       logger.error('TelemetryCollector: Failed to flush telemetry entries to disk. Entries will be retried.', {
         filePath,
@@ -438,7 +444,8 @@ class TelemetryCollector {
       }
 
       if (loadedCount > 0) {
-        logger.info(`TelemetryCollector: loaded ${loadedCount} entries from disk`);
+        // GCP Audit: Changed to structured log format.
+        logger.info('TelemetryCollector: loaded entries from disk', { count: loadedCount });
       }
     } catch (err) {
       // This catch block now handles file system errors (e.g., read permissions).
@@ -461,7 +468,12 @@ class TelemetryCollector {
       if (trace.expiresAt < now) {
         this.activeTraces.delete(traceId);
         cleanedCount++;
-        logger.warn(`TelemetryCollector: cleaned up abandoned traceId ${traceId} (queryType: ${trace.queryType}, userId: ${trace.userId})`);
+        // GCP Audit: Changed to structured log format.
+        logger.warn('TelemetryCollector: cleaned up abandoned trace', {
+          traceId,
+          queryType: trace.queryType,
+          userId: trace.userId,
+        });
 
         // Record an "abandoned" entry to both the ring buffer and pending flush
         const abandonedEntry = {
@@ -484,7 +496,8 @@ class TelemetryCollector {
       }
     }
     if (cleanedCount > 0) {
-      logger.info(`TelemetryCollector: cleaned up ${cleanedCount} abandoned active traces.`);
+      // GCP Audit: Changed to structured log format.
+      logger.info('TelemetryCollector: cleaned up abandoned active traces', { count: cleanedCount });
     }
   }
 
@@ -579,7 +592,8 @@ export const withTelemetry = (queryType, handler) => {
     } catch (err) {
       // Log the full error with stack trace for internal diagnostics.
       // The global error handler will be responsible for normalizing this into an ApiError for the user.
-      logger.error(`Error in handler for telemetry trace: ${traceId}`, {
+      // GCP Audit: Changed to structured log format with a static message.
+      logger.error('Error in handler for telemetry trace', {
         error: err, // Winston will handle serializing the error object
         traceId,
         queryType,
