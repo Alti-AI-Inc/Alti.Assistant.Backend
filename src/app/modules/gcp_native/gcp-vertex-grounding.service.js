@@ -153,30 +153,28 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     };
 
     // Save prompt & response session in DB
-    // Optimization: Use findOneAndUpdate with upsert: true for atomic update/create.
+    // Optimization: Use findOneAndUpdate with upsert: true and lean: true for atomic update/create without Mongoose overhead.
     // Recommendation: For optimal performance, ensure an index exists on ChatHistory:
     // db.chathistories.createIndex({ user: 1, sessionId: 1 })
     const updatedSession = await ChatHistory.findOneAndUpdate(
       { user: userId, sessionId },
       {
         $push: { responses: responseData },
-        // If there were other fields that should only be set on initial creation,
-        // they could be added using $setOnInsert: { field: value }
       },
       {
         new: true, // Return the updated document
         upsert: true, // Create a new document if no document matches the filter
         setDefaultsOnInsert: true, // Apply schema defaults when creating a new document
+        lean: true, // Optimization: Returns a plain JS object instead of a heavy Mongoose document
       }
     );
 
-    // Optimization: Use $addToSet to add the session ID to the user's sessions array
-    // only if it's not already present, preventing duplicates and ensuring atomicity.
-    await UserModel.findByIdAndUpdate(
-      userId,
+    // Optimization: Use updateOne instead of findByIdAndUpdate to avoid retrieving the document from DB,
+    // saving CPU and memory since the returned user document is not used.
+    await UserModel.updateOne(
+      { _id: userId },
       // Bug Fix: Changed 'llamaAiSessions' to 'geminiAiSessions' for consistency with the service.
-      { $addToSet: { geminiAiSessions: updatedSession._id } },
-      { new: true } // Optionally return the updated user document
+      { $addToSet: { geminiAiSessions: updatedSession._id } }
     );
 
     const payload = { prompt, sessionId, reply, groundingMetadata };
