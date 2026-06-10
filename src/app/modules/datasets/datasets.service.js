@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Storage } from '@google-cloud/storage';
+import { CloudTasksClient } from '@google-cloud/tasks';
 import path from 'path';
 import fs from 'fs';
 import Dataset from './datasets.model.js';
@@ -38,6 +39,79 @@ const getGcsBucket = () => {
   } catch (error) {
     console.error('Failed to initialize GCS bucket for datasets:', error.message);
     return { storage: null, bucket: null, bucketName: null };
+  }
+};
+
+/**
+ * Initializes and returns a Google Cloud Tasks client.
+ * @returns {CloudTasksClient|null} The Cloud Tasks client instance, or null on failure.
+ */
+const getCloudTasksClient = () => {
+  try {
+    const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'alti_gcp.json');
+    if (fs.existsSync(keyPath)) {
+      return new CloudTasksClient({ keyFilename: keyPath });
+    }
+    // Fallback to default credentials if no key file is found (e.g., in a GCP environment)
+    return new CloudTasksClient();
+  } catch (error) {
+    console.error('Failed to initialize Google Cloud Tasks client:', error.message);
+    return null;
+  }
+};
+
+const tasksClient = getCloudTasksClient();
+
+/**
+ * Creates a Google Cloud Task to offload a long-running process to a worker service.
+ *
+ * @param {object} payload - The JSON payload to send to the worker.
+ * @param {string} handlerName - A name to identify the task type (e.g., 'archive', 'index'). This will be part of the worker URL.
+ * @param {number} [delayInSeconds=0] - Optional delay before the task can be executed.
+ * @returns {Promise<string>} The name of the created task.
+ * @throws {Error} If required configuration is missing or task creation fails.
+ */
+const createCloudTask = async (payload, handlerName, delayInSeconds = 0) => {
+  if (!tasksClient) {
+    throw new Error('Cloud Tasks client is not initialized. Cannot create task.');
+  }
+  const { gcp_project_id, cloud_tasks_queue, cloud_tasks_location, worker_service_url } = config.google;
+
+  if (!gcp_project_id || !cloud_tasks_queue || !cloud_tasks_location || !worker_service_url) {
+    console.error('Missing required Cloud Tasks configuration. Please set gcp_project_id, cloud_tasks_queue, cloud_tasks_location, and worker_service_url in your config.');
+    throw new Error('Missing required Cloud Tasks configuration.');
+  }
+
+  const parent = tasksClient.queuePath(gcp_project_id, cloud_tasks_location, cloud_tasks_queue);
+  // The URL points to a dedicated endpoint on a worker service responsible for handling background tasks.
+  const url = `${worker_service_url}/datasets/handlers/${handlerName}`;
+
+  const task = {
+    httpRequest: {
+      httpMethod: 'POST',
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // The body must be a base64-encoded string.
+      body: Buffer.from(JSON.stringify(payload)).toString('base64'),
+    },
+  };
+
+  if (delayInSeconds > 0) {
+    task.scheduleTime = {
+      seconds: delayInSeconds + Date.now() / 1000,
+    };
+  }
+
+  try {
+    console.log(`Creating Cloud Task for handler "${handlerName}" targeting URL: ${url}`);
+    const [response] = await tasksClient.createTask({ parent, task });
+    console.log(`Successfully created task: ${response.name}`);
+    return response.name;
+  } catch (error) {
+    console.error(`Failed to create Cloud Task for handler "${handlerName}":`, error);
+    throw new Error(`Could not queue task: ${error.message}`);
   }
 };
 
@@ -188,22 +262,29 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
 };
 
 /**
- * Core blocking implementation for downloading Parquet files for a dataset from Hugging Face
+ * Core implementation for downloading Parquet files for a dataset from Hugging Face
  * and piping them directly into Google Cloud Storage or a local fallback directory.
- * This function updates the provided dataset model with status, GCS paths, size, and row count.
+ * This function is designed to be executed by a stateless worker (e.g., triggered by Cloud Tasks).
  *
  * @param {string} datasetId - The ID of the dataset to archive.
- * @param {import('mongoose').Document} dataset - The Mongoose Dataset document to update with archival status and details.
  * @returns {Promise<void>} A promise that resolves when the archival process is complete, or rejects on error.
  * @throws {Error} If no Parquet files are found, dataset size exceeds limits, GCS connection fails,
  *   or streaming/uploading files encounters an error.
  */
-const archiveDatasetToGCSCore = async (datasetId, dataset) => {
+const archiveDatasetToGCSCore = async (datasetId) => {
+  // This function is now self-contained. It fetches the dataset object from the DB.
+  const dataset = await Dataset.findOne({ datasetId });
+  if (!dataset) {
+    console.error(`[Worker] Dataset with ID ${datasetId} not found. Aborting archive task.`);
+    // Throwing an error here can cause Cloud Tasks to retry the job, which is often desirable.
+    throw new Error(`Dataset with ID ${datasetId} not found.`);
+  }
+
   try {
     dataset.status = 'downloading';
     await dataset.save();
 
-    console.log(`Starting GCS archival/download process for HF Dataset: ${datasetId}`);
+    console.log(`[Worker] Starting GCS archival/download process for HF Dataset: ${datasetId}`);
 
     // Fetch Parquet files list from HF Dataset Server
     let fileListResponse;
@@ -238,7 +319,6 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       if (!bucket) {
         useLocalFallback = true;
       } else {
-        // Check bucket access/exists
         const [bucketExists] = await bucket.exists();
         if (!bucketExists) {
           console.log(`GCS Bucket "${bucketName}" does not exist. Attempting to create...`);
@@ -260,7 +340,7 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       const splitName = fileItem.split;
       const fileSize = fileItem.size || 0;
 
-      console.log(`Streaming Parquet file: ${fileName} (${(fileSize / (1024 * 1024)).toFixed(2)} MB) for configuration: ${configName} (Local Fallback: ${useLocalFallback})`);
+      console.log(`[Worker] Streaming Parquet file: ${fileName} (${(fileSize / (1024 * 1024)).toFixed(2)} MB) for configuration: ${configName} (Local Fallback: ${useLocalFallback})`);
 
       const destPath = `datasets/${datasetId}/${configName}/${splitName}/${fileName}`;
       let writeStream;
@@ -268,7 +348,6 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
 
       if (useLocalFallback) {
         const localDir = path.join(process.cwd(), 'storage', 'datasets', datasetId.replace(/\//g, '_'), configName, splitName);
-        // Optimization: Use fs.promises.mkdir for async directory creation to prevent blocking the event loop
         await fs.promises.mkdir(localDir, { recursive: true });
         localFilePath = path.join(localDir, fileName);
         writeStream = fs.createWriteStream(localFilePath);
@@ -288,7 +367,6 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
         });
       }
 
-      // Use axios to fetch source stream
       const sourceResponse = await axios({
         method: 'GET',
         url: downloadUrl,
@@ -303,23 +381,21 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
             const gsUri = useLocalFallback ? `local://${localFilePath.replace(/\\/g, '/')}` : `gs://${bucketName}/${destPath}`;
             uploadedGcsPaths.push(gsUri);
             totalBytes += fileSize;
-            console.log(useLocalFallback ? `Successfully saved locally: ${gsUri}` : `Successfully uploaded to GCS: ${gsUri}`);
+            console.log(useLocalFallback ? `[Worker] Successfully saved locally: ${gsUri}` : `[Worker] Successfully uploaded to GCS: ${gsUri}`);
             resolve();
           })
           .on('error', (err) => {
-            console.error(`Piping stream failed for file ${fileName}:`, err);
+            console.error(`[Worker] Piping stream failed for file ${fileName}:`, err);
             reject(err);
           });
       });
     }
 
-    // Update database model to archived
     dataset.status = 'archived';
     dataset.gcsBucket = useLocalFallback ? 'local' : bucketName;
     dataset.gcsPaths = uploadedGcsPaths;
     dataset.sizeBytes = totalBytes;
     
-    // Calculate row count from splits metadata
     let totalRows = 0;
     if (dataset.splits) {
       Object.keys(dataset.splits).forEach(cfg => {
@@ -332,19 +408,18 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
     }
     dataset.rowCount = totalRows;
 
-    // Extract features/columns if available in splits response
     try {
       const previewData = await getHFDatasetRows(datasetId, dataset.configs[0] || 'default', 'train', 0, 1);
       dataset.features = previewData.features || {};
     } catch (e) {
-      console.warn(`Could not extract column features during archiving: ${e.message}`);
+      console.warn(`[Worker] Could not extract column features during archiving: ${e.message}`);
     }
 
     await dataset.save();
-    console.log(`Archival completed for ${datasetId}. Total size: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
+    console.log(`[Worker] Archival completed for ${datasetId}. Total size: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
 
   } catch (error) {
-    console.error(`Error during archival of ${datasetId}:`, error);
+    console.error(`[Worker] Error during archival of ${datasetId}:`, error);
     dataset.status = 'failed';
     dataset.error = error.message;
     await dataset.save();
@@ -353,19 +428,15 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
 };
 
 /**
- * Initiates an asynchronous job to download Parquet files for a dataset from Hugging Face
- * and pipe them directly into Google Cloud Storage or a local fallback.
- * This function first creates or updates a dataset record in the local catalog with a 'pending' status,
- * then triggers the core archival process in the background.
+ * Initiates a background job to download Parquet files for a dataset from Hugging Face
+ * and store them in Google Cloud Storage. This is achieved by creating a Google Cloud Task.
  *
  * @param {string} datasetId - The ID of the dataset to archive.
- * @returns {Promise<object>} A promise that resolves to an object indicating the job initiation status
- *   and the initial dataset record.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the job queuing status.
  * @throws {Error} If fetching dataset info fails or the initial database save fails.
  */
 const archiveDatasetToGCS = async (datasetId) => {
   // 1. Fetch info and prepare database catalog record
-  // Recommendation: Ensure an index exists on `datasetId` in the Dataset model for efficient lookups.
   const info = await getHFDatasetInfo(datasetId);
   
   let dataset = await Dataset.findOne({ datasetId });
@@ -388,47 +459,46 @@ const archiveDatasetToGCS = async (datasetId) => {
   }
   await dataset.save();
 
-  // Trigger download asynchronously to not block the REST endpoint thread
-  (async () => {
-    try {
-      await archiveDatasetToGCSCore(datasetId, dataset);
-    } catch (error) {
-      // Error handled inside Core
-    }
-  })();
+  // 2. OFFLOAD: Replace in-memory async execution with a durable Cloud Task.
+  // This prevents the web server from being blocked by long-running downloads
+  // and ensures the job will be executed by a worker even if the current server instance restarts.
+  await createCloudTask({ datasetId }, 'archive');
 
   return {
     success: true,
-    message: `GCS Archival job initiated for dataset "${datasetId}". You can poll progress/status using GET /datasets/status/${datasetId}`,
+    message: `GCS Archival job for dataset "${datasetId}" has been successfully queued.`,
     dataset
   };
 };
 
 /**
- * Core blocking implementation for chunking, embedding, and indexing archived data
- * to build the ultimate high-fidelity data base for our Perplexity-killer.
- * This function reads Parquet files from GCS or local storage, parses them,
- * converts rows into text, and feeds them into the RAG system for vector indexing.
+ * Core implementation for chunking, embedding, and indexing archived data.
+ * This function is designed to be executed by a stateless worker (e.g., triggered by Cloud Tasks).
  *
  * @param {string} datasetId - The ID of the dataset to index.
- * @param {import('mongoose').Document} dataset - The Mongoose Dataset document to update with indexing status and details.
  * @returns {Promise<void>} A promise that resolves when indexing is complete, or rejects on error.
  * @throws {Error} If RAG initialization fails, GCS bucket is not configured, file download/read fails,
  *   Parquet parsing fails, or the RAG system encounters an error during document addition.
  */
-const indexDatasetForRAGCore = async (datasetId, dataset) => {
+const indexDatasetForRAGCore = async (datasetId) => {
+  // This function is now self-contained. It fetches the dataset object from the DB.
+  const dataset = await Dataset.findOne({ datasetId });
+  if (!dataset) {
+    console.error(`[Worker] Dataset with ID ${datasetId} not found. Aborting index task.`);
+    throw new Error(`Dataset with ID ${datasetId} not found.`);
+  }
+
   if (config.shelfHfRagIndexing) {
-    console.log(`⚠️ Hugging Face dataset RAG indexing is currently shelved to minimize embedding API costs. Skipping pgvector indexing for dataset: ${datasetId}`);
-    dataset.status = 'archived'; // Keep as archived and do not advance to indexed
+    console.log(`[Worker] ⚠️ Hugging Face dataset RAG indexing is currently shelved. Skipping pgvector indexing for dataset: ${datasetId}`);
+    dataset.status = 'archived'; // Revert status
     dataset.error = 'RAG indexing shelved by configuration';
     await dataset.save();
     return;
   }
 
   try {
-    console.log(`Starting RAG Indexing of archived dataset: ${datasetId}`);
+    console.log(`[Worker] Starting RAG Indexing of archived dataset: ${datasetId}`);
     
-    // 1. Initialize the RAG system (ensures pgvector and database schemas are setup)
     await rag.initialize();
 
     const gcsConfig = getGcsBucket();
@@ -436,7 +506,7 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
     const bucketName = gcsConfig.bucketName;
 
     let totalIndexedChunks = 0;
-    const maxRowsPerFile = 2000; // Guardrail to prevent runaway embedding costs
+    const maxRowsPerFile = 2000;
 
     for (const gcsPath of dataset.gcsPaths) {
       let buffer;
@@ -447,12 +517,9 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
 
       if (gcsPath.startsWith('local://')) {
         const localPath = gcsPath.slice('local://'.length);
-        console.log(`Reading Parquet file from local storage for indexing: ${localPath}`);
-        // Optimization: Use fs.promises.readFile for async file reading to prevent blocking the event loop
+        console.log(`[Worker] Reading Parquet file from local storage for indexing: ${localPath}`);
         buffer = await fs.promises.readFile(localPath);
         
-        // Parse metadata/config/split from the local file path or directory structure
-        // localPath: .../storage/datasets/[datasetId]/[configName]/[splitName]/[fileName].parquet
         const normalizedPath = localPath.replace(/\\/g, '/');
         const parts = normalizedPath.split('/');
         configName = parts[parts.length - 3] || 'default';
@@ -463,11 +530,10 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         if (!bucket) {
           throw new Error('GCS bucket not configured, cannot download GCS path: ' + gcsPath);
         }
-        // Strip the gs://[bucketName]/ prefix to get the relative object path
         const prefix = `gs://${bucketName}/`;
         relativePath = gcsPath.startsWith(prefix) ? gcsPath.slice(prefix.length) : gcsPath;
 
-        console.log(`Downloading Parquet file from GCS for indexing: ${relativePath}`);
+        console.log(`[Worker] Downloading Parquet file from GCS for indexing: ${relativePath}`);
         const fileObj = bucket.file(relativePath);
         const [downloadedBuffer] = await fileObj.download();
         buffer = downloadedBuffer;
@@ -478,8 +544,6 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         fileName = parts[parts.length - 1];
       }
 
-      // Use the Node.js Buffer directly without duplicating the entire ArrayBuffer in memory.
-      // hyparquet calls file.slice(start, end) incrementally, so we only slice/copy the required byte chunks.
       const file = {
         byteLength: buffer.length,
         slice: (start, end) => {
@@ -488,7 +552,7 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         }
       };
 
-      console.log(`Parsing Parquet objects for split "${splitName}" / config "${configName}"...`);
+      console.log(`[Worker] Parsing Parquet objects for split "${splitName}" / config "${configName}"...`);
       const rows = await parquetReadObjects({
         file,
         rowStart: 0,
@@ -496,9 +560,8 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         compressors
       });
 
-      console.log(`Successfully parsed ${rows.length} rows from Parquet file.`);
+      console.log(`[Worker] Successfully parsed ${rows.length} rows from Parquet file.`);
 
-      // Convert rows to cohesive text paragraphs
       let fullText = '';
       rows.forEach((row, rowIndex) => {
         let rowText = `Dataset: ${datasetId}\nConfig: ${configName}\nSplit: ${splitName}\nRow: ${rowIndex + 1}\n`;
@@ -511,7 +574,6 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
             valStr = `[Large Array: ${value.length} items]`;
           } else if (typeof value === 'object') {
             try {
-              // Quick check if object has binary fields or properties that are Uint8Array/Buffer
               let hasBinary = false;
               for (const v of Object.values(value)) {
                 if (v instanceof Uint8Array || v instanceof ArrayBuffer || Buffer.isBuffer(v)) {
@@ -541,11 +603,11 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
       });
 
       if (fullText.trim().length === 0) {
-        console.warn(`No valid content found in ${fileName}, skipping index step.`);
+        console.warn(`[Worker] No valid content found in ${fileName}, skipping index step.`);
         continue;
       }
 
-      console.log(`Feeding text buffer to pgvector RAG system (size: ${fullText.length} characters)...`);
+      console.log(`[Worker] Feeding text buffer to pgvector RAG system (size: ${fullText.length} characters)...`);
       const textBuffer = Buffer.from(fullText, 'utf-8');
       
       const ragResult = await rag.addDocumentFromBuffer(
@@ -562,16 +624,16 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         }
       );
 
-      console.log(`✓ Indexed Parquet file: ${fileName} into RAG. Chunks added: ${ragResult.chunkCount}`);
+      console.log(`[Worker] ✓ Indexed Parquet file: ${fileName} into RAG. Chunks added: ${ragResult.chunkCount}`);
       totalIndexedChunks += ragResult.chunkCount;
     }
 
     dataset.status = 'indexed';
     dataset.error = '';
     await dataset.save();
-    console.log(`RAG Indexing successfully completed for dataset: ${datasetId}. Total chunks: ${totalIndexedChunks}`);
+    console.log(`[Worker] RAG Indexing successfully completed for dataset: ${datasetId}. Total chunks: ${totalIndexedChunks}`);
   } catch (err) {
-    console.error(`RAG Indexing failed for ${datasetId}:`, err);
+    console.error(`[Worker] RAG Indexing failed for ${datasetId}:`, err);
     dataset.status = 'failed';
     dataset.error = err.message;
     await dataset.save();
@@ -580,13 +642,11 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
 };
 
 /**
- * Initiates an asynchronous job to chunk, embed, and index archived dataset data
- * into the RAG system. This function first validates the dataset's status,
- * then triggers the core indexing process in the background.
+ * Initiates a background job to chunk, embed, and index archived dataset data
+ * into the RAG system by creating a Google Cloud Task.
  *
  * @param {string} datasetId - The ID of the dataset to index.
- * @returns {Promise<object>} A promise that resolves to an object indicating the job initiation status
- *   and the updated dataset record.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the job queuing status.
  * @throws {Error} If RAG indexing is shelved by configuration, the dataset is not found,
  *   or the dataset is not in an 'archived' status.
  */
@@ -598,7 +658,6 @@ const indexDatasetForRAG = async (datasetId) => {
     };
   }
 
-  // Recommendation: Ensure an index exists on `datasetId` in the Dataset model for efficient lookups.
   const dataset = await Dataset.findOne({ datasetId });
   if (!dataset) {
     throw new Error('Dataset not found in local catalog.');
@@ -611,18 +670,14 @@ const indexDatasetForRAG = async (datasetId) => {
   dataset.status = 'indexing';
   await dataset.save();
 
-  // Async processing loop for indexing
-  (async () => {
-    try {
-      await indexDatasetForRAGCore(datasetId, dataset);
-    } catch (error) {
-      // Error handled inside Core
-    }
-  })();
+  // OFFLOAD: Replace in-memory async execution with a durable Cloud Task.
+  // This offloads the heavy CPU/memory/network load of indexing to a dedicated worker
+  // and makes the process resilient to server failures.
+  await createCloudTask({ datasetId }, 'index');
 
   return {
     success: true,
-    message: `RAG indexing process initiated for dataset "${datasetId}". Status is now "indexing".`,
+    message: `RAG indexing job for dataset "${datasetId}" has been successfully queued.`,
     dataset
   };
 };
@@ -637,10 +692,6 @@ const indexDatasetForRAG = async (datasetId) => {
  */
 const getLocalCatalog = async (filter = {}) => {
   try {
-    // Optimization: Use .lean() for read-only queries to return plain JavaScript objects
-    // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
-    // Recommendation: Ensure an index exists on `updatedAt` for efficient sorting.
-    // If `filter` commonly includes specific fields, consider adding indexes for those fields as well.
     const list = await Dataset.find(filter).sort({ updatedAt: -1 }).lean();
     return list;
   } catch (err) {
@@ -653,16 +704,15 @@ const getLocalCatalog = async (filter = {}) => {
  * @property {function(string, number): Promise<Array<object>>} searchHFDatasets - Searches for datasets on Hugging Face Hub.
  * @property {function(string): Promise<object>} getHFDatasetInfo - Fetches detailed info of a dataset from Hugging Face.
  * @property {function(string, string, string, number, number): Promise<object>} getHFDatasetRows - Previews rows of a dataset configuration/split.
- * @property {function(string): Promise<object>} archiveDatasetToGCS - Initiates an asynchronous job to download Parquet files to GCS.
- * @property {function(string, import('mongoose').Document): Promise<void>} archiveDatasetToGCSCore - Core blocking implementation for archiving datasets to GCS.
- * @property {function(string): Promise<object>} indexDatasetForRAG - Initiates an asynchronous job to chunk, embed, and index archived data for RAG.
- * @property {function(string, import('mongoose').Document): Promise<void>} indexDatasetForRAGCore - Core blocking implementation for RAG indexing.
+ * @property {function(string): Promise<object>} archiveDatasetToGCS - Initiates a background job to download Parquet files to GCS.
+ * @property {function(string): Promise<void>} archiveDatasetToGCSCore - Core implementation for archiving datasets to GCS (for worker use).
+ * @property {function(string): Promise<object>} indexDatasetForRAG - Initiates a background job to chunk, embed, and index archived data for RAG.
+ * @property {function(string): Promise<void>} indexDatasetForRAGCore - Core implementation for RAG indexing (for worker use).
  * @property {function(object): Promise<Array<object>>} getLocalCatalog - Fetches catalog of local datasets cached in MongoDB.
  */
 
 /**
- * An object containing various service functions for managing datasets,
- * including searching Hugging Face, archiving to GCS, and indexing for RAG.
+ * An object containing various service functions for managing datasets.
  * @type {DatasetsService}
  */
 export const DatasetsService = {
