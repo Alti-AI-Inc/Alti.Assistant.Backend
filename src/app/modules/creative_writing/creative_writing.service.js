@@ -82,7 +82,7 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   let maxMatches = 0;
 
   for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
-    const matches = keywords.filter((keyword) =>
+    const matches = keywords.filter(keyword =>
       lowerMessage.includes(keyword.toLowerCase())
     ).length;
     if (matches > maxMatches) {
@@ -103,7 +103,7 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   let detectedType = null;
   for (const [type, keywords] of Object.entries(TYPE_KEYWORDS)) {
     if (
-      keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      keywords.some(keyword => lowerMessage.includes(keyword.toLowerCase()))
     ) {
       detectedType = type;
       break;
@@ -129,7 +129,7 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
 
   for (const [style, keywords] of Object.entries(styleKeywords)) {
     // Keywords are already lowercase in styleKeywords, so no need for .toLowerCase() here.
-    if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
+    if (keywords.some(keyword => lowerMessage.includes(keyword))) {
       detectedStyle = style;
       break;
     }
@@ -300,7 +300,7 @@ const buildWritingPrompt = (userMessage, params, conversationHistory = []) => {
     const recentMessages = conversationHistory.slice(-4);
     contextPrompt =
       '\n\nPrevious conversation context:\n' +
-      recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n') +
+      recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n') +
       '\n';
   }
 
@@ -488,7 +488,7 @@ const needsClarification = (analysis, conversationHistory) => {
       'create',
       'make something',
     ];
-    const isVague = vaguePhrases.some((phrase) =>
+    const isVague = vaguePhrases.some(phrase =>
       analysis.originalMessage.toLowerCase().includes(phrase)
     );
 
@@ -507,7 +507,7 @@ const needsClarification = (analysis, conversationHistory) => {
  * @param {string|null} analysis.writingType - The detected writing type.
  * @returns {string} A clarification question or a generic clarification message.
  */
-const generateClarificationQuestion = (analysis) => {
+const generateClarificationQuestion = analysis => {
   if (!analysis.writingType) {
     return "I'd love to help you with creative writing! What type of writing would you like to create? For example: a poem, short story, song lyrics, script, or something else?";
   }
