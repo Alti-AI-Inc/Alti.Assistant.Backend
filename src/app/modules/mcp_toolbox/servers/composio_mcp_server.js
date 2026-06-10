@@ -152,6 +152,8 @@ async function loadAndMapTools() {
   } catch (err) {
     process.stderr.write(`[COMPOSIO MCP ERROR] Failed to load toolkits: ${err.message}\n`);
     cachedMcpTools = [];
+    // Re-throw the error so the caller (rl.on('line')) can handle it as an internal error
+    throw err; 
   }
 }
 
@@ -169,6 +171,21 @@ const rl = readline.createInterface({
   output: process.stdout,
   terminal: false
 });
+
+/**
+ * Helper function to send a JSON-RPC 2.0 error response.
+ * @param {string|number|null} id - The ID of the request, or null for parse errors.
+ * @param {number} code - The error code.
+ * @param {string} message - The error message.
+ */
+function sendErrorResponse(id, code, message) {
+  const errorResponse = {
+    jsonrpc: '2.0',
+    id: id,
+    error: { code, message }
+  };
+  process.stdout.write(JSON.stringify(errorResponse) + '\n');
+}
 
 /**
  * Event listener for incoming lines from stdin.
@@ -191,48 +208,88 @@ rl.on('line', async (line) => {
   const trimmed = line.trim();
   if (!trimmed) return;
 
+  let request;
+  let requestId = null; // Default to null for parse errors, will be updated if request.id exists
+
   try {
-    const request = JSON.parse(trimmed);
-    const id = request.id;
+    request = JSON.parse(trimmed);
+    // If request.id is undefined, it's a notification, and we should not respond.
+    // If request.id is null, it's a request expecting a response with id: null.
+    // If request.id is a string/number, it's a request expecting a response with that id.
+    if (request.id !== undefined) {
+      requestId = request.id;
+    }
+  } catch (parseError) {
+    process.stderr.write(`[COMPOSIO MCP ERROR] Unparsable stdin frame: ${parseError.message}\n`);
+    // As per JSON-RPC 2.0 spec, for Parse Error, id MUST be null.
+    sendErrorResponse(null, -32700, 'Parse error: Invalid JSON was received by the server.');
+    return; // Stop processing this line
+  }
+
+  // If it's a notification (request.id is undefined), we should not send any response, even errors.
+  const isNotification = request.id === undefined;
+
+  try {
+    // Basic JSON-RPC 2.0 validation
+    if (request.jsonrpc !== '2.0' || !request.method) {
+      const errorMessage = 'Invalid Request: Missing jsonrpc version or method.';
+      process.stderr.write(`[COMPOSIO MCP ERROR] ${errorMessage} - Request: ${JSON.stringify(request)}\n`);
+      if (!isNotification) {
+        sendErrorResponse(requestId, -32600, errorMessage);
+      }
+      return;
+    }
 
     // A. Model Context Protocol standard handshake
     if (request.method === 'initialize') {
-      // Load and map tools upon active handshake sequence
-      await loadAndMapTools();
-
-      const response = {
-        jsonrpc: '2.0',
-        id,
-        result: {
-          protocolVersion: '2024-11-05',
-          capabilities: {
-            tools: {}
-          },
-          serverInfo: {
-            name: 'Composio-Self-Hosted-MCP',
-            version: '1.2.0'
+      await loadAndMapTools(); // This might throw, caught by the outer try/catch
+      if (!isNotification) {
+        const response = {
+          jsonrpc: '2.0',
+          id: requestId,
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: {}
+            },
+            serverInfo: {
+              name: 'Composio-Self-Hosted-MCP',
+              version: '1.2.0'
+            }
           }
-        }
-      };
-      process.stdout.write(JSON.stringify(response) + '\n');
+        };
+        process.stdout.write(JSON.stringify(response) + '\n');
+      }
     }
     
     // B. Expose dynamic mapped tools schema list
     else if (request.method === 'tools/list') {
-      const response = {
-        jsonrpc: '2.0',
-        id,
-        result: {
-          tools: cachedMcpTools
-        }
-      };
-      process.stdout.write(JSON.stringify(response) + '\n');
+      if (!isNotification) {
+        const response = {
+          jsonrpc: '2.0',
+          id: requestId,
+          result: {
+            tools: cachedMcpTools
+          }
+        };
+        process.stdout.write(JSON.stringify(response) + '\n');
+      }
     }
 
     // C. Execute standard compliant dynamic action tool execution
     else if (request.method === 'tools/call') {
-      const toolName = request.params.name;
-      const args = request.params.arguments || {};
+      // Use optional chaining for safer access to params
+      const toolName = request.params?.name;
+      const args = request.params?.arguments || {};
+
+      if (!toolName) {
+        const errorMessage = 'Invalid params: Missing tool name for tools/call.';
+        process.stderr.write(`[COMPOSIO MCP ERROR] ${errorMessage} - Request: ${JSON.stringify(request)}\n`);
+        if (!isNotification) {
+          sendErrorResponse(requestId, -32602, errorMessage);
+        }
+        return;
+      }
 
       process.stderr.write(`[COMPOSIO MCP] Executing action: "${toolName}" on behalf of user: "${tenantId}"\n`);
 
@@ -248,33 +305,40 @@ rl.on('line', async (line) => {
           });
         }
 
-        const response = {
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result)
-              }
-            ]
-          }
-        };
-        process.stdout.write(JSON.stringify(response) + '\n');
+        if (!isNotification) {
+          const response = {
+            jsonrpc: '2.0',
+            id: requestId,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result)
+                }
+              ]
+            }
+          };
+          process.stdout.write(JSON.stringify(response) + '\n');
+        }
       } catch (execError) {
         process.stderr.write(`[COMPOSIO MCP EXEC ERROR] Action execution failed: ${execError.message}\n`);
-        const response = {
-          jsonrpc: '2.0',
-          id,
-          error: {
-            code: -32603,
-            message: execError.message || 'Action execution failed.'
-          }
-        };
-        process.stdout.write(JSON.stringify(response) + '\n');
+        if (!isNotification) {
+          sendErrorResponse(requestId, -32603, execError.message || 'Action execution failed.');
+        }
+      }
+    } else {
+      // Method not found
+      const errorMessage = `Method not found: ${request.method}`;
+      process.stderr.write(`[COMPOSIO MCP ERROR] ${errorMessage} - Request: ${JSON.stringify(request)}\n`);
+      if (!isNotification) {
+        sendErrorResponse(requestId, -32601, errorMessage);
       }
     }
-  } catch (err) {
-    process.stderr.write(`[COMPOSIO MCP ERROR] Unparsable stdin frame: ${err.message}\n`);
+  } catch (processingError) {
+    // Catch any unexpected errors during request processing (e.g., in loadAndMapTools)
+    process.stderr.write(`[COMPOSIO MCP ERROR] Internal server error during request processing: ${processingError.message}\n`);
+    if (!isNotification) {
+      sendErrorResponse(requestId, -32603, processingError.message || 'Internal server error.');
+    }
   }
 });
