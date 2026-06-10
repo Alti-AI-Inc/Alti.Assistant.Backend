@@ -208,7 +208,7 @@ router.post(
  *       400:
  *         description: Invalid input (e.g., invalid memberId or role).
  *       403:
- *         description: Forbidden. A manager cannot change their own role via this endpoint.
+ *         description: Forbidden. A manager cannot change their own role, or a plan limit has been reached.
  *       404:
  *         description: Team member not found in the workspace.
  *       500:
@@ -230,6 +230,18 @@ router.put(
       // Security check: A manager cannot change their own role.
       if (memberId === managerId) {
         return res.status(403).json({ success: false, error: 'Managers cannot change their own role.' });
+      }
+
+      // Optimization: Check plan limits before promoting a member to a manager role.
+      // This ensures workspace integrity and adherence to subscription plans.
+      if (role === 'manager') {
+        const canAddManager = await WorkspaceService.checkManagerLimit(workspaceId);
+        if (!canAddManager) {
+          return res.status(403).json({
+            success: false,
+            error: 'Plan limit for managers reached. Please upgrade your plan to add more managers.',
+          });
+        }
       }
 
       const updatedMember = await TeamService.updateMemberRole(workspaceId, memberId, role);
@@ -269,7 +281,7 @@ router.put(
  *       400:
  *         description: Invalid memberId.
  *       403:
- *         description: Forbidden. Cannot remove yourself from the workspace.
+ *         description: Forbidden. Cannot remove yourself or the last manager from the workspace.
  *       404:
  *         description: Team member not found in the workspace.
  *       500:
@@ -289,11 +301,25 @@ router.delete(
         return res.status(403).json({ success: false, error: 'You cannot remove yourself from the workspace.' });
       }
 
-      const result = await TeamService.removeMember(workspaceId, memberId);
+      // Optimization: Prevent the removal of the last manager to avoid orphaning the workspace.
+      // This requires fetching the member's details first to check their role.
+      const memberToRemove = await TeamService.getMemberById(workspaceId, memberId);
 
-      if (!result.success) {
+      if (!memberToRemove) {
         return res.status(404).json({ success: false, error: 'Team member not found in this workspace.' });
       }
+
+      if (memberToRemove.role === 'manager') {
+        const managerCount = await TeamService.getManagerCount(workspaceId);
+        if (managerCount <= 1) {
+          return res.status(403).json({
+            success: false,
+            error: 'Cannot remove the last manager. Please assign another manager before removing this one.',
+          });
+        }
+      }
+
+      await TeamService.removeMember(workspaceId, memberId);
 
       res.json({ success: true, message: 'Team member removed successfully.' });
     } catch (error) {
