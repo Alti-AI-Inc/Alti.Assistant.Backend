@@ -274,13 +274,33 @@ const WorkflowTemplateSchema = new mongoose.Schema(
 
 /**
  * Indexes for efficient querying of Workflow Templates.
- * - `category` and `isPublic` for filtering by category and public status.
- * - `tags` and `isPublic` for filtering by tags and public status.
- * - `rating.average` (descending) and `usageCount` (descending) for sorting by popularity/quality.
  */
+// OPTIMIZATION: Added a text index on name and description to support efficient full-text search.
+// This is crucial for a search bar feature in a template gallery.
+WorkflowTemplateSchema.index({ name: 'text', description: 'text' });
+
+// OPTIMIZATION: Added a compound index to optimize the most common browsing pattern:
+// finding public templates in a specific category, sorted by rating or usage.
+// This index covers filtering by isPublic and category, and sorting by rating.average.
+WorkflowTemplateSchema.index({ isPublic: 1, category: 1, 'rating.average': -1 });
+WorkflowTemplateSchema.index({ isPublic: 1, category: 1, usageCount: -1 });
+
+
+// OPTIMIZATION: Added an index on `createdBy` to quickly fetch all templates created by a specific user.
+WorkflowTemplateSchema.index({ createdBy: 1 });
+
+// Index for filtering by category and public status.
 WorkflowTemplateSchema.index({ category: 1, isPublic: 1 });
+
+// Index for filtering by tags and public status (multi-key index).
 WorkflowTemplateSchema.index({ tags: 1, isPublic: 1 });
+
+// OPTIMIZATION: Added an index for finding public templates that require a specific app.
+WorkflowTemplateSchema.index({ requiredApps: 1, isPublic: 1 });
+
+// Index for sorting by popularity/quality.
 WorkflowTemplateSchema.index({ 'rating.average': -1, usageCount: -1 });
+
 
 /**
  * Represents the WorkflowTemplate Mongoose model.
