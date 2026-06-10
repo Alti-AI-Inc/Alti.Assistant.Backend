@@ -4,20 +4,42 @@ import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from '../conversations/conversation.model.js';
 
 /**
- * Dedicated code generation function using Claude Sonnet 4.5
+ * Dedicated code generation function using Claude Sonnet 4.5.
+ *
+ * This function orchestrates the code generation process, leveraging a sophisticated
+ * decision framework to determine whether to generate code directly from its knowledge base
+ * or to utilize optional web search tools via a ReAct agent.
  *
  * APPROACH:
- * - 95% of requests: Generate code directly from knowledge base
- * - 5% of requests: Use search only when absolutely necessary (bleeding-edge tech, explicit "latest" requests)
- * - Optional search via ReAct agent with Google Custom Search and WebBrowser tools
+ * - 95% of requests: Generate code directly from knowledge base for established patterns,
+ *   frameworks, and common programming tasks.
+ * - 5% of requests: Use search only when absolutely necessary, such as for bleeding-edge
+ *   technologies, very recent releases (<6 months), or explicit "latest" requests.
+ * - Optional search is facilitated by a ReAct agent with Google Custom Search and WebBrowser tools.
  *
  * DECISION FRAMEWORK:
- * - Generate directly for: Standard frameworks, common patterns, established libraries, CRUD, APIs, auth
+ * - Generate directly for: Standard frameworks (e.g., Express.js, React), common patterns (e.g., JWT auth, CRUD),
+ *   established libraries, API implementations, authentication, data processing, etc.
  * - Search only for: Very recent releases (<6 months), explicit "latest" requests, genuine uncertainty
+ *   about current best practices or API syntax for new technologies.
  *
- * @param {Object} state - Contains query, conversationId, conversationContext, etc.
- * @param {boolean} stream - Whether to stream the response
- * @returns {Object} - Code generation result with answer, references, and metadata
+ * @param {object} state - An object containing the current state and context for the code generation request.
+ * @param {string} state.currentQuery - The user's current query for code generation.
+ * @param {string} [state.query] - An alternative property for the user's current query.
+ * @param {string} [state.userId] - The ID of the user making the request.
+ * @param {string} [state.authUserId] - An alternative property for the authenticated user's ID.
+ * @param {object} [state.user] - User object, potentially containing `id`.
+ * @param {string} [state.conversationId] - The ID of the ongoing conversation, used to retrieve history.
+ * @param {Array<object>} [state.conversationContext] - An array of message objects representing the conversation history.
+ * @param {string} [state.conversationSummary] - A summary of the conversation history.
+ * @param {boolean} [stream=false] - Whether to stream the response back to the client.
+ * @returns {Promise<object>} - A promise that resolves to an object containing the code generation result.
+ *   The result object typically includes:
+ *   - `answer`: The generated code and accompanying explanation.
+ *   - `reference`: Any references used (e.g., from search results).
+ *   - `citations`: Detailed citations for any external information.
+ *   - `citationMetadata`: Additional metadata about the generation process, including error information if applicable.
+ * @throws {Error} If an unexpected error occurs during the code generation process.
  */
 export const runCodeGeneration = async (state, stream = false) => {
   try {
@@ -97,7 +119,7 @@ You have access to web search tools (google-custom-search, web-browser). These a
 - You need to verify a specific security vulnerability or recent best practice change
 - The user explicitly asks for "latest", "current", or "most recent" approaches
 
-**When to NOT use search (generate directly):**
+**When to NOT use search (generate directly):
 - Standard, well-established patterns (Express.js setup, JWT auth, etc.)
 - Common frameworks and libraries (React, Node.js, Python, etc.)
 - General programming concepts and algorithms
