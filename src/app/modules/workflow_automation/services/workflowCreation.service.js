@@ -1,5 +1,4 @@
 import Workflow from '../models/workflow.model.js';
-import WorkflowExecution from '../models/workflowExecution.model.js';
 import WorkflowChatHistory from '../models/workflowChatHistory.model.js';
 import {
   processWorkflowRequest,
@@ -7,7 +6,6 @@ import {
 } from '../langgraph/workflow.js';
 import { logger } from '../../../../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
-import { composioIntegrationService } from './composioIntegration.service.js';
 
 /**
  * @class WorkflowCreationService
@@ -78,6 +76,29 @@ class WorkflowCreationService {
 
       // If workflow needs confirmation, return without creating
       if (result.needsConfirmation || result.responseType === 'confirmation') {
+        // BUG FIX: Persist the workflow plan in the conversation context for later confirmation.
+        // The confirmWorkflowCreation method relies on this plan being stored.
+        await WorkflowChatHistory.updateOne(
+          { conversationId: processingResult.conversationId },
+          {
+            $set: {
+              'context.workflowPlan': { // Store the plan in context
+                userIntent: result.userIntent,
+                taskType: result.taskType,
+                complexity: result.complexity,
+                detectedApps: result.detectedApps,
+                workflowSteps: result.workflowSteps,
+                scheduleRequired: result.scheduleRequired,
+                scheduleConfig: result.scheduleConfig,
+                triggerType: result.triggerType,
+                extractedParameters: result.extractedParameters,
+              },
+              status: 'pending_confirmation', // Set status to indicate it's awaiting user confirmation
+            },
+          },
+          { upsert: true } // Use upsert: true in case the conversation document was just created by saveChatMessage
+        );
+
         return {
           success: true,
           needsConfirmation: true,
@@ -190,6 +211,12 @@ class WorkflowCreationService {
           "Workflow creation cancelled. Feel free to describe a different automation you'd like to create!"
         );
 
+        // Update conversation status to cancelled
+        await WorkflowChatHistory.updateOne(
+          { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
+          { $set: { status: 'cancelled' } }
+        );
+
         return {
           success: true,
           message: 'Workflow creation cancelled.',
@@ -200,9 +227,11 @@ class WorkflowCreationService {
       // Get conversation history to understand the workflow context
       // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
       // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
-      const chatHistory = await WorkflowChatHistory.findOne({ conversationId }).lean();
+      // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
+      const chatHistory = await WorkflowChatHistory.findOne({ conversationId, userId }).lean();
       if (!chatHistory) {
-        throw new Error('Conversation not found');
+        // BUG FIX: More specific error message for IDOR prevention.
+        throw new Error('Conversation not found or not owned by user');
       }
 
       // Get the workflow plan from conversation context
@@ -257,7 +286,7 @@ class WorkflowCreationService {
       // Update conversation with workflow ID
       // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
       await WorkflowChatHistory.updateOne(
-        { conversationId },
+        { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
         {
           $push: { workflowIds: workflow._id },
           $set: { status: 'completed' },
@@ -389,20 +418,34 @@ class WorkflowCreationService {
         metadata,
       };
 
+      const updateOperation = {
+        $push: { messages: message },
+        $set: {
+          userId,
+          lastActivity: new Date(),
+        },
+      };
+
+      // BUG FIX: Handle conversation title more robustly.
+      // The previous logic could overwrite an existing title with 'undefined'.
+      // If metadata.title is provided, it explicitly overrides the title.
+      if (metadata.title) {
+        updateOperation.$set.title = metadata.title;
+      } else if (role === 'user') {
+        // If it's a user message and no explicit title from metadata,
+        // set the title only if the document is being inserted (i.e., it's a new conversation).
+        // This prevents overwriting an existing title with a snippet from subsequent user messages.
+        updateOperation.$setOnInsert = {
+          title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+        };
+      }
+      // If role is 'assistant' and no metadata.title, we do not touch the title field,
+      // preserving any existing title.
+
       // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster upserts.
       await WorkflowChatHistory.updateOne(
         { conversationId },
-        {
-          $push: { messages: message },
-          $set: {
-            userId,
-            lastActivity: new Date(),
-            title:
-              role === 'user' && !metadata.title
-                ? content.substring(0, 50) + (content.length > 50 ? '...' : '')
-                : undefined,
-          },
-        },
+        updateOperation,
         { upsert: true }
       );
     } catch (error) {
