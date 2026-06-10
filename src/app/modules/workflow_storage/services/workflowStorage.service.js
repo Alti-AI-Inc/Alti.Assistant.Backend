@@ -5,13 +5,50 @@ import { logger } from '../../../../shared/logger.js';
 import { withTenantPipeline } from '../../../helpers/tenantQuery.js';
 
 /**
- * Workflow Storage Service - Analyzes user input and stores workflows without execution
+ * @file Workflow Storage Service
+ * @module app/modules/workflow_storage/services/workflowStorage.service
+ * @description This service handles the analysis, storage, retrieval, and management of user-defined workflows.
+ * It integrates with AI planning nodes to interpret user input and store workflows without immediate execution.
+ */
+
+/**
+ * @class WorkflowStorageService
+ * @description Manages the lifecycle of stored workflows, from initial analysis and storage to retrieval,
+ * updates, and deletion. It interacts with `StoredWorkflow` and `ComposioAuth` models, and leverages
+ * AI planning capabilities from `composio_v2`.
  */
 class WorkflowStorageService {
   /**
-   * Analyze user input and create a stored workflow
-   * @param {Object} inputs - Analysis inputs
-   * @returns {Object} Analysis and storage result
+   * Analyzes user input using an AI planning node and stores the resulting workflow.
+   * This process involves identifying required applications, generating an execution plan,
+   * and determining the workflow's initial status based on connected accounts.
+   *
+   * @async
+   * @param {object} inputs - The input parameters for workflow analysis and storage.
+   * @param {string} inputs.userInput - The natural language input from the user describing the desired workflow.
+   * @param {string} inputs.userId - The ID of the user initiating the workflow.
+   * @param {string} [inputs.title] - An optional title for the workflow. If not provided, one will be generated.
+   * @param {string} [inputs.description] - An optional description for the workflow. If not provided, one will be generated from user input.
+   * @param {string} [inputs.conversationId] - The ID of the conversation context from which the workflow originated.
+   * @param {object} [inputs.conversationContext={}] - Additional context from the conversation, e.g., history.
+   * @param {Array<string>} [inputs.tags=[]] - An array of tags to categorize the workflow.
+   * @param {string} [inputs.category='other'] - A category for the workflow (e.g., 'productivity', 'finance').
+   * @returns {Promise<object>} An object indicating the success or failure of the operation.
+   * @returns {boolean} returns.success - True if the workflow was successfully analyzed and stored, false otherwise.
+   * @returns {object} [returns.data] - Contains details of the stored workflow if successful.
+   * @returns {string} returns.data.workflowId - The unique ID of the newly stored workflow.
+   * @returns {string} returns.data.title - The title of the stored workflow.
+   * @returns {string} returns.data.workflowType - The type of workflow (e.g., 'single_step', 'multi_step').
+   * @returns {string} returns.data.status - The current status of the workflow ('ready' or 'draft').
+   * @returns {Array<string>} returns.data.requiredApps - A list of applications required by the workflow.
+   * @returns {number} returns.data.totalSteps - The total number of steps in the workflow's execution plan.
+   * @returns {Array<string>} returns.data.missingConnections - A list of required applications for which the user lacks active connections.
+   * @returns {boolean} returns.data.isExecutable - True if all required connections are present, false otherwise.
+   * @returns {object} returns.data.planningMetadata - Metadata from the AI planning process.
+   * @returns {Date} returns.data.createdAt - The timestamp when the workflow was created.
+   * @returns {string} returns.data.message - A success message.
+   * @returns {string} [returns.error] - An error message if the operation failed.
+   * @returns {object} [returns.details] - Additional error details, such as stack trace.
    */
   async analyzeAndStoreWorkflow(inputs) {
     try {
@@ -141,10 +178,28 @@ class WorkflowStorageService {
   }
 
   /**
-   * Get stored workflows for a user
-   * @param {string} userId - User ID
-   * @param {Object} options - Query options
-   * @returns {Object} List of workflows
+   * Retrieves a list of stored workflows for a specific user, with optional filtering and pagination.
+   *
+   * @async
+   * @param {string} userId - The ID of the user whose workflows are to be retrieved.
+   * @param {object} [options={}] - Query options for filtering, sorting, and pagination.
+   * @param {string} [options.status=null] - Filter workflows by their status (e.g., 'ready', 'draft').
+   * @param {string} [options.workflowType=null] - Filter workflows by their type (e.g., 'single_step', 'multi_step').
+   * @param {string} [options.category=null] - Filter workflows by their category.
+   * @param {string|Array<string>} [options.tags=null] - Filter workflows by one or more tags.
+   * @param {number} [options.limit=50] - The maximum number of workflows to return.
+   * @param {number} [options.offset=0] - The number of workflows to skip before starting to return results.
+   * @param {string} [options.sortBy='createdAt'] - The field to sort the workflows by.
+   * @param {number} [options.sortOrder=-1] - The sort order (1 for ascending, -1 for descending).
+   * @returns {Promise<object>} An object containing the list of workflows and pagination information.
+   * @returns {boolean} returns.success - True if the workflows were successfully retrieved, false otherwise.
+   * @returns {object} [returns.data] - Contains the retrieved workflows and metadata if successful.
+   * @returns {Array<object>} returns.data.workflows - An array of workflow documents.
+   * @returns {number} returns.data.totalCount - The total number of workflows matching the query, ignoring limit/offset.
+   * @returns {number} returns.data.offset - The offset used in the query.
+   * @returns {number} returns.data.limit - The limit used in the query.
+   * @returns {boolean} returns.data.hasMore - True if there are more workflows beyond the current limit/offset.
+   * @returns {string} [returns.error] - An error message if the operation failed.
    */
   async getUserStoredWorkflows(userId, options = {}) {
     try {
@@ -206,10 +261,15 @@ class WorkflowStorageService {
   }
 
   /**
-   * Get a specific stored workflow
-   * @param {string} workflowId - Workflow ID
-   * @param {string} userId - User ID
-   * @returns {Object} Workflow details
+   * Retrieves a single stored workflow by its ID for a specific user.
+   *
+   * @async
+   * @param {string} workflowId - The unique ID of the workflow to retrieve.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @returns {Promise<object>} An object containing the workflow details or an error.
+   * @returns {boolean} returns.success - True if the workflow was found, false otherwise.
+   * @returns {object} [returns.data] - The workflow document if successful.
+   * @returns {string} [returns.error] - An error message if the workflow was not found or an error occurred.
    */
   async getStoredWorkflow(workflowId, userId) {
     try {
@@ -237,11 +297,22 @@ class WorkflowStorageService {
   }
 
   /**
-   * Update a stored workflow
-   * @param {string} workflowId - Workflow ID
-   * @param {string} userId - User ID
-   * @param {Object} updates - Updates to apply
-   * @returns {Object} Update result
+   * Updates an existing stored workflow with new data. Only a predefined set of fields can be updated.
+   *
+   * @async
+   * @param {string} workflowId - The unique ID of the workflow to update.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @param {object} updates - An object containing the fields to update.
+   * @param {string} [updates.title] - The new title for the workflow.
+   * @param {string} [updates.description] - The new description for the workflow.
+   * @param {Array<string>} [updates.tags] - The new array of tags for the workflow.
+   * @param {string} [updates.category] - The new category for the workflow.
+   * @param {string} [updates.status] - The new status for the workflow (e.g., 'ready', 'draft').
+   * @returns {Promise<object>} An object indicating the success or failure of the update.
+   * @returns {boolean} returns.success - True if the workflow was successfully updated, false otherwise.
+   * @returns {object} [returns.data] - The updated workflow document if successful.
+   * @returns {string} returns.message - A success message.
+   * @returns {string} [returns.error] - An error message if the workflow was not found or an error occurred.
    */
   async updateStoredWorkflow(workflowId, userId, updates) {
     try {
@@ -287,10 +358,15 @@ class WorkflowStorageService {
   }
 
   /**
-   * Delete a stored workflow
-   * @param {string} workflowId - Workflow ID
-   * @param {string} userId - User ID
-   * @returns {Object} Deletion result
+   * Deletes a specific stored workflow for a user.
+   *
+   * @async
+   * @param {string} workflowId - The unique ID of the workflow to delete.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @returns {Promise<object>} An object indicating the success or failure of the deletion.
+   * @returns {boolean} returns.success - True if the workflow was successfully deleted, false otherwise.
+   * @returns {string} returns.message - A success message.
+   * @returns {string} [returns.error] - An error message if the workflow was not found or an error occurred.
    */
   async deleteStoredWorkflow(workflowId, userId) {
     try {
@@ -317,11 +393,21 @@ class WorkflowStorageService {
   }
 
   /**
-   * Search stored workflows
-   * @param {string} userId - User ID
-   * @param {string} searchTerm - Search term
-   * @param {Object} options - Search options
-   * @returns {Object} Search results
+   * Searches for stored workflows based on a search term for a specific user.
+   * This method relies on a custom `searchWorkflows` static method on the `StoredWorkflow` model,
+   * which should ideally leverage text indexes for efficient searching.
+   *
+   * @async
+   * @param {string} userId - The ID of the user whose workflows are to be searched.
+   * @param {string} searchTerm - The term to search for within workflow titles, descriptions, or user input.
+   * @param {object} [options={}] - Additional search options (e.g., pagination, specific fields).
+   * @returns {Promise<object>} An object containing the search results.
+   * @returns {boolean} returns.success - True if the search was successful, false otherwise.
+   * @returns {object} [returns.data] - Contains the search results if successful.
+   * @returns {Array<object>} returns.data.workflows - An array of workflow documents matching the search term.
+   * @returns {string} returns.data.searchTerm - The search term used.
+   * @returns {number} returns.data.resultCount - The number of workflows found.
+   * @returns {string} [returns.error] - An error message if the operation failed.
    */
   async searchStoredWorkflows(userId, searchTerm, options = {}) {
     try {
@@ -352,9 +438,17 @@ class WorkflowStorageService {
   }
 
   /**
-   * Get executable workflows for a user
-   * @param {string} userId - User ID
-   * @returns {Object} Executable workflows
+   * Retrieves all workflows for a user that are currently marked as 'executable'.
+   * Executable workflows are those that have all their required application connections active.
+   *
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<object>} An object containing the list of executable workflows.
+   * @returns {boolean} returns.success - True if the retrieval was successful, false otherwise.
+   * @returns {object} [returns.data] - Contains the executable workflows if successful.
+   * @returns {Array<object>} returns.data.workflows - An array of executable workflow documents.
+   * @returns {number} returns.data.count - The number of executable workflows found.
+   * @returns {string} [returns.error] - An error message if the operation failed.
    */
   async getExecutableWorkflows(userId) {
     try {
@@ -379,10 +473,22 @@ class WorkflowStorageService {
   }
 
   /**
-   * Update workflow connections status
-   * @param {string} workflowId - Workflow ID
-   * @param {string} userId - User ID
-   * @returns {Object} Update result
+   * Refreshes the connection status for a specific workflow.
+   * This method re-checks the user's connected accounts against the workflow's required applications
+   * and updates the workflow's `status` and `missingConnections` fields accordingly.
+   *
+   * @async
+   * @param {string} workflowId - The unique ID of the workflow to refresh.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @returns {Promise<object>} An object indicating the success or failure of the refresh.
+   * @returns {boolean} returns.success - True if the workflow connections were successfully updated, false otherwise.
+   * @returns {object} [returns.data] - Contains updated workflow status information if successful.
+   * @returns {string} returns.data.workflowId - The ID of the refreshed workflow.
+   * @returns {string} returns.data.status - The new status of the workflow ('ready' or 'draft').
+   * @returns {Array<string>} returns.data.missingConnections - The updated list of missing application connections.
+   * @returns {boolean} returns.data.isExecutable - The updated executable status of the workflow.
+   * @returns {string} returns.message - A success message.
+   * @returns {string} [returns.error] - An error message if the workflow was not found or an error occurred.
    */
   async refreshWorkflowConnections(workflowId, userId) {
     try {
@@ -423,10 +529,27 @@ class WorkflowStorageService {
   }
 
   /**
-   * Convert stored workflow to execution format (for composio_v2)
-   * @param {string} workflowId - Workflow ID
-   * @param {string} userId - User ID
-   * @returns {Object} Execution-ready workflow data
+   * Prepares a stored workflow for execution by converting it into a format compatible with the `composio_v2` execution engine.
+   * This method ensures the workflow is executable (all connections are present) before formatting the data.
+   *
+   * @async
+   * @param {string} workflowId - The unique ID of the workflow to prepare.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @returns {Promise<object>} An object containing the execution-ready workflow data or an error.
+   * @returns {boolean} returns.success - True if the workflow was successfully prepared, false otherwise.
+   * @returns {object} [returns.data] - The workflow data formatted for execution if successful.
+   * @returns {string} returns.data.userId - The ID of the user.
+   * @returns {string} returns.data.title - The title of the workflow.
+   * @returns {string} returns.data.description - The description of the workflow.
+   * @returns {Array<object>} returns.data.executionPlan - The detailed execution plan (steps) for the workflow.
+   * @returns {string} returns.data.workflowType - The type of workflow.
+   * @returns {Array<string>} returns.data.requiredApps - A list of applications required by the workflow.
+   * @returns {string} returns.data.triggerType - The trigger type for execution (always 'manual' for stored workflows).
+   * @returns {string} returns.data.originalUserInput - The original user input that created the workflow.
+   * @returns {string} [returns.data.conversationId] - The ID of the conversation context.
+   * @returns {object} [returns.data.conversationContext] - Additional conversation context.
+   * @returns {string} returns.message - A success message.
+   * @returns {string} [returns.error] - An error message if the workflow was not found, not executable, or an error occurred.
    */
   async prepareWorkflowForExecution(workflowId, userId) {
     try {
@@ -478,10 +601,16 @@ class WorkflowStorageService {
   }
 
   /**
-   * Generate workflow title from user input
-   * @param {string} userInput - Original user input
-   * @param {Object} planResult - Planning result
-   * @returns {string} Generated title
+   * Generates a concise title for a workflow based on the user's input and the AI planning result.
+   * It truncates long inputs and appends workflow type information.
+   *
+   * @async
+   * @param {string} userInput - The original natural language input provided by the user.
+   * @param {object} planResult - The result object from the AI planning node, containing `workflowType` and `totalSteps`.
+   * @param {string} planResult.workflowType - The type of workflow (e.g., 'single_step', 'multi_step').
+   * @param {number} [planResult.totalSteps] - The total number of steps identified in the plan.
+   * @param {Array<object>} [planResult.executionPlan] - The execution plan, used to derive total steps if `totalSteps` is missing.
+   * @returns {Promise<string>} A promise that resolves to the generated workflow title.
    */
   async generateWorkflowTitle(userInput, planResult) {
     try {
@@ -507,9 +636,13 @@ class WorkflowStorageService {
   }
 
   /**
-   * Get user's connected accounts
-   * @param {string} userId - User ID
-   * @returns {Array} Connected accounts
+   * Retrieves a list of active connected accounts for a given user.
+   * This is used to determine which applications a user can interact with and to check workflow executability.
+   *
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<Array<object>>} A promise that resolves to an array of connected account documents.
+   * Each object typically contains `userId`, `app`, `status`, and `toolkit` information.
    */
   async getUserConnectedAccounts(userId) {
     try {
@@ -527,10 +660,24 @@ class WorkflowStorageService {
   }
 
   /**
-   * Get workflow statistics for a user
-   * @param {string} userId - User ID
-   * @param {Object} req - Request object for tenant context
-   * @returns {Object} Statistics
+   * Retrieves various statistics about a user's stored workflows.
+   * This includes counts for total, ready, draft, single-step, multi-step workflows,
+   * total executions (if `executionCount` field exists), and average steps.
+   *
+   * @async
+   * @param {string} userId - The ID of the user for whom to retrieve statistics.
+   * @param {object} [req=null] - The Express request object, used for tenant context if `withTenantPipeline` is active.
+   * @returns {Promise<object>} An object containing the workflow statistics.
+   * @returns {boolean} returns.success - True if statistics were successfully retrieved, false otherwise.
+   * @returns {object} [returns.data] - Contains the statistics if successful.
+   * @returns {number} returns.data.totalWorkflows - The total number of workflows owned by the user.
+   * @returns {number} returns.data.readyWorkflows - The number of workflows with 'ready' status.
+   * @returns {number} returns.data.draftWorkflows - The number of workflows with 'draft' status.
+   * @returns {number} returns.data.singleStepWorkflows - The number of single-step workflows.
+   * @returns {number} returns.data.multiStepWorkflows - The number of multi-step workflows.
+   * @returns {number} returns.data.totalExecutions - The sum of `executionCount` across all workflows.
+   * @returns {number} returns.data.averageSteps - The average number of steps across all workflows.
+   * @returns {string} [returns.error] - An error message if the operation failed.
    */
   async getWorkflowStatistics(userId, req = null) {
     try {
@@ -594,7 +741,11 @@ class WorkflowStorageService {
   }
 }
 
-// Export singleton instance
+/**
+ * @constant {WorkflowStorageService} workflowStorageService
+ * @description A singleton instance of the WorkflowStorageService, providing centralized access
+ * to workflow management functionalities throughout the application.
+ */
 export const workflowStorageService = new WorkflowStorageService();
 export default workflowStorageService;
 
