@@ -43,6 +43,8 @@ const model = client.getGenerativeModel({
  * ensuring consistent behavior and avoiding code duplication.
  *
  * @private
+ * @async
+ * @function _handleGeminiInteraction
  * @security User-Scoped Isolation: This operation is strictly isolated to the provided `userId`.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
@@ -275,42 +277,57 @@ const _handleGeminiInteraction = async (
 };
 
 /**
- * Handles interaction with the Gemini AI model, manages chat history, tracks prompt usage,
- * and persists conversation data for a given session and user. This is the primary service.
+ * Processes a user's prompt through the primary Gemini AI model.
+ * This service orchestrates the entire lifecycle of a user interaction:
+ * 1. Validates user permissions, roles, and usage limits (both individual and tenant-wide).
+ * 2. Retrieves and manages the conversation history for the given session.
+ * 3. Enhances the prompt with real-time data via the `UnifiedSmartRouter`.
+ * 4. Generates a response from the Gemini model.
+ * 5. Increments user and tenant prompt usage counters.
+ * 6. Persists the new prompt and reply to the database.
+ * 7. Publishes the final response to a Redis channel for real-time updates.
  *
  * @async
  * @function geminiService
  * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
+ *           Enforces role-based permissions and multi-tenant context boundaries.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
- * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
+ * @throws {ApiError} Throws an `ApiError` for issues like user not found, permission denied,
+ *                    usage limit exceeded, or internal failures in AI generation or database operations.
  */
 const geminiService = async (sessionId, prompt, userId) => {
   return _handleGeminiInteraction(sessionId, prompt, userId, model, true);
 };
 
 /**
- * Handles interaction with a Gemini AI model instance (currently identical to the primary model),
- * manages chat history, tracks prompt usage, and persists conversation data for a given session and user.
- * This service is functionally very similar to `geminiService` but does not publish to Redis.
+ * Processes a user's prompt through a Gemini AI model for preview or alternative purposes.
+ * This service follows the same logic as `geminiService` (permission checks, history management,
+ * usage tracking, and persistence) but with one key difference: it **does not** publish the
+ * final response to the Redis channel. This makes it suitable for scenarios where real-time
+ * broadcasting is not required.
  *
  * @async
  * @function gemini25PreviewService
  * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
+ *           Enforces role-based permissions and multi-tenant context boundaries.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
- * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
+ * @throws {ApiError} Throws an `ApiError` for issues like user not found, permission denied,
+ *                    usage limit exceeded, or internal failures in AI generation or database operations.
  */
 const gemini25PreviewService = async (sessionId, prompt, userId) => {
   return _handleGeminiInteraction(sessionId, prompt, userId, model, false);
 };
 
 /**
- * Exports an object containing various Gemini AI service functions.
+ * A collection of services for interacting with the Google Gemini AI.
+ * This includes the primary service for standard chat interactions and
+ * specialized services for different use cases like previews.
  * @namespace GeminiAiService
  */
 export const GeminiAiService = {

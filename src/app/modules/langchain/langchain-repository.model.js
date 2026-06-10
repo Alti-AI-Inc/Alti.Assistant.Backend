@@ -95,6 +95,10 @@ const LangchainRepositorySchema = new mongoose.Schema(
   }
 );
 
+// OPTIMIZATION: Index timestamp fields added by `timestamps: true` for efficient sorting (e.g., "newest first").
+LangchainRepositorySchema.index({ createdAt: -1 });
+LangchainRepositorySchema.index({ updatedAt: -1 });
+
 // Enable full-text search on name and description for highly relevant queries
 LangchainRepositorySchema.index(
   { name: 'text', description: 'text' },

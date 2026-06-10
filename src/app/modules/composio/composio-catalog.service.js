@@ -1,3 +1,11 @@
+/**
+ * @file Manages the Composio repository catalog.
+ * @description This service provides functionalities to search, import, and get statistics
+ * for the Composio repository catalog stored in the database. It interacts with the
+ * ComposioRepository model and can execute git commands for submodule management.
+ * Access control and multi-tenancy are expected to be handled by the calling layers (e.g., controllers).
+ * @module services/composio-catalog
+ */
 import { promises as fs } from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
@@ -5,11 +13,37 @@ import { fileURLToPath } from 'url';
 import util from 'util';
 import ComposioRepository from './composio-repository.model.js';
 
+/**
+ * The filename of the current module, derived from `import.meta.url`.
+ * @private
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current module.
+ * @private
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
 
+/**
+ * The file path to the JSON catalog file.
+ * @private
+ * @type {string}
+ * @deprecated This path points to a static file, but the service now uses a dynamic MongoDB collection.
+ */
 const CATALOG_PATH = path.join(__dirname, '../../../../output/composio-license-catalog.json');
+/**
+ * The root directory of the project, calculated relative to the current file's location.
+ * @private
+ * @type {string}
+ */
 const ROOT_DIR = path.join(__dirname, '../../../../..');
+/**
+ * A promisified version of the `child_process.execFile` function for async/await usage.
+ * @private
+ * @type {function(...*): Promise<{stdout: string, stderr: string}>}
+ */
 const execFileAsync = util.promisify(execFile);
 
 /**
@@ -20,7 +54,7 @@ const execFileAsync = util.promisify(execFile);
  */
 const escapeRegExp = (string) => {
   // Escape characters with special meaning either inside or outside character sets.
-  // '\\$&' is the replacement pattern that inserts the matched substring,
+  // '$&' is the replacement pattern that inserts the matched substring,
   // effectively prefixing each special character with a backslash.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
