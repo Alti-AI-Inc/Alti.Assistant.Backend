@@ -39,7 +39,25 @@
  * @property {object} history - The conversation history with the user.
  * @property {Array<object>|null} history.value - An array of message objects representing the conversation flow.
  * @property {object} metadata - General metadata about the research session.
- * @property {object|null} metadata.value - An object containing session ID, timestamps, user info, etc.
+ * @property {object|null} metadata.value - An object containing session ID, timestamps, and critical user/tenant info.
+ * @property {string|null} metadata.value.userId - The ID of the user who initiated the research.
+ * @property {string|null} metadata.value.workspaceId - The ID of the workspace this research belongs to. CRITICAL for tenancy.
+ * @property {string|null} metadata.value.researchJobId - A unique identifier for this specific research job.
+ * @property {string|null} metadata.value.createdAt - ISO timestamp of when the session was created.
+ * @property {object} sessionLimits - Defines the resource limits for this specific research session, based on user/workspace plan.
+ * @property {object} sessionLimits.value - An object containing the applicable limits.
+ * @property {number|null} sessionLimits.value.maxTokens - The maximum total LLM tokens allowed for this session.
+ * @property {number|null} sessionLimits.value.maxSearches - The maximum number of web searches allowed for this session.
+ * @property {number|null} sessionLimits.value.maxCost - The maximum cost allowed for this session in the smallest currency unit (e.g., cents).
+ * @property {object} usageTracking - Tracks resource consumption for the research session for reporting and limit enforcement.
+ * @property {object} usageTracking.value - An object containing various consumption metrics.
+ * @property {object} usageTracking.value.llmTokens - Tracks Language Model token usage.
+ * @property {number} usageTracking.value.llmTokens.prompt - Total prompt tokens consumed.
+ * @property {number} usageTracking.value.llmTokens.completion - Total completion tokens consumed.
+ * @property {number} usageTracking.value.llmTokens.total - Total tokens consumed.
+ * @property {number} usageTracking.value.searchesPerformed - Number of web searches executed.
+ * @property {number} usageTracking.value.sourcesAnalyzed - Number of sources fetched and analyzed.
+ * @property {number} usageTracking.value.costIncurred - Estimated cost of the research in a predefined unit (e.g., USD cents).
  * @property {object} pdfGeneration - Manages the state of the asynchronous PDF report generation task.
  * @property {object} pdfGeneration.value - The state object for the PDF generation job.
  * @property {boolean} pdfGeneration.value.requested - A flag to initiate the PDF generation task.
@@ -105,9 +123,41 @@ export const deepResearchAgentState = {
   history: {
     value: null,
   },
-  // Research metadata
+
+  // Research metadata, including critical tenancy and user information.
+  // This is essential for security, data isolation, and proper role-based access control.
   metadata: {
-    value: null,
+    value: {
+      userId: null,
+      workspaceId: null,
+      researchJobId: null, // Unique ID for this specific research task
+      createdAt: null,
+    },
+  },
+
+  // Session-specific limits, populated from user/workspace plan at initiation.
+  // Enforcing these limits is crucial for controlling costs and adhering to subscription tiers.
+  sessionLimits: {
+    value: {
+      maxTokens: null,
+      maxSearches: null,
+      maxCost: null, // In smallest currency unit (e.g., cents)
+    },
+  },
+
+  // Usage tracking for resource consumption, limits, and billing propagation.
+  // This data must be propagated up to manager/admin dashboards and billing systems.
+  usageTracking: {
+    value: {
+      llmTokens: {
+        prompt: 0,
+        completion: 0,
+        total: 0,
+      },
+      searchesPerformed: 0,
+      sourcesAnalyzed: 0,
+      costIncurred: 0, // In smallest currency unit (e.g., cents)
+    },
   },
 
   // PDF generation state for offloading to a background worker (e.g., via Cloud Tasks).
