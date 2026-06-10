@@ -6,7 +6,7 @@ import { SwarmService } from '../swarm/swarm.service.js';
 import Conversation from '../conversations/conversation.model.js'; // OPTIMIZATION: For efficient lookups, ensure 'conversationId' and 'userId' are indexed in the Conversation model. A compound index { conversationId: 1, userId: 1 } is highly recommended.
 import crypto from 'crypto';
 import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
-import { userMemoryService } from '../conversations/userMemory.service.js';
+import { userMemoryService } from '../conversations/userMemory.service';
 import { captureException } from '../../../shared/sentry.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -290,6 +290,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       let conversationContext = '';
       if (conversationId && conversationId !== 'new-chat') {
         try {
+          // OPTIMIZATION: Use .lean() for read-only queries to return plain JavaScript objects, improving performance.
+          // This query only fetches data for context and does not modify the Mongoose document.
           const conversation = await Conversation.findOne(
             { conversationId, userId },
             { messages: { $slice: -6 } } // Last 3 exchanges (user+assistant each)
@@ -415,6 +417,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       if (userId) {
         let conversation;
         if (finalConversationId && finalConversationId !== 'new-chat') {
+          // This findOne is for updating an existing document, so .lean() should NOT be used here.
+          // Ensure a compound index { conversationId: 1, userId: 1 } exists on the Conversation model for efficient lookups.
           conversation = await Conversation.findOne({ conversationId: finalConversationId, userId });
         }
         
