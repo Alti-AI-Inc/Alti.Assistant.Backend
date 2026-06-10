@@ -10,7 +10,51 @@ import Conversation from '../conversations/conversation.model.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Upload file to knowledge base
+ * @openapi
+ * /knowledgebase/upload:
+ *   post:
+ *     summary: Upload files to the knowledge base
+ *     description: Uploads one or multiple files, processes them for the RAG system, and updates the user's storage usage.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               knowledgebotId:
+ *                 type: string
+ *                 description: Optional ID of the knowledge bot to associate the files with
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Files uploaded and processed successfully
+ *       207:
+ *         description: Multi-status, some files succeeded and some failed
+ *       400:
+ *         description: No files provided or bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Uploads files to the knowledge base, processes them, and tracks storage usage.
+ * Supports multi-tenant context via `req.currentTenantId`.
+ * 
+ * @function uploadFile
+ * @param {import('express').Request} req - Express request object containing files, body, user, and tenant context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const uploadFile = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -100,6 +144,45 @@ const uploadFile = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /knowledgebase/{knowledgebaseId}:
+ *   delete:
+ *     summary: Delete a knowledge base
+ *     description: Deletes a specific knowledge base belonging to the authenticated user.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: knowledgebaseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the knowledge base to delete
+ *     responses:
+ *       200:
+ *         description: Knowledge base deleted successfully
+ *       400:
+ *         description: Knowledge base ID is required
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Knowledge base not found or could not be deleted
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Deletes a specific knowledge base.
+ * Requires user authentication.
+ * 
+ * @function deleteKnowledgeBase
+ * @param {import('express').Request} req - Express request object containing params and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 const deleteKnowledgeBase = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   if (isGuest) {
@@ -155,7 +238,37 @@ const deleteKnowledgeBase = catchAsync(async (req, res) => {
 });
 
 /**
- * Get user's uploaded files
+ * @openapi
+ * /knowledgebase/files:
+ *   get:
+ *     summary: Get user's uploaded files
+ *     description: Retrieves a list of files uploaded by the authenticated user, optionally filtered by knowledgebotId.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: knowledgebotId
+ *         schema:
+ *           type: string
+ *         description: Optional ID of the knowledge bot to filter files
+ *     responses:
+ *       200:
+ *         description: Files retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Retrieves files uploaded by the authenticated user.
+ * 
+ * @function getUserFiles
+ * @param {import('express').Request} req - Express request object containing query parameters and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const getUserFiles = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -212,7 +325,48 @@ const getUserFiles = catchAsync(async (req, res) => {
 });
 
 /**
- * Create a new knowledge base
+ * @openapi
+ * /knowledgebase:
+ *   post:
+ *     summary: Create a new knowledge base
+ *     description: Creates a new knowledge base container for the authenticated user.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the knowledge base
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the knowledge base
+ *     responses:
+ *       201:
+ *         description: Knowledge base created successfully
+ *       400:
+ *         description: Knowledge base name is required
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Creates a new knowledge base.
+ * 
+ * @function createKnowledgeBase
+ * @param {import('express').Request} req - Express request object containing body and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const createKnowledgeBase = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -272,7 +426,31 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
 });
 
 /**
- * Get user's knowledge bases
+ * @openapi
+ * /knowledgebase:
+ *   get:
+ *     summary: Get user's knowledge bases
+ *     description: Retrieves all knowledge bases belonging to the authenticated user.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Knowledge bases retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Retrieves all knowledge bases belonging to the authenticated user.
+ * 
+ * @function getUserKnowledgeBases
+ * @param {import('express').Request} req - Express request object containing user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const getUserKnowledgeBases = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -324,6 +502,29 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /knowledgebase/invoke-rag:
+ *   post:
+ *     summary: Invoke the RAG system
+ *     description: Directly triggers or tests the RAG system.
+ *     tags:
+ *       - Knowledge Base
+ *     responses:
+ *       200:
+ *         description: RAG system invoked successfully
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Invokes the RAG system directly.
+ * 
+ * @function invokeRagSystem
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 const invokeRagSystem = async (req, res) => {
   const response = await knowledgebaseService.invokeRagSystem();
   console.log('RAG Response:', response);
@@ -336,7 +537,55 @@ const invokeRagSystem = async (req, res) => {
 };
 
 /**
- * Chat with knowledge base
+ * @openapi
+ * /knowledgebase/chat:
+ *   post:
+ *     summary: Chat with a knowledge base
+ *     description: Sends a message to a specific knowledge base and retrieves a RAG-generated answer, managing conversation history.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *               - knowledgebaseId
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's message/query
+ *               knowledgebaseId:
+ *                 type: string
+ *                 description: The ID of the knowledge base to query
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional ID of an existing conversation to continue
+ *     responses:
+ *       200:
+ *         description: Chat response generated successfully
+ *       400:
+ *         description: Message or Knowledge base ID is required
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Knowledge base or Conversation not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Handles chat interactions with a specific knowledge base using RAG.
+ * Manages conversation creation, message history, and updates.
+ * 
+ * @function chatWithKnowledgeBase
+ * @param {import('express').Request} req - Express request object containing body and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const chatWithKnowledgeBase = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -479,7 +728,42 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
 });
 
 /**
- * Get knowledge base conversations
+ * @openapi
+ * /knowledgebase/{knowledgebaseId}/conversations:
+ *   get:
+ *     summary: Get conversations for a knowledge base
+ *     description: Retrieves active conversations associated with a specific knowledge base for the authenticated user.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: knowledgebaseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the knowledge base
+ *     responses:
+ *       200:
+ *         description: Conversations retrieved successfully
+ *       400:
+ *         description: Knowledge base ID is required
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Knowledge base not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Retrieves active conversations for a specific knowledge base.
+ * 
+ * @function getKnowledgeBaseConversations
+ * @param {import('express').Request} req - Express request object containing params and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -566,6 +850,45 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /knowledgebase/files/{fileId}:
+ *   delete:
+ *     summary: Delete an uploaded file
+ *     description: Deletes a specific file from the knowledge base and decrements the user's storage usage.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the file to delete
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       400:
+ *         description: File ID is required
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: File not found or could not be deleted
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Deletes an uploaded file and decrements the user's storage usage.
+ * Supports multi-tenant context via `req.currentTenantId`.
+ * 
+ * @function deleteFile
+ * @param {import('express').Request} req - Express request object containing params, user, and tenant context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 const deleteFile = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   if (isGuest) {
@@ -631,7 +954,42 @@ const deleteFile = catchAsync(async (req, res) => {
 });
 
 /**
- * Get conversation messages
+ * @openapi
+ * /knowledgebase/conversations/{conversationId}:
+ *   get:
+ *     summary: Get conversation messages
+ *     description: Retrieves all messages and metadata for a specific conversation.
+ *     tags:
+ *       - Knowledge Base
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the conversation
+ *     responses:
+ *       200:
+ *         description: Conversation messages retrieved successfully
+ *       400:
+ *         description: Conversation ID is required
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Conversation not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * Retrieves messages and metadata for a specific conversation.
+ * 
+ * @function getConversationMessages
+ * @param {import('express').Request} req - Express request object containing params and user context
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
 const getConversationMessages = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -709,6 +1067,20 @@ const getConversationMessages = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Controller object containing all knowledge base route handlers.
+ * @type {Object}
+ * @property {Function} uploadFile - Upload files to knowledge base
+ * @property {Function} getUserFiles - Get user's uploaded files
+ * @property {Function} deleteFile - Delete an uploaded file
+ * @property {Function} deleteKnowledgeBase - Delete a knowledge base
+ * @property {Function} createKnowledgeBase - Create a new knowledge base
+ * @property {Function} getUserKnowledgeBases - Get user's knowledge bases
+ * @property {Function} invokeRagSystem - Invoke the RAG system directly
+ * @property {Function} chatWithKnowledgeBase - Chat with a knowledge base
+ * @property {Function} getKnowledgeBaseConversations - Get conversations for a knowledge base
+ * @property {Function} getConversationMessages - Get messages for a conversation
+ */
 export const knowledgebaseController = {
   uploadFile,
   getUserFiles,
