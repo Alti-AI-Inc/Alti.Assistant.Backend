@@ -311,6 +311,7 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Check for existing subscription to prevent duplicates
+      // OPTIMIZATION: Added .lean() as the subscription document is only checked for existence.
       // The `withTenantFilter` helper is designed for user-initiated requests with `req.user` context.
       // For webhooks, the `tenantId` is already explicitly provided in the Stripe metadata,
       // so `withTenantFilter` is not applicable and could cause issues if `req` lacks the expected tenant context.
