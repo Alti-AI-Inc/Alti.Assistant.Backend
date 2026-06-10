@@ -64,6 +64,7 @@ const handleReportConversation = async (
         // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
         // on 'conversationId' and 'userId' for faster lookups. A compound index like
         // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
+        // (Assuming conversationHelpers.getConversationById can accept a lean option or is updated internally)
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -343,6 +344,7 @@ const processConversationalRequest = async (
     // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
     // on 'conversationId' and 'userId' for faster lookups. A compound index like
     // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
+    // (Assuming conversationHelpers.getConversationById can accept a lean option or is updated internally)
     const conversationData = await conversationHelpers.getConversationById(
       conversation.conversationId,
       userId,
@@ -427,7 +429,7 @@ const processConversationalRequest = async (
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
-    // Bug Fix: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
+    // Optimization: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
     // This prevents blocking the Node.js event loop for I/O operations.
     await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
       if (err.code !== 'EEXIST') {
@@ -507,7 +509,7 @@ const generateReport = async (params, userId, isGuest = false) => {
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
-    // Bug Fix: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
+    // Optimization: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
     // This prevents blocking the Node.js event loop for I/O operations.
     await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
       if (err.code !== 'EEXIST') {
