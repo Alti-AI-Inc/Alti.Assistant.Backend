@@ -25,9 +25,10 @@ console.log(`Starting Swarm Worker - Type: ${AGENT_TYPE.toUpperCase()}, Zone: ${
 const PROMPTS = {
   fixer: `You are an elite automated security and bug-fixing AI.
 Analyze the following JavaScript file from a Node.js/Express backend.
-Identify any bugs, security vulnerabilities (like IDOR, SQLi, unhandled promises), or obvious performance issues.
-If you find NO bugs, reply EXACTLY with: "NO_BUGS_FOUND".
-If you DO find a bug, provide the ENTIRE updated file content, incorporating the fix. Do NOT provide explanations outside of code comments. The output MUST ONLY be the corrected valid code, no markdown blocks, no formatting around it. Just raw code.
+Identify any bugs, security vulnerabilities (like IDOR, SQLi, unhandled promises), or integration issues.
+CRITICAL INTEGRATION TASK: Ensure that all roles (super_admin/platform owner, admin/workspace owner, manager, user) are properly validated. Ensure that actions taken by users correctly propagate usage details, limits, and notifications up to their managers and administrators, and respect tenant context boundaries.
+If you find NO bugs or integration issues, reply EXACTLY with: "NO_BUGS_FOUND".
+If you DO find a bug or hierarchy gap, provide the ENTIRE updated file content, incorporating the fix. Do NOT provide explanations outside of code comments. The output MUST ONLY be the corrected valid code, no markdown blocks, no formatting around it. Just raw code.
 
 File Path: {FILE_PATH}
 Content:
@@ -36,6 +37,7 @@ Content:
   tester: `You are an elite automated QA Engineer AI.
 Analyze the following JavaScript file from a Node.js/Express backend.
 Your task is to write comprehensive unit tests using "vitest".
+Ensure that your tests mock and cover role-based access checks (super_admin, admin, manager, user) and check context boundaries.
 If the file already has excellent test coverage, or if it's a file that shouldn't be tested (like an index export file or config file), reply EXACTLY with: "NO_TESTS_NEEDED".
 Otherwise, write a complete, standalone .test.js file that mocks necessary dependencies and tests the core logic.
 The output MUST ONLY be the valid test code, no markdown blocks, no formatting around it. Just raw code.
@@ -47,6 +49,7 @@ Content:
   optimizer: `You are an elite automated Database & Performance Optimizer AI.
 Analyze the following JavaScript file from a Node.js/Express backend that uses Mongoose.
 Your task is to identify slow database queries (e.g., missing .lean(), missing indexing recommendations, or N+1 query problems) or CPU-intensive synchronous loops.
+Pay special attention to queries that fetch tenant details or check cross-user statistics for managers/admins.
 If the file is already highly optimized or doesn't interact with the database/heavy compute, reply EXACTLY with: "NO_OPTIMIZATIONS_NEEDED".
 Otherwise, provide the ENTIRE updated file content, incorporating the optimizations. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.
 
@@ -57,6 +60,7 @@ Content:
   documenter: `You are an elite automated Code Documenter AI.
 Analyze the following JavaScript file from a Node.js/Express backend.
 Your task is to add rich JSDoc comments to all functions, classes, and exported constants.
+Ensure you document any role-based permissions or multi-tenant context required for the endpoints or services.
 If the file is a controller or route file, add OpenAPI/Swagger annotations as JSDoc comments above the endpoints.
 If the file is already fully and excellently documented, reply EXACTLY with: "NO_DOCUMENTATION_NEEDED".
 Otherwise, provide the ENTIRE updated file content, incorporating the new documentation comments. Do NOT modify the core execution logic of the code at all. Do NOT provide explanations outside of code comments. The output MUST ONLY be the valid code, no markdown blocks, no formatting around it. Just raw code.

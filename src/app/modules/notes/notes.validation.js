@@ -18,9 +18,48 @@ const { z } = require('zod');
  */
 
 /**
+ * @openapi
+ * components:
+ *   schemas:
+ *     TaskInput:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 255
+ *           description: The title of the task.
+ *         description:
+ *           type: string
+ *           maxLength: 1000
+ *           description: A description of the task.
+ *         status:
+ *           type: string
+ *           enum: [Pending, In Progress, Completed]
+ *           description: The current status of the task.
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date and time when the task was created.
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: The date and time when the task was last updated.
+ *         userId:
+ *           type: string
+ *           description: The ID of the user associated with the task (Multi-tenant owner identifier).
+ */
+
+/**
  * Zod validation schema for task objects.
  * This schema defines the structure and validation rules for task data,
  * ensuring data integrity for task creation and updates.
+ *
+ * Multi-tenant / Role Context:
+ * - `userId` is validated as a string to enforce ownership boundaries.
+ * - Operations using this schema should ensure the requesting user's ID matches the `userId`
+ *   or that the user has administrative privileges to modify tasks across tenants.
  *
  * @type {import('zod').ZodObject<
  *   {
@@ -94,4 +133,8 @@ const taskValidationSchema = z.object({
   userId: z.string().optional(),
 });
 
+/**
+ * Exported Zod validation schema for validating task payloads.
+ * @type {import('zod').ZodObject}
+ */
 module.exports = taskValidationSchema;

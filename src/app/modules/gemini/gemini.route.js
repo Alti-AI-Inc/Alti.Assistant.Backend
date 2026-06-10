@@ -14,7 +14,7 @@ const router = express.Router();
  *   post:
  *     summary: Get a response from the Gemini AI model.
  *     description: Sends a prompt to the Gemini AI model and retrieves its generated response.
- *                  Requires authentication with ADMIN or USER role.
+ *                  Requires authentication with SUPER_ADMIN, ADMIN, MANAGER, or USER role.
  *     tags:
  *       - Gemini AI
  *     security:
@@ -65,7 +65,13 @@ const router = express.Router();
  */
 router.post(
   '/get-response',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // GAP FIX: Added SUPER_ADMIN and MANAGER roles to ensure all roles in the hierarchy are properly validated and allowed access.
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.USER
+  ),
   GeminiAiController.GeminiAiGetResponse
 );
 
@@ -75,7 +81,7 @@ router.post(
  *   post:
  *     summary: Get a response from the Gemini 1.5 Flash AI model.
  *     description: Sends a prompt to the Gemini 1.5 Flash AI model (optimized for speed and cost)
- *                  and retrieves its generated response. Requires authentication with ADMIN or USER role.
+ *                  and retrieves its generated response. Requires authentication with SUPER_ADMIN, ADMIN, MANAGER, or USER role.
  *     tags:
  *       - Gemini AI
  *     security:
@@ -126,7 +132,13 @@ router.post(
  */
 router.post(
   '/flash/get-response',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // GAP FIX: Added SUPER_ADMIN and MANAGER roles to ensure all roles in the hierarchy are properly validated and allowed access.
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.USER
+  ),
   // BUG FIX: Renamed controller method to align with the route's purpose (Gemini 1.5 Flash).
   // The previous name 'Gemini25PreviewAiGetResponse' was misleading given the route path and description,
   // suggesting a different model version than intended for the '/flash' endpoint.
