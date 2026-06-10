@@ -16,7 +16,7 @@ const router = express.Router();
 
 /**
  * @typedef {object} SummaryRequestBody
- * @property {string} [text] - The text content to summarize. Required if no file is provided.
+ * @property {string} text - The text content to summarize. Required if no file is provided.
  * @property {string} [language='en'] - Optional language for the summary (e.g., 'en', 'es').
  * @property {'short'|'medium'|'long'} [length='medium'] - Desired length of the summary.
  * @property {'paragraph'|'bullet_points'} [format='paragraph'] - Desired format of the summary.
@@ -28,7 +28,7 @@ const router = express.Router();
 /**
  * @typedef {object} SummaryFileRequestBody
  * @property {string} [text] - Optional text content to summarize instead of a file.
- * @property {File} [file] - The file to summarize (PDF, TXT, DOCX, CSV). Required if no text is provided.
+ * @property {File} file - The file to summarize (PDF, TXT, DOCX, CSV). Required if no text is provided.
  * @property {string} [language='en'] - Optional language for the summary (e.g., 'en', 'es').
  * @property {'short'|'medium'|'long'} [length='medium'] - Desired length of the summary.
  * @property {'paragraph'|'bullet_points'} [format='paragraph'] - Desired format of the summary.
@@ -65,6 +65,7 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
+    // Set a reasonable file size limit to prevent abuse and server overload.
     fileSize: 10 * 1024 * 1024, // 10 MB
   },
   fileFilter: (req, file, cb) => {
@@ -79,7 +80,14 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Unsupported file type'), false);
+      // Reject unsupported file types with a user-friendly error message.
+      // This error should be caught by a global error handler to return a proper 400 Bad Request response.
+      const error = new Error(
+        'Invalid file type. Please upload a PDF, TXT, DOCX, or CSV file.'
+      );
+      // Attaching a status code helps downstream error handlers provide the correct HTTP response.
+      error.status = 400;
+      cb(error, false);
     }
   },
 });
@@ -130,7 +138,7 @@ const upload = multer({
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: false }
- *                 message: { type: string, example: "Unsupported file type" }
+ *                 message: { type: string, example: "Invalid file type. Please upload a PDF, TXT, DOCX, or CSV file." }
  *                 errorMessages: { type: array, items: { type: object } }
  *       401:
  *         description: Unauthorized (if authentication token is invalid or expired for an authenticated user).
@@ -150,6 +158,15 @@ const upload = multer({
  *               properties:
  *                 success: { type: boolean, example: false }
  *                 message: { type: string, example: "Daily request limit exceeded" }
+ *       429:
+ *         description: Too Many Requests (if rate limit is exceeded).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "Too many requests, please try again later." }
  *       500:
  *         description: Internal server error.
  *         content:
@@ -162,14 +179,26 @@ const upload = multer({
  */
 router.post(
   '/summarize',
+  // OPTIMIZATION: The middleware chain is ordered to fail fast.
+  // Cheaper checks (auth, rate limits, daily limits) run before expensive operations like file processing.
+
+  // 1. Authenticate user if a token is provided. Allows for both guest and registered user access.
   optionalAuth(),
+  // 2. Set tenant context based on user or default for anonymous. Crucial for data isolation.
   extractTenantContext,
+  // 3. Apply rate limiting early to prevent abuse and ensure service stability for all users.
+  createRateLimiter(30, 15), // 30 summary requests per 15 minutes
+  // 4. Perform cheap, pre-computation checks first to avoid unnecessary processing.
   checkDailyRequestLimit,
-  checkStorageLimit,
+  // 5. Handle the file upload. This is an I/O and memory-intensive operation.
   upload.single('file'),
+  // 6. Perform checks that depend on the uploaded file's metadata (e.g., size).
+  checkStorageLimit, // Must be after `upload` to access req.file.size.
+  // 7. Check if a requested feature (like RAG) is enabled for the user's tenant.
   checkRAGFeature,
-  // createRateLimiter(30, 15), // 30 summary requests per 15 minutes (applies to all users)
+  // 8. Validate the rest of the request body against the defined schema.
   validateRequest(SummaryValidation.summaryQuerySchema),
+  // 9. If all checks pass, proceed to the controller for business logic.
   summaryController.summarizeContent
 );
 
@@ -220,8 +249,10 @@ router.post(
  */
 router.get(
   '/stats',
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
-  extractTenantContext, // Extract tenant context after auth
+  // This endpoint provides user-specific data, so authentication is required.
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // Extract tenant context after auth to ensure stats are scoped to the correct user/tenant.
+  extractTenantContext,
   summaryController.getSummaryStats
 );
 
