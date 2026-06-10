@@ -9,6 +9,9 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import express from 'express';
 import http from 'http';
+import { createClient } from 'redis';
+import RateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
@@ -258,6 +261,37 @@ export const checkReportExistsInGCS = async (gcsPath) => {
 
 const app = express();
 
+// --- Rate Limiting & DDOS Protection Middleware ---
+
+// Initialize Redis client for rate limiting.
+// Connection details are sourced from the central configuration.
+const redisClient = createClient({
+  url: config.redis.url,
+});
+
+redisClient.on('error', (err) =>
+  logger.error('Redis Client Error for Rate Limiting', err)
+);
+
+// Connect to Redis. The rate-limit-redis library will queue commands until the connection is established.
+redisClient.connect().catch(logger.error);
+
+// Create a Redis store for express-rate-limit.
+const redisStore = new RedisStore({
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+// Define a lenient rate limiter for health and readiness probes.
+// This prevents simple abuse while ensuring orchestrators (like Cloud Run) can always check the service status.
+const healthCheckLimiter = RateLimit({
+  store: redisStore,
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per minute
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: 'Too many health check requests from this IP, please try again after a minute.',
+});
+
 // A flag to indicate the server is in the process of shutting down
 let isShuttingDown = false;
 
@@ -267,8 +301,9 @@ let isShuttingDown = false;
  * Liveness probe endpoint (/healthz).
  * Cloud Run uses this to check if the container's main process is still running.
  * As long as the server is up, it should return 200 OK.
+ * Protected by a lenient rate limiter to prevent abuse.
  */
-app.get('/healthz', (req, res) => {
+app.get('/healthz', healthCheckLimiter, (req, res) => {
   res.status(200).send('OK');
 });
 
@@ -277,8 +312,9 @@ app.get('/healthz', (req, res) => {
  * Cloud Run uses this to determine if the container is ready to accept new traffic.
  * When shutting down, this will return a 503 status, signaling the load balancer
  * to stop sending requests to this instance.
+ * Protected by a lenient rate limiter to prevent abuse.
  */
-app.get('/readyz', (req, res) => {
+app.get('/readyz', healthCheckLimiter, (req, res) => {
   if (isShuttingDown) {
     res.status(503).send('Service Unavailable: Server is shutting down.');
   } else {
@@ -334,6 +370,7 @@ const gracefulShutdown = (signal) => {
     // The @google-cloud/storage client manages its own connections and does not
     // require an explicit close() call for this purpose.
     // Example:
+    // redisClient.quit();
     // database.close().then(() => {
     //   logger.info('Database connection closed.');
     //   process.exit(0);
