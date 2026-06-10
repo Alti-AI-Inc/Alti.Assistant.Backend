@@ -108,7 +108,7 @@ const pruneAndRerank = async (query, userId) => {
       // Compute semantic Jaccard similarity score
       const jaccardScore = computeJaccardSimilarity(queryTokens, targetTokens);
 
-      // Relationship confidence weight
+      // Relationship confidence weight, using a fallback if not provided by the graph service
       const edgeConfidence = edge.confidence ?? 0.5;
 
       // Compound relevance score: 70% semantic relevance + 30% link traversal confidence
@@ -121,7 +121,8 @@ const pruneAndRerank = async (query, userId) => {
         scoredLinks.push({
           targetMeta,
           edge,
-          relevanceScore
+          relevanceScore,
+          edgeConfidence // Store the resolved confidence for consistent output
         });
       }
     }
@@ -138,8 +139,8 @@ const pruneAndRerank = async (query, userId) => {
 
     // Build the enriched, reranked Graph RAG context block
     const relationshipContextParts = topScoredLinks.map(link => {
-      const { targetMeta, edge, relevanceScore } = link;
-      return `- Related File: "${targetMeta.fileName}" (${edge.relationType} link, coherence: ${relevanceScore.toFixed(3)}, confidence: ${edge.confidence}). Topics: ${targetMeta.topics.join(', ')}. Context Summary: ${targetMeta.summary}`;
+      const { targetMeta, edge, relevanceScore, edgeConfidence } = link; // Use edgeConfidence for output
+      return `- Related File: "${targetMeta.fileName}" (${edge.relationType} link, coherence: ${relevanceScore.toFixed(3)}, confidence: ${edgeConfidence.toFixed(3)}). Topics: ${targetMeta.topics.join(', ')}. Context Summary: ${targetMeta.summary}`;
     });
 
     logger.info(`ContextPruner: injected ${relationshipContextParts.length} coherent & reranked document context links, pruned ${scoredLinks.length - relationshipContextParts.length} connections.`);

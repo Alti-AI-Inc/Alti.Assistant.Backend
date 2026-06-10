@@ -61,6 +61,12 @@ const handleDeepResearchConversation = async (
         // SECURITY FIX: Always pass the userId for ownership verification.
         // The conversationHelpers.getConversationById function is expected to handle
         // filtering by userId and potentially by userType (guest/authenticated).
+        // PERFORMANCE OPTIMIZATION: If 'conversationHelpers.getConversationById' returns a Mongoose document
+        // and no modifications are saved back to the database from this function,
+        // consider adding '.lean()' to the underlying Mongoose query in 'getConversationById'
+        // to return a plain JavaScript object for better performance.
+        // Example (if conversationHelpers supports options):
+        // conversation = await conversationHelpers.getConversationById(conversationId, userId, { lean: true }, req);
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId, // Pass the actual userId (guest ID if isGuest is true)
@@ -333,6 +339,11 @@ const getDeepResearchHistory = async (
   try {
     // Assuming conversationHelpers.getConversationById handles ownership verification
     // for both authenticated and guest users based on userId and conversationId.
+    // PERFORMANCE OPTIMIZATION: Since the conversation object is only read and not modified/saved,
+    // consider adding '.lean()' to the underlying Mongoose query in 'getConversationById'
+    // to return a plain JavaScript object for better performance.
+    // Example (if conversationHelpers supports options):
+    // const conversation = await conversationHelpers.getConversationById(conversationId, userId, { lean: true }, req);
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -420,6 +431,20 @@ const getDeepResearchStats = async (userId, req = null) => {
     // PERFORMANCE/BUG FIX: Changed limit from 1000 to 0 (or a very large number)
     // assuming conversationHelpers.getUserConversations supports fetching all
     // when limit is 0 or not provided, for accurate statistics.
+    // PERFORMANCE OPTIMIZATION:
+    // 1. Indexing: For efficient querying by userId and category, ensure an index exists on the 'Conversation' collection:
+    //    `db.conversations.createIndex({ userId: 1, 'metadata.category': 1 })`
+    // 2. Lean Queries: Since the fetched conversations are only used for aggregation (counting),
+    //    the underlying Mongoose query in 'conversationHelpers.getUserConversations' should use '.lean()'
+    //    to return plain JavaScript objects, reducing overhead.
+    // 3. Projection: To minimize data transfer and memory usage, the query should ideally project only
+    //    the necessary fields, e.g., `_id` and `messageCount`.
+    //    Example (if conversationHelpers supports options):
+    //    const deepResearchConversationsResult = await conversationHelpers.getUserConversations(
+    //      userId,
+    //      { limit: 0, category: 'deep_research', lean: true, select: '_id messageCount' },
+    //      req
+    //    );
     const deepResearchConversationsResult =
       await conversationHelpers.getUserConversations(
         userId,
