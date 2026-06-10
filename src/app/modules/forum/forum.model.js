@@ -6,9 +6,9 @@ const forumSchema = mongoose.Schema(
   {
     title: {
       type: String,
-      // required: [true, "Please provide a blog title"],
-      minLength: [3, 'title must be at list 3 characters'],
-      maxLength: [100, 'Name is too learge'],
+      required: [true, 'Please provide a forum title'], // Uncommented and message adjusted for consistency
+      minLength: [3, 'Title must be at least 3 characters'], // Typo fixed: "at list" -> "at least"
+      maxLength: [100, 'Title is too large'], // Typo fixed: "learge" -> "large", and message adjusted for consistency
     },
     img: {
       type: String,
@@ -35,41 +35,26 @@ const forumSchema = mongoose.Schema(
     ],
     authorEmail: {
       type: String,
-      lowercase: true,
+      lowercase: true, // Removed redundant 'lowercase: true'
       validate: [validator.isEmail, 'Please provide a valid email'],
       trim: true,
-      lowercase: true,
     },
-    description: [
-      {
-        title: String,
-        content1: String,
-        content2: String,
-      },
-      {
-        title: String,
-        content1: String,
-        content2: String,
-      },
-      {
-        title: String,
-        content1: String,
-        content2: String,
-      },
+    description: [ // Changed to a flexible array of sub-documents, allowing 0 to N description parts
       {
         title: String,
         content1: String,
         content2: String,
       },
     ],
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // Removed manual createdAt and updatedAt fields as 'timestamps: true' in schema options handles them automatically
+    // createdAt: {
+    //   type: Date,
+    //   default: Date.now,
+    // },
+    // updatedAt: {
+    //   type: Date,
+    //   default: Date.now,
+    // },
 
     // Multi-tenant support
     tenantId: {
@@ -80,7 +65,7 @@ const forumSchema = mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: true, // Mongoose will automatically add and manage 'createdAt' and 'updatedAt' fields
   }
 );
 
