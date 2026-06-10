@@ -47,12 +47,14 @@ const model = client.getGenerativeModel({
  * This internal helper function centralizes logic for both primary and preview services,
  * ensuring consistent behavior and avoiding code duplication.
  *
+ * @private
+ * @security User-Scoped Isolation: This operation is strictly isolated to the provided `userId`.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
- * @param {string} userId - The ID of the user initiating the conversation.
+ * @param {string} userId - The ID of the user initiating the conversation (used for multi-tenant/user data isolation).
  * @param {import('@google/generative-ai').GenerativeModel} modelToUse - The Gemini model instance to use for generation.
  * @param {boolean} shouldPublishToRedis - Flag to determine if the response should be published to Redis.
- * @returns {Promise<object>} An object containing the original prompt, sessionId, and the AI's reply.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const _handleGeminiInteraction = async (
@@ -172,10 +174,13 @@ const _handleGeminiInteraction = async (
  * Handles interaction with the Gemini AI model, manages chat history, tracks prompt usage,
  * and persists conversation data for a given session and user. This is the primary service.
  *
+ * @async
+ * @function geminiService
+ * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
- * @returns {Promise<object>} An object containing the original prompt, sessionId, and the AI's reply.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const geminiService = async (sessionId, prompt, userId) => {
@@ -189,10 +194,13 @@ const geminiService = async (sessionId, prompt, userId) => {
  * This service is functionally very similar to `geminiService` but does not publish to Redis.
  * It might be intended for a preview or alternative model version.
  *
+ * @async
+ * @function gemini25PreviewService
+ * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation.
- * @returns {Promise<object>} An object containing the original prompt, sessionId, and the AI's reply.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const gemini25PreviewService = async (sessionId, prompt, userId) => {
@@ -211,10 +219,11 @@ export const GeminiAiService = {
    * The primary service function for interacting with the Gemini AI model.
    * @function
    * @memberof GeminiAiService
+   * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
    * @param {string} sessionId - The unique identifier for the current chat session.
    * @param {string} prompt - The user's input prompt.
    * @param {string} userId - The ID of the user.
-   * @returns {Promise<object>} An object containing the prompt, sessionId, and the AI's reply.
+   * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the prompt, sessionId, and the AI's reply.
    * @throws {ApiError}
    */
   geminiService,
@@ -222,10 +231,11 @@ export const GeminiAiService = {
    * A service function for interacting with a preview or alternative Gemini AI model instance.
    * @function
    * @memberof GeminiAiService
+   * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
    * @param {string} sessionId - The unique identifier for the current chat session.
    * @param {string} prompt - The user's input prompt.
    * @param {string} userId - The ID of the user.
-   * @returns {Promise<object>} An object containing the prompt, sessionId, and the AI's reply.
+   * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the prompt, sessionId, and the AI's reply.
    * @throws {ApiError}
    */
   gemini25PreviewService,

@@ -1,10 +1,6 @@
 // Tool sanitization utilities for Gemini compatibility
 
 /**
- * Sanitize Composio tools for Gemini API compatibility
- * Removes unsupported fields and formats the tool schema
- */
-/**
  * Sanitizes a Composio tool object to make it compatible with the Gemini API's tool calling specifications.
  * This involves recursively removing fields from the parameter schema that are not supported by Gemini,
  * and reformatting the overall tool structure.
@@ -16,10 +12,7 @@
  * @param {object} tool.parameters - The original tool parameters object (may contain additional fields).
  * @param {object} tool.input_parameters - Contains the schema for the tool's input parameters.
  * @param {object} tool.input_parameters.properties - The JSON schema properties defining the input parameters for the tool.
- * @returns {object} A new object formatted for the Gemini API, containing `name`, `description`, and `parameters`.
- * @returns {string} return.name - The slug of the original tool, used as the function name for Gemini.
- * @returns {string} return.description - The description of the original tool.
- * @returns {object} return.parameters - The sanitized parameter schema, including `type: 'object'` and `properties`.
+ * @returns {object|null} A new object formatted for the Gemini API, containing `name`, `description`, and `parameters`, or null if input is falsy.
  */
 export function sanitizeToolForGemini(tool) {
   if (!tool) return null;
@@ -80,9 +73,6 @@ export function sanitizeToolForGemini(tool) {
   return cleanedFunction;
 }
 
-/**
- * Build embedding text from tool document
- */
 /**
  * Constructs a concise text string from a tool document, suitable for use in embedding models.
  * This text summarizes key information about the tool, including its name, description, tags,
