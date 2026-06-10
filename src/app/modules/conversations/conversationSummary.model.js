@@ -48,6 +48,7 @@ function encryptText(text) {
     return iv.toString('hex') + ':' + encrypted.toString('hex');
   } catch (err) {
     // In a production environment, consider logging the error.
+    console.error('Encryption failed:', err);
     return text; // Fallback to original text if encryption fails
   }
 }
@@ -65,7 +66,7 @@ function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
   try {
     const textParts = text.split(':');
-    if (textParts.length !== 2) return text; // Not in expected encrypted format
+    if (textParts.length !== 2 || textParts[0].length !== 32) return text; // Not in expected encrypted format
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
@@ -74,6 +75,7 @@ function decryptText(text) {
     return decrypted.toString();
   } catch (err) {
     // In a production environment, consider logging the error.
+    console.error('Decryption failed:', err);
     return text; // Fallback to original text if decryption fails
   }
 }
@@ -97,6 +99,7 @@ function decryptText(text) {
  * @typedef {object} ConversationSummaryType
  * @property {string} conversationId - The unique identifier of the conversation.
  * @property {string} userId - The unique identifier of the user associated with the conversation.
+ * @property {string} workspaceId - The unique identifier of the workspace this summary belongs to.
  * @property {string} summary - The encrypted summary text of the conversation segment.
  * @property {string} context - The encrypted contextual information related to the summary.
  * @property {MessageRange} messageRange - Details about the range of messages covered by this summary.
@@ -134,6 +137,18 @@ const conversationSummarySchema = new Schema(
      * @index
      */
     userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    /**
+     * The unique identifier of the workspace this summary belongs to.
+     * This is crucial for aggregating metrics for manager dashboards and enforcing plan limits.
+     * @type {string}
+     * @required
+     * @index
+     */
+    workspaceId: {
       type: String,
       required: true,
       index: true,
@@ -186,6 +201,7 @@ const conversationSummarySchema = new Schema(
     },
     /**
      * The estimated number of tokens used by the language model to generate this summary.
+     * This is a key metric for usage tracking and billing.
      * @type {number}
      * @required
      */
@@ -252,6 +268,13 @@ conversationSummarySchema.index({ conversationId: 1, userId: 1 });
 conversationSummarySchema.index({ conversationId: 1, status: 1 });
 
 /**
+ * Compound index for efficient workspace-level metric queries, crucial for manager dashboards.
+ * @index
+ */
+conversationSummarySchema.index({ workspaceId: 1, createdAt: -1 });
+
+
+/**
  * Static method to find the most recent active conversation summary for a given conversation and user.
  *
  * @param {string} conversationId - The ID of the conversation.
@@ -290,6 +313,53 @@ conversationSummarySchema.statics.getAllForConversation = function (
 };
 
 /**
+ * Static method to calculate workspace usage metrics within a specified date range.
+ * This is essential for manager dashboards to display team usage and for checking against plan limits.
+ *
+ * @param {string} workspaceId - The ID of the workspace to calculate metrics for.
+ * @param {Date} [startDate] - The start date of the period (inclusive).
+ * @param {Date} [endDate] - The end date of the period (inclusive).
+ * @returns {Promise<[{totalSummaries: number, totalTokenCount: number}] | []>} A promise that resolves to an array containing an object with the aggregated metrics, or an empty array if no summaries are found.
+ */
+conversationSummarySchema.statics.getWorkspaceUsageMetrics = function (
+  workspaceId,
+  startDate,
+  endDate
+) {
+  const matchStage = {
+    workspaceId: workspaceId,
+  };
+
+  if (startDate || endDate) {
+    matchStage.createdAt = {};
+    if (startDate) {
+      matchStage.createdAt.$gte = startDate;
+    }
+    if (endDate) {
+      matchStage.createdAt.$lte = endDate;
+    }
+  }
+
+  return this.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: '$workspaceId',
+        totalSummaries: { $sum: 1 },
+        totalTokenCount: { $sum: '$tokenCount' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalSummaries: 1,
+        totalTokenCount: 1,
+      },
+    },
+  ]);
+};
+
+/**
  * @typedef {import('mongoose').Document & ConversationSummaryType} ConversationSummaryDocument
  */
 
@@ -297,6 +367,7 @@ conversationSummarySchema.statics.getAllForConversation = function (
  * @typedef {import('mongoose').Model<ConversationSummaryDocument, {}, {
  *   findActiveForConversation(conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument | null, ConversationSummaryDocument>;
  *   getAllForConversation(conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument[], ConversationSummaryDocument>;
+ *   getWorkspaceUsageMetrics(workspaceId: string, startDate?: Date, endDate?: Date): Promise<[{totalSummaries: number, totalTokenCount: number}] | []>;
  * }>} ConversationSummaryModel
  */
 
