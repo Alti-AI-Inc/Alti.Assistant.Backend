@@ -26,6 +26,13 @@ import mongoose from 'mongoose';
  * @property {number} [config.rateLimit.requests] - Number of requests allowed.
  * @property {number} [config.rateLimit.perSeconds] - The time window in seconds for the request limit.
  * @property {number} [config.timeoutMs] - Request timeout in milliseconds.
+ * @property {object} [platformConfigOverrides] - Platform Owner exclusive settings that override the standard 'config' and 'enabled' fields.
+ * @property {Map<string, string>} [platformConfigOverrides.headers] - Overriding headers.
+ * @property {object} [platformConfigOverrides.rateLimit] - Overriding rate limits.
+ * @property {number} [platformConfigOverrides.rateLimit.requests] - Overriding number of requests.
+ * @property {number} [platformConfigOverrides.rateLimit.perSeconds] - Overriding time window.
+ * @property {number} [platformConfigOverrides.timeoutMs] - Overriding request timeout.
+ * @property {boolean} [platformConfigOverrides.forceDisable] - If true, disables the endpoint regardless of the 'enabled' flag. A powerful tool for immediate suspension.
  * @property {mongoose.Schema.Types.ObjectId | null} tenantId - The ID of the tenant this endpoint belongs to. Null for global, platform-owned endpoints.
  * @property {Date} createdAt - Timestamp of when the document was created.
  * @property {Date} updatedAt - Timestamp of when the document was last updated.
@@ -58,6 +65,7 @@ const aiEndpointSchema = new mongoose.Schema({
   description: { type: String },
   /**
    * Indicates whether this AI endpoint is currently active and usable.
+   * Can be overridden by the Platform Owner via `platformConfigOverrides.forceDisable`.
    * @type {boolean}
    * @default false
    */
@@ -111,7 +119,7 @@ const aiEndpointSchema = new mongoose.Schema({
   deletePath: { type: String, required: true },
   /**
    * A flexible object for storing additional, endpoint-specific configuration.
-   * Useful for Platform Owners to override or set special parameters.
+   * Can be superseded by `platformConfigOverrides`.
    * @type {object}
    */
   config: {
@@ -124,6 +132,33 @@ const aiEndpointSchema = new mongoose.Schema({
       timeoutMs: { type: Number },
     },
     default: {},
+  },
+  /**
+   * Platform Owner exclusive configuration overrides.
+   * These settings, when present, take precedence over the standard 'config' object and 'enabled' field.
+   * This allows a Super Admin to temporarily adjust limits, add debug headers, or enforce
+   * platform-wide policies on any endpoint without modifying the tenant's original configuration.
+   * This field is not selected by default in queries to prevent leaking sensitive override
+   * information to non-admin users.
+   * @type {object}
+   */
+  platformConfigOverrides: {
+    type: {
+      headers: { type: Map, of: String },
+      rateLimit: {
+        requests: { type: Number },
+        perSeconds: { type: Number },
+      },
+      timeoutMs: { type: Number },
+      /**
+       * If true, this endpoint is disabled regardless of the `enabled` field's value.
+       * This provides a powerful and immediate way for a Platform Owner to suspend a
+       * specific problematic endpoint for any tenant.
+       */
+      forceDisable: { type: Boolean },
+    },
+    default: {},
+    select: false, // Hide from default query results for security. Admins must explicitly request it.
   },
   /**
    * Multi-tenant support: The ID of the tenant this AI endpoint belongs to.
