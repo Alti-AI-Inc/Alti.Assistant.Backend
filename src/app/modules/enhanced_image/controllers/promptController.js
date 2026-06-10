@@ -137,16 +137,31 @@ export const createPromptController = (sessionManager, promptService) => {
           });
         }
 
-        let session = sessionManager.getSession(sessionId);
+        let currentSessionId = sessionId; // Use a mutable variable for the session ID
+        let session = sessionManager.getSession(currentSessionId);
+
         if (!session) {
-          // Create new session if not found
-          sessionManager.createSession();
-          session = sessionManager.getSession(sessionId);
+          // BUG FIX: The original code ignored the new session ID returned by createSession().
+          // As per OpenAPI description: "A new session will be created if this ID is not found."
+          // The SessionManager.createSession() generates a new unique ID.
+          // This means if the provided sessionId is not found, a *new* session is created,
+          // and its ID must be used for subsequent operations within this request.
+          //
+          // NOTE ON DESIGN: The client is NOT informed of this new sessionId in the response,
+          // which means subsequent requests from the client using the original (invalid)
+          // sessionId will lead to new sessions being created repeatedly.
+          // A more robust design would either:
+          // 1. Have createSession accept an optional ID to try and create with it.
+          // 2. Return the new sessionId in the response if one was created, so the client can update.
+          // This fix addresses the immediate code bug of ignoring the new session ID.
+          const newSessionId = sessionManager.createSession();
+          session = sessionManager.getSession(newSessionId); // Retrieve the newly created session
+          currentSessionId = newSessionId; // Update the ID to be used for this request
         }
 
-        // Add prompt to conversation history
-        sessionManager.addToHistory(sessionId, prompt);
-        const history = sessionManager.getHistory(sessionId);
+        // Add prompt to conversation history using the correct session ID
+        sessionManager.addToHistory(currentSessionId, prompt);
+        const history = sessionManager.getHistory(currentSessionId);
 
         // Evaluate prompt quality
         const evaluation = await promptService.evaluatePrompt(prompt, history);
@@ -159,10 +174,14 @@ export const createPromptController = (sessionManager, promptService) => {
             missingElements: evaluation.missingElements,
             suggestions: evaluation.suggestions,
           },
-          conversationHistory: sessionManager.getConversationHistory(sessionId),
+          conversationHistory: sessionManager.getConversationHistory(currentSessionId),
         });
       } catch (error) {
         console.error('Error evaluating prompt:', error);
+        // SECURITY VULNERABILITY: Returning raw error.message can sometimes leak sensitive
+        // internal details (e.g., database errors, file paths).
+        // For production, consider returning a generic error message for 500s
+        // or sanitizing the error message.
         res.status(500).json({
           success: false,
           error: error.message,
@@ -287,6 +306,11 @@ export const createPromptController = (sessionManager, promptService) => {
           });
         }
 
+        // SECURITY VULNERABILITY: Insecure Direct Object Reference (IDOR).
+        // The sessionId is taken directly from the request body without validation
+        // against an authenticated user's owned sessions. An attacker could potentially
+        // manipulate other users' sessions by guessing or enumerating session IDs.
+        // This requires an authentication/authorization layer to verify session ownership.
         const session = sessionManager.getSession(sessionId);
         if (!session) {
           return res.status(404).json({
@@ -319,6 +343,10 @@ export const createPromptController = (sessionManager, promptService) => {
         });
       } catch (error) {
         console.error('Error adding detail:', error);
+        // SECURITY VULNERABILITY: Returning raw error.message can sometimes leak sensitive
+        // internal details (e.g., database errors, file paths).
+        // For production, consider returning a generic error message for 500s
+        // or sanitizing the error message.
         res.status(500).json({
           success: false,
           error: error.message,
@@ -419,6 +447,11 @@ export const createPromptController = (sessionManager, promptService) => {
           });
         }
 
+        // SECURITY VULNERABILITY: Insecure Direct Object Reference (IDOR).
+        // The sessionId is taken directly from the request body without validation
+        // against an authenticated user's owned sessions. An attacker could potentially
+        // manipulate other users' sessions by guessing or enumerating session IDs.
+        // This requires an authentication/authorization layer to verify session ownership.
         const session = sessionManager.getSession(sessionId);
         if (!session) {
           return res.status(404).json({
@@ -441,6 +474,10 @@ export const createPromptController = (sessionManager, promptService) => {
         });
       } catch (error) {
         console.error('Error finalizing prompt:', error);
+        // SECURITY VULNERABILITY: Returning raw error.message can sometimes leak sensitive
+        // internal details (e.g., database errors, file paths).
+        // For production, consider returning a generic error message for 500s
+        // or sanitizing the error message.
         res.status(500).json({
           success: false,
           error: error.message,
