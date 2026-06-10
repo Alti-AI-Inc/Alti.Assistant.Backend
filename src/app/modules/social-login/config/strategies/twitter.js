@@ -180,26 +180,28 @@ import { findOrCreateUserModel } from '../../social-login.utils.js';
 // NOTE: This uses passport-twitter-oauth2 for Twitter API v2
 /**
  * Configuration for the Twitter OAuth2 Passport strategy.
- * This strategy is used to authenticate users via Twitter's OAuth 2.0 API (v2).
- * It handles the redirection to Twitter for authorization and the subsequent
- * callback to exchange the authorization code for an access token and user profile.
+ * This strategy authenticates users via their Twitter account using the OAuth 2.0 protocol (PKCE flow for confidential clients).
+ * It handles the user redirection to Twitter for authorization, the callback from Twitter,
+ * and the exchange of an authorization code for an access token and user profile.
  *
- * @constant {TwitterStrategy} strategy
+ * @see {@link https://github.com/auth0/passport-twitter-oauth2} for more information on the strategy.
+ * @constant {TwitterStrategy}
  */
 const strategy = new TwitterStrategy(
   /**
    * Options for the Twitter OAuth2 strategy.
-   * @type {object}
-   * @property {string} clientID - The Client ID provided by Twitter for your application.
-   * @property {string} clientSecret - The Client Secret provided by Twitter for your application.
-   * @property {string} callbackURL - The URL to which Twitter will redirect the user after authorization.
-   *                                  Defaults to '/api/v1/auth-social/twitter/callback' if not set in environment.
-   * @property {string} clientType - Specifies the type of client. 'confidential' is typically used for web applications.
-   * @property {string[]} scope - An array of permissions (scopes) requested from the user on Twitter.
-   *                              E.g., 'tweet.read', 'users.read', 'offline.access'.
-   * @property {boolean} passReqToCallback - If true, the `req` object will be passed as the first argument to the verify callback.
-   *                                         Set to false here as the `req` object is not needed for user lookup.
-   * @property {boolean} proxy - If true, the strategy will trust the proxy header `X-Forwarded-Proto`.
+   * @type {import('passport-twitter-oauth2').StrategyOptions}
+   * @property {string} clientID - The Client ID for your Twitter application. Sourced from `process.env.TWITTER_CLIENT_ID`.
+   * @property {string} clientSecret - The Client Secret for your Twitter application. Sourced from `process.env.TWITTER_CLIENT_SECRET`.
+   * @property {string} callbackURL - The URL where Twitter will redirect the user after they grant or deny permission.
+   *                                  Sourced from `process.env.TWITTER_CALLBACK_URL` or defaults to '/api/v1/auth-social/twitter/callback'.
+   * @property {string} clientType - The type of client. 'confidential' is used for server-side applications that can securely store secrets.
+   * @property {string[]} scope - An array of permissions (scopes) to request from the user.
+   *                              'tweet.read' and 'users.read' are required to access profile information.
+   *                              'offline.access' is required to receive a refresh token.
+   * @property {boolean} passReqToCallback - If true, the `req` object would be passed as the first argument to the verify callback.
+   *                                         Set to false as the request object is not needed for this authentication flow.
+   * @property {boolean} proxy - If true, the strategy will trust the `X-Forwarded-Proto` header, which is necessary when the application is behind a reverse proxy (e.g., on a cloud platform).
    */
   {
     clientID: process.env.TWITTER_CLIENT_ID,
@@ -211,17 +213,20 @@ const strategy = new TwitterStrategy(
     proxy: true,
   },
   /**
-   * Verify callback function for the Twitter OAuth2 strategy.
-   * This function is called after Twitter has successfully authenticated the user
-   * and provided access tokens and profile information. It is responsible for
-   * finding or creating a user in the application's database and returning the user.
+   * The verify callback for the Twitter OAuth2 strategy.
+   * This function is invoked after a user successfully authenticates with Twitter.
+   * It receives the access token, refresh token, and user profile.
+   * Its purpose is to find an existing user in the database or create a new one,
+   * and then call the `done` callback with the user object.
    *
    * @async
-   * @param {string} accessToken - The access token provided by Twitter.
-   * @param {string} refreshToken - The refresh token provided by Twitter (if `offline.access` scope is requested).
-   * @param {object} profile - The user's profile information retrieved from Twitter.
-   * @param {function(Error | null, object | null)} done - Callback function to signify the completion of the verification process.
-   *                                                        It takes an error object (if any) and the authenticated user object.
+   * @param {string} accessToken - The access token from Twitter, used to make API requests on behalf of the user.
+   * @param {string} refreshToken - The refresh token from Twitter, used to obtain a new access token when the current one expires.
+   * @param {object} profile - The user's profile information as provided by the Twitter API.
+   * @param {function(Error | null, object | boolean, object?)} done - The Passport `done` callback. It is called to signal the completion of the authentication process.
+   *   - `done(null, user)` - on success, provides the authenticated user object.
+   *   - `done(null, false)` - on authentication failure (e.g., user not found and not created).
+   *   - `done(error)` - on an internal error (e.g., database connection issue).
    * @returns {Promise<void>}
    */
   async (accessToken, refreshToken, profile, done) => {
@@ -229,14 +234,9 @@ const strategy = new TwitterStrategy(
 
     try {
       /**
-       * Adapts the Twitter profile object to a standardized format for the application.
-       * @type {object}
-       * @property {string} id - The unique ID of the user on Twitter.
-       * @property {string} displayName - The user's display name on Twitter.
-       * @property {string} username - The user's username (screen name) on Twitter.
-       * @property {Array<object>} photos - An array of photo objects, typically containing the profile image URL.
-       * @property {Array<object>} emails - An array of email objects, if the email scope was granted and available.
-       * @property {string} provider - The social login provider, 'twitter'.
+       * The Twitter profile is adapted to a standardized format used within the application.
+       * This ensures consistency regardless of the social login provider.
+       * @type {{id: string, displayName: string, username: string, photos: Array<{value: string | undefined}>, emails: Array<{value: string}>, provider: string}}
        */
       const adaptedProfile = {
         id: profile.id,
@@ -247,20 +247,15 @@ const strategy = new TwitterStrategy(
         provider: 'twitter',
       };
 
-      // Find or create a user in the database based on the adapted profile.
+      // Find an existing user or create a new one based on the Twitter profile information.
       const { user } = await findOrCreateUserModel(adaptedProfile, 'twitter');
-      /**
-       * Calls the `done` callback with the authenticated user.
-       * @param {null} error - No error.
-       * @param {object} userObject - An object containing the authenticated user.
-       */
+
+      // Authentication was successful. Pass the user object to Passport.
+      // Passport will attach this user to the request (e.g., `req.user`).
       return done(null, { user });
     } catch (err) {
-      /**
-       * Calls the `done` callback with an error if user creation/lookup fails.
-       * @param {Error} error - The error that occurred.
-       * @param {null} userObject - No user object due to error.
-       */
+      // An error occurred during the process (e.g., a database error).
+      // Pass the error to Passport to terminate the authentication process.
       return done(err, null);
     }
   }
