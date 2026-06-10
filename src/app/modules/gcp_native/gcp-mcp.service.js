@@ -1,16 +1,10 @@
-/**
- * @file This service module manages the lifecycle and interactions with the local Google MCP (Managed Control Plane) Toolbox server.
- * It provides functionalities to start and stop the server, dynamically generate its configuration,
- * execute registered tools against configured data sources, and process natural language queries.
- * It supports both live execution and mock/offline modes for development and testing.
- */
-
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
+import yaml from 'js-yaml'; // BUG FIX: Import js-yaml for robust YAML serialization
 
 // Dynamically resolve directory names in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +22,13 @@ const __dirname = path.dirname(__filename);
 let mcpProcess = null;
 
 /**
+ * A promise that resolves when the MCP process has fully terminated.
+ * Used to ensure sequential start/stop operations and prevent race conditions.
+ * @type {Promise<void> | null}
+ */
+let mcpProcessTerminationPromise = null;
+
+/**
  * The base URL of the local MCP Toolbox server.
  * Defaults to http://127.0.0.1:5000.
  * @type {string}
@@ -43,6 +44,40 @@ let mcpServerUrl = 'http://127.0.0.1:5000';
  */
 
 /**
+ * Gracefully terminates the running local MCP server subprocess.
+ * If no process is running, this function does nothing.
+ * @returns {Promise<void>} A promise that resolves when the process has been signaled to terminate and has actually closed.
+ */
+const stopMcpServer = async () => {
+  if (mcpProcess) {
+    logger.info('GCP MCP: Sending SIGTERM signal to local server daemon...');
+    const currentProcess = mcpProcess;
+    mcpProcess = null; // Clear reference immediately to prevent new calls from seeing it as active
+
+    // BUG FIX: Create a promise that resolves when the process actually closes,
+    // ensuring subsequent starts don't race with termination.
+    mcpProcessTerminationPromise = new Promise((resolve) => {
+      currentProcess.on('close', (code) => {
+        logger.info(`GCP MCP: Server subprocess exited with code ${code}.`);
+        resolve();
+      });
+      currentProcess.on('error', (err) => {
+        logger.warn(`GCP MCP: Error during subprocess termination: ${err.message}`);
+        resolve(); // Resolve even on error to unblock subsequent starts
+      });
+    });
+
+    currentProcess.kill('SIGTERM');
+    await mcpProcessTerminationPromise; // Wait for the process to close
+    mcpProcessTerminationPromise = null;
+  } else if (mcpProcessTerminationPromise) {
+    // If a termination is already in progress, wait for it
+    logger.info('GCP MCP: Waiting for existing MCP server termination to complete...');
+    await mcpProcessTerminationPromise;
+  }
+};
+
+/**
  * Spawns and manages the lifecycle of the local Google MCP Toolbox server.
  * This function checks for an existing process and stops it before starting a new one.
  * It also supports an offline/mock mode bypass, where no physical subprocess is spawned.
@@ -52,8 +87,30 @@ let mcpServerUrl = 'http://127.0.0.1:5000';
  */
 const startMcpServer = async (options = {}) => {
   const port = options.port || 5000;
+  // SECURITY FIX: Validate port number to prevent potential command injection if shell: true was used.
+  if (typeof port !== 'number' || port < 1 || port > 65535) {
+    logger.error(`GCP MCP: Invalid port number provided: ${port}`);
+    return false;
+  }
+
   const configPath = options.configPath || path.resolve(process.cwd(), 'mcp-toolbox', 'tools.yaml');
   const stdio = options.stdio || false;
+
+  // SECURITY FIX: Basic path validation for configPath to prevent command injection
+  // and path traversal for the spawned process.
+  // This is a basic check; more robust validation might be needed depending on trust level.
+  if (configPath.includes(';') || configPath.includes('&&') || configPath.includes('|') || configPath.includes('`')) {
+    logger.error(`GCP MCP: Potentially malicious characters detected in configPath: ${configPath}`);
+    return false;
+  }
+  // Ensure configPath is absolute and canonicalized
+  const resolvedConfigPath = path.resolve(configPath);
+  // Optional: Further restrict configPath to be within a specific safe directory
+  // const safeConfigDir = path.resolve(process.cwd(), 'mcp-toolbox');
+  // if (!resolvedConfigPath.startsWith(safeConfigDir)) {
+  //   logger.error(`GCP MCP: configPath "${resolvedConfigPath}" is outside allowed directory "${safeConfigDir}".`);
+  //   return false;
+  // }
 
   logger.info(`GCP MCP: Initializing local MCP Toolbox server instance on port ${port}...`);
 
@@ -63,26 +120,26 @@ const startMcpServer = async (options = {}) => {
     return true;
   }
 
-  // Prevent multiple duplicate daemon processes
-  if (mcpProcess) {
-    logger.info('GCP MCP: Subprocess daemon is already running. Stopping previous instance first.');
-    await stopMcpServer();
+  // BUG FIX: Prevent multiple duplicate daemon processes by awaiting previous termination.
+  if (mcpProcess || mcpProcessTerminationPromise) {
+    logger.info('GCP MCP: Subprocess daemon is already running or terminating. Stopping previous instance first.');
+    await stopMcpServer(); // Wait for previous process to fully terminate
   }
 
   try {
     // Determine running mechanism: Check for executable binary or fall back to npx
     let command = 'npx';
-    let args = ['-y', '@toolbox-sdk/server', '--port', port.toString(), '--config', configPath];
+    let args = ['-y', '@toolbox-sdk/server', '--port', port.toString(), '--config', resolvedConfigPath];
 
     const binaryPathWin = path.resolve(process.cwd(), 'bin', 'mcp-toolbox.exe');
     const binaryPathUnix = path.resolve(process.cwd(), 'bin', 'mcp-toolbox');
 
     if (process.platform === 'win32' && fs.existsSync(binaryPathWin)) {
       command = binaryPathWin;
-      args = ['--port', port.toString(), '--config', configPath];
+      args = ['--port', port.toString(), '--config', resolvedConfigPath];
     } else if (fs.existsSync(binaryPathUnix)) {
       command = binaryPathUnix;
-      args = ['--port', port.toString(), '--config', configPath];
+      args = ['--port', port.toString(), '--config', resolvedConfigPath];
     }
 
     if (stdio) {
@@ -94,7 +151,12 @@ const startMcpServer = async (options = {}) => {
     mcpProcess = spawn(command, args, {
       cwd: process.cwd(),
       env: { ...process.env, PORT: port.toString() },
-      shell: true
+      // SECURITY FIX: Removed shell: true to prevent command injection.
+      // Arguments are now passed directly to the command.
+      // This assumes 'npx' and the binaries do not strictly require a shell.
+      // If a shell is absolutely necessary for environment setup or command execution,
+      // then robust input sanitization/escaping for all arguments would be critical.
+      shell: false
     });
 
     mcpProcess.stdout.on('data', (data) => {
@@ -105,9 +167,19 @@ const startMcpServer = async (options = {}) => {
       logger.warn(`[GCP MCP Server stderr]: ${data.toString().trim()}`);
     });
 
+    // BUG FIX: Handle unexpected process exits. Intentional stops are handled by stopMcpServer.
     mcpProcess.on('close', (code) => {
-      logger.info(`GCP MCP: Server subprocess exited with code ${code}.`);
-      mcpProcess = null;
+      if (mcpProcess === null) { // Process was intentionally stopped (reference cleared by stopMcpServer)
+        logger.debug(`GCP MCP: Subprocess exited (code ${code}) after intentional stop.`);
+      } else { // Unexpected exit
+        logger.error(`GCP MCP: Server subprocess exited unexpectedly with code ${code}.`);
+        mcpProcess = null; // Clear reference on unexpected exit
+      }
+    });
+
+    mcpProcess.on('error', (err) => {
+      logger.error(`GCP MCP: Failed to start MCP Toolbox server subprocess: ${err.message}`);
+      mcpProcess = null; // Ensure mcpProcess is null on spawn failure
     });
 
     mcpServerUrl = `http://127.0.0.1:${port}`;
@@ -116,20 +188,8 @@ const startMcpServer = async (options = {}) => {
     return true;
   } catch (err) {
     logger.error('GCP MCP: Failed to spawn MCP Toolbox server subprocess:', err);
+    mcpProcess = null; // Ensure mcpProcess is null on spawn failure
     return false;
-  }
-};
-
-/**
- * Gracefully terminates the running local MCP server subprocess.
- * If no process is running, this function does nothing.
- * @returns {Promise<void>} A promise that resolves when the process has been signaled to terminate.
- */
-const stopMcpServer = async () => {
-  if (mcpProcess) {
-    logger.info('GCP MCP: Sending SIGTERM signal to local server daemon...');
-    mcpProcess.kill('SIGTERM');
-    mcpProcess = null;
   }
 };
 
@@ -186,7 +246,8 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
     port: 5432,
     database: 'alti_db',
     user: 'postgres',
-    password: 'secure_password'
+    password: 'secure_password' // SECURITY NOTE: In a real application, avoid hardcoding sensitive credentials.
+                                // Use environment variables or a secure secrets manager.
   }];
 
   const defaultTools = tools.length > 0 ? tools : [{
@@ -201,38 +262,21 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
     statement: 'SELECT * FROM security_alerts ORDER BY timestamp DESC LIMIT $1;'
   }];
 
-  let yaml = '';
+  const configObjects = [...defaultSources, ...defaultTools];
 
-  // Write sources
-  for (const src of defaultSources) {
-    yaml += `---\n`;
-    yaml += `kind: source\n`;
-    yaml += `name: ${src.name}\n`;
-    yaml += `type: ${src.type}\n`;
-    if (src.host) yaml += `host: ${src.host}\n`;
-    if (src.port) yaml += `port: ${src.port}\n`;
-    if (src.database) yaml += `database: ${src.database}\n`;
-    if (src.user) yaml += `user: ${src.user}\n`;
-    if (src.password) yaml += `password: ${src.password}\n`;
-  }
-
-  // Write tools
-  for (const tool of defaultTools) {
-    yaml += `---\n`;
-    yaml += `kind: tool\n`;
-    yaml += `name: ${tool.name}\n`;
-    yaml += `type: ${tool.type}\n`;
-    yaml += `source: ${tool.source}\n`;
-    yaml += `description: "${tool.description}"\n`;
-    if (tool.parameters && Array.isArray(tool.parameters)) {
-      yaml += `parameters:\n`;
-      for (const param of tool.parameters) {
-        yaml += `  - name: ${param.name}\n`;
-        yaml += `    type: ${param.type}\n`;
-        yaml += `    description: "${param.description}"\n`;
-      }
+  // BUG FIX: Use a YAML serialization library to correctly escape all values
+  // and prevent YAML injection vulnerabilities or malformed configurations.
+  let yamlString;
+  try {
+    // Each object is dumped as a separate YAML document, separated by '---'
+    yamlString = configObjects.map(obj => yaml.dump(obj, { indent: 2, skipInvalid: true })).join('---\n');
+    // Add a final '---' if there are multiple documents, as per common YAML multi-document practice
+    if (configObjects.length > 1) {
+      yamlString += '\n---';
     }
-    yaml += `statement: ${tool.statement}\n`;
+  } catch (err) {
+    logger.error('GCP MCP: Failed to serialize YAML configuration:', err);
+    return ''; // Return empty string on serialization failure
   }
 
   const targetPath = outputPath || path.resolve(process.cwd(), 'mcp-toolbox', 'tools.yaml');
@@ -241,13 +285,16 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
     if (!fs.existsSync(parentDir)) {
       fs.mkdirSync(parentDir, { recursive: true });
     }
-    fs.writeFileSync(targetPath, yaml.trim(), 'utf8');
+    // SECURITY NOTE: The `outputPath` parameter should be validated by the caller
+    // to prevent path traversal vulnerabilities if it originates from untrusted input.
+    // `path.resolve` helps canonicalize, but doesn't restrict to a safe directory.
+    fs.writeFileSync(targetPath, yamlString.trim(), 'utf8');
     logger.info(`GCP MCP: Successfully generated tools.yaml config at: ${targetPath}`);
   } catch (err) {
     logger.error('GCP MCP: Failed to write generated config to filesystem:', err);
   }
 
-  return yaml;
+  return yamlString;
 };
 
 /**
@@ -273,6 +320,7 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
  * @param {string} toolsetName - The registered toolset or source name to target (e.g., 'alti-default-postgres').
  * @param {string} toolName - Name of the specific database tool to execute (e.g., 'execute_sql', 'fetch-recent-alerts').
  * @param {object} [parameters={}] - Arguments passed into the targeted tool. The structure depends on the tool's definition.
+ *                                   For 'execute_sql', this object should contain 'statement' and optionally 'values' (an array).
  * @returns {Promise<McpToolExecutionResult>} A promise that resolves to a JSON execution response data payload.
  */
 const executeMcpTool = async (toolsetName, toolName, parameters = {}) => {
@@ -327,13 +375,19 @@ const executeMcpTool = async (toolsetName, toolName, parameters = {}) => {
     }
 
     logger.info(`GCP MCP: Invoking tool logic with parameters: ${JSON.stringify(parameters)}`);
+    
+    // SECURITY NOTE: For SQL execution tools (like 'execute_sql' or custom 'postgres-sql' tools),
+    // ensure that the 'statement' parameter is always parameterized and that 'values' (or similar)
+    // are passed separately to prevent SQL injection. The @toolbox-sdk/core client is expected
+    // to handle parameter binding correctly. If the 'statement' itself is constructed from
+    // untrusted user input without parameterization, it remains a vulnerability.
     const result = await selectedTool.call(parameters);
 
     return {
       success: true,
       tool: toolName,
       toolset: toolsetName,
-      result: result
+      result: result // The raw result payload from the MCP Toolbox client
     };
   } catch (err) {
     logger.error('GCP MCP Execution Exception:', err);
@@ -397,20 +451,50 @@ const queryNaturalLanguage = async (queryText, databaseContext = {}) => {
     const defaultSchema = 'security_alerts (id INT, status VARCHAR, threat VARCHAR, timestamp TIMESTAMP)';
     logger.info(`GCP MCP: Schema discovered: "${defaultSchema}". Resolving SQL statement via Vertex AI...`);
 
-    // In a real scenario, an LLM would generate this SQL based on queryText and databaseContext
+    // In a real scenario, an LLM would generate this SQL based on queryText and databaseContext.
+    // SECURITY NOTE: If `generatedSql` is derived from user input via an LLM, it is CRITICAL
+    // that the LLM generates PARAMETERIZED SQL (e.g., using $1, $2 placeholders) and that
+    // the actual parameter values are passed separately to `executeMcpTool` to prevent SQL injection.
+    // The current hardcoded SQL is safe as it contains no user input.
     const generatedSql = 'SELECT COUNT(*), status FROM security_alerts GROUP BY status;';
     
     // Execute SQL generated via the core MCP toolbox execute_sql tool
+    // Assuming 'execute_sql' tool expects an object with a 'statement' key and optionally 'values' for parameters.
     const mcpResult = await executeMcpTool('alti-default-postgres', 'execute_sql', {
       statement: generatedSql
+      // If the generated SQL had placeholders (e.g., 'LIMIT $1'), values would be passed here:
+      // values: [someLimitValue]
     });
+
+    // BUG FIX: Correctly extract records from mcpResult.result for live calls,
+    // ensuring consistency with the mock output structure.
+    let records = [];
+    if (mcpResult.success && mcpResult.result) {
+      if (Array.isArray(mcpResult.result)) {
+        // If result is already an array of objects
+        records = mcpResult.result;
+      } else if (mcpResult.result.rows && Array.isArray(mcpResult.result.rows)) {
+        // If result.rows is an array of arrays, convert to array of objects if columns are available
+        if (mcpResult.result.columns && Array.isArray(mcpResult.result.columns)) {
+          records = mcpResult.result.rows.map(row => {
+            const obj = {};
+            mcpResult.result.columns.forEach((col, index) => {
+              obj[col] = row[index];
+            });
+            return obj;
+          });
+        } else {
+          records = mcpResult.result.rows; // Fallback if columns are not provided, keep as array of arrays
+        }
+      }
+    }
 
     return {
       success: true,
       queryText: queryText,
       generatedSql: generatedSql,
       analysis: 'Natural language analysis successfully mapped and resolved against database schemas.',
-      records: mcpResult.rows || [] // Assuming mcpResult.rows contains the actual data
+      records: records
     };
   } catch (err) {
     logger.error('GCP MCP Natural Language Query Error:', err);
