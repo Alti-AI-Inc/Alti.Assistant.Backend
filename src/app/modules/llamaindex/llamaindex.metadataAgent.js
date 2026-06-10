@@ -6,6 +6,10 @@ import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertex
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
+// PERFORMANCE_OPTIMIZATION: For optimal query performance, ensure the 'DocumentMetadata'
+// collection has a compound index on { userId: 1, docId: 1 }.
+// Example Mongoose Schema definition:
+// schema.index({ userId: 1, docId: 1 }, { unique: true });
 import * as llama from './llamaindex.indexer.js';
 
 /**
@@ -192,12 +196,24 @@ const enrichAllUserDocuments = async (userId) => {
       return { success: true, message: 'No documents in corpus to enrich.', enrichedCount: 0 };
     }
 
+    // PERFORMANCE_OPTIMIZATION: Solved N+1 query problem.
+    // Instead of querying for each document inside the loop, fetch all existing metadata
+    // for the user's documents in a single query.
+    const docIds = docs.map(doc => doc.id || doc.docId || doc.id_);
+    const existingMetadata = await DocumentMetadata.find({
+      userId,
+      docId: { $in: docIds },
+    }).lean(); // .lean() is used for faster, read-only queries as we only need the docId.
+
+    // Create a Set for O(1) lookup of existing document IDs.
+    const existingDocIds = new Set(existingMetadata.map(meta => meta.docId));
+
     let enrichedCount = 0;
     for (const doc of docs) {
       const docId = doc.id || doc.docId || doc.id_;
-      const existing = await DocumentMetadata.findOne({ userId, docId });
 
-      if (!existing) {
+      // Check against the pre-fetched set instead of hitting the database.
+      if (!existingDocIds.has(docId)) {
         // Enforce asynchronous enrichment
         await enrichDocument(null, doc.fileName || doc.name || 'unnamed_doc', docId, userId);
         enrichedCount++;

@@ -5,8 +5,16 @@ import { v4 as uuidv4 } from 'uuid'; // USER DATA: For generating unique, non-co
 import dotenv from 'dotenv';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
+import redisClient from '../../../../../config/redisClient.js'; // DDOS GUARD: Import shared Redis client for rate limiting.
 
 dotenv.config();
+
+// DDOS GUARD/COST CONTROL: Define rate limits for the expensive image generation API.
+// These limits are applied on a per-user basis to prevent abuse from a single authenticated user.
+const RATE_LIMIT_PER_MINUTE = 5; // Max 5 image generations per user per minute.
+const RATE_LIMIT_PER_HOUR = 50; // Max 50 image generations per user per hour.
+const RATE_LIMIT_WINDOW_MINUTE_SECONDS = 60;
+const RATE_LIMIT_WINDOW_HOUR_SECONDS = 3600;
 
 // CONFIGURATION: Centralize configurable values for easier management and environment-specific settings.
 const MODEL_NAME = config.google.gemini_image_model || 'gemini-1.5-flash-001';
@@ -49,6 +57,55 @@ export async function imagen3(userId, prompt, referenceImages = []) {
   if (!userId) {
     throw new Error('User ID is required for image generation to ensure data isolation.');
   }
+
+  // DDOS GUARD/COST CONTROL: Apply per-user rate limiting before processing the request.
+  try {
+    const keyMinute = `rate-limit:imagegen:${userId}:minute`;
+    const keyHour = `rate-limit:imagegen:${userId}:hour`;
+
+    // Atomically increment counters for both time windows using a Redis transaction.
+    // This is crucial to prevent race conditions under high load.
+    const results = await redisClient
+      .multi()
+      .incr(keyMinute)
+      .incr(keyHour)
+      .exec();
+
+    // The result format for ioredis is an array of [error, value] tuples.
+    const minuteResult = results[0];
+    const hourResult = results[1];
+
+    // If the transaction failed or any command within it failed, log and fail open.
+    if (!minuteResult || minuteResult[0] || !hourResult || hourResult[0]) {
+      console.error(`Redis rate-limiting command failed for user ${userId}. Allowing request to proceed as a fail-safe.`, { results });
+    } else {
+      const minuteCount = minuteResult[1];
+      const hourCount = hourResult[1];
+
+      // Set expiration only on the first request in each window to be efficient.
+      if (minuteCount === 1) {
+        await redisClient.expire(keyMinute, RATE_LIMIT_WINDOW_MINUTE_SECONDS);
+      }
+      if (hourCount === 1) {
+        await redisClient.expire(keyHour, RATE_LIMIT_WINDOW_HOUR_SECONDS);
+      }
+
+      // Check if either limit is exceeded.
+      if (minuteCount > RATE_LIMIT_PER_MINUTE || hourCount > RATE_LIMIT_PER_HOUR) {
+        console.warn(`Rate limit exceeded for user ${userId}. Minute count: ${minuteCount}/${RATE_LIMIT_PER_MINUTE}, Hour count: ${hourCount}/${RATE_LIMIT_PER_HOUR}`);
+        const error = new Error('Too many image generation requests. Please try again later.');
+        error.status = 429; // HTTP 429 Too Many Requests
+        throw error;
+      }
+    }
+  } catch (redisError) {
+      // FAIL-SAFE: If the Redis client throws an exception (e.g., connection error), log it.
+      // We are choosing to "fail open" (allow the request) to maintain service availability,
+      // but this risks cost overruns if Redis is down for an extended period.
+      // A monitoring/alerting system for Redis health is critical.
+      console.error(`Redis connection error during rate limiting for user ${userId}. Allowing request.`, redisError);
+  }
+
   if (!prompt || prompt.trim().length === 0) {
     throw new Error('A non-empty prompt is required for image generation.');
   }
