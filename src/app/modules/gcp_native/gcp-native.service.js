@@ -4,7 +4,13 @@ import { spawn } from 'child_process'; // Changed from 'exec' to 'spawn' for sec
 import { fileURLToPath } from 'url';
 import GoogleRepository from './gcp-repository.model.js';
 
-// Utility function to escape special characters for use in a regular expression
+/**
+ * Utility function to escape special characters for use in a regular expression.
+ * This prevents ReDoS (Regular Expression Denial of Service) and Regex Injection vulnerabilities.
+ *
+ * @param {string} string - The input string to escape.
+ * @returns {string} The escaped string, safe for use within a RegExp constructor.
+ */
 const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 };
@@ -34,15 +40,46 @@ const escapeRegExp = (string) => {
 //
 // Ensure these indexes are created in your MongoDB deployment for optimal performance.
 
+/**
+ * The current file's path.
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current module.
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
 
+/**
+ * Path to the GCP license catalog JSON file.
+ * @type {string}
+ */
 const CATALOG_PATH = path.join(__dirname, '../../../../output/gcp-license-catalog.json');
+/**
+ * The root directory of the project.
+ * @type {string}
+ */
 const ROOT_DIR = path.join(__dirname, '../../../../..');
 
 /**
  * Searches the MongoDB GoogleRepository collection for Google and GCP repositories.
  * Supports full-text search relevance matching, license/language filtering, and sorting.
+ *
+ * @param {string} [query=''] - The search query string. Can be used for full-text search.
+ * @param {object} [options={}] - An object containing search and pagination options.
+ * @param {string} [options.license] - Filter repositories by license type (e.g., 'MIT', 'Apache 2.0'). Case-insensitive.
+ * @param {string} [options.language] - Filter repositories by programming language (prefix match). Case-insensitive.
+ * @param {string} [options.sortBy='stars'] - Field to sort the results by. Allowed values: 'stars', 'name', 'license', 'language'.
+ * @param {number} [options.limit=20] - The maximum number of results to return per page.
+ * @param {number} [options.page=1] - The current page number for pagination.
+ * @returns {Promise<object>} A promise that resolves to an object containing search results and pagination info.
+ * @property {boolean} success - Indicates if the query was successful.
+ * @property {number} total - The total number of documents matching the filter.
+ * @property {number} page - The current page number.
+ * @property {number} limit - The maximum number of results per page.
+ * @property {Array<object>} results - An array of repository objects, each augmented with 'org' and 'domain'.
+ * @throws {Error} If the MongoDB query fails.
  */
 const searchGcpCatalog = async (query = '', options = {}) => {
   try {
@@ -120,7 +157,20 @@ const searchGcpCatalog = async (query = '', options = {}) => {
 };
 
 /**
- * Programmatically triggers the Git submodule import command to register a GCP repo.
+ * Programmatically triggers the Git submodule import command to register a GCP repository.
+ * This function first searches the catalog for the repository and then attempts to add it
+ * as a Git submodule in the `external/gcp` directory of the project root.
+ *
+ * @param {string} repoName - The exact name of the repository to import (e.g., 'cloud-sdk').
+ * @returns {Promise<object>} A promise that resolves to an object indicating the success or failure of the import.
+ * @property {boolean} success - Indicates if the submodule import was successful.
+ * @property {string} message - A descriptive message about the outcome.
+ * @property {string} [details] - More detailed error information if the command failed.
+ * @property {string} [output] - The stdout from the git command.
+ * @property {string} [path] - The local path where the submodule was added, if successful.
+ * @property {string} [clone_url] - The clone URL of the repository, if successful.
+ * @property {Array<string>} [suggestions] - A list of similar repository names if an exact match wasn't found.
+ * @throws {Error} If `repoName` is not provided or if the git process cannot be started.
  */
 const importGcpSubmodule = async (repoName) => {
   if (!repoName) {
@@ -221,7 +271,25 @@ const importGcpSubmodule = async (repoName) => {
   });
 };
 
+/**
+ * @namespace GcpNativeService
+ * @description Provides services for interacting with GCP native repositories,
+ * including searching the catalog and programmatically importing them as Git submodules.
+ */
 export const GcpNativeService = {
+  /**
+   * @function searchGcpCatalog
+   * @memberof GcpNativeService
+   * @description Searches the MongoDB GoogleRepository collection for Google and GCP repositories.
+   * Supports full-text search relevance matching, license/language filtering, and sorting.
+   * @see {@link searchGcpCatalog} for full documentation.
+   */
   searchGcpCatalog,
+  /**
+   * @function importGcpSubmodule
+   * @memberof GcpNativeService
+   * @description Programmatically triggers the Git submodule import command to register a GCP repository.
+   * @see {@link importGcpSubmodule} for full documentation.
+   */
   importGcpSubmodule
 };
