@@ -3,18 +3,70 @@
  * Run this script to backfill embeddings for existing tools.
  *
  * Usage: node embeddings-generator.js
+ *
+ * NOTE: This script requires authentication with GCP. Ensure you have the correct
+ * permissions (e.g., 'Secret Manager Secret Accessor' role) and have authenticated
+ * via `gcloud auth application-default login`.
+ * It expects secrets named 'GEMINI_SECRET_KEY' and 'DATABASE_URL' in GCP Secret Manager,
+ * or as environment variables.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import mongoose from 'mongoose';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import Tool from '../composio_v2/tools.model.js';
-import config from '../../../../config/index.js';
+
+// GCP Secret Manager client and in-memory cache for performance.
+const secretManagerClient = new SecretManagerServiceClient();
+const secretCache = new Map();
 
 /**
- * @constant {GoogleGenerativeAI} genAI - An instance of GoogleGenerativeAI initialized with the API key.
- * Used to interact with Google's Generative AI models, specifically for embedding generation.
+ * Asynchronously retrieves a secret from an environment variable or GCP Secret Manager.
+ * It prioritizes environment variables (common in Cloud Run) and uses an in-memory cache
+ * for secrets fetched from GCP to reduce API calls.
+ * @param {string} secretName - The name of the secret to retrieve (e.g., 'DATABASE_URL').
+ * @returns {Promise<string>} A promise that resolves to the secret value.
+ * @throws {Error} If the secret cannot be accessed or the GCP project ID is not set.
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+async function getSecret(secretName) {
+  // Prefer environment variables if they exist.
+  if (process.env[secretName]) {
+    return process.env[secretName];
+  }
+
+  // Check cache to avoid repeated GCP API calls.
+  if (secretCache.has(secretName)) {
+    return secretCache.get(secretName);
+  }
+
+  // Fetch from GCP Secret Manager.
+  const projectId = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
+  if (!projectId) {
+    throw new Error(
+      'GCP_PROJECT or GOOGLE_CLOUD_PROJECT environment variable must be set.'
+    );
+  }
+
+  const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+
+  try {
+    const [version] = await secretManagerClient.accessSecretVersion({ name });
+    const payload = version.payload.data.toString('utf8');
+    secretCache.set(secretName, payload); // Cache the secret for subsequent calls.
+    return payload;
+  } catch (error) {
+    console.error(`Failed to access secret: ${name}`, error);
+    throw new Error(
+      `Could not access secret: ${secretName}. Ensure it exists in GCP Secret Manager and the service account has the 'Secret Manager Secret Accessor' role.`
+    );
+  }
+}
+
+/**
+ * @type {GoogleGenerativeAI} genAI - An instance of GoogleGenerativeAI.
+ * It will be initialized dynamically within generateEmbeddingsForTools after fetching the API key.
+ */
+let genAI;
 
 /**
  * Generates a vector embedding for a given text string using the Gemini `text-embedding-004` model.
@@ -49,8 +101,15 @@ async function generateEmbedding(text) {
  */
 async function generateEmbeddingsForTools() {
   try {
+    // Dynamically resolve secrets from environment variables or GCP Secret Manager.
+    const databaseUrl = await getSecret('DATABASE_URL');
+    const geminiSecretKey = await getSecret('GEMINI_SECRET_KEY');
+
+    // Initialize AI client with the resolved secret key.
+    genAI = new GoogleGenerativeAI(geminiSecretKey);
+
     console.log('🔌 Connecting to MongoDB...');
-    await mongoose.connect(config.database_url);
+    await mongoose.connect(databaseUrl);
     console.log('✅ Connected to MongoDB');
 
     // Find tools without embeddings
@@ -149,7 +208,10 @@ async function generateEmbeddingsForTools() {
     console.log('\n✅ Done!');
   } catch (error) {
     console.error('❌ Error:', error);
-    await mongoose.disconnect();
+    // Ensure disconnection even if an error occurs after connection.
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+    }
     process.exit(1);
   }
 }

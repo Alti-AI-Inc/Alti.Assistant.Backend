@@ -60,7 +60,16 @@ const router = express.Router();
  */
 router
   .route('/user/single-user')
-  .get(auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), authController.getUser); // user with id
+  // FIX: Expanded roles to include all authenticated user types.
+  .get(
+    auth(
+      ENUM_USER_ROLE.SUPER_ADMIN,
+      ENUM_USER_ROLE.ADMIN,
+      ENUM_USER_ROLE.MANAGER,
+      ENUM_USER_ROLE.USER
+    ),
+    authController.getUser
+  );
 
 /**
  * @swagger
@@ -93,11 +102,6 @@ router
  *               name:
  *                 type: string
  *                 example: "New User"
- *               role:
- *                 type: string
- *                 enum: [user, admin]
- *                 default: user
- *                 example: "user"
  *     responses:
  *       201:
  *         description: User registered successfully. A confirmation email is sent.
@@ -141,6 +145,9 @@ router
 router.route('/register').post(
   createRateLimiter(5, 2),
   validateRequest(AuthValidation.UserValidationSchema),
+  // SECURITY: Removed 'role' from swagger schema to prevent privilege escalation.
+  // The controller MUST ignore any 'role' field in the request body and assign a default role (e.g., 'user').
+  // Admin/Manager accounts should be created via a separate, secure endpoint.
   authController.register
 );
 
@@ -623,7 +630,13 @@ router
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.route('/change-password').post(
-  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // FIX: Expanded roles to include all authenticated user types.
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.USER
+  ),
   // createRateLimiter(10, 1), // Commented out as in original code
   authController.changePassword
 );
@@ -633,7 +646,7 @@ router.route('/change-password').post(
  * /api/v1/auth/update-user/{userId}:
  *   put:
  *     summary: Update user profile
- *     description: Update the profile information for a specific user. Accessible by the user themselves or an admin.
+ *     description: Update the profile information for a specific user. Accessible by the user themselves, their manager, or an admin.
  *     tags:
  *       - Auth Management
  *     security:
@@ -720,9 +733,17 @@ router.route('/change-password').post(
 router
   .route('/update-user/:userId')
   .put(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // FIX: Expanded roles to include all user types that may need to update profiles.
+    auth(
+      ENUM_USER_ROLE.SUPER_ADMIN,
+      ENUM_USER_ROLE.ADMIN,
+      ENUM_USER_ROLE.MANAGER,
+      ENUM_USER_ROLE.USER
+    ),
+    // SECURITY (IDOR): The controller MUST verify that a USER can only update their own profile (req.user.id === req.params.userId).
+    // It must also verify that a MANAGER can only update users they manage, and an ADMIN only within their tenant.
     authController.updateUser
-  ); // is to use update user profile
+  );
 
 /**
  * @swagger
@@ -787,10 +808,13 @@ router
 router
   .route('/delete-account-otp/:id')
   .delete(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // FIX: Updated roles. Managers typically should not delete accounts.
+    auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     createRateLimiter(5, 2),
+    // SECURITY (IDOR): The controller MUST verify that a USER can only request deletion for their own account (req.user.id === req.params.id).
+    // Admins must be checked against their tenant/workspace boundaries.
     authController.deleteUserAccountOTP
-  ); // use to delete account
+  );
 
 /**
  * @swagger
@@ -882,9 +906,13 @@ router
 router
   .route('/delete-account/:id')
   .delete(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // FIX: Updated roles. Managers typically should not delete accounts.
+    auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // SECURITY (IDOR): The controller MUST verify that a USER can only delete their own account (req.user.id === req.params.id).
+    // Admins must be checked against their tenant/workspace boundaries.
+    // INTEGRATION: Controller should ensure that deleting a user correctly de-allocates resources and updates usage/limits for the parent workspace/tenant.
     authController.deleteUserAccount
-  ); // use to delete account
+  );
 
 /**
  * @exports {express.Router} authRoutes - The Express router containing authentication-related routes.
