@@ -106,7 +106,7 @@ router.post(
   extractTenantContext,
   checkDailyRequestLimit,
   uploadRewrite.single('file'),
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15), // 30 requests per 15 minutes - Uncommented for performance/security
   validateRequest(RewriteValidation.conversationalRequestSchema),
   rewriteController.conversationalAssistant
 );
@@ -194,7 +194,7 @@ router.post(
   checkStorageLimit,
   uploadRewrite.single('file'),
   checkRAGFeature,
-  // createRateLimiter(20, 15), // 20 rewrites per 15 minutes
+  createRateLimiter(20, 15), // 20 rewrites per 15 minutes - Uncommented for performance/security
   validateRequest(RewriteValidation.rewriteContentSchema),
   rewriteController.rewriteContent
 );
