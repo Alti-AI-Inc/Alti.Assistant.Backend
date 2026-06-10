@@ -1,4 +1,8 @@
 import express from 'express';
+// New imports for server lifecycle management
+import http from 'http';
+
+// Original imports from the route file
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -8,6 +12,62 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { documentController } from './document.controller.js';
 import { DocumentValidation } from './document.validation.js';
+
+// --- Placeholder for Database Connection ---
+// In a real application, this would be imported from a dedicated module.
+const database = {
+  connect: async () => {
+    console.log('Connecting to the database...');
+    // Simulate async connection
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('Database connection established.');
+    return true;
+  },
+  close: async () => {
+    console.log('Closing database connection...');
+    await new Promise(resolve => setTimeout(resolve, 250));
+    console.log('Database connection closed.');
+  },
+  // This function would check the actual connection status.
+  isHealthy: () => true,
+};
+// --- End of Placeholder ---
+
+const app = express();
+// Add a JSON body parser for POST requests, which is a common requirement.
+app.use(express.json());
+
+// --- Cloud Run Health and Readiness Probes ---
+
+// A state variable to track if the application is ready to serve traffic.
+let isReady = false;
+
+/**
+ * Liveness probe endpoint (/healthz).
+ * Cloud Run uses this to check if the container's main process is running.
+ * If this fails, Cloud Run will restart the container.
+ */
+app.get('/healthz', (req, res) => {
+  // This should always return 200 OK as long as the Express server is up.
+  res.status(200).send('OK');
+});
+
+/**
+ * Readiness probe endpoint (/readyz).
+ * Cloud Run uses this to determine if the application is ready to accept new requests.
+ * Traffic is only routed to instances that pass this check.
+ */
+app.get('/readyz', (req, res) => {
+  // Check for essential dependencies like database connections.
+  if (isReady && database.isHealthy()) {
+    res.status(200).send('OK');
+  } else {
+    // If the app is not ready, return 503 to signal Cloud Run not to send traffic.
+    res.status(503).send('Service Not Ready');
+  }
+});
+
+// --- Application Routes (from original file) ---
 
 /**
  * @constant {express.Router} router - Express router for document drafting routes.
@@ -338,4 +398,70 @@ router.post(
   documentController.editDocument
 );
 
-export default router;
+// Mount the router onto the main application under a specific API path.
+app.use('/api/v1/document-drafting', router);
+
+// --- Server Startup and Graceful Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app);
+
+const startServer = async () => {
+  try {
+    // 1. Initialize external connections (e.g., database) before starting the server.
+    await database.connect();
+
+    // 2. Start the HTTP server.
+    server.listen(PORT, () => {
+      // 3. Once the server is listening, mark the application as ready.
+      isReady = true;
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log('✅ Application is ready to accept traffic.');
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    // If startup fails, exit the process to allow the container orchestrator to restart it.
+    process.exit(1);
+  }
+};
+
+// Function to handle graceful shutdown.
+const gracefulShutdown = signal => {
+  console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
+
+  // 1. Stop the readiness probe. This tells Cloud Run to stop sending new requests.
+  isReady = false;
+  console.log('🚦 Readiness probe set to false. No new traffic will be accepted.');
+
+  // 2. Stop the server from accepting new connections.
+  // The callback is executed once all existing, in-flight requests are finished.
+  server.close(async () => {
+    console.log('✅ All connections closed.');
+    try {
+      // 3. Close database connections and perform other cleanup.
+      await database.close();
+    } catch (error) {
+      console.error('❌ Error during resource cleanup:', error);
+    } finally {
+      console.log('👋 Server shut down gracefully.');
+      // 4. Exit the process.
+      process.exit(0);
+    }
+  });
+
+  // 4. If connections are not closed within a timeout period, force shutdown.
+  // This is a safeguard against hanging requests. Cloud Run's default is 10 seconds.
+  setTimeout(() => {
+    console.error('❌ Could not close connections in time, forcing shutdown.');
+    process.exit(1);
+  }, 10000); // 10 seconds
+};
+
+// Listen for termination signals. Cloud Run sends SIGTERM.
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+// Also listen for SIGINT for local development (Ctrl+C).
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Start the application.
+startServer();
