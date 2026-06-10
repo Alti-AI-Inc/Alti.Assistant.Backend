@@ -10,6 +10,8 @@ import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { RedisClient } from '../../../shared/redis.js';
+// Bug Fix: Move dynamic import to static import for performance and consistency.
+import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 /**
  * @typedef {import('@google/genai').GoogleGenerativeAI} GoogleGenerativeAI
@@ -24,9 +26,38 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
  * A store for managing chat memories for different sessions,
  * allowing for persistent conversation history within the service.
- * @type {Object.<string, BufferMemory>}
+ * Bug Fix: Changed to Map to store memory objects with their last accessed timestamp
+ *          to enable cleanup and prevent memory leaks.
+ * @type {Map<string, { memory: BufferMemory, lastAccessed: number }>}
  */
-const groundedMemoryStore = {};
+const groundedMemoryStore = new Map();
+
+// Configuration for memory cleanup
+const SESSION_TTL_MINUTES = 30; // Sessions expire after 30 minutes of inactivity
+const CLEANUP_INTERVAL_MINUTES = 10; // Check for expired sessions every 10 minutes
+
+/**
+ * Cleans up expired sessions from the groundedMemoryStore.
+ * Sessions are considered expired if they haven't been accessed for SESSION_TTL_MINUTES.
+ */
+const cleanupMemoryStore = () => {
+  const now = Date.now();
+  const expiredTime = now - SESSION_TTL_MINUTES * 60 * 1000; // Convert minutes to milliseconds
+
+  for (const [sessionId, sessionEntry] of groundedMemoryStore.entries()) {
+    if (sessionEntry.lastAccessed < expiredTime) {
+      logger.info(`Cleaning up expired session memory for sessionId: ${sessionId}`);
+      groundedMemoryStore.delete(sessionId);
+    }
+  }
+};
+
+// Start the cleanup interval to periodically remove expired sessions.
+setInterval(cleanupMemoryStore, CLEANUP_INTERVAL_MINUTES * 60 * 1000);
+// Ensure the interval doesn't prevent Node.js from exiting if no other tasks are running.
+// This is generally not an issue in a long-running Express app.
+// If it were, `unref()` could be used: `setInterval(...).unref();`
+
 
 /**
  * Executes a Gemini model query with active Google Search Grounding using the modern GenAI SDK.
@@ -42,19 +73,26 @@ const groundedMemoryStore = {};
  *   prompt usage increment, or database operations.
  */
 const groundedPromptResponse = async (sessionId, prompt, userId) => {
-  let memory = groundedMemoryStore[sessionId];
-  if (!memory) {
+  // Bug Fix: Retrieve and update session entry from Map, handling lastAccessed timestamp.
+  let sessionEntry = groundedMemoryStore.get(sessionId);
+  let memory;
+
+  if (!sessionEntry) {
     memory = new BufferMemory({
       returnMessages: true,
       memoryKey: 'history',
       chatHistory: new InMemoryChatMessageHistory(),
     });
-    groundedMemoryStore[sessionId] = memory;
+    sessionEntry = { memory, lastAccessed: Date.now() };
+    groundedMemoryStore.set(sessionId, sessionEntry);
+  } else {
+    memory = sessionEntry.memory;
+    // Update last accessed time to prevent premature eviction
+    sessionEntry.lastAccessed = Date.now();
   }
 
   try {
-    // Enhance prompt using UnifiedSmartRouter for deep context
-    const { UnifiedSmartRouter } = await import('../../helpers/UnifiedSmartRouter.js');
+    // Bug Fix: UnifiedSmartRouter is now statically imported at the top of the file.
     const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
@@ -110,7 +148,8 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
       model: 'gemini-2.5-pro-grounded',
       reply,
       groundingMetadata,
-      total_time: result.usageMetadata?.candidatesTokenCount || 0,
+      // Bug Fix: Renamed 'total_time' to 'output_tokens' as it reflects token count, not time.
+      output_tokens: result.usageMetadata?.candidatesTokenCount || 0,
     };
 
     // Save prompt & response session in DB
@@ -135,7 +174,8 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     // only if it's not already present, preventing duplicates and ensuring atomicity.
     await UserModel.findByIdAndUpdate(
       userId,
-      { $addToSet: { llamaAiSessions: updatedSession._id } },
+      // Bug Fix: Changed 'llamaAiSessions' to 'geminiAiSessions' for consistency with the service.
+      { $addToSet: { geminiAiSessions: updatedSession._id } },
       { new: true } // Optionally return the updated user document
     );
 
