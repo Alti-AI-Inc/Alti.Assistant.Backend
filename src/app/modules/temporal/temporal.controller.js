@@ -112,7 +112,12 @@ import { TemporalCatalogService } from './temporal-catalog.service.js';
  */
 const getRepositories = async (req, res, next) => {
   try {
-    const { query, license, status, limit, page, sortBy } = req.query;
+    // Extract and sanitize query parameters
+    const { query, license, status, sortBy } = req.query;
+    // Parse limit and page to integers, providing defaults and ensuring positive values.
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+
     const result = await TemporalCatalogService.searchCatalog(query, {
       license,
       status,
