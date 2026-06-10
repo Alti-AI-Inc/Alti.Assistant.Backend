@@ -1,11 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import httpStatus from 'http-status';
+import fs from 'fs';
+import path from 'path';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../core/ApiError.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
-import fs from 'fs';
-import path from 'path';
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -13,6 +15,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * Parses variable names enclosed in curly braces {varName} and returns them.
  */
 const extractVariables = (template) => {
+  // This is a simple string operation, no error handling needed.
   const matches = template.match(/\{[a-zA-Z0-9_]+\}/g);
   return matches ? matches.map((m) => m.slice(1, -1)) : [];
 };
@@ -21,6 +24,7 @@ const extractVariables = (template) => {
  * Replaces {varName} in template string with actual values from scope.
  */
 const formatPrompt = (template, scope) => {
+  // This is a simple string operation, no error handling needed.
   let result = template;
   const vars = extractVariables(template);
   for (const v of vars) {
@@ -78,6 +82,10 @@ const executeSteps = async (steps, inputs, userId) => {
           });
 
           const response = result.response;
+          // Defensive check for response and text() method
+          if (!response || typeof response.text !== 'function') {
+            throw new Error('Invalid response structure from LLM API.');
+          }
           const responseText = response.text();
 
           stepOutput = responseText;
@@ -103,6 +111,8 @@ const executeSteps = async (steps, inputs, userId) => {
             stepOutput = parsed;
             scope[step.name] = parsed;
           } catch (err) {
+            // This is a common, expected failure, so a warning is appropriate.
+            // The fallback logic attempts to recover, which is good practice.
             logger.warn(`JSON parser failed, attempting key extraction: ${err.message}`);
             const extracted = {};
             const fields = step.config.expectedFields || [];
@@ -188,16 +198,20 @@ const executeSteps = async (steps, inputs, userId) => {
         }
 
         default:
-          throw new Error(`Unsupported chain step type: ${step.type}`);
+          // Use ApiError for configuration issues.
+          throw new ApiError(httpStatus.BAD_REQUEST, `Unsupported chain step type: ${step.type}`);
       }
     } catch (stepErr) {
       stepStatus = 'failed';
       stepError = stepErr.message;
       success = false;
       errorMsg = stepErr.message;
-      logger.error(`Chain step [${step.name}] failed:`, stepErr);
+      // Log with context and the full error object for stack trace.
+      logger.error(`Chain step [${step.name}] of type [${step.type}] failed.`, stepErr);
+      // Re-throw to be caught by the calling function (executeChain) to halt execution.
       throw stepErr;
     } finally {
+      // This block ensures that a record of the step is always created, even on failure.
       stepsExecution.push({
         stepName: step.name,
         stepType: step.type,
@@ -228,49 +242,96 @@ const executeSteps = async (steps, inputs, userId) => {
  */
 const executeChain = async (chainId, inputs, userId) => {
   const tStart = Date.now();
-  // Optimization: Use .lean() for read-only queries to improve performance
-  // by returning plain JavaScript objects instead of Mongoose documents,
-  // avoiding the overhead of Mongoose change tracking.
-  const chain = await LangchainChain.findById(chainId).lean();
-  if (!chain) {
-    throw new Error(`LangChain chain not found: ${chainId}`);
-  }
-
-  const execution = new LangchainExecution({
-    chainId,
-    userId,
-    inputs,
-    status: 'running',
-  });
-  await execution.save();
+  let execution; // Hoist execution document to be accessible in the final catch block.
 
   try {
-    const runResult = await executeSteps(chain.steps, inputs, userId);
-
-    const duration = Date.now() - tStart;
-    execution.status = 'success';
-    execution.stepsExecution = runResult.stepsExecution;
-    execution.outputs = runResult.outputs;
-    execution.totalDurationMs = duration;
-    execution.tokenUsage = runResult.tokenUsage;
-
-    // GCS log backup simulator
-    const backupDir = path.resolve('storage/ragsystem/telemetry');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
+    // Optimization: Use .lean() for read-only queries to improve performance
+    // by returning plain JavaScript objects instead of Mongoose documents,
+    // avoiding the overhead of Mongoose change tracking.
+    const chain = await LangchainChain.findById(chainId).lean();
+    if (!chain) {
+      // Use a specific ApiError for known failure cases like "not found".
+      throw new ApiError(httpStatus.NOT_FOUND, `LangChain chain not found: ${chainId}`);
     }
-    const logFilePath = path.join(backupDir, `lcel_execution_${execution._id}.json`);
-    fs.writeFileSync(logFilePath, JSON.stringify(execution.toJSON(), null, 2));
-    execution.gcsLogUri = `gs://${config.gcs?.presentation_bucket || 'alti_assistant_presentation'}/lcel_logs/lcel_execution_${execution._id}.json`;
 
+    // Create the initial execution record.
+    execution = new LangchainExecution({
+      chainId,
+      userId,
+      inputs,
+      status: 'running',
+    });
     await execution.save();
-    return execution;
-  } catch (chainErr) {
-    const duration = Date.now() - tStart;
-    execution.status = 'failed';
-    execution.totalDurationMs = duration;
-    await execution.save();
-    throw chainErr;
+
+    try {
+      // This inner try/catch handles failures during the step execution phase,
+      // allowing us to update the execution record to a 'failed' state.
+      const runResult = await executeSteps(chain.steps, inputs, userId);
+
+      const duration = Date.now() - tStart;
+      execution.status = 'success';
+      execution.stepsExecution = runResult.stepsExecution;
+      execution.outputs = runResult.outputs;
+      execution.totalDurationMs = duration;
+      execution.tokenUsage = runResult.tokenUsage;
+
+      // GCS log backup simulator
+      const backupDir = path.resolve('storage/ragsystem/telemetry');
+      // Synchronous file operations can throw errors, which are caught by the outer try/catch.
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      const logFilePath = path.join(backupDir, `lcel_execution_${execution._id}.json`);
+      fs.writeFileSync(logFilePath, JSON.stringify(execution.toJSON(), null, 2));
+      execution.gcsLogUri = `gs://${config.gcs?.presentation_bucket || 'alti_assistant_presentation'}/lcel_logs/lcel_execution_${execution._id}.json`;
+
+      await execution.save();
+      return execution;
+    } catch (chainErr) {
+      // This block catches errors from executeSteps.
+      const duration = Date.now() - tStart;
+      if (execution) {
+        execution.status = 'failed';
+        execution.totalDurationMs = duration;
+        // The specific step error is already logged inside executeSteps.
+        // We must wrap this save operation in its own try/catch, as a DB failure
+        // here would create an unhandled promise rejection inside a catch block.
+        try {
+          await execution.save();
+        } catch (saveErr) {
+          logger.error(
+            `CRITICAL: Failed to save FAILED execution state for chainId ${chainId}, executionId ${execution._id}.`,
+            saveErr
+          );
+        }
+      }
+      // Re-throw the original error to be caught by the main handler below.
+      throw chainErr;
+    }
+  } catch (error) {
+    // This is the main catch block for the entire service function.
+    // It handles DB errors, configuration errors, and errors re-thrown from the inner block.
+    logger.error(`Failed to execute chain ${chainId} for user ${userId}.`, {
+      // Log rich context for debugging.
+      error: { message: error.message, stack: error.stack },
+      chainId,
+      userId,
+      inputs,
+      executionId: execution?._id, // Log execution ID if available.
+    });
+
+    // Normalize the error before it propagates to the API response layer.
+    // If it's already a structured ApiError, pass it along.
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Otherwise, wrap it in a generic internal server error to avoid leaking implementation details.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred during chain execution.',
+      true,
+      error.stack
+    );
   }
 };
 

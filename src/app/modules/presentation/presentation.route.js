@@ -168,11 +168,14 @@ router.post(
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.get(
   '/status/:taskId',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(60, 1), // 60 requests per minute to prevent polling abuse
   validateRequest(PresentationValidation.checkStatusSchema),
   presentationController.checkTaskStatus
 );
@@ -316,11 +319,14 @@ router.post(
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.get(
   '/:presentationId',
   optionalAuth(),
   extractTenantContext, // Added for tenant-specific authorization and IDOR prevention
+  createRateLimiter(60, 5), // 60 requests per 5 minutes to prevent scraping
   validateRequest(PresentationValidation.getPresentationSchema),
   presentationController.getPresentation
 );
