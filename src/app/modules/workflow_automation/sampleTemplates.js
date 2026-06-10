@@ -259,9 +259,8 @@ const sampleTemplates = [
 
 /**
  * Creates a set of predefined sample workflow templates in the database.
- * This function iterates through the `sampleTemplates` array and attempts to
- * create each template if it does not already exist, preventing duplicates.
- * It logs the creation process and any errors encountered.
+ * This function efficiently checks for existing templates and bulk-inserts any
+ * that are missing, avoiding the N+1 query problem of checking one by one.
  *
  * @async
  * @function createSampleTemplates
@@ -270,23 +269,55 @@ const sampleTemplates = [
  */
 export const createSampleTemplates = async () => {
   try {
-    logger.info('Creating sample workflow templates...');
+    logger.info('Checking for and creating sample workflow templates...');
 
-    for (const templateData of sampleTemplates) {
-      const existingTemplate = await WorkflowTemplate.findOne({
-        name: templateData.name,
-      });
+    // OPTIMIZATION: Instead of querying inside a loop (N+1 problem), fetch all relevant data at once.
+    // 1. Get all names from the hardcoded sample templates.
+    const sampleTemplateNames = sampleTemplates.map((t) => t.name);
 
-      if (!existingTemplate) {
-        const template = new WorkflowTemplate(templateData);
-        await template.save();
-        logger.info(`Created template: ${templateData.name}`);
-      } else {
-        logger.info(`Template already exists: ${templateData.name}`);
-      }
+    // 2. Find all templates that already exist in the DB in a single query.
+    // Use .select('name') and .lean() for a highly efficient, projection-only query.
+    // INDEXING RECOMMENDATION: Ensure an index exists on the 'name' field in the 'WorkflowTemplate' collection
+    // for optimal performance of this query. A unique index is recommended to enforce data integrity.
+    // Example: `WorkflowTemplateSchema.index({ name: 1 }, { unique: true });`
+    const existingTemplates = await WorkflowTemplate.find({
+      name: { $in: sampleTemplateNames },
+    })
+      .select('name')
+      .lean();
+
+    const existingTemplateNames = new Set(existingTemplates.map((t) => t.name));
+
+    // 3. In-memory filter to find which templates are new. This is much faster than multiple DB checks.
+    const templatesToCreate = sampleTemplates.filter(
+      (t) => !existingTemplateNames.has(t.name)
+    );
+
+    // 4. If there are new templates, bulk-insert them in a single, efficient operation.
+    if (templatesToCreate.length > 0) {
+      await WorkflowTemplate.insertMany(templatesToCreate);
+      logger.info(
+        `Created ${
+          templatesToCreate.length
+        } new sample templates: ${templatesToCreate
+          .map((t) => t.name)
+          .join(', ')}`
+      );
+    } else {
+      logger.info(
+        'All sample templates already exist. No new templates were created.'
+      );
     }
 
-    logger.info('Sample templates creation completed');
+    if (existingTemplateNames.size > 0) {
+      logger.info(
+        `Skipped ${
+          existingTemplateNames.size
+        } existing templates: ${Array.from(existingTemplateNames).join(', ')}`
+      );
+    }
+
+    logger.info('Sample templates creation process completed.');
   } catch (error) {
     logger.error('Error creating sample templates:', error);
     throw error;

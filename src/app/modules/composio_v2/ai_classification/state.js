@@ -2,6 +2,39 @@ export const aiClassificationState = {
   // The user's original input/message
   userInput: { value: null },
 
+  // User, Workspace, and Team Context
+  userId: { value: null },
+
+  // Workspace context is crucial for manager features, authorization, and plan limits.
+  workspaceContext: {
+    value: null,
+    default: () => ({
+      workspaceId: null,
+      workspaceName: null,
+      // The role of the user making the current request. Used for authorization checks.
+      currentUserRole: 'member', // Default to the least privileged role
+      // List of team members for management purposes.
+      teamMembers: [], // e.g., [{ userId, email, role }]
+      // Plan and usage details to enforce limits without exposing sensitive billing info.
+      planDetails: {
+        planName: 'free',
+        memberLimit: 1,
+        currentMemberCount: 1,
+        // Metrics for the current billing cycle, fetched from a separate service.
+        usageMetrics: {
+          tasksExecuted: 0,
+          taskExecutionLimit: 100,
+        },
+      },
+      // Note: Billing information is explicitly excluded from this state for security.
+      // List of pending invitations for the workspace.
+      pendingInvitations: [], // e.g., [{ invitationId, email, role, status }]
+    }),
+  },
+
+  // Connected accounts for the user
+  connectedAccounts: { value: null },
+
   // List of available apps from database
   availableApps: { value: null },
 
@@ -89,12 +122,6 @@ export const aiClassificationState = {
       turnCount: 0,
     }),
   },
-
-  // User ID for personalized tool access
-  userId: { value: null },
-
-  // Connected accounts for the user
-  connectedAccounts: { value: null },
 
   // Processing stage
   currentStage: { value: 'initial' },

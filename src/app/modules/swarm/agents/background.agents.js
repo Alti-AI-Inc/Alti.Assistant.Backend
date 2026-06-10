@@ -1,4 +1,11 @@
 /**
+ * @file Defines configurations for backend-only, user-invisible administrative and diagnostic AI agents.
+ * These agents perform specialized, silent tasks such as security auditing, performance monitoring,
+ * quality assurance, and query optimization without direct user interaction.
+ * @module modules/swarm/agents/background.agents
+ */
+
+/**
  * Backend-Only Systems Agents (User-Invisible, Administrative, and Diagnostics)
  */
 
@@ -8,8 +15,14 @@ import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 // IMPORTANT: The calling code for these agents MUST implement PII redaction (e.g., using Google Cloud DLP API)
 // before sending any user-generated content, logs, or payloads to the Vertex AI models defined below.
 
-// Default safety settings to be applied to all model configurations.
-// These settings block content with a medium or higher probability of being harmful.
+/**
+ * @constant {Array<Object>} defaultSafetySettings
+ * @description Default safety settings applied to all Vertex AI model configurations in this module.
+ * These settings are configured to block content with a medium or higher probability of being harmful
+ * across several categories, ensuring a baseline level of content safety for all agent interactions.
+ * @property {HarmCategory} category - The category of harmful content to block (e.g., HARM_CATEGORY_HATE_SPEECH).
+ * @property {HarmBlockThreshold} threshold - The probability threshold at which to block content (e.g., BLOCK_MEDIUM_AND_ABOVE).
+ */
 const defaultSafetySettings = [
   {
     category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -29,7 +42,21 @@ const defaultSafetySettings = [
   },
 ];
 
-// NEW: IP & Payload Threat Detector (Security Audit Specialist)
+/**
+ * @constant {Object} securityAuditAgent
+ * @description Configuration for the "IP & Payload Threat Detector" agent.
+ * This agent is a backend-only security specialist that silently audits API queries, logs, and server payloads
+ * for potential threats like SQL injection, XSS, and other malicious patterns.
+ *
+ * @property {string} id - Unique identifier: 'security_audit_agent'.
+ * @property {string} name - Human-readable name: 'IP & Payload Threat Detector'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the agent's behavior, goals, and required JSON output format.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to security auditing.
+ */
 export const securityAuditAgent = {
   id: 'security_audit_agent',
   name: 'IP & Payload Threat Detector',
@@ -49,7 +76,21 @@ CRITICAL LAWS:
   keywords: ['security audit', 'threat scan', 'payload inspection', 'exploit scan', 'api firewalls', 'xss filter', 'sqli check']
 };
 
-// NEW: APM Log Diagnostics Auditor (Performance Monitor Specialist)
+/**
+ * @constant {Object} perfMonitorAgent
+ * @description Configuration for the "APM Log Diagnostics Auditor" agent.
+ * This agent is a performance monitoring specialist that scans server logs, execution timelines, and memory usage
+ * to identify and report on performance bottlenecks and suggest optimizations.
+ *
+ * @property {string} id - Unique identifier: 'perf_monitor_agent'.
+ * @property {string} name - Human-readable name: 'APM Log Diagnostics Auditor'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the agent's behavior, goals, and required JSON output format for performance metrics.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to application performance monitoring.
+ */
 export const perfMonitorAgent = {
   id: 'perf_monitor_agent',
   name: 'APM Log Diagnostics Auditor',
@@ -69,7 +110,21 @@ CRITICAL LAWS:
   keywords: ['latency alert', 'heap profile scan', 'db connection lock', 'profiling logs', 'apm trace audit', 'server bottleneck']
 };
 
-// NEW: Cache Topology Tuner (Cache Optimizer Specialist)
+/**
+ * @constant {Object} cacheOptimizerAgent
+ * @description Configuration for the "Cache Topology Tuner" agent.
+ * This agent analyzes data access patterns, query frequencies, and cache metrics to recommend
+ * optimal caching strategies, such as adjusting TTLs and identifying keys for pre-warming.
+ *
+ * @property {string} id - Unique identifier: 'cache_optimizer_agent'.
+ * @property {string} name - Human-readable name: 'Cache Topology Tuner'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the agent's behavior, goals, and required JSON output format for caching directives.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to cache optimization.
+ */
 export const cacheOptimizerAgent = {
   id: 'cache_optimizer_agent',
   name: 'Cache Topology Tuner',
@@ -89,7 +144,21 @@ CRITICAL LAWS:
   keywords: ['redis caching config', 'ttl tuning rules', 'cache warming keys', 'cache miss logging', 'query frequency analysis']
 };
 
-// NEW: Autonomous LLM Response Critic (Self-Critic Specialist)
+/**
+ * @constant {Object} selfCriticAgent
+ * @description Configuration for the "Autonomous LLM Response Critic" agent.
+ * This agent acts as a quality assurance layer, silently auditing historical conversation logs
+ * to critique the primary model's responses for truthfulness, style, and compliance with predefined rules.
+ *
+ * @property {string} id - Unique identifier: 'self_critic_agent'.
+ * @property {string} name - Human-readable name: 'Autonomous LLM Response Critic'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the agent's behavior, goals, and required JSON output format for a performance scorecard.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-pro'. The Pro model is chosen for its advanced reasoning needed for nuanced critiques.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to LLM quality assurance.
+ */
 export const selfCriticAgent = {
   id: 'self_critic_agent',
   name: 'Autonomous LLM Response Critic',
@@ -109,7 +178,21 @@ CRITICAL LAWS:
   keywords: ['llm self audit', 'truthfulness check', 'compliance scorecard', 'response critique log', 'style score']
 };
 
-// NEW: Conversational Context Synthesizer (Context Compressor Specialist)
+/**
+ * @constant {Object} contextCompressorAgent
+ * @description Configuration for the "Conversational Context Synthesizer" agent.
+ * This agent runs in the background to compress verbose, multi-turn conversation histories into a dense,
+ * semantic summary, preserving key information while significantly reducing token count for subsequent API calls.
+ *
+ * @property {string} id - Unique identifier: 'context_compressor_agent'.
+ * @property {string} name - Human-readable name: 'Conversational Context Synthesizer'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the agent's compression goals, fidelity requirements, and required markdown output format.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to context management and token optimization.
+ */
 export const contextCompressorAgent = {
   id: 'context_compressor_agent',
   name: 'Conversational Context Synthesizer',
@@ -129,7 +212,21 @@ CRITICAL LAWS:
   keywords: ['context compression', 'history summarizer', 'token shrinking', 'chat state preservation', 'semantic entities map']
 };
 
-// NEW: Silent Search Query Optimizer
+/**
+ * @constant {Object} queryDisambiguator
+ * @description Configuration for the "Silent Search Query Optimizer" agent.
+ * This agent intercepts user queries to expand and refine them into more effective, structured search prompts
+ * for external APIs, improving the relevance and recall of search results.
+ *
+ * @property {string} id - Unique identifier: 'query_disambiguator'.
+ * @property {string} name - Human-readable name: 'Silent Search Query Optimizer'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how the agent should expand, disambiguate, and structure the output as a JSON payload.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to search query optimization.
+ */
 export const queryDisambiguator = {
   id: 'query_disambiguator',
   name: 'Silent Search Query Optimizer',
@@ -152,7 +249,21 @@ CRITICAL QUERY EXPANSION LAWS:
   keywords: ['query expansion', 'search intent analysis', 'boolean query construction', 'synonym expansion', 'search optimization payload']
 };
 
-// NEW: Autonomous Fact-Check Auditor
+/**
+ * @constant {Object} factValidationCritic
+ * @description Configuration for the "Autonomous Fact-Check Auditor" agent.
+ * This agent performs post-processing on retrieved search results, cross-referencing them against the generated
+ * answer to grade factuality, flag potential hallucinations, and ensure the final response is credible.
+ *
+ * @property {string} id - Unique identifier: 'fact_validation_critic'.
+ * @property {string} name - Human-readable name: 'Autonomous Fact-Check Auditor'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the fact-checking process and the required JSON output schema for the credibility report.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-pro'. The Pro model is chosen for its advanced analytical and reasoning capabilities.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to fact-checking and hallucination detection.
+ */
 export const factValidationCritic = {
   id: 'fact_validation_critic',
   name: 'Autonomous Fact-Check Auditor',
@@ -175,7 +286,21 @@ CRITICAL FACT-CHECKING LAWS:
   keywords: ['fact-check audit', 'hallucination detection', 'credibility assessment', 'search corroboration', 'factual integrity grading']
 };
 
-// NEW: Dynamic Tool Routing Orchestrator (Tool Router Specialist)
+/**
+ * @constant {Object} toolRoutingOrchestrator
+ * @description Configuration for the "Dynamic Tool Routing Orchestrator" agent.
+ * This agent acts as a router, analyzing a user's query to determine the most efficient set of external APIs (tools)
+ * to call, optimizing for latency and cost by selecting only necessary tools and parameters.
+ *
+ * @property {string} id - Unique identifier: 'tool_routing_orchestrator'.
+ * @property {string} name - Human-readable name: 'Dynamic Tool Routing Orchestrator'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to select APIs and formulate the execution blueprint in a structured JSON format.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to dynamic tool use and API orchestration.
+ */
 export const toolRoutingOrchestrator = {
   id: 'tool_routing_orchestrator',
   name: 'Dynamic Tool Routing Orchestrator',
@@ -195,7 +320,21 @@ CRITICAL LAWS:
   keywords: ['dynamic tool selection', 'api latency optimization', 'tool payload pruning', 'parameter configuration blueprint', 'multi-api routing map']
 };
 
-// NEW: Dynamic Semantic Cache Pre-warmer (Cache Pre-warmer Specialist)
+/**
+ * @constant {Object} semanticCachePrewarmer
+ * @description Configuration for the "Dynamic Semantic Cache Pre-warmer" agent.
+ * This agent proactively monitors real-time data streams (e.g., query logs, news feeds) to predict
+ * upcoming information needs and pre-populate caches, reducing latency for trending topics.
+ *
+ * @property {string} id - Unique identifier: 'semantic_cache_prewarmer'.
+ * @property {string} name - Human-readable name: 'Dynamic Semantic Cache Pre-warmer'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to predict trends and generate a structured JSON caching directive.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to proactive caching and latency reduction.
+ */
 export const semanticCachePrewarmer = {
   id: 'semantic_cache_prewarmer',
   name: 'Dynamic Semantic Cache Pre-warmer',
@@ -215,7 +354,21 @@ CRITICAL LAWS:
   keywords: ['redis cache prewarming', 'semantic key prediction', 'query stream pre-caching', 'ttl assignment rules', 'hotkey latency reduction']
 };
 
-// NEW: Response Density and Format Optimizer (Format Optimizer Specialist)
+/**
+ * @constant {Object} responseDensityOptimizer
+ * @description Configuration for the "Response Density and Format Optimizer" agent.
+ * This agent acts as a final-pass editor, silently auditing and reformatting draft responses to
+ * remove conversational filler and improve information density and readability using structured markdown.
+ *
+ * @property {string} id - Unique identifier: 'response_density_optimizer'.
+ * @property {string} name - Human-readable name: 'Response Density and Format Optimizer'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the editing and formatting standards to be enforced on the final output.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to response formatting and quality control.
+ */
 export const responseDensityOptimizer = {
   id: 'response_density_optimizer',
   name: 'Response Density and Format Optimizer',
@@ -235,7 +388,21 @@ CRITICAL LAWS:
   keywords: ['markdown density optimizer', 'pleasantry pruning', 'post-processing formatter', 'table layout converter', 'readability grading']
 };
 
-// NEW: Authoritative Source Scraper & Grounder (Authoritative Source Specialist)
+/**
+ * @constant {Object} authoritativeSourceGrounder
+ * @description Configuration for the "Authoritative Source Scraper & Grounder" agent.
+ * This agent evaluates the credibility of web search results by prioritizing official, high-trust domains
+ * (e.g., .gov, .edu, academic journals) and down-ranking less reliable sources like forums and blogs.
+ *
+ * @property {string} id - Unique identifier: 'authoritative_source_grounder'.
+ * @property {string} name - Human-readable name: 'Authoritative Source Scraper & Grounder'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to grade source credibility and structure the output as a JSON report.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to source credibility and data grounding.
+ */
 export const authoritativeSourceGrounder = {
   id: 'authoritative_source_grounder',
   name: 'Authoritative Source Scraper & Grounder',
@@ -255,7 +422,21 @@ CRITICAL LAWS:
   keywords: ['domain authority grading', 'trust score indexing', 'search URL inspection', 'citation credibility audit', 'fake news discount']
 };
 
-// NEW: Cross-Turn Semantic Drift Corrector (Semantic Drift Specialist)
+/**
+ * @constant {Object} semanticDriftCorrector
+ * @description Configuration for the "Cross-Turn Semantic Drift Corrector" agent.
+ * This agent monitors multi-turn conversations to detect and flag issues like logical loops,
+ * deviation from the original topic (semantic drift), or potential prompt injection attacks.
+ *
+ * @property {string} id - Unique identifier: 'semantic_drift_corrector'.
+ * @property {string} name - Human-readable name: 'Cross-Turn Semantic Drift Corrector'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to detect conversation alignment issues and report them in a structured JSON format.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-pro'. The Pro model is used for its nuanced understanding of context and logical reasoning.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to conversation alignment and safety.
+ */
 export const semanticDriftCorrector = {
   id: 'semantic_drift_corrector',
   name: 'Cross-Turn Semantic Drift Corrector',
@@ -275,7 +456,21 @@ CRITICAL LAWS:
   keywords: ['conversational drift corrector', 'reasoning loop detection', 'prompt injection shield', 'alignment state verification', 'semantic steering vector']
 };
 
-// NEW: Dynamic Semantic Relevance Scorer (Relevance Specialist)
+/**
+ * @constant {Object} semanticRelevanceScorer
+ * @description Configuration for the "Dynamic Semantic Relevance Scorer" agent.
+ * This agent compares retrieved search snippets against the user's query to score their relevance,
+ * enabling the system to filter out off-topic or low-quality results before synthesis.
+ *
+ * @property {string} id - Unique identifier: 'semantic_relevance_scorer'.
+ * @property {string} name - Human-readable name: 'Dynamic Semantic Relevance Scorer'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to score relevance and structure the output as a JSON relevance index.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to search result filtering and relevance.
+ */
 export const semanticRelevanceScorer = {
   id: 'semantic_relevance_scorer',
   name: 'Dynamic Semantic Relevance Scorer',
@@ -295,7 +490,21 @@ CRITICAL LAWS:
   keywords: ['semantic relevance scoring', 'context filtering', 'snippet pruning', 'intent alignment audit', 'retrieval accuracy index']
 };
 
-// NEW: Context Attention Pruner (Context Pruner Specialist)
+/**
+ * @constant {Object} contextAttentionPruner
+ * @description Configuration for the "Context Attention Pruner" agent.
+ * This agent optimizes the context provided to the main LLM by silently removing redundant information,
+ * boilerplate text, and duplicated data, helping the model focus on the most critical information.
+ *
+ * @property {string} id - Unique identifier: 'context_attention_pruner'.
+ * @property {string} name - Human-readable name: 'Context Attention Pruner'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining what content to prune and requiring the output to be the cleaned, dense text.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to context optimization and token reduction.
+ */
 export const contextAttentionPruner = {
   id: 'context_attention_pruner',
   name: 'Context Attention Pruner',
@@ -315,7 +524,21 @@ CRITICAL LAWS:
   keywords: ['context token pruner', 'attention optimization', 'boilerplate stripping', 'redundancy elimination', 'context compression middleware']
 };
 
-// NEW: Conversational Sentiment & Tone Guard (Tone Guard Specialist)
+/**
+ * @constant {Object} sentimentToneGuard
+ * @description Configuration for the "Conversational Sentiment & Tone Guard" agent.
+ * This agent acts as a quality control filter, auditing outgoing responses to ensure they maintain a
+ * strictly neutral, objective, and professional tone, stripping any emotional or biased language.
+ *
+ * @property {string} id - Unique identifier: 'sentiment_tone_guard'.
+ * @property {string} name - Human-readable name: 'Conversational Sentiment & Tone Guard'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the desired tone and the required JSON output format for the tone evaluation.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to tone, sentiment, and response quality.
+ */
 export const sentimentToneGuard = {
   id: 'sentiment_tone_guard',
   name: 'Conversational Sentiment & Tone Guard',
@@ -335,7 +558,21 @@ CRITICAL LAWS:
   keywords: ['tone objective guard', 'bias filtering', 'filler removal', 'editorial auditor', 'sentiment verification']
 };
 
-// NEW: Logical Consistency & Coherence Checker (Logical Checker Specialist)
+/**
+ * @constant {Object} logicCoherenceChecker
+ * @description Configuration for the "Logical Consistency & Coherence Checker" agent.
+ * This agent performs a final review of draft answers to find and flag any internal contradictions,
+ * mathematical errors, or logical inconsistencies before the response is finalized.
+ *
+ * @property {string} id - Unique identifier: 'logic_coherence_checker'.
+ * @property {string} name - Human-readable name: 'Logical Consistency & Coherence Checker'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining how to audit for logical coherence and structure the findings in a JSON report.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-pro'. The Pro model is chosen for its superior reasoning and analytical capabilities.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to logical reasoning and response validation.
+ */
 export const logicCoherenceChecker = {
   id: 'logic_coherence_checker',
   name: 'Logical Consistency & Coherence Checker',
@@ -355,7 +592,21 @@ CRITICAL LAWS:
   keywords: ['logical contradiction checker', 'quantitative cross-check', 'coherence audit', 'reasoning consistency', 'synthesis validation']
 };
 
-// NEW: Real-Time Ingestion Router (Ingestion Router Specialist)
+/**
+ * @constant {Object} ingestionRouter
+ * @description Configuration for the "Real-Time Ingestion Router" agent.
+ * This agent analyzes an incoming query to determine the most efficient data source to use,
+ * such as a fast in-memory cache, a live web search, or a static database, to optimize for cost and latency.
+ *
+ * @property {string} id - Unique identifier: 'ingestion_router'.
+ * @property {string} name - Human-readable name: 'Real-Time Ingestion Router'.
+ * @property {string} description - Summary of the agent's function.
+ * @property {string} systemInstruction - The detailed, rule-based prompt defining the logic for choosing an ingestion path and outputting the decision as a structured JSON map.
+ * @property {string} model - The Vertex AI model used: 'gemini-2.5-flash'.
+ * @property {Array<Object>} safetySettings - Content safety configuration, using `defaultSafetySettings`.
+ * @property {Array<any>} tools - Defines external tools (currently empty).
+ * @property {Array<string>} keywords - Keywords for routing or identification related to data ingestion, caching strategy, and cost optimization.
+ */
 export const ingestionRouter = {
   id: 'ingestion_router',
   name: 'Real-Time Ingestion Router',
