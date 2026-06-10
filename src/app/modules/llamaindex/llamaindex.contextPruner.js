@@ -1,6 +1,7 @@
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import { relationshipGraphService } from './llamaindex.relationshipGraph.js';
 import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../utils/ApiError.js';
 
 // Common English stopwords to filter out for Jaccard similarity computation
 const STOPWORDS = new Set([
@@ -234,7 +235,9 @@ ${query}`;
         name: err.name
       }
     });
-    return query; // Graceful fallback
+    // PATCH: Instead of returning the original query (silent failure), throw a normalized ApiError.
+    // This makes the failure explicit to the calling service/controller, allowing for better upstream error handling.
+    throw new ApiError(500, 'Failed to process and enrich query context.', err);
   }
 };
 
@@ -287,7 +290,9 @@ const getGlobalStats = async () => {
         name: err.name
       }
     });
-    throw err;
+    // PATCH: Re-throw a normalized ApiError instead of the raw database error.
+    // This prevents leaking internal implementation details to the user-facing error handler.
+    throw new ApiError(500, 'Failed to retrieve global statistics.', err);
   }
 };
 
