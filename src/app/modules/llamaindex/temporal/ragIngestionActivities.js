@@ -6,31 +6,138 @@ import crypto from 'node:crypto';
 import { logger } from '../../../../shared/logger.js';
 import config from '../../../../../config/index.js';
 
+// This file has been enhanced with Platform Owner features for global oversight,
+// tenant management, and system-wide configuration. Key features include:
+// - A (mock) Tenant Management Service to control tenant status (active/suspended).
+// - A hierarchical configuration system for setting platform-wide and tenant-specific limits.
+// - Platform Owner role-based overrides for tenant suspension and resource limits.
+// - Structured JSON logging for improved global monitoring, auditing, and analytics.
+// - Enhanced security in path generation to ensure strict tenant data isolation.
+
 // Cache in-memory active node structures to bridge workflow states durably
 const activityTransitiveState = new Map();
 
+// #region Platform Owner / Super Admin Features
+
+// Platform Owner Feature: Centralized Tenant Management Service (Mock)
+// In a real system, this would connect to a database or a dedicated microservice.
+// It provides tenant status (active/suspended) and configuration overrides.
+const tenantManagementService = {
+  // Simulates a database of tenant statuses and configurations.
+  _tenants: new Map([
+    ['tenant-123', { status: 'active', config: { maxDocSizeMb: 25, storageQuotaMb: 500 } }],
+    ['tenant-456', { status: 'suspended', config: { maxDocSizeMb: 10, storageQuotaMb: 100 } }],
+    ['tenant-789', { status: 'active', config: {} }], // Uses platform defaults
+  ]),
+
+  async getTenantStatus(tenantId) {
+    const tenant = this._tenants.get(tenantId);
+    return tenant ? tenant.status : 'unknown'; // Default to 'unknown' for non-existent tenants
+  },
+
+  async getTenantConfig(tenantId) {
+    const tenant = this._tenants.get(tenantId);
+    return tenant ? tenant.config : {};
+  },
+
+  // Platform Owner Feature: Allows a super admin to suspend a tenant.
+  async suspendTenant(tenantId) {
+    if (this._tenants.has(tenantId)) {
+      this._tenants.get(tenantId).status = 'suspended';
+      logger.info({ message: `Tenant ${tenantId} has been suspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
+      return true;
+    }
+    return false;
+  },
+
+  // Platform Owner Feature: Allows a super admin to unsuspend a tenant.
+  async unsuspendTenant(tenantId) {
+    if (this._tenants.has(tenantId)) {
+      this._tenants.get(tenantId).status = 'active';
+      logger.info({ message: `Tenant ${tenantId} has been unsuspended by Platform Owner.`, tenantId, audit: true, component: 'TenantManagementService' });
+      return true;
+    }
+    return false;
+  }
+};
+
+// Platform Owner Feature: Hierarchical Configuration Resolver
+// Merges platform-wide defaults with tenant-specific settings, enabling granular control.
+async function getResolvedConfig(tenantId) {
+  const platformDefaults = {
+    maxDocSizeMb: config.platform?.limits?.maxDocSizeMb ?? 10, // Default 10MB
+    storageQuotaMb: config.platform?.limits?.storageQuotaMb ?? 250, // Default 250MB
+  };
+  const tenantSpecifics = await tenantManagementService.getTenantConfig(tenantId);
+  return { ...platformDefaults, ...tenantSpecifics };
+}
+
 /**
- * Helper to resolve a safe, non-traversable persistence directory for a user
+ * Platform Owner Feature: Centralized and secure tenant data path resolution.
+ * Ensures strict data siloing and prevents path traversal attacks.
+ * @param {string} tenantId - The unique identifier for the tenant.
+ * @returns {string} The resolved, secure path to the tenant's storage directory.
  */
-function getSafePersistDir(userId) {
-  const baseDir = path.resolve('storage/ragsystem');
-  const persistDir = path.resolve(baseDir, String(userId));
+function getSafePersistDir(tenantId) {
+  if (!tenantId) {
+    throw new Error('Security violation: tenantId is required for data operations.');
+  }
+  const baseDir = path.resolve(config.platform?.storageBasePath ?? 'storage/ragsystem');
+  // Sanitize tenantId to prevent directory traversal characters (e.g., '..', '/')
+  const sanitizedTenantId = String(tenantId).replace(/[\\/.]/g, '');
+  if (!sanitizedTenantId) {
+      throw new Error('Security violation: Invalid tenantId provided.');
+  }
+  const persistDir = path.resolve(baseDir, sanitizedTenantId);
+
+  // Final security check to ensure the resolved path is within the intended base directory.
   if (!persistDir.startsWith(baseDir)) {
     throw new Error('Security violation: Path traversal detected');
   }
   return persistDir;
 }
 
+// #endregion
+
 /**
- * Resilient Temporal Activity validating and loading document buffer
+ * Resilient Temporal Activity validating and loading document buffer.
+ * Enforces tenant status and file size limits.
  */
-export async function downloadAndLoadFileActivity(filePath, originalName, docId) {
-  logger.info(`[Temporal Activity] Loading document: ${originalName} (ID: ${docId})`);
+export async function downloadAndLoadFileActivity(filePath, originalName, docId, tenantId, invoker) {
+  const activityName = 'downloadAndLoadFileActivity';
+  logger.info({ message: 'Starting document load and validation', activity: activityName, tenantId, docId, originalName, filePath });
+
   try {
-    // OPTIMIZATION: Replaced sync existsSync with an async fsPromises.stat call.
-    // The function's try/catch block will handle the error if the file does not exist,
-    // preventing event loop blocking and simplifying the code.
+    // Platform Owner Feature: Enforce tenant status and limits with override capability.
+    const isPlatformOwner = invoker?.role === 'platform_owner';
+
+    // 1. Check tenant status (e.g., suspended)
+    const tenantStatus = await tenantManagementService.getTenantStatus(tenantId);
+    if (tenantStatus === 'suspended') {
+      if (isPlatformOwner) {
+        logger.warn({ message: 'Platform Owner overriding suspension for tenant.', activity: activityName, tenantId, docId, audit: true });
+      } else {
+        throw new Error(`Operation forbidden: Tenant '${tenantId}' is suspended.`);
+      }
+    }
+    if (tenantStatus === 'unknown') {
+        // Policy: Fail for unknown tenants to prevent unauthorized resource usage.
+        throw new Error(`Operation forbidden: Tenant '${tenantId}' is not recognized.`);
+    }
+
+    // 2. Check and enforce file size limits
+    const resolvedConfig = await getResolvedConfig(tenantId);
     const stats = await fsPromises.stat(filePath);
+    const fileSizeMb = stats.size / (1024 * 1024);
+
+    if (fileSizeMb > resolvedConfig.maxDocSizeMb) {
+      if (isPlatformOwner) {
+        logger.warn({ message: 'Platform Owner overriding file size limit for document.', activity: activityName, tenantId, docId, fileSizeMb, limitMb: resolvedConfig.maxDocSizeMb, audit: true });
+      } else {
+        throw new Error(`File size (${fileSizeMb.toFixed(2)}MB) exceeds the limit of ${resolvedConfig.maxDocSizeMb}MB for tenant '${tenantId}'.`);
+      }
+    }
+
     return {
       success: true,
       sizeBytes: stats.size,
@@ -38,7 +145,7 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId)
       originalName
     };
   } catch (error) {
-    logger.error(`[Temporal Activity] downloadAndLoadFileActivity failed: ${error.message}`);
+    logger.error({ message: 'downloadAndLoadFileActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -46,8 +153,9 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId)
 /**
  * Resilient Temporal Activity running high-fidelity HTML-to-Markdown conversions for technical structured data
  */
-export async function parseToMarkdownActivity(filePath, originalName, docId) {
-  logger.info(`[Temporal Activity] High-fidelity parsing document: ${originalName}`);
+export async function parseToMarkdownActivity(filePath, originalName, docId, tenantId) {
+  const activityName = 'parseToMarkdownActivity';
+  logger.info({ message: 'High-fidelity parsing document', activity: activityName, tenantId, docId, originalName });
   try {
     const documents = await extractTextAndBuildDocuments(filePath, originalName, docId);
     if (!documents || documents.length === 0) {
@@ -63,7 +171,7 @@ export async function parseToMarkdownActivity(filePath, originalName, docId) {
       isMarkdown: documents.some(d => d.metadata?.useMarkdownParser)
     };
   } catch (error) {
-    logger.error(`[Temporal Activity] parseToMarkdownActivity failed: ${error.message}`);
+    logger.error({ message: 'parseToMarkdownActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -71,8 +179,9 @@ export async function parseToMarkdownActivity(filePath, originalName, docId) {
 /**
  * Resilient Temporal Activity chunking document, enriching it with Gemini metadata, and generating text-embedding-004 vectors
  */
-export async function chunkAndEmbedActivity(filePath, originalName, docId, userId) {
-  logger.info(`[Temporal Activity] Segmenting and generating vector embeddings for: ${originalName} (User: ${userId})`);
+export async function chunkAndEmbedActivity(filePath, originalName, docId, tenantId) {
+  const activityName = 'chunkAndEmbedActivity';
+  logger.info({ message: 'Segmenting and generating vector embeddings', activity: activityName, tenantId, docId, originalName });
   try {
     const documents = activityTransitiveState.get(`${docId}_documents`);
     if (!documents) {
@@ -85,23 +194,23 @@ export async function chunkAndEmbedActivity(filePath, originalName, docId, userI
     // 1. Structure-aware Node Parser
     if (hasMarkdown) {
       transformations.push(new MarkdownNodeParser());
-      logger.info('[Temporal Ingest Pipeline] Using MarkdownNodeParser for structure-aware advanced ingestion.');
+      logger.info({ message: 'Using MarkdownNodeParser for structure-aware ingestion.', component: 'IngestionPipeline', tenantId, docId });
     } else {
       transformations.push(new SentenceWindowNodeParser({
         windowSize: 3,
         windowMetadataKey: '_window',
         originalTextMetadataKey: '_original_text',
       }));
-      logger.info('[Temporal Ingest Pipeline] Using SentenceWindowNodeParser.');
+      logger.info({ message: 'Using SentenceWindowNodeParser.', component: 'IngestionPipeline', tenantId, docId });
     }
 
     // 2. High-performance LLM-driven metadata extraction
     try {
       transformations.push(new TitleExtractor({ llm: Settings.llm, nodes: 3 }));
       transformations.push(new KeywordExtractor({ llm: Settings.llm, keywords: 5 }));
-      logger.info('[Temporal Ingest Pipeline] Metadata TitleExtractor and KeywordExtractor active.');
+      logger.info({ message: 'Metadata TitleExtractor and KeywordExtractor active.', component: 'IngestionPipeline', tenantId, docId });
     } catch (metaErr) {
-      logger.warn(`[Temporal Ingest Pipeline] Metadata extractors configuration warning: ${metaErr.message}`);
+      logger.warn({ message: 'Metadata extractors configuration warning', error: metaErr.message, component: 'IngestionPipeline', tenantId, docId });
     }
 
     // 3. Vector Embedding generation via text-embedding-004
@@ -118,30 +227,30 @@ export async function chunkAndEmbedActivity(filePath, originalName, docId, userI
       nodeCount: nodes.length
     };
   } catch (error) {
-    logger.error(`[Temporal Activity] chunkAndEmbedActivity failed: ${error.message}`);
+    logger.error({ message: 'chunkAndEmbedActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
 
 /**
- * Resilient Temporal Activity committing vector nodes and aligning local document manifest registers
+ * Resilient Temporal Activity committing vector nodes and aligning local document manifest registers.
+ * Enforces tenant storage quotas.
  */
-export async function commitToVectorStoreActivity(filePath, originalName, docId, userId) {
-  logger.info(`[Temporal Activity] Writing index and committing vector storage to Disk for document ID: ${docId}`);
+export async function commitToVectorStoreActivity(filePath, originalName, docId, tenantId, invoker) {
+  const activityName = 'commitToVectorStoreActivity';
+  logger.info({ message: 'Writing index and committing vector storage', activity: activityName, tenantId, docId });
   try {
     const nodes = activityTransitiveState.get(`${docId}_nodes`);
     if (!nodes) {
       throw new Error('Transitive vector nodes state not found.');
     }
 
-    const persistDir = getSafePersistDir(userId);
+    const persistDir = getSafePersistDir(tenantId);
     await fsPromises.mkdir(persistDir, { recursive: true });
 
     const vectorStorePath = path.join(persistDir, 'vector_store.json');
     let currentNodes = [];
     
-    // OPTIMIZATION: Replaced sync existsSync with a try-catch around the async readFile.
-    // This avoids blocking the event loop and simplifies the logic for handling a non-existent file.
     try {
       const fileContent = await fsPromises.readFile(vectorStorePath, 'utf-8');
       const parsed = JSON.parse(fileContent);
@@ -149,36 +258,40 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
         currentNodes = parsed;
       }
     } catch (err) {
-      // If the file doesn't exist (ENOENT) or is invalid JSON, we start with an empty array, which is the desired behavior.
       if (err.code !== 'ENOENT') {
-        logger.warn(`[Temporal Activity] Could not read or parse existing vector store at ${vectorStorePath}: ${err.message}`);
+        logger.warn({ message: 'Could not read or parse existing vector store, will create new one.', error: err.message, activity: activityName, tenantId, vectorStorePath });
       }
     }
 
-    // PERFORMANCE_WARNING: The following operations (reading a potentially large JSON file, filtering it in memory,
-    // and writing it back) are a major performance bottleneck and will not scale.
-    // As the vector store grows, this read-modify-write cycle will consume significant memory and CPU,
-    // leading to slow ingestion times. The .filter() and .map() operations are synchronous and will block
-    // the event loop for the duration of their execution on a large array.
-    // RECOMMENDATION: Replace this file-based vector store with a dedicated database solution like
-    // a vector database (e.g., Chroma, Weaviate, Pinecone) or a traditional database with vector support (e.g., PostgreSQL with pgvector).
-    // This would allow for efficient indexed queries and atomic upsert operations without loading the entire dataset into memory.
+    // RECOMMENDATION: Replace this file-based vector store with a dedicated database solution (e.g., PostgreSQL with pgvector, Chroma, Weaviate)
+    // to avoid performance bottlenecks associated with reading/writing large JSON files on every ingestion.
 
     // Upsert strategy: Clean out any previous nodes matching the same source filename
     const baseNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName);
     const finalNodes = [...baseNodes, ...nodes.map(nodeToMetadata)];
 
+    // Platform Owner Feature: Enforce storage quota with override capability.
+    const isPlatformOwner = invoker?.role === 'platform_owner';
+    const resolvedConfig = await getResolvedConfig(tenantId);
+    const newStoreContent = JSON.stringify(finalNodes, null, 2);
+    const newStoreSizeMb = Buffer.byteLength(newStoreContent, 'utf8') / (1024 * 1024);
+
+    if (newStoreSizeMb > resolvedConfig.storageQuotaMb) {
+      if (isPlatformOwner) {
+        logger.warn({ message: 'Platform Owner overriding storage quota for tenant.', activity: activityName, tenantId, newStoreSizeMb, limitMb: resolvedConfig.storageQuotaMb, audit: true });
+      } else {
+        throw new Error(`Commit failed: Adding this document would exceed the storage quota of ${resolvedConfig.storageQuotaMb}MB for tenant '${tenantId}'.`);
+      }
+    }
+
     // Commit back to local storage
-    await fsPromises.writeFile(vectorStorePath, JSON.stringify(finalNodes, null, 2), 'utf-8');
+    await fsPromises.writeFile(vectorStorePath, newStoreContent, 'utf-8');
 
     // Update the knowledge bank manifest
     const manifest = await loadManifest(persistDir) || {};
-    if (!manifest.documents || !Array.isArray(manifest.documents)) {
-      manifest.documents = [];
-    }
-    const existingDocIdx = manifest.documents.findIndex(d => d && (d.docId === docId || d.fileName === originalName));
+    manifest.documents = manifest.documents?.filter(d => d && (d.docId !== docId && d.fileName !== originalName)) || [];
 
-    const docRecord = {
+    manifest.documents.push({
       docId,
       fileName: originalName,
       fileSize: nodes.reduce((sum, n) => sum + (n.text?.length || 0), 0),
@@ -186,20 +299,10 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
       processingStatus: 'completed',
       processedAt: new Date().toISOString(),
       chunkCount: nodes.length,
-      profile: {
-        summary: 'Resiliently indexed via Temporal.',
-        topics: ['Temporal', 'LlamaIndex', 'RAG']
-      }
-    };
-
-    if (existingDocIdx > -1) {
-      manifest.documents[existingDocIdx] = docRecord;
-    } else {
-      manifest.documents.push(docRecord);
-    }
+    });
 
     await saveManifest(persistDir, manifest);
-    logger.info(`[Temporal Activity] Ingestion committed successfully. Manifest registered.`);
+    logger.info({ message: 'Ingestion committed successfully. Manifest registered.', activity: activityName, tenantId, docId, nodeCount: nodes.length });
 
     // Clear active memory structures
     activityTransitiveState.delete(`${docId}_documents`);
@@ -211,7 +314,7 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
       docId
     };
   } catch (error) {
-    logger.error(`[Temporal Activity] commitToVectorStoreActivity failed: ${error.message}`);
+    logger.error({ message: 'commitToVectorStoreActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
 }
@@ -219,33 +322,28 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
 /**
  * Saga Compensating Rollback Activity to safely purge corrupt vector segments and revert state registers
  */
-export async function cleanupFailedIngestionActivity(filePath, originalName, docId, userId) {
-  logger.warn(`[Temporal Saga Compensating Activity] Reverting RAG vectors and purging records for document ID: ${docId}`);
+export async function cleanupFailedIngestionActivity(filePath, originalName, docId, tenantId) {
+  const activityName = 'cleanupFailedIngestionActivity';
+  logger.warn({ message: 'Reverting RAG vectors and purging records', activity: activityName, saga: true, tenantId, docId });
   try {
-    const persistDir = getSafePersistDir(userId);
+    const persistDir = getSafePersistDir(tenantId);
     const vectorStorePath = path.join(persistDir, 'vector_store.json');
 
     // Revert nodes from vector store JSON
-    // OPTIMIZATION: Replaced sync existsSync with a try-catch around the async readFile.
-    // This avoids blocking the event loop and handles file-not-found cases gracefully.
     try {
       const fileContent = await fsPromises.readFile(vectorStorePath, 'utf-8');
       const currentNodes = JSON.parse(fileContent);
 
-      // PERFORMANCE_WARNING: This read-modify-write pattern on a potentially large JSON file is a performance bottleneck.
-      // See the recommendation in `commitToVectorStoreActivity`. This operation will become increasingly slow as the store grows.
       if (Array.isArray(currentNodes)) {
         const cleanedNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName && n?.metadata?.docId !== docId);
         await fsPromises.writeFile(vectorStorePath, JSON.stringify(cleanedNodes, null, 2), 'utf-8');
-        logger.info('[Temporal Saga] Successfully purged transaction records from vector store.');
+        logger.info({ message: 'Successfully purged transaction records from vector store.', activity: activityName, saga: true, tenantId, docId });
       }
     } catch (err) {
       if (err.code === 'ENOENT') {
-        // File doesn't exist, so there's nothing to clean up. This is not an error.
-        logger.info('[Temporal Saga] Vector store file does not exist, no cleanup needed.');
+        logger.info({ message: 'Vector store file does not exist, no cleanup needed.', activity: activityName, saga: true, tenantId });
       } else {
-        // Log other errors, e.g., JSON parsing errors.
-        logger.warn(`[Temporal Saga] Could not revert vector store database records: ${err.message}`);
+        logger.warn({ message: 'Could not revert vector store database records.', error: err.message, activity: activityName, saga: true, tenantId });
       }
     }
 
@@ -258,7 +356,7 @@ export async function cleanupFailedIngestionActivity(filePath, originalName, doc
         manifest.documents[existingDocIdx].isProcessed = false;
         manifest.documents[existingDocIdx].processingError = 'Temporal execution crashed, transaction rolled back.';
         await saveManifest(persistDir, manifest);
-        logger.info('[Temporal Saga] Reverted document index manifest registers to failed state.');
+        logger.info({ message: 'Reverted document index manifest registers to failed state.', activity: activityName, saga: true, tenantId, docId });
       }
     }
 
@@ -272,7 +370,7 @@ export async function cleanupFailedIngestionActivity(filePath, originalName, doc
       reverted: true
     };
   } catch (error) {
-    logger.error(`[Temporal Saga] Compensating transaction failed: ${error.message}`);
+    logger.error({ message: 'Compensating transaction failed', error: error.message, stack: error.stack, activity: activityName, saga: true, tenantId, docId });
     throw error;
   }
 }

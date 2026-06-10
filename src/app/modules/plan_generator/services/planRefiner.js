@@ -1,3 +1,5 @@
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { createClient } from 'redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
@@ -6,6 +8,60 @@ import {
   PLAN_GENERATOR_CONFIG,
   PLAN_SECTIONS,
 } from '../plan_generator.constant.js';
+
+// -- Rate Limiting & DDOS Protection Setup --
+
+// Initialize Redis client. Assumes `redis_url` is present in the config.
+const redisClient = createClient({
+  url: config.redis_url,
+  enable_offline_queue: false,
+});
+
+redisClient.on('error', (err) => {
+  logger.error('Redis Client Error for Rate Limiting', err);
+});
+
+// Asynchronously connect to Redis. The rate limiter library handles connection readiness.
+redisClient.connect().catch((err) => logger.error('Failed to connect to Redis:', err));
+
+// Rate limiter for expensive AI generation/refinement tasks.
+// Limits are applied per user ID or IP address to prevent abuse and cost overruns.
+const aiApiLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rl_plan_refiner', // Unique prefix for this set of limiters
+  points: 20, // Max 20 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 5, // Block for 5 minutes if the limit is exceeded
+});
+
+/**
+ * Middleware-like function to consume a point from the rate limiter for a given user/IP.
+ * @param {object} context - The context object, expected to contain `userId` or `ip`.
+ * @throws {Error} Throws a 429 "Too Many Requests" error if the rate limit is exceeded.
+ * @throws {Error} Throws a 500 error if no user/IP identifier is found in the context.
+ */
+const applyRateLimit = async (context) => {
+  // A user ID or IP must be provided in the context for effective rate limiting.
+  const key = context?.userId || context?.ip;
+  if (!key) {
+    // Fail-safe: If no identifier is provided, we can't apply user-specific limits.
+    // For security, we throw an error to enforce that the calling code provides context.
+    logger.warn('Rate limit check failed: No userId or ip in context.');
+    throw new Error('Cannot process request without a user or IP identifier for rate limiting.');
+  }
+  try {
+    await aiApiLimiter.consume(key);
+  } catch (rejRes) {
+    // This block executes when the user has consumed all their points.
+    logger.warn('Rate limit exceeded for plan refinement', { key });
+    const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000);
+    const error = new Error(`Too many requests. Please try again in ${retryAfter} seconds.`);
+    error.status = 429; // This status can be used by the controller to send the correct HTTP response.
+    throw error;
+  }
+};
+
+// -- End of Rate Limiting Setup --
 
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -70,7 +126,7 @@ const logUsage = (response, action) => {
  * @param {object} plan - The overall plan object containing various sections.
  * @param {string} section - The name of the section to refine (e.g., 'phases', 'resources', 'introduction').
  * @param {string} refinementRequest - The specific request or instruction for refinement (e.g., "Make this section more detailed", "Adjust the timeline in this phase").
- * @param {object} [context={}] - Optional additional context for the refinement. Currently not directly used in the prompt but can be extended.
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object>} A promise that resolves to the refined section object.
  * @throws {Error} If the specified section is not found in the plan, if the AI response does not contain valid JSON, or if the AI generation fails.
  */
@@ -80,6 +136,7 @@ export const refineSection = async (
   refinementRequest,
   context = {}
 ) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     logger.info('Refining plan section:', {
       section,
@@ -140,10 +197,12 @@ Please refine this section based on the request. Return the updated section in t
  *
  * @param {object} plan - The current plan object to be adjusted.
  * @param {object} newConstraints - An object detailing the new constraints (e.g., `{ budget: "$5000", timeline: "2 months" }`).
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object>} A promise that resolves to the adjusted plan object.
  * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
-export const adjustForConstraints = async (plan, newConstraints) => {
+export const adjustForConstraints = async (plan, newConstraints, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     logger.info('Adjusting plan for new constraints:', newConstraints);
 
@@ -197,11 +256,13 @@ Return the complete updated plan in the same JSON structure. Only return valid J
  *
  * @param {object} plan - The current plan object, used as context for generating relevant alternatives.
  * @param {string} ideaText - The specific idea or concept for which alternatives are to be generated.
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<Array<object>>} A promise that resolves to an array of alternative approach objects.
  *   Each object typically has properties like `approach`, `pros`, `cons`, `estimated_timeline`, and `estimated_budget`.
  *   Returns an empty array if an error occurs or if no valid JSON alternatives can be extracted.
  */
-export const addAlternatives = async (plan, ideaText) => {
+export const addAlternatives = async (plan, ideaText, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -261,10 +322,12 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
  *
  * @param {object} plan - The current plan object, expected to have a `phases` property.
  * @param {string} targetDuration - The desired target duration for the plan (e.g., "3 months", "6 weeks", "end of Q4").
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<Array<object>>} A promise that resolves to an array of optimized phase objects.
  *   Returns the original `plan.phases` array if an error occurs or if no valid JSON can be extracted.
  */
-export const optimizeTimeline = async (plan, targetDuration) => {
+export const optimizeTimeline = async (plan, targetDuration, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -318,10 +381,12 @@ Return optimized phases in same JSON format.`;
  *
  * @param {object} plan - The current plan object, expected to have a `resources` property.
  * @param {string} targetBudget - The desired target budget for the plan (e.g., "$10,000", "5000 USD", "within 15k").
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object>} A promise that resolves to an object representing the optimized resources.
  *   Returns the original `plan.resources` object if an error occurs or if no valid JSON can be extracted.
  */
-export const optimizeBudget = async (plan, targetBudget) => {
+export const optimizeBudget = async (plan, targetBudget, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -368,10 +433,12 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
  *
  * @param {object} plan - The overall plan object.
  * @param {string} section - The name of the section to expand (e.g., 'introduction', 'phases', 'risks').
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object|Array>} A promise that resolves to the expanded section content (can be an object or an array depending on the section).
  *   Returns the original `plan[section]` content if an error occurs or if no valid JSON can be extracted.
  */
-export const expandSection = async (plan, section) => {
+export const expandSection = async (plan, section, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -421,10 +488,12 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
  * The AI will rephrase and condense the plan while retaining all essential information and its original JSON structure.
  *
  * @param {object} plan - The current plan object to be simplified.
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object>} A promise that resolves to the simplified plan object.
  *   Returns the original plan object if an error occurs or if no valid JSON can be extracted.
  */
-export const simplifyPlan = async (plan) => {
+export const simplifyPlan = async (plan, context = {}) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -466,15 +535,18 @@ Keep all essential information but make it more accessible. Return in same JSON 
  *
  * @param {object} plan - The current plan object.
  * @param {string} feedback - The user's feedback or instructions for improvement (e.g., "Make the budget more realistic", "Add a contingency plan").
- * @param {Array<object>} [conversationHistory=[]] - Optional array of previous conversation turns, where each turn is an object with `role` and `parts` (e.g., `[{ role: 'user', parts: [{ text: '...' }] }, { role: 'model', parts: [{ text: '...' }] }]`).
+ * @param {Array<object>} [conversationHistory=[]] - Optional array of previous conversation turns.
+ * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
  * @returns {Promise<object>} A promise that resolves to the improved plan object.
  * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
 export const applyFeedback = async (
   plan,
   feedback,
-  conversationHistory = []
+  conversationHistory = [],
+  context = {}
 ) => {
+  await applyRateLimit(context); // Apply rate limiting before proceeding
   try {
     logger.info('Applying feedback to plan:', {
       feedbackLength: feedback.length,
@@ -521,19 +593,19 @@ Apply this feedback to improve the plan. Consider what the user is asking for an
 /**
  * @typedef {object} PlanRefinerService
  * @property {function(object, string, string, object=): Promise<object>} refineSection - Refines a specific section of a plan.
- * @property {function(object, object): Promise<object>} adjustForConstraints - Adjusts the entire plan based on new constraints.
- * @property {function(object, string): Promise<Array<object>>} addAlternatives - Generates alternative approaches for an idea within a plan.
- * @property {function(object, string): Promise<Array<object>>} optimizeTimeline - Optimizes the plan's timeline to meet a target duration.
- * @property {function(object, string): Promise<object>} optimizeBudget - Optimizes the plan's budget to meet a target.
- * @property {function(object, string): Promise<object|Array>} expandSection - Expands a specific section of the plan with more details.
- * @property {function(object): Promise<object>} simplifyPlan - Simplifies the entire plan for easier understanding.
- * @property {function(object, string, Array<object>=): Promise<object>} applyFeedback - Applies user feedback to iteratively improve the plan.
+ * @property {function(object, object, object=): Promise<object>} adjustForConstraints - Adjusts the entire plan based on new constraints.
+ * @property {function(object, string, object=): Promise<Array<object>>} addAlternatives - Generates alternative approaches for an idea within a plan.
+ * @property {function(object, string, object=): Promise<Array<object>>} optimizeTimeline - Optimizes the plan's timeline to meet a target duration.
+ * @property {function(object, string, object=): Promise<object>} optimizeBudget - Optimizes the plan's budget to meet a target.
+ * @property {function(object, string, object=): Promise<object|Array>} expandSection - Expands a specific section of the plan with more details.
+ * @property {function(object, object=): Promise<object>} simplifyPlan - Simplifies the entire plan for easier understanding.
+ * @property {function(object, string, Array<object>=, object=): Promise<object>} applyFeedback - Applies user feedback to iteratively improve the plan.
  */
 
 /**
  * An object consolidating all plan refinement and adjustment functions.
  * This service provides various utilities for modifying, optimizing, and enhancing project plans
- * using generative AI capabilities.
+ * using generative AI capabilities. All functions are rate-limited to prevent abuse.
  * @type {PlanRefinerService}
  */
 export const planRefiner = {
