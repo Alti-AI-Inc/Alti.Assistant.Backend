@@ -110,7 +110,8 @@ const ChatbotSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      // BUGFIX: Added a more descriptive required message for better error handling.
+      required: [true, 'A chatbot must be owned by a user.'],
       index: true,
     },
     /**
@@ -247,6 +248,72 @@ ChatbotSchema.index({ tenantId: 1, isShared: 1, isActive: 1 });
  * @index
  */
 ChatbotSchema.index({ userId: 1, isActive: 1 }); // Legacy fallback
+
+// INTEGRATION & SECURITY FIX: Add pre-save and pre-findOneAndUpdate hooks to enforce tenant boundaries.
+// This ensures that a chatbot's owner (userId) must belong to the chatbot's tenant (tenantId),
+// preventing data integrity violations and potential cross-tenant data access issues.
+
+/**
+ * Pre-save hook to validate tenant-user relationship.
+ * This runs on `create()` and `doc.save()`.
+ */
+ChatbotSchema.pre('save', async function (next) {
+  if (this.tenantId && (this.isModified('tenantId') || this.isModified('userId'))) {
+    const UserModel = mongoose.model('User');
+    const user = await UserModel.findById(this.userId).select('tenantId').lean();
+
+    if (!user) {
+      return next(new Error('Chatbot owner (user) not found.'));
+    }
+
+    if (!user.tenantId || !user.tenantId.equals(this.tenantId)) {
+      return next(new Error('Chatbot owner does not belong to the specified tenant.'));
+    }
+  }
+  next();
+});
+
+/**
+ * Pre-findOneAndUpdate hook to validate tenant-user relationship on updates.
+ * This runs on `findOneAndUpdate()`, `findByIdAndUpdate()`, etc.
+ */
+ChatbotSchema.pre('findOneAndUpdate', async function (next) {
+  const update = this.getUpdate();
+  // Using optional chaining to safely access nested properties
+  const tenantId = update.$set?.tenantId;
+  const userId = update.$set?.userId;
+
+  // If neither tenantId nor userId is being updated, no validation is needed.
+  if (!tenantId && !userId) {
+    return next();
+  }
+
+  // We need both values for validation. One may be in the update, the other in the original document.
+  const docToUpdate = await this.model.findOne(this.getQuery()).select('userId tenantId').lean();
+  if (!docToUpdate) {
+    return next(); // Let the operation fail on its own if doc not found.
+  }
+
+  const finalTenantId = tenantId || docToUpdate.tenantId;
+  const finalUserId = userId || docToUpdate.userId;
+
+  // If the final state includes a tenant, perform the validation.
+  if (finalTenantId) {
+    const UserModel = mongoose.model('User');
+    const user = await UserModel.findById(finalUserId).select('tenantId').lean();
+
+    if (!user) {
+      return next(new Error('Chatbot owner (user) not found.'));
+    }
+
+    if (!user.tenantId || !user.tenantId.equals(finalTenantId)) {
+      return next(new Error('Chatbot owner does not belong to the specified tenant.'));
+    }
+  }
+
+  next();
+});
+
 
 /**
  * Represents the Chatbot Mongoose Model.
