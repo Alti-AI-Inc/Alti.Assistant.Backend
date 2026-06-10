@@ -47,6 +47,13 @@ const getApiKey = () => (process.env.AVIATIONSTACK_API_KEY || '').replace(/^\uFE
 const memoryCache = new Map();
 
 /**
+ * A map to hold in-flight API requests to prevent cache stampedes (dog-piling).
+ * The key is the cacheKey, and the value is the promise of the ongoing request.
+ * @type {Map<string, Promise<any>>}
+ */
+const inFlightRequests = new Map();
+
+/**
  * The interval in milliseconds for cleaning up expired items from the `memoryCache`.
  * Items are only removed from `memoryCache` upon access after expiry, or via this cleanup.
  * @type {number}
@@ -163,9 +170,32 @@ async function setCachedData(cacheKey, data, ttl) {
 }
 
 /**
+ * Generates a stable cache key from an endpoint and parameters object.
+ * It sorts the object keys to ensure that the same parameters in a different
+ * order produce the same key, improving cache hit rates. It also filters out
+ * null or undefined values.
+ *
+ * @param {string} endpoint - The API endpoint.
+ * @param {Object} params - The query parameters.
+ * @returns {string} The generated stable cache key.
+ */
+const generateCacheKey = (endpoint, params) => {
+  const sortedKeys = Object.keys(params).sort();
+  const sortedParams = sortedKeys.reduce((obj, key) => {
+    const value = params[key];
+    if (value !== undefined && value !== null) {
+      obj[key] = value;
+    }
+    return obj;
+  }, {});
+  return `${endpoint}:${JSON.stringify(sortedParams)}`;
+};
+
+/**
  * Universal helper function to make requests to the AviationStack API.
- * It implements a double-layer caching mechanism (in-memory and Redis) and
- * falls back to high-fidelity mock data if the API key is missing or the API call fails.
+ * It implements a double-layer caching mechanism (in-memory and Redis),
+ * request coalescing to prevent cache stampedes, and falls back to
+ * high-fidelity mock data if the API key is missing or the API call fails.
  *
  * @param {string} endpoint - The API endpoint (e.g., 'flights', 'airports').
  * @param {Object} [params={}] - Query parameters for the API request.
@@ -173,57 +203,79 @@ async function setCachedData(cacheKey, data, ttl) {
  * @throws {Error} If the API returns an error and mock data cannot be generated.
  */
 async function makeRequest(endpoint, params = {}) {
-  const apiKey = getApiKey();
-  const cacheKey = `${endpoint}:${JSON.stringify(params)}`;
+  const cacheKey = generateCacheKey(endpoint, params);
 
-  // Try retrieving from cache first for all endpoints (including flights to intercept fast duplicate calls)
+  // 1. Try retrieving from cache first
   const cached = await getCachedData(cacheKey);
   if (cached) {
     logger.info(`[AviationStack Cache Hit] ${endpoint} -> ${JSON.stringify(params)}`);
     return cached;
   }
 
-  if (!apiKey) {
-    logger.warn(`[AviationStack] API key missing. Using high-fidelity mock data fallback.`);
-    return getMockData(endpoint, params);
+  // 2. Check for in-flight requests to prevent dog-piling
+  if (inFlightRequests.has(cacheKey)) {
+    logger.info(`[AviationStack] Coalescing request for ${cacheKey}`);
+    return inFlightRequests.get(cacheKey);
   }
 
-  // Construct URL
-  const baseUrl = getApiUrl(endpoint);
-  const queryParams = new URLSearchParams({
-    access_key: apiKey,
-    ...params,
-  });
+  // 3. Create and execute the request promise
+  const requestPromise = (async () => {
+    const apiKey = getApiKey();
 
-  const url = `${baseUrl}?${queryParams.toString()}`;
-  logger.info(`[AviationStack API Call] Fetching: ${baseUrl} with params: ${JSON.stringify(params)}`);
+    if (!apiKey) {
+      logger.warn(`[AviationStack] API key missing. Using high-fidelity mock data fallback for ${endpoint}.`);
+      // Note: We don't cache mock data to ensure the live API is tried again on subsequent requests.
+      return getMockData(endpoint, params);
+    }
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+    // Construct URL
+    const baseUrl = getApiUrl(endpoint);
+    const queryParams = new URLSearchParams({
+      access_key: apiKey,
+      ...params,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`AviationStack Error (${response.status}): ${errorText}`);
+    const url = `${baseUrl}?${queryParams.toString()}`;
+    logger.info(`[AviationStack API Call] Fetching: ${baseUrl} with params: ${JSON.stringify(params)}`);
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`AviationStack Error (${response.status}): ${errorText}`);
+      }
+
+      const json = await response.json();
+
+      if (json.error) {
+        throw new Error(`AviationStack API Error: ${json.error.message || JSON.stringify(json.error)}`);
+      }
+
+      // Cache the successful results
+      const ttl = TTL[endpoint] || 60;
+      await setCachedData(cacheKey, json.data, ttl);
+
+      return json.data;
+    } catch (err) {
+      logger.error(`[AviationStack API Failed] ${err.message}. Falling back to mocks.`);
+      // Note: We don't cache mock data to ensure the live API is tried again on subsequent requests.
+      return getMockData(endpoint, params);
     }
+  })();
 
-    const json = await response.json();
+  // Store the promise in the map for other concurrent requests to use
+  inFlightRequests.set(cacheKey, requestPromise);
 
-    if (json.error) {
-      throw new Error(`AviationStack API Error: ${json.error.message || JSON.stringify(json.error)}`);
-    }
+  // Ensure the promise is removed from the map once it's settled (succeeded or failed)
+  requestPromise.finally(() => {
+    inFlightRequests.delete(cacheKey);
+  });
 
-    // Cache the successful results
-    const ttl = TTL[endpoint] || 60;
-    await setCachedData(cacheKey, json.data, ttl);
-
-    return json.data;
-  } catch (err) {
-    logger.error(`[AviationStack API Failed] ${err.message}. Falling back to mocks.`);
-    return getMockData(endpoint, params);
-  }
+  return requestPromise;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

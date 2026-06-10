@@ -183,19 +183,23 @@ const KnowledgeBaseSchema = new mongoose.Schema(
 /**
  * Defines compound indexes for efficient queries, especially in multi-tenant environments.
  * - `tenantId`, `userId`, `name`: For quickly finding a specific knowledge base by name within a tenant and user.
- * - `tenantId`, `userId`, `isActive`: For filtering active knowledge bases for a user within a tenant.
+ * - `tenantId`, `userId`, `isActive`, `updatedAt`: For efficiently filtering and sorting active knowledge bases for a user within a tenant.
  */
 KnowledgeBaseSchema.index({ tenantId: 1, userId: 1, name: 1 });
-KnowledgeBaseSchema.index({ tenantId: 1, userId: 1, isActive: 1 });
+// OPTIMIZATION: Added `updatedAt: -1` to the index to cover the common sort operation in `findByUserId`.
+// This allows the database to perform a more efficient index scan instead of an in-memory sort.
+KnowledgeBaseSchema.index({ tenantId: 1, userId: 1, isActive: 1, updatedAt: -1 });
 
 /**
  * Defines legacy fallback indexes.
  * These are retained for backward compatibility or scenarios where direct cross-tenant queries might be needed.
  * - `userId`, `name`: For finding a specific knowledge base by name for a user (without tenant context).
- * - `userId`, `isActive`: For filtering active knowledge bases for a user (without tenant context).
+ * - `userId`, `isActive`, `updatedAt`: For efficiently filtering and sorting active knowledge bases for a user.
  */
 KnowledgeBaseSchema.index({ userId: 1, name: 1 });
-KnowledgeBaseSchema.index({ userId: 1, isActive: 1 });
+// OPTIMIZATION: Added `updatedAt: -1` to the index to directly support the sorting in the `findByUserId` static method.
+// This avoids a collection scan followed by an in-memory sort, which is significantly faster for large datasets.
+KnowledgeBaseSchema.index({ userId: 1, isActive: 1, updatedAt: -1 });
 
 /**
  * Virtual property `formattedFileSize`.
@@ -240,6 +244,11 @@ KnowledgeBaseSchema.methods.canAddDocument = function (fileSize = 0) {
  * @returns {mongoose.Query<Array<KnowledgeBaseDocument>, KnowledgeBaseDocument>} A Mongoose Query object.
  */
 KnowledgeBaseSchema.statics.findByUserId = function (userId, isActive = true) {
+  // OPTIMIZATION: The query now benefits from the compound index on {userId, isActive, updatedAt},
+  // which makes both filtering and sorting highly efficient.
+  // For read-heavy operations, consider adding `.lean()` where this method is called
+  // to get plain JavaScript objects instead of Mongoose documents.
+  // Example: `KnowledgeBase.findByUserId(userId).lean()`
   return this.find({ userId, isActive }).sort({ updatedAt: -1 });
 };
 

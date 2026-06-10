@@ -103,6 +103,16 @@ import { codeHelpers } from './code.helper.js';
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Controller function to handle code generation and assistance tasks.
+ * It manages both authenticated and guest user requests, checks subscription limits for authenticated users,
+ * interacts with the AI code assistant, and persists the conversation.
+ * @function performCodeTask
+ * @async
+ * @param {import('express').Request} req - The Express request object. It contains the user's message, optional conversationId, and user authentication details.
+ * @param {import('express').Response} res - The Express response object used to send back the AI's response or an error.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ */
 export const performCodeTask = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
@@ -336,6 +346,15 @@ export const performCodeTask = catchAsync(async (req, res) => {
  *                   example: "Statistics are only available for authenticated users"
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Controller function to retrieve code assistant usage statistics for an authenticated user.
+ * Rejects requests from guest users.
+ * @function getCodeStats
+ * @async
+ * @param {import('express').Request} req - The Express request object, containing authenticated user details.
+ * @param {import('express').Response} res - The Express response object used to send back the statistics or an error.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const getCodeStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
