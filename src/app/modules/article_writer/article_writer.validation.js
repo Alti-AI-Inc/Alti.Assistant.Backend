@@ -1,10 +1,82 @@
 /**
  * @file This file defines Zod schemas for validating requests related to the article writer module.
  * It includes schemas for conversational article generation, direct article writing, and fetching conversation history.
+ * It also defines and exports rate-limiting middleware for these endpoints.
  * @module ArticleWriterValidation
  */
 
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import redisClient from '../../../config/redisClient.js'; // Assuming a shared Redis client instance
+
+// ===================================================================================
+// Rate Limiting & DDOS Protection
+// ===================================================================================
+
+// Create a Redis store for rate-limit-redis.
+// This ensures that rate limits are shared across all server instances in a cluster.
+const store = new RedisStore({
+  // @ts-ignore - Known issue with rate-limit-redis types and ioredis/node-redis v4.
+  sendCommand: (...args) => redisClient.call(...args),
+});
+
+/**
+ * Custom key generator for rate limiting.
+ * It prioritizes the authenticated user's ID if available, ensuring fair usage limits per user.
+ * If the user is not authenticated (guest), it falls back to their IP address.
+ * This prevents a single guest from exhausting the API quota and protects against IP-based attacks.
+ * @param {import('express').Request} req - The Express request object.
+ * @returns {string} The identifier for rate limiting (user ID or IP address).
+ */
+const keyGenerator = (req) => {
+  // Use req.user.id if the user is authenticated, otherwise fall back to IP.
+  // Assumes an authentication middleware populates `req.user`.
+  return req.user?.id || req.ip;
+};
+
+/**
+ * Rate limiter for resource-intensive AI generation endpoints.
+ * This is a critical defense against API abuse and cost overruns from LLM API calls.
+ * It applies stricter limits for unauthenticated (guest) users and more generous limits for registered users.
+ * - Authenticated Users: 50 requests per hour.
+ * - Guest Users (IP-based): 10 requests per hour.
+ */
+const aiGenerationLimiter = rateLimit({
+  store,
+  keyGenerator,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: (req) => (req.user ? 50 : 10), // Dynamic limit based on authentication status
+  standardHeaders: 'draft-7', // Recommended standard for RateLimit headers
+  legacyHeaders: false, // Disable X-RateLimit-* headers
+  message: {
+    status: 429,
+    message: 'Too many article generation requests. Please try again after an hour.',
+  },
+});
+
+/**
+ * General-purpose rate limiter for standard API endpoints like fetching data.
+ * Protects against aggressive polling and scraping attempts.
+ * Limits are applied per user or per IP.
+ * - Limit: 100 requests per 15 minutes.
+ */
+const apiLimiter = rateLimit({
+  store,
+  keyGenerator,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    status: 429,
+    message: 'Too many requests. Please try again after 15 minutes.',
+  },
+});
+
+// ===================================================================================
+// Zod Validation Schemas
+// ===================================================================================
 
 // Common schemas for article parameters to ensure consistency and avoid repetition.
 const articleParameters = {
@@ -129,12 +201,18 @@ const getConversationHistorySchema = z.object({
 });
 
 /**
- * An object containing all Zod validation schemas for the article writer module.
+ * An object containing all Zod validation schemas and rate limiters for the article writer module.
  * @property {typeof conversationalRequestSchema} conversationalRequestSchema - Schema for conversational article generation requests.
  * @property {typeof writeArticleSchema} writeArticleSchema - Schema for direct article writing requests.
  * @property {typeof getConversationHistorySchema} getConversationHistorySchema - Schema for fetching conversation history requests.
+ * @property {import('express-rate-limit').RateLimitRequestHandler} aiGenerationLimiter - Stricter rate limiter for expensive AI generation endpoints.
+ * @property {import('express-rate-limit').RateLimitRequestHandler} apiLimiter - General-purpose rate limiter for other API endpoints.
  */
 export const ArticleWriterValidation = {
+  // Rate Limiters
+  aiGenerationLimiter,
+  apiLimiter,
+  // Validation Schemas
   conversationalRequestSchema,
   writeArticleSchema,
   getConversationHistorySchema,
