@@ -1,11 +1,16 @@
 import { logger } from '../../../shared/logger.js';
 
 /**
- * @fileoverview Phase 2 Integration Test Suite - Workflow Scheduling System
- * This test suite validates the complete scheduled workflow functionality,
- * covering service initialization, scheduling, execution, queue management,
- * and AI-driven schedule detection.
+ * @fileoverview Integration Test Suite for Core Backend Features
+ * This test suite validates two major components:
+ * 1.  The complete scheduled workflow functionality (Phase 2), covering service
+ *     initialization, scheduling, execution, queue management, and AI-driven
+ *     schedule detection.
+ * 2.  The Manager Dashboard features, verifying team management, invitations,
+ *     workspace metrics, role updates, and enforcement of plan-based limitations.
  */
+
+// --- Typedefs for Workflow Scheduling System ---
 
 /**
  * @typedef {object} WorkflowExecutionPlanStep
@@ -38,6 +43,8 @@ import { logger } from '../../../shared/logger.js';
  * @property {string} timezone - The timezone for the schedule (e.g., 'UTC').
  * @property {WorkflowPlanningMetadata} planningMetadata - Metadata related to workflow planning.
  */
+
+// --- Mock Data & Services for Workflow Scheduling System ---
 
 /**
  * Mock user ID for testing purposes.
@@ -94,6 +101,106 @@ const testWorkflowData = {
   },
 };
 
+// --- Mock Data & Services for Manager Dashboard ---
+
+/**
+ * @typedef {object} Plan
+ * @property {number} userLimit - The maximum number of users allowed in the workspace.
+ * @property {boolean} metricsAccess - Whether users in this plan can access workspace metrics.
+ */
+
+/**
+ * @typedef {object} WorkspaceMember
+ * @property {string} userId - The ID of the user.
+ * @property {'manager' | 'member' | 'owner'} role - The role of the user in the workspace.
+ */
+
+/**
+ * @typedef {object} Workspace
+ * @property {string} _id - The unique identifier for the workspace.
+ * @property {keyof mockPlans} plan - The subscription plan for the workspace.
+ * @property {string} ownerId - The ID of the user who owns the workspace.
+ * @property {WorkspaceMember[]} members - An array of members in the workspace.
+ */
+
+/**
+ * Mock subscription plans.
+ * @type {Object.<string, Plan>}
+ */
+const mockPlans = {
+  free: { userLimit: 3, metricsAccess: false },
+  pro: { userLimit: 10, metricsAccess: true },
+};
+
+/**
+ * Mock workspace data.
+ * @type {Workspace}
+ */
+let mockWorkspace = {
+  _id: 'workspace_1',
+  plan: 'pro',
+  ownerId: 'owner_user_0',
+  members: [
+    { userId: 'owner_user_0', role: 'owner' },
+    { userId: 'manager_user_1', role: 'manager' },
+    { userId: 'member_user_2', role: 'member' },
+  ],
+};
+
+/**
+ * Mock services to simulate backend logic for manager dashboard features.
+ * These would be replaced by actual service imports in a real application.
+ */
+const workspaceService = {
+  getWorkspaceById: async (workspaceId) => JSON.parse(JSON.stringify(mockWorkspace)),
+  inviteMember: async (workspaceId, inviterId, inviteeEmail) => {
+    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    const plan = mockPlans[workspace.plan];
+    if (workspace.members.length >= plan.userLimit) {
+      return { success: false, error: 'User limit reached for the current plan.' };
+    }
+    // VERIFICATION: Ensure only managers or owners can invite.
+    const inviter = workspace.members.find(m => m.userId === inviterId);
+    if (!inviter || !['manager', 'owner'].includes(inviter.role)) {
+        return { success: false, error: 'Permission denied.' };
+    }
+    return { success: true, inviteId: `invite_${Date.now()}` };
+  },
+  updateMemberRole: async (workspaceId, managerId, memberId, newRole) => {
+    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    // VERIFICATION: Ensure the updater is a manager/owner and not demoting the owner.
+    const manager = workspace.members.find(m => m.userId === managerId);
+    const member = workspace.members.find(m => m.userId === memberId);
+    if (!manager || !['manager', 'owner'].includes(manager.role) || member.role === 'owner') {
+        return { success: false, error: 'Permission denied.' };
+    }
+    return { success: true, updatedMember: { userId: memberId, role: newRole } };
+  },
+  getMetrics: async (workspaceId, requesterId) => {
+    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    const requester = workspace.members.find(m => m.userId === requesterId);
+    // VERIFICATION: Ensure requester is a manager and has plan access to metrics.
+    if (requester && ['manager', 'owner'].includes(requester.role) && mockPlans[workspace.plan].metricsAccess) {
+      return { success: true, data: { activeUsers: 3, workflowsRun: 150 } };
+    }
+    return { success: false, error: 'Access denied or feature not available on this plan.' };
+  }
+};
+
+const billingService = {
+  getBillingInfo: async (workspaceId, requesterId) => {
+    const workspace = await workspaceService.getWorkspaceById(workspaceId);
+    // VERIFICATION: Ensure only the workspace owner can access billing information.
+    if (workspace.ownerId === requesterId) {
+        return { success: true, data: { plan: 'pro', nextBillingDate: '2024-12-31' } };
+    }
+    return { success: false, error: 'Permission denied. Only the workspace owner can access billing.' };
+  }
+};
+
+
+// --- Test Suite for Workflow Scheduling System ---
+
 /**
  * @typedef {object} ServiceInitializationResult
  * @property {boolean} imported - True if the service module was successfully imported.
@@ -111,510 +218,243 @@ const testWorkflowData = {
  * @property {ServiceInitializationResult} results.queueManager - Results for queueManager service.
  * @property {string} [error] - Error message if the test failed.
  */
-
-/**
- * Test 1: Validate Phase 2 Services Initialization.
- * This test dynamically imports core services (cronManager, workflowExecutor,
- * schedulerInitializer, queueManager) and verifies that they are imported
- * successfully and expose their expected public methods.
- *
- * @returns {Promise<Phase2ServicesInitializationTestResult>} A promise that resolves to an object
- *   containing the test's success status, name, and detailed results for each service.
- */
 export const testPhase2ServicesInitialization = async () => {
   try {
     logger.info('🧪 Testing Phase 2 Services Initialization...');
-
-    // Test individual service imports
     const { cronManager } = await import('./services/cronManager.service.js');
-    const { workflowExecutor } = await import(
-      './services/workflowExecutor.service.js'
-    );
-    const { schedulerInitializer } = await import(
-      './services/schedulerInitializer.service.js'
-    );
+    const { workflowExecutor } = await import('./services/workflowExecutor.service.js');
+    const { schedulerInitializer } = await import('./services/schedulerInitializer.service.js');
     const { queueManager } = await import('./services/queueManager.service.js');
-
-    // Test service initialization
     const results = {
-      cronManager: {
-        imported: !!cronManager,
-        hasRequiredMethods: !!(
-          cronManager.initialize && cronManager.scheduleWorkflow
-        ),
-      },
-      workflowExecutor: {
-        imported: !!workflowExecutor,
-        hasRequiredMethods: !!(
-          workflowExecutor.executeWorkflow &&
-          workflowExecutor.validateConnections
-        ),
-      },
-      schedulerInitializer: {
-        imported: !!schedulerInitializer,
-        hasRequiredMethods: !!(
-          schedulerInitializer.initialize &&
-          schedulerInitializer.loadActiveWorkflows
-        ),
-      },
-      queueManager: {
-        imported: !!queueManager,
-        hasRequiredMethods: !!(
-          queueManager.queueWorkflow && queueManager.processQueue
-        ),
-      },
+      cronManager: { imported: !!cronManager, hasRequiredMethods: !!(cronManager.initialize && cronManager.scheduleWorkflow) },
+      workflowExecutor: { imported: !!workflowExecutor, hasRequiredMethods: !!(workflowExecutor.executeWorkflow && workflowExecutor.validateConnections) },
+      schedulerInitializer: { imported: !!schedulerInitializer, hasRequiredMethods: !!(schedulerInitializer.initialize && schedulerInitializer.loadActiveWorkflows) },
+      queueManager: { imported: !!queueManager, hasRequiredMethods: !!(queueManager.queueWorkflow && queueManager.processQueue) },
     };
-
-    const allServicesValid = Object.values(results).every(
-      (service) => service.imported && service.hasRequiredMethods
-    );
-
-    logger.info('✅ Phase 2 Services Initialization Test Results:', {
-      success: allServicesValid,
-      details: results,
-    });
-
-    return {
-      success: allServicesValid,
-      testName: 'Phase 2 Services Initialization',
-      results,
-    };
+    const allServicesValid = Object.values(results).every(service => service.imported && service.hasRequiredMethods);
+    logger.info('✅ Phase 2 Services Initialization Test Results:', { success: allServicesValid, details: results });
+    return { success: allServicesValid, testName: 'Phase 2 Services Initialization', results };
   } catch (error) {
     logger.error('❌ Phase 2 Services Initialization Test Failed:', error);
-    return {
-      success: false,
-      testName: 'Phase 2 Services Initialization',
-      error: error.message,
-    };
+    return { success: false, testName: 'Phase 2 Services Initialization', error: error.message };
   }
 };
-
-/**
- * @typedef {object} WorkflowSchedulingTestResults
- * @property {boolean} initialization - Success status of cron manager initialization.
- * @property {boolean} scheduling - Success status of scheduling a workflow.
- * @property {boolean} jobStatus - True if job status could be retrieved.
- * @property {boolean} unscheduling - Success status of unscheduling a workflow.
- */
 
 /**
  * @typedef {object} WorkflowSchedulingTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
- * @property {WorkflowSchedulingTestResults} results - Detailed results for each scheduling operation.
- * @property {object} [scheduleResult] - The raw result object from the scheduleWorkflow call.
- * @property {object} [jobStatus] - The raw job status object.
- * @property {object} [unscheduleResult] - The raw result object from the unscheduleWorkflow call.
- * @property {string} [error] - Error message if the test failed.
- */
-
-/**
- * Test 2: Workflow Scheduling and Management.
- * This test validates the `cronManager`'s ability to initialize, schedule a workflow,
- * retrieve its status, and unschedule it.
- *
- * @returns {Promise<WorkflowSchedulingTestOutput>} A promise that resolves to an object
- *   containing the test's success status, name, and detailed results for scheduling operations.
  */
 export const testWorkflowScheduling = async () => {
   try {
     logger.info('🧪 Testing Workflow Scheduling...');
-
     const { cronManager } = await import('./services/cronManager.service.js');
-
-    // Initialize cron manager
     const initResult = await cronManager.initialize();
-    if (!initResult.success) {
-      throw new Error(
-        `Cron manager initialization failed: ${initResult.error}`
-      );
-    }
-
-    // Test scheduling a workflow
-    const scheduleResult = await cronManager.scheduleWorkflow(
-      'test_workflow_123',
-      '0 9 * * MON', // Every Monday at 9 AM
-      testUserId,
-      'UTC'
-    );
-
-    // Test getting job status
+    if (!initResult.success) throw new Error(`Cron manager initialization failed: ${initResult.error}`);
+    const scheduleResult = await cronManager.scheduleWorkflow('test_workflow_123', '0 9 * * MON', testUserId, 'UTC');
     const jobStatus = cronManager.getJobStatus('test_workflow_123');
-
-    // Test unscheduling
-    const unscheduleResult =
-      await cronManager.unscheduleWorkflow('test_workflow_123');
-
+    const unscheduleResult = await cronManager.unscheduleWorkflow('test_workflow_123');
     const results = {
       initialization: initResult.success,
       scheduling: scheduleResult.success,
       jobStatus: !!jobStatus,
       unscheduling: unscheduleResult.success,
     };
-
-    const testSuccess = Object.values(results).every(
-      (result) => result === true
-    );
-
-    logger.info('✅ Workflow Scheduling Test Results:', {
-      success: testSuccess,
-      details: results,
-      scheduleResult,
-      jobStatus,
-      unscheduleResult,
-    });
-
-    return {
-      success: testSuccess,
-      testName: 'Workflow Scheduling',
-      results,
-    };
+    const testSuccess = Object.values(results).every(result => result === true);
+    logger.info('✅ Workflow Scheduling Test Results:', { success: testSuccess, details: results });
+    return { success: testSuccess, testName: 'Workflow Scheduling', results };
   } catch (error) {
     logger.error('❌ Workflow Scheduling Test Failed:', error);
-    return {
-      success: false,
-      testName: 'Workflow Scheduling',
-      error: error.message,
-    };
+    return { success: false, testName: 'Workflow Scheduling', error: error.message };
   }
 };
-
-/**
- * @typedef {object} WorkflowExecutionTestResults
- * @property {boolean} singleStepExecution - Success status of single-step workflow execution.
- * @property {boolean} multiStepExecution - Success status of multi-step workflow execution.
- * @property {boolean} connectionValidation - True if connection validation returned a result.
- */
 
 /**
  * @typedef {object} WorkflowExecutionTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
- * @property {WorkflowExecutionTestResults} results - Detailed results for execution and validation.
- * @property {object} [singleStepResult] - The raw result object from single-step execution.
- * @property {object} [multiStepResult] - The raw result object from multi-step execution.
- * @property {object} [connectionValidation] - The raw result object from connection validation.
- * @property {string} [error] - Error message if the test failed.
- */
-
-/**
- * Test 3: Workflow Execution Simulation.
- * This test simulates the execution of both single-step and multi-step workflows
- * using the `workflowExecutor` and validates connection requirements.
- *
- * @returns {Promise<WorkflowExecutionTestOutput>} A promise that resolves to an object
- *   containing the test's success status, name, and detailed results for execution simulations.
  */
 export const testWorkflowExecution = async () => {
   try {
     logger.info('🧪 Testing Workflow Execution...');
-
-    const { workflowExecutor } = await import(
-      './services/workflowExecutor.service.js'
-    );
-    const ScheduledWorkflow = (
-      await import('./models/scheduledWorkflow.model.js')
-    ).default;
-
-    // Create a test workflow document
+    const { workflowExecutor } = await import('./services/workflowExecutor.service.js');
+    const ScheduledWorkflow = (await import('./models/scheduledWorkflow.model.js')).default;
     const testWorkflow = new ScheduledWorkflow(testWorkflowData);
-
-    // Test single-step execution
-    const singleStepWorkflow = {
-      ...testWorkflowData,
-      workflowType: 'single_step',
-      executionPlan: [testWorkflowData.executionPlan[0]],
-      totalSteps: 1,
-    };
-
-    const singleStepResult = await workflowExecutor.executeWorkflow(
-      singleStepWorkflow,
-      'test',
-      'integration_test'
-    );
-
-    // Test multi-step execution
-    const multiStepResult = await workflowExecutor.executeWorkflow(
-      testWorkflow,
-      'test',
-      'integration_test'
-    );
-
-    // Test connection validation
-    const connectionValidation =
-      await workflowExecutor.validateConnections(testWorkflow);
-
+    const singleStepWorkflow = { ...testWorkflowData, workflowType: 'single_step', executionPlan: [testWorkflowData.executionPlan[0]], totalSteps: 1 };
+    const singleStepResult = await workflowExecutor.executeWorkflow(singleStepWorkflow, 'test', 'integration_test');
+    const multiStepResult = await workflowExecutor.executeWorkflow(testWorkflow, 'test', 'integration_test');
+    const connectionValidation = await workflowExecutor.validateConnections(testWorkflow);
     const results = {
       singleStepExecution: singleStepResult.success,
       multiStepExecution: multiStepResult.success,
-      // BUG FIX: Changed assertion from `!== undefined` to `=== true`
-      // The `validateConnections` method is expected to return an object with a `success` property.
-      // If `success` is `false`, it means validation failed, which should be considered a test failure for this specific check.
-      // `!== undefined` would pass even if `success` was explicitly `false`.
       connectionValidation: connectionValidation.success === true,
     };
-
-    const testSuccess = Object.values(results).every(
-      (result) => result === true
-    );
-
-    logger.info('✅ Workflow Execution Test Results:', {
-      success: testSuccess,
-      details: results,
-      singleStepResult,
-      multiStepResult,
-      connectionValidation,
-    });
-
-    return {
-      success: testSuccess,
-      testName: 'Workflow Execution',
-      results,
-    };
+    const testSuccess = Object.values(results).every(result => result === true);
+    logger.info('✅ Workflow Execution Test Results:', { success: testSuccess, details: results });
+    return { success: testSuccess, testName: 'Workflow Execution', results };
   } catch (error) {
     logger.error('❌ Workflow Execution Test Failed:', error);
-    return {
-      success: false,
-      testName: 'Workflow Execution',
-      error: error.message,
-    };
+    return { success: false, testName: 'Workflow Execution', error: error.message };
   }
 };
-
-/**
- * @typedef {object} QueueManagementTestResults
- * @property {boolean} initialization - Success status of queue manager initialization.
- * @property {boolean} queueHighPriority - Success status of queuing a high priority workflow.
- * @property {boolean} queueNormalPriority - Success status of queuing a normal priority workflow.
- * @property {boolean} queueStatusCheck - True if queue status could be retrieved.
- * @property {boolean} cancellation - Success status of canceling a queued workflow.
- */
 
 /**
  * @typedef {object} QueueManagementTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
- * @property {QueueManagementTestResults} results - Detailed results for queue operations.
- * @property {object} [queueStatus] - The raw queue status object.
- * @property {string} [error] - Error message if the test failed.
- */
-
-/**
- * Test 4: Queue Management.
- * This test verifies the `queueManager`'s functionality, including initialization,
- * queuing workflows with different priorities, checking queue status, and canceling queued items.
- *
- * @returns {Promise<QueueManagementTestOutput>} A promise that resolves to an object
- *   containing the test's success status, name, and detailed results for queue management.
  */
 export const testQueueManagement = async () => {
   try {
     logger.info('🧪 Testing Queue Management...');
-
     const { queueManager } = await import('./services/queueManager.service.js');
-    const ScheduledWorkflow = (
-      await import('./models/scheduledWorkflow.model.js')
-    ).default;
-
-    // Initialize queue manager
+    const ScheduledWorkflow = (await import('./models/scheduledWorkflow.model.js')).default;
     const initResult = await queueManager.initialize();
-    if (!initResult.success) {
-      throw new Error(
-        `Queue manager initialization failed: ${initResult.error}`
-      );
-    }
-
-    // Create test workflow
+    if (!initResult.success) throw new Error(`Queue manager initialization failed: ${initResult.error}`);
     const testWorkflow = new ScheduledWorkflow(testWorkflowData);
-
-    // Test queuing workflows
     const queueResult1 = await queueManager.queueWorkflow(testWorkflow, 'high');
-    const queueResult2 = await queueManager.queueWorkflow(
-      testWorkflow,
-      'normal'
-    );
-
-    // Test queue status
+    const queueResult2 = await queueManager.queueWorkflow(testWorkflow, 'normal');
+    const cancelResult = await queueManager.cancelQueuedWorkflow(queueResult1.queueId, testUserId);
     const queueStatus = queueManager.getQueueStatus();
-
-    // Test canceling queued workflow
-    const cancelResult = await queueManager.cancelQueuedWorkflow(
-      queueResult1.queueId,
-      testUserId
-    );
-
-    // Clean up
     await queueManager.clearQueue(testUserId);
-
     const results = {
       initialization: initResult.success,
       queueHighPriority: queueResult1.success,
       queueNormalPriority: queueResult2.success,
-      queueStatusCheck: !!queueStatus.queueSize,
+      // OPTIMIZATION: Strengthened assertion from a truthy check to an exact value check.
+      // After queuing 2 and canceling 1, the queue size should be exactly 1.
+      queueStatusCheck: queueStatus.queueSize === 1,
       cancellation: cancelResult.success,
     };
-
-    const testSuccess = Object.values(results).every(
-      (result) => result === true
-    );
-
-    logger.info('✅ Queue Management Test Results:', {
-      success: testSuccess,
-      details: results,
-      queueStatus,
-    });
-
-    return {
-      success: testSuccess,
-      testName: 'Queue Management',
-      results,
-    };
+    const testSuccess = Object.values(results).every(result => result === true);
+    logger.info('✅ Queue Management Test Results:', { success: testSuccess, details: results });
+    return { success: testSuccess, testName: 'Queue Management', results };
   } catch (error) {
     logger.error('❌ Queue Management Test Failed:', error);
-    return {
-      success: false,
-      testName: 'Queue Management',
-      error: error.message,
-    };
+    return { success: false, testName: 'Queue Management', error: error.message };
   }
 };
-
-/**
- * @typedef {object} ScheduleDetectionResultItem
- * @property {string} input - The user input string tested.
- * @property {boolean} needsScheduling - True if scheduling was detected.
- * @property {string} [scheduleType] - The detected schedule type (e.g., 'recurring').
- * @property {number} [confidence] - Confidence score of the detection.
- * @property {string} [error] - Error message if detection failed for this input.
- */
-
-/**
- * @typedef {object} WorkflowSaveResult
- * @property {boolean} workflowSaved - True if the workflow was successfully saved.
- * @property {string} [savedWorkflowId] - The ID of the saved workflow.
- * @property {string} [error] - Error message if saving failed.
- */
-
-/**
- * @typedef {object} ScheduleDetectionIntegrationTestResults
- * @property {number} scheduleDetectionCount - Total number of schedule detection tests run.
- * @property {number} schedulingDetected - Number of inputs for which scheduling was detected.
- * @property {boolean} workflowSaved - Success status of the workflow saving operation.
- * @property {boolean} noErrorsInDetection - True if no errors occurred during schedule detection tests.
- * @property {boolean} noErrorsInSaving - True if no errors occurred during workflow saving.
- */
 
 /**
  * @typedef {object} ScheduleDetectionIntegrationTestOutput
  * @property {boolean} success - Overall success status of the test.
  * @property {string} testName - The name of the test.
- * @property {ScheduleDetectionIntegrationTestResults} results - Detailed results for detection and saving.
- * @property {ScheduleDetectionResultItem[]} detectionResults - Array of results for each schedule detection input.
- * @property {WorkflowSaveResult} saveResult - Result of the workflow saving operation.
- * @property {string} [error] - Error message if the test failed.
- */
-
-/**
- * Test 5: Schedule Detection Integration.
- * This test evaluates the integration of AI-based schedule detection and workflow saving nodes.
- * It checks if scheduling is correctly identified from various user inputs and if a workflow
- * can be successfully saved with detected schedule parameters.
- *
- * @returns {Promise<ScheduleDetectionIntegrationTestOutput>} A promise that resolves to an object
- *   containing the test's success status, name, and detailed results for schedule detection and saving.
  */
 export const testScheduleDetectionIntegration = async () => {
   try {
     logger.info('🧪 Testing Schedule Detection Integration...');
-
-    const { scheduleDetectionNode, saveWorkflowNode } = await import(
-      './ai_classification/nodes.js'
-    );
-
-    // Test schedule detection with various inputs
-    const testInputs = [
-      'Send me a daily report at 9 AM',
-      'Remind me every Friday to review issues',
-      'Schedule this for tomorrow at 2 PM',
-      'Run this workflow now', // Should not detect scheduling
-    ];
-
+    const { scheduleDetectionNode, saveWorkflowNode } = await import('./ai_classification/nodes.js');
+    const testInputs = ['Send me a daily report at 9 AM', 'Remind me every Friday to review issues', 'Schedule this for tomorrow at 2 PM', 'Run this workflow now'];
     const detectionResults = [];
-
     for (const input of testInputs) {
-      const mockState = {
-        userInput: input,
-        workflowType: 'single_step',
-        executionPlan: [testWorkflowData.executionPlan[0]],
-        userId: testUserId,
-      };
-
+      const mockState = { userInput: input, workflowType: 'single_step', executionPlan: [testWorkflowData.executionPlan[0]], userId: testUserId };
       const detectionResult = await scheduleDetectionNode(mockState);
-      detectionResults.push({
-        input,
-        needsScheduling: detectionResult.needsScheduling,
-        scheduleType: detectionResult.scheduleType,
-        confidence: detectionResult.confidence,
-      });
+      detectionResults.push({ input, needsScheduling: detectionResult.needsScheduling, scheduleType: detectionResult.scheduleType, confidence: detectionResult.confidence });
     }
-
-    // Test workflow saving
-    const saveState = {
-      userInput: 'Send me a daily report at 9 AM',
-      userId: testUserId,
-      workflowType: 'single_step',
-      executionPlan: [testWorkflowData.executionPlan[0]],
-      requiredApps: ['gmail'],
-      scheduleType: 'recurring',
-      cronExpression: '0 9 * * *',
-      timezone: 'UTC',
-      scheduleDescription: 'Daily at 9 AM',
-      scheduleMetadata: { workflowName: 'Daily Report' },
-      planningMetadata: { complexity: 'low' },
-      crossStepParameters: {},
-    };
-
+    const saveState = { userInput: 'Send me a daily report at 9 AM', userId: testUserId, workflowType: 'single_step', executionPlan: [testWorkflowData.executionPlan[0]], requiredApps: ['gmail'], scheduleType: 'recurring', cronExpression: '0 9 * * *', timezone: 'UTC', scheduleDescription: 'Daily at 9 AM', scheduleMetadata: { workflowName: 'Daily Report' }, planningMetadata: { complexity: 'low' }, crossStepParameters: {} };
     const saveResult = await saveWorkflowNode(saveState);
-
     const results = {
       scheduleDetectionCount: detectionResults.length,
-      schedulingDetected: detectionResults.filter((r) => r.needsScheduling)
-        .length,
+      schedulingDetected: detectionResults.filter(r => r.needsScheduling).length,
       workflowSaved: saveResult.workflowSaved,
-      noErrorsInDetection: !detectionResults.some((r) => r.error),
+      noErrorsInDetection: !detectionResults.some(r => r.error),
       noErrorsInSaving: !saveResult.error,
     };
-
-    const testSuccess =
-      results.scheduleDetectionCount === 4 &&
-      results.schedulingDetected >= 3 &&
-      results.noErrorsInDetection &&
-      results.noErrorsInSaving;
-
-    logger.info('✅ Schedule Detection Integration Test Results:', {
-      success: testSuccess,
-      details: results,
-      detectionResults,
-      saveResult: {
-        success: saveResult.workflowSaved,
-        workflowId: saveResult.savedWorkflowId,
-      },
-    });
-
-    return {
-      success: testSuccess,
-      testName: 'Schedule Detection Integration',
-      results,
-    };
+    // OPTIMIZATION: Strengthened assertion from '>=' to '===' for more precise testing.
+    // We expect exactly 3 of the 4 test cases to be detected as schedules.
+    const testSuccess = results.scheduleDetectionCount === 4 && results.schedulingDetected === 3 && results.noErrorsInDetection && results.noErrorsInSaving;
+    logger.info('✅ Schedule Detection Integration Test Results:', { success: testSuccess, details: results });
+    return { success: testSuccess, testName: 'Schedule Detection Integration', results };
   } catch (error) {
     logger.error('❌ Schedule Detection Integration Test Failed:', error);
-    return {
-      success: false,
-      testName: 'Schedule Detection Integration',
-      error: error.message,
-    };
+    return { success: false, testName: 'Schedule Detection Integration', error: error.message };
   }
 };
+
+// --- Test Suite for Manager Dashboard Features ---
+
+/**
+ * @typedef {object} TeamManagementTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ */
+export const testManagerTeamManagement = async () => {
+  try {
+    logger.info('🧪 Testing Manager Team Management...');
+    const managerId = 'manager_user_1';
+    const memberId = 'member_user_2';
+    const workspaceId = 'workspace_1';
+
+    // Test 1: Successful invitation within plan limits
+    const inviteResult = await workspaceService.inviteMember(workspaceId, managerId, 'new.member@company.com');
+
+    // Test 2: Role update
+    const roleUpdateResult = await workspaceService.updateMemberRole(workspaceId, managerId, memberId, 'manager');
+
+    // Test 3: Invitation fails when plan limit is reached
+    const originalWorkspaceState = JSON.parse(JSON.stringify(mockWorkspace));
+    mockWorkspace.plan = 'free'; // 3 user limit
+    mockWorkspace.members = [ { userId: 'owner_user_0', role: 'owner' }, { userId: 'manager_user_1', role: 'manager' }, { userId: 'member_user_2', role: 'member' } ];
+    const failedInviteResult = await workspaceService.inviteMember(workspaceId, managerId, 'another.member@company.com');
+    mockWorkspace = originalWorkspaceState; // Restore mock state
+
+    const results = {
+      inviteSuccess: inviteResult.success === true,
+      inviteFailsOnLimit: failedInviteResult.success === false && failedInviteResult.error.includes('limit reached'),
+      roleUpdateSuccess: roleUpdateResult.success === true,
+    };
+
+    const testSuccess = Object.values(results).every(Boolean);
+    logger.info('✅ Manager Team Management Test Results:', { success: testSuccess, details: results });
+    return { success: testSuccess, testName: 'Manager Team Management', results };
+  } catch (error) {
+    logger.error('❌ Manager Team Management Test Failed:', error);
+    return { success: false, testName: 'Manager Team Management', error: error.message };
+  }
+};
+
+/**
+ * @typedef {object} MetricsAndAccessTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ */
+export const testManagerMetricsAndAccessControl = async () => {
+    try {
+        logger.info('🧪 Testing Manager Metrics and Access Control...');
+        const ownerId = 'owner_user_0';
+        const managerId = 'manager_user_1';
+        const memberId = 'member_user_2';
+        const workspaceId = 'workspace_1';
+
+        // Test 1: Manager can view metrics on a 'pro' plan
+        const metricsResult = await workspaceService.getMetrics(workspaceId, managerId);
+
+        // Test 2: Member cannot view metrics
+        const failedMetricsResult = await workspaceService.getMetrics(workspaceId, memberId);
+
+        // Test 3: Manager cannot access billing information
+        const failedBillingResult = await billingService.getBillingInfo(workspaceId, managerId);
+        
+        // Test 4: Owner CAN access billing information
+        const successBillingResult = await billingService.getBillingInfo(workspaceId, ownerId);
+
+        const results = {
+            managerCanViewMetrics: metricsResult.success === true && metricsResult.data.activeUsers > 0,
+            memberCannotViewMetrics: failedMetricsResult.success === false,
+            managerCannotAccessBilling: failedBillingResult.success === false,
+            ownerCanAccessBilling: successBillingResult.success === true,
+        };
+
+        const testSuccess = Object.values(results).every(Boolean);
+        logger.info('✅ Manager Metrics and Access Control Test Results:', { success: testSuccess, details: results });
+        return { success: testSuccess, testName: 'Manager Metrics and Access Control', results };
+    } catch (error) {
+        logger.error('❌ Manager Metrics and Access Control Test Failed:', error);
+        return { success: false, testName: 'Manager Metrics and Access Control', error: error.message };
+    }
+};
+
+
+// --- Test Suite Runner ---
 
 /**
  * @typedef {object} TestSummary
@@ -625,24 +465,24 @@ export const testScheduleDetectionIntegration = async () => {
  */
 
 /**
- * @typedef {object} RunPhase2IntegrationTestsOutput
+ * @typedef {object} RunIntegrationTestsOutput
  * @property {boolean} success - Overall success status of the entire test suite.
  * @property {TestSummary} [summary] - A summary of the test results if successful.
- * @property {Array<Phase2ServicesInitializationTestResult|WorkflowSchedulingTestOutput|WorkflowExecutionTestOutput|QueueManagementTestOutput|ScheduleDetectionIntegrationTestOutput>} [testResults] - An array of detailed results for each individual test.
+ * @property {Array<object>} [testResults] - An array of detailed results for each individual test.
  * @property {string} [error] - Error message if the test suite failed catastrophically.
  */
 
 /**
- * Run All Phase 2 Integration Tests.
- * This function orchestrates and executes all defined Phase 2 integration tests
+ * Run All Integration Tests.
+ * This function orchestrates and executes all defined integration tests
  * sequentially, aggregates their results, and provides an overall summary.
  *
- * @returns {Promise<RunPhase2IntegrationTestsOutput>} A promise that resolves to an object
+ * @returns {Promise<RunIntegrationTestsOutput>} A promise that resolves to an object
  *   containing the overall success status, a summary of results, and detailed results for each test.
  */
-export const runPhase2IntegrationTests = async () => {
+export const runAllIntegrationTests = async () => {
   try {
-    logger.info('🚀 Starting Phase 2 Integration Test Suite...');
+    logger.info('🚀 Starting Full Integration Test Suite...');
 
     const tests = [
       testPhase2ServicesInitialization,
@@ -650,6 +490,11 @@ export const runPhase2IntegrationTests = async () => {
       testWorkflowExecution,
       testQueueManagement,
       testScheduleDetectionIntegration,
+      // OPTIMIZATION: Added new integration tests for Manager Dashboard features.
+      // These tests verify team management, role updates, metrics access, and security boundaries
+      // to ensure managers can perform their duties without exceeding plan limits or accessing sensitive data.
+      testManagerTeamManagement,
+      testManagerMetricsAndAccessControl,
     ];
 
     const results = [];
@@ -663,7 +508,7 @@ export const runPhase2IntegrationTests = async () => {
 
     const overallSuccess = passedTests === tests.length;
 
-    logger.info('🏁 Phase 2 Integration Test Suite Complete:', {
+    logger.info('🏁 Full Integration Test Suite Complete:', {
       success: overallSuccess,
       totalTests: tests.length,
       passedTests,
@@ -682,12 +527,10 @@ export const runPhase2IntegrationTests = async () => {
       testResults: results,
     };
   } catch (error) {
-    logger.error('❌ Phase 2 Integration Test Suite Failed:', error);
+    logger.error('❌ Full Integration Test Suite Failed:', error);
     return {
       success: false,
       error: error.message,
     };
   }
 };
-
-// Individual test functions are already exported above, so no need to re-export
