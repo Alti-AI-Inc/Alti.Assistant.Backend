@@ -4,6 +4,15 @@ import LangchainChainVersion from './langchain-version.model.js';
 
 /**
  * Creates a prompt snapshot for a custom chain before any optimization or revision is performed.
+ * This function captures the current state of a Langchain chain, including its input variables,
+ * output variables, and steps, and saves it as a new version. It also updates the parent chain
+ * with the new latest version number.
+ *
+ * @param {string} chainId - The unique identifier of the Langchain chain to snapshot.
+ * @param {string} userId - The unique identifier of the user performing the action.
+ * @param {string} [changeSummary='Configuration snapshotted.'] - A brief summary of the changes or reason for the snapshot.
+ * @returns {Promise<import('./langchain-version.model').LangchainChainVersionDocument>} A promise that resolves to the newly created LangchainChainVersion document.
+ * @throws {Error} If the Langchain chain is not found or if there's an issue saving the snapshot.
  */
 const createSnapshot = async (chainId, userId, changeSummary = 'Configuration snapshotted.') => {
   try {
@@ -50,6 +59,15 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
 
 /**
  * Restores a custom chain to a prior configuration snapshot version.
+ * This function retrieves a specific version of a Langchain chain's configuration
+ * and applies it to the active chain. It also creates a snapshot of the current
+ * state *before* the rollback for potential undo operations.
+ *
+ * @param {string} chainId - The unique identifier of the Langchain chain to rollback.
+ * @param {number} versionNumber - The specific version number to restore the chain to.
+ * @param {string} userId - The unique identifier of the user performing the action.
+ * @returns {Promise<{success: boolean, message: string, chain: import('./langchain-chain.model').LangchainChainDocument}>} A promise that resolves to an object indicating success, a message, and the updated chain document.
+ * @throws {Error} If the Langchain chain or the specified version snapshot is not found, or if there's an issue during the rollback.
  */
 const rollbackToVersion = async (chainId, versionNumber, userId) => {
   try {
@@ -91,7 +109,14 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
 };
 
 /**
- * Lists the version snapshots registry of a chain.
+ * Lists the version snapshots registry of a specific Langchain chain.
+ * This function retrieves a history of all snapshots for a given chain,
+ * including their version numbers, change summaries, and creation timestamps.
+ *
+ * @param {string} chainId - The unique identifier of the Langchain chain to retrieve history for.
+ * @param {string} userId - The unique identifier of the user requesting the history.
+ * @returns {Promise<{success: boolean, chainId: string, history: Array<{versionNumber: number, changeSummary: string, createdAt: Date}>}>} A promise that resolves to an object containing success status, the chain ID, and an array of version history records.
+ * @throws {Error} If there's an issue retrieving the version history.
  */
 const getVersionHistory = async (chainId, userId) => {
   try {
@@ -114,6 +139,12 @@ const getVersionHistory = async (chainId, userId) => {
   }
 };
 
+/**
+ * @constant
+ * @type {object}
+ * @description Provides a collection of services for managing Langchain chain versions,
+ * including creating snapshots, rolling back to previous versions, and retrieving version history.
+ */
 export const langchainVersionService = {
   createSnapshot,
   rollbackToVersion,
