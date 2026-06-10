@@ -1,10 +1,24 @@
 /**
- * Stateful, durable Temporal Ingestion Workflow that orchestrates
- * downloading from Hugging Face, GCS archiving, and pgvector RAG indexing.
- * Implements the transactional Saga pattern for compensating rollbacks.
- * 
- * @param {string} datasetId - Target Hugging Face dataset identifier.
- * @returns {Promise<object>} Ingestion execution report.
+ * Orchestrates the end-to-end ingestion workflow for a dataset,
+ * including downloading from Hugging Face, archiving to Google Cloud Storage (GCS),
+ * and indexing into a pgvector RAG system. This is a stateful and durable Temporal Workflow
+ * designed to be resilient to failures and implements the transactional Saga pattern
+ * for compensating rollbacks in case of critical errors.
+ *
+ * The workflow dynamically loads activities based on the execution environment
+ * (mock/offline vs. production Temporal cluster) to ensure proper isolation
+ * from Node.js APIs within the Temporal sandbox.
+ *
+ * @param {string} datasetId - The unique identifier for the target Hugging Face dataset to be ingested.
+ * @returns {Promise<object>} A promise that resolves to an ingestion execution report.
+ *   The report object contains:
+ *   - `success` (boolean): Indicates if the entire workflow completed successfully.
+ *   - `datasetId` (string): The identifier of the dataset that was processed.
+ *   - `status` (string): A descriptive status, e.g., 'indexed'.
+ *   - `message` (string): A human-readable message detailing the outcome.
+ * @throws {Error} If any critical step in the ingestion process fails (e.g., download, archive, index),
+ *   or if the rollback compensation itself encounters an unrecoverable error. The error message will
+ *   provide details about the specific failure.
  */
 export async function runDatasetIngestionWorkflow(datasetId) {
   let activities;
