@@ -21,25 +21,45 @@ import {
   PLAN_STAGES,
 } from './plan_generator.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client using the API key from configuration.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using Mongoose's ObjectId.
+ * This ID is used for tracking guest user sessions without requiring authentication.
+ *
+ * @returns {string} A unique string representation of a Mongoose ObjectId.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for plan generation sessions.
+ * The ID combines a timestamp and a random string to ensure uniqueness.
+ *
+ * @returns {string} A unique conversation ID string.
  */
 const generateConversationId = () => {
   return `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle plan generation conversation (create or retrieve)
+ * Handles the creation or retrieval of a plan generation conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
+ * The conversation metadata is initialized with relevant plan generation details.
+ *
+ * @async
+ * @param {string} userId - The ID of the user initiating or continuing the conversation.
+ * @param {string | null} conversationId - The ID of an existing conversation, or null if a new one should be created.
+ * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The conversation object (either newly created or retrieved).
+ * @throws {ApiError} If there's an internal server error handling the conversation.
  */
 const handlePlanConversation = async (
   userId,
@@ -110,7 +130,17 @@ const handlePlanConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message to an existing conversation.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The text content of the message.
+ * @param {object} [metadata={}] - Optional metadata to associate with the message.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The updated conversation object after adding the message.
+ * @throws {ApiError} If there's an internal server error adding the message.
  */
 const addMessage = async (
   conversationId,
@@ -144,7 +174,22 @@ const addMessage = async (
 };
 
 /**
- * Store uploaded file in conversation metadata with text extraction
+ * Stores an uploaded file's information and extracted text within a conversation's metadata.
+ * This involves extracting text from the file, uploading it to Google Cloud Storage (GCS),
+ * and updating the conversation's `uploadedFiles` array.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to associate the file with.
+ * @param {string} userId - The ID of the user who uploaded the file.
+ * @param {object} fileInfo - An object containing details about the uploaded file.
+ * @param {string} fileInfo.path - The temporary local path of the uploaded file.
+ * @param {string} fileInfo.originalName - The original name of the file.
+ * @param {string} fileInfo.filename - The generated unique filename.
+ * @param {number} fileInfo.size - The size of the file in bytes.
+ * @param {string} fileInfo.mimetype - The MIME type of the file.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} An object containing details of the stored file, including its ID, public URL, and extracted text.
+ * @throws {ApiError} If text extraction fails, file upload fails, or there's an error updating the conversation.
  */
 const storeFileInConversation = async (
   conversationId,
@@ -244,7 +289,20 @@ const storeFileInConversation = async (
 };
 
 /**
- * Conversational assistant - Main entry point
+ * The main conversational assistant for plan generation.
+ * It manages the conversation flow, including idea analysis, brainstorming, plan generation,
+ * and refinement based on user input and conversation stage. It also handles file uploads.
+ *
+ * @async
+ * @param {string} userId - The ID of the user interacting with the assistant.
+ * @param {string} message - The user's current message.
+ * @param {string | null} [conversationId=null] - The ID of the current conversation, or null for a new one.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object | null} [fileInfo=null] - Optional object containing details about an uploaded file.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} An object containing the success status, conversation ID, assistant's response,
+ *   current plan stage, and flags indicating the presence of analysis, brainstorm, and plan.
+ * @throws {ApiError} If there's an internal server error during the conversational process.
  */
 const conversationalAssistant = async (
   userId,
@@ -517,7 +575,22 @@ const conversationalAssistant = async (
 };
 
 /**
- * Direct plan generation (non-conversational)
+ * Generates a plan directly without a conversational interface.
+ * It takes an idea and optional parameters to analyze, brainstorm, and generate a comprehensive plan.
+ *
+ * @async
+ * @param {object} params - Parameters for plan generation.
+ * @param {string} params.idea - The core idea or description for which to generate a plan.
+ * @param {string} [params.planType] - Optional, specific type of plan (e.g., "marketing_plan", "project_plan").
+ * @param {string} [params.complexity] - Optional, desired complexity of the plan (e.g., "simple", "detailed").
+ * @param {number} [params.planDepth=DEFAULT_PARAMS.planDepth] - The depth or level of detail for the plan.
+ * @param {string[]} [params.domains=[]] - Optional, specific domains or industries relevant to the plan.
+ * @param {object} [params.constraints={}] - Optional, additional constraints or requirements for the plan.
+ * @param {string[]} [params.brainstormAspects=[]] - Optional, specific aspects to focus on during brainstorming.
+ * @param {string | null} [userId=null] - The ID of the user requesting the plan (optional, for logging/tracking).
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest (optional).
+ * @returns {Promise<object>} An object containing the success status, analysis, brainstorm, generated plan, and a message.
+ * @throws {ApiError} If there's an internal server error during plan generation.
  */
 const generatePlanDirect = async (params, userId = null, isGuest = false) => {
   try {
@@ -581,7 +654,14 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
 };
 
 /**
- * Get conversation history
+ * Retrieves the full conversation history for a given conversation ID and user.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} An object containing the success status and the full conversation object.
+ * @throws {ApiError} If the conversation is not found or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
@@ -605,7 +685,16 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
 };
 
 /**
- * Export plan in various formats
+ * Exports the generated plan from a conversation in a specified format.
+ * Supported formats include 'markdown', 'json', and 'html'.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation containing the plan.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {'markdown' | 'json' | 'html'} [format='markdown'] - The desired export format.
+ * @param {object | null} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} An object containing the success status, format, exported content, the raw plan object, and a message.
+ * @throws {ApiError} If no plan is found in the conversation or an internal server error occurs during export.
  */
 const exportPlan = async (
   conversationId,
@@ -664,6 +753,11 @@ const exportPlan = async (
   }
 };
 
+/**
+ * @namespace planGeneratorService
+ * @description Provides services for generating and managing plans, including conversational interaction,
+ * direct plan generation, conversation history retrieval, and plan export.
+ */
 export const planGeneratorService = {
   generateGuestUserId,
   generateConversationId,
