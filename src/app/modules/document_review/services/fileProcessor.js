@@ -192,11 +192,17 @@ const cleanupFile = async (filePath) => {
  * Uploads a file to Google Cloud Storage and returns a signed URL for access.
  * If GCS is not configured or the upload fails, it falls back to returning
  * the local file path and details, indicating local storage.
+ * 
+ * @security Multi-Tenant / User Isolation:
+ * This function enforces logical tenant/user isolation by partitioning uploaded files
+ * within the GCS bucket under a user-specific folder structure:
+ * `${STORAGE_CONFIG.UPLOAD_FOLDER}/${userId || 'anonymous'}/${timestamp}_${filename}`.
+ *
  * @async
  * @param {string} localFilePath - The absolute path to the local file to upload.
  * @param {string} filename - The desired filename for the uploaded file in GCS.
  * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
- * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document.
+ * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document (used for path isolation).
  * @param {string} [documentMetadata.documentType='review'] - The type of document (e.g., 'review', 'template').
  * @param {string} [documentMetadata.originalName] - The original name of the file before any renaming.
  * @returns {Promise<object>} A promise that resolves with an object containing upload details.
@@ -274,6 +280,11 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
 
 /**
  * Deletes a document from Google Cloud Storage.
+ * 
+ * @security Multi-Tenant / User Isolation:
+ * The caller must ensure that the user requesting deletion has ownership or permission
+ * over the resource represented by the `gcsPath` before invoking this service.
+ *
  * @async
  * @param {string} gcsPath - The Google Cloud Storage path (e.g., gs://your-bucket/path/to/file) of the document to delete.
  * @returns {Promise<object>} A promise that resolves with an object indicating success or failure.
