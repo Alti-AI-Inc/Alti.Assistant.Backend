@@ -12,6 +12,13 @@ import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
+// Helper function to wrap async controller functions and catch errors.
+// This prevents unhandled promise rejections from crashing the server
+// and ensures errors are passed to the Express error handling middleware.
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 const router = express.Router();
 
 /**
@@ -77,7 +84,7 @@ router.post(
   checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
-  planGeneratorController.conversationalAssistant
+  asyncHandler(planGeneratorController.conversationalAssistant) // Wrapped controller to catch async errors
 );
 
 /**
@@ -138,10 +145,11 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit, // Added: Ensure storage limit is checked for file uploads in async requests, consistent with synchronous assistant.
   uploadPlanFiles.single('file'),
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  // createRateLimiter(30, 15),
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
-  planGeneratorController.conversationalAssistantAsync
+  asyncHandler(planGeneratorController.conversationalAssistantAsync) // Wrapped controller to catch async errors
 );
 
 /**
@@ -194,7 +202,7 @@ router.post(
 router.get(
   '/task/:taskId',
   optionalAuth(),
-  planGeneratorController.getTaskStatus
+  asyncHandler(planGeneratorController.getTaskStatus) // Wrapped controller to catch async errors
 );
 
 /**
@@ -249,7 +257,7 @@ router.post(
   checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 generations per 15 minutes
   validateRequest(PlanGeneratorValidation.generatePlanSchema),
-  planGeneratorController.generatePlan
+  asyncHandler(planGeneratorController.generatePlan) // Wrapped controller to catch async errors
 );
 
 /**
@@ -303,9 +311,11 @@ router.post(
 router.post(
   '/brainstorm',
   optionalAuth(),
+  extractTenantContext, // Added: Ensure tenant context is extracted for resource management, consistent with other generation routes.
+  checkDailyRequestLimit, // Added: Ensure daily request limits are applied for resource-consuming operations, consistent with other generation routes.
   // createRateLimiter(30, 15), // 30 brainstorms per 15 minutes
   validateRequest(PlanGeneratorValidation.brainstormSchema),
-  planGeneratorController.brainstormIdea
+  asyncHandler(planGeneratorController.brainstormIdea) // Wrapped controller to catch async errors
 );
 
 /**
@@ -350,8 +360,6 @@ router.post(
  *         description: Unauthorized - Authentication required or invalid token.
  *       403:
  *         description: Forbidden - User does not have necessary permissions.
- *       404:
- *         description: Not Found - Plan with the specified ID does not exist.
  *       429:
  *         description: Too Many Requests - Rate limit exceeded.
  *       500:
@@ -360,9 +368,11 @@ router.post(
 router.post(
   '/export',
   optionalAuth(),
+  extractTenantContext, // Added: Ensure tenant context is extracted for resource management, consistent with other generation routes.
+  checkDailyRequestLimit, // Added: Ensure daily request limits are applied for resource-consuming operations, consistent with other generation routes.
   // createRateLimiter(20, 15), // 20 exports per 15 minutes
   validateRequest(PlanGeneratorValidation.exportPlanSchema),
-  planGeneratorController.exportPlan
+  asyncHandler(planGeneratorController.exportPlan) // Wrapped controller to catch async errors
 );
 
 /**
@@ -423,7 +433,7 @@ router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(PlanGeneratorValidation.getConversationHistorySchema),
-  planGeneratorController.getConversationHistory
+  asyncHandler(planGeneratorController.getConversationHistory) // Wrapped controller to catch async errors
 );
 
 /**
