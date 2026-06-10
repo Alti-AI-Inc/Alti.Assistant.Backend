@@ -1,45 +1,69 @@
 import ComposioAuth from './composio.model.js';
 import Tool from './tools.model.js';
+// FIX: Import a model for storing user preferences like dismissed recommendations.
+// This makes dismissals persistent and user-specific.
+import UserPreference from '../user/userPreference.model.js';
 import { actionAuditService } from './actionAudit.service.js';
 import { logger } from '../../../shared/logger.js';
 
 /**
  * Generates intelligent recommendations based on connected accounts and active telemetry patterns.
  * Dynamically loads all available apps from the Tool model instead of hardcoding a small subset.
+ *
+ * SECURITY & INTEGRATION FIX: This function now requires a userContext object containing userId and workspaceId
+ * to ensure all data access is properly scoped to the user's tenant, preventing data leakage and IDOR vulnerabilities.
+ * @param {object} userContext - The authenticated user's context.
+ * @param {string} userContext.userId - The ID of the user.
+ * @param {string} userContext.workspaceId - The ID of the user's workspace/tenant.
  */
-const getRecommendations = async (userId) => {
+const getRecommendations = async (userContext) => {
+  // SECURITY: Enforce presence of userId and workspaceId from a trusted context (e.g., JWT middleware).
+  const { userId, workspaceId } = userContext;
+  if (!userId || !workspaceId) {
+    logger.error('AppDiscoveryService: getRecommendations called without full userContext.');
+    throw new Error('User context with userId and workspaceId is required.');
+  }
+
   try {
-    // 1. Fetch currently ACTIVE connected accounts
-    // Optimization: Added .lean() for performance as connections are read-only.
-    // Indexing Recommendation: Consider adding an index to ComposioAuth model for { userId: 1, status: 1 }
-    // to speed up this query.
-    const connections = await ComposioAuth.find({ userId, status: 'ACTIVE' }).lean();
+    // INTEGRATION: Fetch user preferences to exclude dismissed recommendations.
+    const userPreferences = await UserPreference.findOne({ userId }).lean();
+    const dismissedAppNames = new Set(userPreferences?.dismissedRecommendations || []);
+
+    // 1. Fetch currently ACTIVE connected accounts for the specific user within their workspace.
+    // SECURITY FIX: Query is now scoped by both userId and workspaceId to enforce tenant boundaries.
+    // This assumes the ComposioAuth model has a `workspaceId` field.
+    const connections = await ComposioAuth.find({ userId, workspaceId, status: 'ACTIVE' }).lean();
     const connectedAppNames = new Set(
       connections.map((c) => {
-        // Use toolkit.slug as primary identifier, fallback to authConfigId without prefix
-        // Ensure consistency with how appKey is derived from Tool model for accurate matching.
+        const name = c.toolkit?.slug || c.authConfigId?.replace(/^ac_/, '') || '';
+        return name.toLowerCase();
+      }).filter(Boolean)
+    );
+
+    // INTEGRATION: Fetch apps connected by other users in the same workspace for synergy calculation.
+    const workspaceConnections = await ComposioAuth.find({
+      workspaceId,
+      userId: { $ne: userId },
+      status: 'ACTIVE',
+    }).lean();
+    const workspaceConnectedAppNames = new Set(
+      workspaceConnections.map((c) => {
         const name = c.toolkit?.slug || c.authConfigId?.replace(/^ac_/, '') || '';
         return name.toLowerCase();
       }).filter(Boolean)
     );
 
     // 2. Load all available apps from the Tool model
-    // Added 'category' to projection to allow tools to define their own categories.
     const allTools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1, category: 1 }).lean();
 
-    // Build a unique set of apps with metadata
     const appMetadataMap = {};
     for (const tool of allTools) {
-      // Prioritize slug's base part for appKey to ensure consistency with connectedAppNames.
-      // Example: 'gmail_sendEmail' -> 'gmail'. Fallback to appName if slug is not suitable.
       const appKey = (tool.slug?.split('_')[0] || tool.appName || '').toLowerCase();
       if (!appKey) continue;
 
       if (!appMetadataMap[appKey]) {
         appMetadataMap[appKey] = {
-          // Use appName or name for display, fallback to derived appKey
           displayName: tool.appName || tool.name || appKey,
-          // Use tool's category if available, otherwise default
           category: tool.category || 'Integration',
           description: tool.description || `Automate workflows with ${tool.appName || appKey}`,
           setupDifficulty: 'Easy',
@@ -54,13 +78,12 @@ const getRecommendations = async (userId) => {
     // 3. Fetch recent action audit history to find what the user is attempting
     let auditAnalytics = null;
     try {
-      auditAnalytics = await actionAuditService.getUserAnalytics(userId);
+      // INTEGRATION FIX: Pass workspaceId to the analytics service to ensure it respects tenant boundaries.
+      auditAnalytics = await actionAuditService.getUserAnalytics(userId, workspaceId);
     } catch (error) {
-      // Non-fatal if no audit history is present yet, log the error for debugging purposes.
-      logger.warn(`AppDiscoveryService: No audit history found or error fetching for user ${userId}: ${error.message}`);
+      logger.warn(`AppDiscoveryService: No audit history found or error fetching for user ${userId} in workspace ${workspaceId}: ${error.message}`);
     }
 
-    // Optimization: Pre-process auditAnalytics.appBreakdown into a Map for O(1) lookups.
     let appBreakdownMap = new Map();
     if (auditAnalytics && auditAnalytics.appBreakdown) {
       for (const item of auditAnalytics.appBreakdown) {
@@ -69,27 +92,24 @@ const getRecommendations = async (userId) => {
     }
 
     const recommendations = [];
-
-    // Pre-calculate categories of connected apps for performance optimization.
-    // This avoids O(N^2) complexity when checking for same-category synergy.
     const connectedAppCategories = new Set();
     for (const appName of connectedAppNames) {
-      if (appMetadataMap[appName]) { // Ensure the connected app has metadata
+      if (appMetadataMap[appName]) {
         connectedAppCategories.add(appMetadataMap[appName].category);
       }
     }
 
     // 4. Match rules & calculate recommendation scores
     for (const [appName, meta] of Object.entries(appMetadataMap)) {
-      if (connectedAppNames.has(appName)) {
-        continue; // Skip already connected apps
+      // BUG FIX: Skip already connected apps AND apps the user has explicitly dismissed.
+      if (connectedAppNames.has(appName) || dismissedAppNames.has(appName)) {
+        continue;
       }
 
-      let score = 40; // Base score
+      let score = 30; // Base score
       const reasons = [];
 
-      // Activity/Failed Attempts Boost: If user attempts actions on apps they don't have
-      // Optimized: Using appBreakdownMap for O(1) lookup instead of O(N) Array.find().
+      // Activity/Failed Attempts Boost
       if (appBreakdownMap.size > 0) {
         const attempted = appBreakdownMap.get(appName);
         if (attempted) {
@@ -98,11 +118,16 @@ const getRecommendations = async (userId) => {
         }
       }
 
-      // Connected-app synergy boost: if apps in the same category are already connected
-      // Optimized to use pre-calculated connectedAppCategories set for O(1) lookup.
+      // Connected-app synergy boost
       if (connectedAppCategories.has(meta.category)) {
         score += 15;
         reasons.push(`Complements other connected integrations in the same category`);
+      }
+
+      // INTEGRATION: Workspace Synergy Boost - recommend apps popular with the user's team.
+      if (workspaceConnectedAppNames.has(appName)) {
+        score += 20;
+        reasons.push(`Popular within your workspace`);
       }
 
       // High-value app boost
@@ -112,7 +137,6 @@ const getRecommendations = async (userId) => {
         reasons.push('Popular high-value integration');
       }
 
-      // Cap at 98
       const confidence = Math.min(98, score) / 100;
 
       recommendations.push({
@@ -127,30 +151,51 @@ const getRecommendations = async (userId) => {
       });
     }
 
-    // Sort by confidence descending
     recommendations.sort((a, b) => b.confidence - a.confidence);
 
     return {
       success: true,
       connectedAppsCount: connectedAppNames.size,
       totalAvailableApps: Object.keys(appMetadataMap).length,
-      recommendations: recommendations.slice(0, 5), // Return top 5 relevant suggestions
+      recommendations: recommendations.slice(0, 5),
     };
   } catch (err) {
-    logger.error('AppDiscoveryService error:', err);
-    // Re-throw a more user-friendly error message, while logging the full error internally.
+    logger.error(`AppDiscoveryService error for user ${userId} in workspace ${workspaceId}:`, err);
     throw new Error(`Failed to generate integration recommendations: ${err.message}`);
   }
 };
 
 /**
- * Dismisses an app recommendation from the list.
- * Uses a per-user DB approach instead of a global file.
+ * Dismisses an app recommendation, storing the preference in the database.
+ *
+ * SECURITY & INTEGRATION FIX: This function now requires a userContext object to ensure
+ * a user can only modify their own preferences.
+ * @param {string} appName - The name of the app to dismiss.
+ * @param {object} userContext - The authenticated user's context.
+ * @param {string} userContext.userId - The ID of the user.
  */
-const dismissRecommendation = async (appName, userId) => {
-  // For now, log the dismissal. A proper implementation would store this in the user's preferences.
-  logger.info(`AppDiscoveryService: user ${userId} dismissed recommendation for ${appName}`);
-  return { success: true, message: `Recommendation for "${appName}" dismissed.` };
+const dismissRecommendation = async (appName, userContext) => {
+  // SECURITY: Enforce presence of userId from a trusted context.
+  const { userId } = userContext;
+  if (!userId) {
+    logger.error('AppDiscoveryService: dismissRecommendation called without userId.');
+    throw new Error('User context with userId is required.');
+  }
+
+  try {
+    // BUG FIX: Persist the dismissal in the database instead of just logging.
+    // This uses an atomic $addToSet operation to prevent duplicates.
+    await UserPreference.findOneAndUpdate(
+      { userId },
+      { $addToSet: { dismissedRecommendations: appName } },
+      { upsert: true, new: true }
+    );
+    logger.info(`AppDiscoveryService: user ${userId} dismissed recommendation for ${appName}`);
+    return { success: true, message: `Recommendation for "${appName}" dismissed.` };
+  } catch (error) {
+    logger.error(`Failed to dismiss recommendation for user ${userId}:`, error);
+    throw new Error('Could not save dismissal preference.');
+  }
 };
 
 export const appDiscoveryService = {
