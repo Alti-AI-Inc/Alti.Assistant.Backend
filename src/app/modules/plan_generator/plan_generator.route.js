@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -11,6 +12,36 @@ import { PlanGeneratorValidation } from './plan_generator.validation.js';
 import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
+
+// --- Cloud Run & Graceful Shutdown Setup ---
+
+const app = express();
+// It's a good practice to use Express's JSON middleware for parsing request bodies.
+app.use(express.json());
+
+// A flag to indicate the server is shutting down. Used by the readiness probe.
+let isShuttingDown = false;
+
+// Liveness probe endpoint: Indicates if the server process is running.
+// Cloud Run uses this to check if the container needs to be restarted.
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Readiness probe endpoint: Indicates if the server is ready to accept traffic.
+// Cloud Run stops sending new requests to instances that fail this check.
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown) {
+    // If the server is shutting down, it's no longer "ready" for new requests.
+    res.status(503).send('Service Unavailable: Shutting down');
+  } else {
+    // TODO: Add checks for critical dependencies like database connections.
+    // For example: if (!isDatabaseConnected()) return res.status(503).send('Database not ready');
+    res.status(200).send('OK');
+  }
+});
+
+// --- Original Route Definitions ---
 
 // Helper function to wrap async controller functions and catch errors.
 // This prevents unhandled promise rejections from crashing the server
@@ -464,8 +495,51 @@ router.get(
  * @property {object} [options] - Optional export-specific options (e.g., template, styling).
  */
 
-/**
- * Express router for plan generation and assistant-related routes.
- * @type {express.Router}
- */
-export const planGeneratorRoutes = router;
+// Mount the router on the main Express app.
+app.use('/api/v1/plan-generator', router);
+
+// --- Server Startup and Graceful Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Fallback to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app);
+
+// Graceful shutdown logic
+const gracefulShutdown = (signal) => {
+  console.log(`[${signal}] received. Shutting down gracefully...`);
+  isShuttingDown = true; // Mark as shutting down for readiness probe
+
+  // Stop accepting new connections
+  server.close(async () => {
+    console.log('HTTP server closed. No new connections will be accepted.');
+
+    // TODO: Close database connections, Redis clients, etc.
+    // This is a critical step to prevent data corruption.
+    // Example for Prisma: await prisma.$disconnect();
+    // Example for Mongoose: await mongoose.connection.close();
+    console.log('Closing database connections...');
+    // await closeDatabaseConnections(); // Replace with your actual DB closing logic
+
+    console.log('Shutdown complete.');
+    process.exit(0);
+  });
+
+  // If the server hasn't closed after a timeout, force exit.
+  // Cloud Run allows a 10-second grace period by default.
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcing shutdown.');
+    process.exit(1);
+  }, 9500); // 9.5 seconds, slightly less than the default 10s
+};
+
+// Listen for termination signals
+// SIGTERM is sent by Cloud Run to signal shutdown.
+// SIGINT is sent when you press Ctrl+C locally.
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Start the server
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+  // In a real application, you might set a 'ready' flag here after DB connections are confirmed.
+});
