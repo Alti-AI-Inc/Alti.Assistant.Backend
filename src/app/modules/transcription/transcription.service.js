@@ -9,6 +9,9 @@ import {
   AUDIO_PROCESSING,
   ERROR_MESSAGES,
 } from './transcription.constant.js';
+// Optimization: Import the Conversation model to enable direct Mongoose aggregation.
+// Adjust the path as per your project structure (e.g., from a models directory).
+import Conversation from '../conversations/conversation.model.js';
 
 /**
  * Generates a unique identifier for a guest user.
@@ -52,14 +55,14 @@ const handleTranscriptionConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Recommendation: If `conversationHelpers.getConversationById` only retrieves data for read-only purposes
+        // (as it appears here, checking `conversation.metadata?.userType`), consider adding `.lean()` to the Mongoose query
+        // within `conversationHelpers.getConversationById` for better performance by returning a plain JavaScript object.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId,
           req
         );
-        // Optimization Recommendation: If `conversationHelpers.getConversationById` only retrieves data for read-only purposes
-        // (as it appears here, checking `conversation.metadata?.userType`), consider adding `.lean()` to the Mongoose query
-        // within `conversationHelpers.getConversationById` for better performance by returning a plain JavaScript object.
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(
@@ -286,50 +289,99 @@ const formatTimestamp = (seconds) => {
  */
 const getTranscriptionStats = async (userId, req = null) => {
   try {
-    const conversations = await conversationHelpers.getUserConversations(
-      userId,
-      {
-        'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
-      }
-    );
-    // Optimization Recommendation: For read-only operations like retrieving conversations for statistics,
-    // ensure `conversationHelpers.getUserConversations` uses `.lean()` in its Mongoose query
-    // to return plain JavaScript objects, reducing Mongoose document overhead.
-
-    // Indexing Recommendation: To optimize the query for `getUserConversations` which filters by
-    // `userId` (implicitly, as it's `getUserConversations(userId, ...)`) and `metadata.category`,
-    // consider adding a compound index to the 'conversations' collection:
+    // Optimization: Using MongoDB aggregation pipeline for efficient server-side computation
+    // instead of fetching all conversations and processing in JavaScript.
+    // This reduces data transfer and leverages MongoDB's optimized aggregation framework.
+    // Indexing Recommendation: To optimize this aggregation, create a compound index on the 'conversations' collection:
     // db.conversations.createIndex({ userId: 1, 'metadata.category': 1 });
+    const stats = await Conversation.aggregate([
+      {
+        $match: {
+          // Assuming userId in the Conversation model is stored as a String.
+          // If it's stored as a Mongoose ObjectId, use `userId: new mongoose.Types.ObjectId(userId)`.
+          userId: userId,
+          'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
+        },
+      },
+      {
+        // Deconstruct the messages array to process each message individually.
+        // This is efficient for embedded arrays.
+        $unwind: '$messages',
+      },
+      {
+        // Filter for messages that are transcription results.
+        $match: {
+          'messages.metadata.type': 'transcription_result',
+        },
+      },
+      {
+        // Group all matching messages into a single document to calculate overall statistics.
+        $group: {
+          _id: null, // Group all into one document
+          totalTranscriptions: { $sum: 1 },
+          totalDuration: { $sum: '$messages.metadata.duration' },
+          totalTokens: { $sum: '$messages.metadata.tokenCount' },
+          // Collect processing types to count them later.
+          processingTypesArray: { $push: '$messages.metadata.processingType' },
+          // Collect unique conversation IDs to count distinct conversations.
+          conversationIds: { $addToSet: '$_id' },
+        },
+      },
+      {
+        // Project the final output fields, including calculated averages and transformed processing types.
+        $project: {
+          _id: 0, // Exclude the default _id field
+          totalTranscriptions: 1,
+          totalDuration: 1,
+          totalTokens: 1,
+          averageDuration: {
+            $cond: [
+              { $gt: ['$totalTranscriptions', 0] },
+              { $divide: ['$totalDuration', '$totalTranscriptions'] },
+              0,
+            ],
+          },
+          // Transform processingTypesArray into an object with counts for each type.
+          processingTypes: {
+            $arrayToObject: {
+              $map: {
+                input: { $setUnion: '$processingTypesArray' }, // Get unique types
+                as: 'type',
+                in: {
+                  k: '$$type',
+                  v: {
+                    $size: {
+                      $filter: {
+                        input: '$processingTypesArray',
+                        as: 'pt',
+                        cond: { $eq: ['$$pt', '$$type'] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          conversationCount: { $size: '$conversationIds' },
+        },
+      },
+    ]);
 
-    let totalTranscriptions = 0;
-    let totalDuration = 0;
-    let totalTokens = 0;
-    const processingTypes = {};
-
-    for (const conversation of conversations) {
-      const messages = conversation.messages || [];
-
-      for (const message of messages) {
-        if (message.metadata?.type === 'transcription_result') {
-          totalTranscriptions++;
-          totalDuration += message.metadata.duration || 0;
-          totalTokens += message.metadata.tokenCount || 0;
-
-          const type = message.metadata.processingType || 'transcribe';
-          processingTypes[type] = (processingTypes[type] || 0) + 1;
-        }
-      }
+    // If no transcription results are found, the aggregation pipeline might return an empty array.
+    // In that case, return default zero values.
+    if (stats.length === 0) {
+      return {
+        totalTranscriptions: 0,
+        totalDuration: 0,
+        totalTokens: 0,
+        averageDuration: 0,
+        processingTypes: {},
+        conversationCount: 0,
+      };
     }
 
-    return {
-      totalTranscriptions,
-      totalDuration,
-      totalTokens,
-      averageDuration:
-        totalTranscriptions > 0 ? totalDuration / totalTranscriptions : 0,
-      processingTypes,
-      conversationCount: conversations.length,
-    };
+    // The aggregation returns an array with a single result document (due to _id: null in $group).
+    return stats[0];
   } catch (error) {
     logger.error('Error getting transcription stats:', error);
     throw new ApiError(
