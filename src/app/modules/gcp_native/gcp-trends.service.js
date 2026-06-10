@@ -2,14 +2,19 @@ import axios from 'axios';
 import { logger } from '../../../shared/logger.js';
 
 /**
- * Decodes XML HTML entities and extracts CDATA blocks.
- * Handles named and numeric (decimal and hexadecimal) entities.
+ * Decodes common XML HTML entities and extracts content from CDATA blocks within a given string.
+ * This function handles named entities like `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`,
+ * as well as numeric entities in both decimal (`&#123;`) and hexadecimal (`&#x123;`) formats.
+ * CDATA blocks are removed, and their inner content is preserved.
+ *
+ * @param {string} str - The input string potentially containing XML entities and CDATA blocks.
+ * @returns {string} The decoded string with entities resolved and CDATA blocks processed.
  */
 const decodeXml = (str) => {
   if (!str) return '';
   let decoded = str;
 
-  // First, remove CDATA blocks
+  // First, remove CDATA blocks and extract their content
   decoded = decoded.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
 
   // Then, decode named entities. Order matters for &amp;lt; etc.
@@ -27,7 +32,23 @@ const decodeXml = (str) => {
 };
 
 /**
- * Regex-based lightweight XML parser to safely parse Google Trends RSS structure.
+ * Parses the XML content of a Google Trends RSS feed using regular expressions.
+ * It extracts trending search items, including their title, approximate traffic, description,
+ * associated picture, and details of a related news item if available.
+ * This is a lightweight parser specifically tailored for the Google Trends RSS structure.
+ *
+ * @param {string} xmlText - The raw XML string content from the Google Trends RSS feed.
+ * @returns {Array<Object>} An array of objects, each representing a trending search item.
+ *   Each object contains:
+ *   - `query` {string}: The main trending search query/title.
+ *   - `approxTraffic` {string}: Approximate search traffic (e.g., "100,000+").
+ *   - `description` {string}: A brief description of the trend.
+ *   - `picture` {string}: URL to an associated image.
+ *   - `newsItem` {Object|null}: An object containing details of a related news item, or `null` if none.
+ *     - `title` {string}: Title of the news item.
+ *     - `snippet` {string}: A short snippet from the news item.
+ *     - `url` {string}: URL to the full news article.
+ *     - `source` {string}: Source of the news article.
  */
 const parseTrendsRss = (xmlText) => {
   const items = [];
@@ -72,10 +93,18 @@ const parseTrendsRss = (xmlText) => {
 };
 
 /**
- * Retrieves daily and real-time trending searches from Google Trends.
- * 
- * @param {string} [geo='US'] - Country ISO code (e.g. US, GB, CA)
- * @returns {Promise<object>} Map of trending queries and associated news metadata
+ * Retrieves daily and real-time trending searches from Google Trends for a specified country.
+ * It fetches the RSS feed from Google Trends, parses the XML content, and returns a structured
+ * list of trending queries along with associated metadata like traffic, description, and news items.
+ *
+ * @param {string} [geo='US'] - The ISO 3166-1 alpha-2 country code (e.g., 'US' for United States, 'GB' for Great Britain, 'CA' for Canada).
+ *                               Defaults to 'US' if not provided.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the trending searches.
+ *   - `success` {boolean}: Indicates if the operation was successful.
+ *   - `geo` {string}: The country code used for the search.
+ *   - `totalCount` {number}: The number of trending items found.
+ *   - `trends` {Array<Object>}: An array of trending search items, each structured as defined by `parseTrendsRss`.
+ *   - `error` {string} [optional]: An error message if the operation failed.
  */
 const getTrendingSearches = async (geo = 'US') => {
   try {
@@ -112,6 +141,17 @@ const getTrendingSearches = async (geo = 'US') => {
   }
 };
 
+/**
+ * @typedef {Object} GcpTrendsService
+ * @property {function(string): Promise<Object>} getTrendingSearches - Function to retrieve trending searches from Google Trends.
+ */
+
+/**
+ * Provides services for interacting with Google Trends to fetch trending search data.
+ * This service encapsulates the logic for fetching and parsing Google Trends RSS feeds.
+ *
+ * @type {GcpTrendsService}
+ */
 export const GcpTrendsService = {
   getTrendingSearches
 };
