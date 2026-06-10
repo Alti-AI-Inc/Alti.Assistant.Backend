@@ -26,10 +26,10 @@ export const GUEST_USER_CONFIG = {
 // Audio processing options
 export const AUDIO_PROCESSING = {
   MAX_INLINE_SIZE: 20 * 1024 * 1024, // 20MB
-  MAX_AUDIO_LENGTH: 9.5 * 60 * 60, // 9.5 hours in seconds
-  MAX_GUEST_AUDIO_LENGTH: 300, // 5 minutes for guests
+  MAX_AUDIO_LENGTH: 9.5 * 60 * 60, // 9.5 hours in seconds (for authenticated users)
+  MAX_GUEST_AUDIO_LENGTH: GUEST_USER_CONFIG.FEATURES.MAX_AUDIO_LENGTH, // Reference guest-specific limit
   TOKENS_PER_SECOND: 32,
-  SAMPLE_RATE: 16000, // 16 Kbps
+  SAMPLE_RATE: 16000, // 16 kHz (samples per second)
 };
 
 // Supported audio formats
