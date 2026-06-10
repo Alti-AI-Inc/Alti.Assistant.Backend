@@ -1,17 +1,21 @@
 import * as zod from 'zod';
 const { z } = zod;
 
+// Enhanced validation for UUIDs to be used across schemas
+const uuidSchema = z.string().uuid({ message: 'Invalid ID format' });
+
 /**
  * @typedef {object} ConversationalRequestBody
  * @property {string} message - The natural language message or prompt for the AI to initiate or continue a conversation.
- * @property {string} [conversationId] - Optional ID of an existing conversation to continue.
- * @property {string} [userId] - Optional user ID, primarily for guest users or tracking.
+ * @property {string} [conversationId] - Optional UUID of an existing conversation to continue.
+ * @property {string} [userId] - Optional guest user UUID for tracking unauthenticated conversations. For authenticated users, user context is derived from the auth token.
  * @property {'text'|'docx'|'pdf'} [outputFormat='text'] - Desired output format for the generated contract or response.
  */
 
 /**
  * Schema for conversational contract creation requests.
  * Handles natural language interactions with an AI to draft or modify legal contracts.
+ * This endpoint is subject to workspace usage limits.
  * @type {z.ZodObject<{ body: z.ZodObject<ConversationalRequestBody> }>}
  * @property {ConversationalRequestBody} body - The request body containing the conversational input.
  */
@@ -21,10 +25,12 @@ const conversationalRequestSchema = z.object({
       .string({
         required_error: 'Message is required',
       })
+      .trim()
       .min(1, 'Message cannot be empty')
-      .max(5000, 'Message too long'),
-    conversationId: z.string().optional(),
-    userId: z.string().optional(), // For guest users
+      .max(5000, 'Message is too long. Please limit to 5000 characters.'),
+    conversationId: uuidSchema.optional(),
+    // For guest users. Authenticated users are identified via JWT.
+    userId: uuidSchema.optional(),
     outputFormat: z.enum(['text', 'docx', 'pdf']).optional().default('text'),
   }),
 });
@@ -44,7 +50,7 @@ const conversationalRequestSchema = z.object({
  * @property {'us_federal'|'us_state'|'uk'|'eu'|'international'|'other'} [jurisdiction='international'] - The legal jurisdiction applicable to the contract.
  * @property {'text'|'docx'|'pdf'} [outputFormat='text'] - Desired output format for the generated contract.
  * @property {PartySchema[]} [parties] - An array of parties involved in the contract, each with their details.
- * @property {Record<string, any>} [terms] - A flexible object containing contract-specific terms and clauses (e.g., `{ salary: '50000', startDate: '2023-01-01' }`).
+ * @property {Record<string, any>} [terms] - A flexible object containing contract-specific terms and clauses (e.g., `{ "salary": 50000, "startDate": "2023-01-01" }`).
  * @property {string} [additionalInstructions] - Any additional free-form instructions for contract generation.
  * @property {boolean} [includeBoilerplate=true] - Whether to include standard boilerplate clauses in the contract.
  */
@@ -52,6 +58,7 @@ const conversationalRequestSchema = z.object({
 /**
  * Schema for direct contract generation (non-conversational).
  * Designed for programmatic access where all contract parameters are provided explicitly.
+ * This endpoint is subject to workspace usage limits.
  * @type {z.ZodObject<{ body: z.ZodObject<GenerateContractRequestBody> }>}
  * @property {GenerateContractRequestBody} body - The request body containing all parameters for direct contract generation.
  */
@@ -86,22 +93,31 @@ const generateContractSchema = z.object({
     parties: z
       .array(
         z.object({
-          name: z.string(),
-          role: z.string(), // e.g., 'employer', 'contractor', 'party1', etc.
-          address: z.string().optional(),
-          email: z.string().email().optional(),
+          name: z.string().trim().min(1, 'Party name cannot be empty'),
+          role: z.string().trim().min(1, 'Party role cannot be empty'),
+          address: z.string().trim().min(1).optional(),
+          email: z
+            .string()
+            .email({ message: 'Invalid email address for party' })
+            .optional(),
         })
       )
+      .min(1, 'Parties array cannot be empty if provided.')
       .optional(),
     terms: z.record(z.any()).optional(), // Flexible object for contract-specific terms
-    additionalInstructions: z.string().optional(),
+    additionalInstructions: z
+      .string()
+      .trim()
+      .min(1)
+      .max(5000, 'Instructions are too long. Please limit to 5000 characters.')
+      .optional(),
     includeBoilerplate: z.boolean().optional().default(true),
   }),
 });
 
 /**
  * @typedef {object} AnswerQuestionsRequestBody
- * @property {string} conversationId - The ID of the ongoing conversation to which the answers pertain.
+ * @property {string} conversationId - The UUID of the ongoing conversation to which the answers pertain.
  * @property {Record<string, any>} answers - A map where keys are question IDs and values are the corresponding answers provided by the user.
  * @property {boolean} [requestContract=false] - If true, indicates that the user wishes to generate the contract after providing these answers.
  */
@@ -114,17 +130,17 @@ const generateContractSchema = z.object({
  */
 const answerQuestionsSchema = z.object({
   body: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
+    conversationId: uuidSchema,
+    answers: z.record(z.any()).refine(val => Object.keys(val).length > 0, {
+      message: 'Answers object cannot be empty.',
     }),
-    answers: z.record(z.any()), // Map of questionId -> answer
-    requestContract: z.boolean().optional().default(false), // If true, generate contract after answers
+    requestContract: z.boolean().optional().default(false),
   }),
 });
 
 /**
  * @typedef {object} GetConversationHistoryParams
- * @property {string} conversationId - The ID of the conversation whose history is to be retrieved.
+ * @property {string} conversationId - The UUID of the conversation whose history is to be retrieved.
  */
 
 /**
@@ -134,15 +150,13 @@ const answerQuestionsSchema = z.object({
  */
 const getConversationHistorySchema = z.object({
   params: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    conversationId: uuidSchema,
   }),
 });
 
 /**
  * @typedef {object} DownloadContractParams
- * @property {string} conversationId - The ID of the conversation associated with the contract to be downloaded.
+ * @property {string} conversationId - The UUID of the conversation associated with the contract to be downloaded.
  */
 
 /**
@@ -158,9 +172,7 @@ const getConversationHistorySchema = z.object({
  */
 const downloadContractSchema = z.object({
   params: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    conversationId: uuidSchema,
   }),
   query: z.object({
     format: z.enum(['text', 'docx', 'pdf']).optional().default('text'),
@@ -169,30 +181,34 @@ const downloadContractSchema = z.object({
 
 /**
  * @typedef {object} ModifyContractRequestBody
- * @property {string} conversationId - The ID of the conversation associated with the contract to be modified.
+ * @property {string} conversationId - The UUID of the conversation associated with the contract to be modified.
  * @property {string} modifications - Natural language instructions detailing the desired modifications to the contract.
  */
 
 /**
  * Schema for modifying an existing contract.
  * Allows users to provide instructions to the AI to alter a previously generated or drafted contract.
+ * This endpoint is subject to workspace usage limits.
  * @type {z.ZodObject<{ body: z.ZodObject<ModifyContractRequestBody> }>}
  * @property {ModifyContractRequestBody} body - The request body containing the conversation ID and modification instructions.
  */
 const modifyContractSchema = z.object({
   body: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
-    modifications: z.string({
-      required_error: 'Modification instructions are required',
-    }),
+    conversationId: uuidSchema,
+    modifications: z
+      .string({
+        required_error: 'Modification instructions are required',
+      })
+      .trim()
+      .min(1, 'Modification instructions cannot be empty')
+      .max(5000, 'Modification instructions are too long. Please limit to 5000 characters.'),
   }),
 });
 
 /**
  * An object containing Zod validation schemas for various legal contract-related API endpoints.
- * These schemas are used to validate incoming request bodies, parameters, and queries.
+ * These schemas are used to validate incoming request bodies, parameters, and queries, ensuring data integrity
+ * and security, which is essential for features governed by workspace plans and limits.
  * @namespace LegalContractValidation
  * @property {typeof conversationalRequestSchema} conversationalRequestSchema - Schema for validating conversational contract creation requests.
  * @property {typeof generateContractSchema} generateContractSchema - Schema for validating direct contract generation requests.

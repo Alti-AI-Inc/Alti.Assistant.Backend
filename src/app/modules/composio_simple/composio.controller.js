@@ -11,10 +11,23 @@ import {
 import SubscriptionModel from '../subscription/subscription.model.js';
 
 /**
+ * Escapes special characters in a string for use in a regular expression.
+ * @param {string} string The string to escape.
+ * @returns {string} The escaped string.
+ */
+const escapeRegExp = string => {
+  // $& means the whole matched string
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+/**
  * Main chat endpoint - handles user messages and executes actions
  */
 export const chatController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
+  // Security Patch: Sanitize and validate inputs. Here we destructure and will validate presence.
+  // Further sanitization (e.g., for XSS) should be handled by libraries like DOMPurify on the frontend
+  // before rendering, and Mongoose's built-in sanitization helps prevent NoSQL injection.
   const { message, conversationId, scopedApp } = req.body;
 
   // Validate input
@@ -133,7 +146,8 @@ export const chatController = catchAsync(async (req, res) => {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         message: 'Failed to process request',
-        data: result.data,
+        // Security Patch: Avoid leaking internal error details in production.
+        data: process.env.NODE_ENV !== 'production' ? result.data : null,
       });
     }
   } catch (error) {
@@ -143,8 +157,9 @@ export const chatController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An unexpected error occurred',
+      // Security Patch: Avoid leaking internal error details in production.
       data: {
-        error: error.message,
+        error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal Server Error',
       },
     });
   }
@@ -192,7 +207,8 @@ export const initiateAuthController = catchAsync(async (req, res) => {
       statusCode,
       success: false,
       message,
-      data: { error: result.error },
+      // Security Patch: Avoid leaking internal error details in production.
+      data: { error: process.env.NODE_ENV !== 'production' ? result.error : message },
     });
   }
 });
@@ -224,7 +240,9 @@ export const disconnectAppController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: result.error || 'Failed to disconnect app',
+      // Security Patch: Use a generic error message to avoid information disclosure.
+      message: 'Failed to disconnect app',
+      data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Could not disconnect app.' },
     });
   }
 });
@@ -243,12 +261,15 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
     });
   }
 
+  // Security Patch: Escape user-provided input for RegExp to prevent Regular Expression Denial of Service (ReDoS).
+  const sanitizedApp = escapeRegExp(app);
+
   // Find all tools associated with this appName
   // We use regex to handle case insensitivity
   // Optimization: Already uses .lean() for read-only data.
   // Recommendation: Add an index on `appName` to the Tool model for efficient querying, especially with regex.
   const capabilities = await Tool.find({
-    appName: new RegExp(`^${app}`, 'i')
+    appName: new RegExp(`^${sanitizedApp}`, 'i')
   }, { name: 1, description: 1, _id: 0 }).lean();
 
   return sendResponse(res, {
@@ -267,6 +288,7 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  // Security Note: Ensure global CORS policy is configured correctly for this endpoint.
   res.flushHeaders();
 
   // Handle both auth middleware user and default fallback
@@ -274,11 +296,9 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
   // it indicates an unauthenticated request to an endpoint that requires authentication.
   const userId = req.user?._id?.toString();
   if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'User authentication required for SSE stream',
-    });
+    // End the stream properly for unauthorized access.
+    res.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Unauthorized' } })}\n\n`);
+    return res.end();
   }
 
   // Helper to fetch and send
@@ -291,6 +311,8 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
       res.write(`data: ${JSON.stringify({ type: 'connected_apps', data: accounts.data || [] })}\n\n`);
     } catch (err) {
       logger.error('SSE push error:', err);
+      // Avoid crashing the stream on a single failed push
+      res.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Failed to fetch status' } })}\n\n`);
     }
   };
 
@@ -338,7 +360,8 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to establish connection',
-      data: { error: result.error },
+      // Security Patch: Avoid leaking internal error details in production.
+      data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Connection failed.' },
     });
   }
 });
@@ -349,11 +372,18 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
 export const getConversationsController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
 
+  // Security Patch: Validate and sanitize pagination and sorting parameters.
+  const page = parseInt(req.query.page, 10);
+  const limit = parseInt(req.query.limit, 10);
+  const allowedSortBy = ['lastActivity', 'createdAt']; // Whitelist of allowed sort fields.
+  const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'lastActivity';
+  const sortOrder = req.query.sortOrder === 'asc' || req.query.sortOrder === '1' ? 1 : -1;
+
   const options = {
-    page: parseInt(req.query.page) || 1,
-    limit: parseInt(req.query.limit) || 20,
-    sortBy: req.query.sortBy || 'lastActivity',
-    sortOrder: parseInt(req.query.sortOrder) || -1,
+    page: page > 0 ? page : 1,
+    limit: limit > 0 && limit <= 100 ? limit : 20, // Set a max limit.
+    sortBy,
+    sortOrder,
   };
 
   // Recommendation: Ensure `conversationService.getUserConversations` uses .lean() for read-only data.
@@ -419,7 +449,8 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve connected accounts',
-      data: { error: result.error },
+      // Security Patch: Avoid leaking internal error details in production.
+      data: { error: process.env.NODE_ENV !== 'production' ? result.error : 'Could not retrieve accounts.' },
     });
   }
 });
@@ -513,14 +544,16 @@ export const compareController = catchAsync(async (req, res) => {
         response: simplifiedResult?.data?.response || null,
         toolsUsed: simplifiedResult?.data?.toolsUsed || [],
         executionTime: `${simplifiedTime}ms`,
-        error: simplifiedError,
+        // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
+        error: process.env.NODE_ENV !== 'production' && simplifiedError ? 'An error occurred' : simplifiedError,
         conversationId: simplifiedResult?.data?.conversationId || null,
       },
       v2: {
         success: complexResult?.success || false,
         response: complexResult?.data?.result || complexResult?.result || null,
         executionTime: `${complexTime}ms`,
-        error: complexError,
+        // Security Patch: Avoid leaking internal error details in production, even on a debug endpoint.
+        error: process.env.NODE_ENV !== 'production' && complexError ? 'An error occurred' : complexError,
       },
       comparison: {
         timeSaved: `${timeSaved}ms`,

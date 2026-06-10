@@ -91,7 +91,7 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- * 
+ *
  * @param {import('express').Request} req - Express request object. Supports guest users (`req.isGuest`) and authenticated users (`req.user`).
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Resolves when the response is sent.
@@ -121,9 +121,11 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     // Optimization: Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
     // Recommendation: Create a compound index on `userId` and `createdAt` for `SubscriptionModel`
     // to optimize this query: `db.subscriptions.createIndex({ userId: 1, createdAt: -1 })`
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    }).lean();
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
 
     // BUG: The original logic `promptUsage <= totalConversationWithConvId` was flawed.
     // `userSubscription.usage` is assumed to be the remaining prompts, consistent with `generateBrainstorm`.
@@ -225,7 +227,7 @@ const conversationalAssistant = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- * 
+ *
  * @param {import('express').Request} req - Express request object. Supports guest users (`req.isGuest`) and authenticated users (`req.user`).
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Resolves when the response is sent.
@@ -253,9 +255,11 @@ const generateBrainstorm = catchAsync(async (req, res) => {
     // Optimization: Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
     // Recommendation: Create a compound index on `userId` and `createdAt` for `SubscriptionModel`
     // to optimize this query: `db.subscriptions.createIndex({ userId: 1, createdAt: -1 })`
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    }).lean();
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
 
     // BUG: The original logic `if (userSubscription && userSubscription.usage <= 0)`
     // would allow users without any subscription to bypass the limit check.
@@ -355,7 +359,7 @@ const generateBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- * 
+ *
  * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Resolves when the response is sent.
@@ -435,7 +439,7 @@ const getConversationHistory = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- * 
+ *
  * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Resolves when the response is sent.
@@ -521,7 +525,7 @@ const exportBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- * 
+ *
  * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Resolves when the response is sent.

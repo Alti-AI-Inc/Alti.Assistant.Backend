@@ -28,6 +28,14 @@
  *           Currently, these agents do not use external tools.
  * @property {Array<string>} keywords - A list of keywords or phrases that are likely to trigger or
  *           be relevant to this agent's domain, used for routing user queries.
+ * @property {object} accessControl - [FIX] Defines the permissions required to use this agent, ensuring proper role validation.
+ * @property {Array<string>} accessControl.allowedRoles - A list of roles permitted to use this agent.
+ *           The consuming service must enforce this check against the authenticated user's role.
+ * @property {string|null} accessControl.requiredEntitlement - An optional entitlement key that the user's
+ *           workspace must have. 'null' means no specific entitlement is required beyond the role.
+ * @property {object} usage - [FIX] Defines the cost to enable usage tracking, limits, and propagation up the hierarchy.
+ * @property {number} usage.creditsPerQuery - The number of credits consumed from the user's/workspace's
+ *           quota for each successful query to this agent. This enables accurate billing and limit enforcement.
  */
 
 // ─── 1. Equity Analyst ────────────────────────────────────────────────────────
@@ -74,6 +82,15 @@ FORMAT:
 - Be direct, dense, and professional — no filler text`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'stock analysis', 'equity analysis', 'should i buy', 'is it a good investment',
     'stock review', 'company analysis', 'stock outlook', 'buy or sell'
@@ -130,6 +147,15 @@ FORMAT:
 - Risk/reward table`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'options chain', 'call options', 'put options', 'options strategy', 'options flow',
     'implied volatility', 'delta gamma theta', 'iron condor', 'covered call', 'options expiration'
@@ -182,6 +208,15 @@ FORMAT:
 - Sentiment verdict badge`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'bitcoin analysis', 'ethereum analysis', 'crypto technical', 'btc price', 'eth price',
     'crypto outlook', 'crypto trend', 'altcoin analysis', 'defi', 'crypto market structure'
@@ -235,6 +270,15 @@ FORMAT:
 - Trade setup recommendation`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'forex analysis', 'currency pair', 'exchange rate', 'eurusd', 'gbpusd', 'usdjpy',
     'fx outlook', 'currency forecast', 'central bank', 'dollar strength', 'carry trade'
@@ -292,6 +336,15 @@ FORMAT:
 - Fed policy conclusion`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'inflation data', 'cpi report', 'federal reserve', 'fed policy', 'treasury yields',
     'yield curve', 'recession', 'interest rates', 'labor market', 'unemployment rate',
@@ -354,6 +407,15 @@ FORMAT:
 - Final verdict badge with conviction level`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'rsi', 'macd', 'ema', 'sma', 'technical analysis', 'chart analysis', 'moving average',
     'overbought', 'oversold', 'golden cross', 'death cross', 'support resistance',
@@ -419,6 +481,15 @@ FORMAT:
 - Quality score card`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 10,
+  },
   keywords: [
     'income statement', 'balance sheet', 'cash flow', 'fundamentals', 'revenue',
     'gross profit', 'net income', 'earnings per share', 'profit margin', 'debt',
@@ -476,6 +547,15 @@ FORMAT:
 - Overall portfolio health score`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [FIX] Added access control and usage tracking metadata to ensure proper
+  // role-based validation and to propagate usage data for limits and billing.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin', 'super_admin'],
+    requiredEntitlement: 'massive_financial_agents',
+  },
+  usage: {
+    creditsPerQuery: 15, // This agent is more complex, consuming more resources.
+  },
   keywords: [
     'portfolio', 'my portfolio', 'holdings', 'asset allocation', 'diversification',
     'portfolio analysis', 'compare stocks', 'multiple stocks', 'portfolio risk',
