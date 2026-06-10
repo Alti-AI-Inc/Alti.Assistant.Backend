@@ -31,9 +31,8 @@ const ChatShareSchema = new mongoose.Schema(
     shareId: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // Automatically creates a unique index; redundant 'index: true' removed for optimization
       default: () => uuidv4(),
-      index: true,
     },
     conversationId: {
       type: String,
@@ -85,12 +84,10 @@ const ChatShareSchema = new mongoose.Schema(
 
 /**
  * Defines indexes for the ChatShareSchema to improve query performance.
- * - `userId` and `isActive`: For quickly finding active shares by a specific user.
- * - `conversationId` and `isActive`: For quickly finding active shares related to a specific conversation.
- * - `expiresAt`: For efficient querying of expired or non-expired shares.
- * - `shareType` and `isActive`: For filtering shares based on their type and activity status.
+ * Optimized compound indexes to support sorting by `createdAt` during paginated queries.
  */
-ChatShareSchema.index({ userId: 1, isActive: 1 });
+ChatShareSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
+ChatShareSchema.index({ userId: 1, expiresAt: 1, createdAt: -1 });
 ChatShareSchema.index({ conversationId: 1, isActive: 1 });
 ChatShareSchema.index({ expiresAt: 1 });
 ChatShareSchema.index({ shareType: 1, isActive: 1 });
@@ -108,14 +105,20 @@ ChatShareSchema.virtual('isExpired').get(function () {
 
 /**
  * Instance method to increment the view count of a shared chat.
- * Updates `viewCount` and `lastViewedAt` fields, then saves the document.
+ * Optimized to use an atomic $inc update to prevent write race conditions and avoid full document save overhead.
  *
- * @returns {Promise<ChatShare>} A promise that resolves with the updated ChatShare document.
+ * @returns {Promise<object>} A promise that resolves with the update write result.
  */
 ChatShareSchema.methods.incrementViewCount = function () {
   this.viewCount += 1;
   this.lastViewedAt = new Date();
-  return this.save();
+  return this.constructor.updateOne(
+    { _id: this._id },
+    {
+      $inc: { viewCount: 1 },
+      $set: { lastViewedAt: this.lastViewedAt },
+    }
+  );
 };
 
 /**
@@ -156,6 +159,7 @@ ChatShareSchema.statics.findActiveShare = function (shareId) {
 /**
  * Static method to find shared chats belonging to a specific user, with pagination and status filtering.
  * Populates selected fields from the `conversationId` reference.
+ * Optimized with lean queries for faster read-only performance.
  *
  * @param {mongoose.Schema.Types.ObjectId} userId - The ID of the user whose shares are to be found.
  * @param {FindUserSharesOptions} [options] - Options for pagination and filtering.
@@ -171,15 +175,9 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
     query.$or = [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }];
   } else if (status === 'expired') {
     query.expiresAt = { $lte: new Date() };
-    // For expired shares, we might also want to ensure they were once active
-    // or that isActive is not explicitly false due to revocation.
-    // Depending on business logic, isActive: true might be added here,
-    // but current logic implies 'expired' is a state independent of 'revoked'.
   } else if (status === 'revoked') {
     query.isActive = false;
   }
-  // If status is 'all', no additional status filters are applied,
-  // allowing all shares for the user to be returned.
 
   const skip = (page - 1) * limit;
 
@@ -189,15 +187,10 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
       'title conversationId lastActivity messageCount'
     )
     .sort({ createdAt: -1 })
+    .skip(skip)
     .limit(limit)
-    .skip(skip);
+    .lean();
 };
-
-// The pre-save middleware to set default shareId is redundant because
-// the 'shareId' field already has a 'default: () => uuidv4()' function,
-// which Mongoose automatically calls when a new document is created
-// and 'shareId' is not provided.
-// Removing this for cleaner and more efficient code.
 
 /**
  * Mongoose model for ChatShare.

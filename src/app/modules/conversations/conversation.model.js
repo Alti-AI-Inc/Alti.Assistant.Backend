@@ -2,12 +2,33 @@ import mongoose from 'mongoose';
 import { Schema } from 'mongoose';
 import crypto from 'crypto';
 
+/**
+ * Encryption key used for securing message content and conversation titles.
+ * Defaults to a fallback 32-character key if not provided in environment variables.
+ * @type {string}
+ */
 const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012'; // Must be 32 characters
+
+/**
+ * Initialization vector length for AES-256-CBC encryption.
+ * @type {number}
+ */
 const IV_LENGTH = 16;
 
-// Optimization: Pre-allocate the key buffer once to avoid repeated Buffer creation overhead during serialization/deserialization
+/**
+ * Pre-allocated buffer of the encryption key to optimize performance.
+ * Pre-allocating avoids repeated Buffer creation overhead during serialization/deserialization.
+ * @type {Buffer}
+ */
 const ENCRYPTION_KEY_BUF = Buffer.from(ENCRYPTION_KEY);
 
+/**
+ * Encrypts a plain text string using AES-256-CBC.
+ * Prevents double encryption by checking if the text is already encrypted.
+ *
+ * @param {string} text - The plain text to encrypt.
+ * @returns {string} The encrypted text in the format "iv:encryptedData", or the original text if encryption fails or is skipped.
+ */
 function encryptText(text) {
   if (!text || typeof text !== 'string') return text;
   // Check if already encrypted to avoid double encryption (heuristic)
@@ -24,6 +45,12 @@ function encryptText(text) {
   }
 }
 
+/**
+ * Decrypts an AES-256-CBC encrypted string.
+ *
+ * @param {string} text - The encrypted text in the format "iv:encryptedData".
+ * @returns {string} The decrypted plain text, or the original text if decryption fails or is not encrypted.
+ */
 function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
   try {
@@ -40,6 +67,11 @@ function decryptText(text) {
   }
 }
 
+/**
+ * Mongoose Schema representing an individual message within a conversation.
+ * Message content is automatically encrypted on save and decrypted on retrieval.
+ * @type {import('mongoose').Schema}
+ */
 const MessageSchema = new mongoose.Schema(
   {
     role: {
@@ -69,6 +101,11 @@ const MessageSchema = new mongoose.Schema(
   }
 );
 
+/**
+ * Mongoose Schema representing a conversation.
+ * Supports multi-tenancy, encryption of sensitive fields, and metadata tracking.
+ * @type {import('mongoose').Schema}
+ */
 const ConversationSchema = new mongoose.Schema(
   {
     conversationId: {
@@ -212,7 +249,16 @@ ConversationSchema.virtual('url').get(function () {
   return `/conversations/${this.conversationId}`;
 });
 
-// Instance method to add a message
+/**
+ * Adds a new message to the conversation and updates activity metadata.
+ *
+ * @function addMessage
+ * @memberof ConversationSchema.methods
+ * @param {'user'|'assistant'|'system'} role - The role of the message sender.
+ * @param {string} content - The content of the message.
+ * @param {Object} [metadata={}] - Optional metadata associated with the message.
+ * @returns {import('mongoose').Document} The updated conversation document.
+ */
 ConversationSchema.methods.addMessage = function (
   role,
   content,
@@ -229,7 +275,14 @@ ConversationSchema.methods.addMessage = function (
   return this;
 };
 
-// Instance method to get latest messages with limit
+/**
+ * Retrieves the most recent messages from the conversation.
+ *
+ * @function getRecentMessages
+ * @memberof ConversationSchema.methods
+ * @param {number} [limit=10] - The maximum number of messages to retrieve.
+ * @returns {Array<Object>} Array of formatted message objects.
+ */
 ConversationSchema.methods.getRecentMessages = function (limit = 10) {
   return this.messages.slice(-limit).map((msg) => ({
     role: msg.role,
@@ -239,7 +292,20 @@ ConversationSchema.methods.getRecentMessages = function (limit = 10) {
   }));
 };
 
-// Static method to find active conversations for a user
+/**
+ * Finds active conversations for a specific user with pagination and sorting.
+ * Excludes the messages field for performance optimization.
+ *
+ * @function findActiveByUser
+ * @memberof ConversationSchema.statics
+ * @param {string|import('mongoose').Types.ObjectId} userId - The ID of the user.
+ * @param {Object} [options={}] - Query options.
+ * @param {number} [options.limit=20] - Maximum number of documents to return.
+ * @param {number} [options.skip=0] - Number of documents to skip.
+ * @param {string} [options.sortBy='lastActivity'] - Field to sort by.
+ * @param {number} [options.sortOrder=-1] - Sort order (1 for ascending, -1 for descending).
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of lean conversation objects.
+ */
 ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
   const {
     limit = 20,
@@ -258,7 +324,15 @@ ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
     .lean({ getters: true });
 };
 
-// Static method to find conversation by conversationId and userId
+/**
+ * Finds a conversation by its unique conversationId and optionally filters by userId.
+ *
+ * @function findByConversationId
+ * @memberof ConversationSchema.statics
+ * @param {string} conversationId - The unique conversation identifier.
+ * @param {string|import('mongoose').Types.ObjectId} [userId=null] - Optional user ID to restrict the search.
+ * @returns {Promise<import('mongoose').Document|null>} A promise that resolves to the conversation document or null.
+ */
 ConversationSchema.statics.findByConversationId = function (
   conversationId,
   userId = null
@@ -270,6 +344,10 @@ ConversationSchema.statics.findByConversationId = function (
   return this.findOne(query);
 };
 
+/**
+ * Mongoose Model for Conversation.
+ * @type {import('mongoose').Model<import('mongoose').Document>}
+ */
 const Conversation = mongoose.model('Conversation', ConversationSchema);
 
 export default Conversation;
