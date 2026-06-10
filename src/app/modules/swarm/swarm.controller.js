@@ -113,8 +113,8 @@ import ApiError from '../../../errors/ApiError.js';
  * @returns {Promise<void>} A promise that resolves when the stream is complete.
  */
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
-  
+  const isGuest = req.isGuest === undefined ? !req.user : req.isGuest;
+
   let userId;
   try {
     if (!isGuest) {
@@ -123,8 +123,11 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     } else {
       // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
       const providedUserId = req.body.userId;
-      const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
-      
+      const isGuestPattern =
+        providedUserId &&
+        typeof providedUserId === 'string' &&
+        providedUserId.startsWith('guest_');
+
       if (providedUserId && isGuestPattern) {
         userId = providedUserId;
       } else {
@@ -132,8 +135,20 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       }
     }
   } catch (err) {
-    logger.error('📡 Swarm Controller: Error resolving user ID:', err);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to resolve user identifier');
+    // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+    logger.error({
+      message: 'Error resolving user ID',
+      component: 'SwarmController',
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      },
+    });
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to resolve user identifier'
+    );
   }
 
   const { message, conversationId } = req.body;
@@ -183,7 +198,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     if (conversationId && conversation.messages) {
       // OPTIMIZATION: Ensure 'conversation.messages' is already a lean array of objects
       // if '.lean()' was applied in 'handleSearchConversation' to avoid Mongoose hydration overhead here.
-      conversationHistory = conversation.messages.slice(-10).map((msg) => ({
+      conversationHistory = conversation.messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content,
       }));
@@ -210,10 +225,11 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       })}\n\n`
     );
 
-    const requireSearch = req.body.requireSearch !== undefined ? req.body.requireSearch : true;
+    const requireSearch =
+      req.body.requireSearch !== undefined ? req.body.requireSearch : true;
     let fullText = '';
     let finalReferences = []; // To store references for the final message metadata and SSE
-    let finalCitations = [];  // To store citations for the final message metadata and SSE
+    let finalCitations = []; // To store citations for the final message metadata and SSE
 
     // Stream the dynamic Swarm response
     for await (const chunk of SwarmService.executeSwarmStream(
@@ -243,7 +259,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           `data: ${JSON.stringify({
             type: 'metadata',
             reference: finalReferences, // Use actual references from chunk
-            citations: finalCitations,   // Use actual citations from chunk
+            citations: finalCitations, // Use actual citations from chunk
             timestamp: chunk.timestamp,
           })}\n\n`
         );
@@ -254,11 +270,12 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     const messageMetadata = {
       reference: finalReferences, // Use the captured finalReferences
       // Assuming citationMetadata structure is an object with a 'citations' array
-      citationMetadata: finalCitations.length > 0 ? { citations: finalCitations } : null,
+      citationMetadata:
+        finalCitations.length > 0 ? { citations: finalCitations } : null,
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),
       streamingMode: true,
-      mode: 'agent_swarm'
+      mode: 'agent_swarm',
     };
 
     // OPTIMIZATION: For database operations involving 'userId' and 'actualConversationId' (e.g., finding, updating, inserting),
@@ -276,8 +293,18 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
     // This operation is already asynchronous and non-blocking.
     if (userId && !isGuest && fullText) {
-      userMemoryService.asyncExtractFacts(userId, message, fullText).catch((err) => {
-        logger.error(`[MEMORY EXTRACTION ERROR] Failed to extract facts for user ${userId}:`, err);
+      userMemoryService.asyncExtractFacts(userId, message, fullText).catch(err => {
+        // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+        logger.error({
+          message: 'Failed to extract facts during async memory extraction',
+          component: 'SwarmController.userMemoryService',
+          userId,
+          error: {
+            message: err.message,
+            stack: err.stack,
+            name: err.name,
+          },
+        });
       });
     }
 
@@ -290,7 +317,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
         // This might be brittle; consider retrieving actual count from conversation object if available.
         // OPTIMIZATION: If 'conversation.messageCount' is frequently accessed, consider making it a direct field
         // in the Conversation model and ensuring it's efficiently retrieved (e.g., with '.lean()').
-        messageCount: conversation.messageCount + 2, 
+        messageCount: conversation.messageCount + 2,
         userType: isGuest ? 'guest' : 'authenticated',
         timestamp: Date.now(),
       })}\n\n`
@@ -298,12 +325,26 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     res.end();
   } catch (error) {
-    logger.error('📡 Swarm Controller: Streaming Search Error:', error);
+    // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+    logger.error({
+      message: 'Streaming Search Error in Swarm Controller',
+      component: 'SwarmController',
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+    });
 
     // Normalize error using ApiError
-    const apiError = error instanceof ApiError 
-      ? error 
-      : new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'An internal error occurred', error.stack);
+    const apiError =
+      error instanceof ApiError
+        ? error
+        : new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            error.message || 'An internal error occurred',
+            error.stack
+          );
 
     const errorConversationId =
       conversationId || searchService.generateSearchConversationId();
@@ -322,7 +363,17 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
         );
       }
     } catch (convError) {
-      logger.error('Failed to save error to conversation:', convError);
+      // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+      logger.error({
+        message:
+          'Failed to save error message to conversation database after a primary error',
+        component: 'SwarmController.ErrorHandler',
+        error: {
+          message: convError.message,
+          stack: convError.stack,
+          name: convError.name,
+        },
+      });
     }
 
     if (!res.headersSent) {
@@ -404,8 +455,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves after sending the response.
  */
 const prewarmUserSandbox = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
-  
+  const isGuest = req.isGuest === undefined ? !req.user : req.isGuest;
+
   let userId;
   try {
     if (!isGuest) {
@@ -413,7 +464,10 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
     } else {
       // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
       const providedUserId = req.body.userId;
-      const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
+      const isGuestPattern =
+        providedUserId &&
+        typeof providedUserId === 'string' &&
+        providedUserId.startsWith('guest_');
       if (providedUserId && isGuestPattern) {
         userId = providedUserId;
       }
@@ -422,17 +476,44 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
     }
 
     if (userId) {
-      logger.info(`[DOCKER PREWARM] Asynchronously pre-warming sandbox container for user: ${userId}`);
+      // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+      logger.info({
+        message: 'Initiating asynchronous sandbox container pre-warming',
+        component: 'SwarmController.prewarmUserSandbox',
+        userId,
+      });
       // Trigger in the background asynchronously so it does not block Express response
       // OPTIMIZATION: If 'dockerWorkspaceService.prewarmWorkspace' involves database lookups (e.g., for user settings or existing workspaces),
       // ensure those queries are optimized with appropriate indexing on 'userId' and use '.lean()' for read-only retrievals.
-      dockerWorkspaceService.prewarmWorkspace(userId).catch((err) => {
-        logger.error(`[DOCKER PREWARM ERROR] Failed to prewarm container for user ${userId}:`, err);
+      dockerWorkspaceService.prewarmWorkspace(userId).catch(err => {
+        // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+        logger.error({
+          message: 'Background pre-warming of sandbox container failed',
+          component: 'SwarmController.prewarmUserSandbox.async',
+          userId,
+          error: {
+            message: err.message,
+            stack: err.stack,
+            name: err.name,
+          },
+        });
       });
     }
   } catch (error) {
-    logger.error('[DOCKER PREWARM CONTROLLER ERROR] Error during prewarm setup:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to initiate sandbox pre-warming');
+    // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+    logger.error({
+      message: 'Error during prewarm setup in controller',
+      component: 'SwarmController.prewarmUserSandbox',
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+    });
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to initiate sandbox pre-warming'
+    );
   }
 
   return sendResponse(res, {
