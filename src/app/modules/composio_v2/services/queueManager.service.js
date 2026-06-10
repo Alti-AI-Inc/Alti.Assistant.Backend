@@ -54,6 +54,18 @@ class QueueManager {
    */
   async queueWorkflow(workflow, priority = 'normal', metadata = {}) {
     try {
+      // --- SECURITY PATCH: Input Sanitization ---
+      // Sanitize and cap the maxRetries to prevent potential resource exhaustion
+      // from excessively long retry schedules. A malicious user could provide a very
+      // large number, causing the server to hold many items in memory for a long time.
+      const MAX_ALLOWED_RETRIES = 10;
+      let maxRetries =
+        metadata.maxRetries !== undefined ? parseInt(metadata.maxRetries, 10) : 3;
+      if (isNaN(maxRetries) || maxRetries < 0) {
+        maxRetries = 3; // Default to 3 if input is invalid
+      }
+      maxRetries = Math.min(maxRetries, MAX_ALLOWED_RETRIES);
+
       const queueItem = {
         id: `queue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         workflowId: workflow.workflowId,
@@ -64,7 +76,7 @@ class QueueManager {
         executionType: metadata.executionType || 'scheduled',
         triggerSource: metadata.triggerSource || 'queue',
         retryCount: 0,
-        maxRetries: metadata.maxRetries || 3,
+        maxRetries: maxRetries,
         metadata: metadata,
       };
 
@@ -520,7 +532,8 @@ class QueueManager {
     return {
       healthy: this.processing,
       queueSize: this.queue.length,
-      runningExecutions: this.runningExecs.size,
+      // --- BUG FIX: Corrected property name from runningExecs to runningExecutions ---
+      runningExecutions: this.runningExecutions.size,
       stats: this.stats,
       timestamp: new Date().toISOString(),
     };
