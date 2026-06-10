@@ -13,18 +13,24 @@ import Support from './support.model.js';
  * @returns {Promise<object>} A promise that resolves to the created support request document.
  */
 const reqForSupportService = async (userId, data) => {
-  // const user = await UserModel.findOne({ _id: new mongoose.Types.ObjectId(userId) });
-  // logger.info(user, 'userrr');
-  // if (!user) {
-  //   throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-  // }
+  // Validate user existence before creating the support request to ensure data integrity.
+  // This prevents creating a support request for a non-existent user and ensures the
+  // subsequent update to the user's task array has a valid target.
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    // Throw a standard Error if the user is not found.
+    // In a full application, a custom ApiError with a specific HTTP status might be preferred.
+    throw new Error('User not found');
+  }
 
   const result = await Support.create(data);
 
-  await UserModel.findOneAndUpdate(
-    { _id: userId },
+  // Associate the newly created support request with the user.
+  // Using findByIdAndUpdate for consistency with the user check and direct ID lookup.
+  await UserModel.findByIdAndUpdate(
+    userId,
     { $push: { task: result._id } },
-    { new: true }
+    { new: true } // Return the updated document (though not used here, it's good practice)
   );
   return result;
 };
