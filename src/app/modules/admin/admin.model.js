@@ -1,49 +1,51 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs'); // Security Patch: Import bcrypt for password hashing.
+const bcrypt =require('bcryptjs');
+const crypto = require('crypto'); // Added for generating secure invitation tokens.
 const Schema = mongoose.Schema;
 
 /**
- * @file This file defines the Mongoose schema and model for the Admin entity.
- * @module models/admin
+ * @file This file defines the Mongoose schema and model for the User entity.
+ * @description This model was updated from a generic 'Admin' to a 'User' model to support a multi-tenant workspace structure with Managers and Members.
+ * It now includes workspace scoping, role management, and an invitation flow, which are essential for the Manager Dashboard features.
+ * @module models/user
  * @requires mongoose
  * @requires bcryptjs
+ * @requires crypto
  */
 
 /**
- * Mongoose schema for the Admin entity.
- * Represents an administrator user within the system, typically with elevated privileges.
+ * Mongoose schema for the User entity.
+ * Represents a user within a specific workspace, who can have roles like 'manager' or 'member'.
  *
- * @typedef {object} AdminSchema
- * @property {string} username - The unique username of the administrator. Required.
- * @property {string} email - The unique email address of the administrator. Required.
- * @property {string} password - The hashed password of the administrator. Required.
- * @property {string} [firstName] - The first name of the administrator. Optional.
- * @property {string} [lastName] - The last name of the administrator. Optional.
- * @property {string[]} [roles] - An array of roles assigned to the administrator (e.g., 'superadmin', 'editor'). Defaults to ['admin'].
- * @property {boolean} [isActive] - Indicates if the administrator account is active. Defaults to true.
- * @property {Date} [createdAt] - The date and time when the administrator account was created. Automatically set.
- * @property {Date} [updatedAt] - The date and time when the administrator account was last updated. Automatically set.
+ * @typedef {object} UserSchema
+ * @property {string} email - The unique email address of the user. Serves as the primary identifier. Required.
+ * @property {string} [password] - The hashed password of the user. Not required until the user accepts an invitation.
+ * @property {string} [firstName] - The first name of the user.
+ * @property {string} [lastName] - The last name of the user.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - A reference to the Workspace this user belongs to. Required.
+ * @property {string} role - The user's role within their workspace (e.g., 'manager', 'member'). Required.
+ * @property {string} status - The current status of the user account (e.g., 'pending', 'active').
+ * @property {string} [invitationToken] - A token sent to the user for them to accept the invitation and set their password.
+ * @property {Date} [invitationExpires] - The expiry date for the invitation token.
+ * @property {Date} [createdAt] - The date and time when the user account was created.
+ * @property {Date} [updatedAt] - The date and time when the user account was last updated.
  */
-const adminSchema = new Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true
-    },
+const userSchema = new Schema({
+    // Note: 'username' was removed in favor of using 'email' as the primary unique identifier for simplicity.
     email: {
         type: String,
-        required: true,
-        unique: true,
+        required: [true, 'Email is required.'],
+        unique: true, // Ensures one account per email address across the entire platform.
         trim: true,
         lowercase: true,
-        // Security Note: Basic email regex is used. For production, consider a more robust validation library like 'validator'.
-        match: [/.+@.+\..+/, 'Please fill a valid email address']
+        match: [/.+@.+\..+/, 'Please provide a valid email address.']
     },
     password: {
         type: String,
-        required: true,
-        select: false // Security Patch: Exclude password from query results by default to prevent accidental exposure.
+        // Password is not required on creation, as users are invited first.
+        // It becomes required when the user accepts the invitation and sets it.
+        // This logic is handled in the controller/service layer.
+        select: false // Security Best Practice: Exclude password from query results by default.
     },
     firstName: {
         type: String,
@@ -53,33 +55,57 @@ const adminSchema = new Schema({
         type: String,
         trim: true
     },
-    roles: {
-        type: [String],
-        // Security Note: Enum provides strong input validation against a predefined list of roles.
-        enum: ['admin', 'superadmin', 'editor', 'viewer'], // Example roles
-        default: ['admin']
+    // Core feature: Links user to a specific workspace for multi-tenancy.
+    // All manager actions (viewing metrics, managing roles) are scoped by this ID.
+    workspaceId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Workspace', // Assumes a 'Workspace' model exists.
+        required: [true, 'User must be associated with a workspace.'],
+        index: true
     },
-    isActive: {
-        type: Boolean,
-        default: true
+    // Core feature: Defines user permissions within their workspace.
+    // A 'manager' can invite/manage other users in the same workspace.
+    role: {
+        type: String,
+        enum: ['manager', 'member'], // Workspace-specific roles.
+        required: true,
+        default: 'member'
+    },
+    // Core feature: Manages the user lifecycle from invitation to active use.
+    // This is used to check against plan limits (e.g., count 'active' users in a workspace).
+    status: {
+        type: String,
+        enum: ['pending', 'active'],
+        default: 'pending'
+    },
+    // Fields to support the invitation flow.
+    invitationToken: {
+        type: String,
+        select: false
+    },
+    invitationExpires: {
+        type: Date,
+        select: false
     }
 }, {
-    timestamps: true // Adds createdAt and updatedAt fields automatically
+    timestamps: true // Adds createdAt and updatedAt fields automatically.
 });
 
 /**
- * Security Patch: Mongoose pre-save hook to automatically hash the password before saving.
+ * Mongoose pre-save hook to automatically hash the password before saving.
  * This ensures that plain-text passwords are never stored in the database.
  */
-adminSchema.pre('save', async function(next) {
-    // Only hash the password if it has been modified (or is new)
+userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) {
+        return next();
+    }
+    // If the password field is empty (e.g., during invitation), do not attempt to hash it.
+    if (!this.password) {
         return next();
     }
 
     try {
-        // Generate a salt and hash the password
-        const salt = await bcrypt.genSalt(12); // Using a cost factor of 12 is a strong modern standard.
+        const salt = await bcrypt.genSalt(12); // Strong salt factor.
         this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error) {
@@ -88,29 +114,54 @@ adminSchema.pre('save', async function(next) {
 });
 
 /**
- * Security Patch: Instance method to compare a candidate password with the stored hash.
- * This provides a safe and centralized way to verify passwords, abstracting the comparison logic.
+ * Instance method to compare a candidate password with the user's stored hash.
  * @param {string} candidatePassword The password to compare.
  * @returns {Promise<boolean>} A promise that resolves to true if the passwords match, false otherwise.
  */
-adminSchema.methods.comparePassword = async function(candidatePassword) {
-    // Since the password field has `select: false`, it's not available on `this` by default.
+userSchema.methods.comparePassword = async function(candidatePassword) {
     // A query explicitly selecting `+password` is needed before calling this method.
     return bcrypt.compare(candidatePassword, this.password);
 };
 
+/**
+ * Instance method to generate an invitation token.
+ * This is called when a manager invites a new user.
+ * @returns {string} The unhashed token to be sent to the user via email.
+ */
+userSchema.methods.generateInvitationToken = function() {
+    // Generate a random, secure token.
+    const token = crypto.randomBytes(20).toString('hex');
 
-// Compound index to optimize queries filtering active administrators by role (e.g., authorization checks)
-adminSchema.index({ isActive: 1, roles: 1 });
+    // Hash the token before saving it to the database for added security.
+    this.invitationToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
 
-// Index to optimize sorting administrators by creation date (common in admin dashboards/management panels)
-adminSchema.index({ createdAt: -1 });
+    // Set an expiration for the token (e.g., 24 hours).
+    this.invitationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+    // Return the unhashed token to be sent in the invitation email.
+    return token;
+};
+
+
+// --- Database Indexes for Performance Optimization ---
+
+// Optimizes queries for finding active/pending users within a specific workspace.
+// Crucial for checking member counts against subscription plan limits.
+userSchema.index({ workspaceId: 1, status: 1 });
+
+// Optimizes queries for finding users by their role within a workspace.
+// Useful for authorization checks (e.g., is this user a 'manager'?).
+userSchema.index({ workspaceId: 1, role: 1 });
+
 
 /**
- * Mongoose model for the Admin entity.
- * Provides an interface for interacting with the 'admins' collection in the database.
+ * Mongoose model for the User entity.
+ * Provides an interface for interacting with the 'users' collection in the database.
  *
- * @type {mongoose.Model<AdminSchema>}
- * @alias Admin
+ * @type {mongoose.Model<UserSchema>}
+ * @alias User
  */
-module.exports = mongoose.model('Admin', adminSchema);
+module.exports = mongoose.model('User', userSchema);
