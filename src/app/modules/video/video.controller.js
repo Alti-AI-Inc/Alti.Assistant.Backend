@@ -1,3 +1,8 @@
+/**
+ * @file This file contains the controller functions for the video generation module.
+ * It handles HTTP requests related to video creation, conversation management, and status polling.
+ * @module video/controller
+ */
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -9,6 +14,79 @@ import { videoHelpers } from './video.helper.js';
 // Assuming conversationHelpers is a shared utility, adjust path if necessary.
 import { conversationHelpers } from '../../../shared/conversation.helper.js';
 
+/**
+ * @openapi
+ * /video/generate:
+ *   post:
+ *     summary: Generate a video based on a user prompt
+ *     description: |
+ *       Initiates a video generation process using a conversational AI assistant.
+ *       This endpoint handles both new conversations and follow-up messages within an existing conversation.
+ *       It supports both authenticated users and guest users. For guests, a temporary user ID is generated and returned.
+ *       Multi-tenant context is derived from the request and passed to the service layer.
+ *     tags:
+ *       - Video
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's prompt or message for video generation.
+ *                 example: "Create a short video of a cat playing with a laser pointer."
+ *               conversationId:
+ *                 type: string
+ *                 description: The ID of an existing conversation to continue. If omitted, a new conversation is started.
+ *                 example: "vid_conv_12345"
+ *     responses:
+ *       '200':
+ *         description: Video generation process completed successfully. The response may contain a direct video URL or a follow-up message from the assistant.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     response:
+ *                       type: string
+ *                     videoUrl:
+ *                       type: string
+ *                       nullable: true
+ *                     conversationId:
+ *                       type: string
+ *                     messageCount:
+ *                       type: number
+ *                     userType:
+ *                       type: string
+ *                       enum: [guest, authenticated]
+ *                     userId:
+ *                       type: string
+ *                       description: The guest user ID, only present for guest users.
+ *       '400':
+ *         description: Bad Request - The 'message' field is missing from the request body.
+ *       '500':
+ *         description: Internal Server Error - An unexpected error occurred during video processing.
+ *
+ * @function generateVideo
+ * @description Controller to handle video generation requests. It orchestrates the conversation management,
+ * invokes the video assistant workflow, and formats the final response.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 // Generate video similar to image module flow
 export const generateVideo = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -125,6 +203,8 @@ export const generateVideo = catchAsync(async (req, res) => {
       req
     );
 
+
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -175,6 +255,46 @@ export const generateVideo = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /video/stats:
+ *   get:
+ *     summary: Get video generation statistics for the authenticated user
+ *     description: |
+ *       Retrieves statistics such as total videos generated, usage, etc.
+ *       This endpoint is only available to authenticated users.
+ *       Multi-tenant context is derived from the request and used for data scoping.
+ *     tags:
+ *       - Video
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved video statistics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   description: An object containing user-specific video statistics.
+ *                   example:
+ *                     totalVideos: 15
+ *                     totalProcessingTime: 3600
+ *       '401':
+ *         description: Unauthorized - The request was made by a guest user or without authentication.
+ *
+ * @function getVideoStats
+ * @description Controller to fetch video-related statistics for the authenticated user.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 const getVideoStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   if (isGuest) {
@@ -194,6 +314,60 @@ const getVideoStats = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /video/conversations/{conversationId}:
+ *   get:
+ *     summary: Retrieve a specific video conversation
+ *     description: |
+ *       Fetches the message history of a single video conversation.
+ *       - Authenticated users can only retrieve their own conversations.
+ *       - Guest users can retrieve conversations created during their session.
+ *       Multi-tenant context is respected for authenticated users.
+ *     tags:
+ *       - Video
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the video conversation.
+ *     responses:
+ *       '200':
+ *         description: Conversation retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversation:
+ *                       type: object
+ *                       description: The full conversation object, including messages.
+ *                     userType:
+ *                       type: string
+ *                       enum: [guest, authenticated]
+ *       '400':
+ *         description: Bad Request - Conversation ID is missing.
+ *       '404':
+ *         description: Not Found - The conversation does not exist or the user does not have permission to access it.
+ *
+ * @function getVideoConversation
+ * @description Controller to retrieve a specific video conversation by its ID.
+ * It handles access control for both authenticated and guest users.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 const getVideoConversation = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const isGuest = req.isGuest || !req.user;
@@ -241,6 +415,59 @@ const getVideoConversation = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /video/conversations/guest/{guestUserId}:
+ *   get:
+ *     summary: Retrieve all conversations for a specific guest user
+ *     description: |
+ *       Fetches a list of all video conversations associated with a given guest user ID.
+ *       This is a public endpoint intended to allow guests to retrieve their history.
+ *       Multi-tenant context is derived from the request and used for data scoping.
+ *     tags:
+ *       - Video
+ *     parameters:
+ *       - in: path
+ *         name: guestUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier for the guest user.
+ *     responses:
+ *       '200':
+ *         description: Guest conversations retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversations:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     totalCount:
+ *                       type: integer
+ *                     userType:
+ *                       type: string
+ *                       example: "guest"
+ *                     userId:
+ *                       type: string
+ *       '400':
+ *         description: Bad Request - Guest user ID is missing.
+ *
+ * @function getGuestConversations
+ * @description Controller to retrieve all conversations for a specific guest user ID.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 const getGuestConversations = catchAsync(async (req, res) => {
   const { guestUserId } = req.params;
   if (!guestUserId) {
@@ -267,6 +494,56 @@ const getGuestConversations = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @openapi
+ * /video/operation-status:
+ *   post:
+ *     summary: Get the status of a long-running video generation operation
+ *     description: |
+ *       Poll this endpoint with the operation ID to check the status of an asynchronous video generation task.
+ *       This is a public endpoint; access is controlled by the uniqueness of the operation ID.
+ *     tags:
+ *       - Video
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - operationId
+ *             properties:
+ *               operationId:
+ *                 type: string
+ *                 description: The unique identifier of the operation to check.
+ *     responses:
+ *       '200':
+ *         description: Operation status retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   description: The current status of the operation (e.g., { status: 'completed', result: '...' }).
+ *       '400':
+ *         description: Bad Request - Operation ID is missing.
+ *       '404':
+ *         description: Not Found - The operation ID is invalid or has expired.
+ *       '500':
+ *         description: Internal Server Error - Failed to retrieve operation status.
+ *
+ * @function getOperationStatus
+ * @description Controller to check the status of a long-running, asynchronous operation by its ID.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 const getOperationStatus = catchAsync(async (req, res) => {
   const { operationId } = req.body;
   if (!operationId) {
@@ -302,6 +579,16 @@ const getOperationStatus = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @namespace videoController
+ * @description A collection of controller methods for handling video-related operations.
+ * This includes generating videos, retrieving conversation history, and checking statistics.
+ * @property {function} generateVideo - Handles video generation requests.
+ * @property {function} getVideoStats - Retrieves statistics for authenticated users.
+ * @property {function} getVideoConversation - Fetches a specific conversation.
+ * @property {function} getOperationStatus - Checks the status of an async operation.
+ * @property {function} getGuestConversations - Retrieves all conversations for a guest user.
+ */
 export const videoController = {
   generateVideo,
   getVideoStats,
