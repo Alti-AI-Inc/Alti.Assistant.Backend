@@ -91,6 +91,10 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ * 
+ * @param {import('express').Request} req - Express request object. Supports guest users (`req.isGuest`) and authenticated users (`req.user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -221,6 +225,10 @@ const conversationalAssistant = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ * 
+ * @param {import('express').Request} req - Express request object. Supports guest users (`req.isGuest`) and authenticated users (`req.user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 const generateBrainstorm = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -347,6 +355,10 @@ const generateBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ * 
+ * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
@@ -423,6 +435,10 @@ const getConversationHistory = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ * 
+ * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 const exportBrainstorm = catchAsync(async (req, res) => {
   const {
@@ -505,6 +521,10 @@ const exportBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ * 
+ * @param {import('express').Request} req - Express request object. Requires authenticated user (`req.user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 const refineBrainstorm = catchAsync(async (req, res) => {
   const { conversationId, message, focusOn = [] } = req.body;
@@ -542,6 +562,12 @@ const refineBrainstorm = catchAsync(async (req, res) => {
  * @description Controller for handling brainstorm-related API requests.
  * Provides endpoints for conversational AI, structured brainstorm generation,
  * conversation history retrieval, export, and refinement.
+ * @type {object}
+ * @property {import('express').RequestHandler} conversationalAssistant - Handles natural language requests for brainstorming.
+ * @property {import('express').RequestHandler} generateBrainstorm - Generates a structured brainstorm based on explicit parameters.
+ * @property {import('express').RequestHandler} getConversationHistory - Retrieves the complete conversation history for a specific brainstorm session.
+ * @property {import('express').RequestHandler} exportBrainstorm - Exports the content of a brainstorm session in a specified format.
+ * @property {import('express').RequestHandler} refineBrainstorm - Refines an ongoing brainstorm session with new input or focus areas.
  */
 export const brainstormController = {
   conversationalAssistant,
