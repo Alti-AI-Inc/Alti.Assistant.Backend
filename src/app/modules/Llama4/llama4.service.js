@@ -5,7 +5,13 @@
 
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+// VERTEX_AI_AUDIT: Switched from consumer-grade GenAI to the enterprise Vertex AI SDK for better security, governance, and integration.
+import { ChatVertexAI } from '@langchain/google-vertexai';
+// VERTEX_AI_AUDIT: Imported enums for explicitly configuring safety settings, a requirement for enterprise-grade applications.
+import {
+  HarmCategory,
+  HarmBlockThreshold,
+} from '@google-cloud/vertexai';
 import httpStatus from 'http-status';
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
@@ -17,6 +23,28 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 // PLATFORM_OWNER_FEATURE: Import platform-wide configuration model to enable dynamic, global settings management.
 import PlatformConfig from '../platform/platformConfig.model.js';
+
+// VERTEX_AI_AUDIT: Added a PII masking function to prevent sensitive user data from being sent to the model.
+// In a production environment, consider using a more robust solution like the Google Cloud DLP API.
+const maskPII = text => {
+  if (!text) return '';
+  // Mask email addresses
+  let maskedText = text.replace(
+    /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi,
+    '[EMAIL_REDACTED]'
+  );
+  // Mask phone numbers (basic North American format)
+  maskedText = maskedText.replace(
+    /(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/g,
+    '[PHONE_REDACTED]'
+  );
+  // Mask Social Security Numbers
+  maskedText = maskedText.replace(
+    /(\d{3}-\d{2}-\d{4})/g,
+    '[SSN_REDACTED]'
+  );
+  return maskedText;
+};
 
 /**
  * Handles the AI interaction for Llama4, processes user prompts,
@@ -94,18 +122,43 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     // PLATFORM_OWNER_FEATURE: Use dynamically configured model settings from the database.
     // This allows the Platform Owner to change the AI model or its parameters for all users without a code deployment.
     // Fallback to environment config if no database config is found.
-    const modelName = platformConfig?.ai?.defaultModel || 'gemini-2.5-flash';
+    const modelName = platformConfig?.ai?.defaultModel || 'gemini-1.5-flash';
     const modelTemperature = platformConfig?.ai?.temperature ?? 0.7;
 
-    const model = new ChatGoogleGenerativeAI({
+    // VERTEX_AI_AUDIT: Instantiating the model using the enterprise ChatVertexAI class.
+    // This assumes Application Default Credentials (ADC) are configured in the environment.
+    // The 'apiKey' is removed in favor of standard Google Cloud authentication.
+    const model = new ChatVertexAI({
       model: modelName,
       temperature: modelTemperature,
-      apiKey: config.gemini_secret_key,
+      // VERTEX_AI_AUDIT: Explicitly configured Google's safety filters to block harmful content.
+      // This is a critical security measure for any application interacting with generative models.
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
     });
 
     const chain = new ConversationChain({ llm: model, memory });
 
-    const res1 = await chain.invoke({ input: prompt });
+    // VERTEX_AI_AUDIT: Sanitize the user prompt to remove PII before sending it to the AI model.
+    const sanitizedPrompt = maskPII(prompt);
+
+    const res1 = await chain.invoke({ input: sanitizedPrompt });
     const reply = res1?.response || 'No reply generated';
 
     // PLATFORM_OWNER_FEATURE: Implement quota override for Super Admins.
@@ -140,8 +193,8 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     }
 
     const responseData = {
-      prompt,
-      model: model.modelName,
+      prompt, // Storing the original, unmasked prompt in the database for user-facing history.
+      model: model.model, // Corrected to access model name from ChatVertexAI instance
       reply,
     };
 

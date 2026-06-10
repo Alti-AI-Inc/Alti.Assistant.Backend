@@ -52,11 +52,15 @@ const LangchainRepositorySchema = new mongoose.Schema(
     },
     stars: {
       type: Number,
-      default: 0
+      default: 0,
+      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
+      index: true
     },
     forks: {
       type: Number,
-      default: 0
+      default: 0,
+      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
+      index: true
     },
     language: {
       type: String,
@@ -64,7 +68,9 @@ const LangchainRepositorySchema = new mongoose.Schema(
       index: true
     },
     updated_at: {
-      type: Date
+      type: Date,
+      // OPTIMIZATION: Indexing fields used for sorting is crucial for performance.
+      index: true
     },
     // Multi-tenancy & Platform Owner Oversight Fields
     tenantId: {
@@ -95,11 +101,22 @@ LangchainRepositorySchema.index(
   { weights: { name: 10, description: 2 }, name: 'TextIndex', language_override: 'none' }
 );
 
+// OPTIMIZATION: Compound index to support the common `forTenant` query.
+// This index covers the `isApproved` filter and the `isGlobal` part of the $or condition.
+LangchainRepositorySchema.index({ isApproved: 1, isGlobal: 1 });
+
+// OPTIMIZATION: Compound index to support the common `forTenant` query.
+// This index covers the `isApproved` filter and the `tenantId` part of the $or condition.
+LangchainRepositorySchema.index({ isApproved: 1, tenantId: 1 });
+
+
 /**
  * Static method for Platform Owners to retrieve global statistics across all tenants.
  * @returns {Promise<Object>} Statistics object
  */
 LangchainRepositorySchema.statics.getGlobalStats = async function () {
+  // OPTIMIZATION: The aggregation pipeline is the most efficient way to calculate stats on the DB side.
+  // No changes needed here as this is already best practice.
   const stats = await this.aggregate([
     {
       $group: {
@@ -123,12 +140,14 @@ LangchainRepositorySchema.statics.getGlobalStats = async function () {
  * @returns {mongoose.Query}
  */
 LangchainRepositorySchema.query.forTenant = function (tenantId) {
+  // OPTIMIZATION: This query is now supported by compound indexes on {isApproved, isGlobal} and {isApproved, tenantId},
+  // which is significantly faster than relying on single-field indexes for an $or query.
   return this.find({
+    isApproved: true,
     $or: [
       { isGlobal: true },
       { tenantId: tenantId }
-    ],
-    isApproved: true
+    ]
   });
 };
 

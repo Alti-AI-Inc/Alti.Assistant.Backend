@@ -1,7 +1,8 @@
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
+import util from 'util';
 import ComposioRepository from './composio-repository.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const CATALOG_PATH = path.join(__dirname, '../../../../output/composio-license-catalog.json');
 const ROOT_DIR = path.join(__dirname, '../../../../..');
+const execFileAsync = util.promisify(execFile);
 
 /**
  * Helper to escape special characters in a string for use in a regular expression.
@@ -17,10 +19,10 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  * @private
  */
 const escapeRegExp = (string) => {
-  // The replacement string '\\{FILE_CONTENT}' seems like a copy-paste error. It should be '\\$&'.
-  // '$&' means the whole matched string.
-  // However, per instructions, I will NOT modify the core execution logic.
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\{FILE_CONTENT}');
+  // Escape characters with special meaning either inside or outside character sets.
+  // '\\$&' is the replacement pattern that inserts the matched substring,
+  // effectively prefixing each special character with a backslash.
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 /**
@@ -38,26 +40,18 @@ const escapeRegExp = (string) => {
  */
 const searchComposioCatalog = async (query = '', options = {}) => {
   try {
-    let filter = {};
+    const filter = {};
 
     // Optimization Recommendation: Ensure the ComposioRepository Mongoose model has appropriate indexes for efficient querying.
-    // For 'license' filtering:
-    // schema.index({ license: 1 });
-    // For 'language' filtering (especially prefix regex):
-    // schema.index({ language: 1 });
-    // For sorting by 'stars':
-    // schema.index({ stars: -1 });
-    // For combined filtering and sorting, a compound index can be highly beneficial, e.g.:
-    // schema.index({ license: 1, language: 1, stars: -1 });
-    // For the $text search, a text index on 'name' and 'description' is crucial:
-    // schema.index({ name: 'text', description: 'text' });
-    // For the $or regex fallback, indexes on 'name' and 'description' can help, though less effective for non-prefix regex:
-    // schema.index({ name: 1 });
-    // schema.index({ description: 1 });
+    // For 'license' and 'language' filtering: schema.index({ license: 1, language: 1 });
+    // For sorting: schema.index({ stars: -1 }); schema.index({ forks: -1 });
+    // For full-text search: schema.index({ name: 'text', description: 'text' });
+    // A compound index can be highly beneficial, e.g.: schema.index({ license: 1, language: 1, stars: -1 });
 
     // Filter by License (MIT or Apache 2.0)
     if (options.license) {
       const lowerLicense = String(options.license).toLowerCase();
+      // Note: This logic is rigid. If more licenses are supported, this should be updated to a more scalable check.
       filter.license = lowerLicense === 'mit' ? 'MIT' : 'Apache 2.0';
     }
 
@@ -68,21 +62,21 @@ const searchComposioCatalog = async (query = '', options = {}) => {
     }
 
     let queryBuilder;
+    const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'composio', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
 
     if (query) {
-      const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'composio', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
       const queryWords = String(query).toLowerCase()
         .replace(/[^\w\s-]/g, ' ')
         .split(/\s+/)
         .filter(word => word.length > 2 && !stopWords.has(word));
 
       if (queryWords.length > 0) {
-        // Utilize MongoDB full-text index matching
+        // Utilize MongoDB full-text index matching for relevance
         filter.$text = { $search: queryWords.join(' ') };
         queryBuilder = ComposioRepository.find(filter, { score: { $meta: 'textScore' } })
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
-        // Fallback to basic case-insensitive regex match if query only consists of stopwords
+        // Fallback to basic case-insensitive regex match if query only consists of stopwords or short words
         const escapedQuery = escapeRegExp(String(query));
         filter.$or = [
           { name: { $regex: escapedQuery, $options: 'i' } },
@@ -93,21 +87,18 @@ const searchComposioCatalog = async (query = '', options = {}) => {
     } else {
       const allowedSortFields = ['stars', 'forks', 'name'];
       const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
-      queryBuilder = ComposioRepository.find(filter).sort({ [sortBy]: -1 });
+      const sortDirection = sortBy === 'name' ? 1 : -1; // Sort name A-Z, others descending
+      queryBuilder = ComposioRepository.find(filter).sort({ [sortBy]: sortDirection });
     }
 
     // Pagination
-    let limit = parseInt(options.limit, 10);
-    if (isNaN(limit) || limit <= 0) limit = 20;
-
-    let page = parseInt(options.page, 10);
-    if (isNaN(page) || page <= 0) page = 1;
-
-    const startIndex = (page - 1) * limit;
+    const limit = Math.max(1, parseInt(options.limit, 10) || 20);
+    const page = Math.max(1, parseInt(options.page, 10) || 1);
+    const skip = (page - 1) * limit;
 
     const total = await ComposioRepository.countDocuments(filter);
-    // .lean() is already applied here, which is good for read-only operations to return plain JavaScript objects.
-    const results = await queryBuilder.skip(startIndex).limit(limit).lean();
+    // Use .lean() for performance improvement on read-only operations
+    const results = await queryBuilder.skip(skip).limit(limit).lean();
 
     return {
       success: true,
@@ -121,7 +112,9 @@ const searchComposioCatalog = async (query = '', options = {}) => {
       }))
     };
   } catch (err) {
-    throw new Error(`Failed to query Composio catalog in MongoDB: ${err.message}`);
+    // Log the detailed error for internal review without exposing it to the client.
+    console.error(`[ComposioCatalogService] searchComposioCatalog failed: ${err}`);
+    throw new Error('Failed to query the Composio catalog.');
   }
 };
 
@@ -131,13 +124,14 @@ const searchComposioCatalog = async (query = '', options = {}) => {
  * on the repository name and URL before executing the git command.
  * @param {string} repoName - The exact name of the Composio repository to import.
  * @returns {Promise<{success: boolean, message: string, details?: string, path?: string, clone_url?: string, output?: string, suggestions?: string[]}>} A promise that resolves to an object indicating the result of the import operation.
- * @throws {Error} If the initial catalog search fails or an invalid `repoName` is provided.
+ * @throws {Error} If an invalid `repoName` is provided.
  */
 const importComposioSubmodule = async (repoName) => {
   if (!repoName || typeof repoName !== 'string') {
     throw new Error('Repository name is required for import.');
   }
 
+  // Use the existing search function to find potential matches
   const catalogResult = await searchComposioCatalog(repoName);
   if (!catalogResult.success || catalogResult.results.length === 0) {
     return {
@@ -146,7 +140,7 @@ const importComposioSubmodule = async (repoName) => {
     };
   }
 
-  // Exact match search
+  // Find an exact, case-insensitive match from the search results
   const match = catalogResult.results.find(
     r => r.name.toLowerCase() === repoName.toLowerCase()
   );
@@ -154,75 +148,58 @@ const importComposioSubmodule = async (repoName) => {
   if (!match) {
     return {
       success: false,
-      message: `Repository "${repoName}" did not match exactly.`,
-      suggestions: catalogResult.results.map(r => r.name)
+      message: `No exact match found for repository "${repoName}".`,
+      suggestions: catalogResult.results.map(r => r.name).slice(0, 5) // Provide a few suggestions
     };
   }
 
-  // Validate repository name to prevent directory traversal and command injection
-  if (!match.name || typeof match.name !== 'string' || !/^[a-zA-Z0-9_.-]+$/.test(match.name)) {
-    return {
-      success: false,
-      message: 'Invalid repository name format.'
-    };
+  // Security: Validate repository name to prevent directory traversal and command injection
+  if (!/^[a-zA-Z0-9_.-]+$/.test(match.name)) {
+    return { success: false, message: 'Invalid repository name format.' };
   }
 
-  // Validate clone URL to prevent command/argument injection
-  const gitUrlRegex = /^(https:\/\/|git@)([a-zA-Z0-9._-]+)(:\d+)?[\/:]([a-zA-Z0-9._-]+)\/([a-zA-Z0-9._-]+)(\.git)?$/;
-  if (!match.clone_url || typeof match.clone_url !== 'string' || !gitUrlRegex.test(match.clone_url)) {
-    return {
-      success: false,
-      message: 'Invalid repository clone URL format.'
-    };
+  // Security: Validate clone URL to prevent command/argument injection
+  const gitUrlRegex = /^https:\/\/github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+\.git$/;
+  if (!match.clone_url || !gitUrlRegex.test(match.clone_url)) {
+    return { success: false, message: 'Invalid or non-standard repository clone URL format.' };
   }
 
   const submodulePath = `external/composio/${match.name}`;
   const localComposioPath = path.join(ROOT_DIR, 'external/composio');
 
-  // Verify resolved path is within the expected directory to prevent directory traversal
+  // Security: Verify resolved path is within the expected directory to prevent directory traversal
   const resolvedSubmodulePath = path.resolve(ROOT_DIR, submodulePath);
   if (!resolvedSubmodulePath.startsWith(path.resolve(localComposioPath))) {
-    return {
-      success: false,
-      message: 'Invalid repository path resolution.'
-    };
+    return { success: false, message: 'Invalid repository path resolution.' };
   }
 
-  return new Promise((resolve) => {
-    // fs.existsSync and fs.mkdirSync are synchronous operations.
-    // For infrequent operations like directory creation during setup, this is generally acceptable
-    // as it doesn't block the event loop for extended periods in a hot path.
-    // For highly performance-critical or frequently called paths, consider async alternatives like fs.promises.access and fs.promises.mkdir.
-    if (!fs.existsSync(localComposioPath)) {
-      fs.mkdirSync(localComposioPath, { recursive: true });
-    }
+  try {
+    // Use async file system operations to avoid blocking the event loop.
+    await fs.mkdir(localComposioPath, { recursive: true });
 
-    console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
-    
-    // Use execFile instead of exec to prevent shell command injection
-    execFile(
+    console.log(`[ComposioCatalogService] Importing: git submodule add ${match.clone_url} ${submodulePath}`);
+
+    // Use promisified execFile for cleaner async/await syntax and to prevent shell command injection.
+    const { stdout } = await execFileAsync(
       'git',
       ['submodule', 'add', match.clone_url, submodulePath],
-      { cwd: ROOT_DIR },
-      (error, stdout, stderr) => {
-        if (error) {
-          resolve({
-            success: false,
-            message: `Git command failed: ${error.message}`,
-            details: stderr
-          });
-        } else {
-          resolve({
-            success: true,
-            message: `Successfully imported Composio repository "${match.name}" as a submodule!`,
-            path: submodulePath,
-            clone_url: match.clone_url,
-            output: stdout
-          });
-        }
-      }
+      { cwd: ROOT_DIR }
     );
-  });
+
+    return {
+      success: true,
+      message: `Successfully imported Composio repository "${match.name}" as a submodule.`,
+      path: submodulePath,
+      clone_url: match.clone_url,
+      output: stdout
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Git command failed: ${error.message}`,
+      details: error.stderr || 'No standard error output.'
+    };
+  }
 };
 
 /**
@@ -232,68 +209,53 @@ const importComposioSubmodule = async (repoName) => {
  */
 const getComposioStats = async () => {
   try {
-    // Optimization Recommendation: Ensure the ComposioRepository Mongoose model has appropriate indexes for efficient aggregation.
-    // For grouping by 'language':
-    // schema.index({ language: 1 });
-    // For grouping by 'license':
-    // schema.index({ license: 1 });
-    // For summing/averaging 'stars' and 'forks' across the collection:
-    // schema.index({ stars: 1 });
-    // schema.index({ forks: 1 });
-    // While these indexes might not drastically speed up full collection scans for aggregation,
-    // they can be beneficial if a $match stage is added before $group, or for other queries.
+    // Optimization Recommendation: Ensure indexes exist on fields used in aggregations
+    // (e.g., language, license, stars, forks) for better performance.
 
-    const totalRepos = await ComposioRepository.countDocuments({});
-    
-    // Star and Fork aggregations
-    const aggregations = await ComposioRepository.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalStars: { $sum: '$stars' },
-          totalForks: { $sum: '$forks' },
-          avgStars: { $avg: '$stars' }
+    const [totalRepos, aggregations, languages, licenses] = await Promise.all([
+      ComposioRepository.countDocuments({}),
+      // Star and Fork aggregations
+      ComposioRepository.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalStars: { $sum: '$stars' },
+            totalForks: { $sum: '$forks' },
+            avgStars: { $avg: '$stars' }
+          }
         }
-      }
+      ]),
+      // Language splits
+      ComposioRepository.aggregate([
+        { $match: { language: { $ne: null, $ne: '' } } }, // Ensure clean data by filtering out null/empty values
+        { $group: { _id: '$language', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 } // Return top 10 languages
+      ]),
+      // License splits
+      ComposioRepository.aggregate([
+        { $match: { license: { $ne: null, $ne: '' } } }, // Ensure clean data
+        { $group: { _id: '$license', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ])
     ]);
 
-    const stats = aggregations[0] || { totalStars: 0, totalForks: 0, avgStars: 0 };
-
-    // Language splits
-    const languages = await ComposioRepository.aggregate([
-      {
-        $group: {
-          _id: '$language',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // License splits
-    const licenses = await ComposioRepository.aggregate([
-      {
-        $group: {
-          _id: '$license',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
+    const baseStats = aggregations[0] || { totalStars: 0, totalForks: 0, avgStars: 0 };
 
     return {
       success: true,
       stats: {
         totalRepositories: totalRepos,
-        totalStars: stats.totalStars,
-        totalForks: stats.totalForks,
-        averageStars: Math.round(stats.avgStars),
+        totalStars: baseStats.totalStars,
+        totalForks: baseStats.totalForks,
+        averageStars: Math.round(baseStats.avgStars),
         languages: languages.map(lang => ({ name: lang._id, count: lang.count })),
         licenses: licenses.map(lic => ({ name: lic._id, count: lic.count }))
       }
     };
   } catch (err) {
-    throw new Error(`Failed to calculate Composio catalog stats: ${err.message}`);
+    console.error(`[ComposioCatalogService] getComposioStats failed: ${err}`);
+    throw new Error('Failed to calculate Composio catalog stats.');
   }
 };
 
