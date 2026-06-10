@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const forumUserActivitiesSchema = mongoose.Schema(
   {
     id: {
+      // Performance Tip: Consider if this is necessary, as Mongoose provides a unique `_id` by default.
+      // If this is used for lookups, it should be indexed.
       type: String,
     },
     img: {
@@ -33,19 +35,28 @@ const forumUserActivitiesSchema = mongoose.Schema(
         ref: 'Forum',
       },
     ],
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // Optimization: Removed redundant `createdAt` and `updatedAt` fields.
+    // The `timestamps: true` option below handles these automatically and more efficiently.
   },
   {
     timestamps: true,
   }
 );
+
+// --- Optimizations: Indexing ---
+
+// Performance Tip: Index on 'email' for efficient lookups of a specific user's activities.
+// This is crucial for fetching data for a user profile or dashboard.
+forumUserActivitiesSchema.index({ email: 1 });
+
+// Performance Tip: Index on 'userActivities' (which references a Forum) to quickly find all activities
+// related to a specific forum post. This uses a multikey index.
+forumUserActivitiesSchema.index({ userActivities: 1 });
+
+// Performance Tip: Index on 'createdAt' for efficient sorting of activities by time, a very common operation.
+// A descending index (-1) is typically used to get the most recent items first.
+forumUserActivitiesSchema.index({ createdAt: -1 });
+
 
 const UserForumActivities = mongoose.model(
   'forum-User-Activities',
