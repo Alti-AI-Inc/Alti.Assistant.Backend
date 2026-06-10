@@ -3,6 +3,14 @@ import { cyberdeskService } from './cyberdesk.service.js';
 /**
  * Helper to verify if a user has access to a specific desktop based on tenant boundaries and roles.
  * Enforces strict tenant isolation and role-based access control (RBAC).
+ * @async
+ * @param {object} user - The authenticated user object, typically from `req.user`.
+ * @param {string} user.id - The user's unique identifier.
+ * @param {string} user.tenantId - The ID of the tenant the user belongs to.
+ * @param {'super_admin'|'admin'|'manager'|'user'} user.role - The user's role.
+ * @param {string} desktopId - The ID of the desktop to check access for.
+ * @returns {Promise<{valid: boolean, status?: number, message?: string, desktop?: object}>} An object indicating if access is valid.
+ * If valid, it includes the desktop object. If invalid, it includes an HTTP status and an error message.
  */
 const verifyDesktopAccess = async (user, desktopId) => {
   const desktop = await cyberdeskService.getDesktopInfo(desktopId);
@@ -33,6 +41,54 @@ const verifyDesktopAccess = async (user, desktopId) => {
   return { valid: true, desktop };
 };
 
+/**
+ * @async
+ * @function launch
+ * @description Express controller to launch a new virtual desktop for the authenticated user.
+ * The desktop is launched within the user's tenant context, and usage is tracked against the user and tenant.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.user - The authenticated user object attached by middleware.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ *
+ * @openapi
+ * /cyberdesk/launch:
+ *   post:
+ *     tags:
+ *       - CyberDesk
+ *     summary: Launch a new virtual desktop
+ *     description: |
+ *       Launches a new virtual desktop instance for the authenticated user.
+ *       The instance is provisioned based on the user's tenant, role, and associated resource limits.
+ *
+ *       **Required Roles:**
+ *       - `super_admin`
+ *       - `admin`
+ *       - `manager`
+ *       - `user`
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Desktop launched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Desktop launched successfully
+ *                 data:
+ *                   type: object
+ *                   description: Information about the newly launched desktop.
+ *       '401':
+ *         description: Unauthorized, missing or invalid user context.
+ *       '403':
+ *         description: Forbidden, user role is not permitted to launch desktops.
+ *       '500':
+ *         description: Internal server error, failed to launch desktop.
+ */
 const launch = async (req, res) => {
   try {
     const user = req.user; // Populated by authentication middleware
@@ -61,6 +117,60 @@ const launch = async (req, res) => {
   }
 };
 
+/**
+ * @async
+ * @function info
+ * @description Express controller to retrieve information about a specific virtual desktop.
+ * Access is verified using the `verifyDesktopAccess` helper to ensure tenant and role-based permissions are enforced.
+ * @param {import('express').Request} req - The Express request object, containing the desktop ID in params.
+ * @param {object} req.params - The URL parameters.
+ * @param {string} req.params.id - The ID of the desktop to retrieve information for.
+ * @param {object} req.user - The authenticated user object attached by middleware.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ *
+ * @openapi
+ * /cyberdesk/{id}/info:
+ *   get:
+ *     tags:
+ *       - CyberDesk
+ *     summary: Get desktop information
+ *     description: |
+ *       Retrieves detailed information for a specific virtual desktop by its ID.
+ *       Access is subject to multi-tenant and role-based permissions.
+ *
+ *       **Permission Scopes:**
+ *       - `super_admin`: Can access any desktop.
+ *       - `admin`, `manager`: Can access any desktop within their own tenant.
+ *       - `user`: Can only access desktops they own.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the virtual desktop.
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved desktop information.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               description: The desktop information object.
+ *       '400':
+ *         description: Bad Request, desktop ID is missing or invalid.
+ *       '401':
+ *         description: Unauthorized, missing or invalid user context.
+ *       '403':
+ *         description: Forbidden, user does not have permission to access this desktop.
+ *       '404':
+ *         description: Not Found, the specified desktop does not exist.
+ *       '500':
+ *         description: Internal server error.
+ */
 const info = async (req, res) => {
   const { id } = req.params;
   const user = req.user;
@@ -86,6 +196,74 @@ const info = async (req, res) => {
   }
 };
 
+/**
+ * @async
+ * @function click
+ * @description Express controller to simulate a mouse click on a virtual desktop at specified coordinates.
+ * Access is verified using the `verifyDesktopAccess` helper.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.params - The URL parameters.
+ * @param {string} req.params.id - The ID of the target desktop.
+ * @param {object} req.body - The request body.
+ * @param {number} req.body.x - The x-coordinate for the click.
+ * @param {number} req.body.y - The y-coordinate for the click.
+ * @param {object} req.user - The authenticated user object attached by middleware.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ *
+ * @openapi
+ * /cyberdesk/{id}/click:
+ *   post:
+ *     tags:
+ *       - CyberDesk
+ *     summary: Perform a mouse click on a desktop
+ *     description: |
+ *       Simulates a mouse click at the given (x, y) coordinates on a specific virtual desktop.
+ *       Access is subject to multi-tenant and role-based permissions.
+ *
+ *       **Permission Scopes:**
+ *       - `super_admin`: Can interact with any desktop.
+ *       - `admin`, `manager`: Can interact with any desktop within their own tenant.
+ *       - `user`: Can only interact with desktops they own.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the virtual desktop.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - x
+ *               - y
+ *             properties:
+ *               x:
+ *                 type: number
+ *                 description: The x-coordinate for the mouse click.
+ *               y:
+ *                 type: number
+ *                 description: The y-coordinate for the mouse click.
+ *     responses:
+ *       '200':
+ *         description: Mouse click performed successfully.
+ *       '400':
+ *         description: Bad Request, invalid parameters (ID, x, or y).
+ *       '401':
+ *         description: Unauthorized, missing or invalid user context.
+ *       '403':
+ *         description: Forbidden, user does not have permission to interact with this desktop.
+ *       '404':
+ *         description: Not Found, the specified desktop does not exist.
+ *       '500':
+ *         description: Internal server error.
+ */
 const click = async (req, res) => {
   const { id } = req.params;
   const { x, y } = req.body;
@@ -121,6 +299,75 @@ const click = async (req, res) => {
   }
 };
 
+/**
+ * @async
+ * @function bash
+ * @description Express controller to execute a shell command on a virtual desktop.
+ * Access is verified, and command execution is restricted to higher-privileged roles for security.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.params - The URL parameters.
+ * @param {string} req.params.id - The ID of the target desktop.
+ * @param {object} req.body - The request body.
+ * @param {string} req.body.command - The shell command to execute.
+ * @param {object} req.user - The authenticated user object attached by middleware.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ *
+ * @openapi
+ * /cyberdesk/{id}/bash:
+ *   post:
+ *     tags:
+ *       - CyberDesk
+ *     summary: Execute a shell command on a desktop
+ *     description: |
+ *       Executes a given shell command on a specific virtual desktop.
+ *       This is a privileged operation and is restricted to specific roles.
+ *       All commands are audited.
+ *
+ *       **Required Roles:**
+ *       - `super_admin`
+ *       - `admin`
+ *       - `manager`
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the virtual desktop.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - command
+ *             properties:
+ *               command:
+ *                 type: string
+ *                 description: The shell command to be executed.
+ *     responses:
+ *       '200':
+ *         description: Command executed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               description: The result of the command execution (e.g., stdout, stderr).
+ *       '400':
+ *         description: Bad Request, invalid parameters (ID or command).
+ *       '401':
+ *         description: Unauthorized, missing or invalid user context.
+ *       '403':
+ *         description: Forbidden, user role does not have permission to execute commands.
+ *       '404':
+ *         description: Not Found, the specified desktop does not exist.
+ *       '500':
+ *         description: Internal server error.
+ */
 const bash = async (req, res) => {
   const { id } = req.params;
   const { command } = req.body;
@@ -163,6 +410,55 @@ const bash = async (req, res) => {
   }
 };
 
+/**
+ * @async
+ * @function terminate
+ * @description Express controller to terminate a running virtual desktop.
+ * Access is verified using the `verifyDesktopAccess` helper.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.params - The URL parameters.
+ * @param {string} req.params.id - The ID of the desktop to terminate.
+ * @param {object} req.user - The authenticated user object attached by middleware.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ *
+ * @openapi
+ * /cyberdesk/{id}/terminate:
+ *   post:
+ *     tags:
+ *       - CyberDesk
+ *     summary: Terminate a virtual desktop
+ *     description: |
+ *       Terminates and de-provisions a specific virtual desktop instance.
+ *       Access is subject to multi-tenant and role-based permissions.
+ *
+ *       **Permission Scopes:**
+ *       - `super_admin`: Can terminate any desktop.
+ *       - `admin`, `manager`: Can terminate any desktop within their own tenant.
+ *       - `user`: Can only terminate desktops they own.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the virtual desktop to terminate.
+ *     responses:
+ *       '200':
+ *         description: Desktop terminated successfully.
+ *       '400':
+ *         description: Bad Request, desktop ID is missing or invalid.
+ *       '401':
+ *         description: Unauthorized, missing or invalid user context.
+ *       '403':
+ *         description: Forbidden, user does not have permission to terminate this desktop.
+ *       '404':
+ *         description: Not Found, the specified desktop does not exist.
+ *       '500':
+ *         description: Internal server error.
+ */
 const terminate = async (req, res) => {
   const { id } = req.params;
   const user = req.user;
@@ -194,6 +490,12 @@ const terminate = async (req, res) => {
   }
 };
 
+/**
+ * @namespace cyberdeskController
+ * @description A collection of Express controller methods for managing CyberDesk virtual desktops.
+ * Handles launching, querying, interacting with, and terminating desktops,
+ * while enforcing role-based access control and multi-tenant boundaries.
+ */
 export const cyberdeskController = {
   launch,
   info,
