@@ -7,6 +7,8 @@
  */
 
 import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
+// GCP Secret Manager integration for secure credential handling
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { aiClassificationState } from './state.js';
 import {
   classifyAppNode,
@@ -24,8 +26,52 @@ import {
   saveWorkflowNode,
 } from './nodes.js';
 import { MongoDBSaver } from '../../code/code_assistant/MongoDBSaver.js';
-import config from '../../../../../config/index.js';
+import config from '../../../../../config/index.js'; // Used for local development fallback
 import { Composio } from '@composio/core';
+
+/**
+ * Asynchronously retrieves a secret value.
+ * It prioritizes environment variables (ideal for Cloud Run), then falls back to
+ * GCP Secret Manager. This ensures secure and flexible configuration.
+ * @param {string} secretName - The name of the secret to retrieve (e.g., 'MONGO_URI').
+ * @returns {Promise<string|null>} The secret value or null if not found.
+ */
+const getSecret = async (secretName) => {
+  // Priority 1: Environment variables (injected by Cloud Run, GKE, or .env file)
+  if (process.env[secretName]) {
+    console.log(`Retrieved secret '${secretName}' from environment variable.`);
+    return process.env[secretName];
+  }
+
+  // Priority 2: GCP Secret Manager (for environments with appropriate IAM permissions)
+  // GCP_PROJECT is an environment variable automatically set in most GCP environments.
+  const projectId = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
+  if (projectId) {
+    try {
+      const client = new SecretManagerServiceClient();
+      const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+      console.log(`Attempting to retrieve secret '${secretName}' from GCP Secret Manager...`);
+      const [version] = await client.accessSecretVersion({ name });
+      const payload = version.payload.data.toString('utf8');
+      console.log(`Successfully retrieved secret '${secretName}' from GCP Secret Manager.`);
+      return payload;
+    } catch (error) {
+      // Log a warning if Secret Manager access fails, but don't crash the app.
+      // The app might be running in a context where this secret isn't required.
+      if (error.code === 5) { // NOT_FOUND
+         console.warn(`⚠️ Secret '${secretName}' not found in GCP Secret Manager for project '${projectId}'.`);
+      } else if (error.code === 7) { // PERMISSION_DENIED
+         console.warn(`⚠️ Permission denied when trying to access secret '${secretName}' in GCP Secret Manager. Check IAM permissions for the service account.`);
+      } else {
+         console.warn(`⚠️ Could not fetch secret '${secretName}' from GCP Secret Manager: ${error.message}.`);
+      }
+    }
+  }
+
+  // Fallback if secret is not found in any source
+  console.warn(`⚠️ Secret '${secretName}' not found in environment variables or GCP Secret Manager.`);
+  return null;
+};
 
 // Security: Helper function to escape HTML entities and prevent XSS.
 const escapeHtml = (unsafe) => {
@@ -47,15 +93,9 @@ const isValidIdentifier = (id) => {
   return identifierRegex.test(id);
 };
 
-/**
- * Initializes the Composio SDK with the organization API key from the configuration.
- * This instance is used to interact with Composio's connected accounts API.
- * @type {Composio}
- */
-const composio = new Composio({
-  // Security: API keys are loaded from a central config, not hardcoded.
-  apiKey: config.composio.orgApiKey,
-});
+// DEFERRED: Composio client is now initialized dynamically within runAIClassificationAgent
+// to allow for async secret resolution from GCP Secret Manager or environment variables.
+// const composio = new Composio({ ... });
 
 /**
  * Creates the AI classification workflow as a StateGraph.
@@ -194,16 +234,29 @@ export const aiClassificationApp = workflow.compile({
 });
 
 // Deferred MongoDB checkpointer upgrade (non-blocking)
-MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints')
-  .then((mongoCheckpointer) => {
+(async () => {
+  try {
+    // In production, resolve the MongoDB URI from environment variables or GCP Secret Manager.
+    // For local development, it falls back to the local config file.
+    const mongoUri = process.env.NODE_ENV === 'production'
+      ? await getSecret('MONGO_URI')
+      // Fallback to local config for development environments
+      : config.database_local;
+
+    if (!mongoUri) {
+      // This will be caught by the catch block below
+      throw new Error('MongoDB URI is not available. Check environment variables (MONGO_URI), GCP Secret Manager, or local config.');
+    }
+
+    const mongoCheckpointer = await MongoDBSaver.fromUri(mongoUri, 'ai_classification_checkpoints');
     checkpointer = mongoCheckpointer;
     // Re-compile the workflow with the MongoDB checkpointer and assign it to the existing export
     Object.assign(aiClassificationApp, workflow.compile({ checkpointer, debug: true }));
-    console.log('✅ AI classification: MongoDB checkpointer connected');
-  })
-  .catch((err) => {
+    console.log('✅ AI classification: MongoDB checkpointer connected via secure source.');
+  } catch (err) {
     console.warn('⚠️ AI classification: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-  });
+  }
+})();
 
 /**
  * Invokes the AI classification agent to process a user input.
@@ -259,6 +312,29 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       },
     };
   }
+
+  // Security: Resolve Composio API Key dynamically at runtime from a secure source.
+  const composioApiKey = await getSecret('COMPOSIO_ORG_API_KEY');
+  if (!composioApiKey) {
+    const errorMessage = 'Service configuration error: Composio API key is missing.';
+    console.error('CRITICAL: Composio API key is not configured. Please set the COMPOSIO_ORG_API_KEY environment variable or configure it in GCP Secret Manager.');
+    return {
+      success: false,
+      message: 'Tool execution failed due to a configuration error.',
+      error: errorMessage,
+      data: {
+        responseMessage: {
+          text: 'Sorry, I am currently unable to process your request due to a configuration issue.',
+          type: 'error',
+        },
+        conversationId: options.conversationId || null,
+        messageCount: 0,
+        userType: 'authenticated',
+      },
+    };
+  }
+  // Initialize the Composio client just-in-time with the resolved secret.
+  const composio = new Composio({ apiKey: composioApiKey });
 
   const connectedAccounts = userId
     ? await composio.connectedAccounts.list({

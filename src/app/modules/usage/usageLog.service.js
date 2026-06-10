@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import UsageLog from './usageLog.model.js'; // Consider adding indexes to UsageLog model for performance.
 // Recommended indexes for UsageLog model (in usageLog.model.js):
-// 1. { timestamp: 1 } for time-based range queries.
-// 2. { tenantId: 1, timestamp: 1 } for tenant-specific time-based queries.
-// 3. { userId: 1, timestamp: 1 } for user-specific time-based queries.
-// 4. { module: 1, timestamp: 1 } for module-specific time-based queries.
-// 5. For read operations in getTenantUsageSummary/getUserUsageSummary, ensure .lean() is used if they return Mongoose documents
-//    to avoid the overhead of Mongoose document instantiation.
+// 1. { timestamp: -1 } for time-based range queries (descending is common for recent logs).
+// 2. { tenantId: 1, timestamp: -1 } for tenant-specific time-based queries.
+// 3. { userId: 1, timestamp: -1 } for user-specific time-based queries.
+// 4. { module: 1, timestamp: -1 } for module-specific time-based queries.
+// For read operations in getTenantUsageSummary/getUserUsageSummary, ensure .lean() is used if they return Mongoose documents
+// to avoid the overhead of Mongoose document instantiation.
 import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 import { PubSub } from '@google-cloud/pubsub';
@@ -28,6 +28,10 @@ const TOPIC_NAME = process.env.USAGE_LOG_TOPIC || 'usage-logs';
 const mapEndpointToModule = (endpoint, method) => {
   const path = endpoint.toLowerCase();
 
+  // For maintainability with many routes, consider a more structured approach,
+  // e.g., an array of objects with regex matching.
+  // For now, this if-else chain is clear and functional.
+
   // Module mapping
   if (
     path.includes('/auth') ||
@@ -39,8 +43,8 @@ const mapEndpointToModule = (endpoint, method) => {
       action: method === 'POST' ? 'authenticate' : 'query',
     };
   }
-  if (path.includes('/tenant')) {
-    return { module: 'tenant', action: extractAction(path, method) };
+  if (path.includes('/tenant') || path.includes('/workspace')) {
+    return { module: 'workspace-management', action: extractAction(path, method) };
   }
   if (path.includes('/legal-contract-review')) {
     return {
@@ -102,8 +106,8 @@ const mapEndpointToModule = (endpoint, method) => {
   if (path.includes('/image')) {
     return { module: 'image-generation', action: extractAction(path, method) };
   }
-  if (path.includes('/stripe')) {
-    return { module: 'stripe', action: extractAction(path, method) };
+  if (path.includes('/stripe') || path.includes('/billing') || path.includes('/subscription')) {
+    return { module: 'billing-subscription', action: extractAction(path, method) };
   }
 
   return { module: 'other', action: extractAction(path, method) };
@@ -126,6 +130,7 @@ const extractAction = (path, method) => {
   if (path.includes('/upload')) return 'upload';
   if (path.includes('/download')) return 'download';
   if (path.includes('/delete')) return 'delete';
+  if (path.includes('/update')) return 'update';
 
   // Fallback to method-based action
   switch (method) {
@@ -144,30 +149,34 @@ const extractAction = (path, method) => {
 };
 
 /**
- * Anonymizes an IP address by hashing it using SHA256 and truncating the result.
+ * Anonymizes an IP address by hashing it using SHA256 and a salt.
  * This helps in protecting user privacy while still allowing for some level of IP-based analytics.
  *
  * @param {string | null | undefined} ip - The IP address string to anonymize.
- * @returns {string | null} The first 16 characters of the SHA256 hash of the IP address, or `null` if the input is falsy.
+ * @returns {string | null} The first 16 characters of the HMAC-SHA256 hash of the IP address, or `null` if the input is falsy.
  */
 const anonymizeIP = (ip) => {
   if (!ip) return null;
-  return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
+  const salt = process.env.IP_HASH_SALT;
+  if (!salt) {
+    logger.warn('IP_HASH_SALT is not set. IP anonymization is less secure.');
+    return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
+  }
+  return crypto.createHmac('sha256', salt).update(ip).digest('hex').substring(0, 16);
 };
 
 /**
  * Maps an HTTP status code to a general status category.
  *
  * @param {number} statusCode - The HTTP status code (e.g., 200, 404, 500).
- * @returns {'success' | 'error' | 'partial'} The categorized status:
- *   - 'success' for 2xx codes.
- *   - 'error' for 4xx or 5xx codes.
- *   - 'partial' for other codes (e.g., 3xx redirects).
+ * @returns {'success' | 'error' | 'client-error' | 'server-error' | 'redirect'} The categorized status.
  */
 const getStatusFromCode = (statusCode) => {
   if (statusCode >= 200 && statusCode < 300) return 'success';
-  if (statusCode >= 400 && statusCode < 600) return 'error';
-  return 'partial';
+  if (statusCode >= 300 && statusCode < 400) return 'redirect';
+  if (statusCode >= 400 && statusCode < 500) return 'client-error';
+  if (statusCode >= 500 && statusCode < 600) return 'server-error';
+  return 'unknown';
 };
 
 /**
@@ -179,6 +188,7 @@ const getStatusFromCode = (statusCode) => {
  *   The specific error type, or `null` if no specific error type is matched.
  */
 const getErrorType = (statusCode) => {
+  if (statusCode < 400) return null;
   if (statusCode === 400) return 'validation';
   if (statusCode === 401) return 'authentication';
   if (statusCode === 403) return 'authorization';
@@ -195,28 +205,6 @@ const getErrorType = (statusCode) => {
  * allowing for stateless, container-friendly scaling.
  *
  * @param {object} logData - The data object for the usage log entry.
- * @param {Date} logData.timestamp - The timestamp of the request.
- * @param {string} logData.userId - The ID of the user who made the request.
- * @param {string | null} logData.tenantId - The ID of the tenant, or `null`.
- * @param {string} logData.module - The identified module of the request.
- * @param {string} logData.action - The identified action of the request.
- * @param {string} logData.endpoint - The original API endpoint.
- * @param {string} logData.method - The HTTP method.
- * @param {Date} logData.startTime - The start time of the request.
- * @param {Date} logData.endTime - The end time of the request.
- * @param {number} logData.duration - The duration of the request in milliseconds.
- * @param {'success' | 'error' | 'partial'} logData.status - The general status of the request.
- * @param {number} logData.statusCode - The HTTP status code of the response.
- * @param {string | null} logData.errorType - The specific error type, or `null`.
- * @param {string | null} logData.errorMessage - The error message, truncated to 500 characters, or `null`.
- * @param {number} logData.tokensUsed - The number of tokens used (e.g., for AI models).
- * @param {string | null} logData.modelUsed - The AI model used, if any.
- * @param {number} logData.inputSize - The size of the input payload in bytes.
- * @param {number} logData.outputSize - The size of the output payload in bytes.
- * @param {string} logData.requestId - A unique ID for the request.
- * @param {string | null} logData.ipAddress - The anonymized IP address of the client.
- * @param {string | null} logData.userAgent - The user agent string, truncated to 200 characters, or `null`.
- * @param {object} logData.metadata - Additional metadata related to the request.
  * @returns {void}
  */
 const createLogAsync = (logData) => {
@@ -225,22 +213,21 @@ const createLogAsync = (logData) => {
   pubsub
     .topic(TOPIC_NAME)
     .publishMessage({ data: dataBuffer })
-    .then(() => {
-      // Silent success
-    })
     .catch((error) => {
-      logger.error('Failed to publish usage log to Pub/Sub, falling back to direct database write:', {
-        error: error.message,
-        logData: {
+      logger.error('Failed to publish usage log to Pub/Sub. Falling back to direct DB write.', {
+        error, // Log the full error for better debugging
+        logContext: {
           userId: logData.userId,
           tenantId: logData.tenantId,
-          module: logData.module,
-          endpoint: logData.endpoint,
+          requestId: logData.requestId,
         },
       });
       // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable
       UsageLog.create(logData).catch((dbError) => {
-        logger.error('Fallback database write also failed:', dbError);
+        logger.error('Fallback database write for usage log also failed. Data loss occurred.', {
+          error: dbError,
+          originalLogRequestId: logData.requestId, // Correlate the failed log
+        });
       });
     });
 };
@@ -248,25 +235,10 @@ const createLogAsync = (logData) => {
 /**
  * Logs details of an API request for usage tracking and analytics.
  * This function processes raw request data, categorizes it, and then asynchronously
- * persists it to the database. It calculates duration, maps endpoints to modules/actions,
+ * persists it. It calculates duration, maps endpoints to modules/actions,
  * determines status and error types, and anonymizes sensitive information like IP addresses.
  *
  * @param {object} data - The raw request data to be logged.
- * @param {string} data.userId - The ID of the user making the request.
- * @param {string | null} data.tenantId - The ID of the tenant associated with the request, or `null`.
- * @param {string} data.endpoint - The full API endpoint path.
- * @param {string} data.method - The HTTP method of the request.
- * @param {number} data.startTime - The timestamp (in milliseconds) when the request started.
- * @param {number} data.endTime - The timestamp (in milliseconds) when the request ended.
- * @param {number} data.statusCode - The HTTP status code returned by the response.
- * @param {string | null} [data.errorMessage=null] - An optional error message if the request failed.
- * @param {number} [data.tokensUsed=0] - The number of tokens consumed by the request (e.g., for AI services).
- * @param {string | null} [data.modelUsed=null] - The specific AI model used, if applicable.
- * @param {number} [data.inputSize=0] - The size of the request input payload in bytes.
- * @param {number} [data.outputSize=0] - The size of the response output payload in bytes.
- * @param {object} [data.metadata={}] - Additional arbitrary metadata to store with the log.
- * @param {string | null} [data.ipAddress=null] - The client's IP address.
- * @param {string | null} [data.userAgent=null] - The client's User-Agent header.
  * @returns {void}
  */
 const logRequest = (data) => {
@@ -288,17 +260,11 @@ const logRequest = (data) => {
     userAgent = null,
   } = data;
 
-  // Calculate duration
   const duration = endTime - startTime;
-
-  // Map endpoint to module and action
   const { module, action } = mapEndpointToModule(endpoint, method);
-
-  // Determine status and error type
   const status = getStatusFromCode(statusCode);
-  const errorType = status === 'error' ? getErrorType(statusCode) : null;
+  const errorType = getErrorType(statusCode);
 
-  // Create log data
   const logData = {
     timestamp: new Date(startTime),
     userId,
@@ -313,24 +279,22 @@ const logRequest = (data) => {
     status,
     statusCode,
     errorType,
-    errorMessage: errorMessage ? String(errorMessage).substring(0, 500) : null, // Limit length
+    errorMessage: errorMessage ? String(errorMessage).substring(0, 500) : null,
     tokensUsed,
     modelUsed,
     inputSize,
     outputSize,
     requestId: uuidv4(),
     ipAddress: anonymizeIP(ipAddress),
-    userAgent: userAgent ? String(userAgent).substring(0, 200) : null, // Limit length
+    userAgent: userAgent ? String(userAgent).substring(0, 256) : null,
     metadata,
   };
 
-  // Log asynchronously (non-blocking) via Pub/Sub
   createLogAsync(logData);
 };
 
 /**
  * Retrieves a summary of usage for a specific tenant within a given date range.
- * This function delegates to the `UsageLog` model to fetch aggregated usage data.
  *
  * @param {string} tenantId - The ID of the tenant for whom to retrieve usage.
  * @param {Date} startDate - The start date for the usage period.
@@ -340,18 +304,16 @@ const logRequest = (data) => {
  */
 const getTenantUsage = async (tenantId, startDate, endDate) => {
   try {
-    // Ensure UsageLog.getTenantUsageSummary uses .lean() if it returns Mongoose documents
-    // to avoid overhead of Mongoose document instantiation.
+    // The model method should use .lean() for performance.
     return await UsageLog.getTenantUsageSummary(tenantId, startDate, endDate);
   } catch (error) {
-    logger.error('Error getting tenant usage summary:', error);
+    logger.error(`Error getting tenant usage summary for tenantId: ${tenantId}`, { error });
     throw error;
   }
 };
 
 /**
  * Retrieves a summary of usage for a specific user within a given date range.
- * This function delegates to the `UsageLog` model to fetch aggregated usage data.
  *
  * @param {string} userId - The ID of the user for whom to retrieve usage.
  * @param {Date} startDate - The start date for the usage period.
@@ -361,39 +323,19 @@ const getTenantUsage = async (tenantId, startDate, endDate) => {
  */
 const getUserUsage = async (userId, startDate, endDate) => {
   try {
-    // Ensure UsageLog.getUserUsageSummary uses .lean() if it returns Mongoose documents
-    // to avoid overhead of Mongoose document instantiation.
+    // The model method should use .lean() for performance.
     return await UsageLog.getUserUsageSummary(userId, startDate, endDate);
   } catch (error) {
-    logger.error('Error getting user usage summary:', error);
+    logger.error(`Error getting user usage summary for userId: ${userId}`, { error });
     throw error;
   }
 };
 
 /**
  * Retrieves aggregated usage statistics based on various filters and a time period.
- * This function performs an aggregation pipeline on the `UsageLog` collection
- * to calculate total requests, success/error counts, average/max/min durations,
- * and total/average tokens used.
  *
  * @param {object} [filters={}] - An object containing optional filters for the usage statistics.
- * @param {string} [filters.tenantId] - Optional: Filter by a specific tenant ID.
- * @param {string} [filters.userId] - Optional: Filter by a specific user ID.
- * @param {string} [filters.module] - Optional: Filter by a specific module.
- * @param {Date} [filters.startDate=30 days ago] - Optional: The start date for the statistics period. Defaults to 30 days ago.
- * @param {Date} [filters.endDate=now] - Optional: The end date for the statistics period. Defaults to the current date.
- * @returns {Promise<object | null>} A promise that resolves to an object containing the aggregated usage statistics,
- *   or `null` if no data is found for the given filters.
- *   The returned object includes:
- *   - `totalRequests`: Total number of requests.
- *   - `successCount`: Number of successful requests.
- *   - `errorCount`: Number of erroneous requests.
- *   - `successRate`: Percentage of successful requests.
- *   - `avgDuration`: Average request duration in milliseconds.
- *   - `maxDuration`: Maximum request duration in milliseconds.
- *   - `minDuration`: Minimum request duration in milliseconds.
- *   - `totalTokens`: Total tokens used across all requests.
- *   - `avgTokens`: Average tokens used per request.
+ * @returns {Promise<object | null>} A promise that resolves to an object containing the aggregated usage statistics.
  * @throws {Error} If an error occurs during the aggregation query.
  */
 const getUsageStats = async (filters = {}) => {
@@ -402,7 +344,7 @@ const getUsageStats = async (filters = {}) => {
       tenantId,
       userId,
       module,
-      startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+      startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to last 30 days
       endDate = new Date(),
     } = filters;
 
@@ -424,13 +366,12 @@ const getUsageStats = async (filters = {}) => {
             $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
           },
           errorCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'error'] }, 1, 0] },
+            $sum: { $cond: [{ $in: ['$status', ['client-error', 'server-error']] }, 1, 0] },
           },
           avgDuration: { $avg: '$duration' },
           maxDuration: { $max: '$duration' },
           minDuration: { $min: '$duration' },
           totalTokens: { $sum: '$tokensUsed' },
-          avgTokens: { $avg: '$tokensUsed' },
         },
       },
       {
@@ -440,23 +381,93 @@ const getUsageStats = async (filters = {}) => {
           successCount: 1,
           errorCount: 1,
           successRate: {
-            $multiply: [{ $divide: ['$successCount', '$totalRequests'] }, 100],
+            $cond: {
+              if: { $gt: ['$totalRequests', 0] },
+              then: { $multiply: [{ $divide: ['$successCount', '$totalRequests'] }, 100] },
+              else: 0,
+            },
           },
           avgDuration: { $round: ['$avgDuration', 2] },
           maxDuration: 1,
           minDuration: 1,
           totalTokens: 1,
-          avgTokens: { $round: ['$avgTokens', 2] },
+          avgTokens: {
+            $cond: {
+              if: { $gt: ['$totalRequests', 0] },
+              then: { $round: [{ $divide: ['$totalTokens', '$totalRequests'] }, 2] },
+              else: 0,
+            },
+          },
         },
       },
     ]);
 
-    return stats[0] || null;
+    // If no records match, aggregation returns an empty array. Return a default object.
+    return stats[0] || {
+      totalRequests: 0,
+      successCount: 0,
+      errorCount: 0,
+      successRate: 0,
+      avgDuration: 0,
+      maxDuration: 0,
+      minDuration: 0,
+      totalTokens: 0,
+      avgTokens: 0,
+    };
   } catch (error) {
-    logger.error('Error getting usage stats:', error);
+    logger.error('Error getting usage stats:', { error, filters });
     throw error;
   }
 };
+
+/**
+ * Checks if a tenant or user has exceeded a specific usage limit within the current billing cycle.
+ * This is a crucial function for enforcing subscription plan limits.
+ *
+ * @param {object} options - The options for the limit check.
+ * @param {string} options.tenantId - The ID of the tenant to check.
+ * @param {'tokens' | 'requests'} options.limitType - The type of limit to check ('tokens' or 'requests').
+ * @param {number} options.limitValue - The value of the limit. A value of -1 can signify an unlimited plan.
+ * @param {Date} options.cycleStartDate - The start date of the current billing or usage cycle.
+ * @param {Date} [options.cycleEndDate=new Date()] - The end date of the cycle, defaults to now.
+ * @returns {Promise<{exceeded: boolean, currentUsage: number, limit: number, remaining: number}>} A promise that resolves to an object indicating if the limit is exceeded.
+ */
+const checkUsageLimit = async ({ tenantId, limitType, limitValue, cycleStartDate, cycleEndDate = new Date() }) => {
+  if (!tenantId || !limitType || limitValue === undefined || !cycleStartDate) {
+    throw new Error('Missing required parameters for usage limit check.');
+  }
+
+  // A limit of -1 is a common convention for "unlimited".
+  if (limitValue === -1) {
+    return { exceeded: false, currentUsage: 0, limit: -1, remaining: Infinity };
+  }
+
+  try {
+    const stats = await getUsageStats({
+      tenantId,
+      startDate: cycleStartDate,
+      endDate: cycleEndDate,
+    });
+
+    const currentUsage = limitType === 'tokens' ? stats.totalTokens : stats.totalRequests;
+    const exceeded = currentUsage >= limitValue;
+    const remaining = Math.max(0, limitValue - currentUsage);
+
+    return {
+      exceeded,
+      currentUsage,
+      limit: limitValue,
+      remaining,
+    };
+  } catch (error) {
+    logger.error(`Error checking usage limit for tenant ${tenantId}:`, { error });
+    // Fail-safe decision: Re-throwing the error allows the calling service (e.g., a middleware)
+    // to decide whether to block the request (fail-closed) or allow it (fail-open).
+    // For billing-related features, fail-closed is often the safer default to prevent financial loss.
+    throw error;
+  }
+};
+
 
 /**
  * @typedef {object} UsageLogService
@@ -464,12 +475,12 @@ const getUsageStats = async (filters = {}) => {
  * @property {function(string, Date, Date): Promise<object[]>} getTenantUsage - Retrieves a summary of usage for a specific tenant.
  * @property {function(string, Date, Date): Promise<object[]>} getUserUsage - Retrieves a summary of usage for a specific user.
  * @property {function(object): Promise<object | null>} getUsageStats - Retrieves aggregated usage statistics based on filters.
+ * @property {function(object): Promise<object>} checkUsageLimit - Checks if a usage limit has been exceeded for a tenant.
  */
 
 /**
- * Provides a collection of services for logging and retrieving API usage data.
- * This service encapsulates the business logic for tracking user and tenant interactions
- * with the application's various modules and endpoints.
+ * Provides a collection of services for logging, retrieving, and analyzing API usage data.
+ * This service is fundamental for monitoring, billing, and enforcing subscription limits.
  *
  * @type {UsageLogService}
  */
@@ -478,4 +489,5 @@ export const usageLogService = {
   getTenantUsage,
   getUserUsage,
   getUsageStats,
+  checkUsageLimit,
 };
