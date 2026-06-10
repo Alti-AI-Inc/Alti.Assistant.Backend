@@ -34,16 +34,16 @@ const zones = {
 };
 
 const zoneAgents = {
-  '1': ['fixer', 'tester', 'optimizer', 'documenter', 'manager_agent', 'security_agent', 'gcp_secret_agent'],
-  '2': ['fixer', 'tester', 'optimizer', 'documenter', 'owner_agent', 'telemetry_agent', 'gcp_logging_agent'],
-  '3': ['fixer', 'tester', 'optimizer', 'documenter', 'user_agent', 'ratelimit_agent', 'gcp_storage_agent'],
-  '4': ['fixer', 'tester', 'optimizer', 'documenter', 'admin_agent', 'patch_agent', 'gcp_pubsub_agent']
+  '1': ['fixer', 'tester', 'optimizer', 'documenter', 'manager_agent', 'security_agent', 'gcp_secret_agent', 'gcp_iam_agent'],
+  '2': ['fixer', 'tester', 'optimizer', 'documenter', 'owner_agent', 'telemetry_agent', 'gcp_logging_agent', 'vertex_safety_agent'],
+  '3': ['fixer', 'tester', 'optimizer', 'documenter', 'user_agent', 'ratelimit_agent', 'gcp_storage_agent', 'gcp_health_agent'],
+  '4': ['fixer', 'tester', 'optimizer', 'documenter', 'admin_agent', 'patch_agent', 'gcp_pubsub_agent', 'gcp_db_agent']
 };
 const activeProcesses = [];
 
 console.log('====================================================');
 console.log('         LAUNCHING AUTONOMOUS SWARM ORCHESTRATOR    ');
-console.log('                 28 AGENTS ACTIVE SWARM             ');
+console.log('                 32 AGENTS ACTIVE SWARM             ');
 console.log('====================================================');
 
 // Spawn 20 worker processes

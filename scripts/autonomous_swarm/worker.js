@@ -353,7 +353,11 @@ async function runLoop() {
           gcp_secret_agent: 'NO_CHANGES_NEEDED',
           gcp_logging_agent: 'NO_CHANGES_NEEDED',
           gcp_storage_agent: 'NO_CHANGES_NEEDED',
-          gcp_pubsub_agent: 'NO_CHANGES_NEEDED'
+          gcp_pubsub_agent: 'NO_CHANGES_NEEDED',
+          gcp_iam_agent: 'NO_CHANGES_NEEDED',
+          vertex_safety_agent: 'NO_CHANGES_NEEDED',
+          gcp_health_agent: 'NO_CHANGES_NEEDED',
+          gcp_db_agent: 'NO_CHANGES_NEEDED'
         };
 
         if (reply && reply.includes(skipKeywords[AGENT_TYPE])) {
@@ -389,7 +393,11 @@ async function runLoop() {
           gcp_secret_agent: 'sec(gcp-secrets)',
           gcp_logging_agent: 'telemetry(gcp-logging)',
           gcp_storage_agent: 'feat(gcp-storage)',
-          gcp_pubsub_agent: 'feat(gcp-pubsub)'
+          gcp_pubsub_agent: 'feat(gcp-pubsub)',
+          gcp_iam_agent: 'sec(gcp-iam)',
+          vertex_safety_agent: 'sec(vertex-safety)',
+          gcp_health_agent: 'feat(gcp-health)',
+          gcp_db_agent: 'perf(gcp-db)'
         };
         const gitResult = await commitAndPush('main', `${commitPrefixes[AGENT_TYPE]}: [Zone ${ZONE_ID}] autonomous update to ${path.basename(filePath)}`);
         if (gitResult.success) {

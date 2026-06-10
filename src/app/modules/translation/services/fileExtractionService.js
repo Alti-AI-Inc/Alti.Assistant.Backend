@@ -43,7 +43,7 @@ class FileExtractionService {
         fileSize: 0,
       };
 
-      // Get file size
+      // Get file size asynchronously
       const stats = await fs.promises.stat(filePath);
       metadata.fileSize = stats.size;
 
@@ -73,7 +73,11 @@ class FileExtractionService {
       }
 
       metadata.characterCount = extractedText.length;
-      metadata.wordCount = extractedText.split(/\s+/).filter(Boolean).length;
+      
+      // OPTIMIZATION: Avoid CPU-intensive and memory-heavy .split(/\s+/).filter(Boolean) 
+      // which creates massive temporary arrays on large text files.
+      const wordMatches = extractedText.match(/\S+/g);
+      metadata.wordCount = wordMatches ? wordMatches.length : 0;
 
       logger.info('Text extraction completed', {
         fileName: originalName,
@@ -137,7 +141,10 @@ class FileExtractionService {
     try {
       // Dynamically import xlsx package. This assumes 'xlsx' is a dependency.
       const XLSX = await import('xlsx');
-      const workbook = XLSX.readFile(filePath);
+      
+      // OPTIMIZATION: Avoid synchronous I/O blocking the event loop by reading the file asynchronously first.
+      const buffer = await readFile(filePath);
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
       let text = '';
 
       workbook.SheetNames.forEach((sheetName) => {
@@ -160,15 +167,14 @@ class FileExtractionService {
    */
   async cleanupFile(filePath) {
     try {
-      // Using fs.existsSync is synchronous but acceptable for a cleanup utility
-      // where race conditions are less critical and simplicity is preferred.
-      // For critical paths, an async check or direct unlink with error handling for ENOENT is better.
-      if (fs.existsSync(filePath)) {
-        await fs.promises.unlink(filePath);
-        logger.info('Temporary file cleaned up', { filePath });
-      }
+      // OPTIMIZATION: Avoid synchronous fs.existsSync which blocks the event loop.
+      // Directly attempt to unlink and handle ENOENT (file not found) gracefully.
+      await fs.promises.unlink(filePath);
+      logger.info('Temporary file cleaned up', { filePath });
     } catch (error) {
-      logger.warn('Failed to cleanup file:', error);
+      if (error.code !== 'ENOENT') {
+        logger.warn('Failed to cleanup file:', error);
+      }
     }
   }
 }
