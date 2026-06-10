@@ -5,8 +5,23 @@
  */
 
 import Stripe from 'stripe';
+import { CloudTasksClient } from '@google-cloud/tasks'; // GCP Agent AI: Added Cloud Tasks client
 import config from '../../../../../config/index.js';
 import Product from './products.model.js';
+
+/*
+ * GCP Agent AI Note:
+ * The following properties must be added to your configuration file (config/index.js)
+ * to support offloading tasks to Google Cloud Tasks.
+ *
+ * gcp: {
+ *   project_id: 'your-gcp-project-id',
+ *   location: 'your-gcp-region', // e.g., 'us-central1'
+ *   tasks_queue: 'stripe-processing-queue', // The name of your Cloud Tasks queue
+ *   tasks_worker_url: 'https://your-backend-service-url/api/v1/tasks/sync-stripe-products', // The HTTPS endpoint that will execute the task
+ *   tasks_service_account_email: 'your-invoker-sa@your-gcp-project-id.iam.gserviceaccount.com' // Service account with roles/run.invoker permission
+ * }
+ */
 
 /**
  * Stripe API client instance initialized with the secret key and API version.
@@ -16,16 +31,19 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
+// GCP Agent AI: Instantiate the Cloud Tasks client.
+const tasksClient = new CloudTasksClient();
+
 /**
- * Creates predefined Stripe products and their associated prices, then stores them in the local database.
- * This function hardcodes a set of subscription plans (Base, Professional, Enterprise) with monthly and yearly prices.
+ * [WORKER LOGIC] Creates predefined Stripe products and their associated prices, then stores them in the local database.
+ * This function contains the long-running logic and is designed to be executed by a background worker (triggered by a Cloud Task).
+ * It hardcodes a set of subscription plans (Base, Professional, Enterprise) with monthly and yearly prices.
  *
- * @param {object} productData - This parameter is currently not used as product data is hardcoded within the function.
  * @returns {Promise<boolean>} A promise that resolves to `true` if products and prices are successfully created and stored.
  * @throws {Error} If there is an error during Stripe API calls or database operations.
  */
-const createProductService = async (productData) => {
-  console.log('Starting product and price creation in Stripe...');
+const handleProductCreationJob = async () => {
+  console.log('Starting product and price creation in Stripe (background job)...');
 
   const plans = [
     {
@@ -112,38 +130,26 @@ const createProductService = async (productData) => {
     },
   ];
 
-  // BUG FIX: Removed unconditional deletion of all products.
-  // Deleting all products from the database every time this service is called
-  // is a critical data loss risk and should not be part of a general 'create' function.
-  // If a full re-seeding or reset is intended, it should be a separate, explicitly named
-  // function or part of a controlled migration script.
-  // await Product.deleteMany({}); // Clear existing products in DB
-
   const productsForDb = [];
 
   try {
     for (const plan of plans) {
-      // ✅ plan.product doesn't exist — pass fields directly
       const product = await stripe.products.create({
         name: plan.name,
         description: plan.description,
-        // 'type' is optional/legacy; safe to omit or keep
         metadata: plan.metadata,
       });
 
       console.log(`Created product: ${product.id} - ${product.name}`);
 
-      // Create each price
       const createdPrices = [];
       for (const price of plan.prices) {
-        // ✅ Make sure unit_amount is an integer
         const unitAmountInt = Math.round(price.unit_amount);
 
         const createdPrice = await stripe.prices.create({
           product: product.id,
           currency: price.currency || 'usd',
           unit_amount: unitAmountInt,
-          // ✅ interval must come from price.recurring.interval
           recurring: {
             interval: price.recurring.interval,
             usage_type: price.recurring.usage_type || 'licensed',
@@ -168,18 +174,68 @@ const createProductService = async (productData) => {
         name: product.name,
         description: product.description,
         metadata: product.metadata,
-        prices: createdPrices, // ✅ store actual created price IDs & normalized values
+        prices: createdPrices,
         stripe_product_id: product.id,
       });
     }
 
-    // Consider adding logic here to check if products already exist before inserting,
-    // or implement an upsert strategy if this function is meant for syncing.
     await Product.insertMany(productsForDb);
+    console.log('Successfully synced all products and prices to the database.');
     return true;
   } catch (error) {
-    console.error('Error creating products and prices in Stripe:', error);
+    console.error('Error creating products and prices in Stripe background job:', error);
     throw error;
+  }
+};
+
+/**
+ * Asynchronously triggers the creation of predefined Stripe products and prices via a background job.
+ * This function offloads the long-running task to Google Cloud Tasks to avoid blocking the main thread
+ * and to ensure resilience. It immediately returns after queueing the task.
+ *
+ * @param {object} productData - This parameter is currently not used.
+ * @returns {Promise<string>} A promise that resolves to the name of the created Cloud Task.
+ * @throws {Error} If there is an error queueing the task.
+ */
+const createProductService = async (productData) => {
+  // GCP Agent AI: Configuration for the Cloud Task
+  const project = config.gcp.project_id;
+  const queue = config.gcp.tasks_queue;
+  const location = config.gcp.location;
+  const url = config.gcp.tasks_worker_url; // The URL of the worker endpoint that will execute the task
+  const serviceAccountEmail = config.gcp.tasks_service_account_email; // For authenticating the worker call
+
+  if (!project || !queue || !location || !url || !serviceAccountEmail) {
+    throw new Error('GCP configuration for Cloud Tasks is missing.');
+  }
+
+  const parent = tasksClient.queuePath(project, location, queue);
+
+  const task = {
+    httpRequest: {
+      httpMethod: 'POST',
+      url,
+      // OIDC tokens are the recommended way to secure invocations for Cloud Run/Functions.
+      oidcToken: {
+        serviceAccountEmail,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // The body can be used to pass data to the worker.
+      // In this case, the worker logic is self-contained, so we send an empty body.
+      body: Buffer.from(JSON.stringify({})).toString('base64'),
+    },
+  };
+
+  try {
+    console.log('Offloading product creation to Cloud Tasks...');
+    const [response] = await tasksClient.createTask({ parent, task });
+    console.log(`Created task ${response.name}`);
+    return response.name;
+  } catch (error) {
+    console.error('Error creating Cloud Task for product creation:', error);
+    throw new Error('Failed to queue product creation job.');
   }
 };
 
@@ -241,4 +297,5 @@ export {
   updateProductService,
   deleteProductService,
   retrieveAllPricesService,
+  handleProductCreationJob, // GCP Agent AI: Exported the worker logic
 };
