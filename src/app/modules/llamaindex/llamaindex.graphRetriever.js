@@ -91,7 +91,14 @@ const getGraphEnrichedQueryContext = async (query, userId) => {
     }
 
     if (relationshipContextParts.length > 0) {
-      logger.info(`GraphRetriever: enriched query with ${relationshipContextParts.length} relational document links`);
+      // GCP CLOUD LOGGING: Structured JSON log for better filterability and monitoring.
+      // The 'severity' key is automatically added by Winston at the 'info' level.
+      logger.info({
+        message: `GraphRetriever: Enriched query with ${relationshipContextParts.length} relational document links`,
+        component: 'GraphRetriever',
+        userId,
+        linkCount: relationshipContextParts.length,
+      });
 
       // Pre-pend the cross-document knowledge map context
       const enrichedQuery = `[Graph RAG Cross-Document Knowledge Map]:
@@ -106,7 +113,18 @@ ${query}`;
 
     return query;
   } catch (err) {
-    logger.error('GraphRetriever context resolution failed:', err);
+    // GCP CLOUD LOGGING: Structured JSON error log with stack trace for GCP Error Reporting.
+    // The 'severity' key is automatically added by Winston at the 'error' level.
+    logger.error({
+      message: 'GraphRetriever: Context resolution failed',
+      component: 'GraphRetriever',
+      userId,
+      query, // Log the query that caused the failure
+      error: {
+        message: err.message,
+        stack: err.stack,
+      },
+    });
     return query; // Graceful fallback to original query
   }
 };
