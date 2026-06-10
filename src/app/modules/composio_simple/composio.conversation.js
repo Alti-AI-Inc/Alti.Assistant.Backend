@@ -8,6 +8,16 @@ import xss from 'xss'; // Security: Import a library to sanitize user input and 
 import Conversation from '../conversations/conversation.model.js';
 import { conversationSummaryService } from '../conversations/conversationSummary.service.js';
 
+// Performance Optimization: For optimal query performance on the 'conversations' collection,
+// ensure the following indexes are created in your MongoDB database:
+// 1. For fast lookups by conversationId and userId (used in getOrCreate, getRecentMessages, saveMessage):
+//    db.conversations.createIndex({ conversationId: 1, userId: 1 })
+//    If conversationId is globally unique, a simpler index would suffice:
+//    db.conversations.createIndex({ conversationId: 1 }, { unique: true })
+//
+// 2. For efficient pagination and sorting of user conversations (used in getUserConversations):
+//    db.conversations.createIndex({ userId: 1, "metadata.category": 1, lastActivity: -1 })
+
 /**
  * Generates a unique identifier for a new Composio simple conversation.
  * The ID is a combination of a prefix, current timestamp, and a random string.
@@ -36,6 +46,7 @@ export const getOrCreateConversation = async (
 ) => {
   if (conversationId) {
     // Try to get existing conversation
+    // Performance: This query is covered by the recommended index on { conversationId: 1, userId: 1 }.
     const existing = await Conversation.findByConversationId(
       conversationId,
       userId
@@ -86,16 +97,19 @@ export const getRecentMessages = async (conversationId, userId, limit = 5) => {
     // Security: Ensure limit is a positive integer to prevent potential issues with Array.slice.
     const safeLimit = Math.max(1, parseInt(limit, 10) || 5);
 
-    const conversation = await Conversation.findByConversationId(
-      conversationId,
-      userId
-    );
+    // Optimization: Use a projection with $slice to fetch only the last N messages from the DB.
+    // This avoids pulling the entire (potentially huge) messages array into application memory.
+    // .lean() is used for performance as we are only reading data, not modifying it.
+    // This query is covered by the recommended index on { conversationId: 1, userId: 1 }.
+    const conversation = await Conversation.findOne(
+      { conversationId, userId },
+      { messages: { $slice: -safeLimit }, _id: 0 } // Projection to get only the last 'safeLimit' messages
+    ).lean();
+
     if (!conversation || !conversation.messages) return [];
 
-    // Return last N messages in chronological order
-    const recentMessages = conversation.messages.slice(-safeLimit);
-
-    return recentMessages.map((msg) => ({
+    // The data is already in the desired shape, just need to map it.
+    return conversation.messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
       timestamp: msg.timestamp,
@@ -128,28 +142,33 @@ export const saveMessage = async (
   metadata = {}
 ) => {
   try {
-    const conversation = await Conversation.findByConversationId(
-      conversationId,
-      userId
+    // Optimization: Use a single atomic `findOneAndUpdate` operation instead of a separate find and save.
+    // This is more efficient as it reduces network round-trips and avoids race conditions by performing the update directly on the database server.
+    // This query is covered by the recommended index on { conversationId: 1, userId: 1 }.
+    const updatedConversation = await Conversation.findOneAndUpdate(
+      { conversationId, userId },
+      {
+        // Use $push to add the new message to the array.
+        $push: {
+          messages: {
+            // Security: Sanitize user-provided content to prevent Stored XSS.
+            role: xss(role),
+            content: xss(content),
+            timestamp: new Date(),
+            metadata: metadata, // Note: If metadata contains user input, it should also be sanitized.
+          },
+        },
+        // Use $set to update the last activity timestamp.
+        $set: { lastActivity: new Date() },
+        // Use $inc to atomically increment the message count.
+        $inc: { messageCount: 1 },
+      },
+      { new: true } // Option to return the document after the update.
     );
-    if (!conversation) {
+
+    if (!updatedConversation) {
       throw new Error('Conversation not found');
     }
-
-    // Security: Sanitize user-provided content to prevent Stored XSS attacks.
-    // Also sanitize role to prevent unexpected values, though it should ideally be validated against an enum.
-    // Note: If metadata can contain user input, it should also be sanitized recursively.
-    conversation.messages.push({
-      role: xss(role),
-      content: xss(content),
-      timestamp: new Date(),
-      metadata: metadata,
-    });
-
-    conversation.lastActivity = new Date();
-    conversation.messageCount = conversation.messages.length;
-
-    await conversation.save();
 
     // Check if summarization is needed (async, don't wait)
     conversationSummaryService
@@ -158,7 +177,7 @@ export const saveMessage = async (
         console.error('Error in background summarization:', err);
       });
 
-    return conversation;
+    return updatedConversation;
   } catch (error) {
     console.error('Error saving message:', error);
     throw error;
@@ -198,6 +217,8 @@ export const getUserConversations = async (userId, options = {}) => {
 
   const skip = (page - 1) * limit;
 
+  // Performance: This query is covered by the recommended index on { userId: 1, "metadata.category": 1, lastActivity: -1 }.
+  // The use of .lean() is a good practice for read-only operations as it improves performance by returning plain JavaScript objects.
   const conversations = await Conversation.find({
     userId: userId,
     'metadata.category': 'composio_simple',
@@ -207,6 +228,7 @@ export const getUserConversations = async (userId, options = {}) => {
     .limit(limit)
     .lean();
 
+  // Performance: This count query is also covered by the recommended index.
   const total = await Conversation.countDocuments({
     userId: userId,
     'metadata.category': 'composio_simple',
