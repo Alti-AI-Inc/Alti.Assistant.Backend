@@ -117,12 +117,13 @@ import { checkFreePlanLimits } from '../../middlewares/checkFreePlanLimits/check
  */
 /**
  * Creates a Stripe checkout session for a user to subscribe to a plan.
- * The user must be authenticated.
- * @param {import('express').Request} req - The Express request object.
+ * It validates the user's existence and then calls the payment service to generate the session URL.
+ * @permission Requires an authenticated user.
+ * @param {import('express').Request} req - The Express request object, containing `userId` and `plan` in the body.
  * @param {import('express').Response} res - The Express response object.
- * @param {import('express').NextFunction} next - The Express next middleware function.
+ * @returns {Promise<void>} Sends a JSON response with the checkout session URL or an error.
  */
-const createCheckoutSession = catchAsync(async (req, res, next) => {
+const createCheckoutSession = catchAsync(async (req, res) => {
   const { userId, plan } = req.body;
   // console.log(userId, plan);
 
@@ -184,12 +185,13 @@ const createCheckoutSession = catchAsync(async (req, res, next) => {
  */
 /**
  * Handles incoming webhooks from Stripe to update subscription status.
- * This endpoint is publicly accessible but secured by Stripe's signature verification.
+ * This endpoint is publicly accessible but secured by Stripe's signature verification,
+ * which is handled by the underlying service.
  * @param {import('express').Request} req - The Express request object, containing the raw body for signature verification.
  * @param {import('express').Response} res - The Express response object.
- * @param {import('express').NextFunction} next - The Express next middleware function.
+ * @returns {Promise<void>} Delegates to the webhook service and sends a response.
  */
-const handleWebhook = catchAsync(async (req, res, next) => {
+const handleWebhook = catchAsync(async (req, res) => {
   await PaymentService.handleWebhookService(req, res);
 });
 
@@ -198,7 +200,7 @@ const handleWebhook = catchAsync(async (req, res, next) => {
  * /api/v1/payments/subscriptions:
  *   get:
  *     summary: Get all subscriptions
- *     description: Fetches a list of all user subscriptions in the system. Limited to the 500 most recent subscriptions.
+ *     description: Fetches a list of all user subscriptions in the system. Limited to the 500 most recent subscriptions. This is an admin-only endpoint.
  *     tags:
  *       - Payment
  *     security:
@@ -225,13 +227,13 @@ const handleWebhook = catchAsync(async (req, res, next) => {
  *         description: Forbidden - User does not have the required 'ADMIN' role.
  */
 /**
- * Retrieves a list of all subscriptions.
+ * Retrieves a list of all subscriptions, sorted by creation date.
  * @permission Requires `ADMIN` role.
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
- * @param {import('express').NextFunction} next - The Express next middleware function.
+ * @returns {Promise<void>} Sends a JSON response with a list of all subscriptions or an error.
  */
-const getAllSubscriptions = catchAsync(async (req, res, next) => {
+const getAllSubscriptions = catchAsync(async (req, res) => {
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
   // improving performance by skipping Mongoose document instantiation.
   // Indexing Recommendation: For better performance on sorting, consider adding an index to `createdAt` field:
@@ -291,13 +293,13 @@ const getAllSubscriptions = catchAsync(async (req, res, next) => {
  *         description: Not Found - No subscriptions found for this user.
  */
 /**
- * Retrieves all subscriptions for a specific user.
+ * Retrieves all subscriptions for a specific user, identified by their user ID.
  * @permission Requires `ADMIN` role or the authenticated user must be the owner of the subscriptions.
- * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Request} req - The Express request object, containing `userId` in the URL parameters.
  * @param {import('express').Response} res - The Express response object.
- * @param {import('express').NextFunction} next - The Express next middleware function.
+ * @returns {Promise<void>} Sends a JSON response with the user's subscriptions or an error.
  */
-const getSubscriptionsByUserId = catchAsync(async (req, res, next) => {
+const getSubscriptionsByUserId = catchAsync(async (req, res) => {
   const { userId } = req.params;
   if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
