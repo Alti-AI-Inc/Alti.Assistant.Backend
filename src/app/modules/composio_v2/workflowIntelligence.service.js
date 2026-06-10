@@ -1,15 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import ActionAuditLog from './models/actionAuditLog.model.js';
 import WorkflowPattern from './models/workflowPattern.model.js';
 
 /**
- * Initializes the Google Generative AI client with the API key from configuration.
- * If `config.gemini_secret_key` is not available, it defaults to 'mock-key'.
+ * Initializes the Google Generative AI client.
+ * The API key is sourced from the GEMINI_API_KEY environment variable.
+ * In a production environment like Cloud Run, this variable should be securely
+ * injected from GCP Secret Manager.
+ * If the environment variable is not set, it defaults to 'mock-key' for local development/testing.
  * @type {GoogleGenerativeAI}
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
 
 /**
  * Maximum allowed time gap in milliseconds between two consecutive actions
