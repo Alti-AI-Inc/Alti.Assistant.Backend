@@ -83,7 +83,7 @@ export const completeWorkflowExample = async () => {
       }
     } else {
       console.log('❌ Failed to store workflow:', storeResult.error);
-      return;
+      return; // Critical failure, stop example
     }
 
     // === STEP 2: MANAGE WORKFLOW ===
@@ -99,6 +99,9 @@ export const completeWorkflowExample = async () => {
       console.log(`   - Title: ${workflowDetails.data.title}`);
       console.log(`   - Description: ${workflowDetails.data.description}`);
       console.log(`   - Created: ${workflowDetails.data.createdAt}`);
+    } else {
+      console.log('❌ Failed to retrieve workflow details:', workflowDetails.error);
+      return; // Critical failure, stop example
     }
 
     // Update workflow metadata
@@ -114,6 +117,9 @@ export const completeWorkflowExample = async () => {
 
     if (updateResult.success) {
       console.log('✅ Workflow updated with additional metadata');
+    } else {
+      console.log('❌ Failed to update workflow:', updateResult.error);
+      return; // Critical failure, stop example
     }
 
     // === STEP 3: CHECK EXECUTION READINESS ===
@@ -144,6 +150,11 @@ export const completeWorkflowExample = async () => {
         // For demo purposes, we'll continue as if connections were available
         console.log('   📝 For demo: Assuming connections are available...');
       }
+    } else {
+      console.log('❌ Failed to refresh workflow connections:', refreshResult.error);
+      // For demo purposes, we might continue here, but in a real app, this could be a critical stop.
+      // The original comment "For demo: Assuming connections are available..." implies we should proceed.
+      // So, we log the error but don't return.
     }
 
     // === STEP 4: PREPARE FOR EXECUTION ===
@@ -174,7 +185,7 @@ export const completeWorkflowExample = async () => {
       });
     } else {
       console.log('❌ Failed to prepare workflow:', prepResult.error);
-      return;
+      return; // Critical failure, stop example
     }
 
     // === STEP 5: EXECUTE WORKFLOW ===
@@ -241,6 +252,7 @@ export const completeWorkflowExample = async () => {
       console.log('   1. Connect the required apps in Composio');
       console.log('   2. Refresh the workflow connections');
       console.log('   3. Try execution again');
+      return; // Critical failure, stop example
     }
 
     // === STEP 6: SCHEDULE WORKFLOW (OPTIONAL) ===
@@ -275,6 +287,7 @@ export const completeWorkflowExample = async () => {
       );
     } else {
       console.log('❌ Failed to schedule workflow:', scheduleResult.error);
+      // Not a critical failure for the overall example flow, so we log and continue.
     }
 
     // === STEP 7: GET WORKFLOW STATISTICS ===
@@ -296,6 +309,9 @@ export const completeWorkflowExample = async () => {
       console.log(
         `   - Average Steps per Workflow: ${statsResult.data.averageSteps.toFixed(1)}`
       );
+    } else {
+      console.log('❌ Failed to get workflow statistics:', statsResult.error);
+      // Not a critical failure for the overall example flow, so we log and continue.
     }
 
     // === STEP 8: CLEANUP (OPTIONAL) ===
@@ -393,12 +409,15 @@ export const batchExecutionExample = async () => {
       if (result.success) {
         workflowIds.push(result.data.workflowId);
         console.log(`   ✅ Created: ${workflow.title}`);
+      } else {
+        console.log(`   ❌ Failed to create workflow "${workflow.title}":`, result.error);
+        // Continue creating other workflows even if one fails
       }
     }
 
     if (workflowIds.length === 0) {
       console.log('❌ No workflows created for batch execution');
-      return;
+      return { success: false, error: 'No workflows created for batch execution' };
     }
 
     console.log(`\n🚀 Executing ${workflowIds.length} workflows in batch...`);
@@ -447,7 +466,12 @@ export const batchExecutionExample = async () => {
     // Cleanup batch workflows
     console.log('\n🧹 Cleaning up batch workflows...');
     for (const workflowId of workflowIds) {
-      await workflowStorageService.deleteStoredWorkflow(workflowId, userId);
+      const deleteResult = await workflowStorageService.deleteStoredWorkflow(workflowId, userId);
+      if (deleteResult.success) {
+        console.log(`   ✅ Deleted workflow: ${workflowId}`);
+      } else {
+        console.log(`   ❌ Failed to delete workflow ${workflowId}:`, deleteResult.error);
+      }
     }
     console.log('✅ Cleanup completed');
 
