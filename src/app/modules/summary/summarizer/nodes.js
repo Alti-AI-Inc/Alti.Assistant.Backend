@@ -1,3 +1,4 @@
+import express from 'express';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
@@ -22,7 +23,6 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiting:', err));
-redisClient.connect().catch(console.error);
 
 // --- Rate Limiter Definitions ---
 
@@ -118,7 +118,7 @@ const workspaceSummarizeLimiter = new RateLimiterRedis({
  * SECURITY: Checks if an IP address is in a private range (RFC 1918) or loopback.
  * This is a crucial part of the SSRF mitigation strategy.
  * @param {string} ip - The IP address to check.
- * @returns {boolean} True if the IP is private, false otherwise.
+ * @returns {boolean} - True if the IP is private, false otherwise.
  */
 const isPrivateIp = (ip) => {
   // A more comprehensive library like 'ip-address' or 'ip-range-check' is recommended for production.
@@ -136,8 +136,7 @@ const isPrivateIp = (ip) => {
  * SECURITY: Validates a URL to mitigate Server-Side Request Forgery (SSRF) attacks.
  * It checks for allowed protocols and ensures the hostname does not resolve to a private IP address.
  * @param {string} urlString - The URL to validate.
- * @throws {Error} If the URL is invalid, points to a forbidden resource, or the hostname cannot be resolved.
- * @returns {Promise<void>} A promise that resolves if the URL is valid.
+ * @throws {Error} If the URL is invalid or points to a forbidden resource.
  */
 const validateUrl = async (urlString) => {
   const parsedUrl = new URL(urlString);
@@ -179,14 +178,13 @@ const validateUrl = async (urlString) => {
  * - The `user.workspaceId` is used as the key for tenant-wide rate limiting, ensuring
  *   that all users in a workspace share a common pool of requests as per their plan.
  *
- * @param {UserContext | undefined} user - The authenticated user's context. Can be undefined for public requests.
- * @param {string | undefined} ip - The client's IP address (for public requests).
+ * @param {UserContext} user - The authenticated user's context.
+ * @param {string} ip - The client's IP address (for public requests).
  * @param {object} limiters - The set of limiters to use for this operation.
  * @param {RateLimiterRedis} limiters.userLimiter - The per-user rate limiter.
  * @param {RateLimiterRedis} limiters.workspaceLimiter - The per-workspace rate limiter.
  * @param {RateLimiterRedis} limiters.publicLimiter - The public (IP-based) rate limiter.
  * @throws {Error} If rate limits are exceeded or context is invalid.
- * @returns {Promise<void>} A promise that resolves when limits are successfully consumed.
  */
 const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
   // In a production system, this function would also integrate with a billing/usage service
@@ -428,3 +426,141 @@ export const summarizeContentNode = async (state) => {
     return { error: `Failed to generate summary: ${error.message}` };
   }
 };
+
+// --- Cloud Run Service & Graceful Shutdown ---
+
+const app = express();
+app.use(express.json());
+
+// A flag to indicate the server is shutting down.
+let isShuttingDown = false;
+
+/**
+ * Liveness probe endpoint.
+ * A 200 OK response indicates that the server process is running.
+ * This should not check dependencies.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
+/**
+ * Readiness probe endpoint.
+ * A 200 OK response indicates the server is ready to accept traffic.
+ * This checks for critical dependencies (like the Redis connection)
+ * and whether the server is in the process of shutting down.
+ */
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown || !redisClient.isReady) {
+    // If shutting down or Redis is not connected, the service is not ready.
+    res.status(503).send('Service Unavailable');
+  } else {
+    res.status(200).send('ok');
+  }
+});
+
+/**
+ * Example endpoint to demonstrate the summarization workflow.
+ */
+app.post('/summarize', async (req, res) => {
+  if (isShuttingDown) {
+    res.status(503).send('Service is shutting down and cannot accept new requests.');
+    return;
+  }
+
+  const { user_input, history, user } = req.body;
+  if (!user_input) {
+    return res.status(400).json({ error: 'user_input is required' });
+  }
+
+  // Build the initial state for the workflow.
+  const initialState = {
+    user_input,
+    history: history || [],
+    user: user || null, // In a real app, user context would come from auth middleware
+    ip: req.ip, // For public rate limiting
+  };
+
+  // Run the workflow nodes sequentially.
+  let state = { ...initialState };
+  const fetchResult = await fetchContentNode(state);
+  state = { ...state, ...fetchResult };
+
+  if (state.error) {
+    return res.status(500).json({ error: state.error });
+  }
+
+  const summarizeResult = await summarizeContentNode(state);
+  state = { ...state, ...summarizeResult };
+
+  if (state.error) {
+    return res.status(500).json({ error: state.error });
+  }
+
+  res.status(200).json({ summary: state.summary });
+});
+
+/**
+ * Starts the server and sets up graceful shutdown listeners.
+ */
+const startServer = async () => {
+  try {
+    // Connect to Redis before starting the HTTP server.
+    await redisClient.connect();
+    console.log('Connected to Redis successfully.');
+
+    // Cloud Run provides the PORT environment variable.
+    const PORT = process.env.PORT || 8080;
+    const server = app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+
+    // --- Graceful Shutdown Logic ---
+    const gracefulShutdown = (signal) => {
+      console.log(`${signal} received: starting graceful shutdown.`);
+      isShuttingDown = true; // Mark as shutting down for readiness probe
+
+      // Stop accepting new connections.
+      server.close(async () => {
+        console.log('HTTP server closed.');
+        try {
+          // Close critical connections like the database.
+          if (redisClient.isReady) {
+            await redisClient.quit();
+            console.log('Redis client connection closed.');
+          }
+        } catch (err) {
+          console.error('Error during Redis client disconnection:', err);
+        } finally {
+          // Exit the process.
+          console.log('Shutdown complete.');
+          process.exit(0);
+        }
+      });
+
+      // If connections are not closed within the timeout, force exit.
+      // Cloud Run's default timeout is 10 seconds.
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down.');
+        process.exit(1);
+      }, 9500); // Set slightly less than the default 10s
+    };
+
+    // Listen for termination signals.
+    // SIGTERM is sent by Cloud Run to signal shutdown.
+    // SIGINT is for local development (Ctrl+C).
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    // If Redis connection fails on startup, exit.
+    if (redisClient.isReady) {
+      await redisClient.quit();
+    }
+    process.exit(1);
+  }
+};
+
+// Start the application.
+startServer();
