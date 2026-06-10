@@ -88,6 +88,8 @@ const handleDocumentConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Note: This function returns a full Mongoose document
+        // because it might be modified and saved later in the request lifecycle (e.g., in saveConversationSummary).
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -230,25 +232,20 @@ const updateConversationMetadata = async (
  * @description Saves a generated summary to the conversation's metadata.
  * This helps in managing long conversations by providing a concise context.
  *
- * @param {string} conversationId - The ID of the conversation to summarize.
+ * @param {object} conversation - The Mongoose conversation document to update.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @param {string} summary - The generated summary of the conversation.
  * @param {object} [req=null] - The Express request object, if available.
  * @returns {Promise<void>} A promise that resolves when the summary is saved.
  */
 const saveConversationSummary = async (
-  conversationId,
+  conversation, // Optimized: Accept the conversation object directly to avoid re-fetching.
   userId,
   summary,
   req = null
 ) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId,
-      req
-    );
-
+    // Optimization: Removed redundant fetch of conversation as it's passed directly.
     if (conversation) {
       conversation.metadata = {
         ...conversation.metadata,
@@ -258,7 +255,7 @@ const saveConversationSummary = async (
       };
 
       await conversation.save();
-      logger.info(`Saved conversation summary for ${conversationId}`);
+      logger.info(`Saved conversation summary for ${conversation.conversationId}`);
     }
   } catch (error) {
     logger.error('Error saving conversation summary:', error);
@@ -659,8 +656,9 @@ const processConversationalRequest = async (
         recentHistory,
         existingParams
       );
+      // Optimization: Pass the already-fetched conversation object to avoid a redundant database query.
       await saveConversationSummary(
-        actualConversationId,
+        conversation, // Pass the Mongoose document directly
         userId,
         conversationSummary
       );
