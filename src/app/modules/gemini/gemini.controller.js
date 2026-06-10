@@ -9,6 +9,16 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
 
+  // If validation failed, immediately send the error response and stop further processing.
+  if (errorResponse) {
+    return sendResponse(res, {
+      statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST, // Use status from errorResponse or default to BAD_REQUEST
+      success: false,
+      message: errorResponse.message || 'Validation failed.',
+      data: null, // No data on error
+    });
+  }
+
   const result = await GeminiAiService.geminiService(sessionId, prompt, userId);
 
   sendResponse(res, {
@@ -21,6 +31,16 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
 const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
+
+  // If validation failed, immediately send the error response and stop further processing.
+  if (errorResponse) {
+    return sendResponse(res, {
+      statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST, // Use status from errorResponse or default to BAD_REQUEST
+      success: false,
+      message: errorResponse.message || 'Validation failed.',
+      data: null, // No data on error
+    });
+  }
 
   const result = await GeminiAiService.gemini25PreviewService(
     sessionId,
