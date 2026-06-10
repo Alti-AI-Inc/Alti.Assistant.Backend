@@ -1,11 +1,36 @@
-import { ai } from '../llm.js';
-import {
-  codeGenerator,
-  codeExplainer,
-  codeDebugger,
-  bestPracticesAdvisor,
-  generalCodeAssistant,
-} from '../services/geminiCodeService.js';
+import { PubSub } from '@google-cloud/pubsub';
+
+// --- GCP Pub/Sub Configuration ---
+// This file is now responsible for offloading tasks, not executing them.
+// The long-running service functions (codeGenerator, etc.) are executed by a separate background worker.
+
+// Initialize the Pub/Sub client.
+// In a real-world GCP environment, authentication is handled automatically
+// via Application Default Credentials on services like Cloud Run or Cloud Functions.
+const pubsub = new PubSub();
+
+// Define the Pub/Sub topic where all code assistant tasks will be published.
+// A single topic is used, and a 'task' attribute in the message will be used for routing by the worker.
+const WORKFLOW_TOPIC_NAME = process.env.CODE_ASSISTANT_TOPIC || 'code-assistant-workflow';
+
+/**
+ * Helper function to publish a task to the Pub/Sub topic.
+ * @param {string} taskName - The name of the task to be executed by the worker (e.g., 'detect_intent').
+ * @param {ConversationState} state - The current conversation state to be passed to the worker.
+ * @returns {Promise<string>} The message ID of the published message.
+ */
+const publishTask = async (taskName, state) => {
+  const topic = pubsub.topic(WORKFLOW_TOPIC_NAME);
+  const message = {
+    json: state,
+    attributes: {
+      task: taskName,
+    },
+  };
+  const messageId = await topic.publishMessage(message);
+  console.log(`Task '${taskName}' published with message ID: ${messageId}`);
+  return messageId;
+};
 
 /**
  * @typedef {object} ConversationState
@@ -15,65 +40,41 @@ import {
  */
 
 /**
- * Node: Detects the user's intent using a Large Language Model (LLM).
- * It analyzes the last message in the conversation history and classifies its primary intent
- * into categories like code generation, explanation, debugging, best practices, or general conversation.
+ * Node: Offloads the user's intent detection to a background worker via Pub/Sub.
+ * Instead of calling the LLM directly in the request-response cycle, this function
+ * publishes a message to a Pub/Sub topic. A separate worker service will subscribe
+ * to this topic, execute the LLM call, and then trigger the next step in the workflow.
  *
  * @param {ConversationState} state - The current state of the conversation, containing the history.
- * @returns {Promise<{intent: string}>} A promise that resolves to an object containing the detected intent string.
- *   The intent will be one of: "generate_code", "explain_code", "debug_code", "best_practices", or "general_conversation".
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating that the task has been successfully queued. The API can immediately respond to the user.
  */
 export const detectIntentNode = async (state) => {
-  console.log('--- Node: detectIntentNode ---');
-  const { history } = state;
-  const userMessage = history[history.length - 1].content;
-
-  const intentDetectionPrompt = `
-        Analyze the following user message in a coding assistant conversation and classify its primary intent.
-        Choose from one of the following intents:
-        - "generate_code": User wants to create new code from a description.
-        - "explain_code": User is asking for an explanation of existing code.
-        - "debug_code": User is describing an error or a problem with their code and needs help fixing it.
-        - "best_practices": User is asking for code reviews, improvements, or best practices.
-        - "general_conversation": User is asking a follow-up question, refining a previous request, or having a general chat about the code.
-
-        User Message: "${userMessage}"
-
-        Return only the single intent string (e.g., "generate_code").
-    `;
-
-  let intent = 'general_conversation'; // Default intent in case of failure or unexpected response
+  console.log('--- Node: Offloading detectIntentNode ---');
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: intentDetectionPrompt,
-    });
-    // Ensure response.text exists and is a string before trimming
-    if (response && typeof response.text === 'string') {
-      intent = response.text.trim();
-    } else {
-      console.warn('LLM response.text was not a string or was empty. Defaulting to general_conversation.');
-    }
+    // The 'detect_intent' task is the entry point for the asynchronous workflow.
+    const messageId = await publishTask('detect_intent', state);
+    // The function now returns immediately after publishing the task.
+    // The actual LLM call happens asynchronously in a background worker.
+    return { status: 'queued', messageId };
   } catch (error) {
-    console.error('Error detecting intent:', error);
-    // Fallback to general conversation if intent detection fails due to API error, network issue, etc.
-    intent = 'general_conversation';
+    console.error('Error publishing detect_intent task:', error);
+    // If publishing fails, the error should be handled appropriately by the caller.
+    throw new Error('Failed to queue intent detection task.');
   }
-  console.log('Detected Intent:', intent);
-  return { intent };
 };
 
 /**
  * Router: Directs the workflow based on the detected intent.
- * This function examines the `intent` property in the conversation state
- * and returns the name of the next node to execute.
+ * NOTE: In an asynchronous, offloaded architecture, this function is no longer called
+ * by the main application thread. Instead, it should be used by the background worker
+ * after the 'detect_intent' task is complete to determine which task to run next.
  *
  * @param {ConversationState} state - The current state of the conversation, including the detected intent.
- * @returns {string} The name of the next node to transition to (e.g., "generate_code", "explain_code", "general_conversation").
- *   If the intent is not recognized or specific, it defaults to "general_conversation".
+ * @returns {string} The name of the next node/task to execute (e.g., "generate_code", "explain_code").
  */
 export const routeOnIntent = (state) => {
-  console.log(`--- Router: Routing on intent: ${state.intent} ---`);
+  console.log(`--- Worker Router: Routing on intent: ${state.intent} ---`);
   const intent = state.intent;
 
   const validIntents = [
@@ -92,83 +93,84 @@ export const routeOnIntent = (state) => {
 };
 
 /**
- * A higher-order function that creates a generic node to execute a specific code service.
- * This reduces code duplication by providing a common error handling and state update mechanism.
+ * A higher-order function that creates a generic node to offload a specific code service task.
+ * Instead of executing a service function directly, it returns a function that publishes a
+ * message to Pub/Sub, allowing a background worker to handle the heavy lifting.
  *
- * @param {function(Array<object>): Promise<object>} serviceFunction - The asynchronous function
- *   from `geminiCodeService.js` to execute (e.g., `codeGenerator`, `codeExplainer`).
- *   It should accept the conversation history and return a promise resolving to the service's response.
- * @returns {function(ConversationState): Promise<{response: object|{error: string}}>} An async node function
- *   that takes the conversation state, executes the provided service function, and returns the service's response
- *   or an error object if the service call fails.
+ * @param {string} taskName - The identifier for the task, which the background worker will use
+ *   to select the correct service function (e.g., 'generate_code', 'explain_code').
+ * @returns {function(ConversationState): Promise<{status: string, messageId: string}>} An async node function
+ *   that takes the conversation state, publishes it as a task to Pub/Sub, and returns a confirmation.
  */
-const executeTaskNode = (serviceFunction) => async (state) => {
-  console.log(`--- Node: Executing task for intent: ${state.intent} ---`);
-  const { history } = state;
-  let response = null;
+const offloadTaskNode = (taskName) => async (state) => {
+  console.log(`--- Node: Offloading task for intent: ${taskName} ---`);
   try {
-    response = await serviceFunction(history);
+    const messageId = await publishTask(taskName, state);
+    return { status: 'queued', messageId };
   } catch (error) {
-    console.error(`Error executing task for intent ${state.intent}:`, error);
-    // Return an error message in the response to be handled by subsequent nodes or the workflow.
-    // This prevents unhandled promise rejections and allows the workflow to gracefully fail.
-    response = { error: `Failed to process your request: ${error.message || 'Unknown error'}` };
+    console.error(`Error publishing task ${taskName}:`, error);
+    throw new Error(`Failed to queue task: ${taskName}`);
   }
-  return { response };
 };
 
 /**
- * Node: Executes the code generation service.
- * This node is responsible for generating new code based on the user's request
- * using the `codeGenerator` service.
+ * Node: Offloads the code generation task to a background worker.
+ * A worker will subscribe to the Pub/Sub topic, receive this task, and execute the `codeGenerator` service.
  *
  * @param {ConversationState} state - The current state of the conversation, including history.
- * @returns {Promise<{response: object|{error: string}}>} A promise that resolves to an object
- *   containing the generated code or an error message if the service call fails.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been queued.
  */
-export const generateCodeNode = executeTaskNode(codeGenerator);
+export const generateCodeNode = offloadTaskNode('generate_code');
 
 /**
- * Node: Executes the code explanation service.
- * This node provides explanations for existing code snippets or concepts
- * using the `codeExplainer` service.
+ * Node: Offloads the code explanation task to a background worker.
+ * A worker will subscribe to the Pub/Sub topic, receive this task, and execute the `codeExplainer` service.
  *
  * @param {ConversationState} state - The current state of the conversation, including history.
- * @returns {Promise<{response: object|{error: string}}>} A promise that resolves to an object
- *   containing the code explanation or an error message if the service call fails.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been queued.
  */
-export const explainCodeNode = executeTaskNode(codeExplainer);
+export const explainCodeNode = offloadTaskNode('explain_code');
 
 /**
- * Node: Executes the code debugging service.
- * This node helps identify and suggest fixes for errors or issues in code
- * using the `codeDebugger` service.
+ * Node: Offloads the code debugging task to a background worker.
+ * A worker will subscribe to the Pub/Sub topic, receive this task, and execute the `codeDebugger` service.
  *
  * @param {ConversationState} state - The current state of the conversation, including history.
- * @returns {Promise<{response: object|{error: string}}>} A promise that resolves to an object
- *   containing debugging suggestions or an error message if the service call fails.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been queued.
  */
-export const debugCodeNode = executeTaskNode(codeDebugger);
+export const debugCodeNode = offloadTaskNode('debug_code');
 
 /**
- * Node: Executes the best practices advisory service.
- * This node provides code reviews, suggestions for improvements, and advice on best practices
- * using the `bestPracticesAdvisor` service.
+ * Node: Offloads the best practices advisory task to a background worker.
+ * A worker will subscribe to the Pub/Sub topic, receive this task, and execute the `bestPracticesAdvisor` service.
  *
  * @param {ConversationState} state - The current state of the conversation, including history.
- * @returns {Promise<{response: object|{error: string}}>} A promise that resolves to an object
- *   containing best practices advice or an error message if the service call fails.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been queued.
  */
-export const bestPracticesNode = executeTaskNode(bestPracticesAdvisor);
+export const bestPracticesNode = offloadTaskNode('best_practices');
 
 /**
- * Node: Executes the general code assistant service.
- * This node handles general conversational queries, follow-up questions, or refinements
- * that don't fall into specific code-related categories, using the `generalCodeAssistant` service.
- * It acts as a fallback for unrecognized or non-specific intents.
+ * Node: Offloads the general code assistant task to a background worker.
+ * A worker will subscribe to the Pub/Sub topic, receive this task, and execute the `generalCodeAssistant` service.
  *
  * @param {ConversationState} state - The current state of the conversation, including history.
- * @returns {Promise<{response: object|{error: string}}>} A promise that resolves to an object
- *   containing the general assistant's response or an error message if the service call fails.
+ * @returns {Promise<{status: string, messageId: string}>} A promise that resolves to an object
+ *   indicating the task has been queued.
  */
-export const generalConversationNode = executeTaskNode(generalCodeAssistant);
+export const generalConversationNode = offloadTaskNode('general_conversation');
+
+// NOTE ON WORKER IMPLEMENTATION:
+// A separate background worker service (e.g., a Cloud Run service or Cloud Function) is required
+// to process these tasks. The worker would subscribe to the 'code-assistant-workflow' Pub/Sub topic.
+// On receiving a message, it would:
+// 1. Read the 'task' attribute from the message (e.g., 'detect_intent', 'generate_code').
+// 2. Parse the JSON payload to get the conversation state.
+// 3. Import and execute the corresponding long-running service function (e.g., from `geminiCodeService.js`).
+// 4. For 'detect_intent', the worker would call the LLM, use `routeOnIntent` to determine the next step,
+//    and then publish a *new* task message to the same topic (e.g., with task='generate_code').
+// 5. For final tasks (like 'generate_code'), the worker would deliver the result to the user,
+//    for example, by writing to a database, sending a WebSocket message, or calling a webhook.
