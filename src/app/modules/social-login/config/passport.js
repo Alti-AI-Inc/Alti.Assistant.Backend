@@ -59,10 +59,14 @@ export default (passport) => {
   if (AppleStrategy)     passport.use(AppleStrategy);
   if (DiscordStrategy)   passport.use(DiscordStrategy);
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => done(null, user.id || user._id));
   passport.deserializeUser(async (id, done) => {
     try {
-      const user = await UserModel.findById(id);
+      // OPTIMIZATION: Added .lean() to prevent Mongoose document hydration overhead on every single request.
+      // This significantly reduces CPU usage and memory footprint for authenticated routes.
+      // If your application relies on Mongoose document methods (e.g., user.save()) directly on req.user,
+      // you may need to remove .lean() or manually save via UserModel.updateOne.
+      const user = await UserModel.findById(id).lean();
       done(null, user);
     } catch (err) {
       done(err, null);

@@ -11,6 +11,27 @@ import SubscriptionModel from '../payment/payment.model.js';
 // 2. { userId: 1, createdAt: -1 } (a compound index for the find and sort combination)
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+
+// Enterprise Rate-Limiting Configurations to prevent DDoS, API abuse, and LLM cost runaway.
+// Using RateLimiterMemory as a highly reliable, zero-dependency in-memory fallback.
+// For multi-server/distributed production environments, swap with RateLimiterRedis.
+const analysisGuestLimiter = new RateLimiterMemory({
+  points: 10, // 10 analysis requests
+  duration: 3600, // per hour (60 minutes)
+  blockDuration: 600, // Block for 10 minutes if exceeded
+});
+
+const analysisAuthLimiter = new RateLimiterMemory({
+  points: 100, // 100 analysis requests
+  duration: 3600, // per hour (60 minutes)
+  blockDuration: 300, // Block for 5 minutes if exceeded
+});
+
+const historyLimiter = new RateLimiterMemory({
+  points: 300, // 300 history retrieval requests
+  duration: 900, // per 15 minutes
+});
 
 /**
  * @typedef {object} FileInfo
@@ -145,6 +166,8 @@ import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
  *         description: Bad Request - Neither file nor message provided
  *       403:
  *         description: Forbidden - Usage limit exceeded
+ *       429:
+ *         description: Too Many Requests - Rate limit exceeded
  *       500:
  *         description: Internal Server Error
  */
@@ -156,6 +179,21 @@ export const analyzeDocument = catchAsync(async (req, res) => {
 
   const { message, conversationId, analysisType, outputFormat } = req.body;
   userId = req.body.userId || userId;
+
+  // Apply Rate Limiting to prevent DDoS and cost runaway (LLM/API abuse)
+  const rateLimitKey = isGuest ? req.ip : userId;
+  const limiter = isGuest ? analysisGuestLimiter : analysisAuthLimiter;
+
+  try {
+    await limiter.consume(rateLimitKey);
+  } catch (rateLimiterRes) {
+    logger.warn(`Rate limit exceeded for ${isGuest ? 'guest' : 'authenticated'} user ${rateLimitKey} on analyzeDocument`);
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many requests. Please slow down and try again later.',
+    });
+  }
 
   // Handle file upload if present
   const fileInfo = req.file
@@ -295,12 +333,26 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  *                         format: date-time
  *       404:
  *         description: Conversation not found or not accessible
+ *       429:
+ *         description: Too Many Requests - Rate limit exceeded
  *       500:
  *         description: Internal Server Error
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const userId = req.user?.userId || req.user?._id;
+
+  // Apply Rate Limiting to prevent database abuse
+  try {
+    await historyLimiter.consume(userId || req.ip);
+  } catch (rateLimiterRes) {
+    logger.warn(`Rate limit exceeded for user ${userId || req.ip} on getConversationHistory`);
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many requests. Please try again later.',
+    });
+  }
 
   logger.info(
     `Fetching conversation history: ${conversationId} for user ${userId}`
