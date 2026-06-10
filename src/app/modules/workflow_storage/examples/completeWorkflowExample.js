@@ -10,6 +10,21 @@ import { workflowExecutionIntegrationService } from './services/workflowExecutio
 
 /**
  * Complete workflow example: From input to execution
+ *
+ * This function orchestrates a comprehensive demonstration of the workflow storage and execution
+ * capabilities. It covers the following steps:
+ * 1.  **Analyze and Store Workflow**: Takes user input and stores it as a structured workflow.
+ * 2.  **Manage Workflow**: Retrieves and updates metadata for the stored workflow.
+ * 3.  **Check Execution Readiness**: Verifies if the workflow has all necessary connections for execution.
+ * 4.  **Prepare for Execution**: Generates an executable plan for the workflow.
+ * 5.  **Execute Workflow**: Initiates the workflow execution via Composio v2 integration.
+ * 6.  **Schedule Workflow (Optional)**: Sets up recurring execution for the workflow.
+ * 7.  **Get Workflow Statistics**: Retrieves overall statistics for workflows managed by the user.
+ * 8.  **Cleanup (Optional)**: Placeholder for post-demonstration cleanup actions.
+ *
+ * @returns {Promise<object>} An object containing the results of the storage, execution,
+ *                            scheduling, and statistics steps, or an error object if an
+ *                            exception occurs.
  */
 export const completeWorkflowExample = async () => {
   console.log('🚀 Complete Workflow Storage to Execution Example\n');
@@ -327,6 +342,17 @@ export const completeWorkflowExample = async () => {
 
 /**
  * Batch execution example
+ *
+ * This function demonstrates the process of creating multiple workflows and then
+ * executing them in a batch. It covers:
+ * 1.  **Workflow Creation**: Analyzes and stores several distinct workflows.
+ * 2.  **Batch Execution**: Triggers the execution of all created workflows concurrently
+ *     or sequentially, with options for concurrency limits and error handling.
+ * 3.  **Cleanup**: Deletes the created workflows after the demonstration.
+ *
+ * @returns {Promise<object>} An object containing the results of the batch execution,
+ *                            including success/failure counts and individual workflow results,
+ *                            or an error object if an exception occurs.
  */
 export const batchExecutionExample = async () => {
   console.log('\n🔄 Batch Execution Example\n');
@@ -434,6 +460,13 @@ export const batchExecutionExample = async () => {
 
 /**
  * Run both examples
+ *
+ * This function serves as an entry point to execute both the `completeWorkflowExample`
+ * and `batchExecutionExample` sequentially. It provides a consolidated view of
+ * the workflow storage and execution capabilities.
+ *
+ * @returns {Promise<void>} A promise that resolves when all examples have completed,
+ *                          or rejects if an error occurs during their execution.
  */
 export const runCompleteExamples = async () => {
   console.log('🌟 Running Complete Workflow Storage Examples\n');
