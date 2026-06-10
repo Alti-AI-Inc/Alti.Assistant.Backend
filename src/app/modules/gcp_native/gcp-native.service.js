@@ -4,10 +4,10 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import GoogleRepository from './gcp-repository.model.js';
 // INTEGRATION: Import necessary services for hierarchy, limits, and notifications.
-// These are placeholders and should be replaced with actual service imports.
-// import { WorkspaceService } from '../workspace/workspace.service.js';
-// import { NotificationService } from '../notification/notification.service.js';
-// import { AuditLogService } from '../audit/audit.service.js';
+// These services are essential for enforcing workspace-specific rules and logging actions.
+import { WorkspaceService } from '../workspace/workspace.service.js';
+import { NotificationService } from '../notification/notification.service.js';
+import { AuditLogService } from '../audit/audit.service.js';
 
 /**
  * Utility function to escape special characters for use in a regular expression.
@@ -17,7 +17,7 @@ import GoogleRepository from './gcp-repository.model.js';
  * @returns {string} The escaped string, safe for use within a RegExp constructor.
  */
 const escapeRegExp = (string) => {
-  // OPTIMIZATION_FIX: Correctly escape special characters for RegExp.
+  // SECURITY_FIX: Correctly escape special characters for RegExp.
   // The `$&` replacement inserts the matched special character, which is the correct behavior.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
@@ -213,19 +213,19 @@ const importGcpSubmodule = async (repoName, user) => {
     throw new Error('Repository name is required for import.');
   }
 
-  // INTEGRATION: Check if the workspace has reached its submodule import limit.
-  // This requires a call to a hypothetical WorkspaceService.
-  /*
+  // LIMITS_ENFORCEMENT: Check if the workspace has reached its submodule import limit based on its subscription plan.
   try {
     const workspace = await WorkspaceService.findById(user.workspaceId);
+    if (!workspace) {
+        return { success: false, message: 'Workspace not found.' };
+    }
     if (workspace.submoduleCount >= workspace.submoduleLimit) {
-      return { success: false, message: `Workspace submodule limit of ${workspace.submoduleLimit} reached.` };
+      return { success: false, message: `Workspace submodule limit of ${workspace.submoduleLimit} reached. Please upgrade your plan to import more repositories.` };
     }
   } catch (err) {
     console.error(`[GcpNativeService] Failed to check workspace limits for workspace ${user.workspaceId}: ${err.message}`);
     return { success: false, message: 'Could not verify workspace limits.' };
   }
-  */
 
   // Pass the user object to the search function to maintain security context.
   const catalogResult = await searchGcpCatalog(repoName, {}, user);
@@ -287,7 +287,7 @@ const importGcpSubmodule = async (repoName, user) => {
     gitProcess.on('close', async (code) => {
       if (code !== 0) {
         // INTEGRATION: Log the failed attempt for auditing.
-        // await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_failed', details: { repoName: match.name, error: stderr } });
+        await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_failed', details: { repoName: match.name, error: stderr } });
         resolve({
           success: false,
           message: `Git command failed with exit code ${code}. The repository might already be imported or another error occurred.`,
@@ -298,14 +298,14 @@ const importGcpSubmodule = async (repoName, user) => {
         // HIERARCHY_PROPAGATION: On success, log the action, update usage, and notify relevant parties.
         try {
           // INTEGRATION: Log this action for auditing.
-          // await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_success', details: { repoName: match.name, path: submodulePath } });
+          await AuditLogService.log({ userId: user.userId, workspaceId: user.workspaceId, action: 'import_gcp_submodule_success', details: { repoName: match.name, path: submodulePath } });
 
           // INTEGRATION: Increment the workspace's usage count.
-          // await WorkspaceService.incrementSubmoduleCount(user.workspaceId);
+          await WorkspaceService.incrementSubmoduleCount(user.workspaceId);
 
           // INTEGRATION: Notify workspace managers/admins about the new import.
-          // const notificationMessage = `User (ID: ${user.userId}) imported the repository '${match.name}'.`;
-          // await NotificationService.createForAdmins(user.workspaceId, { message: notificationMessage });
+          const notificationMessage = `User (ID: ${user.userId}) imported the repository '${match.name}'.`;
+          await NotificationService.createForAdmins(user.workspaceId, { message: notificationMessage, subject: 'New Repository Imported', type: 'info' });
 
           resolve({
             success: true,

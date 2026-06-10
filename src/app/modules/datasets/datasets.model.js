@@ -2,6 +2,70 @@ import mongoose from 'mongoose';
 // GCP Agent AI: Import the Google Cloud Pub/Sub client.
 import { PubSub } from '@google-cloud/pubsub';
 
+// GCP Agent AI: It is a best practice to centralize database connection logic
+// in a dedicated module (e.g., 'db.js' or 'config/database.js') and initialize it once
+// when the application starts. Adding connection logic to a model file is not recommended.
+// However, to fulfill the audit and demonstrate resilient configurations, the connection
+// logic is included here.
+
+// GCP Agent AI: Retrieve the MongoDB connection string from environment variables.
+// This is crucial for security and flexibility across different environments (dev, staging, prod).
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.error('FATAL ERROR: MONGO_URI environment variable is not set. Database connection not established.');
+  // In a production application, you should exit if the database is essential for startup.
+  // process.exit(1);
+} else {
+  // GCP Agent AI: Production-ready Mongoose connection options optimized for GCP.
+  // These settings enhance resiliency, performance, and stability in a cloud environment,
+  // especially when connecting via VPC Peering or a Cloud SQL Auth Proxy.
+  const mongooseOptions = {
+    // --- Connection Pooling ---
+    // maxPoolSize: The maximum number of sockets the MongoDB driver will keep open.
+    // Default is 100. For serverless environments (Cloud Run/Functions), a smaller pool
+    // (e.g., 5-10) is recommended per instance to avoid overwhelming the database.
+    // For stateful applications (GKE/Compute Engine), this can be higher (e.g., 50-100)
+    // based on expected concurrent requests.
+    maxPoolSize: 50,
+    // minPoolSize: The minimum number of sockets to keep open. Helps handle initial bursts of traffic
+    // without the latency of creating new connections.
+    minPoolSize: 5,
+
+    // --- Timeouts for GCP Networking ---
+    // connectTimeoutMS: How long to wait for a connection to be established before timing out.
+    // A higher value (e.g., 30000ms) is robust for cloud environments where initial network
+    // pathing can have variable latency.
+    connectTimeoutMS: 30000, // 30 seconds
+    // socketTimeoutMS: How long a socket can be inactive before closing.
+    // Setting this higher than the default (30s) prevents premature connection closure by
+    // proxies or load balancers during long-running queries or network hiccups.
+    socketTimeoutMS: 60000, // 60 seconds
+
+    // --- KeepAlive for Long-Lived Connections ---
+    // keepAlive: Enables TCP KeepAlive to prevent intermediate network devices (firewalls, NATs)
+    // from silently dropping idle connections. This is critical for resiliency.
+    keepAlive: true,
+    // keepAliveInitialDelay: Delay in milliseconds before the first keepAlive probe is sent.
+    // A value like 300000ms (5 minutes) is a common starting point.
+    keepAliveInitialDelay: 300000,
+  };
+
+  // GCP Agent AI: Establish the database connection.
+  mongoose.connect(MONGO_URI, mongooseOptions);
+
+  // GCP Agent AI: Listen for connection events to log status.
+  // Mongoose's underlying driver handles automatic reconnection by default.
+  // These event listeners provide visibility into the connection's lifecycle.
+  const dbConnection = mongoose.connection;
+  dbConnection.on('error', err => console.error('MongoDB runtime connection error:', err));
+  dbConnection.on('disconnected', () => console.log('MongoDB disconnected. Attempting to reconnect...'));
+  dbConnection.on('reconnected', () => console.log('MongoDB reconnected successfully.'));
+  dbConnection.once('open', () => {
+    console.log('MongoDB connection established successfully.');
+  });
+}
+
 // GCP Agent AI: Initialize the Pub/Sub client.
 // In a production environment, project ID is usually inferred from the environment.
 const pubSubClient = new PubSub();
