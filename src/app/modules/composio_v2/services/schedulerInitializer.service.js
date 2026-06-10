@@ -96,6 +96,7 @@ class SchedulerInitializer {
       // Get all active scheduled workflows
       // Optimization: Added .lean() for performance as these documents are read-only.
       // Indexing Recommendation: Consider a compound index on { isActive: 1, nextRun: 1 } for this query.
+      // INTEGRATION NOTE: This is a system-level operation that loads all workflows for all tenants on startup.
       const activeWorkflows = await ScheduledWorkflow.find({
         isActive: true,
         nextRun: { $gt: new Date() }, // Only workflows with future runs
@@ -110,7 +111,7 @@ class SchedulerInitializer {
           // Schedule if cron expression exists
           if (workflow.cronExpression) {
             const result = await cronManager.scheduleWorkflow(
-              workflow.workflowId,
+              workflow._id.toString(), // Use the unique _id for scheduling
               workflow.cronExpression,
               workflow.userId,
               workflow.timezone || 'UTC'
@@ -119,12 +120,12 @@ class SchedulerInitializer {
             if (result.success) {
               scheduledThisWorkflow = true;
               logger.info(
-                `Scheduled workflow: ${workflow.workflowId} (${workflow.name})`
+                `Scheduled workflow: ${workflow._id} (${workflow.name})`
               );
             } else {
               hadErrorThisWorkflow = true;
               logger.error(
-                `Failed to schedule workflow ${workflow.workflowId} (cron): ${result.error}`
+                `Failed to schedule workflow ${workflow._id} (cron): ${result.error}`
               );
             }
           }
@@ -136,28 +137,30 @@ class SchedulerInitializer {
             workflow.oneTimeDate > new Date()
           ) {
             const result = await cronManager.scheduleOneTimeWorkflow(
-              workflow.workflowId,
+              workflow._id.toString(), // Use the unique _id for scheduling
               workflow.oneTimeDate,
               workflow.userId,
               workflow.timezone || 'UTC'
             );
 
+
+
             if (result.success) {
               scheduledThisWorkflow = true;
               logger.info(
-                `Scheduled one-time workflow: ${workflow.workflowId} for ${workflow.oneTimeDate}`
+                `Scheduled one-time workflow: ${workflow._id} for ${workflow.oneTimeDate}`
               );
             } else {
               hadErrorThisWorkflow = true;
               logger.error(
-                `Failed to schedule one-time workflow ${workflow.workflowId}: ${result.error}`
+                `Failed to schedule one-time workflow ${workflow._id}: ${result.error}`
               );
             }
           }
         } catch (workflowError) {
           hadErrorThisWorkflow = true;
           logger.error(
-            `Error processing workflow ${workflow.workflowId}:`,
+            `Error processing workflow ${workflow._id}:`,
             workflowError
           );
         }
@@ -270,18 +273,25 @@ class SchedulerInitializer {
    * @async
    * @method reloadWorkflows
    * @description Stops all currently scheduled jobs and reloads all active workflows
-   * from the database, effectively rescheduling them. This is useful for applying
-   * runtime updates to workflow configurations without restarting the entire application.
+   * from the database. This is a high-impact, global operation restricted to super administrators.
+   * @param {object} caller - The authenticated user object making the request. Must be a super_admin.
+   * @param {string} caller.role - The role of the calling user.
    * @returns {Promise<object>} A promise that resolves to an object indicating the success
-   * or failure of the reload operation, along with data about the reloaded workflows.
-   * @returns {boolean} returns.success - True if workflows were reloaded successfully, false otherwise.
-   * @returns {object} [returns.data] - Statistics about the reloaded workflows (total, scheduled, errors).
-   * @returns {string} returns.message - A descriptive message about the reload status.
-   * @returns {string} [returns.error] - Error message if reloading failed.
+   * or failure of the reload operation.
    */
-  async reloadWorkflows() {
+  async reloadWorkflows(caller) {
+    // SECURITY-FIX: This is a global, high-impact operation. It is now restricted to the super_admin role
+    // to prevent lower-privileged users (like admins of one workspace) from disrupting the entire system.
+    if (!caller || caller.role !== 'super_admin') {
+      logger.error(`Unauthorized attempt to reload all workflows by user ${caller ? caller.id : 'unknown'} (role: ${caller ? caller.role : 'N/A'}).`);
+      return {
+        success: false,
+        error: 'Permission denied. This operation is restricted to super administrators.',
+      };
+    }
+
     try {
-      logger.info('Reloading scheduled workflows...');
+      logger.info('Reloading scheduled workflows (initiated by super_admin)...');
 
       // Stop all current jobs
       await cronManager.stopAllJobs();
@@ -306,16 +316,8 @@ class SchedulerInitializer {
 
   /**
    * @method getStatus
-   * @description Provides the current operational status of the scheduler,
-   * including its initialization state, cron manager status, active job count,
-   * process uptime, memory usage, and the number of registered shutdown handlers.
+   * @description Provides the current operational status of the scheduler.
    * @returns {object} An object containing various status metrics.
-   * @returns {boolean} returns.initialized - True if the scheduler is initialized.
-   * @returns {object} returns.cronManagerStatus - The status object from the cron manager.
-   * @returns {number} returns.activeJobs - The number of currently active jobs in the cron manager.
-   * @returns {number} returns.uptime - The process uptime in seconds.
-   * @returns {object} returns.memoryUsage - The current memory usage of the process.
-   * @returns {number} returns.shutdownHandlers - The number of registered graceful shutdown handlers.
    */
   getStatus() {
     return {
@@ -332,14 +334,7 @@ class SchedulerInitializer {
    * @async
    * @method healthCheck
    * @description Performs a health check on the scheduler and its underlying cron manager.
-   * It indicates whether the scheduler is initialized and if the cron manager is healthy.
    * @returns {Promise<object>} A promise that resolves to an object indicating the health status.
-   * @returns {boolean} returns.healthy - True if both the scheduler and cron manager are healthy.
-   * @returns {object} returns.status - Detailed status of the scheduler and cron manager.
-   * @returns {object} returns.status.scheduler - The status object from `getStatus()`.
-   * @returns {object} returns.status.cronManager - The health check result from the cron manager.
-   * @returns {string} returns.timestamp - ISO string of when the health check was performed.
-   * @returns {string} [returns.error] - Error message if the health check failed.
    */
   async healthCheck() {
     try {
@@ -368,13 +363,9 @@ class SchedulerInitializer {
    * @async
    * @method forceCleanup
    * @description Initiates a forceful cleanup of the scheduler. This stops all active jobs
-   * immediately and resets the scheduler's initialization state. This method should be
-   * used with caution, primarily in emergency situations where a graceful shutdown is not possible.
+   * immediately and resets the scheduler's initialization state.
    * @returns {Promise<object>} A promise that resolves to an object indicating the success
    * or failure of the cleanup operation.
-   * @returns {boolean} returns.success - True if force cleanup was successful, false otherwise.
-   * @returns {string} returns.message - A descriptive message about the cleanup status.
-   * @returns {string} [returns.error] - Error message if cleanup failed.
    */
   async forceCleanup() {
     try {
@@ -402,39 +393,42 @@ class SchedulerInitializer {
   /**
    * @async
    * @method executeWorkflowManually
-   * @description Triggers the immediate execution of a specific workflow identified by its ID and user.
-   * It first verifies the workflow's existence and active status before initiating execution.
-   * @param {string} workflowId - The unique identifier of the workflow to execute.
-   * @param {string} userId - The ID of the user who owns the workflow.
+   * @description Triggers the immediate execution of a specific workflow, ensuring the caller has permissions.
+   * @param {object} caller - The authenticated user object making the request.
+   * @param {string} caller.id - The ID of the calling user.
+   * @param {string} caller.role - The role of the calling user (e.g., 'user', 'manager', 'admin', 'super_admin').
+   * @param {string} caller.workspaceId - The workspace ID of the calling user.
+   * @param {string} workflowId - The unique identifier (_id) of the workflow to execute.
    * @param {string} [reason='Manual trigger'] - An optional reason for the manual execution.
-   * @returns {Promise<object>} A promise that resolves to an object indicating the success
-   * or failure of the manual execution, along with any data returned by the workflow executor.
-   * @returns {boolean} returns.success - True if manual execution was initiated successfully, false otherwise.
-   * @returns {object} [returns.data] - Data returned by the `workflowExecutor.executeWorkflow` method.
-   * @returns {string} returns.message - A descriptive message about the execution status.
-   * @returns {string} [returns.error] - Error message if execution failed or workflow not found/active.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success or failure.
    */
-  async executeWorkflowManually(workflowId, userId, reason = 'Manual trigger') {
+  async executeWorkflowManually(caller, workflowId, reason = 'Manual trigger') {
     try {
-      logger.info(`Manual execution requested for workflow: ${workflowId}`);
+      logger.info(`Manual execution requested for workflow: ${workflowId} by user ${caller.id}`);
 
-      // Get workflow
-      // Optimization: Added .lean() for performance as this document is read-only.
-      // Indexing Recommendation: Consider a compound index on { workflowId: 1, userId: 1 } for this query.
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
+      // INTEGRATION-NOTE: Assumes the ScheduledWorkflow model contains a `workspaceId` field for multi-tenancy.
+      const workflow = await ScheduledWorkflow.findById(workflowId).lean();
 
       if (!workflow) {
-        return {
-          success: false,
-          error: 'Workflow not found',
-        };
+        return { success: false, error: 'Workflow not found' };
+      }
+
+      // SECURITY-FIX: Added comprehensive authorization checks to prevent IDOR and enforce role-based access.
+      // This ensures users can only trigger their own workflows, while managers/admins are restricted to their workspace.
+      const isOwner = workflow.userId.toString() === caller.id;
+      const isSuperAdmin = caller.role === 'super_admin';
+      const isAllowedByHierarchy =
+        (caller.role === 'admin' || caller.role === 'manager') &&
+        workflow.workspaceId && caller.workspaceId &&
+        workflow.workspaceId.toString() === caller.workspaceId;
+
+      if (!isOwner && !isSuperAdmin && !isAllowedByHierarchy) {
+        logger.warn(`Authorization failed: User ${caller.id} (role: ${caller.role}) attempted to manually execute workflow ${workflowId} owned by ${workflow.userId}.`);
+        return { success: false, error: 'Permission denied' };
       }
 
       if (!workflow.isActive) {
-        return {
-          success: false,
-          error: 'Workflow is not active',
-        };
+        return { success: false, error: 'Workflow is not active' };
       }
 
       // Execute workflow
@@ -461,32 +455,38 @@ class SchedulerInitializer {
   /**
    * @async
    * @method emergencyExecute
-   * @description Executes a workflow immediately, potentially bypassing active status checks
-   * if `overrideChecks` is set to true. This method is intended for critical situations
-   * where a workflow must run regardless of its normal scheduling state.
-   * @param {string} workflowId - The unique identifier of the workflow to execute.
-   * @param {string} userId - The ID of the user who owns the workflow.
+   * @description Executes a workflow immediately, bypassing active status checks if needed.
+   * This is a high-privilege action restricted to admins and super_admins.
+   * @param {object} caller - The authenticated user object making the request.
+   * @param {string} caller.id - The ID of the calling user.
+   * @param {string} caller.role - The role of the calling user ('admin' or 'super_admin').
+   * @param {string} caller.workspaceId - The workspace ID of the calling user.
+   * @param {string} workflowId - The unique identifier (_id) of the workflow to execute.
    * @param {boolean} [overrideChecks=false] - If true, the workflow will be executed even if it's not active.
-   * @returns {Promise<object>} A promise that resolves to an object indicating the success
-   * or failure of the emergency execution, along with any data returned by the workflow executor.
-   * @returns {boolean} returns.success - True if emergency execution was completed successfully, false otherwise.
-   * @returns {object} [returns.data] - Data returned by the `workflowExecutor.executeWorkflow` method.
-   * @returns {string} returns.message - A descriptive message about the execution status.
-   * @returns {string} [returns.error] - Error message if execution failed or workflow not found/active (without override).
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success or failure.
    */
-  async emergencyExecute(workflowId, userId, overrideChecks = false) {
+  async emergencyExecute(caller, workflowId, overrideChecks = false) {
     try {
-      logger.warn(`Emergency execution for workflow: ${workflowId}`);
+      logger.warn(`Emergency execution for workflow: ${workflowId} by user ${caller.id}`);
 
-      // Optimization: Added .lean() for performance as this document is read-only.
-      // Indexing Recommendation: Consider a compound index on { workflowId: 1, userId: 1 } for this query.
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
+      // INTEGRATION-NOTE: Assumes the ScheduledWorkflow model contains a `workspaceId` field for multi-tenancy.
+      const workflow = await ScheduledWorkflow.findById(workflowId).lean();
 
       if (!workflow) {
-        return {
-          success: false,
-          error: 'Workflow not found',
-        };
+        return { success: false, error: 'Workflow not found' };
+      }
+
+      // SECURITY-FIX: Stricter authorization for high-privilege emergency actions. Only admins (within their workspace)
+      // and super_admins can perform this action, preventing misuse by lower-privileged roles.
+      const isSuperAdmin = caller.role === 'super_admin';
+      const isAdminOfWorkspace =
+        caller.role === 'admin' &&
+        workflow.workspaceId && caller.workspaceId &&
+        workflow.workspaceId.toString() === caller.workspaceId;
+
+      if (!isSuperAdmin && !isAdminOfWorkspace) {
+        logger.warn(`Authorization failed: User ${caller.id} (role: ${caller.role}) attempted an emergency execution of workflow ${workflowId}.`);
+        return { success: false, error: 'Permission denied for emergency execution' };
       }
 
       // Skip normal checks if override is true
