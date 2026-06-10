@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
@@ -8,27 +9,116 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Automatically audits custom chain runs and queries Google Gemini to suggest prompt and structure improvements.
+ * Supports multi-tenant isolation, role-based access control (RBAC), usage limit enforcement, and notification propagation.
+ * 
+ * @param {string} chainId - The ID of the chain to optimize.
+ * @param {Object|string} userContext - The current user object or user ID.
  */
-const optimizeChain = async (chainId, userId) => {
+const optimizeChain = async (chainId, userContext) => {
   try {
     logger.info(`LangchainOptimizer: running diagnostics on chain ${chainId}`);
 
-    // Optimize performance by executing independent database queries in parallel using Promise.all.
-    // Both queries utilize .lean() and .select() to minimize memory footprint and network overhead.
-    const [chain, executions] = await Promise.all([
-      LangchainChain.findById(chainId)
-        .select('name description steps')
-        .lean(),
-      LangchainExecution.find({ chainId, userId })
-        .select('status totalDurationMs stepsExecution createdAt')
-        .sort({ createdAt: -1 })
-        .limit(15)
-        .lean()
-    ]);
+    // Resolve user context and fetch full user details if only ID is provided
+    let currentUser = null;
+    const User = mongoose.models.User || mongoose.model('User');
+    const Tenant = mongoose.models.Tenant || mongoose.model('Tenant');
+    const Notification = mongoose.models.Notification || mongoose.model('Notification');
 
+    if (typeof userContext === 'string') {
+      currentUser = await User.findById(userContext).lean();
+      if (!currentUser) {
+        throw new Error(`User not found: ${userContext}`);
+      }
+    } else if (userContext && typeof userContext === 'object') {
+      currentUser = userContext;
+    }
+
+    if (!currentUser) {
+      throw new Error('Unauthorized: User context is required for optimization.');
+    }
+
+    const userId = currentUser._id || currentUser.id;
+    const userRole = currentUser.role; // super_admin, admin, manager, user
+    const tenantId = currentUser.tenantId;
+
+    // Fetch the chain
+    const chain = await LangchainChain.findById(chainId).lean();
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
+
+    // 1. Tenant Boundary & RBAC Validation
+    if (userRole !== 'super_admin') {
+      // Ensure tenant isolation
+      if (!tenantId || !chain.tenantId || chain.tenantId.toString() !== tenantId.toString()) {
+        logger.warn(`Security Alert: User ${userId} attempted to access chain ${chainId} across tenant boundaries.`);
+        throw new Error('Unauthorized: Access denied to this resource.');
+      }
+
+      // Role-specific access control
+      if (userRole === 'user') {
+        // Regular users can only optimize their own chains
+        if (chain.userId && chain.userId.toString() !== userId.toString()) {
+          throw new Error('Unauthorized: You can only optimize your own chains.');
+        }
+      } else if (userRole === 'manager') {
+        // Managers can optimize their own chains or chains belonging to users they manage
+        if (chain.userId && chain.userId.toString() !== userId.toString()) {
+          const chainOwner = await User.findById(chain.userId).select('managerId').lean();
+          if (!chainOwner || !chainOwner.managerId || chainOwner.managerId.toString() !== userId.toString()) {
+            throw new Error('Unauthorized: Managers can only optimize chains of their direct reports.');
+          }
+        }
+      }
+      // Admins have full access within their tenant, so no further checks needed for 'admin'
+    }
+
+    // 2. Usage Limits & Subscription Checks
+    if (userRole !== 'super_admin' && tenantId) {
+      const tenant = await Tenant.findById(tenantId);
+      if (!tenant) {
+        throw new Error('Tenant context not found.');
+      }
+
+      // Check if tenant has reached AI optimization limits
+      const currentUsage = tenant.aiUsage?.optimizationCount || 0;
+      const limit = tenant.aiUsage?.optimizationLimit || 100; // Default limit
+
+      if (currentUsage >= limit) {
+        // Notify administrators about limit exhaustion
+        const admins = await User.find({ tenantId, role: 'admin' }).select('_id').lean();
+        for (const admin of admins) {
+          await Notification.create({
+            recipientId: admin._id,
+            title: 'AI Limit Exceeded',
+            message: `Tenant ${tenant.name || tenantId} has reached its AI optimization limit (${limit}).`,
+            type: 'warning',
+          });
+        }
+        throw new Error('Usage limit exceeded: Your workspace has reached its AI optimization limit.');
+      }
+
+      // Increment usage count
+      await Tenant.findByIdAndUpdate(tenantId, {
+        $inc: { 'aiUsage.optimizationCount': 1 }
+      });
+    }
+
+    // Fetch last 15 executions for this chain
+    // If user is regular user, restrict executions to their own. Otherwise, allow tenant-wide executions.
+    const executionQuery = { chainId };
+    if (userRole === 'user') {
+      executionQuery.userId = userId;
+    } else if (userRole !== 'super_admin') {
+      // Restrict to tenant executions
+      executionQuery.tenantId = tenantId;
+    }
+
+    const executions = await LangchainExecution.find(executionQuery)
+      .select('status totalDurationMs stepsExecution createdAt')
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .lean();
 
     if (executions.length === 0) {
       return {
@@ -91,7 +181,7 @@ const optimizeChain = async (chainId, userId) => {
       avgDurationMs: avgDuration,
       slowSteps,
       frequentFailures: failures.slice(0, 5),
-      stepsConfig: chain.steps.map(s => ({ name: s.name, type: s.type, config: s.config })),
+      stepsConfig: (chain.steps || []).map(s => ({ name: s.name, type: s.type, config: s.config })),
     };
 
     const optimizationPrompt = `You are an expert AI compiler and LangChain optimizer. Analyze the following custom chain execution telemetry and config profile:
@@ -147,6 +237,30 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
 
     const cleanText = result.response.text().trim();
     const suggestions = JSON.parse(cleanText);
+
+    // 3. Propagate Notifications to Managers and Admins
+    if (userRole !== 'super_admin' && tenantId) {
+      // Notify manager if exists
+      if (currentUser.managerId) {
+        await Notification.create({
+          recipientId: currentUser.managerId,
+          title: 'Chain Optimized by Team Member',
+          message: `User ${currentUser.name || userId} optimized chain "${chain.name}" with success rate ${successRate}%.`,
+          type: 'info',
+        });
+      }
+
+      // Notify tenant admins
+      const admins = await User.find({ tenantId, role: 'admin', _id: { $ne: userId } }).select('_id').lean();
+      for (const admin of admins) {
+        await Notification.create({
+          recipientId: admin._id,
+          title: 'Chain Optimization Executed',
+          message: `Optimization completed for chain "${chain.name}" in your workspace.`,
+          type: 'info',
+        });
+      }
+    }
 
     return {
       success: true,
