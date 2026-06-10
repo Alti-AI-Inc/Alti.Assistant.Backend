@@ -13,12 +13,18 @@ import AiEndpoint from './aiEndpoint.Model.js';
 // Hypothetical audit logger for Platform Owner actions. Assumes a logger is configured elsewhere.
 import auditLogger from '../../../shared/auditLogger.js';
 
-// Optimization Recommendation:
-// For improved query performance, especially for `findOne` and `findOneAndUpdate` operations
-// that filter by `title`, ensure that the `title` field in the `AiEndpoint` Mongoose schema
-// (defined in aiEndpoint.Model.js) has a unique index.
-// Example in aiEndpoint.Model.js:
-// aiEndpointSchema.index({ title: 1 }, { unique: true });
+// Optimization Recommendations:
+// For improved query performance, ensure the following indexes are defined in the `AiEndpoint` Mongoose schema (aiEndpoint.Model.js):
+//
+// 1. Unique index on `title` for fast lookups and uniqueness enforcement:
+//    aiEndpointSchema.index({ title: 1 }, { unique: true });
+//
+// 2. Index on `createdAt` for efficient sorting in `getAllAiEndpoints`:
+//    aiEndpointSchema.index({ createdAt: -1 });
+//
+// 3. Partial index on `default` for fast updates when changing the default endpoint.
+//    This is highly efficient as it only indexes documents where `default` is true.
+//    aiEndpointSchema.index({ default: 1 }, { partialFilterExpression: { default: true } });
 
 /**
  * @swagger

@@ -8,6 +8,7 @@
 import crypto from 'crypto';
 import emailValidator from 'email-validator';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs'; // Security: Import bcrypt for password hashing.
 
 /**
  * @typedef {Object} SubscriptionDetails
@@ -48,11 +49,11 @@ import mongoose from 'mongoose';
  * @property {mongoose.Types.ObjectId[]} [llamaAiSessions] - References to Llama AI chat history sessions.
  * @property {mongoose.Types.ObjectId[]} [browserSessions] - References to browser sessions.
  * @property {mongoose.Types.ObjectId[]} [notifications] - References to user notifications.
- * @property {string} [confirmationToken] - Token for email confirmation.
+ * @property {string} [confirmationToken] - Hashed token for email confirmation.
  * @property {Date} [confirmationTokenExpires] - Expiration date for the confirmation token.
- * @property {string} [resetPasswordOTP] - One-Time Password for password reset.
+ * @property {string} [resetPasswordOTP] - Hashed One-Time Password for password reset.
  * @property {Date} [resetPasswordExpires] - Expiration date for the password reset OTP.
- * @property {string} [deleteAccountOTP] - One-Time Password for account deletion.
+ * @property {string} [deleteAccountOTP] - Hashed One-Time Password for account deletion.
  * @property {Date} [deleteAccountExpires] - Expiration date for the account deletion OTP.
  * @property {string} [stripeAccountId] - Stripe account ID for the user.
  * @property {mongoose.Types.ObjectId} [subscriptionId=null] - Reference to the new Subscription model.
@@ -76,17 +77,27 @@ const UserSchema = new mongoose.Schema(
      * The authentication provider used (e.g., 'google', 'github').
      * @type {string}
      */
-    provider: { type: String },
+    provider: { type: String, trim: true }, // Security: Trim whitespace from input.
     /**
      * The unique ID provided by the authentication provider.
      * @type {string}
      */
-    providerId: { type: String },
+    providerId: { type: String, trim: true }, // Security: Trim whitespace from input.
     /**
      * URL to the user's avatar image.
      * @type {string}
      */
-    avatar: { type: String },
+    avatar: {
+      type: String,
+      trim: true, // Security: Trim whitespace from input.
+      validate: {
+        // Security: Ensure URL uses a safe protocol (http/https) to prevent javascript: XSS attacks.
+        validator: function (v) {
+          return v == null || v === '' || /^(https?):\/\//.test(v);
+        },
+        message: (props) => `${props.value} is not a valid and secure URL!`,
+      },
+    },
     /**
      * The user's email address. Must be unique and valid.
      * @type {string}
@@ -97,8 +108,11 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide a unique email'],
       unique: true,
-      validate: function () {
-        return emailValidator.validate(this.email);
+      trim: true, // Security: Trim whitespace.
+      lowercase: true, // Security: Store emails in a consistent, case-insensitive format.
+      validate: {
+        validator: emailValidator.validate,
+        message: 'Please provide a valid email address',
       },
     },
     /**
@@ -107,9 +121,9 @@ const UserSchema = new mongoose.Schema(
      */
     password: {
       type: String,
-      // required: [true, 'Please provide a password'],
+      // required: [true, 'Please provide a password'], // Not required to support OAuth
       unique: false,
-      select: 0,
+      select: false, // Security: Do not return password field in queries by default.
     },
     /**
      * Indicates if the user has an active subscription.
@@ -134,7 +148,7 @@ const UserSchema = new mongoose.Schema(
        * The name of the subscription plan.
        * @type {string}
        */
-      plan_name: { type: String }, // "personal", "business"
+      plan_name: { type: String, trim: true }, // "personal", "business" // Security: Trim whitespace.
       /**
        * The duration of the subscription.
        * @type {'month'|'year'}
@@ -154,7 +168,17 @@ const UserSchema = new mongoose.Schema(
        * URL to the subscription invoice.
        * @type {string}
        */
-      invoiceUrl: { type: String },
+      invoiceUrl: {
+        type: String,
+        trim: true, // Security: Trim whitespace.
+        validate: {
+          // Security: Ensure URL uses a safe protocol (http/https) to prevent javascript: XSS attacks.
+          validator: function (v) {
+            return v == null || v === '' || /^(https?):\/\//.test(v);
+          },
+          message: (props) => `${props.value} is not a valid and secure URL!`,
+        },
+      },
     },
 
     /**
@@ -251,6 +275,7 @@ const UserSchema = new mongoose.Schema(
      * Token used for email confirmation.
      * @type {string}
      */
+    // Security: This field stores the HASH of the token, not the token itself.
     confirmationToken: String,
     /**
      * Expiration date for the email confirmation token.
@@ -261,6 +286,7 @@ const UserSchema = new mongoose.Schema(
      * One-Time Password (OTP) for resetting the user's password.
      * @type {string}
      */
+    // Security: This field should store the HASH of the OTP, not the OTP itself.
     resetPasswordOTP: String,
     /**
      * Expiration date for the password reset OTP.
@@ -271,6 +297,7 @@ const UserSchema = new mongoose.Schema(
      * One-Time Password (OTP) for deleting the user's account.
      * @type {string}
      */
+    // Security: This field should store the HASH of the OTP, not the OTP itself.
     deleteAccountOTP: String,
     /**
      * Expiration date for the account deletion OTP.
@@ -281,7 +308,7 @@ const UserSchema = new mongoose.Schema(
      * The user's Stripe account ID.
      * @type {string}
      */
-    stripeAccountId: { type: String },
+    stripeAccountId: { type: String, trim: true }, // Security: Trim whitespace.
 
     /**
      * Reference to the new Subscription model.
@@ -369,21 +396,53 @@ const UserSchema = new mongoose.Schema(
 );
 
 /**
- * Generates a random confirmation token and sets its expiration date.
- * The token is stored on the user document.
+ * Security: Mongoose 'pre-save' hook to hash the password before saving it to the database.
+ * This ensures that plaintext passwords are never stored.
+ */
+UserSchema.pre('save', async function (next) {
+  // Only hash the password if it has been modified (or is new) and is not empty
+  if (!this.isModified('password') || !this.password) {
+    return next();
+  }
+
+  try {
+    // Hash the password with a salt. 12 is a strong salt round value.
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Security: Instance method to compare a candidate password with the user's hashed password.
+ * @param {string} candidatePassword - The password to compare.
+ * @returns {Promise<boolean>} A promise that resolves to true if the passwords match, false otherwise.
+ */
+UserSchema.methods.comparePassword = async function (candidatePassword) {
+  // Use bcrypt to safely compare the provided password with the stored hash.
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+/**
+ * Generates a random confirmation token, hashes it, and sets its expiration date.
+ * The hashed token is stored on the user document.
  * @this {mongoose.Document<User>}
- * @returns {string} The generated confirmation token.
+ * @returns {string} The unhashed confirmation token to be sent to the user.
  */
 UserSchema.methods.generateConfirmationToken = function () {
+  // Security: Generate a cryptographically secure random token.
   const token = crypto.randomBytes(32).toString('hex');
 
-  this.confirmationToken = token;
+  // Security: Hash the token before storing it in the database to prevent token theft from a DB breach.
+  // The user receives the raw token, and we compare it against this stored hash.
+  this.confirmationToken = crypto.createHash('sha256').update(token).digest('hex');
 
-  const date = new Date();
+  // Security: Set a reasonable expiration time for the token (24 hours).
+  this.confirmationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  date.setDate(date.getDate() + 1);
-  this.confirmationTokenExpires = date;
-
+  // Return the unhashed token to be sent to the user (e.g., via email).
   return token;
 };
 
@@ -395,6 +454,7 @@ UserSchema.methods.generateConfirmationToken = function () {
  * @this {mongoose.Model<User>}
  */
 UserSchema.statics.isUserExist = async function (id) {
+  // Security: Validate that the ID is a valid MongoDB ObjectId format before querying.
   if (!mongoose.Types.ObjectId.isValid(id)) return false;
 
   const user = await this.findById(id).select('_id').lean();
