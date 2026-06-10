@@ -1,7 +1,7 @@
 /**
  * @module knowledgeQueryService
  * @description Provides services for querying knowledge, handling conversational AI, and performing semantic searches
- * using a RAG (Retrieval Augmented Generation) system with Google Gemini models.
+ * using a RAG (RetrieRetrieval Augmented Generation) system with Google Gemini models.
  * It integrates with a PostgreSQL vector database for document retrieval and manages conversation history.
  */
 
@@ -24,6 +24,9 @@ import ApiError from '../../../../errors/ApiError.js';
 import { conversationService } from '../../conversations/conversation.service.js';
 import { conversationHelpers } from '../../conversations/conversation.helpers.js';
 import KnowledgeFile from '../knowledge.model.js';
+// FIX: Import services for authorization and usage tracking to enforce security and business logic.
+import { authorizeKnowledgeAccess } from '../../auth/auth.service.js';
+import { usageService } from '../../usage/usage.service.js';
 
 /**
  * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
@@ -50,10 +53,11 @@ const geminiLLM = new ChatGoogleGenerativeAI({
 });
 
 /**
- * @constant {ChatGoogleGenerativeAI} claudeLLM - Initializes a more complex Gemini LLM for RAG.
+ * @constant {ChatGoogleGenerativeAI} geminiComplexLLM - Initializes a more complex Gemini LLM for RAG.
  * Uses the complex model specified in KNOWLEDGE_CONFIG, typically for more demanding queries.
  */
-const claudeLLM = new ChatGoogleGenerativeAI({
+// FIX: Renamed variable from `claudeLLM` to `geminiComplexLLM` to accurately reflect that it's a Gemini model, not a Claude model. This prevents configuration confusion.
+const geminiComplexLLM = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.COMPLEX_MODEL,
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
@@ -183,7 +187,7 @@ const handleKnowledgeConversation = async (
         logger.info(`[Knowledge] Fetched conversation: ${conversationId}`);
       } catch (error) {
         logger.warn(
-          `[Knowledge] Conversation ${conversationId} not found, creating new one`
+          `[Knowledge] Conversation ${conversationId} not found for user ${userId}, creating new one`
         );
       }
     }
@@ -278,6 +282,7 @@ const formatConversationHistory = (messages) => {
  * Queries the knowledge base using the RAG system to find an answer to a given query.
  * It retrieves relevant documents based on the `ownerType` and `ownerId` and then generates an answer.
  *
+ * @param {string} userId - The ID of the user making the query, for authorization.
  * @param {string} query - The user's query string.
  * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
  * @param {string} ownerId - The ID of the specific owner to filter knowledge files.
@@ -293,12 +298,19 @@ const formatConversationHistory = (messages) => {
  * @throws {Error} If an error occurs during the knowledge query process.
  */
 export const queryKnowledge = async (
+  userId,
   query,
   ownerType,
   ownerId,
   options = {}
 ) => {
   try {
+    // SECURITY: Authorize that the user has rights to query this knowledge base, preventing IDOR.
+    await authorizeKnowledgeAccess(userId, ownerType, ownerId);
+
+    // INTEGRATION: Check if usage limits are exceeded before proceeding.
+    await usageService.checkQueryLimits(ownerId, ownerType);
+
     logger.info(`[Knowledge] Querying knowledge for ${ownerType}: ${ownerId}`);
 
     // Get processed files for this owner
@@ -323,9 +335,6 @@ export const queryKnowledge = async (
     // Initialize RAG system
     await rag.initialize();
 
-    // Get file IDs to filter by (though filter is applied directly in rag.query)
-    // const documentIds = processedFiles.map((f) => f.documentId).filter(Boolean);
-
     // Query the RAG system
     const ragResponse = await rag.query(query, {
       filter: {
@@ -338,6 +347,15 @@ export const queryKnowledge = async (
     logger.info(
       `[Knowledge] RAG query complete: ${ragResponse.sources?.length || 0} sources found`
     );
+
+    // INTEGRATION: Record the query usage after a successful response.
+    await usageService.recordQueryUsage({
+      userId,
+      ownerId,
+      ownerType,
+      model: KNOWLEDGE_CONFIG.MODEL, // Simple query uses the default model
+      type: 'knowledge_query',
+    });
 
     return {
       success: true,
@@ -383,6 +401,12 @@ export const conversationalQuery = async (
   options = {}
 ) => {
   try {
+    // SECURITY: Authorize that the user has rights to query this knowledge base, preventing IDOR.
+    await authorizeKnowledgeAccess(userId, ownerType, ownerId);
+
+    // INTEGRATION: Check if usage limits are exceeded before proceeding.
+    await usageService.checkQueryLimits(ownerId, ownerType);
+
     logger.info(
       `[Knowledge] Conversational query for ${ownerType}: ${ownerId}`
     );
@@ -407,7 +431,7 @@ export const conversationalQuery = async (
       )) || [];
 
     // Format history for context
-    const conversationHistory = formatConversationHistory(messages); // Last 10 messages
+    const conversationHistory = formatConversationHistory(messages);
 
     // Detect query complexity
     const complexityAnalysis = detectQueryComplexity(
@@ -441,11 +465,12 @@ export const conversationalQuery = async (
       answer =
         "I don't have any documents to search through yet. Please upload and process some files first, then I can help answer questions about them.";
     } else {
-      // Initialize RAG with appropriate model
-      const dynamicLLM = complexityAnalysis.isComplex ? claudeLLM : geminiLLM;
-      logger.info(
-        `[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Gemini 1.5 Pro' : 'Gemini 3.5 Flash'}`
-      );
+      // FIX: Use the correctly named variable for the complex model.
+      const dynamicLLM = complexityAnalysis.isComplex
+        ? geminiComplexLLM
+        : geminiLLM;
+      // FIX: Log the actual model name from config instead of a hardcoded string.
+      logger.info(`[Knowledge] 🔧 Initializing RAG with ${selectedModel}`);
 
       // Update RAG config with selected model
       rag.llm = dynamicLLM;
@@ -465,12 +490,9 @@ export const conversationalQuery = async (
 
       answer = ragResponse.answer;
       sources = ragResponse.sources || [];
+      // FIX: Removed redundant log message.
       logger.info(
         `✅ Query complete using ${modelUsed}: ${sources.length} sources found, ${answer.length} chars generated`
-      );
-
-      logger.info(
-        `[Knowledge] Query complete using ${modelUsed}: ${sources.length} sources found`
       );
     }
 
@@ -483,6 +505,17 @@ export const conversationalQuery = async (
       })),
       modelUsed,
       complexityScore: complexityAnalysis.score,
+    });
+
+    // INTEGRATION: Record the query usage after a successful response.
+    await usageService.recordQueryUsage({
+      userId,
+      ownerId,
+      ownerType,
+      model: modelUsed,
+      type: 'conversational_query',
+      complexityScore: complexityAnalysis.score,
+      conversationId: conversation.conversationId,
     });
 
     return {
@@ -509,6 +542,7 @@ export const conversationalQuery = async (
  * Performs a semantic search on the knowledge base to find documents relevant to a given query.
  * It uses the RAG system's search capabilities to retrieve chunks of text.
  *
+ * @param {string} userId - The ID of the user making the query, for authorization.
  * @param {string} query - The search query string.
  * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
  * @param {string} ownerId - The ID of the specific owner to filter knowledge files.
@@ -523,12 +557,20 @@ export const conversationalQuery = async (
  * @throws {Error} If an error occurs during the semantic search process.
  */
 export const semanticSearch = async (
+  userId,
   query,
   ownerType,
   ownerId,
   options = {}
 ) => {
   try {
+    // SECURITY: Authorize that the user has rights to search this knowledge base, preventing IDOR.
+    await authorizeKnowledgeAccess(userId, ownerType, ownerId);
+
+    // INTEGRATION: Check if usage limits are exceeded before proceeding.
+    // Note: Semantic search might have a different or 'free' usage tier.
+    await usageService.checkQueryLimits(ownerId, ownerType, 'search');
+
     logger.info(`[Knowledge] Semantic search for ${ownerType}: ${ownerId}`);
 
     // Get processed files
@@ -571,6 +613,14 @@ export const semanticSearch = async (
       };
     });
 
+    // INTEGRATION: Record usage for the search action.
+    await usageService.recordQueryUsage({
+      userId,
+      ownerId,
+      ownerType,
+      type: 'semantic_search',
+    });
+
     return {
       success: true,
       results,
@@ -595,10 +645,24 @@ export const semanticSearch = async (
  */
 export const getConversationHistory = async (conversationId, userId) => {
   try {
+    // First, verify the user is a participant in the conversation.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId
     );
+
+    // SECURITY: Second, verify the user STILL has access to the underlying knowledge base.
+    // This prevents a security gap where a user could access conversation data about a resource
+    // (e.g., an organization's knowledge) after their permissions for that resource were revoked.
+    const { ownerType, ownerId } = conversation.metadata;
+    if (ownerType && ownerId) {
+      await authorizeKnowledgeAccess(userId, ownerType, ownerId);
+    } else {
+      logger.warn(
+        `[Knowledge] Conversation ${conversationId} is missing owner metadata for a full authorization check.`
+      );
+    }
+
     const messages = await conversationHelpers.getConversationMessages(
       conversationId,
       userId
@@ -616,9 +680,9 @@ export const getConversationHistory = async (conversationId, userId) => {
 
 /**
  * @typedef {object} KnowledgeQueryService
- * @property {function(string, OWNER_TYPES, string, object): Promise<object>} queryKnowledge - Function to query knowledge using RAG.
+ * @property {function(string, string, OWNER_TYPES, string, object): Promise<object>} queryKnowledge - Function to query knowledge using RAG.
  * @property {function(string, OWNER_TYPES, string, string, string, object): Promise<object>} conversationalQuery - Function to handle conversational queries with context.
- * @property {function(string, OWNER_TYPES, string, object): Promise<object>} semanticSearch - Function to perform semantic search on knowledge base.
+ * @property {function(string, string, OWNER_TYPES, string, object): Promise<object>} semanticSearch - Function to perform semantic search on knowledge base.
  * @property {function(string, string): Promise<object>} getConversationHistory - Function to retrieve a conversation's history.
  */
 
