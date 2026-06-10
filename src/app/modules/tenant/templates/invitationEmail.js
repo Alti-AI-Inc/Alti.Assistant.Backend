@@ -45,7 +45,7 @@ const sanitizeUrl = (url) => {
  * @param {string} data.inviterName - Name of person sending the invitation
  * @param {string} data.tenantName - Name of the tenant/workspace
  * @param {string} data.invitationLink - Full URL with invitation token
- * @param {string} data.role - Role being offered (admin/member)
+ * @param {string} data.role - Role being offered (admin/manager/member)
  * @param {number} [data.expiryDays=7] - Days until invitation expires. Defaults to 7.
  * @returns {string} HTML email template
  */
@@ -202,7 +202,7 @@ export const generateInvitationEmailHTML = (data) => {
         <li>✨ Collaborative workspace features</li>
         <li>📊 Shared resources and data</li>
         <li>👥 Team collaboration tools</li>
-        <li>🔐 ${escapedRole === 'admin' ? 'Full administrative access' : 'Member access to team features'}</li>
+        <li>🔐 ${escapedRole === 'admin' ? 'Full administrative access' : escapedRole === 'manager' ? 'Manager access to team and workspace features' : 'Member access to team features'}</li>
       </ul>
       
       <div class="button-container">
@@ -241,7 +241,7 @@ export const generateInvitationEmailHTML = (data) => {
  * @param {string} data.inviterName - Name of person sending the invitation
  * @param {string} data.tenantName - Name of the tenant/workspace
  * @param {string} data.invitationLink - Full URL with invitation token
- * @param {string} data.role - Role being offered (admin/member)
+ * @param {string} data.role - Role being offered (admin/manager/member)
  * @param {number} [data.expiryDays=7] - Days until invitation expires. Defaults to 7.
  * @returns {string} Plain text email template
  */
@@ -268,7 +268,7 @@ By accepting this invitation, you'll get access to:
 - Collaborative workspace features
 - Shared resources and data
 - Team collaboration tools
-- ${role === 'admin' ? 'Full administrative access' : 'Member access to team features'}
+- ${role === 'admin' ? 'Full administrative access' : role === 'manager' ? 'Manager access to team and workspace features' : 'Member access to team features'}
 
 Accept Invitation:
 ${invitationLink}
