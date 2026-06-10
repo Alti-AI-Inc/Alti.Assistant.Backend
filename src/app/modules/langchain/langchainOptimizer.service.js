@@ -88,7 +88,8 @@ const optimizeChain = async (chainId, userContext) => {
 
     // 2. Usage Limits & Subscription Checks
     if (userRole !== 'super_admin' && tenantId) {
-      const tenant = await Tenant.findById(tenantId);
+      // OPTIMIZATION: Use .lean() for read-only operations to improve performance.
+      const tenant = await Tenant.findById(tenantId).lean();
       if (!tenant) {
         throw new Error('Tenant context not found.');
       }
@@ -99,14 +100,17 @@ const optimizeChain = async (chainId, userContext) => {
 
       if (currentUsage >= limit) {
         // Notify administrators about limit exhaustion
+        // OPTIMIZATION: Recommend compound index on { tenantId: 1, role: 1 } in the User model for faster lookups.
         const admins = await User.find({ tenantId, role: 'admin' }).select('_id').lean();
-        for (const admin of admins) {
-          await Notification.create({
+        // OPTIMIZATION: Use insertMany to avoid N+1 query problem when creating multiple notifications.
+        if (admins.length > 0) {
+          const notifications = admins.map(admin => ({
             recipientId: admin._id,
             title: 'AI Limit Exceeded',
             message: `Tenant ${tenant.name || tenantId} has reached its AI optimization limit (${limit}).`,
             type: 'warning',
-          });
+          }));
+          await Notification.insertMany(notifications);
         }
         throw new Error('Usage limit exceeded: Your workspace has reached its AI optimization limit.');
       }
@@ -127,6 +131,8 @@ const optimizeChain = async (chainId, userContext) => {
       executionQuery.tenantId = tenantId;
     }
 
+    // OPTIMIZATION: Recommend compound index on { chainId: 1, createdAt: -1 } in the LangchainExecution model.
+    // Also consider { chainId: 1, tenantId: 1, createdAt: -1 } and { chainId: 1, userId: 1, createdAt: -1 } to cover all query variations.
     const executions = await LangchainExecution.find(executionQuery)
       .select('status totalDurationMs stepsExecution createdAt')
       .sort({ createdAt: -1 })
@@ -264,14 +270,17 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
       }
 
       // Notify tenant admins
+      // OPTIMIZATION: The recommended compound index on { tenantId: 1, role: 1 } in the User model also benefits this query.
       const admins = await User.find({ tenantId, role: 'admin', _id: { $ne: userId } }).select('_id').lean();
-      for (const admin of admins) {
-        await Notification.create({
+      // OPTIMIZATION: Use insertMany to avoid N+1 query problem when creating multiple notifications.
+      if (admins.length > 0) {
+        const notifications = admins.map(admin => ({
           recipientId: admin._id,
           title: 'Chain Optimization Executed',
           message: `Optimization completed for chain "${chain.name}" in your workspace.`,
           type: 'info',
-        });
+        }));
+        await Notification.insertMany(notifications);
       }
     }
 

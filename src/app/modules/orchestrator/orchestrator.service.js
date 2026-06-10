@@ -283,7 +283,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     if (isShortQuery || isCommonGreeting) {
       classificationSource = 'fast-path';
       classificationMs = Date.now() - startTime;
-      logger.info(`[Orchestrator] ⚡ Fast-path: "${prompt}" (${classificationMs}ms)`);
+      // GCP Logging: Use structured JSON for logs.
+      logger.info({ message: 'Fast-path classification triggered', component: 'Orchestrator', prompt, latency_ms: classificationMs });
       intentPayload = { target_module: 'general_chat', confidence: 1.0, parameters: { query: prompt } };
     } else {
       // ── 2. LOAD CONVERSATION CONTEXT ──
@@ -303,12 +304,14 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
                 .join('\n');
           }
         } catch (ctxErr) {
-          logger.warn(`[Orchestrator] Failed to load conversation context: ${ctxErr.message}`);
+          // GCP Logging: Use structured JSON for logs.
+          logger.warn({ message: 'Failed to load conversation context', component: 'Orchestrator', error: { message: ctxErr.message, stack: ctxErr.stack } });
         }
       }
 
       // ── 3. LLM CLASSIFICATION (Gemini → Local fallback) ──
-      logger.info(`[Orchestrator] Classifying prompt from user ${userId} (model: ${CLASSIFIER_MODEL})...`);
+      // GCP Logging: Use structured JSON for logs.
+      logger.info({ message: 'Classifying prompt', component: 'Orchestrator', userId, model: CLASSIFIER_MODEL });
       const classifyStart = Date.now();
       let rawJson = '{}';
 
@@ -324,9 +327,11 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         });
         rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         classificationSource = 'gemini';
-        logger.info(`[Orchestrator] ✅ Gemini classified in ${Date.now() - classifyStart}ms`);
+        // GCP Logging: Use structured JSON for logs.
+        logger.info({ message: 'Gemini classification successful', component: 'Orchestrator', latency_ms: Date.now() - classifyStart });
       } catch (geminiErr) {
-        logger.warn(`[Orchestrator] ⚠️ Gemini failed (${geminiErr.message}). Defaulting to local classifier.`);
+        // GCP Logging: Use structured JSON for logs.
+        logger.warn({ message: 'Gemini classification failed, defaulting to local classifier', component: 'Orchestrator', error: { message: geminiErr.message, stack: geminiErr.stack } });
         captureException(geminiErr, { stage: 'orchestrator-gemini', model: CLASSIFIER_MODEL });
         rawJson = '{}';
       }
@@ -339,7 +344,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
 
         // Validate target_module against allowed enum
         if (!intentPayload.target_module || !VALID_MODULES.includes(intentPayload.target_module)) {
-          logger.warn(`[Orchestrator] LLM returned invalid module: "${intentPayload.target_module}". Falling back to local.`);
+          // GCP Logging: Use structured JSON for logs.
+          logger.warn({ message: 'LLM returned invalid module, falling back to local', component: 'Orchestrator', invalidModule: intentPayload.target_module });
           throw new Error(`Invalid target_module: ${intentPayload.target_module}`);
         }
 
@@ -348,19 +354,22 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         // LLM classification unavailable or returned invalid module — use local fallback
         classificationSource = 'local-fallback';
         intentPayload = localClassifyIntent(prompt);
-        logger.info(`[Orchestrator] 🔄 Local fallback → ${intentPayload.target_module} (confidence: ${intentPayload.confidence})`);
+        // GCP Logging: Use structured JSON for logs.
+        logger.info({ message: 'Using local fallback for classification', component: 'Orchestrator', targetModule: intentPayload.target_module, confidence: intentPayload.confidence });
       }
 
       classificationMs = Date.now() - classifyStart;
     }
 
     const { target_module, parameters, confidence } = intentPayload;
-    logger.info(`[Orchestrator] 🎯 ${target_module} (via ${classificationSource}, ${classificationMs}ms, confidence: ${confidence || 'N/A'})`);
+    // GCP Logging: Use structured JSON for logs.
+    logger.info({ message: 'Classification decision made', component: 'Orchestrator', targetModule: target_module, source: classificationSource, latency_ms: classificationMs, confidence: confidence || null });
 
     // ── 4. CHECK CREDITS (fire-and-forget — truly non-blocking) ──
     if (userId) {
       paymentController.incrementPromptsUsed(userId).catch(paymentErr => {
-        logger.warn(`[Orchestrator] Payment check failed: ${paymentErr.message}`);
+        // GCP Logging: Use structured JSON for logs.
+        logger.warn({ message: 'Payment check failed', component: 'Orchestrator', error: { message: paymentErr.message, stack: paymentErr.stack } });
       });
     }
 
@@ -371,7 +380,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     try {
       if (dispatchConfig.dispatch === 'composio') {
         // Connected apps path
-        logger.info(`[Orchestrator] → Connected apps for: "${prompt.substring(0, 60)}..."`);
+        // GCP Logging: Use structured JSON for logs.
+        logger.info({ message: 'Dispatching to connected apps', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
         try {
           const composioResult = await aiClassificationService.processUserInputService(
             prompt,
@@ -388,7 +398,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
             throw new Error(composioResult.error || 'Connected apps execution failed');
           }
         } catch (composioErr) {
-          logger.error(`[Orchestrator] Connected apps failed: ${composioErr.message}. Falling back to Swarm...`);
+          // GCP Logging: Use structured JSON for logs.
+          logger.error({ message: 'Connected apps failed, falling back to Swarm', component: 'Orchestrator', error: { message: composioErr.message, stack: composioErr.stack } });
           finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
         }
       } else {
@@ -401,7 +412,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         );
       }
     } catch (dispatchErr) {
-      logger.error(`[Orchestrator] ❌ Dispatch to ${target_module} failed: ${dispatchErr.message}`);
+      // GCP Logging: Use structured JSON for logs.
+      logger.error({ message: 'Dispatch failed', component: 'Orchestrator', targetModule: target_module, error: { message: dispatchErr.message, stack: dispatchErr.stack } });
       captureException(dispatchErr, { stage: 'orchestrator-dispatch', target_module });
       finalResponse = {
         reply: `I'm currently experiencing a temporary issue connecting to my AI backend services. This typically resolves itself within a few minutes.\n\n**What you can try:**\n• Send your message again in a moment\n• Refresh the page and retry\n\nIf this persists, please contact support.`,
@@ -465,7 +477,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         }
       }
     } catch (dbErr) {
-      logger.error('[Orchestrator] Failed to persist chat history:', dbErr);
+      // GCP Logging: Use structured JSON for logs.
+      logger.error({ message: 'Failed to persist chat history', component: 'Orchestrator', error: { message: dbErr.message, stack: dbErr.stack } });
       // Do not crash the entire response if database save fails
     }
 
@@ -497,7 +510,8 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     };
   } catch (err) {
     // Safety net — should be effectively unreachable
-    logger.error('[Orchestrator] ‼️ Unexpected top-level error (safety net):', err);
+    // GCP Logging: Use structured JSON for logs.
+    logger.error({ message: 'Unexpected top-level error (safety net)', component: 'Orchestrator', error: { message: err.message, stack: err.stack } });
     captureException(err, { stage: 'orchestrator-top-level', prompt: prompt?.substring(0, 100) });
 
     const safeResponse = `I received your message but encountered an unexpected issue. Please try again — I'm here to help!`;

@@ -11,9 +11,11 @@ const router = express.Router();
  * /api/ai-models/all-model:
  *   get:
  *     summary: Get all AI models for the current application
- *     description: Retrieves a list of all AI model endpoints configured for the application associated with the current tenant context.
+ *     description: Retrieves a list of all AI model endpoints configured for the application associated with the current tenant context. Requires ADMIN role.
  *     tags:
  *       - AI Models
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: X-Tenant-Id
@@ -42,7 +44,9 @@ const router = express.Router();
  *                   modelType:
  *                     type: string
  *       401:
- *         description: Unauthorized if tenant context is missing or invalid.
+ *         description: Unauthorized. User is not authenticated.
+ *       403:
+ *         description: Forbidden. User does not have the required ADMIN role.
  *       500:
  *         description: Internal server error.
  */
@@ -58,9 +62,11 @@ router.get(
  * /api/ai-models/all-model-web:
  *   get:
  *     summary: Get all web-specific AI models for the current application
- *     description: Retrieves a list of AI model endpoints specifically configured for web usage within the current tenant context.
+ *     description: Retrieves a list of AI model endpoints specifically configured for web usage within the current tenant context. Requires ADMIN role.
  *     tags:
  *       - AI Models
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: X-Tenant-Id
@@ -89,7 +95,9 @@ router.get(
  *                   modelType:
  *                     type: string
  *       401:
- *         description: Unauthorized if tenant context is missing or invalid.
+ *         description: Unauthorized. User is not authenticated.
+ *       403:
+ *         description: Forbidden. User does not have the required ADMIN role.
  *       500:
  *         description: Internal server error.
  */
@@ -105,9 +113,11 @@ router.get(
  * /api/ai-models/add-model:
  *   post:
  *     summary: Add a new AI model endpoint
- *     description: Creates and adds a new AI model endpoint configuration for the current application.
+ *     description: Creates and adds a new AI model endpoint configuration for the current application. Requires ADMIN role.
  *     tags:
  *       - AI Models
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: X-Tenant-Id
@@ -119,7 +129,7 @@ router.get(
  *       required: true
  *       content:
  *         application/json:
-      *           schema:
+ *           schema:
  *             type: object
  *             required:
  *               - name
@@ -162,7 +172,9 @@ router.get(
  *       400:
  *         description: Bad request if required fields are missing or invalid.
  *       401:
- *         description: Unauthorized if tenant context is missing or invalid.
+ *         description: Unauthorized. User is not authenticated.
+ *       403:
+ *         description: Forbidden. User does not have the required ADMIN role.
  *       500:
  *         description: Internal server error.
  */
@@ -178,9 +190,11 @@ router.post(
  * /api/ai-models/update-model:
  *   patch:
  *     summary: Update an existing web-specific AI model endpoint
- *     description: Modifies the details of an existing AI model endpoint specifically configured for web usage within the current tenant context.
+ *     description: Modifies the details of an existing AI model endpoint specifically configured for web usage within the current tenant context. Requires ADMIN role.
  *     tags:
  *       - AI Models
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: X-Tenant-Id
@@ -238,7 +252,9 @@ router.post(
  *       400:
  *         description: Bad request if required fields are missing or invalid.
  *       401:
- *         description: Unauthorized if tenant context is missing or invalid.
+ *         description: Unauthorized. User is not authenticated.
+ *       403:
+ *         description: Forbidden. User does not have the required ADMIN role.
  *       404:
  *         description: Not Found if the AI model endpoint does not exist.
  *       500:
@@ -256,9 +272,10 @@ router.patch(
  */
 
 /**
- * @type {Router}
- * @description Express router for managing AI model endpoints.
+ * Express router for managing AI model endpoints.
  * Provides routes for retrieving, adding, and updating AI model configurations
- * within a tenant-specific context.
+ * within a tenant-specific context. All routes require ADMIN privileges.
+ * @type {Router}
+ * @namespace aiModelEndpointRoutes
  */
 export const aiModelEndpointRoutes = router;
