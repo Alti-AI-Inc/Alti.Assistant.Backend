@@ -13,6 +13,28 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
 
 /**
+ * Sanitizes a string by escaping HTML characters to prevent Cross-Site Scripting (XSS) attacks.
+ * This should be used on any user-provided or external input that will be stored and potentially rendered in a web context.
+ * @param {any} input - The input to sanitize. If not a string, it's returned as is.
+ * @returns {string|any} The sanitized string, or the original input if not a string.
+ */
+const sanitizeInput = input => {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+  };
+  const reg = /[&<>"'/]/gi;
+  return input.replace(reg, match => map[match]);
+};
+
+/**
  * Generates a unique guest user ID using MongoDB's ObjectId format.
  * This ensures consistency with how user IDs might be stored or referenced in a database,
  * even for temporary guest sessions.
@@ -101,8 +123,10 @@ const handleComposioConversation = async (
       // and avoid reusing potentially invalid or unauthorized IDs.
       const newConversationId = generateComposioConversationId();
 
+      // SECURITY-PATCH: Sanitize user input to prevent stored XSS vulnerabilities in the conversation title.
+      const sanitizedUserInput = sanitizeInput(userInput);
       // Generate a meaningful title from the user input
-      const title = `Automation task: ${userInput.substring(0, 50)}${userInput.length > 50 ? '...' : ''}`;
+      const title = `Automation task: ${sanitizedUserInput.substring(0, 50)}${sanitizedUserInput.length > 50 ? '...' : ''}`;
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
@@ -139,8 +163,8 @@ const handleComposioConversation = async (
         );
       }
 
-      console.log(
-        `Created new composio conversation with title ${title} ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      logger.info(
+        `Created new composio conversation with title "${title}" (${newConversationId}) for user ${userId} (guest: ${isGuest})`
       );
     }
 
@@ -175,7 +199,7 @@ const addComposioQueryMessage = async (
   req = null
 ) => {
   try {
-    console.log(
+    logger.info(
       `Adding composio query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
@@ -185,7 +209,8 @@ const addComposioQueryMessage = async (
       userId,
       {
         role: 'user',
-        content: userInput,
+        // SECURITY-PATCH: Sanitize user input to prevent stored XSS vulnerabilities in message content.
+        content: sanitizeInput(userInput),
         metadata: {
           type: 'composio_query',
           timestamp: new Date().toISOString(),
@@ -224,7 +249,7 @@ const addComposioResultMessage = async (
   req = null
 ) => {
   try {
-    console.log(
+    logger.info(
       `Adding composio result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
@@ -234,7 +259,8 @@ const addComposioResultMessage = async (
       userId,
       {
         role: 'assistant',
-        content: result,
+        // SECURITY-PATCH: Sanitize result from external tool to prevent stored XSS.
+        content: sanitizeInput(result),
         metadata: {
           type: 'composio_result',
           timestamp: new Date().toISOString(),
@@ -276,7 +302,7 @@ const addComposioErrorMessage = async (
   req = null
 ) => {
   try {
-    console.log(
+    logger.info(
       `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
@@ -286,7 +312,8 @@ const addComposioErrorMessage = async (
       userId,
       {
         role: 'assistant',
-        content: errorMessage,
+        // SECURITY-PATCH: Sanitize error message to prevent XSS, as it might be constructed from unsafe inputs.
+        content: sanitizeInput(errorMessage),
         metadata: {
           type: 'error',
           timestamp: new Date().toISOString(),
@@ -318,6 +345,9 @@ const getComposioHistory = async (
   req = null
 ) => {
   try {
+    // SECURITY-PATCH: Validate and sanitize the 'limit' parameter to ensure it's a reasonable positive integer.
+    const messageLimit = Math.max(1, parseInt(String(limit), 10) || 10);
+
     // Optimization Recommendation:
     // 1. To improve read performance, ensure that `conversationHelpers.getConversationById`
     //    internally uses `.lean()` when fetching the conversation document, as it's
@@ -344,12 +374,14 @@ const getComposioHistory = async (
     }
 
     // Get last N messages for context
-    const recentMessages = conversation.messages.slice(-limit).map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp,
-      metadata: msg.metadata,
-    }));
+    const recentMessages = conversation.messages
+      .slice(-messageLimit)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        metadata: msg.metadata,
+      }));
 
     return recentMessages;
   } catch (error) {
@@ -384,7 +416,8 @@ const updateComposioConversationTitle = async (
     let newTitle = 'Tool Execution';
 
     if (identifiedApp && identifiedAction) {
-      newTitle = `${identifiedAction}`;
+      // SECURITY-PATCH: Sanitize external workflow data to prevent stored XSS in the conversation title.
+      newTitle = `${sanitizeInput(identifiedAction)}`;
     } else if (workflowType === 'multi_step') {
       newTitle = `Multi-step Workflow`;
     }
@@ -422,7 +455,7 @@ const getComposioStats = async (userId, req = null) => {
     // Optimization Recommendation:
     // 1. To improve read performance, ensure that `conversationHelpers.getUserConversations`
     //    internally uses `.lean()` when fetching conversation documents, as they are
-    //    only read here for statistics and not modified as Mongoose documents.
+    //    only read here for statistics and not modified as a Mongoose documents.
     //    Example internal implementation: `Conversation.find(...).lean().exec()`
     // 2. For calculating statistics (total count, total messages, average messages),
     //    it is highly recommended to use MongoDB aggregation pipelines directly within

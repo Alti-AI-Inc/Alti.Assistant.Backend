@@ -13,18 +13,38 @@ import { logger } from '../../../shared/logger.js';
  * @throws {Error} Throws an error if the delegation to the Gemini service fails for any reason.
  */
 const openAiResponseService = async (prompt, userId, sessionId) => {
-  logger.info(
-    `Redirecting OpenAI GPT-4o Request to Google Gemini 3.1 Flash exclusively.`
-  );
+  // GCP-AUDITOR-AGENT: Replaced simple string with a structured JSON object.
+  // This format is automatically parsed by Google Cloud Logging, enabling powerful filtering and monitoring.
+  // The 'severity' is automatically set to INFO by the logger.info() call.
+  logger.info({
+    message: 'Redirecting OpenAI GPT-4o request to Google Gemini 3.1 Flash.',
+    context: {
+      sourceModel: 'GPT-4o',
+      targetModel: 'Gemini 3.1 Flash',
+      userId,
+      sessionId,
+    },
+  });
   try {
     // Await the Gemini service call to ensure the promise resolves and errors are caught
     return await GeminiAiService.geminiService(sessionId, prompt, userId);
   } catch (error) {
-    // Log the error for debugging and operational visibility
-    logger.error(
-      `Error redirecting OpenAI GPT-4o request to Gemini for userId: ${userId}, sessionId: ${sessionId}. Error: ${error.message}`,
-      error
-    );
+    // GCP-AUDITOR-AGENT: Replaced string concatenation with a structured JSON object for error logging.
+    // This provides detailed context for debugging in Google Cloud Logging and preserves the full error stack.
+    // The 'severity' is automatically set to ERROR by the logger.error() call.
+    logger.error({
+      message: `Error redirecting OpenAI GPT-4o request to Gemini.`,
+      context: {
+        userId,
+        sessionId,
+        sourceModel: 'GPT-4o',
+      },
+      // Including the error object's properties ensures the stack trace is captured.
+      error: {
+        message: error.message,
+        stack: error.stack,
+      },
+    });
     // Re-throw the error so the calling service can handle it appropriately
     throw error;
   }
@@ -42,18 +62,38 @@ const openAiResponseService = async (prompt, userId, sessionId) => {
  * @throws {Error} Throws an error if the delegation to the Gemini service fails for any reason.
  */
 const openAi4NanoResponseService = async (prompt, userId, sessionId) => {
-  logger.info(
-    `Redirecting OpenAI GPT-4.1 Nano Request to Google Gemini 3.1 Flash exclusively.`
-  );
+  // GCP-AUDITOR-AGENT: Replaced simple string with a structured JSON object.
+  // This format is automatically parsed by Google Cloud Logging, enabling powerful filtering and monitoring.
+  // The 'severity' is automatically set to INFO by the logger.info() call.
+  logger.info({
+    message: 'Redirecting OpenAI GPT-4.1 Nano request to Google Gemini 3.1 Flash.',
+    context: {
+      sourceModel: 'GPT-4.1 Nano',
+      targetModel: 'Gemini 3.1 Flash',
+      userId,
+      sessionId,
+    },
+  });
   try {
     // Await the Gemini service call to ensure the promise resolves and errors are caught
     return await GeminiAiService.geminiService(sessionId, prompt, userId);
   } catch (error) {
-    // Log the error for debugging and operational visibility
-    logger.error(
-      `Error redirecting OpenAI GPT-4.1 Nano request to Gemini for userId: ${userId}, sessionId: ${sessionId}. Error: ${error.message}`,
-      error
-    );
+    // GCP-AUDITOR-AGENT: Replaced string concatenation with a structured JSON object for error logging.
+    // This provides detailed context for debugging in Google Cloud Logging and preserves the full error stack.
+    // The 'severity' is automatically set to ERROR by the logger.error() call.
+    logger.error({
+      message: `Error redirecting OpenAI GPT-4.1 Nano request to Gemini.`,
+      context: {
+        userId,
+        sessionId,
+        sourceModel: 'GPT-4.1 Nano',
+      },
+      // Including the error object's properties ensures the stack trace is captured.
+      error: {
+        message: error.message,
+        stack: error.stack,
+      },
+    });
     // Re-throw the error so the calling service can handle it appropriately
     throw error;
   }
