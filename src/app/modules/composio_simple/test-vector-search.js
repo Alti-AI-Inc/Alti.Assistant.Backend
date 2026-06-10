@@ -12,6 +12,9 @@
 
 import { Router } from 'express';
 import { body, param } from 'express-validator';
+// SEC-PATCH: Import security middleware for setting security headers and rate limiting.
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 // In a real application, these would be imported from their respective files.
 // For this example, they represent the controller and middleware logic.
@@ -25,6 +28,30 @@ import { checkPlanLimits } from '../middleware/plan.middleware.js';
  * @type {import('express').Router}
  */
 const router = Router();
+
+// SEC-PATCH: Apply essential security headers (e.g., X-XSS-Protection, Strict-Transport-Security).
+router.use(helmet());
+
+// SEC-PATCH: Configure rate limiting to prevent brute-force and denial-of-service attacks.
+const apiLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 200, // Limit each IP to 200 requests per window
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+	message: { status: 429, message: 'Too many requests from this IP, please try again after 15 minutes.' },
+});
+
+// SEC-PATCH: Stricter rate limiter for sensitive actions like creating invitations to prevent abuse.
+const inviteLimiter = rateLimit({
+	windowMs: 60 * 60 * 1000, // 1 hour
+	max: 20, // Limit each IP to 20 invitations per hour
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { status: 429, message: 'Too many invitations created from this IP, please try again after an hour.' },
+});
+
+// SEC-PATCH: Apply the general rate limiter to all manager routes.
+router.use(apiLimiter);
 
 /**
  * @name /api/manager/:workspaceId
@@ -40,7 +67,8 @@ const router = Router();
 router.use(
   '/:workspaceId',
   isAuthenticated,
-  param('workspaceId').isMongoId().withMessage('Invalid workspace ID format.'),
+  // SEC-PATCH: Sanitize path parameter to prevent XSS if it is ever reflected in a response.
+  param('workspaceId').isMongoId().withMessage('Invalid workspace ID format.').escape(),
   validateRequest,
   isWorkspaceManager
 );
@@ -95,6 +123,8 @@ router.use(
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.get('/:workspaceId/team', managerController.getTeamMembers);
 
@@ -163,15 +193,19 @@ router.get('/:workspaceId/team', managerController.getTeamMembers);
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace or member does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.patch(
   '/:workspaceId/team/:memberId',
   [
-    param('memberId').isMongoId().withMessage('Invalid member ID format.'),
+    // SEC-PATCH: Sanitize path parameter to prevent XSS.
+    param('memberId').isMongoId().withMessage('Invalid member ID format.').escape(),
     body('role')
       .notEmpty()
       .isIn(['admin', 'member']) // Example roles; should match the application's role schema.
-      .withMessage('Invalid role specified. Must be one of: admin, member.'),
+      .withMessage('Invalid role specified. Must be one of: admin, member.')
+      .escape(), // SEC-PATCH: Sanitize role input as a defense-in-depth measure.
   ],
   validateRequest,
   managerController.updateMemberRole
@@ -216,10 +250,13 @@ router.patch(
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace or member does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.delete(
   '/:workspaceId/team/:memberId',
-  param('memberId').isMongoId().withMessage('Invalid member ID format.'),
+  // SEC-PATCH: Sanitize path parameter to prevent XSS.
+  param('memberId').isMongoId().withMessage('Invalid member ID format.').escape(),
   validateRequest,
   managerController.removeMember
 );
@@ -282,14 +319,22 @@ router.delete(
  *         description: Forbidden - User is not a manager or plan limit has been reached.
  *       '404':
  *         description: Not Found - The workspace does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.post(
   '/:workspaceId/invitations',
+  inviteLimiter, // SEC-PATCH: Apply stricter rate limiting to this sensitive endpoint.
   [
-    body('email').isEmail().normalizeEmail().withMessage('A valid email address is required.'),
+    body('email')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('A valid email address is required.')
+      .escape(), // SEC-PATCH: Sanitize email input to prevent XSS if it's ever reflected to a client.
     body('role')
       .isIn(['admin', 'member'])
-      .withMessage('Invalid role specified. Must be one of: admin, member.'),
+      .withMessage('Invalid role specified. Must be one of: admin, member.')
+      .escape(), // SEC-PATCH: Sanitize role input as a defense-in-depth measure.
   ],
   validateRequest,
   checkPlanLimits('teamMembers'), // Middleware verifies plan limits before attempting to invite.
@@ -344,6 +389,8 @@ router.post(
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.get('/:workspaceId/invitations', managerController.getPendingInvitations);
 
@@ -383,10 +430,13 @@ router.get('/:workspaceId/invitations', managerController.getPendingInvitations)
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace or invitation does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.delete(
   '/:workspaceId/invitations/:invitationId',
-  param('invitationId').isMongoId().withMessage('Invalid invitation ID format.'),
+  // SEC-PATCH: Sanitize path parameter to prevent XSS.
+  param('invitationId').isMongoId().withMessage('Invalid invitation ID format.').escape(),
   validateRequest,
   managerController.revokeInvitation
 );
@@ -441,6 +491,8 @@ router.delete(
  *         description: Forbidden - User is not a manager of this workspace.
  *       '404':
  *         description: Not Found - The workspace does not exist.
+ *       '429':
+ *         description: Too Many Requests.
  */
 router.get('/:workspaceId/metrics', managerController.getWorkspaceMetrics);
 

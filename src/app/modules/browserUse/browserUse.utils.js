@@ -3,8 +3,9 @@
 const puppeteer = require('puppeteer');
 const ip = require('ip'); // For more robust IP validation.
 // Platform Owner Feature: Import system-wide services for configuration, tenant management, and logging.
-const { getTenantById } = require('../tenant/tenant.service'); // Assumes a service to get full tenant details.
-const { getPlatformConfig } = require('../platform/platform.service'); // Assumes a service for global settings.
+// OPTIMIZATION: Import models directly to perform targeted, lean queries, bypassing generic service methods for performance-critical paths.
+const Tenant = require('../tenant/tenant.model');
+const PlatformConfig = require('../platform/platform.model');
 const logger = require('../../../config/logger'); // Assume a centralized, structured logger is configured.
 const AppError = require('../../utils/AppError'); // Assume a custom error class for consistent error handling.
 
@@ -16,7 +17,11 @@ const AppError = require('../../utils/AppError'); // Assume a custom error class
  * @returns {Promise<import('puppeteer').LaunchOptions>} A promise that resolves to the Puppeteer launch options object.
  */
 async function getBrowserLaunchOptions(userContext) {
-    const platformConfig = await getPlatformConfig();
+    // OPTIMIZATION: Directly query for the platform configuration, selecting only the 'puppeteerOptions' field.
+    // Using .lean() makes the query faster and less memory-intensive for this read-only operation.
+    // This configuration is an ideal candidate for caching (e.g., in-memory or Redis) to avoid frequent DB calls.
+    // The query assumes a single document for platform-wide configuration.
+    const platformConfig = await PlatformConfig.findOne({}, 'puppeteerOptions').lean() || {};
 
     const defaultOptions = {
         headless: 'new', // Use the new headless mode for better compatibility and features.
@@ -126,7 +131,14 @@ async function takeScreenshot(userContext, url, options = {}) {
     // Platform Owner can operate without a tenant context or on behalf of any tenant.
     // Regular users must belong to an active, non-suspended tenant.
     if (tenantId) {
-        const tenant = await getTenantById(tenantId);
+        // OPTIMIZATION: Bypass the generic service to perform a highly optimized, specific query.
+        // .select() fetches only the fields required for this operation, reducing data transfer from DB.
+        // .lean() returns a plain JS object, which is much faster and uses less memory than a full Mongoose document.
+        // This query uses findById, which is efficient as it leverages the default index on the `_id` field.
+        const tenant = await Tenant.findById(tenantId)
+            .select('isActive usage.screenshots limits.maxScreenshots')
+            .lean();
+
         if (!tenant) {
             throw new AppError('Tenant not found.', 404);
         }
@@ -140,8 +152,8 @@ async function takeScreenshot(userContext, url, options = {}) {
         // Platform Owner Feature: Ability to override tenant-specific limits for administrative purposes.
         // The Platform Owner role bypasses this check entirely.
         if (role !== 'PlatformOwner') {
-            const usage = tenant.usage.screenshots || 0;
-            const limit = tenant.limits.maxScreenshots || 100; // Use a sensible default limit if not set.
+            const usage = tenant.usage?.screenshots || 0;
+            const limit = tenant.limits?.maxScreenshots || 100; // Use a sensible default limit if not set.
             if (usage >= limit) {
                 logger.error(`Screenshot limit reached for tenant: ${tenantId}`, { userContext, usage, limit });
                 throw new AppError(`Screenshot limit of ${limit} reached for this tenant.`, 429); // Use 429 Too Many Requests
