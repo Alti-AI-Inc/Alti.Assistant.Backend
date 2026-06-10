@@ -6,11 +6,13 @@
  */
 
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import mongoose from 'mongoose';
+// OPTIMIZATION: Import the Conversation model directly to use efficient aggregation pipelines.
+import Conversation from '../conversations/conversation.model.js';
 
 /**
  * Sanitizes a string by escaping HTML characters to prevent Cross-Site Scripting (XSS) attacks.
@@ -452,41 +454,69 @@ const updateComposioConversationTitle = async (
  */
 const getComposioStats = async (userId, req = null) => {
   try {
-    // Optimization Recommendation:
-    // 1. To improve read performance, ensure that `conversationHelpers.getUserConversations`
-    //    internally uses `.lean()` when fetching conversation documents, as they are
-    //    only read here for statistics and not modified as a Mongoose documents.
-    //    Example internal implementation: `Conversation.find(...).lean().exec()`
-    // 2. For calculating statistics (total count, total messages, average messages),
-    //    it is highly recommended to use MongoDB aggregation pipelines directly within
-    //    `conversationHelpers` (or a new dedicated service method). This avoids fetching
-    //    potentially many documents (up to 1000 in this case) into application memory
-    //    and performing in-memory calculations, which can be inefficient for large datasets.
-    //    An aggregation pipeline can calculate these metrics directly on the database server.
-    //    Example aggregation stages: `$match`, `$group`, `$project`.
+    // OPTIMIZATION: Replaced fetching all documents and calculating in-memory
+    // with a highly efficient MongoDB aggregation pipeline. This performs all
+    // calculations directly on the database server, minimizing network traffic,
+    // memory usage, and CPU load on the application server. It is significantly
+    // faster and more scalable than the previous implementation.
     //
     // Indexing Recommendation:
-    // For efficient lookups, ensure that the 'userId' field and 'metadata.category'
-    // field in the Conversation model are indexed. A compound index on
-    // `(userId, metadata.category)` would be optimal for this specific query.
-    const composioConversations =
-      await conversationHelpers.getUserConversations(
-        userId,
-        { 'metadata.category': 'composio' },
-        { limit: 1000 } // Assuming a reasonable limit for stats calculation
-      );
+    // For this aggregation to be performant, a compound index on
+    // `(userId, metadata.category)` is crucial for the initial $match stage.
+    const stats = await Conversation.aggregate([
+      {
+        // Stage 1: Filter for the specific user's composio conversations.
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId), // Ensure userId is a valid ObjectId for matching
+          'metadata.category': 'composio',
+        },
+      },
+      {
+        // Stage 2: Group all matching documents to calculate aggregates.
+        $group: {
+          _id: null, // Group all documents into a single result.
+          totalComposioConversations: { $sum: 1 }, // Count the number of conversations.
+          totalComposioMessages: { $sum: '$messageCount' }, // Sum the messageCount of each conversation.
+        },
+      },
+      {
+        // Stage 3: Reshape the output and calculate the average.
+        $project: {
+          _id: 0, // Exclude the default _id field.
+          totalComposioConversations: 1,
+          totalComposioMessages: 1,
+          averageMessagesPerConversation: {
+            // Safely calculate the average, handling division by zero.
+            $cond: {
+              if: { $eq: ['$totalComposioConversations', 0] },
+              then: 0,
+              else: {
+                $round: [
+                  {
+                    $divide: [
+                      '$totalComposioMessages',
+                      '$totalComposioConversations',
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      },
+    ]);
 
-    const totalComposio = composioConversations.conversations.length;
-    const totalMessages = composioConversations.conversations.reduce(
-      (sum, conv) => sum + conv.messageCount,
-      0
-    );
+    // Aggregation returns an array, so we take the first result or a default object.
+    if (stats.length > 0) {
+      return stats[0];
+    }
 
+    // Return default stats if the user has no composio conversations.
     return {
-      totalComposioConversations: totalComposio,
-      totalComposioMessages: totalMessages,
-      averageMessagesPerConversation:
-        totalComposio > 0 ? Math.round(totalMessages / totalComposio) : 0,
+      totalComposioConversations: 0,
+      totalComposioMessages: 0,
+      averageMessagesPerConversation: 0,
     };
   } catch (error) {
     logger.error('Error getting composio stats:', error);
