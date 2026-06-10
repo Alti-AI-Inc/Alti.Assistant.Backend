@@ -37,9 +37,11 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.analyzeAndStoreWorkflow:
-    // If this service method performs read operations before writing (e.g., checking for existing data),
-    // ensure those read operations use .lean() if Mongoose document methods are not needed.
+    // Optimization Recommendations for workflowStorageService.analyzeAndStoreWorkflow:
+    // 1. If this service method performs read operations before writing (e.g., checking for existing data),
+    //    ensure those read operations use .lean() if Mongoose document methods are not needed.
+    // 2. Consider adding indexes on fields used for lookup or uniqueness checks within the service
+    //    (e.g., { userId: 1, conversationId: 1 } if conversationId needs to be unique per user).
     const result = await workflowStorageService.analyzeAndStoreWorkflow({
       userInput,
       userId,
@@ -101,18 +103,19 @@ const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.getUserStoredWorkflows:
-    // 1. Ensure .lean() is used for read operations to return plain JavaScript objects,
+    // Optimization Recommendations for workflowStorageService.getUserStoredWorkflows:
+    // 1. Ensure .lean() is used for all read operations to return plain JavaScript objects,
     //    improving performance by skipping Mongoose document instantiation.
-    // 2. Recommend indexes on the Workflow model for fields used in filtering and sorting:
+    // 2. Implement the following indexes on the Workflow model for efficient filtering, pagination, and sorting:
     //    - { userId: 1 }
     //    - { userId: 1, status: 1 }
     //    - { userId: 1, workflowType: 1 }
     //    - { userId: 1, category: 1 }
-    //    - { userId: 1, tags: 1 } (for array fields, consider multi-key index)
-    //    - { userId: 1, createdAt: -1 } (for sorting)
-    //    - Compound indexes like { userId: 1, category: 1, createdAt: -1 } might be beneficial
-    //      depending on common query patterns.
+    //    - { userId: 1, tags: 1 } (for array fields, a multi-key index is automatically created)
+    //    - { userId: 1, createdAt: -1 } (for sorting by creation date)
+    //    - Consider compound indexes like { userId: 1, category: 1, createdAt: -1 } or
+    //      { userId: 1, status: 1, createdAt: -1 } based on common query patterns to cover filtering and sorting.
+    // 3. Address potential N+1 query problems if populating related documents within the service.
     const result = await workflowStorageService.getUserStoredWorkflows(userId, {
       status,
       workflowType,
@@ -172,10 +175,10 @@ const getStoredWorkflowController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.getStoredWorkflow:
+    // Optimization Recommendations for workflowStorageService.getStoredWorkflow:
     // 1. Ensure .lean() is used for this read operation to return a plain JavaScript object.
-    // 2. Recommend indexes on the Workflow model for efficient lookup:
-    //    - { _id: 1, userId: 1 } (if workflowId maps to _id) or { workflowId: 1, userId: 1 }
+    // 2. Implement an index on the Workflow model for efficient lookup:
+    //    - { _id: 1, userId: 1 } (assuming workflowId maps to _id)
     const result = await workflowStorageService.getStoredWorkflow(
       workflowId,
       userId
@@ -230,11 +233,11 @@ const updateStoredWorkflowController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.updateStoredWorkflow:
-    // 1. If the service method returns the updated document, consider using { new: true, lean: true }
+    // Optimization Recommendations for workflowStorageService.updateStoredWorkflow:
+    // 1. If the service method returns the updated document, use { new: true, lean: true }
     //    in the Mongoose update query (e.g., findByIdAndUpdate) to return a plain JavaScript object directly.
-    // 2. Recommend indexes on the Workflow model for efficient lookup:
-    //    - { _id: 1, userId: 1 } (if workflowId maps to _id) or { workflowId: 1, userId: 1 }
+    // 2. Implement an index on the Workflow model for efficient lookup:
+    //    - { _id: 1, userId: 1 } (assuming workflowId maps to _id)
     const result = await workflowStorageService.updateStoredWorkflow(
       workflowId,
       userId,
@@ -289,9 +292,9 @@ const deleteStoredWorkflowController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.deleteStoredWorkflow:
-    // Recommend indexes on the Workflow model for efficient lookup:
-    // - { _id: 1, userId: 1 } (if workflowId maps to _id) or { workflowId: 1, userId: 1 }
+    // Optimization Recommendations for workflowStorageService.deleteStoredWorkflow:
+    // Implement an index on the Workflow model for efficient lookup:
+    // - { _id: 1, userId: 1 } (assuming workflowId maps to _id)
     const result = await workflowStorageService.deleteStoredWorkflow(
       workflowId,
       userId
@@ -345,13 +348,15 @@ const searchStoredWorkflowsController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.searchStoredWorkflows:
+    // Optimization Recommendations for workflowStorageService.searchStoredWorkflows:
     // 1. Ensure .lean() is used for read operations to return plain JavaScript objects.
-    // 2. Recommend indexes on the Workflow model for efficient search:
+    // 2. Implement the following indexes on the Workflow model for efficient search:
     //    - { userId: 1 }
     //    - For 'searchTerm', consider a text index on relevant fields (e.g., title, description, tags)
-    //      or specific indexes for prefix/substring searches if applicable.
-    //    - Compound index like { userId: 1, title: 1 } or { userId: 1, description: 1 } if search is often combined with user.
+    //      using `schema.index({ title: 'text', description: 'text', tags: 'text' })`.
+    //      Alternatively, specific indexes like { userId: 1, title: 1 } or { userId: 1, description: 1 }
+    //      can be beneficial for prefix/substring searches if using regex (though regex can be less performant).
+    //    - A compound index like { userId: 1, title: 1 } can improve performance if searches are often combined with user.
     const result = await workflowStorageService.searchStoredWorkflows(
       userId,
       searchTerm,
@@ -400,9 +405,9 @@ const getExecutableWorkflowsController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.getExecutableWorkflows:
+    // Optimization Recommendations for workflowStorageService.getExecutableWorkflows:
     // 1. Ensure .lean() is used for read operations to return plain JavaScript objects.
-    // 2. Recommend indexes on the Workflow model for efficient lookup:
+    // 2. Implement indexes on the Workflow model for efficient lookup:
     //    - { userId: 1, status: 1 } (assuming 'status' indicates executability)
     //    - { userId: 1, workflowType: 1 } (if 'workflowType' indicates executability)
     const result = await workflowStorageService.getExecutableWorkflows(userId);
@@ -455,12 +460,12 @@ const refreshWorkflowConnectionsController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.refreshWorkflowConnections:
+    // Optimization Recommendations for workflowStorageService.refreshWorkflowConnections:
     // 1. If this operation involves reading a document before updating, ensure the initial read uses .lean().
-    // 2. If the service method returns the updated document, consider using { new: true, lean: true }
+    // 2. If the service method returns the updated document, use { new: true, lean: true }
     //    in the Mongoose update query.
-    // 3. Recommend indexes on the Workflow model for efficient lookup:
-    //    - { _id: 1, userId: 1 } (if workflowId maps to _id) or { workflowId: 1, userId: 1 }
+    // 3. Implement an index on the Workflow model for efficient lookup:
+    //    - { _id: 1, userId: 1 } (assuming workflowId maps to _id)
     const result = await workflowStorageService.refreshWorkflowConnections(
       workflowId,
       userId
@@ -514,12 +519,12 @@ const prepareWorkflowForExecutionController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.prepareWorkflowForExecution:
+    // Optimization Recommendations for workflowStorageService.prepareWorkflowForExecution:
     // 1. If this operation involves reading a document before updating, ensure the initial read uses .lean().
-    // 2. If the service method returns the updated document, consider using { new: true, lean: true }
+    // 2. If the service method returns the updated document, use { new: true, lean: true }
     //    in the Mongoose update query.
-    // 3. Recommend indexes on the Workflow model for efficient lookup:
-    //    - { _id: 1, userId: 1 } (if workflowId maps to _id) or { workflowId: 1, userId: 1 }
+    // 3. Implement an index on the Workflow model for efficient lookup:
+    //    - { _id: 1, userId: 1 } (assuming workflowId maps to _id)
     const result = await workflowStorageService.prepareWorkflowForExecution(
       workflowId,
       userId
@@ -564,12 +569,13 @@ const getWorkflowStatisticsController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Optimization Suggestion for workflowStorageService.getWorkflowStatistics:
+    // Optimization Recommendations for workflowStorageService.getWorkflowStatistics:
     // 1. If this operation involves aggregation or multiple read queries, ensure .lean() is used
     //    for any intermediate find operations that return Mongoose documents.
-    // 2. Recommend indexes on the Workflow model for efficient aggregation:
+    // 2. Implement indexes on the Workflow model for efficient aggregation:
     //    - { userId: 1 } (crucial for filtering statistics by user)
     //    - Additional indexes on fields used in aggregation groups or sorts (e.g., { userId: 1, category: 1 })
+    //      can significantly improve performance.
     const result = await workflowStorageService.getWorkflowStatistics(userId);
 
     if (result.success) {
