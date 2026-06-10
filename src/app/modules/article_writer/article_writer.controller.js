@@ -122,6 +122,16 @@ import ConversationModel from '../conversations/conversation.model.js'; // Assum
  *               type: string
  *               example: Failed to generate article
  */
+
+/**
+ * Handles conversational article writing requests.
+ * Supports guest and authenticated users, checks subscription limits, processes file uploads,
+ * and invokes the article writer service to generate content.
+ *
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   console.log('Is Guest:', isGuest);
@@ -319,6 +329,14 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
  *             message:
  *               type: string
  *               example: Failed to fetch conversation history
+ */
+
+/**
+ * Retrieves the history of a specific article writing conversation.
+ *
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
