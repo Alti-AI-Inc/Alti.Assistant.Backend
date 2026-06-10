@@ -90,6 +90,12 @@ export async function downloadAndArchiveActivity(datasetId) {
 
     await DatasetsService.archiveDatasetToGCSCore(datasetId, dataset);
     
+    // BUG FIX: After successful archival, the dataset object's properties (like sizeBytes, gcsPaths)
+    // are updated in memory by archiveDatasetToGCSCore. These changes must be persisted to the database.
+    // Also, update the dataset status to reflect successful archival.
+    dataset.status = 'archived'; // Set status to indicate successful archival
+    await dataset.save(); // Persist the updated dataset object to the database
+    
     return {
       success: true,
       datasetId,
@@ -117,7 +123,17 @@ export async function indexRAGActivity(datasetId) {
     if (!dataset) {
       throw new Error(`Dataset ${datasetId} not found in catalog.`);
     }
+    // Optionally, update status to 'indexing' before starting, if not already handled by previous activity
+    // dataset.status = 'indexing';
+    // await dataset.save(); // Persist 'indexing' status
+
     await DatasetsService.indexDatasetForRAGCore(datasetId, dataset);
+    
+    // BUG FIX: After successful indexing, the dataset object's status should be updated
+    // and persisted to the database. Assuming indexDatasetForRAGCore updates the dataset object by reference.
+    dataset.status = 'indexed'; // Set status to indicate successful indexing
+    await dataset.save(); // Persist the updated dataset object to the database
+
     return {
       success: true,
       datasetId,
