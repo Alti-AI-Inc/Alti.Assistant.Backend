@@ -20,32 +20,67 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * It uses a Generative AI model to process the idea and provide a structured JSON analysis.
  *
  * @param {string} ideaText - The raw text of the user's idea.
- * @param {object} [contextData={}] - Optional context data, such as previous conversation messages.
- * @param {Array<object>} [contextData.previousMessages] - An array of previous message objects in the conversation, each with `role` and `parts` properties.
+ * @param {object} [contextData={}] - Optional context data, such as previous conversation messages, user context, and tenant/workspace details.
+ * @param {Array<object>} [contextData.previousMessages] - An array of previous message objects in the conversation.
+ * @param {object} [contextData.user] - The user object containing id, role, tenantId, workspaceId, managerId, and email.
+ * @param {string} [contextData.tenantId] - The target tenant ID for context validation.
+ * @param {string} [contextData.workspaceId] - The target workspace ID for context validation.
+ * @param {function} [contextData.usageLimitCheck] - Optional function to check usage limits.
+ * @param {function} [contextData.propagateUsage] - Optional function to propagate usage details.
+ * @param {function} [contextData.notifyHierarchy] - Optional function to send notifications up the hierarchy.
  * @returns {Promise<object>} A promise that resolves to a structured analysis object in JSON format.
- * @throws {Error} If the AI model fails to generate content or if the response cannot be parsed into valid JSON.
- *
- * @example
- * const idea = "I want to build an e-commerce platform for handmade jewelry.";
- * const analysis = await analyzeIdea(idea);
- * console.log(analysis);
- * // Expected output structure:
- * // {
- * //   "clarity_score": 0.85,
- * //   "plan_type": "startup_plan",
- * //   "complexity": "moderate",
- * //   "domains": ["technical", "business", "marketing", "design"],
- * //   "key_concepts": ["e-commerce", "handmade jewelry", "online store"],
- * //   "missing_information": ["target audience", "budget", "timeline"],
- * //   "clarifying_questions": ["Who is your target audience?", "What is your estimated budget?", "Do you have a preferred timeline?"],
- * //   "estimated_timeline": "3-6 months",
- * //   "readiness_for_planning": "needs_minor_clarification",
- * //   "summary": "An idea for an e-commerce platform selling handmade jewelry, requiring further details on target audience and resources."
- * // }
+ * @throws {Error} If validation fails, the AI model fails to generate content, or if the response cannot be parsed.
  */
 export const analyzeIdea = async (ideaText, contextData = {}) => {
   try {
     logger.info('Analyzing idea:', { ideaLength: ideaText.length });
+
+    // CRITICAL INTEGRATION: Validate tenant context and user roles
+    const { user, tenantId, workspaceId, usageLimitCheck } = contextData;
+
+    if (!user || !user.role || !tenantId) {
+      logger.error('Security Violation: Missing user context or tenant ID');
+      throw new Error('Unauthorized: Tenant context and user role validation failed.');
+    }
+
+    const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+    if (!validRoles.includes(user.role)) {
+      logger.error('Security Violation: Invalid user role', { role: user.role });
+      throw new Error('Forbidden: Invalid user role.');
+    }
+
+    // Respect tenant context boundaries
+    if (user.role !== 'super_admin' && user.tenantId !== tenantId) {
+      logger.error('Security Violation: Tenant boundary violation', {
+        userTenantId: user.tenantId,
+        targetTenantId: tenantId,
+      });
+      throw new Error('Forbidden: Tenant boundary violation.');
+    }
+
+    // Respect workspace context boundaries for non-platform/non-workspace owners
+    if (
+      user.role !== 'super_admin' &&
+      user.role !== 'admin' &&
+      user.workspaceId &&
+      workspaceId &&
+      user.workspaceId !== workspaceId
+    ) {
+      logger.error('Security Violation: Workspace boundary violation', {
+        userWorkspaceId: user.workspaceId,
+        targetWorkspaceId: workspaceId,
+      });
+      throw new Error('Forbidden: Workspace boundary violation.');
+    }
+
+    // Check usage limits before proceeding with AI generation
+    if (usageLimitCheck) {
+      const hasLimit = await usageLimitCheck(tenantId, workspaceId, user);
+      if (!hasLimit) {
+        logger.warn('Usage limit exceeded for tenant/workspace', { tenantId, workspaceId });
+        throw new Error('PaymentRequired: AI analysis limit exceeded for this workspace.');
+      }
+    }
 
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -113,6 +148,38 @@ Only return valid JSON, no additional text.`;
       logger.error('JSON parse error:', parseError.message);
       logger.error('Attempted to parse:', jsonString.substring(0, 500));
       throw new Error('Failed to parse JSON from analysis');
+    }
+
+    // Propagate usage details, limits, and notifications up to managers and administrators
+    const usageDetails = {
+      userId: user.id,
+      role: user.role,
+      managerId: user.managerId,
+      tenantId,
+      workspaceId,
+      action: 'idea_analysis',
+      timestamp: new Date(),
+      details: {
+        ideaLength: ideaText.length,
+        model: PLAN_GENERATOR_CONFIG.MODEL,
+      },
+    };
+
+    logger.info('Propagating usage details to administrators and managers:', usageDetails);
+
+    if (contextData.propagateUsage) {
+      await contextData.propagateUsage(usageDetails);
+    }
+
+    if (contextData.notifyHierarchy) {
+      await contextData.notifyHierarchy({
+        recipientRoles: ['super_admin', 'admin', 'manager'],
+        managerId: user.managerId,
+        tenantId,
+        workspaceId,
+        message: `User ${user.email || user.id} performed an idea analysis.`,
+        type: 'USAGE_ALERT',
+      });
     }
 
     logger.info('Idea analysis completed:', {
@@ -205,26 +272,6 @@ export const generateClarifyingQuestions = (analysis) => {
  * @param {string|number} [userConstraints.teamSize] - User-specified team size.
  * @param {Array<string>} [userConstraints.resources] - User-specified resources.
  * @returns {object} An object containing extracted requirements and constraints.
- *
- * @example
- * const requirements = extractRequirements(
- *   "Build a mobile app",
- *   { plan_type: "project_plan", complexity: "moderate", domains: ["technical"], estimated_timeline: "3 months" },
- *   { budget: "$50,000", teamSize: "5" }
- * );
- * // Expected output structure:
- * // {
- * //   planType: "project_plan",
- * //   complexity: "moderate",
- * //   domains: ["technical"],
- * //   timeline: "3 months",
- * //   budget: "$50,000",
- * //   teamSize: "5",
- * //   resources: [],
- * //   keyConcepts: [],
- * //   objectives: [],
- * //   constraints: []
- * // }
  */
 export const extractRequirements = (
   ideaText,
@@ -261,27 +308,6 @@ export const extractRequirements = (
  * @param {object} [constraints={}] - Additional constraints, such as budget.
  * @param {number|string} [constraints.budget] - The estimated or specified budget for the idea.
  * @returns {object} An object detailing the feasibility assessment.
- *
- * @example
- * const feasibility = assessFeasibility(
- *   { complexity: "complex", domains: ["technical", "financial"] },
- *   { budget: 5000 }
- * );
- * // Expected output structure:
- * // {
- * //   overall_score: 0.55,
- * //   technical_feasibility: 0.7,
- * //   financial_feasibility: 0.4,
- * //   timeline_feasibility: 0.7,
- * //   resource_feasibility: 0.5,
- * //   concerns: [
- * //     "Enterprise-level complexity requires significant resources and time",
- * //     "Budget may be insufficient for the complexity level"
- * //   ],
- * //   recommendations: [
- * //     "Consider building a diverse team with expertise in multiple domains"
- * //   ]
- * // }
  */
 export const assessFeasibility = (analysis, constraints = {}) => {
   const feasibility = {
@@ -337,12 +363,6 @@ export const assessFeasibility = (analysis, constraints = {}) => {
  * @namespace ideaAnalyzer
  * @description A collection of services for analyzing user ideas, determining clarity,
  * generating clarifying questions, extracting requirements, and assessing feasibility.
- * This object bundles related functions for easy access and organization.
- * @property {function(string, object): Promise<object>} analyzeIdea - Analyzes a user's idea using AI.
- * @property {function(object): boolean} needsClarification - Checks if more information is needed from the user.
- * @property {function(object): Array<string>} generateClarifyingQuestions - Generates questions to clarify the idea.
- * @property {function(string, object, object): object} extractRequirements - Extracts key requirements and constraints.
- * @property {function(object, object): object} assessFeasibility - Assesses the feasibility of the idea.
  */
 export const ideaAnalyzer = {
   analyzeIdea,

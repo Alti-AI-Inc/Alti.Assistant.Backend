@@ -11,6 +11,59 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
+ * Safely extracts and parses JSON from LLM responses, handling markdown blocks and trailing commas.
+ * @param {string} text - The raw text response from the model.
+ * @returns {any} The parsed JSON object or array.
+ * @throws {Error} If no valid JSON structure is found or parsing fails.
+ */
+const parseRobustJson = (text) => {
+  if (!text) {
+    throw new Error('Empty response received from model');
+  }
+
+  // Remove markdown code blocks if present
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON structure found in response');
+  }
+
+  const jsonStr = jsonMatch[0];
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch (firstError) {
+    // Attempt to clean trailing commas (common LLM syntax error)
+    try {
+      const cleanedJsonStr = jsonStr
+        .replace(/,\s*([\]}])/g, '$1') // remove trailing commas before closing brackets/braces
+        .replace(/[\u201C\u201D]/g, '"'); // replace smart quotes with standard double quotes
+      return JSON.parse(cleanedJsonStr);
+    } catch (secondError) {
+      logger.error('Failed to parse JSON even after cleaning:', {
+        originalError: firstError.message,
+        cleaningError: secondError.message,
+        textSnippet: text.substring(0, 200),
+      });
+      throw new Error(`JSON parsing failed: ${firstError.message}`);
+    }
+  }
+};
+
+/**
+ * Logs token usage metrics from the Gemini response metadata.
+ * @param {object} response - The Gemini response object.
+ * @param {string} action - The name of the action being performed.
+ */
+const logUsage = (response, action) => {
+  if (response && response.usageMetadata) {
+    logger.info(`Gemini token usage for ${action}:`, response.usageMetadata);
+  }
+};
+
+/**
  * Refines a specific section of a given plan based on a refinement request using a generative AI model.
  * The AI attempts to update the specified section while maintaining its original JSON structure.
  *
@@ -67,15 +120,10 @@ Please refine this section based on the request. Return the updated section in t
     });
 
     const response = result.response;
+    logUsage(response, `refineSection (${section})`);
     const refinedText = response.text();
 
-    // Extract JSON from response
-    const jsonMatch = refinedText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('Failed to extract JSON from refinement');
-    }
-
-    const refinedSection = JSON.parse(jsonMatch[0]);
+    const refinedSection = parseRobustJson(refinedText);
 
     logger.info('Section refined successfully:', { section });
 
@@ -129,15 +177,10 @@ Return the complete updated plan in the same JSON structure. Only return valid J
     });
 
     const response = result.response;
+    logUsage(response, 'adjustForConstraints');
     const adjustedText = response.text();
 
-    // Extract JSON from response
-    const jsonMatch = adjustedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to extract JSON from adjusted plan');
-    }
-
-    const adjustedPlan = JSON.parse(jsonMatch[0]);
+    const adjustedPlan = parseRobustJson(adjustedText);
 
     logger.info('Plan adjusted successfully');
 
@@ -191,23 +234,21 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const response = result.response;
+    logUsage(response, 'addAlternatives');
+    const responseText = response.text();
 
-    // Bug fix: Ensure that if JSON is parsed, it actually contains the 'alternatives' array.
-    // If not, or if parsing fails, return an empty array as per JSDoc.
-    if (jsonMatch) {
-      try {
-        const parsedResponse = JSON.parse(jsonMatch[0]);
-        if (parsedResponse && Array.isArray(parsedResponse.alternatives)) {
-          return parsedResponse.alternatives;
-        }
-      } catch (parseError) {
-        logger.error('Failed to parse JSON for alternatives or invalid structure:', parseError);
-        // Fall through to return []
+    try {
+      const parsedResponse = parseRobustJson(responseText);
+      if (parsedResponse && Array.isArray(parsedResponse.alternatives)) {
+        return parsedResponse.alternatives;
+      } else if (Array.isArray(parsedResponse)) {
+        return parsedResponse;
       }
+    } catch (parseError) {
+      logger.error('Failed to parse JSON for alternatives or invalid structure:', parseError);
     }
-    return []; // Return empty array on no match, parse error, or invalid structure
+    return [];
   } catch (error) {
     logger.error('Error adding alternatives:', error);
     return [];
@@ -250,23 +291,21 @@ Return optimized phases in same JSON format.`;
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    const response = result.response;
+    logUsage(response, 'optimizeTimeline');
+    const responseText = response.text();
 
-    // Bug fix: Ensure that if JSON is parsed, it is an array as expected for phases.
-    // If not, or if parsing fails, return the original phases array as per JSDoc.
-    if (jsonMatch) {
-      try {
-        const parsedResponse = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsedResponse)) {
-          return parsedResponse;
-        }
-      } catch (parseError) {
-        logger.error('Failed to parse JSON for optimized timeline or invalid structure:', parseError);
-        // Fall through to return plan.phases
+    try {
+      const parsedResponse = parseRobustJson(responseText);
+      if (Array.isArray(parsedResponse)) {
+        return parsedResponse;
+      } else if (parsedResponse && Array.isArray(parsedResponse.phases)) {
+        return parsedResponse.phases;
       }
+    } catch (parseError) {
+      logger.error('Failed to parse JSON for optimized timeline or invalid structure:', parseError);
     }
-    return plan.phases; // Return original phases on no match, parse error, or invalid structure
+    return plan.phases;
   } catch (error) {
     logger.error('Error optimizing timeline:', error);
     return plan.phases;
@@ -303,10 +342,20 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const response = result.response;
+    logUsage(response, 'optimizeBudget');
+    const responseText = response.text();
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : plan.resources;
+    try {
+      const parsedResponse = parseRobustJson(responseText);
+      if (parsedResponse && parsedResponse.resources) {
+        return parsedResponse.resources;
+      }
+      return parsedResponse || plan.resources;
+    } catch (parseError) {
+      logger.error('Failed to parse JSON for optimized budget:', parseError);
+      return plan.resources;
+    }
   } catch (error) {
     logger.error('Error optimizing budget:', error);
     return plan.resources;
@@ -347,10 +396,20 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    const response = result.response;
+    logUsage(response, `expandSection (${section})`);
+    const responseText = response.text();
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : plan[section];
+    try {
+      const parsedResponse = parseRobustJson(responseText);
+      if (parsedResponse && parsedResponse[section]) {
+        return parsedResponse[section];
+      }
+      return parsedResponse || plan[section];
+    } catch (parseError) {
+      logger.error('Failed to parse JSON for expanded section:', parseError);
+      return plan[section];
+    }
   } catch (error) {
     logger.error('Error expanding section:', error);
     return plan[section];
@@ -385,10 +444,16 @@ Keep all essential information but make it more accessible. Return in same JSON 
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const response = result.response;
+    logUsage(response, 'simplifyPlan');
+    const responseText = response.text();
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : plan;
+    try {
+      return parseRobustJson(responseText);
+    } catch (parseError) {
+      logger.error('Failed to parse JSON for simplified plan:', parseError);
+      return plan;
+    }
   } catch (error) {
     logger.error('Error simplifying plan:', error);
     return plan;
@@ -439,15 +504,10 @@ Apply this feedback to improve the plan. Consider what the user is asking for an
     });
 
     const response = result.response;
+    logUsage(response, 'applyFeedback');
     const improvedText = response.text();
 
-    // Extract JSON from response
-    const jsonMatch = improvedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to extract JSON from improved plan');
-    }
-
-    const improvedPlan = JSON.parse(jsonMatch[0]);
+    const improvedPlan = parseRobustJson(improvedText);
 
     logger.info('Feedback applied successfully');
 

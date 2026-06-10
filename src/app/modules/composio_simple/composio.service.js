@@ -57,28 +57,34 @@ export const executeUserRequest = async (
   scopedApp = null // Added for scoped app execution
 ) => {
   const startTime = Date.now();
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeUserId = String(userId);
+  const safeConversationId = conversationId ? String(conversationId) : null;
+  const safeScopedApp = scopedApp ? String(scopedApp) : null;
+  const safeUserMessage = String(userMessage);
+
   try {
     const conversationContext =
-      await countTokenFromConversationAndProvideContext(conversationId);
+      await countTokenFromConversationAndProvideContext(safeConversationId);
     let history = [];
     let appList = [];
     let toolKits = {};
     console.log('Conversation Context:', conversationContext.needSummarization);
 
-    if (scopedApp) {
+    if (safeScopedApp) {
       // Directly lock execution to the selected app, bypassing LLM app identification
-      appList = [scopedApp];
-      toolKits = { [scopedApp]: 'latest' };
-      console.log('Isolated App Scoping Enabled:', scopedApp);
+      appList = [safeScopedApp];
+      toolKits = { [safeScopedApp]: 'latest' };
+      console.log('Isolated App Scoping Enabled:', safeScopedApp);
     } else {
       if (conversationContext.needSummarization) {
         history = conversationContext.summary;
-        const appInfo = await findAppropriateApp(userMessage, [], history);
+        const appInfo = await findAppropriateApp(safeUserMessage, [], history);
         appList = appInfo.appList;
         toolKits = appInfo.toolKitVersions;
       } else {
         history = conversationContext.conversation;
-        const appInfo = await findAppropriateApp(userMessage, history);
+        const appInfo = await findAppropriateApp(safeUserMessage, history);
         appList = appInfo.appList;
         toolKits = appInfo.toolKitVersions;
       }
@@ -87,7 +93,7 @@ export const executeUserRequest = async (
     // BUG FIX: The original logic for filtering appList based on connected accounts was overwriting
     // the LLM-identified appList. This revised logic ensures that appList and toolKits
     // only contain apps that were both identified/scoped AND for which the user has an active connection.
-    const identifiedAppSlugs = appList.map(a => a.toLowerCase());
+    const identifiedAppSlugs = appList.map(a => String(a).toLowerCase());
     // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
     // reducing Mongoose overhead.
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
@@ -95,7 +101,7 @@ export const executeUserRequest = async (
     // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
     // is frequently used and highly selective.
     const connectedAuths = await ComposioAuth.find({
-      userId,
+      userId: safeUserId,
       status: 'ACTIVE',
       $or: [
         { 'toolkit.slug': { $in: identifiedAppSlugs } },
@@ -144,12 +150,12 @@ export const executeUserRequest = async (
     // Ensure the correct context (summary or full conversation) is passed as the second argument.
     if (conversationContext.needSummarization) {
       conciseUserMessage = await generateUserMessasgeFromContext(
-        userMessage,
+        safeUserMessage,
         conversationContext.summary // Use summary as context
       );
     } else {
       conciseUserMessage = await generateUserMessasgeFromContext(
-        userMessage,
+        safeUserMessage,
         conversationContext.conversation // Use full conversation as context
       );
     }
@@ -167,18 +173,18 @@ export const executeUserRequest = async (
       conciseUserMessage,
       toolsData,
       toolKits,
-      userId
+      safeUserId
     );
     if (result?.results[0]) {
       // Indexing Recommendation: Consider a compound index on `{ conversationId: 1, userId: 1 }`
       // for the Conversation model to optimize this update operation.
       await Conversation.updateOne(
-        { conversationId, userId },
+        { conversationId: safeConversationId, userId: safeUserId },
         { $set: { messages: [] } }
       );
       // Indexing Recommendation: Consider a compound index on `{ conversationId: 1, userId: 1 }`
       // for the ConversationSummary model to optimize this delete operation.
-      await ConversationSummary.deleteOne({ conversationId, userId });
+      await ConversationSummary.deleteOne({ conversationId: safeConversationId, userId: safeUserId });
     }
     return {
       success: true,
@@ -186,7 +192,7 @@ export const executeUserRequest = async (
         response: result?.results[0]
           ? 'The action has been completed successfully.'
           : result?.response?.candidates[0]?.content?.parts[0]?.text.trim(),
-        conversationId,
+        conversationId: safeConversationId,
         // BUG FIX: Populate toolsUsed array from the result of generateAndExecuteTools.
         toolsUsed: result?.toolsUsed || [],
         executionTime: `${Date.now() - startTime}ms`,
@@ -212,12 +218,16 @@ export const executeUserRequest = async (
  * @returns {Array<object> | string} returns.conversation | returns.summary - The full conversation messages or a summarized version.
  */
 const countTokenFromConversationAndProvideContext = async (conversationId) => {
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeConversationId = conversationId ? String(conversationId) : null;
+  if (!safeConversationId) return { needSummarization: false, conversation: [] };
+
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
   // reducing Mongoose overhead.
   // Indexing Recommendation: Consider an index on `{ conversationId: 1 }`
   // for the Conversation model to optimize this find operation.
   const conversation = await Conversation.findOne({
-    conversationId: conversationId,
+    conversationId: safeConversationId,
   }).lean(); // Added .lean()
   if (!conversation) return { needSummarization: false, conversation: [] };
   let totalTokens = 0;
@@ -235,7 +245,7 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
     return {
       needSummarization: true,
       tokenCount: totalTokens,
-      summary: await getConversationWithContext(conversationId, totalTokens),
+      summary: await getConversationWithContext(safeConversationId, totalTokens),
     };
   } else {
     return {
@@ -263,17 +273,21 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
  * @security Multi-tenant Isolation: Scoped to the provided `userId` to prevent cross-tenant account linking.
  */
 export const initiateAuth = async (appName, userId) => {
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeAppName = String(appName);
+  const safeUserId = String(userId);
+
   try {
     // Indexing Recommendation: Consider an index on `{ app: 1 }`
     // for the AuthConfig model to optimize this find operation.
     // Optimization: Removed .lean() as the document might be modified and saved later.
-    let authConfig = await AuthConfig.findOne({ app: appName }); // Fetch as Mongoose document directly
+    let authConfig = await AuthConfig.findOne({ app: safeAppName }); // Fetch as Mongoose document directly
 
     if (!authConfig) { // If not found, authConfig will be null
-      console.log(`AuthConfig for ${appName} not found in DB. Proactively creating default...`);
+      console.log(`AuthConfig for ${safeAppName} not found in DB. Proactively creating default...`);
       authConfig = new AuthConfig({ // Create new Mongoose document
-        app: appName,
-        authConfigId: `ac_${appName}`,
+        app: safeAppName,
+        authConfigId: `ac_${safeAppName}`,
         isComposioManaged: true,
       });
       await authConfig.save();
@@ -282,31 +296,31 @@ export const initiateAuth = async (appName, userId) => {
     let connectionUrl;
     try {
       connectionUrl = await composio.connectedAccounts.initiate(
-        userId,
+        safeUserId,
         authConfig.authConfigId // Use the Mongoose document's authConfigId
       );
     } catch (initiateError) {
-      console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${appName}...`);
+      console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${safeAppName}...`);
       
       // Fallback: use appName directly as authConfigId
       connectionUrl = await composio.connectedAccounts.initiate(
-        userId,
-        appName
+        safeUserId,
+        safeAppName
       );
       
       // Persist the corrected config ID in database
-      authConfig.authConfigId = appName; // Modify the Mongoose document
+      authConfig.authConfigId = safeAppName; // Modify the Mongoose document
       await authConfig.save(); // Save the Mongoose document
     }
 
     const composioAuth = new ComposioAuth({
-      userId,
+      userId: safeUserId,
       authConfigId: authConfig.authConfigId,
       connectedAccountId: connectionUrl.id,
       status: 'PENDING',
       integrationId: connectionUrl.integrationId,
       redirectUrl: connectionUrl.redirectUrl,
-      toolkit: { slug: appName },
+      toolkit: { slug: safeAppName },
     });
     await composioAuth.save();
     return { success: true, data: connectionUrl };
@@ -330,13 +344,16 @@ export const initiateAuth = async (appName, userId) => {
  * @security Multi-tenant Isolation: Updates are bound to the specific `connectedAccountId` which is mapped to a single user.
  */
 export const waitForConnection = async (connectedAccountId) => {
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeConnectedAccountId = String(connectedAccountId);
+
   try {
     const connection =
-      await composio.connectedAccounts.waitForConnection(connectedAccountId);
+      await composio.connectedAccounts.waitForConnection(safeConnectedAccountId);
     // Indexing Recommendation: Consider an index on `{ connectedAccountId: 1 }`
     // for the ComposioAuth model to optimize this update operation.
     await ComposioAuth.updateOne(
-      { connectedAccountId },
+      { connectedAccountId: safeConnectedAccountId },
       {
         status: (connection.data.status || 'ACTIVE').toUpperCase(),
         accessToken: connection.data.accessToken,
@@ -364,11 +381,14 @@ export const waitForConnection = async (connectedAccountId) => {
  * @security Multi-tenant Isolation: Restricts account retrieval strictly to the requesting `userId`.
  */
 export const getUserConnectedAccounts = async (userId) => {
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeUserId = String(userId);
+
   try {
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1, updatedAt: -1 }`
     // for the ComposioAuth model to optimize this query, covering both filtering and sorting.
     const accounts = await ComposioAuth.find({
-      userId,
+      userId: safeUserId,
       status: 'ACTIVE',
     }).sort({ updatedAt: -1 }).lean(); // Already uses .lean(), good.
     return { success: true, data: accounts };
@@ -393,6 +413,10 @@ export const getUserConnectedAccounts = async (userId) => {
  * @security Multi-tenant Isolation: Ensures a user can only disconnect apps belonging to their own `userId`.
  */
 export const disconnectApp = async (userId, appName) => {
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeUserId = String(userId);
+  const safeAppName = String(appName);
+
   try {
     // Optimization: Added .lean() for read-only query before deletion.
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
@@ -400,11 +424,11 @@ export const disconnectApp = async (userId, appName) => {
     // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
     // is frequently used and highly selective.
     const account = await ComposioAuth.findOne({
-      userId,
+      userId: safeUserId,
       $or: [
-        { 'toolkit.slug': appName.toLowerCase() },
-        { authConfigId: appName },
-        { authConfigId: `ac_${appName}` }
+        { 'toolkit.slug': safeAppName.toLowerCase() },
+        { authConfigId: safeAppName },
+        { authConfigId: `ac_${safeAppName}` }
       ],
       status: 'ACTIVE'
     }).lean(); // Added .lean()
@@ -426,7 +450,7 @@ export const disconnectApp = async (userId, appName) => {
     // Deleting by _id is efficient as _id is always indexed.
     await ComposioAuth.deleteOne({ _id: account._id });
 
-    return { success: true, message: `Successfully disconnected ${appName}` };
+    return { success: true, message: `Successfully disconnected ${safeAppName}` };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -456,22 +480,25 @@ export const disconnectApp = async (userId, appName) => {
  * @security Multi-tenant Isolation: Scoped to the provided `entityId` (acting as the tenant/user identifier).
  */
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
-  // BUG FIX: Added try-catch block for robustness in this exported function.
+  // SECURITY PATCH: Sanitize inputs to prevent NoSQL Injection
+  const safeQuery = String(query);
+  const safeEntityId = String(entityId);
   const startTime = Date.now();
+
   try {
     // BUG FIX: The third argument to findAppropriateApp should be a summary (array/string), not toolKits (an object).
     // Assuming 'apps' is intended to be the conversation history/context for app identification.
-    const appInfo = await findAppropriateApp(query, apps);
+    const appInfo = await findAppropriateApp(safeQuery, apps);
 
     // BUG FIX: Missing ComposioAuth check. This is a security vulnerability and functional bug.
     // Replicating the logic from executeUserRequest to ensure only connected apps are used.
-    const identifiedAppSlugs = appInfo.appList.map(a => a.toLowerCase());
+    const identifiedAppSlugs = appInfo.appList.map(a => String(a).toLowerCase());
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
     // for the ComposioAuth model to optimize this query. Additional indexes on
     // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
     // is frequently used and highly selective.
     const connectedAuths = await ComposioAuth.find({
-        userId: entityId, // Use entityId as userId for the auth check
+        userId: safeEntityId, // Use entityId as userId for the auth check
         status: 'ACTIVE',
         $or: [
             { 'toolkit.slug': { $in: identifiedAppSlugs } },
@@ -515,7 +542,7 @@ async function multiAppWorkflow(query, apps, toolKits, entityId) {
 
     // Get relevant tools from all identified apps using vector search
     const toolsData = await getVectorSearchResults(
-      query,
+      safeQuery,
       appInfo.appList.length * 5, // Use the filtered appInfo.appList
       appInfo.appList // Use the filtered appInfo.appList
     );
@@ -524,10 +551,10 @@ async function multiAppWorkflow(query, apps, toolKits, entityId) {
 
     // Generate and execute
     const result = await generateAndExecuteTools(
-      query,
+      safeQuery,
       toolsData,
       appInfo.toolKitVersions, // Use the filtered appInfo.toolKitVersions
-      entityId
+      safeEntityId
     );
     // Return a structured response similar to executeUserRequest
     return {
