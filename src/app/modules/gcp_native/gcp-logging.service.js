@@ -2,48 +2,59 @@ import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/logging.write']
-});
+// Use a single, memoized promise for the authenticated client to avoid re-authentication on every call.
+let clientPromise = null;
+const getAuthenticatedClient = () => {
+  if (!clientPromise) {
+    const auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/logging.write']
+    });
+    clientPromise = auth.getClient();
+  }
+  return clientPromise;
+};
 
 /**
- * Writes a structured log entry directly to Google Cloud Logging (Stackdriver).
+ * Writes a structured log entry directly to Google Cloud Logging using jsonPayload.
+ * This approach is preferred over textPayload for rich, queryable logs.
  * 
  * @param {string} logName - Name of the log container (e.g. "alti-activity-log")
- * @param {string} message - Content of the log entry text
- * @param {string} [severity] - Logging severity: 'DEFAULT', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL' (default 'INFO')
- * @param {object} [labels] - Key-value pair labels associated with the log entry
+ * @param {string} severity - Logging severity: 'DEFAULT', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL'
+ * @param {object} payload - The structured data object to be logged. Must be JSON-serializable.
  * @returns {Promise<object>} Log write report
  */
-const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) => {
+const writeLogEntry = async (logName, severity = 'INFO', payload = {}) => {
   try {
     const projectId = config?.google?.gcp_project_id || process.env.GCP_PROJECT_ID;
     if (!projectId) {
-      throw new Error('GCP Project ID is not configured.');
+      // For local development or environments without GCP, log to console and exit gracefully.
+      // This prevents errors when GCP is not configured, making the service more resilient.
+      logger.warn('GCP Project ID is not configured. Skipping Google Cloud Logging.', { logName, severity, payload });
+      return { success: false, reason: 'GCP_PROJECT_ID_MISSING', details: 'GCP Project ID is not configured.' };
     }
 
     logger.info(`Stackdriver Logging: Streaming entry into project "${projectId}", log "${logName}" [Severity: ${severity}]...`);
 
-    const client = await auth.getClient();
+    const client = await getAuthenticatedClient();
     const endpoint = 'https://logging.googleapis.com/v2/entries:write';
-
     const formattedLogName = `projects/${projectId}/logs/${logName}`;
 
     // GCP Logging API strictly requires all label values to be strings.
-    // We sanitize the labels to prevent 400 Bad Request errors when non-string values are passed.
-    const sanitizedLabels = {};
-    const rawLabels = {
-      environment: config?.env || 'development',
-      ...labels
+    // We promote specific, high-cardinality payload keys to labels for efficient filtering and sanitize them.
+    const labels = {
+      environment: config?.env || 'development'
     };
-
-    for (const [key, value] of Object.entries(rawLabels)) {
-      if (value === null || value === undefined) {
-        sanitizedLabels[key] = '';
-      } else if (typeof value === 'object') {
-        sanitizedLabels[key] = JSON.stringify(value);
-      } else {
-        sanitizedLabels[key] = String(value);
+    
+    const labelKeys = ['workspaceId', 'adminUserId', 'eventType', 'limitType', 'action', 'status', 'plan'];
+    for (const key of labelKeys) {
+      if (payload.hasOwnProperty(key)) {
+        const value = payload[key];
+        if (value === null || value === undefined) {
+          labels[key] = '';
+        } else {
+          // Objects in labels are not useful; stringify them if necessary, though primitive values are preferred.
+          labels[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        }
       }
     }
 
@@ -55,11 +66,13 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
           {
             logName: formattedLogName,
             resource: {
+              // Using 'global' is a safe default. If running in a specific GCP environment (e.g., Cloud Run),
+              // this could be dynamically set to a more specific resource type for better context.
               type: 'global'
             },
-            textPayload: message,
+            jsonPayload: payload, // Use the full object as the JSON payload for rich, structured logging.
             severity,
-            labels: sanitizedLabels,
+            labels,
             timestamp: new Date().toISOString()
           }
         ]
@@ -70,11 +83,15 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
       success: true,
       logName: formattedLogName,
       severity,
-      message,
-      labels: sanitizedLabels
+      payload
     };
   } catch (err) {
-    logger.error('Stackdriver Logging Error:', err);
+    // Log the detailed error but throw a more generic one to the caller.
+    logger.error('Stackdriver Logging Error:', {
+      message: err.message,
+      stack: err.stack,
+      response: err.response?.data
+    });
     throw new Error(`Cloud Logging failed: ${err.message}`);
   }
 };
@@ -89,14 +106,15 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
  * @returns {Promise<object>} Log write report
  */
 const logBillingEvent = async (workspaceId, adminUserId, action, details = {}) => {
-  const message = `Billing Event [${action}] by Admin ${adminUserId} for Workspace ${workspaceId}`;
-  return writeLogEntry('alti-billing-audit-log', message, 'INFO', {
+  const payload = {
+    message: `Billing Event [${action}] by Admin ${adminUserId} for Workspace ${workspaceId}`,
     workspaceId,
     adminUserId,
     action,
     eventType: 'billing',
-    ...details
-  });
+    details
+  };
+  return writeLogEntry('alti-billing-audit-log', 'INFO', payload);
 };
 
 /**
@@ -111,16 +129,17 @@ const logBillingEvent = async (workspaceId, adminUserId, action, details = {}) =
  * @returns {Promise<object>} Log write report
  */
 const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stripeSubscriptionId, details = {}) => {
-  const message = `Subscription updated to plan "${plan}" (Status: ${status}) for Workspace ${workspaceId}`;
-  return writeLogEntry('alti-subscription-audit-log', message, 'NOTICE', {
+  const payload = {
+    message: `Subscription updated to plan "${plan}" (Status: ${status}) for Workspace ${workspaceId}`,
     workspaceId,
     adminUserId,
     plan,
     status,
     stripeSubscriptionId,
     eventType: 'subscription',
-    ...details
-  });
+    details
+  };
+  return writeLogEntry('alti-subscription-audit-log', 'NOTICE', payload);
 };
 
 /**
@@ -128,23 +147,24 @@ const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stri
  * 
  * @param {string} workspaceId - The ID of the workspace
  * @param {string} adminUserId - The ID of the admin performing the update
- * @param {object} [oldData] - Previous configuration
- * @param {object} [newData] - Updated configuration
+ * @param {object} [oldData] - Previous configuration state
+ * @param {object} [newData] - Updated configuration state
  * @param {object} [details] - Additional metadata
  * @returns {Promise<object>} Log write report
  */
 const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, newData = {}, details = {}) => {
-  const message = `Workspace ${workspaceId} configuration updated by Admin ${adminUserId}`;
-  return writeLogEntry('alti-workspace-audit-log', message, 'INFO', {
+  const payload = {
+    message: `Workspace ${workspaceId} configuration updated by Admin ${adminUserId}`,
     workspaceId,
     adminUserId,
-    oldSlug: oldData.slug || '',
-    newSlug: newData.slug || '',
-    oldName: oldData.name || '',
-    newName: newData.name || '',
     eventType: 'workspace_update',
-    ...details
-  });
+    change: {
+      from: oldData,
+      to: newData
+    },
+    details
+  };
+  return writeLogEntry('alti-workspace-audit-log', 'INFO', payload);
 };
 
 /**
@@ -158,15 +178,18 @@ const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, n
  * @returns {Promise<object>} Log write report
  */
 const logLimitBreachEvent = async (workspaceId, limitType, currentUsage, maxLimit, details = {}) => {
-  const message = `Workspace ${workspaceId} breached limit for ${limitType} (${currentUsage}/${maxLimit})`;
-  return writeLogEntry('alti-limits-audit-log', message, 'WARNING', {
+  const payload = {
+    message: `Workspace ${workspaceId} breached limit for ${limitType} (${currentUsage}/${maxLimit})`,
     workspaceId,
     limitType,
-    currentUsage: String(currentUsage),
-    maxLimit: String(maxLimit),
     eventType: 'limit_breach',
-    ...details
-  });
+    usage: {
+      current: currentUsage,
+      limit: maxLimit
+    },
+    details
+  };
+  return writeLogEntry('alti-limits-audit-log', 'WARNING', payload);
 };
 
 export const GcpLoggingService = {
