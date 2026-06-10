@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { PubSub } from '@google-cloud/pubsub';
 import UserModel from '../auth/auth.model.js';
 import Notification from './notification.model.js';
 import { logger } from '../../../shared/logger.js';
@@ -7,20 +8,44 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 
+// Initialize GCP Pub/Sub client
+// Ensure your environment is authenticated, e.g., via GOOGLE_APPLICATION_CREDENTIALS
+const pubSubClient = new PubSub();
+
+// It's best practice to use environment variables for topic names
+const NOTIFICATION_FANOUT_TOPIC = process.env.NOTIFICATION_FANOUT_TOPIC || 'notification-fanout';
+const NOTIFICATION_DELETE_ALL_TOPIC = process.env.NOTIFICATION_DELETE_ALL_TOPIC || 'notification-delete-all';
+
 const sendNotificationService = async (data, req = null) => {
-  // 1. Create the Notification first
+  // 1. Create the Notification first. This remains synchronous to provide immediate feedback.
   const newNotification = await Notification.create(
     req ? withTenantContext(req, data) : data
   );
 
-  // 2. Push this notification to every user in the same tenant
-  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
-  const userFilter = req ? withTenantFilter(req, {}) : {};
-  await UserModel.updateMany(
-    userFilter, // filter users by tenant
-    { $push: { notifications: newNotification._id } } // 👈 push notification id into notifications array
-  );
+  // 2. Offload the fan-out operation to a background worker via Pub/Sub.
+  // This avoids blocking the request while updating potentially millions of user documents.
+  // A separate worker (e.g., Cloud Function) will subscribe to this topic
+  // and perform the UserModel.updateMany operation.
+  if (req && req.tenantId) {
+    const message = {
+      notificationId: newNotification._id.toString(),
+      tenantId: req.tenantId.toString(),
+    };
+    const dataBuffer = Buffer.from(JSON.stringify(message));
 
+    try {
+      await pubSubClient.topic(NOTIFICATION_FANOUT_TOPIC).publishMessage({ data: dataBuffer });
+      logger.info(`Fan-out task for notification ${newNotification._id} published to topic ${NOTIFICATION_FANOUT_TOPIC}.`);
+    } catch (error) {
+      logger.error(`Failed to publish fan-out task for notification ${newNotification._id}:`, error);
+      // Depending on business requirements, you might want to handle this failure,
+      // e.g., by scheduling a retry or logging for manual intervention.
+    }
+  } else {
+    logger.warn('sendNotificationService called without a request context (tenantId). Fan-out will not occur.');
+  }
+
+  // Return the created notification immediately. The fan-out happens in the background.
   return newNotification;
 };
 
@@ -41,8 +66,8 @@ const sendNotificationByIdService = async (userId, data, req = null) => {
   const newNotification = await Notification.create(
     req ? withTenantContext(req, notificationData) : notificationData
   );
-  // 2. Push this notification to specific user
-  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
+  // 2. Push this notification to a specific user.
+  // This is a fast, targeted update and does not need to be offloaded.
   const userQuery = { _id: userId };
   await UserModel.updateOne(
     req ? withTenantFilter(req, userQuery) : userQuery,
@@ -94,38 +119,33 @@ const deleteNotificationByIdService = async (notificationId, req = null) => {
 };
 
 const deleteAllNotificationService = async (req = null) => {
-  const session = await mongoose.startSession();
+  // This is a long-running, destructive operation. It should not be handled synchronously in a request.
+  // We offload it to a background worker by publishing a message to Pub/Sub.
+  // The API endpoint should return a 202 Accepted response immediately.
+  // A separate worker will subscribe to this topic and perform the transactional delete.
+  if (req && req.tenantId) {
+    const message = {
+      tenantId: req.tenantId.toString(),
+    };
+    const dataBuffer = Buffer.from(JSON.stringify(message));
 
-  try {
-    // Start a transaction
-    session.startTransaction();
-
-    // Step 1: Delete all notifications from the Notification collection (tenant-filtered)
-    // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
-    const notificationQuery = req ? withTenantFilter(req, {}) : {};
-    await Notification.deleteMany(notificationQuery, { session });
-
-    // Step 2: Remove all references to notifications from the User collection (tenant-filtered)
-    // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
-    const userQuery = req ? withTenantFilter(req, {}) : {};
-    await UserModel.updateMany(
-      userQuery,
-      { $set: { notifications: [] } },
-      { session }
-    );
-
-    // Commit the transaction if everything goes fine
-    await session.commitTransaction();
-
-    logger.info('All notifications deleted successfully.');
-  } catch (error) {
-    // If any error occurs, abort the transaction to roll back all changes
-    await session.abortTransaction();
-
-    console.error('Error occurred during the transaction:', error);
-  } finally {
-    // End the session
-    session.endSession();
+    try {
+      const messageId = await pubSubClient.topic(NOTIFICATION_DELETE_ALL_TOPIC).publishMessage({ data: dataBuffer });
+      logger.info(`'Delete All Notifications' job for tenant ${req.tenantId} published with messageId ${messageId}.`);
+      // The function can return a job ID or a simple success message to the controller.
+      return {
+        message: 'Job to delete all notifications has been queued.',
+        tenantId: req.tenantId,
+        topic: NOTIFICATION_DELETE_ALL_TOPIC,
+      };
+    } catch (error) {
+      logger.error(`Failed to publish 'Delete All Notifications' job for tenant ${req.tenantId}:`, error);
+      // Throw an error to let the controller know the job could not be queued.
+      throw new Error('Failed to queue the delete all notifications job.');
+    }
+  } else {
+    logger.error('deleteAllNotificationService called without a request context (tenantId). Operation aborted.');
+    throw new Error('Tenant context is required to delete all notifications.');
   }
 };
 
