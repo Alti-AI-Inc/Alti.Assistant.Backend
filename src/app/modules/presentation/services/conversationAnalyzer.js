@@ -14,6 +14,8 @@ import {
 // Token limits and thresholds
 const MAX_TOKENS_FOR_CONTEXT = 6000; // Conservative limit for context (Gemini 2.0 Flash supports ~1M tokens)
 const SUMMARIZATION_THRESHOLD = 5000; // Trigger summarization at this token count
+const MAX_USER_MESSAGE_LENGTH = 20000; // Prevent abuse/excessive token usage from single prompt
+const MAX_HISTORY_MESSAGES = 15; // Keep history bounded to protect user session performance
 
 /**
  * AI-powered conversation analyzer for presentation generation
@@ -21,16 +23,21 @@ const SUMMARIZATION_THRESHOLD = 5000; // Trigger summarization at this token cou
  */
 class ConversationAnalyzer {
   constructor() {
+    const apiKey = config.gemini_secret_key;
+    if (!apiKey) {
+      logger.error('Gemini API key is missing in configuration');
+    }
+
     this.model = new ChatGoogleGenerativeAI({
       model: 'gemini-2.5-flash',
-      apiKey: config.gemini_secret_key,
+      apiKey: apiKey || 'dummy-key-to-prevent-crash',
       temperature: 0.3, // Lower temperature for more consistent parameter extraction
       maxOutputTokens: 2048,
     });
 
     this.summarizerModel = new ChatGoogleGenerativeAI({
       model: 'gemini-2.5-flash',
-      apiKey: config.gemini_secret_key,
+      apiKey: apiKey || 'dummy-key-to-prevent-crash',
       temperature: 0.5,
       maxOutputTokens: 1000,
     });
@@ -42,6 +49,7 @@ class ConversationAnalyzer {
    * @returns {number} - Estimated token count
    */
   _estimateTokens(text) {
+    if (typeof text !== 'string') return 0;
     return Math.ceil(text.length / 4);
   }
 
@@ -55,12 +63,18 @@ class ConversationAnalyzer {
     let totalTokens = 0;
 
     // Estimate tokens for conversation history
-    conversationHistory.forEach((msg) => {
-      totalTokens += this._estimateTokens(msg.content);
-    });
+    if (Array.isArray(conversationHistory)) {
+      conversationHistory.forEach((msg) => {
+        if (msg && msg.content) {
+          totalTokens += this._estimateTokens(msg.content);
+        }
+      });
+    }
 
     // Estimate tokens for parameters
-    totalTokens += this._estimateTokens(JSON.stringify(existingParams));
+    if (existingParams) {
+      totalTokens += this._estimateTokens(JSON.stringify(existingParams));
+    }
 
     // Add system prompt tokens (approximately 800 tokens)
     totalTokens += 800;
@@ -76,7 +90,16 @@ class ConversationAnalyzer {
    */
   async summarizeConversation(conversationHistory, existingParams) {
     try {
-      const conversationText = conversationHistory
+      if (!config.gemini_secret_key) {
+        throw new Error('Gemini API key is not configured.');
+      }
+
+      const safeHistory = Array.isArray(conversationHistory) 
+        ? conversationHistory.slice(-MAX_HISTORY_MESSAGES) 
+        : [];
+
+      const conversationText = safeHistory
+        .filter(msg => msg && msg.role && msg.content)
         .map((msg) => `${msg.role}: ${msg.content}`)
         .join('\n');
 
@@ -92,7 +115,7 @@ Conversation:
 ${conversationText}
 
 Parameters collected so far:
-${JSON.stringify(existingParams, null, 2)}
+${JSON.stringify(existingParams || {}, null, 2)}
 
 Provide a brief summary (max 200 words):`;
 
@@ -100,7 +123,7 @@ Provide a brief summary (max 200 words):`;
       const summary = response.content.trim();
 
       logger.info('Conversation summarized', {
-        originalMessages: conversationHistory.length,
+        originalMessages: safeHistory.length,
         summaryLength: summary.length,
         estimatedTokens: this._estimateTokens(summary),
       });
@@ -108,8 +131,8 @@ Provide a brief summary (max 200 words):`;
       return summary;
     } catch (error) {
       logger.error('Error summarizing conversation:', error);
-      // Fallback: return a basic summary
-      return `Previous conversation about creating a presentation. Parameters: ${JSON.stringify(existingParams)}`;
+      // Fallback: return a basic summary to ensure user session is not interrupted
+      return `Previous conversation about creating a presentation. Parameters: ${JSON.stringify(existingParams || {})}`;
     }
   }
 
@@ -128,37 +151,51 @@ Provide a brief summary (max 200 words):`;
     conversationSummary = null
   ) {
     try {
+      if (!config.gemini_secret_key) {
+        throw new Error('Gemini API key is not configured.');
+      }
+
+      // Input validation and sanitization to prevent prompt injection or memory exhaustion
+      const sanitizedMessage = typeof userMessage === 'string' 
+        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH) 
+        : '';
+      
+      const safeHistory = Array.isArray(conversationHistory)
+        ? conversationHistory.slice(-MAX_HISTORY_MESSAGES)
+        : [];
+
+      const safeParams = (existingParams && typeof existingParams === 'object')
+        ? JSON.parse(JSON.stringify(existingParams)) // Deep copy to prevent mutation
+        : {};
+
       // Calculate token usage
       const estimatedTokens = this._calculateConversationTokens(
-        conversationHistory,
-        existingParams
+        safeHistory,
+        safeParams
       );
 
       logger.info('Token estimation', {
         estimatedTokens,
         threshold: SUMMARIZATION_THRESHOLD,
         willUseSummary: conversationSummary ? true : false,
-        historyLength: conversationHistory.length,
+        historyLength: safeHistory.length,
       });
-      console.log('Existing Params:', existingParams);
+
       const systemPrompt = this._buildSystemPrompt();
       const userPrompt = this._buildUserPrompt(
-        userMessage,
-        conversationHistory,
-        existingParams,
+        sanitizedMessage,
+        safeHistory,
+        safeParams,
         conversationSummary
       );
-
-      // console.log('System Prompt:', systemPrompt);
-      // console.log('User Prompt:', userPrompt);
 
       const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
       // Log the actual prompt being sent (truncated for readability)
       logger.info('Prompt preview', {
         userPromptStart: userPrompt.substring(0, 500),
-        conversationHistoryCount: conversationHistory.length,
-        hasExistingParams: Object.keys(existingParams).length > 0,
+        conversationHistoryCount: safeHistory.length,
+        hasExistingParams: Object.keys(safeParams).length > 0,
       });
 
       const response = await this.model.invoke(fullPrompt);
@@ -171,7 +208,9 @@ Provide a brief summary (max 200 words):`;
       logger.error('Error analyzing intent:', error);
       throw error;
     }
-  } /**
+  } 
+  
+  /**
    * Build system prompt for intent analysis
    */
   _buildSystemPrompt() {
@@ -319,7 +358,7 @@ Correct extraction:
 
 Example 3b - EDIT Intent (Make content catchy):
 User: "Change slide 1 title to make it more catchy"
-Parameters Already Collected: { "presentationId": "ghi-456", "content": "artificial intelligence" }
+Parameters Already Collected: { "ghi-456", "content": "artificial intelligence" }
 Correct extraction:
 {
   "intent": "edit",
@@ -335,7 +374,7 @@ Correct extraction:
 
 Example 3c - EDIT Intent (Natural language):
 User: "Make the first slide more engaging"
-Parameters Already Collected: { "presentationId": "jkl-789" }
+Parameters Already Collected: { "jkl-789" }
 Correct extraction:
 {
   "intent": "edit",
@@ -401,27 +440,31 @@ Return your analysis as a JSON object with this structure:
       prompt += conversationSummary + '\n\n';
 
       // Add only the last 2-3 messages for immediate context
-      if (conversationHistory.length > 0) {
+      if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         prompt += '**RECENT MESSAGES:**\n';
         conversationHistory.slice(-3).forEach((msg) => {
-          prompt += `${msg.role}: ${msg.content}\n`;
+          if (msg && msg.role && msg.content) {
+            prompt += `${msg.role}: ${msg.content}\n`;
+          }
         });
         prompt += '\n';
       }
     } else {
       // Add full conversation history for context
-      if (conversationHistory.length > 0) {
+      if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
         prompt +=
           '**FULL CONVERSATION HISTORY (Extract parameters from ALL messages):**\n';
         conversationHistory.forEach((msg) => {
-          prompt += `${msg.role}: ${msg.content}\n`;
+          if (msg && msg.role && msg.content) {
+            prompt += `${msg.role}: ${msg.content}\n`;
+          }
         });
         prompt += '\n';
       }
     }
 
     // Add existing parameters
-    if (Object.keys(existingParams).length > 0) {
+    if (existingParams && Object.keys(existingParams).length > 0) {
       prompt += '**Parameters Already Collected:**\n';
       prompt += JSON.stringify(existingParams, null, 2) + '\n\n';
     }
@@ -441,6 +484,10 @@ Return your analysis as a JSON object with this structure:
    */
   _parseResponse(content) {
     try {
+      if (typeof content !== 'string') {
+        throw new Error('Response content is not a string');
+      }
+
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch =
         content.match(/```json\n?([\s\S]*?)\n?```/) ||
@@ -460,16 +507,16 @@ Return your analysis as a JSON object with this structure:
       }
 
       const jsonStr = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr.trim());
 
       // Validate and normalize the response
       return {
         intent: parsed.intent || PRESENTATION_INTENTS.GENERAL_QUESTION,
-        confidence: parsed.confidence || 0.5,
-        parameters: parsed.parameters || {},
-        missingRequired: parsed.missingRequired || [],
-        followUpQuestion: parsed.followUpQuestion || null,
-        reasoning: parsed.reasoning || '',
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
+        parameters: (parsed.parameters && typeof parsed.parameters === 'object') ? parsed.parameters : {},
+        missingRequired: Array.isArray(parsed.missingRequired) ? parsed.missingRequired : [],
+        followUpQuestion: typeof parsed.followUpQuestion === 'string' ? parsed.followUpQuestion : null,
+        reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
       };
     } catch (error) {
       logger.error('Error parsing AI response:', error);
@@ -490,6 +537,10 @@ Return your analysis as a JSON object with this structure:
    */
   async answerGeneralQuestion(userMessage, conversationHistory = []) {
     try {
+      if (!config.gemini_secret_key) {
+        throw new Error('Gemini API key is not configured.');
+      }
+
       const systemPrompt = `You are a helpful assistant for a presentation generation API. Answer questions about:
 - Available features (templates, themes, tones, verbosity, etc.)
 - How to create presentations
@@ -498,12 +549,20 @@ Return your analysis as a JSON object with this structure:
 
 Be concise, friendly, and helpful. If the user seems ready to create a presentation, guide them toward it.`;
 
-      const historyContext = conversationHistory
-        .slice(-5)
+      const sanitizedMessage = typeof userMessage === 'string' 
+        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH) 
+        : '';
+
+      const safeHistory = Array.isArray(conversationHistory)
+        ? conversationHistory.slice(-5)
+        : [];
+
+      const historyContext = safeHistory
+        .filter(msg => msg && msg.role && msg.content)
         .map((msg) => `${msg.role}: ${msg.content}`)
         .join('\n');
 
-      const fullPrompt = `${systemPrompt}\n\n${historyContext ? `${historyContext}\n\n` : ''}user: ${userMessage}`;
+      const fullPrompt = `${systemPrompt}\n\n${historyContext ? `${historyContext}\n\n` : ''}user: ${sanitizedMessage}`;
 
       const response = await this.model.invoke(fullPrompt);
 
