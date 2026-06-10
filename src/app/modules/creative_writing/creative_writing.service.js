@@ -24,6 +24,16 @@ import {
   TYPE_KEYWORDS,
 } from './creative_writing.constant.js';
 
+// Optimization Recommendation:
+// For the 'Conversation' model (used by conversationService and conversationHelpers),
+// consider adding the following indexes to improve query performance:
+// 1. db.collection('conversations').createIndex({ conversationId: 1 }, { unique: true });
+//    - 'conversationId' is frequently used for direct lookups and should be unique.
+// 2. db.collection('conversations').createIndex({ userId: 1 });
+//    - 'userId' is used to filter conversations by user.
+// 3. db.collection('conversations').createIndex({ 'metadata.category': 1 });
+//    - If conversations are often queried or filtered by category.
+
 /**
  * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
  */
@@ -160,13 +170,16 @@ const handleCreativeWritingConversation = async (
 
     if (currentConversationId) {
       try {
-        // Optimization: Consider adding .lean() to conversationHelpers.getConversationById
-        // if the returned 'conversation' object is only read from and not directly saved
-        // or modified via Mongoose document methods later in this flow.
+        // Optimization: Add .lean() to avoid Mongoose document overhead
+        // as the conversation object is primarily read from and not directly saved
+        // or modified via Mongoose document methods within this flow.
+        // Updates are handled by conversationService.updateConversationMetadata
+        // which takes the ID and new data, not the document itself.
         conversation = await conversationHelpers.getConversationById(
           currentConversationId,
           userId,
-          req
+          req,
+          { lean: true } // Assuming conversationHelpers.getConversationById supports a lean option
         );
         logger.info(`Fetched conversation with ID: ${currentConversationId}`);
       } catch (error) {
@@ -679,12 +692,14 @@ const processConversationalRequest = async (
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    // Optimization: Add .lean() to conversationHelpers.getConversationById
-    // as this function is purely for retrieving and returning data.
+    // Optimization: Add .lean() to avoid Mongoose document overhead
+    // as this function is purely for retrieving and returning data,
+    // and no Mongoose document methods are used on the fetched object.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
-      req
+      req,
+      { lean: true } // Assuming conversationHelpers.getConversationById supports a lean option
     );
 
     return {
