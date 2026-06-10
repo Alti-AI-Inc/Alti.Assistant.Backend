@@ -1,7 +1,18 @@
 import mongoose from 'mongoose';
 
 /**
- * UserUsage Model
+ * @typedef {Object} IUserUsage
+ * @property {mongoose.Types.ObjectId} userId - Who owns this usage record.
+ * @property {mongoose.Types.ObjectId|null} tenantId - null = personal mode, ObjectId = organization mode.
+ * @property {Date} date - The calendar date this record covers (UTC midnight, e.g. 2026-02-24).
+ * @property {number} requestsUsed - Request counter for the day.
+ * @property {number} storageUsed - Cumulative storage used by this user (bytes).
+ * @property {Date} createdAt - Timestamp when the document was created.
+ * @property {Date} updatedAt - Timestamp when the document was last updated.
+ */
+
+/**
+ * UserUsage Schema
  *
  * Tracks daily usage counters per user (or per user+tenant in org mode).
  * A single document is created per user per day, then upserted as requests come in.
@@ -10,6 +21,8 @@ import mongoose from 'mongoose';
  *  - Usage resets daily without touching billing data
  *  - Usage can be queried historically (per-day records)
  *  - Subscription model stays clean (only limits/billing info)
+ * 
+ * @type {mongoose.Schema<IUserUsage>}
  */
 const UserUsageSchema = new mongoose.Schema(
   {
@@ -63,9 +76,14 @@ UserUsageSchema.index({ userId: 1, tenantId: 1, date: 1 }, { unique: true });
 
 /**
  * Get (or create) today's usage document for a user.
- * @param {ObjectId} userId
- * @param {ObjectId|null} tenantId
- * @returns {Promise<UserUsage>}
+ * If a new daily document is created, storageUsed is initialized from the latest previous day's record.
+ * 
+ * @async
+ * @function getOrCreateToday
+ * @memberof UserUsageSchema.statics
+ * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
+ * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
+ * @returns {Promise<mongoose.Document & IUserUsage>} The retrieved or newly created daily usage document.
  */
 UserUsageSchema.statics.getOrCreateToday = async function (
   userId,
@@ -92,9 +110,14 @@ UserUsageSchema.statics.getOrCreateToday = async function (
 
 /**
  * Increment the request counter for today. Returns the updated document.
- * @param {ObjectId} userId
- * @param {ObjectId|null} tenantId
- * @returns {Promise<UserUsage>}
+ * If a new daily document is created, storageUsed is initialized from the latest previous day's record.
+ * 
+ * @async
+ * @function incrementRequest
+ * @memberof UserUsageSchema.statics
+ * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
+ * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
+ * @returns {Promise<mongoose.Document & IUserUsage>} The updated daily usage document.
  */
 UserUsageSchema.statics.incrementRequest = async function (
   userId,
@@ -121,9 +144,13 @@ UserUsageSchema.statics.incrementRequest = async function (
 
 /**
  * Get today's request count for a user.
- * @param {ObjectId} userId
- * @param {ObjectId|null} tenantId
- * @returns {Promise<number>}
+ * 
+ * @async
+ * @function getTodayRequests
+ * @memberof UserUsageSchema.statics
+ * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
+ * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
+ * @returns {Promise<number>} The number of requests used today.
  */
 UserUsageSchema.statics.getTodayRequests = async function (
   userId,
@@ -139,10 +166,15 @@ UserUsageSchema.statics.getTodayRequests = async function (
 /**
  * Update storage used (add or subtract bytes).
  * Pass negative value to subtract when files are deleted.
- * @param {ObjectId} userId
- * @param {ObjectId|null} tenantId
- * @param {number} bytes  - positive to add, negative to subtract
- * @returns {Promise<UserUsage>}
+ * Uses an atomic aggregation pipeline to prevent race conditions and clamp storage at 0.
+ * 
+ * @async
+ * @function updateStorage
+ * @memberof UserUsageSchema.statics
+ * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
+ * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
+ * @param {number} bytes - The number of bytes to add (positive) or subtract (negative).
+ * @returns {Promise<mongoose.Document & IUserUsage>} The updated daily usage document.
  */
 UserUsageSchema.statics.updateStorage = async function (
   userId,
@@ -194,9 +226,13 @@ UserUsageSchema.statics.updateStorage = async function (
 /**
  * Get total storage used by a user across all daily records.
  * Since storageUsed is cumulative, just grab today's record (or latest).
- * @param {ObjectId} userId
- * @param {ObjectId|null} tenantId
- * @returns {Promise<number>} bytes
+ * 
+ * @async
+ * @function getTotalStorage
+ * @memberof UserUsageSchema.statics
+ * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
+ * @param {mongoose.Types.ObjectId | string | null} [tenantId=null] - The ID of the tenant, or null for personal mode.
+ * @returns {Promise<number>} The total storage used in bytes.
  */
 UserUsageSchema.statics.getTotalStorage = async function (
   userId,
@@ -206,6 +242,12 @@ UserUsageSchema.statics.getTotalStorage = async function (
   return latest ? latest.storageUsed : 0;
 };
 
+/**
+ * Mongoose Model for UserUsage.
+ * Provides access to the UserUsage collection and static helper methods.
+ * 
+ * @type {mongoose.Model<IUserUsage>}
+ */
 const UserUsageModel = mongoose.model('UserUsage', UserUsageSchema);
 
 export default UserUsageModel;
