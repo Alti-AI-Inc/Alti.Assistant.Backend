@@ -45,13 +45,16 @@ import queueManager from './queueManager.service.js';
 /**
  * Workflow Service - Core business logic for managing scheduled workflows, their creation, execution, and lifecycle.
  * This service interacts with `ScheduledWorkflow`, `WorkflowExecution`, and `ComposioAuth` models.
+ * All user-specific methods require a `userId` to ensure data isolation and security (multi-tenancy).
  */
 class WorkflowService {
   /**
    * Creates a new scheduled workflow based on provided data.
+   * The `userId` within the workflow data establishes ownership of the workflow.
    * Generates a unique workflow ID, retrieves user's connected accounts for required applications,
    * and saves the workflow to the database.
    *
+   * @async
    * @param {WorkflowData} workflowData - The data required to create a new workflow.
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure,
    *   along with the created workflow data if successful.
@@ -130,7 +133,9 @@ class WorkflowService {
 
   /**
    * Retrieves a list of workflows for a specific user, with optional filtering by status and pagination.
+   * This operation is scoped to the provided `userId` for multi-tenancy.
    *
+   * @async
    * @param {string} userId - The ID of the user whose workflows are to be retrieved.
    * @param {string} [status=null] - Optional. Filter workflows by their status (e.g., 'active', 'paused', 'completed').
    * @param {number} [limit=50] - Optional. The maximum number of workflows to return.
@@ -180,8 +185,9 @@ class WorkflowService {
    * Retrieves a single workflow by its ID, ensuring it belongs to the specified user.
    * Also fetches recent execution history and provides execution statistics for the workflow.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to retrieve.
-   * @param {string} userId - The ID of the user requesting the workflow. (Mandatory for IDOR prevention)
+   * @param {string} userId - The ID of the user requesting the workflow. (Mandatory for authorization and IDOR prevention).
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object containing the workflow details,
    *   recent executions, and execution statistics, or an error if not found or failed.
    */
@@ -237,6 +243,7 @@ class WorkflowService {
    * Prevents updates to workflows that are currently running.
    * Only allows updates to specific fields like title, description, scheduleConfig, triggerType, and status.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to update.
    * @param {string} userId - The ID of the user who owns the workflow.
    * @param {WorkflowUpdateData} updates - An object containing the fields to update.
@@ -313,8 +320,9 @@ class WorkflowService {
   /**
    * Deletes a workflow identified by its ID and user ID.
    * Prevents deletion of workflows that are currently running.
-   * Optionally deletes associated execution history.
+   * Also deletes all associated execution history.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to delete.
    * @param {string} userId - The ID of the user who owns the workflow.
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure.
@@ -368,6 +376,7 @@ class WorkflowService {
    * Manually triggers the execution of a workflow.
    * Validates workflow existence, activity status, and required app connections before queuing the execution.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to trigger.
    * @param {string} userId - The ID of the user triggering the workflow.
    * @param {string} [triggerSource='user_click'] - The source of the trigger (e.g., 'user_click', 'api_call').
@@ -443,6 +452,7 @@ class WorkflowService {
   /**
    * Pauses a scheduled workflow, preventing further automatic executions.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to pause.
    * @param {string} userId - The ID of the user who owns the workflow.
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure,
@@ -481,6 +491,7 @@ class WorkflowService {
   /**
    * Resumes a paused workflow, allowing it to execute according to its schedule again.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to resume.
    * @param {string} userId - The ID of the user who owns the workflow.
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure,
@@ -519,6 +530,7 @@ class WorkflowService {
   /**
    * Retrieves the execution history for a specific workflow, ensuring user ownership.
    *
+   * @async
    * @param {string} workflowId - The ID of the workflow to retrieve executions for.
    * @param {string} userId - The ID of the user who owns the workflow.
    * @param {number} [limit=50] - Optional. The maximum number of executions to return.
@@ -564,8 +576,14 @@ class WorkflowService {
    * Creates a new execution record for a given workflow.
    * This is an internal helper method used when a workflow is triggered.
    *
+   * @internal
+   * @async
    * @param {object} workflow - The workflow object for which to create an execution record.
-   * @param {string} executionType - The type of execution (e.g., 'manual', 'scheduled').
+   * @param {string} workflow.workflowId - The ID of the workflow.
+   * @param {string} workflow.userId - The ID of the user owning the workflow.
+   * @param {number} workflow.totalSteps - The total number of steps in the workflow.
+   * @param {Array<object>} workflow.connectedAccounts - The connected accounts for the workflow.
+   * @param {'manual'|'scheduled'} executionType - The type of execution.
    * @param {string} triggerSource - The source that initiated the execution (e.g., 'user_click', 'scheduler').
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure,
    *   along with the created execution record if successful.
@@ -602,7 +620,11 @@ class WorkflowService {
   /**
    * Validates if all required applications for a workflow are connected and active for the user.
    *
+   * @internal
+   * @async
    * @param {object} workflow - The workflow object containing `userId` and `requiredApps`.
+   * @param {string} workflow.userId - The ID of the user who owns the workflow.
+   * @param {string[]} workflow.requiredApps - The list of required application IDs.
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object indicating success or failure.
    *   If unsuccessful, it includes a list of missing app connections.
    */
@@ -645,7 +667,10 @@ class WorkflowService {
 
   /**
    * Retrieves a user's active connected accounts for a specified list of applications.
+   * This is an internal helper method.
    *
+   * @internal
+   * @async
    * @param {string} userId - The ID of the user.
    * @param {string[]} requiredApps - An array of application IDs to check for connections.
    * @returns {Promise<Array<object>>} A promise that resolves to an array of connected account objects,
@@ -678,8 +703,9 @@ class WorkflowService {
 
   /**
    * Retrieves workflows that are due for execution based on their schedule.
-   * This method is typically called by a background scheduler.
+   * This method is typically called by a background scheduler and is not user-specific.
    *
+   * @async
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object containing an array of workflows
    *   due for execution, or an error if the operation fails.
    */
