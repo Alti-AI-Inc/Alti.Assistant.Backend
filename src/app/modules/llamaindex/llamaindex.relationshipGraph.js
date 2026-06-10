@@ -3,9 +3,10 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import DocumentRelationship from './llamaindex.relationship.model.js';
-// INTEGRATION: Import a hypothetical usage service to track resource consumption.
-// This is crucial for propagating usage details to workspace admins and platform owners.
-// import { usageService } from '../../usage/usage.service.js';
+// INTEGRATION: Import the usage service to track resource consumption.
+// This is crucial for propagating usage details to workspace admins and platform owners,
+// enabling features like billing, quota enforcement, and notifications.
+import { usageService } from '../../usage/usage.service.js';
 
 /**
  * SECURITY: Initialize the Vertex AI client using Application Default Credentials.
@@ -71,17 +72,14 @@ const calculateJaccard = (arr1, arr2) => {
  *
  * Relationship edges are stored in the `DocumentRelationship` collection.
  * This is a workspace-level operation and should be triggered by a system process or a user with
- * administrative privileges over the workspace (e.g., Workspace Admin).
+ * administrative privileges over the workspace (e.g., Workspace Admin, Manager). The calling controller
+ * is responsible for performing this role-based access control (RBAC) check.
  *
  * @param {string} workspaceId - The ID of the workspace for which to build the relationship graph. This ensures tenant data isolation.
  * @returns {Promise<object>} An object indicating the success status, a descriptive message,
  *                            and the total number of relationship edges added or updated.
  * @throws {Error} If the relationship graph compilation fails due to a database error or other issues.
  */
-// BUGFIX: The function now operates on a workspaceId instead of a userId to enforce tenant boundaries.
-// This is critical for a multi-tenant system with roles like admin, manager, and user.
-// All data operations are now scoped to the workspace, preventing data leakage or
-// incorrect graph generation across different tenants.
 const buildRelationshipGraph = async (workspaceId) => {
   try {
     // INTEGRATION: Logging now references workspaceId for better traceability in a multi-tenant environment.
@@ -133,8 +131,8 @@ const buildRelationshipGraph = async (workspaceId) => {
           // Example: db.documentrelationships.createIndex({ workspaceId: 1, sourceDocId: 1, targetDocId: 1 })
           relationshipUpdatePromises.push(
             DocumentRelationship.findOneAndUpdate(
-              // BUGFIX: Query is scoped by workspaceId to ensure relationship edges are created
-              // within the correct tenant boundary. The userId is removed to reflect workspace-level relationships.
+              // SECURITY: Query is scoped by workspaceId to ensure relationship edges are created
+              // within the correct tenant boundary, preventing data leakage.
               { workspaceId, sourceDocId: docA.docId, targetDocId: docB.docId },
               {
                 relationType: 'topic_similarity',
@@ -148,7 +146,7 @@ const buildRelationshipGraph = async (workspaceId) => {
 
           relationshipUpdatePromises.push(
             DocumentRelationship.findOneAndUpdate(
-              // BUGFIX: Query is scoped by workspaceId to ensure relationship edges are created
+              // SECURITY: Query is scoped by workspaceId to ensure relationship edges are created
               // within the correct tenant boundary.
               { workspaceId, sourceDocId: docB.docId, targetDocId: docA.docId },
               {
@@ -233,10 +231,12 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
           },
         });
 
-        // INTEGRATION: Track AI model usage against the workspace account.
-        // This is a critical point for propagating usage details up to administrators
+        // INTEGRATION_FIX: Track AI model usage against the workspace account. This is a critical
+        // point for propagating usage details up to administrators and platform owners
         // for billing, limit enforcement, and monitoring.
-        // Example: await usageService.trackGeminiUsage(workspaceId, result.response.usageMetadata);
+        if (result.response?.usageMetadata) {
+          await usageService.trackGeminiUsage(workspaceId, result.response.usageMetadata);
+        }
 
         let cleanText = result.response.text().trim();
         if (cleanText.startsWith('```')) {
@@ -252,7 +252,7 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
 
             geminiUpdatePromises.push(
               DocumentRelationship.findOneAndUpdate(
-                // BUGFIX: Query is scoped by workspaceId.
+                // SECURITY: Query is scoped by workspaceId.
                 { workspaceId, sourceDocId: src, targetDocId: dst },
                 {
                   relationType: link.relationType === 'dependency' ? 'dependency' : 'cross_reference',
@@ -289,7 +289,7 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
  * and their relationships within a specific workspace.
  *
  * @permission This function is multi-tenant and requires a valid `workspaceId`. Any user belonging to the workspace
- *             can perform a traversal, as it respects the data boundaries of the tenant.
+ *             (user, manager, admin) can perform a traversal, as it respects the data boundaries of the tenant.
  * @param {string} workspaceId - The ID of the workspace whose graph is to be traversed.
  * @param {string[]} startDocIds - An array of document IDs from which to start the traversal.
  * @param {number} [depth=1] - The maximum depth of traversal. A depth of 1 means only direct connections.
@@ -300,7 +300,6 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
  *   - `edges`: An array of all `DocumentRelationship` objects (edges) discovered during the traversal.
  * @throws {Error} If the graph traversal fails.
  */
-// BUGFIX: Changed userId to workspaceId to ensure traversal is strictly confined to the calling user's tenant.
 const traverseGraph = async (workspaceId, startDocIds, depth = 1) => {
   try {
     const visited = new Set(startDocIds);
@@ -312,6 +311,8 @@ const traverseGraph = async (workspaceId, startDocIds, depth = 1) => {
 
       // PERFORMANCE: Solves N+1 query problem. Instead of one query per node,
       // this performs one query per traversal depth level using the $in operator.
+      // SECURITY: The query is scoped by `workspaceId`, preventing any possibility of an IDOR
+      // vulnerability where a user could traverse another tenant's graph.
       // This requires an index on { workspaceId: 1, sourceDocId: 1 } for efficiency.
       const edges = await DocumentRelationship.find({
         workspaceId,
