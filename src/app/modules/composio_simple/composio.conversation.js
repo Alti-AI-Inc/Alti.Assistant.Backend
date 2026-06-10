@@ -4,6 +4,7 @@
  * It integrates with a Conversation model and a conversation summary service.
  */
 
+import xss from 'xss'; // Security: Import a library to sanitize user input and prevent XSS attacks.
 import Conversation from '../conversations/conversation.model.js';
 import { conversationSummaryService } from '../conversations/conversationSummary.service.js';
 
@@ -42,15 +43,18 @@ export const getOrCreateConversation = async (
     if (existing) return existing;
   }
 
+  // Security: Sanitize the initial message to prevent Stored XSS when it's used as the title.
+  const sanitizedInitialMessage = xss(initialMessage || '');
+
   // Create new conversation
   const newConversationId = generateConversationId();
   const conversation = new Conversation({
     conversationId: newConversationId,
     userId: userId,
     title:
-      initialMessage.length > 50
-        ? `${initialMessage.substring(0, 50)}...`
-        : initialMessage,
+      sanitizedInitialMessage.length > 50
+        ? `${sanitizedInitialMessage.substring(0, 50)}...`
+        : sanitizedInitialMessage,
     messages: [],
     metadata: {
       category: 'composio_simple',
@@ -79,6 +83,9 @@ export const getOrCreateConversation = async (
  */
 export const getRecentMessages = async (conversationId, userId, limit = 5) => {
   try {
+    // Security: Ensure limit is a positive integer to prevent potential issues with Array.slice.
+    const safeLimit = Math.max(1, parseInt(limit, 10) || 5);
+
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
@@ -86,7 +93,7 @@ export const getRecentMessages = async (conversationId, userId, limit = 5) => {
     if (!conversation || !conversation.messages) return [];
 
     // Return last N messages in chronological order
-    const recentMessages = conversation.messages.slice(-limit);
+    const recentMessages = conversation.messages.slice(-safeLimit);
 
     return recentMessages.map((msg) => ({
       role: msg.role,
@@ -129,9 +136,12 @@ export const saveMessage = async (
       throw new Error('Conversation not found');
     }
 
+    // Security: Sanitize user-provided content to prevent Stored XSS attacks.
+    // Also sanitize role to prevent unexpected values, though it should ideally be validated against an enum.
+    // Note: If metadata can contain user input, it should also be sanitized recursively.
     conversation.messages.push({
-      role: role,
-      content: content,
+      role: xss(role),
+      content: xss(content),
       timestamp: new Date(),
       metadata: metadata,
     });
@@ -174,12 +184,12 @@ export const saveMessage = async (
  * @property {number} pagination.pages - The total number of pages.
  */
 export const getUserConversations = async (userId, options = {}) => {
-  const {
-    page = 1,
-    limit = 20,
-    sortBy = 'lastActivity',
-    sortOrder = -1,
-  } = options;
+  // Security: Sanitize and validate pagination and sorting options to prevent injection and ensure type safety.
+  const page = Math.max(1, parseInt(options.page, 10) || 1);
+  const limit = Math.max(1, parseInt(options.limit, 10) || 20);
+  const sortBy = options.sortBy || 'lastActivity';
+  const parsedSortOrder = parseInt(options.sortOrder, 10);
+  const sortOrder = [1, -1].includes(parsedSortOrder) ? parsedSortOrder : -1;
 
   // Whitelist allowed sort fields to prevent potential injection or performance issues
   // If an invalid sortBy field is provided, it defaults to 'lastActivity'.

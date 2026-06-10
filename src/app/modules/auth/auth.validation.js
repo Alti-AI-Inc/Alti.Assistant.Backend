@@ -3,28 +3,26 @@ const { z } = zod;
 
 /**
  * @constant {string[]} userRoleValues
- * @description Defines the allowed user roles within the application.
+ * @description Defines the allowed user roles within the application, reflecting the hierarchy.
+ * - super_admin: Platform owner with unrestricted access.
+ * - admin: Workspace/tenant owner, manages users and settings within their tenant.
+ * - manager: Manages teams and projects, has more permissions than a standard user.
+ * - user: Standard user with basic permissions.
  */
-const userRoleValues = ['tenant', 'landlord', 'admin', 'unauthorized'];
+const userRoleValues = ['super_admin', 'admin', 'manager', 'user'];
 
 /**
  * @constant {z.ZodObject} UserValidationSchema
- * @description Zod schema for validating user registration or creation data.
- * It includes validation for email, password strength, password confirmation,
- * user role, and optional fields related to profile, confirmation tokens,
- * tenant invitations, and invitation tokens.
+ * @description Zod schema for validating public user registration data.
+ * This schema is intended for endpoints where users sign themselves up.
+ * It intentionally omits 'role' and other sensitive fields to prevent privilege escalation.
+ * Role assignment for self-registered users should be handled server-side (e.g., defaulting to 'user').
  *
  * @property {object} body - The request body containing user data.
  * @property {string} body.email - The user's email address. Must be a valid email format.
- * @property {string} body.password - The user's password. Must be at least 8 characters,
- *   at most 128 characters, and include at least one uppercase letter, one lowercase letter,
- *   one number, and one special character.
+ * @property {string} body.password - The user's password. Must meet strength requirements.
  * @property {string} body.confirmPassword - The password confirmation. Must match the `password` field.
- * @property {('tenant'|'landlord'|'admin'|'unauthorized')} [body.role='unauthorized'] - The user's role.
- *   Defaults to 'unauthorized' if not provided.
  * @property {string} [body.profile] - Optional. A string representing the user's profile information.
- * @property {string} [body.confirmationToken] - Optional. A token used for email confirmation.
- * @property {Date} [body.confirmationTokenExpires] - Optional. The expiration date for the confirmation token.
  * @property {string} [body.tenantId] - Optional. The ID of the tenant for invitation-based registration.
  * @property {string} [body.invitationToken] - Optional. A token to auto-accept an invitation upon signup.
  */
@@ -32,23 +30,77 @@ const UserValidationSchema = z.object({
   body: z
     .object({
       email: z
-        .string()
-        .email(), // z.string() already implies the value must be a string and not undefined.
+        .string({ required_error: 'Email is required' })
+        .email('Invalid email address')
+        .trim()
+        .toLowerCase(),
       password: z
-        .string()
+        .string({ required_error: 'Password is required' })
         .min(8, 'Password must be at least 8 characters')
         .max(128, 'Password must be at most 128 characters')
         .regex(
           /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/,
-          'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character'
-        ), // z.string() already implies the value must be a string and not undefined.
-      confirmPassword: z.string(),
-      role: z.enum(userRoleValues).default('unauthorized'),
+          'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
+        ),
+      confirmPassword: z.string({
+        required_error: 'Password confirmation is required',
+      }),
       profile: z.string().optional(),
-      confirmationToken: z.string().optional(),
-      confirmationTokenExpires: z.date().optional(),
-      tenantId: z.string().optional(), // For invitation-based registration
-      invitationToken: z.string().optional(), // Auto-accept invitation on signup
+      // For invitation-based registration to a specific workspace/tenant.
+      // The token's validity and association with the tenantId must be verified server-side.
+      tenantId: z.string().optional(),
+      invitationToken: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.password !== data.confirmPassword) {
+        ctx.addIssue({
+          path: ['confirmPassword'],
+          code: z.ZodIssueCode.custom,
+          message: 'Passwords do not match',
+        });
+      }
+    }),
+});
+
+/**
+ * @constant {z.ZodObject} AdminCreateUserValidationSchema
+ * @description Zod schema for validating user creation data when performed by an admin.
+ * This schema is for protected endpoints and allows specifying a role for the new user.
+ *
+ * @property {object} body - The request body containing user data.
+ * @property {string} body.email - The new user's email address.
+ * @property {string} body.password - The new user's initial password.
+ * @property {string} body.confirmPassword - The password confirmation.
+ * @property {('admin'|'manager'|'user')} body.role - The role to assign to the new user.
+ *   'super_admin' is intentionally excluded to prevent privilege escalation by tenant admins.
+ * @property {string} [body.profile] - Optional. Profile information for the new user.
+ */
+const AdminCreateUserValidationSchema = z.object({
+  body: z
+    .object({
+      email: z
+        .string({ required_error: 'Email is required' })
+        .email('Invalid email address')
+        .trim()
+        .toLowerCase(),
+      password: z
+        .string({ required_error: 'Password is required' })
+        .min(8, 'Password must be at least 8 characters')
+        .max(128, 'Password must be at most 128 characters')
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/,
+          'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
+        ),
+      confirmPassword: z.string({
+        required_error: 'Password confirmation is required',
+      }),
+      // Role assignment by an authorized admin.
+      // Super admin creation should be a separate, highly-secured process.
+      role: z.enum(['admin', 'manager', 'user'], {
+        required_error: 'Role is required',
+        invalid_type_error: "Role must be one of 'admin', 'manager', or 'user'",
+      }),
+      profile: z.string().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.password !== data.confirmPassword) {
@@ -68,19 +120,25 @@ const UserValidationSchema = z.object({
  * @property {object} body - The request body containing login data.
  * @property {string} body.email - The user's email address. Required.
  * @property {string} body.password - The user's password. Required.
- * @property {string} [body.tenantId] - Optional. The ID of the tenant for invitation-based login.
+ * @property {string} [body.tenantId] - Optional. The ID of the tenant for context-specific login or invitation acceptance.
  * @property {string} [body.invitationToken] - Optional. A token to auto-accept an invitation upon login.
  */
 const loginZodSchema = z.object({
   body: z.object({
-    email: z.string({
-      required_error: 'Email is required',
-    }),
+    email: z
+      .string({
+        required_error: 'Email is required',
+      })
+      .email('Invalid email address')
+      .trim()
+      .toLowerCase(),
     password: z.string({
       required_error: 'Password is required',
     }),
-    tenantId: z.string().optional(), // For invitation-based login
-    invitationToken: z.string().optional(), // Auto-accept invitation on login
+    // Optional fields for workflows like accepting an invitation upon first login.
+    // Server-side logic must validate the token and associate the user with the tenant.
+    tenantId: z.string().optional(),
+    invitationToken: z.string().optional(),
   }),
 });
 
@@ -105,12 +163,14 @@ const refreshTokenZodSchema = z.object({
  * These schemas are used to validate incoming request data for various authentication
  * operations like user registration, login, and token refreshing.
  *
- * @property {z.ZodObject} UserValidationSchema - Schema for user registration/creation.
+ * @property {z.ZodObject} UserValidationSchema - Schema for public user registration.
+ * @property {z.ZodObject} AdminCreateUserValidationSchema - Schema for user creation by an admin.
  * @property {z.ZodObject} loginZodSchema - Schema for user login.
  * @property {z.ZodObject} refreshTokenZodSchema - Schema for refresh token validation.
  */
 export const AuthValidation = {
   UserValidationSchema,
+  AdminCreateUserValidationSchema,
   loginZodSchema,
   refreshTokenZodSchema,
 };
