@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import httpStatus from 'http-status';
 import fs from 'fs';
 import path from 'path';
@@ -10,10 +10,14 @@ import LangchainExecution from './langchain-execution.model.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 
 /**
- * Google Generative AI client instance initialized with the secret key.
+ * Google Vertex AI client instance initialized with project and location.
+ * This uses the enterprise-grade SDK for Google Cloud.
  * @private
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+const vertex_ai = new VertexAI({
+  project: config.gcp_project_id || process.env.GCP_PROJECT_ID,
+  location: config.gcp_location || process.env.GCP_LOCATION,
+});
 
 /**
  * Parses variable names enclosed in curly braces {varName} from a template string.
@@ -44,6 +48,22 @@ const formatPrompt = (template, scope) => {
     result = result.replace(new RegExp(`\\{${v}\\}`, 'g'), valStr);
   }
   return result;
+};
+
+/**
+ * Masks common PII patterns (email, phone) in a given text.
+ * This is a critical security step before sending data to an external LLM.
+ * @private
+ * @param {string} text - The text to be sanitized.
+ * @returns {string} The text with PII masked.
+ */
+const maskPII = (text) => {
+  if (!text) return '';
+  // Mask email addresses
+  let sanitizedText = text.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL_REDACTED]');
+  // Mask phone numbers (basic North American and international formats)
+  sanitizedText = sanitizedText.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[PHONE_REDACTED]');
+  return sanitizedText;
 };
 
 /**
@@ -97,32 +117,68 @@ const executeSteps = async (steps, inputs, userId) => {
           const promptText = scope[step.config.promptSource || ''] || step.config.systemPrompt || '';
           const temperature = step.config.temperature ?? 0.7;
           const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-          const modelName = step.config.model || 'gemini-2.5-flash';
+          const modelName = step.config.model || 'gemini-1.5-flash-001'; // Updated to a common Vertex AI model name
 
-          stepInput = { promptText, modelName, temperature };
+          // PII Masking: Sanitize the prompt before sending it to the model.
+          const sanitizedPromptText = maskPII(promptText);
+          stepInput = { promptText: sanitizedPromptText, modelName, temperature }; // Log the sanitized input
 
-          const model = genAI.getGenerativeModel({ model: modelName });
-          const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+          // Configure the generative model with the enterprise Vertex AI SDK
+          const generativeModel = vertex_ai.getGenerativeModel({
+            model: modelName,
+            // Safety settings are crucial for enterprise applications to filter harmful content.
+            safetySettings: [
+              {
+                category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+              },
+            ],
             generationConfig: {
-              temperature,
-              maxOutputTokens,
+              maxOutputTokens: maxOutputTokens,
+              temperature: temperature,
             },
           });
 
+          const result = await generativeModel.generateContent({
+            contents: [{ role: 'user', parts: [{ text: sanitizedPromptText }] }],
+          });
+
           const response = result.response;
-          // Defensive check for response and text() method
-          if (!response || typeof response.text !== 'function') {
-            throw new Error('Invalid response structure from LLM API.');
+          // Defensive check for the Vertex AI SDK response structure.
+          if (!response || !response.candidates || response.candidates.length === 0) {
+            throw new Error('Invalid or empty response structure from Vertex AI LLM API.');
           }
-          const responseText = response.text();
+
+          // Check for safety blocks and provide a more informative error.
+          if (response.candidates[0].finishReason === 'SAFETY') {
+            logger.warn(`LLM call blocked due to safety settings. Reason: ${response.candidates[0].finishReason}`);
+            throw new Error('Content generation blocked by safety filters.');
+          }
+
+          if (!response.candidates[0].content?.parts[0]?.text) {
+            throw new Error('Invalid or empty response content from Vertex AI LLM API.');
+          }
+          const responseText = response.candidates[0].content.parts[0].text;
 
           stepOutput = responseText;
           scope[step.name] = responseText;
 
+          // Extract token usage from the Vertex AI SDK response structure.
           const usage = response.usageMetadata || {};
-          totalPromptTokens += usage.promptTokenCount || Math.ceil(promptText.length / 4);
-          totalCompletionTokens += usage.candidatesTokenCount || Math.ceil(responseText.length / 4);
+          totalPromptTokens += usage.promptTokenCount || 0;
+          totalCompletionTokens += usage.candidatesTokenCount || 0;
           break;
         }
 
