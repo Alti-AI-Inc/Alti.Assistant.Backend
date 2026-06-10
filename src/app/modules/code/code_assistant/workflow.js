@@ -120,7 +120,34 @@ export let codeAssistantApp = workflow.compile({ checkpointer });
  * and the `codeAssistantApp` is re-compiled with the new persistent checkpointer.
  * In case of an error, a warning is logged, and the in-memory fallback remains active.
  */
-MongoDBSaver.fromUri(config.database_local)
+
+// GCP Resiliency: Define MongoDB connection options for production environments.
+// These settings are optimized for robust and efficient operation within GCP's network,
+// handling connection pooling, timeouts, and keep-alives gracefully.
+const mongoDbOptions = {
+  // maxPoolSize: Controls the maximum number of connections in the connection pool.
+  // A value of 50 is a sensible default for a moderately busy application.
+  maxPoolSize: 50,
+  // minPoolSize: Ensures a minimum number of connections are kept open, reducing
+  // latency for new requests by avoiding the need to establish a new connection.
+  minPoolSize: 5,
+  // maxIdleTimeMS: Specifies the maximum time a connection can remain idle in the pool.
+  // Set to 60s to work well with GCP network components (e.g., firewalls, proxies)
+  // that may close idle connections.
+  maxIdleTimeMS: 60000,
+  // connectTimeoutMS: The time in milliseconds to wait for a connection to be established
+  // before timing out. Prevents the application from hanging during initial connection.
+  connectTimeoutMS: 30000,
+  // socketTimeoutMS: The time in milliseconds to wait for a server reply before timing out.
+  // Crucial for preventing operations from hanging indefinitely due to network partitions or
+  // slow database operations.
+  socketTimeoutMS: 30000,
+  // The MongoDB Node.js driver enables TCP KeepAlive by default, which is critical for
+  // maintaining long-lived connections across GCP's network infrastructure.
+  // Automatic reconnect logic is also built-in and enabled by default.
+};
+
+MongoDBSaver.fromUri(config.database_uri, mongoDbOptions) // Use production URI and resiliency options
   .then((mongoCheckpointer) => {
     checkpointer = mongoCheckpointer;
     // Re-compile with persistent checkpointer and re-assign the exported variable.

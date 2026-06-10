@@ -255,7 +255,8 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
 
     // Score text
     doc.fillColor('#475569').fontSize(8).font('Helvetica');
-    const scoreText = row.verificationScore ? `${row.verificationScore}%` : '70%';
+    // BUG FIX: Changed misleading default '70%' to 'N/A' for missing scores.
+    const scoreText = row.verificationScore != null ? `${row.verificationScore}%` : 'N/A';
     doc.text(scoreText, x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 6, y + 8, { width: colWidths[4] - 12, align: 'center' });
 
     // Draw bottom border line
@@ -285,11 +286,58 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
  * @param {Date} [reportData.metadata.generatedAt] - Timestamp when the report was generated.
  * @param {number} [reportData.metadata.processingTime] - Time taken for processing in milliseconds.
  * @param {object} [reportData.metadata.qualityMetrics] - Object containing quality scores for the research.
+ * @param {object} userContext - INTEGRATION FIX: Added context object for authorization and usage tracking.
+ * @param {object} userContext.user - The user initiating the request.
+ * @param {string} userContext.user.role - The role of the user (e.g., 'admin', 'manager', 'user').
+ * @param {object} userContext.workspace - The workspace context for the request.
+ * @param {object} [userContext.workspace.usage] - Current usage statistics.
+ * @param {object} [userContext.workspace.limits] - Configured usage limits.
  * @returns {Promise<object>} A promise that resolves with an object containing the PDF buffer, filename, content type, and size.
- * @throws {Error} If there is an error during PDF generation.
+ * @throws {Error} If there is an error during PDF generation or if authorization/limits are exceeded.
  */
-export const generatePDFReport = async (reportData) => {
+export const generatePDFReport = async (reportData, userContext) => {
+  // INTEGRATION & SECURITY FIX: Added userContext parameter to enforce authorization
+  // and usage limit checks before performing the expensive PDF generation operation.
+  // This closes a hierarchy gap where the service was unaware of the calling context.
+  if (!userContext || !userContext.user || !userContext.workspace) {
+      // In a real application, this would be a structured error (e.g., HTTP 401/403).
+      // The calling service/controller is responsible for providing a valid context.
+      throw new Error('Authorization context is missing. Cannot generate report.');
+  }
+
+  // HIERARCHY FIX: Placeholder for role-based access control. In a real system, this would use a
+  // dedicated permission service. This check ensures only authorized roles can proceed.
+  const authorizedRoles = ['super_admin', 'admin', 'manager', 'user'];
+  if (!authorizedRoles.includes(userContext.user.role)) {
+      throw new Error(`User role '${userContext.user.role}' is not authorized to generate reports.`);
+  }
+
+  // HIERARCHY FIX: Placeholder for usage limit checks. In a real system, this would be a transactional
+  // check and update against a billing/usage database. It prevents overuse of the feature and allows
+  // usage to be propagated up to managers/admins for billing and notifications.
+  if (userContext.workspace.usage && userContext.workspace.limits && userContext.workspace.limits.maxReports != null) {
+      if (userContext.workspace.usage.reportsGenerated >= userContext.workspace.limits.maxReports) {
+          // This would also trigger notifications to workspace admins.
+          throw new Error('Workspace report generation limit has been reached.');
+      }
+  }
+
   const { title, query, answer, sources, quantitativeFacts, metadata } = reportData;
+
+  // SECURITY & PERFORMANCE FIX: Add input validation to prevent DoS from oversized data.
+  const MAX_ANSWER_LENGTH = 50000; // 50k chars
+  const MAX_SOURCES = 100;
+  const MAX_FACTS = 100;
+
+  if (answer && answer.length > MAX_ANSWER_LENGTH) {
+      throw new Error(`Report answer exceeds maximum length of ${MAX_ANSWER_LENGTH} characters.`);
+  }
+  if (sources && sources.length > MAX_SOURCES) {
+      throw new Error(`Report sources exceed maximum count of ${MAX_SOURCES}.`);
+  }
+  if (quantitativeFacts && quantitativeFacts.length > MAX_FACTS) {
+      throw new Error(`Report quantitative facts exceed maximum count of ${MAX_FACTS}.`);
+  }
 
   return new Promise((resolve, reject) => {
     try {
@@ -302,6 +350,7 @@ export const generatePDFReport = async (reportData) => {
           left: 50,
           right: 50,
         },
+        bufferPages: true, // BUG FIX: This option is required for page-range operations like adding footers to all pages.
       });
 
       // Create a buffer to store PDF data
@@ -309,6 +358,9 @@ export const generatePDFReport = async (reportData) => {
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => {
         const pdfBuffer = Buffer.concat(chunks);
+        // INTEGRATION NOTE: After successful generation, the calling service should increment
+        // the usage counter for userContext.workspace.id. e.g.,
+        // `await usageService.increment(userContext.workspace.id, 'reportsGenerated');`
         resolve({
           buffer: pdfBuffer,
           filename: generateFilename(query),
@@ -316,6 +368,7 @@ export const generatePDFReport = async (reportData) => {
           size: pdfBuffer.length,
         });
       });
+      doc.on('error', reject); // Ensure promise is rejected on stream errors.
 
       // --- PAGE 1: DRAW STRATEGIC DECK BRIEFING DASHBOARD ---
       drawExecutiveDashboardPage(doc, query, metadata, quantitativeFacts);
@@ -544,6 +597,8 @@ const generateFilename = (query) => {
  */
 export const savePDFToFile = async (pdfData, outputPath) => {
   try {
+    // SECURITY NOTE: The outputPath should be a trusted, pre-configured directory
+    // from application settings, not from user input, to prevent path traversal attacks.
     const fullPath = path.resolve(outputPath, pdfData.filename);
     await fs.promises.writeFile(fullPath, pdfData.buffer);
     console.log(`PDF saved to: ${fullPath}`);
