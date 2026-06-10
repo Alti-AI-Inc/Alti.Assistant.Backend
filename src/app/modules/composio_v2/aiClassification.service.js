@@ -48,6 +48,9 @@ export const processUserInputService = async (
     );
 
     // Handle conversation creation/retrieval
+    // Optimization Note: Ensure that `composioConversationService.handleComposioConversation`
+    // uses `.lean()` for read operations if it's primarily retrieving data,
+    // to avoid Mongoose document overhead.
     conversation = // Assign to the outer-scoped variable
       await composioConversationService.handleComposioConversation(
         effectiveUserId,
@@ -82,6 +85,8 @@ export const processUserInputService = async (
     }
 
     // Add user message to conversation
+    // Optimization Note: Ensure `composioConversationService.addComposioQueryMessage`
+    // performs efficient database writes.
     await composioConversationService.addComposioQueryMessage(
       actualConversationId,
       effectiveUserId,
@@ -120,6 +125,8 @@ export const processUserInputService = async (
         timestamp: new Date().toISOString(),
       };
 
+      // Optimization Note: Ensure `composioConversationService.addComposioResultMessage`
+      // performs efficient database writes.
       await composioConversationService.addComposioResultMessage(
         actualConversationId,
         effectiveUserId,
@@ -130,6 +137,8 @@ export const processUserInputService = async (
 
       // Update conversation title based on results
       if (metadata.identifiedApp || metadata.workflowType) {
+        // Optimization Note: Ensure `composioConversationService.updateComposioConversationTitle`
+        // performs efficient database updates.
         await composioConversationService.updateComposioConversationTitle(
           actualConversationId,
           effectiveUserId,
@@ -157,6 +166,8 @@ export const processUserInputService = async (
       const errorMessage =
         result.data?.responseMessage?.text ||
         `Sorry, I encountered an error while processing your request: ${result.error}`;
+      // Optimization Note: Ensure `composioConversationService.addComposioErrorMessage`
+      // performs efficient database writes.
       await composioConversationService.addComposioErrorMessage(
         actualConversationId,
         effectiveUserId,
@@ -193,6 +204,9 @@ export const processUserInputService = async (
     // If no conversationId is available, try to establish one to log the error
     if (!conversationIdForError && effectiveUserId) {
       try {
+        // Optimization Note: Ensure `composioConversationService.handleComposioConversation`
+        // uses `.lean()` for read operations if it's primarily retrieving data,
+        // to avoid Mongoose document overhead.
         const newConversationForError =
           await composioConversationService.handleComposioConversation(
             effectiveUserId,
@@ -210,6 +224,8 @@ export const processUserInputService = async (
     // Try to add error to conversation if we have the details
     if (conversationIdForError && effectiveUserId) {
       try {
+        // Optimization Note: Ensure `composioConversationService.addComposioErrorMessage`
+        // performs efficient database writes.
         await composioConversationService.addComposioErrorMessage(
           conversationIdForError,
           effectiveUserId,
@@ -294,6 +310,8 @@ export const checkUserConnectionsService = async (
     // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
     // Indexing Recommendation: Consider adding indexes on `{ userId: 1, status: 1 }`,
     // `{ 'toolkit.slug': 1 }`, and `{ authConfigId: 1 }` to optimize this query.
+    // A compound index like `{ userId: 1, status: 1, 'toolkit.slug': 1 }` and
+    // `{ userId: 1, status: 1, authConfigId: 1 }` might be beneficial depending on query patterns.
     const connectedAccounts = await ComposioAuth.find({
       userId: userId,
       status: 'ACTIVE',
@@ -337,7 +355,7 @@ export const getComposioConversationHistoryService = async (
 
     if (conversationId) {
       // Get specific conversation history
-      // Note: The actual database query is within composioConversationService.getComposioHistory.
+      // Optimization Note: The actual database query is within composioConversationService.getComposioHistory.
       // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
       const history = await composioConversationService.getComposioHistory(
         conversationId,
@@ -355,7 +373,7 @@ export const getComposioConversationHistoryService = async (
       };
     } else {
       // Get conversation stats
-      // Note: The actual database query is within composioConversationService.getComposioStats.
+      // Optimization Note: The actual database query is within composioConversationService.getComposioStats.
       // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
       const stats = await composioConversationService.getComposioStats(
         userId,
