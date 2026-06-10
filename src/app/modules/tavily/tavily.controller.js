@@ -236,29 +236,33 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
       total_tokens: result.usageMetadata?.totalTokenCount || 0,
     };
 
-    // Performance Hint: For faster lookups on ChatHistory, consider adding a compound index
+    // OPTIMIZATION: Refactor ChatHistory creation/update to use findOneAndUpdate with upsert: true.
+    // This performs an atomic operation, either finding and updating an existing session
+    // or creating a new one, reducing the number of database round trips and improving efficiency.
+    //
+    // PERFORMANCE HINT: For faster lookups on ChatHistory, consider adding a compound index
     // to the ChatHistory model: `schema.index({ user: 1, sessionId: 1 });`
-    let chatSession = await ChatHistory.findOne({
-      user: userId,
-      sessionId: currentSessionId,
+    const chatSession = await ChatHistory.findOneAndUpdate(
+      { user: userId, sessionId: currentSessionId },
+      {
+        $push: { responses: responseData }, // Push new response to the array
+        $setOnInsert: { user: userId, sessionId: currentSessionId }, // Set these fields only on insert
+      },
+      {
+        new: true, // Return the updated document
+        upsert: true, // Create a new document if no document matches the filter
+        runValidators: true, // Run schema validators on update
+      }
+    );
+
+    // Link the chat session to the user.
+    // Use $addToSet to prevent duplicate session IDs in the user's aiSessions array
+    // if the same session is updated multiple times.
+    // BUG FIX: Renamed 'llamaAiSessions' to 'aiSessions' for consistency with Gemini model usage.
+    // This assumes the UserModel schema has been updated to use 'aiSessions' instead of 'llamaAiSessions'.
+    await UserModel.findByIdAndUpdate(userId, {
+      $addToSet: { aiSessions: chatSession._id },
     });
-
-    if (chatSession) {
-      chatSession.responses.push(responseData);
-      await chatSession.save();
-    } else {
-      chatSession = await ChatHistory.create({
-        user: userId,
-        sessionId: currentSessionId,
-        responses: [responseData],
-      });
-
-      // BUG FIX: Renamed 'llamaAiSessions' to 'aiSessions' for consistency with Gemini model usage.
-      // This assumes the UserModel schema has been updated to use 'aiSessions' instead of 'llamaAiSessions'.
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { aiSessions: chatSession._id },
-      });
-    }
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
