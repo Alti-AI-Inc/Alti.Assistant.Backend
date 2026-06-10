@@ -16,7 +16,11 @@ if (config.gcp_project_id && config.gcp_location) {
     location: config.gcp_location,
   });
 } else {
-  logger.error('GCP_PROJECT_ID or GCP_LOCATION is not configured. Vertex AI services will not function.');
+  // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+  logger.error({
+    message: 'GCP_PROJECT_ID or GCP_LOCATION is not configured. Vertex AI services will not function.',
+    component: 'LangchainEvaluatorService'
+  });
 }
 
 /**
@@ -91,7 +95,11 @@ const recursivelyMaskData = (data) => {
 const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
   // MODIFICATION: Check for the correctly initialized Vertex AI client.
   if (!vertexAIClient) {
-    logger.warn('Attempted to grade output, but Vertex AI is not initialized due to missing configuration. Returning default scores.');
+    // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+    logger.warn({
+      message: 'Attempted to grade output, but Vertex AI is not initialized due to missing configuration. Returning default scores.',
+      component: 'LangchainEvaluatorService'
+    });
     return {
       relevance: { score: 0.0, justification: 'Grading skipped: Vertex AI not configured' },
       factualAccuracy: { score: 0.0, justification: 'Grading skipped: Vertex AI not configured' },
@@ -169,7 +177,12 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
       // Log the finish reason if available, which can help debug safety blocks or other issues.
       const finishReason = response.candidates?.[0]?.finishReason;
       const safetyRatings = response.candidates?.[0]?.safetyRatings;
-      logger.error(`Invalid or empty response structure from Vertex AI. Finish Reason: ${finishReason}`, { safetyRatings });
+      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+      logger.error({
+        message: `Invalid or empty response structure from Vertex AI. Finish Reason: ${finishReason || 'UNKNOWN'}`,
+        component: 'LangchainEvaluatorService',
+        context: { safetyRatings }
+      });
       throw new Error(`Invalid response structure from Vertex AI. Finish Reason: ${finishReason || 'UNKNOWN'}`);
     }
 
@@ -187,7 +200,15 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
     } catch (e) {
       // If JSON parsing fails, it's better to log the raw response and return a default "failed to grade" result,
       // rather than attempting an unreliable partial parse.
-      logger.warn(`Failed to parse Gemini grader output JSON. Raw response: ${text}. Error: ${e.message}`);
+      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+      logger.warn({
+        message: 'Failed to parse Gemini grader output JSON.',
+        component: 'LangchainEvaluatorService',
+        context: {
+          rawResponse: text,
+          error: e.message
+        }
+      });
       return {
         relevance: { score: 0.0, justification: 'Failed to parse Gemini response' },
         factualAccuracy: { score: 0.0, justification: 'Failed to parse Gemini response' },
@@ -195,7 +216,15 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
       };
     }
   } catch (err) {
-    logger.error('Gemini grader failed:', err);
+    // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
+    logger.error({
+      message: 'Gemini grader failed',
+      component: 'LangchainEvaluatorService',
+      error: {
+        message: err.message,
+        stack: err.stack
+      }
+    });
     return {
       relevance: { score: 0.0, justification: `Grading failed: ${err.message}` },
       factualAccuracy: { score: 0.0, justification: `Grading failed: ${err.message}` },
@@ -274,7 +303,17 @@ You MUST return your response as a valid JSON object ONLY, with no extra text or
  * @throws {Error} If the specified chain or any of the version snapshots are not found.
  */
 const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId) => {
-  logger.info(`Benchmarking chain ${chainId} (v${versionA} vs v${versionB}) for user ${userId}`);
+  // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging.
+  logger.info({
+    message: 'Starting chain benchmark.',
+    component: 'LangchainEvaluatorService',
+    context: {
+      chainId,
+      versionA: String(versionA),
+      versionB: String(versionB),
+      userId
+    }
+  });
 
   // Resolve chain
   // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead.
@@ -337,7 +376,16 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
       resultA = await LangchainExecutionService.executeSteps(stepsA, inputs, userId);
     } catch (err) {
       resultA = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
-      logger.error(`Error executing version A for test case ${i}:`, err);
+      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
+      logger.error({
+        message: `Error executing version A for test case ${i}`,
+        component: 'LangchainEvaluatorService',
+        context: { chainId, version: String(versionA), testCaseIndex: i },
+        error: {
+          message: err.message,
+          stack: err.stack
+        }
+      });
     }
     const durationA = Date.now() - startA;
 
@@ -348,7 +396,16 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
       resultB = await LangchainExecutionService.executeSteps(stepsB, inputs, userId);
     } catch (err) {
       resultB = { success: false, error: err.message, outputs: {}, tokenUsage: { totalTokens: 0 } };
-      logger.error(`Error executing version B for test case ${i}:`, err);
+      // GCP-LOGGING-AUDIT: Formatted log for Stackdriver structured logging, including error stack.
+      logger.error({
+        message: `Error executing version B for test case ${i}`,
+        component: 'LangchainEvaluatorService',
+        context: { chainId, version: String(versionB), testCaseIndex: i },
+        error: {
+          message: err.message,
+          stack: err.stack
+        }
+      });
     }
     const durationB = Date.now() - startB;
 

@@ -8,6 +8,17 @@
 import AppleStrategy from 'passport-apple';
 import { findOrCreateUserModel } from '../../social-login.utils.js';
 
+// Security Patch: Add checks for required environment variables at startup.
+// This prevents the application from starting with an incomplete or insecure configuration.
+// A crash during an authentication attempt due to a missing private key, for example,
+// could create a denial-of-service (DoS) vulnerability.
+const requiredEnvVars = ['APPLE_CLIENT_ID', 'APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY'];
+for (const varName of requiredEnvVars) {
+  if (!process.env[varName]) {
+    throw new Error(`FATAL: Missing required Apple OAuth environment variable: ${varName}. Application cannot start.`);
+  }
+}
+
 /**
  * Configures and initializes the Passport Apple authentication strategy.
  *
@@ -52,6 +63,9 @@ const strategy = new AppleStrategy(
    */
   async (accessToken, refreshToken, idToken, profile, done) => {
     try {
+      // Security Note: The 'profile' object from a trusted OAuth provider like Apple is generally
+      // considered safe. However, the `findOrCreateUserModel` function is responsible for any
+      // necessary validation and sanitization before database operations to prevent injection attacks.
       const result = await findOrCreateUserModel(profile, 'apple');
       // Passport's 'done' function expects the user object as the second argument.
       // The original comment "Pass the {user, status, message} object." implies
@@ -60,6 +74,9 @@ const strategy = new AppleStrategy(
       // we should pass 'result.user' instead of the entire 'result' object.
       return done(null, result.user);
     } catch (err) {
+      // Security Note: Pass errors to the 'done' callback to allow Passport's centralized
+      // error handling to manage them. Ensure that the application's global error handler
+      // is configured to not leak sensitive stack trace information to clients in production.
       return done(err, null);
     }
   }

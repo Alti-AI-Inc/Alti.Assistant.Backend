@@ -129,6 +129,13 @@ const getRepositories = async (req, res, next) => {
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
 
+    // DATABASE INDEXING RECOMMENDATION:
+    // To ensure fast query performance for searching, filtering, and sorting repositories,
+    // ensure the following indexes are present on the corresponding Mongoose schema/collection:
+    // 1. A text index for the 'query' functionality: e.g., { name: 'text', description: 'text' }
+    // 2. A compound index for common filter/sort combinations: e.g., { status: 1, license: 1, createdAt: -1 }
+    // This helps MongoDB efficiently handle queries that filter by status and license, and sort by creation date.
+
     // Optimization: Pass `lean: true` to the service layer to retrieve plain JavaScript objects
     // instead of Mongoose documents. This reduces Mongoose overhead for read-only operations
     // where no further modification or saving is needed.
@@ -182,6 +189,10 @@ const getRepositories = async (req, res, next) => {
  */
 const getStats = async (req, res, next) => {
   try {
+    // DATABASE INDEXING RECOMMENDATION:
+    // The getStats service method likely performs aggregation queries on fields like 'status' and 'license'.
+    // To optimize these aggregations, ensure these fields are indexed in the database.
+    // For example, an index on { status: 1 } and { license: 1 } would be beneficial.
     const result = await TemporalCatalogService.getStats();
     res.status(httpStatus.OK).json(result);
   } catch (error) {
