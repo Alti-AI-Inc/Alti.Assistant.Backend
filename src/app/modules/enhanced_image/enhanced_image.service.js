@@ -26,6 +26,15 @@ const generateGuestUserId = () => {
 };
 
 /**
+ * Generate unique conversation ID for images
+ * @returns {string}
+ */
+// BUG FIX: Moved this function definition before its first use in handleImageConversation
+const generateImageConversationId = () => {
+  return `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
  * Create or get image conversation (supports both authenticated and guest users)
  * @param {string} userId
  * @param {string} conversationId
@@ -52,9 +61,15 @@ const handleImageConversation = async (
         // Assuming conversationHelpers.getConversationById accepts a 'lean' flag as the last argument.
         // Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Conversation model
         // for efficient lookups. A compound index on { conversationId: 1, userId: 1 } might be beneficial.
+        // BUG FIX: Changed 'isGuest ? null : userId' to 'userId'.
+        // The 'userId' parameter should always contain the actual user ID (guest ID for guest users).
+        // The 'getConversationById' function should internally handle validation based on 'userId' and 'isGuest' status
+        // to prevent IDOR vulnerabilities where a guest user might access a non-guest conversation.
+        // The subsequent check 'if (isGuest && conversation.metadata?.userType !== 'guest')'
+        // provides an additional layer of security after fetching.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          isGuest ? null : userId,
+          userId, // Pass the actual userId, whether guest or authenticated
           req,
           true // Enable lean mode
         );
@@ -73,6 +88,7 @@ const handleImageConversation = async (
     }
 
     if (!conversation) {
+      // BUG FIX: generateImageConversationId is now defined earlier.
       const newConversationId = conversationId || generateImageConversationId();
 
       if (isGuest) {
@@ -143,6 +159,8 @@ const addImageRequestMessage = async (
       `Adding image request message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
+    // BUG FIX: Pass 'req' to conversationService.addMessageToConversation for consistency
+    // and if the underlying service requires it for context/logging.
     const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -154,7 +172,8 @@ const addImageRequestMessage = async (
           timestamp: new Date().toISOString(),
           ...metadata,
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && prompt && userId) {
@@ -211,6 +230,8 @@ const addImageResultMessage = async (
       `Adding image result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
+    // BUG FIX: Pass 'req' to conversationService.addMessageToConversation for consistency
+    // and if the underlying service requires it for context/logging.
     const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -222,7 +243,8 @@ const addImageResultMessage = async (
           timestamp: new Date().toISOString(),
           ...metadata,
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && result && userId) {
@@ -279,6 +301,8 @@ const addErrorMessage = async (
       `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
+    // BUG FIX: Pass 'req' to conversationService.addMessageToConversation for consistency
+    // and if the underlying service requires it for context/logging.
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -290,7 +314,8 @@ const addErrorMessage = async (
           timestamp: new Date().toISOString(),
           error: originalError?.message || 'Unknown error',
         },
-      }
+      },
+      req
     );
   } catch (error) {
     logger.error('Error adding error message:', error);
@@ -314,6 +339,11 @@ const generateImage = async (
   }
 ) => {
   try {
+    // SECURITY FIX: Sanitize filename to prevent path traversal vulnerabilities.
+    // This ensures that 'filename' does not contain directory separators (e.g., '..')
+    // which could allow an attacker to write files outside the intended 'uploads/images' directory.
+    const safeFilename = path.basename(filename);
+
     const apiKey = config.gemini_secret_key;
     const result = await routeImageGenRequest(prompt, { apiKey });
 
@@ -325,17 +355,19 @@ const generateImage = async (
       'uploads',
       'images'
     );
-    const filepath = path.join(imagesDir, filename);
+    // Use the sanitized filename for path construction.
+    const filepath = path.join(imagesDir, safeFilename);
     let publicUrl;
 
     if (result.service === 'imagen4') {
       publicUrl = await imagegen_4(prompt, filepath);
     } else if (result.service === 'gemini2.5flash') {
-      publicUrl = await imagen3(prompt, options.referenceImage, filename);
+      // Pass the sanitized filename to imagen3 if it expects a simple filename.
+      publicUrl = await imagen3(prompt, options.referenceImage, safeFilename);
     }
 
     return {
-      filename,
+      filename: safeFilename, // Return the sanitized filename
       url: publicUrl,
       service: result.service,
       reasoning: result.reasoning,
@@ -360,16 +392,22 @@ const generateImage = async (
  */
 const editImage = async (prompt, imageBase64, filename, options = {}) => {
   try {
+    // SECURITY FIX: Sanitize filename to prevent path traversal vulnerabilities.
+    // This ensures that 'filename' does not contain directory separators (e.g., '..')
+    // which could allow an attacker to write files outside the intended directory.
+    const safeFilename = path.basename(filename);
+
     const apiKey = config.gemini_secret_key;
+    // Pass the sanitized filename to editImageWithImagen3.
     const imageResult = await editImageWithImagen3(
       prompt,
       imageBase64,
-      filename,
+      safeFilename,
       apiKey
     );
 
     return {
-      filename,
+      filename: safeFilename, // Return the sanitized filename
       url: imageResult,
       service: 'imagen3',
     };
@@ -470,14 +508,6 @@ const buildEnhancedPromptFromHistory = async (conversationHistory) => {
       'Failed to build enhanced prompt'
     );
   }
-};
-
-/**
- * Generate unique conversation ID for images
- * @returns {string}
- */
-const generateImageConversationId = () => {
-  return `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
