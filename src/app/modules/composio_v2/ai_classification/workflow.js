@@ -73,7 +73,12 @@ const getSecret = async (secretName) => {
   return null;
 };
 
-// Security: Helper function to escape HTML entities and prevent XSS.
+/**
+ * Escapes HTML special characters in a string to prevent XSS attacks.
+ * If the input is not a string, it is returned unchanged.
+ * @param {string|any} unsafe - The potentially unsafe string to escape.
+ * @returns {string|any} The escaped string, or the original input if not a string.
+ */
 const escapeHtml = (unsafe) => {
   if (typeof unsafe !== 'string') return unsafe;
   return unsafe
@@ -84,8 +89,13 @@ const escapeHtml = (unsafe) => {
     .replace(/'/g, '&#039;');
 };
 
-// Security: Helper function to validate identifiers like userId and conversationId.
-// Allows alphanumeric characters, dashes, and underscores. Prevents injection attacks.
+/**
+ * Validates an identifier string (e.g., userId, conversationId).
+ * Allows alphanumeric characters, dashes, and underscores to prevent injection attacks.
+ * Null or undefined values are considered valid to support new conversations.
+ * @param {string|null|undefined} id - The identifier to validate.
+ * @returns {boolean} True if the identifier is valid, false otherwise.
+ */
 const isValidIdentifier = (id) => {
   if (id === null || id === undefined) return true; // Allow null/undefined for new conversations
   if (typeof id !== 'string' || id.length === 0) return false;
@@ -106,11 +116,6 @@ const isValidIdentifier = (id) => {
 const workflow = new StateGraph({ channels: aiClassificationState });
 
 // Add all nodes for the AI classification and tool execution process
-/**
- * Adds a node to the workflow.
- * @param {string} name - The name of the node.
- * @param {Function} nodeFunction - The function associated with the node.
- */
 workflow.addNode('plan_workflow', planWorkflowNode);
 workflow.addNode('schedule_detection', scheduleDetectionNode);
 workflow.addNode('save_workflow', saveWorkflowNode);

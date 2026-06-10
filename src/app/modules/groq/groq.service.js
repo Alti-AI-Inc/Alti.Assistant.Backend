@@ -35,53 +35,67 @@ const MAX_MEMORY_SIZE = 12; // Limits stored messages per session
  * @throws {ApiError} If the user is not authorized, not found, or exceeds usage limits.
  */
 const getAiResponsesGroqService = async (prompt, sessionId, requestingUser) => {
-  // FIX: Added comprehensive validation and usage tracking for authenticated users.
-  // This prevents unauthorized access and ensures actions are tracked against user/workspace limits.
-  if (!requestingUser || !requestingUser._id) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication is required.');
-  }
+  try {
+    // FIX: Added comprehensive validation and usage tracking for authenticated users.
+    // This prevents unauthorized access and ensures actions are tracked against user/workspace limits.
+    if (!requestingUser || !requestingUser._id) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'User authentication is required.');
+    }
 
-  // Fetch the full user profile to check limits and permissions.
-  const user = await UserModel.findById(requestingUser._id);
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
-  }
+    // Fetch the full user profile to check limits and permissions.
+    const user = await UserModel.findById(requestingUser._id);
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
+    }
 
-  // CRITICAL INTEGRATION: Check if the user's subscription/role allows AI model usage and if they are within limits.
-  // This is a placeholder for more detailed business logic (e.g., checking user.usage.aiTokens against user.limits.aiTokens).
-  const usageLimit = user.limits?.aiTokens || 0;
-  const currentUsage = user.usage?.aiTokens || 0;
+    // CRITICAL INTEGRATION: Check if the user's subscription/role allows AI model usage and if they are within limits.
+    // This is a placeholder for more detailed business logic (e.g., checking user.usage.aiTokens against user.limits.aiTokens).
+    const usageLimit = user.limits?.aiTokens || 0;
+    const currentUsage = user.usage?.aiTokens || 0;
 
-  if (user.role !== 'super_admin' && currentUsage >= usageLimit) {
-    // TODO: Propagate notification to manager/admin about limit exhaustion.
-    logger.warn({
-      message: 'User has reached their AI token limit.',
-      userId: user._id,
-      workspaceId: user.workspace,
+    if (user.role !== 'super_admin' && currentUsage >= usageLimit) {
+      // TODO: Propagate notification to manager/admin about limit exhaustion.
+      logger.warn({
+        message: 'User has reached their AI token limit.',
+        userId: user._id,
+        workspaceId: user.workspace,
+      });
+      throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'You have exceeded your usage limit. Please upgrade your plan or contact your administrator.');
+    }
+
+    logger.info({
+      message: 'Redirecting Groq completions Request to Google Gemini 3.1 Flash exclusively.',
+      severity: 'INFO',
+      sessionId,
+      userId: user._id.toString()
     });
-    throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'You have exceeded your usage limit. Please upgrade your plan or contact your administrator.');
+
+    // Delegate to the Gemini service, passing the full user object for further context.
+    const result = await GeminiAiService.geminiService(sessionId, prompt, user);
+
+    // CRITICAL INTEGRATION: After a successful response, update usage stats.
+    // The token count should ideally come from the AI service response.
+    // This is a simplified example.
+    const tokensUsed = result.tokenCount || 100; // Placeholder for actual token count from Gemini response
+    user.usage.aiTokens = currentUsage + tokensUsed;
+    await user.save();
+
+    // TODO: Implement logic to notify managers/admins when usage approaches certain thresholds (e.g., 80%, 90%).
+
+    return result;
+  } catch (error) {
+    logger.error({
+      message: `Error in getAiResponsesGroqService for user: ${requestingUser?._id}`,
+      error: error.message,
+      stack: error.stack,
+      sessionId,
+    });
+    // Re-throw ApiError instances directly, otherwise normalize the error
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while processing your request.');
   }
-
-  logger.info({
-    message: 'Redirecting Groq completions Request to Google Gemini 3.1 Flash exclusively.',
-    severity: 'INFO',
-    sessionId,
-    userId: user._id.toString()
-  });
-
-  // Delegate to the Gemini service, passing the full user object for further context.
-  const result = await GeminiAiService.geminiService(sessionId, prompt, user);
-
-  // CRITICAL INTEGRATION: After a successful response, update usage stats.
-  // The token count should ideally come from the AI service response.
-  // This is a simplified example.
-  const tokensUsed = result.tokenCount || 100; // Placeholder for actual token count from Gemini response
-  user.usage.aiTokens = currentUsage + tokensUsed;
-  await user.save();
-
-  // TODO: Implement logic to notify managers/admins when usage approaches certain thresholds (e.g., 80%, 90%).
-
-  return result;
 };
 
 /**
@@ -146,63 +160,64 @@ const GroqAiGetResponseAnonymousService = async (
 ) => {
   const sessionId = sessionIdFromClient || randomUUID(); // Unique session ID if not provided
 
-  if (!prompt) {
-    // Changed httpStatus.NOT_FOUND to httpStatus.BAD_REQUEST for missing prompt
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Prompt is required.');
-  }
+  try {
+    if (!prompt) {
+      // Changed httpStatus.NOT_FOUND to httpStatus.BAD_REQUEST for missing prompt
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Prompt is required.');
+    }
 
-  // Fetch or create chat history document for the anonymous session
-  // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
-  // Note: .lean() is not used here because the 'chatHistoryDoc' object is modified and its .save() method is called later.
-  let chatHistoryDoc = await ChatHistory.findOne({ sessionId });
+    // Fetch or create chat history document for the anonymous session
+    // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
+    // Note: .lean() is not used here because the 'chatHistoryDoc' object is modified and its .save() method is called later.
+    let chatHistoryDoc = await ChatHistory.findOne({ sessionId });
 
-  if (!chatHistoryDoc) {
-    // Create a new chat history document if none exists for this session
-    chatHistoryDoc = await ChatHistory.create({
-      sessionId,
-      messages: [], // Initialize with an empty array of messages
-      // Note: The 'user' field is intentionally left null for anonymous sessions.
-      // FIX: For better data segregation, associate anonymous sessions with a default
-      // workspace or tenant if context is available (e.g., from request origin/domain).
-      // workspace: resolveWorkspaceIdFromRequest(req), // Example placeholder
+    if (!chatHistoryDoc) {
+      // Create a new chat history document if none exists for this session
+      chatHistoryDoc = await ChatHistory.create({
+        sessionId,
+        messages: [], // Initialize with an empty array of messages
+        // Note: The 'user' field is intentionally left null for anonymous sessions.
+        // FIX: For better data segregation, associate anonymous sessions with a default
+        // workspace or tenant if context is available (e.g., from request origin/domain).
+        // workspace: resolveWorkspaceIdFromRequest(req), // Example placeholder
+      });
+    }
+
+    // Initialize Langchain's InMemoryChatMessageHistory with messages loaded from the database
+    const existingLangchainMessages = toLangchainMessages(chatHistoryDoc.messages);
+    const inMemoryChatHistory = new InMemoryChatMessageHistory({
+      messages: existingLangchainMessages,
     });
-  }
 
-  // Initialize Langchain's InMemoryChatMessageHistory with messages loaded from the database
-  const existingLangchainMessages = toLangchainMessages(chatHistoryDoc.messages);
-  const inMemoryChatHistory = new InMemoryChatMessageHistory({
-    messages: existingLangchainMessages,
-  });
+    // Initialize BufferMemory with the persistent chat history
+    const memory = new BufferMemory({
+      returnMessages: true,
+      memoryKey: 'history',
+      chatHistory: inMemoryChatHistory,
+    });
 
-  // Initialize BufferMemory with the persistent chat history
-  const memory = new BufferMemory({
-    returnMessages: true,
-    memoryKey: 'history',
-    chatHistory: inMemoryChatHistory,
-  });
+    // Retrieve previous chat history from the initialized memory
+    let previousMessages = await memory.chatHistory.getMessages();
 
-  // Retrieve previous chat history from the initialized memory
-  let previousMessages = await memory.chatHistory.getMessages();
+    // Limit memory size to prevent excessive context
+    if (previousMessages.length > MAX_MEMORY_SIZE) {
+      // Update the messages array directly in the InMemoryChatMessageHistory instance
+      memory.chatHistory.messages = previousMessages.slice(-MAX_MEMORY_SIZE);
+      previousMessages = memory.chatHistory.messages; // Ensure previousMessages reflects the sliced version
+    }
 
-  // Limit memory size to prevent excessive context
-  if (previousMessages.length > MAX_MEMORY_SIZE) {
-    // Update the messages array directly in the InMemoryChatMessageHistory instance
-    memory.chatHistory.messages = previousMessages.slice(-MAX_MEMORY_SIZE);
-    previousMessages = memory.chatHistory.messages; // Ensure previousMessages reflects the sliced version
-  }
+    // Enhance prompt using massiveSmartRouter for real-time market data
+    const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
-  // Enhance prompt using massiveSmartRouter for real-time market data
-  const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+    // Fetch real-time search results from Serper
+    const searchResults = await fetchSearchResults(prompt);
+    const searchContext = searchResults
+      .map((result, index) => `${index + 1}. ${result.title}: ${result.link}`)
+      .join('\n');
 
-  // Fetch real-time search results from Serper
-  const searchResults = await fetchSearchResults(prompt);
-  const searchContext = searchResults
-    .map((result, index) => `${index + 1}. ${result.title}: ${result.link}`)
-    .join('\n');
-
-  // Prepare conversation context (previous memory + search results)
-  const enrichedPrompt = searchResults.length
-    ? `[SYSTEM INSTRUCTION - ACTIVE ELITE WEB SEARCH]
+    // Prepare conversation context (previous memory + search results)
+    const enrichedPrompt = searchResults.length
+      ? `[SYSTEM INSTRUCTION - ACTIVE ELITE WEB SEARCH]
 You are a highly accurate, extremely fast real-time search engine competing with Perplexity.
 Follow these rules strictly:
 1. Answer the user query directly, simply, and clearly. Never include greeting, filler, conversational preamble, or throat-clearing.
@@ -219,7 +234,7 @@ ${previousMessages
   .join('\n')}
 
 User Query: ${enhancedPrompt}`
-    : `[SYSTEM INSTRUCTION - ACTIVE ELITE SEARCH]
+      : `[SYSTEM INSTRUCTION - ACTIVE ELITE SEARCH]
 Answer the user query directly, simply and concisely. Never include conversational preamble or throat-clearing.
 Be extremely concise to maximize response speed.
 
@@ -230,35 +245,48 @@ ${previousMessages
 
 User Query: ${enhancedPrompt}`;
 
-  // Initialize Google Gemini model
-  const client = new GoogleGenerativeAI(config.gemini_secret_key);
-  const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Initialize Google Gemini model
+    const client = new GoogleGenerativeAI(config.gemini_secret_key);
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  // Add the new user message to memory
-  await memory.chatHistory.addMessage(new HumanMessage(prompt));
+    // Add the new user message to memory
+    await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
-  // Generate response using Google Gemini
-  const result = await model.generateContent(enrichedPrompt);
-  const reply =
-    result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-    'No reply generated';
+    // Generate response using Google Gemini
+    const result = await model.generateContent(enrichedPrompt);
+    const reply =
+      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      'No reply generated';
 
-  // Store AI response in chat history
-  await memory.chatHistory.addMessage(new AIMessage(reply));
+    // Store AI response in chat history
+    await memory.chatHistory.addMessage(new AIMessage(reply));
 
-  // Save the updated messages back to the database
-  chatHistoryDoc.messages = toDbMessages(await memory.chatHistory.getMessages());
-  await chatHistoryDoc.save();
+    // Save the updated messages back to the database
+    chatHistoryDoc.messages = toDbMessages(await memory.chatHistory.getMessages());
+    await chatHistoryDoc.save();
 
-  // Prepare response
-  const responseData = {
-    sessionId,
-    prompt,
-    reply,
-    search_results: searchResults, // Include search results in response
-  };
+    // Prepare response
+    const responseData = {
+      sessionId,
+      prompt,
+      reply,
+      search_results: searchResults, // Include search results in response
+    };
 
-  return responseData;
+    return responseData;
+  } catch (error) {
+    logger.error({
+      message: `Error in GroqAiGetResponseAnonymousService`,
+      error: error.message,
+      stack: error.stack,
+      sessionId,
+    });
+    // Re-throw ApiError instances directly, otherwise normalize the error
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while generating the AI response.');
+  }
 };
 
 /**
@@ -270,43 +298,56 @@ User Query: ${enhancedPrompt}`;
  * @throws {ApiError} If the requesting user is not authorized, or if the target user or session data is not found.
  */
 const getAiResponsesByUserIdService = async (targetUserId, requestingUser) => {
-  // FIX: Added authorization to prevent IDOR (Insecure Direct Object Reference).
-  // Ensures users can only access their own data, and admins/managers can access data within their scope.
-  if (!requestingUser) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
-  }
+  try {
+    // FIX: Added authorization to prevent IDOR (Insecure Direct Object Reference).
+    // Ensures users can only access their own data, and admins/managers can access data within their scope.
+    if (!requestingUser) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+    }
 
-  const targetUser = await UserModel.findById(targetUserId).lean();
-  if (!targetUser) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
-  }
+    const targetUser = await UserModel.findById(targetUserId).lean();
+    if (!targetUser) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
+    }
 
-  const isOwner = requestingUser._id.toString() === targetUserId;
-  const isSuperAdmin = requestingUser.role === 'super_admin';
-  // Assumes user model has a workspace field for tenancy check
-  const isAdminOrManagerOfSameWorkspace =
-    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
-    targetUser.workspace &&
-    requestingUser.workspace &&
-    requestingUser.workspace.toString() === targetUser.workspace.toString();
+    const isOwner = requestingUser._id.toString() === targetUserId;
+    const isSuperAdmin = requestingUser.role === 'super_admin';
+    // Assumes user model has a workspace field for tenancy check
+    const isAdminOrManagerOfSameWorkspace =
+      (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+      targetUser.workspace &&
+      requestingUser.workspace &&
+      requestingUser.workspace.toString() === targetUser.workspace.toString();
 
-  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this user\'s sessions.');
-  }
+    if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this user\'s sessions.');
+    }
 
-  const sessionData = await UserModel.findOne({
-    _id: targetUserId,
-  })
-    .select('email profile llamaAiSessions')
-    .populate({
-      path: 'llamaAiSessions',
+    const sessionData = await UserModel.findOne({
+      _id: targetUserId,
     })
-    .lean();
+      .select('email profile llamaAiSessions')
+      .populate({
+        path: 'llamaAiSessions',
+      })
+      .lean();
 
-  if (!sessionData) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User or session data not found');
+    if (!sessionData) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'User or session data not found');
+    }
+    return sessionData;
+  } catch (error) {
+    logger.error({
+      message: `Error in getAiResponsesByUserIdService for targetUser: ${targetUserId}`,
+      error: error.message,
+      stack: error.stack,
+      requestingUserId: requestingUser?._id,
+    });
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while retrieving user sessions.');
   }
-  return sessionData;
 };
 
 /**
@@ -318,38 +359,51 @@ const getAiResponsesByUserIdService = async (targetUserId, requestingUser) => {
  * @throws {ApiError} If the session is not found or the user is not authorized.
  */
 const getAiResponsesBySession = async (sessionId, requestingUser) => {
-  // FIX: Added authorization to prevent IDOR. Ensures users can only access sessions they own or manage.
-  if (!requestingUser) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  try {
+    // FIX: Added authorization to prevent IDOR. Ensures users can only access sessions they own or manage.
+    if (!requestingUser) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+    }
+
+    const sessionData = await ChatHistory.findOne({
+      sessionId: sessionId,
+    }).lean();
+
+    if (!sessionData) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Session not found');
+    }
+
+    // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership.
+    // Anonymous sessions (without a user) must not be retrievable via this authenticated endpoint.
+    if (!sessionData.user || !sessionData.workspace) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Access to this session type is not permitted.');
+    }
+
+    const isOwner = requestingUser._id.equals(sessionData.user);
+    const isSuperAdmin = requestingUser.role === 'super_admin';
+    const isAdminOrManagerOfSameWorkspace =
+      (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+      requestingUser.workspace &&
+      sessionData.workspace &&
+      requestingUser.workspace.equals(sessionData.workspace);
+
+    if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this session.');
+    }
+
+    return sessionData;
+  } catch (error) {
+    logger.error({
+      message: `Error in getAiResponsesBySession for sessionId: ${sessionId}`,
+      error: error.message,
+      stack: error.stack,
+      requestingUserId: requestingUser?._id,
+    });
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while retrieving the session.');
   }
-
-  const sessionData = await ChatHistory.findOne({
-    sessionId: sessionId,
-  }).lean();
-
-  if (!sessionData) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Session not found');
-  }
-
-  // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership.
-  // Anonymous sessions (without a user) must not be retrievable via this authenticated endpoint.
-  if (!sessionData.user || !sessionData.workspace) {
-      throw new ApiError(httpStatus.FORBIDDEN, 'Access to this session type is not permitted.');
-  }
-
-  const isOwner = requestingUser._id.equals(sessionData.user);
-  const isSuperAdmin = requestingUser.role === 'super_admin';
-  const isAdminOrManagerOfSameWorkspace =
-    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
-    requestingUser.workspace &&
-    sessionData.workspace &&
-    requestingUser.workspace.equals(sessionData.workspace);
-
-  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view this session.');
-  }
-
-  return sessionData;
 };
 
 /**
@@ -361,60 +415,74 @@ const getAiResponsesBySession = async (sessionId, requestingUser) => {
  * @throws {ApiError} If the session is not found or the user is not authorized.
  */
 const deleteOneLlamaAiSession = async (objectId, requestingUser) => {
-  // FIX: Added authorization to prevent IDOR. Ensures only authorized users can delete sessions.
-  if (!requestingUser) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
-  }
-
-  const sessionToDelete = await ChatHistory.findById(objectId);
-
-  if (!sessionToDelete) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
-  }
-
-  // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership for deletion.
-  if (!sessionToDelete.user || !sessionToDelete.workspace) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'This session cannot be deleted through this endpoint.');
-  }
-
-  const isOwner = requestingUser._id.equals(sessionToDelete.user);
-  const isSuperAdmin = requestingUser.role === 'super_admin';
-  const isAdminOrManagerOfSameWorkspace =
-    (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
-    requestingUser.workspace &&
-    sessionToDelete.workspace &&
-    requestingUser.workspace.equals(sessionToDelete.workspace);
-
-  if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete this session.');
-  }
-
-  const deleteResult = await ChatHistory.deleteOne({
-    _id: objectId,
-  });
-
-  if (deleteResult.deletedCount === 1) {
-    const userUpdateResult = await UserModel.updateOne(
-      { _id: sessionToDelete.user },
-      { $pull: { llamaAiSessions: objectId } }
-    );
-
-    // FIX: Improved logic to handle cases where user reference might already be gone.
-    if (userUpdateResult.matchedCount === 0) {
-      logger.warn({
-        message: 'Session was deleted, but the corresponding user was not found to update their session list.',
-        severity: 'WARNING',
-        userId: sessionToDelete.user,
-        sessionId: objectId,
-      });
+  try {
+    // FIX: Added authorization to prevent IDOR. Ensures only authorized users can delete sessions.
+    if (!requestingUser) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
     }
 
-    return {
-      success: true,
-      message: 'LlamaAiSession and user reference updated successfully',
-    };
-  } else {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete the LlamaAiSession');
+    const sessionToDelete = await ChatHistory.findById(objectId);
+
+    if (!sessionToDelete) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
+    }
+
+    // CRITICAL INTEGRATION: Enforce tenant boundaries and ownership for deletion.
+    if (!sessionToDelete.user || !sessionToDelete.workspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'This session cannot be deleted through this endpoint.');
+    }
+
+    const isOwner = requestingUser._id.equals(sessionToDelete.user);
+    const isSuperAdmin = requestingUser.role === 'super_admin';
+    const isAdminOrManagerOfSameWorkspace =
+      (requestingUser.role === 'admin' || requestingUser.role === 'manager') &&
+      requestingUser.workspace &&
+      sessionToDelete.workspace &&
+      requestingUser.workspace.equals(sessionToDelete.workspace);
+
+    if (!isOwner && !isSuperAdmin && !isAdminOrManagerOfSameWorkspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete this session.');
+    }
+
+    const deleteResult = await ChatHistory.deleteOne({
+      _id: objectId,
+    });
+
+    if (deleteResult.deletedCount === 1) {
+      const userUpdateResult = await UserModel.updateOne(
+        { _id: sessionToDelete.user },
+        { $pull: { llamaAiSessions: objectId } }
+      );
+
+      // FIX: Improved logic to handle cases where user reference might already be gone.
+      if (userUpdateResult.matchedCount === 0) {
+        logger.warn({
+          message: 'Session was deleted, but the corresponding user was not found to update their session list.',
+          severity: 'WARNING',
+          userId: sessionToDelete.user,
+          sessionId: objectId,
+        });
+      }
+
+      return {
+        success: true,
+        message: 'LlamaAiSession and user reference updated successfully',
+      };
+    } else {
+      // This case should ideally not be reached if findById succeeds, but it's a safeguard.
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete the LlamaAiSession');
+    }
+  } catch (error) {
+    logger.error({
+      message: `Error in deleteOneLlamaAiSession for objectId: ${objectId}`,
+      error: error.message,
+      stack: error.stack,
+      requestingUserId: requestingUser?._id,
+    });
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while deleting the session.');
   }
 };
 
@@ -427,33 +495,33 @@ const deleteOneLlamaAiSession = async (objectId, requestingUser) => {
  * @throws {ApiError} If the user is not authorized or an error occurs during the transaction.
  */
 const deleteAllAiSessionsService = async (targetUserId, requestingUser) => {
-  // FIX: Added authorization to prevent IDOR. Ensures only the user or an admin can delete all sessions.
-  if (!requestingUser) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
-  }
-
-  const targetUser = await UserModel.findById(targetUserId).lean();
-  if (!targetUser) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
-  }
-
-  const isOwner = requestingUser._id.toString() === targetUserId;
-  const isSuperAdmin = requestingUser.role === 'super_admin';
-  // Restrict bulk deletion to admins to prevent accidental mass data loss by managers.
-  const isAdminOfSameWorkspace =
-    requestingUser.role === 'admin' &&
-    targetUser.workspace &&
-    requestingUser.workspace &&
-    requestingUser.workspace.toString() === targetUser.workspace.toString();
-
-  if (!isOwner && !isSuperAdmin && !isAdminOfSameWorkspace) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete all sessions for this user.');
-  }
-
   const session = await mongoose.startSession();
 
   try {
     await session.startTransaction();
+
+    // FIX: Added authorization to prevent IDOR. Ensures only the user or an admin can delete all sessions.
+    if (!requestingUser) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+    }
+
+    const targetUser = await UserModel.findById(targetUserId).session(session).lean();
+    if (!targetUser) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Target user not found.');
+    }
+
+    const isOwner = requestingUser._id.toString() === targetUserId;
+    const isSuperAdmin = requestingUser.role === 'super_admin';
+    // Restrict bulk deletion to admins to prevent accidental mass data loss by managers.
+    const isAdminOfSameWorkspace =
+      requestingUser.role === 'admin' &&
+      targetUser.workspace &&
+      requestingUser.workspace &&
+      requestingUser.workspace.toString() === targetUser.workspace.toString();
+
+    if (!isOwner && !isSuperAdmin && !isAdminOfSameWorkspace) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to delete all sessions for this user.');
+    }
 
     if (
       !targetUser.llamaAiSessions ||
@@ -488,21 +556,25 @@ const deleteAllAiSessionsService = async (targetUserId, requestingUser) => {
         message: 'All AI sessions and user references deleted successfully',
       };
     } else {
+      // This case indicates a potential issue with the DB operation acknowledgment.
       throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update the user model after deleting sessions.');
     }
   } catch (error) {
     await session.abortTransaction();
-    session.endSession();
     logger.error({
       message: 'An error occurred during deleteAllAiSessionsService execution',
       severity: 'ERROR',
       error: error.message || error,
-      stack: error.stack
+      stack: error.stack,
+      targetUserId,
+      requestingUserId: requestingUser?._id,
     });
     if (error instanceof ApiError) {
       throw error;
     }
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal server error occurred during the deletion process.');
+  } finally {
+    session.endSession();
   }
 };
 
