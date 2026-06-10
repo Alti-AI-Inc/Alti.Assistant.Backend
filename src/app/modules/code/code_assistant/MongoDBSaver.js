@@ -27,7 +27,8 @@ const checkpointSchema = new mongoose.Schema(
   {
     // Mongoose-specific options
     versionKey: false, // Disable the __v version key
-    timestamps: true, // Automatically manage createdAt and updatedAt fields
+    // The 'ts' field is explicitly managed by LangGraph checkpoint data,
+    // so Mongoose's automatic 'createdAt' and 'updatedAt' timestamps are not needed.
   }
 );
 
@@ -52,7 +53,8 @@ export class MongoDBSaver extends BaseCheckpointSaver {
    * The parent `BaseCheckpointSaver` constructor is called.
    */
   constructor() {
-    super(); // Pass a serializer to the parent class
+    // No serializer is explicitly passed to the parent class as this class handles its own data mapping.
+    super();
   }
 
   /**
