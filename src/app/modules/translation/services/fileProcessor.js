@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-import fsSync from 'fs';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
 import mammoth from 'mammoth';
@@ -23,46 +21,55 @@ try {
   const projectId = process.env.GCP_PROJECT_ID;
   const bucketName = process.env.GCS_BUCKET_NAME;
 
-  if (keyFile && fsSync.existsSync(keyFile)) {
+  // The GCS client can be initialized with a key file path directly.
+  // It will throw an error if the file is specified but not found or invalid.
+  // If keyFile is undefined, it will fall back to other auth methods (like ADC).
+  // This removes the need for fsSync.existsSync.
+  if (keyFile || projectId) {
     storage = new Storage({
       keyFilename: keyFile,
       projectId: projectId,
     });
-  } else if (projectId) {
-    storage = new Storage({
-      projectId: projectId,
-    });
   } else {
-    logger.warn(
-      'GCS credentials not configured. Translation file uploads will be stored locally only.'
-    );
+    // In a stateless, cloud-native environment, GCS is not optional.
+    // Throw an error during initialization if configuration is missing.
+    const errorMsg =
+      'GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). This service cannot operate without GCS.';
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   if (storage && bucketName) {
     bucket = storage.bucket(bucketName);
+  } else if (storage && !bucketName) {
+    const errorMsg =
+      'GCS_BUCKET_NAME is not set. This service cannot operate without a target bucket.';
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
   }
 } catch (error) {
   logger.error(
     'Failed to initialize Google Cloud Storage for translation:',
     error
   );
+  // Re-throw to prevent the application from starting in a broken state.
+  throw error;
 }
 
 // ============================================
-// TEXT EXTRACTION FUNCTIONS
+// TEXT EXTRACTION FUNCTIONS (BUFFER-BASED)
 // ============================================
 
 /**
- * Extract text from PDF file
+ * Extract text from PDF file buffer
  */
-const extractTextFromPDF = async (filePath) => {
+const extractTextFromPDF = async (fileBuffer) => {
   try {
-    const dataBuffer = await fs.readFile(filePath);
-    // BUG FIX: Use pdf-parse as a function, not a constructor, and directly access .text property
-    const data = await PDFParse(dataBuffer);
+    // pdf-parse works directly with buffers, avoiding filesystem reads.
+    const data = await PDFParse(fileBuffer);
     return data.text;
   } catch (error) {
-    logger.error('Error extracting text from PDF:', error);
+    logger.error('Error extracting text from PDF buffer:', error);
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Failed to extract text from PDF'
@@ -71,14 +78,15 @@ const extractTextFromPDF = async (filePath) => {
 };
 
 /**
- * Extract text from DOCX file
+ * Extract text from DOCX file buffer
  */
-const extractTextFromDOCX = async (filePath) => {
+const extractTextFromDOCX = async (fileBuffer) => {
   try {
-    const result = await mammoth.extractRawText({ path: filePath });
+    // mammoth can extract text directly from a buffer.
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return result.value;
   } catch (error) {
-    logger.error('Error extracting text from DOCX:', error);
+    logger.error('Error extracting text from DOCX buffer:', error);
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Failed to extract text from DOCX'
@@ -87,43 +95,36 @@ const extractTextFromDOCX = async (filePath) => {
 };
 
 /**
- * Extract text from plain text file
+ * Extract text from plain text file buffer
  */
-const extractTextFromTXT = async (filePath) => {
+const extractTextFromTXT = async (fileBuffer) => {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return content;
+    // Buffers can be converted directly to strings.
+    return fileBuffer.toString('utf-8');
   } catch (error) {
-    logger.error('Error reading text file:', error);
+    logger.error('Error reading text file from buffer:', error);
     throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to read text file');
   }
 };
 
 /**
- * Extract text from XLSX files
+ * Extract text from XLSX file buffer
  */
-const extractTextFromXLSX = async (filePath) => {
+const extractTextFromXLSX = async (fileBuffer) => {
   try {
     const XLSX = await import('xlsx');
-    // PERFORMANCE: Read file into buffer asynchronously before synchronous parsing.
-    const dataBuffer = await fs.readFile(filePath);
-    // NOTE: The XLSX.read call is synchronous and can block the event loop on very large files.
-    // For true non-blocking processing, this operation should be moved to a worker thread.
-    const workbook = XLSX.read(dataBuffer, { type: 'buffer' });
-    
-    // OPTIMIZATION: Use an array and join for better performance with a large number of sheets
-    // compared to repeated string concatenation, which can be less efficient.
-    const sheetsText = [];
+    // The XLSX library reads directly from the provided buffer.
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
 
+    const sheetsText = [];
     for (const sheetName of workbook.SheetNames) {
       const worksheet = workbook.Sheets[sheetName];
-      // This conversion can also be CPU-intensive for large sheets.
       sheetsText.push(XLSX.utils.sheet_to_csv(worksheet));
     }
 
     return sheetsText.join('\n\n');
   } catch (error) {
-    logger.error('XLSX extraction error:', error);
+    logger.error('XLSX extraction error from buffer:', error);
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Failed to extract text from XLSX file'
@@ -132,15 +133,19 @@ const extractTextFromXLSX = async (filePath) => {
 };
 
 /**
- * Main function to extract text from any supported file type
+ * Main function to extract text from any supported file type buffer.
+ * This function is designed to work with in-memory file representations,
+ * such as those provided by multer's memoryStorage engine, to ensure
+ * the service remains stateless and does not write to the local filesystem.
  */
-const extractTextFromFile = async (fileInfo) => {
+const extractTextFromFile = async (file) => {
   try {
-    const filePath = fileInfo.path;
-    const originalName = fileInfo.originalName || fileInfo.originalname;
+    // The file object should contain the buffer and originalname.
+    const fileBuffer = file.buffer;
+    const originalName = file.originalname;
     const ext = path.extname(originalName).toLowerCase();
 
-    logger.info(`Extracting text from file: ${originalName} (${ext})`);
+    logger.info(`Extracting text from in-memory file: ${originalName} (${ext})`);
 
     if (!SUPPORTED_DOCUMENT_FORMATS.includes(ext)) {
       throw new ApiError(
@@ -153,21 +158,21 @@ const extractTextFromFile = async (fileInfo) => {
 
     switch (ext) {
       case '.pdf':
-        text = await extractTextFromPDF(filePath);
+        text = await extractTextFromPDF(fileBuffer);
         break;
       case '.docx':
       case '.doc':
-        text = await extractTextFromDOCX(filePath);
+        text = await extractTextFromDOCX(fileBuffer);
         break;
       case '.txt':
       case '.md':
       case '.html':
       case '.json':
       case '.csv':
-        text = await extractTextFromTXT(filePath);
+        text = await extractTextFromTXT(fileBuffer);
         break;
       case '.xlsx':
-        text = await extractTextFromXLSX(filePath);
+        text = await extractTextFromXLSX(fileBuffer);
         break;
       default:
         throw new ApiError(
@@ -187,32 +192,81 @@ const extractTextFromFile = async (fileInfo) => {
 };
 
 // ============================================
-// GOOGLE CLOUD STORAGE FUNCTIONS
+// GOOGLE CLOUD STORAGE FUNCTIONS (STATELESS)
 // ============================================
 
 /**
- * Upload file to Google Cloud Storage and return signed URL
+ * Generates a v4 signed URL for client-side uploads.
+ * The client can use this URL to upload a file directly to GCS,
+ * which is the recommended stateless pattern.
  */
-const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
+const generateV4UploadSignedUrl = async (
+  filename,
+  contentType,
+  documentMetadata = {}
+) => {
+  if (!storage || !bucket) {
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'GCS not configured'
+    );
+  }
+
+  const bucketName = process.env.GCS_BUCKET_NAME;
+  const destination = `${STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId || 'anonymous'}/${Date.now()}_${filename}`;
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType: contentType,
+    extensionHeaders: {
+      'x-goog-meta-documenttype': documentMetadata.documentType || 'translation',
+      'x-goog-meta-uploadedat': new Date().toISOString(),
+      'x-goog-meta-userid': documentMetadata.userId || 'anonymous',
+      'x-goog-meta-originalname': documentMetadata.originalName || filename,
+      'x-goog-meta-targetlanguage': documentMetadata.targetLanguage || '',
+      'x-goog-meta-sourcelanguage': documentMetadata.sourceLanguage || '',
+    },
+  };
+
   try {
+    const [url] = await bucket.file(destination).getSignedUrl(options);
+    logger.info(`Generated v4 signed URL for: ${destination}`);
+    return {
+      success: true,
+      url,
+      gcsPath: `gs://${bucketName}/${destination}`,
+      destination,
+    };
+  } catch (error) {
+    logger.error('Error generating v4 signed URL:', error);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Could not create upload URL.'
+    );
+  }
+};
+
+/**
+ * Streams a file buffer from the server's memory directly to Google Cloud Storage.
+ * This is used when the server must proxy the file upload instead of using a signed URL.
+ * It avoids writing the file to the local disk.
+ */
+const streamUploadToGCS = (fileBuffer, filename, documentMetadata = {}) => {
+  return new Promise((resolve, reject) => {
     if (!storage || !bucket) {
-      logger.warn('GCS not configured. Returning local file path.');
-      return {
-        success: true,
-        localPath: localFilePath,
-        fileName: filename,
-        storageType: 'local',
-      };
+      return reject(
+        new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'GCS not configured')
+      );
     }
 
     const bucketName = process.env.GCS_BUCKET_NAME;
     const destination = `${STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId || 'anonymous'}/${Date.now()}_${filename}`;
+    const file = bucket.file(destination);
 
-    logger.info(`Uploading translation file to GCS: ${destination}`);
-
-    // Upload file
-    await bucket.upload(localFilePath, {
-      destination,
+    const stream = file.createWriteStream({
+      resumable: false, // Use simple upload for in-memory buffers
       metadata: {
         contentType: getMimeType(filename),
         metadata: {
@@ -226,44 +280,52 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
       },
     });
 
-    // Generate signed URL (valid for 7 days)
-    const file = bucket.file(destination);
-    const [signedUrl] = await file.getSignedUrl({
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    stream.on('error', (err) => {
+      logger.error(`Error streaming file to GCS at ${destination}:`, err);
+      reject(
+        new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          'Failed to upload file to GCS'
+        )
+      );
     });
 
-    logger.info(
-      `Translation file uploaded successfully to GCS: ${destination}`
-    );
+    stream.on('finish', async () => {
+      try {
+        logger.info(`File streamed successfully to GCS: ${destination}`);
+        const [signedUrl] = await file.getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
 
-    return {
-      success: true,
-      gcsPath: `gs://${bucketName}/${destination}`,
-      publicUrl: signedUrl,
-      fileName: filename,
-      destination,
-      storageType: 'gcs',
-    };
-  } catch (error) {
-    logger.error('Error uploading translation file to GCS:', error);
+        resolve({
+          success: true,
+          gcsPath: `gs://${bucketName}/${destination}`,
+          publicUrl: signedUrl,
+          fileName: filename,
+          destination,
+          storageType: 'gcs',
+        });
+      } catch (err) {
+        logger.error(`Error generating signed URL for ${destination}:`, err);
+        reject(
+          new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'File uploaded but failed to generate read URL'
+          )
+        );
+      }
+    });
 
-    // Return local path as fallback
-    return {
-      success: true,
-      localPath: localFilePath,
-      fileName: filename,
-      storageType: 'local',
-      error: error.message,
-    };
-  }
+    stream.end(fileBuffer);
+  });
 };
 
 /**
- * Download file from GCS to a temporary local path
+ * Downloads a file from GCS directly into a memory buffer, avoiding local filesystem writes.
  */
-const downloadFromGCS = async (gcsPath, tempLocalPath) => {
+const downloadFromGCSToBuffer = async (gcsPath) => {
   try {
     if (!storage || !bucket) {
       throw new ApiError(
@@ -275,20 +337,19 @@ const downloadFromGCS = async (gcsPath, tempLocalPath) => {
     const bucketName = process.env.GCS_BUCKET_NAME;
     const filePath = gcsPath.replace(`gs://${bucketName}/`, '');
 
-    logger.info(`Downloading file from GCS: ${filePath}`);
+    logger.info(`Downloading file from GCS to buffer: ${filePath}`);
 
-    await bucket.file(filePath).download({
-      destination: tempLocalPath,
-    });
+    // The download() method without a destination returns a buffer
+    const [contents] = await bucket.file(filePath).download();
 
-    logger.info(`File downloaded successfully from GCS to: ${tempLocalPath}`);
+    logger.info(`File downloaded successfully from GCS to buffer.`);
 
     return {
       success: true,
-      localPath: tempLocalPath,
+      buffer: contents,
     };
   } catch (error) {
-    logger.error('Error downloading file from GCS:', error);
+    logger.error('Error downloading file from GCS to buffer:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to download file from GCS'
@@ -321,24 +382,6 @@ const deleteFromGCS = async (gcsPath) => {
 };
 
 /**
- * Clean up temporary file
- */
-const cleanupFile = async (filePath) => {
-  try {
-    // OPTIMIZATION: Directly attempt to unlink the file and handle the error,
-    // which avoids a blocking, synchronous fs.existsSync call inside an async function.
-    await fs.unlink(filePath);
-    logger.info(`Cleaned up temporary file: ${filePath}`);
-  } catch (error) {
-    // If the file doesn't exist (error code 'ENOENT'), we can safely ignore the error,
-    // as the desired state (file is removed) is already met. Log other unexpected errors.
-    if (error.code !== 'ENOENT') {
-      logger.warn(`Failed to cleanup file ${filePath}:`, error);
-    }
-  }
-};
-
-/**
  * Get MIME type from filename
  */
 const getMimeType = (filename) => {
@@ -361,14 +404,18 @@ const getMimeType = (filename) => {
 };
 
 export const fileProcessor = {
+  // Main text extraction entry point
   extractTextFromFile,
+  // Individual extractors are exposed for potential direct use or testing
   extractTextFromPDF,
   extractTextFromDOCX,
   extractTextFromTXT,
   extractTextFromXLSX,
-  cleanupFile,
-  uploadToGCS,
-  downloadFromGCS,
+  // GCS operations for a stateless architecture
+  generateV4UploadSignedUrl,
+  streamUploadToGCS,
+  downloadFromGCSToBuffer,
   deleteFromGCS,
+  // Utilities
   getMimeType,
 };

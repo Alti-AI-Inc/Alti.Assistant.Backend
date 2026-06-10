@@ -36,7 +36,8 @@ import { logger } from '../../../../shared/logger.js';
 import path from 'path';
 import crypto from 'node:crypto';
 import fsPromises from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+// OPTIMIZATION: Removed sync file system call 'existsSync' to avoid blocking the event loop.
+// import { existsSync } from 'node:fs';
 
 /**
  * Resolves and validates the user context, enforcing tenant boundaries and role permissions.
@@ -313,15 +314,19 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
   const indexMetaPath = path.join(persistDir, 'index_store.json');
   let storageContext;
 
+  // OPTIMIZATION: Use async file access to check for index existence without blocking the event loop.
+  const indexExists = await fsPromises.access(indexMetaPath, fsPromises.constants.F_OK).then(() => true).catch(() => false);
+
   // Perform accumulative index update if pre-existing, otherwise run initial fromDocuments
-  if (existsSync(indexMetaPath) && manifest.documents && manifest.documents.length > 1) {
+  if (indexExists && manifest.documents && manifest.documents.length > 1) {
     logger.info('[Event Ingestion] Accumulative mode: inserting nodes into existing vector store...');
     storageContext = await storageContextFromDefaults({ persistDir });
     const existingIndex = await VectorStoreIndex.init({ storageContext });
     
-    for (const node of nodes) {
-      await existingIndex.insert(node);
-    }
+    // OPTIMIZATION: Replaced N+1 style single-node insertion loop with a single batch insert call.
+    // This significantly reduces I/O overhead and is more efficient for vector store operations.
+    await existingIndex.insertNodes(nodes);
+
   } else {
     logger.info('[Event Ingestion] Creating fresh vector index for user from transformed nodes...');
     storageContext = await storageContextFromDefaults({ persistDir });

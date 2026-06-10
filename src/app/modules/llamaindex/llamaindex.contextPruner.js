@@ -80,7 +80,13 @@ const pruneAndRerank = async (query, userId, options = {}) => {
         // Global oversight: fetch all metadata across the platform
         queryCriteria = {};
       }
-      logger.info(`[Platform Owner Oversight] ContextPruner executing query. Criteria: ${JSON.stringify(queryCriteria)}`);
+      // GCP-compatible structured log
+      logger.info({
+        message: '[Platform Owner Oversight] ContextPruner executing query.',
+        component: 'ContextPruner',
+        operation: 'pruneAndRerank',
+        criteria: queryCriteria
+      });
     } else {
       queryCriteria = { userId };
     }
@@ -159,7 +165,16 @@ const pruneAndRerank = async (query, userId, options = {}) => {
       // Compound relevance score: semantic weight + link traversal confidence weight
       const relevanceScore = (jaccardScore * globalConfig.semanticWeight) + (edgeConfidence * globalConfig.confidenceWeight);
 
-      logger.info(`Graph RAG Coherence: "${targetMeta.fileName}" computed relevanceScore: ${relevanceScore.toFixed(3)} (Jaccard: ${jaccardScore.toFixed(3)}, Link Confidence: ${edgeConfidence.toFixed(3)})`);
+      // GCP-compatible structured log
+      logger.info({
+        message: `Graph RAG Coherence computed for "${targetMeta.fileName}"`,
+        component: 'ContextPruner',
+        operation: 'pruneAndRerank',
+        fileName: targetMeta.fileName,
+        relevanceScore: parseFloat(relevanceScore.toFixed(3)),
+        jaccardScore: parseFloat(jaccardScore.toFixed(3)),
+        linkConfidence: parseFloat(edgeConfidence.toFixed(3))
+      });
 
       // Coherence boundary filter
       if (relevanceScore >= effectiveThreshold) {
@@ -188,7 +203,15 @@ const pruneAndRerank = async (query, userId, options = {}) => {
       return `- Related File: "${targetMeta.fileName}" (${edge.relationType} link, coherence: ${relevanceScore.toFixed(3)}, confidence: ${edgeConfidence.toFixed(3)}). Topics: ${(targetMeta.topics || []).join(', ')}. Context Summary: ${targetMeta.summary || ''}`;
     });
 
-    logger.info(`ContextPruner: injected ${relationshipContextParts.length} coherent & reranked document context links, pruned ${scoredLinks.length - relationshipContextParts.length} connections.`);
+    // GCP-compatible structured log
+    logger.info({
+      message: 'ContextPruner finished processing context links.',
+      component: 'ContextPruner',
+      operation: 'pruneAndRerank',
+      injectedLinks: relationshipContextParts.length,
+      prunedConnections: scoredLinks.length - relationshipContextParts.length,
+      totalConnectionsConsidered: scoredLinks.length
+    });
 
     const enrichedQuery = `[Graph RAG Cross-Document Knowledge Map]:
 You have access to interconnected document contexts. When answering, resolve relationships between these related items:
@@ -199,7 +222,18 @@ ${query}`;
 
     return enrichedQuery;
   } catch (err) {
-    logger.error('ContextPruner pruneAndRerank failed:', err);
+    // GCP-compatible structured error log
+    logger.error({
+      message: 'ContextPruner pruneAndRerank failed',
+      component: 'ContextPruner',
+      operation: 'pruneAndRerank',
+      // Including error details and stack trace for better debugging in Cloud Logging
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      }
+    });
     return query; // Graceful fallback
   }
 };
@@ -216,7 +250,13 @@ const getGlobalConfig = () => {
  */
 const updateGlobalConfig = (newConfig) => {
   globalConfig = { ...globalConfig, ...newConfig };
-  logger.info('ContextPruner global configuration updated by Platform Owner:', globalConfig);
+  // GCP-compatible structured log
+  logger.info({
+    message: 'ContextPruner global configuration updated by Platform Owner.',
+    component: 'ContextPruner',
+    operation: 'updateGlobalConfig',
+    newConfig: globalConfig
+  });
   return globalConfig;
 };
 
@@ -235,7 +275,18 @@ const getGlobalStats = async () => {
       globalConfig: { ...globalConfig }
     };
   } catch (err) {
-    logger.error('ContextPruner getGlobalStats failed:', err);
+    // GCP-compatible structured error log
+    logger.error({
+      message: 'ContextPruner getGlobalStats failed',
+      component: 'ContextPruner',
+      operation: 'getGlobalStats',
+      // Including error details and stack trace for better debugging in Cloud Logging
+      error: {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      }
+    });
     throw err;
   }
 };
