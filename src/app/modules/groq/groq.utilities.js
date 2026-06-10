@@ -33,7 +33,18 @@ export const fetchSearchResults = async (query) => {
       snippet: r.content
     }));
   } catch (error) {
-    console.error('Google Search Grounding Error in Groq utility:', error.message);
+    // Log errors in a structured format for GCP Cloud Logging (Stackdriver)
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Google Search Grounding Error in Groq utility.',
+      error: {
+        message: error.message,
+        stack: error.stack,
+      },
+      context: {
+        query: query,
+      },
+    }));
     return [];
   }
 };

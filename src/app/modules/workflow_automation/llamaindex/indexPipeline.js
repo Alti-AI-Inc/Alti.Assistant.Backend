@@ -143,12 +143,12 @@ async function propagateUsageAndNotifications(userCtx, usageDetails, manifest) {
  * The core event-driven ingestion workflow instance.
  * This workflow orchestrates the entire document processing and indexing pipeline
  * by reacting to specific events and emitting new ones to trigger subsequent steps.
- * @type {Workflow}
+ * @type {import('@llamaindex/workflow-core').Workflow}
  */
 const ingestionWorkflow = createWorkflow();
 
 /**
- * Step 1: File Loading & Document Parsing.
+ * @description **Workflow Step 1: File Loading & Document Parsing.**
  * This handler initiates the document ingestion process by parsing the raw file
  * content into a structured document format. It ensures the user's local
  * storage directory is synchronized and generates a unique document ID.
@@ -183,10 +183,10 @@ ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
 });
 
 /**
- * Step 2: Content Profiling & Metadata Enrichment.
+ * @description **Workflow Step 2: Content Profiling & Metadata Enrichment.**
  * This handler takes the parsed documents and generates a semantic profile
  * using an LLM, enriching the document metadata. It also ensures the
- * persistence directory for the user exists.
+ * persistence directory for the user exists within their tenant's storage.
  *
  * @event DocumentLoadedEvent - Triggered after documents have been successfully loaded and parsed.
  * @fires NodesGeneratedEvent - Emitted after document profiling and metadata enrichment are complete.
@@ -250,7 +250,7 @@ ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
 });
 
 /**
- * Step 3: Limit Enforcement & Manifest Management.
+ * @description **Workflow Step 3: Limit Enforcement & Manifest Management.**
  * This handler validates the ingestion against the user's subscription limits *before*
  * committing any changes. It then updates the user's document manifest with the
  * new document's details and generates a composite corpus profile.
@@ -320,7 +320,7 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
 });
 
 /**
- * Step 4: Triple Index Creation & Cache Invalidation.
+ * @description **Workflow Step 4: Triple Index Creation & Cache Invalidation.**
  * This final handler runs the LlamaIndex ingestion pipeline to transform documents
  * into nodes, creates or updates the vector store index, and compiles secondary
  * memory-based indexes (Summary and Keyword). It also invalidates the user's
