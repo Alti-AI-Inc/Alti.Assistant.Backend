@@ -1,3 +1,4 @@
+import sanitizeHtml from 'sanitize-html';
 import { runAIClassificationAgent } from './ai_classification/workflow.js';
 import { composioConversationService } from './composio.conversation.service.js';
 import { logger } from '../../../shared/logger.js';
@@ -16,6 +17,13 @@ export const processUserInputService = async (
   options = {}
   // Removed unused 'req' parameter
 ) => {
+  // Security: Sanitize user input to prevent Stored XSS attacks.
+  // This strips all HTML tags from the input before it's processed or stored in the database.
+  const sanitizedUserInput = sanitizeHtml(userInput, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+
   const {
     userId = null,
     conversationId = null, // This is the conversationId from options
@@ -44,7 +52,7 @@ export const processUserInputService = async (
   try {
     // Replaced console.log with logger.info for consistent logging
     logger.info(
-      `Processing user input: "${userInput}" for user: ${effectiveUserId} (guest: ${isGuest})`
+      `Processing user input: "${sanitizedUserInput}" for user: ${effectiveUserId} (guest: ${isGuest})`
     );
 
     // Handle conversation creation/retrieval
@@ -55,7 +63,7 @@ export const processUserInputService = async (
       await composioConversationService.handleComposioConversation(
         effectiveUserId,
         conversationId, // Pass the conversationId from options
-        userInput,
+        sanitizedUserInput,
         isGuest
       );
 
@@ -90,12 +98,12 @@ export const processUserInputService = async (
     await composioConversationService.addComposioQueryMessage(
       actualConversationId,
       effectiveUserId,
-      userInput,
+      sanitizedUserInput,
       isGuest
     );
 
     // Run AI classification with conversation context
-    const result = await runAIClassificationAgent(userInput, {
+    const result = await runAIClassificationAgent(sanitizedUserInput, {
       userId: effectiveUserId,
       conversationId: actualConversationId,
       history: conversationHistory.length > 0 ? conversationHistory : history,
@@ -211,7 +219,7 @@ export const processUserInputService = async (
           await composioConversationService.handleComposioConversation(
             effectiveUserId,
             null, // Pass null to create a new conversation for error logging
-            userInput,
+            sanitizedUserInput,
             isGuest
           );
         conversationIdForError = newConversationForError.conversationId;
@@ -268,9 +276,13 @@ export const getUserConnectedAccountsService = async (
   // Removed unused 'req' parameter
 ) => {
   try {
+    // Security: Validate the 'status' parameter against an allowlist to prevent unexpected query behavior and ensure only valid statuses are used.
+    const allowedStatuses = ['ACTIVE', 'INACTIVE', 'PENDING']; // Define expected statuses.
+    const validatedStatus = status && allowedStatuses.includes(status) ? status : 'ACTIVE';
+
     const query = {
       userId: userId,
-      status: status || 'ACTIVE',
+      status: validatedStatus,
     };
     // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
     // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
@@ -279,7 +291,7 @@ export const getUserConnectedAccountsService = async (
     const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 }).lean();
 
     // Replaced console.log with logger.info
-    logger.info(`User connected accounts for ${userId}: ${accounts.length} found (status: ${status || 'ACTIVE'})`);
+    logger.info(`User connected accounts for ${userId}: ${accounts.length} found (status: ${validatedStatus})`);
 
     return {
       success: true,
@@ -304,7 +316,12 @@ export const checkUserConnectionsService = async (
   // Removed unused 'req' parameter
 ) => {
   try {
-    const normalizedAppName = appName.toLowerCase();
+    // Security: Sanitize appName input to prevent potential injection or manipulation before it's used in a database query.
+    const sanitizedAppName = sanitizeHtml(appName, {
+      allowedTags: [],
+      allowedAttributes: {},
+    });
+    const normalizedAppName = sanitizedAppName.toLowerCase();
 
     // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
     // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
@@ -351,7 +368,12 @@ export const getComposioConversationHistoryService = async (
   req = null // 'req' is used when calling composioConversationService methods
 ) => {
   try {
-    const { limit = 20, conversationId = null } = options;
+    const { conversationId = null } = options;
+
+    // Security: Sanitize and validate the 'limit' parameter to prevent potential abuse (e.g., requesting huge datasets).
+    // We parse it as an integer, provide a default, and clamp it to a safe range (1-100).
+    const parsedLimit = parseInt(options.limit, 10);
+    const validatedLimit = isNaN(parsedLimit) ? 20 : Math.max(1, Math.min(100, parsedLimit));
 
     if (conversationId) {
       // Get specific conversation history
@@ -360,7 +382,7 @@ export const getComposioConversationHistoryService = async (
       const history = await composioConversationService.getComposioHistory(
         conversationId,
         userId,
-        limit,
+        validatedLimit,
         req
       );
       return {

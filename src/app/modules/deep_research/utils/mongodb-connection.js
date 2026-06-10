@@ -11,9 +11,13 @@ let isConnected = false;
  */
 let currentUri = null;
 
-// BUG FIX: Add a flag to ensure event listeners are only attached once.
-// Attaching them multiple times on concurrent or repeated calls can lead to
-// duplicate logs, unexpected behavior, and memory leaks.
+/**
+ * @type {boolean}
+ * @private
+ * @description Flag to ensure Mongoose connection event listeners are attached only once.
+ * Attaching them multiple times on concurrent or repeated calls can lead to
+ * duplicate logs, unexpected behavior, and memory leaks.
+ */
 let listenersAttached = false;
 
 /**
