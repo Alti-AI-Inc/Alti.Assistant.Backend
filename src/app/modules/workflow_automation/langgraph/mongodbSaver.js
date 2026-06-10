@@ -41,11 +41,12 @@ export class MongoDBSaver extends BaseCheckpointSaver {
           checkpointId: checkpoint_id,
         });
       } else {
-        // Retrieve the latest checkpoint
+        // Retrieve the latest checkpoint based on creation time.
+        // Assumes 'createdAt' field exists in the WorkflowCheckpoint model for chronological sorting.
         const docs = await WorkflowCheckpoint.find({
           threadId: thread_id,
         })
-          .sort({ checkpointId: -1 })
+          .sort({ createdAt: -1 }) // Sort by createdAt to get the truly latest checkpoint
           .limit(1);
         doc = docs[0];
       }
@@ -101,6 +102,14 @@ export class MongoDBSaver extends BaseCheckpointSaver {
           $set: {
             checkpointStr,
             metadataStr,
+            // If the model uses Mongoose timestamps, 'updatedAt' would be handled automatically.
+            // If not, and an 'updatedAt' field is desired, it would be set here.
+          },
+          // Set 'createdAt' only when a new document is inserted (upsert: true creates a new doc if not found).
+          // This ensures 'createdAt' reflects the actual creation time of the checkpoint,
+          // which is crucial for chronological sorting in getTuple and list methods.
+          $setOnInsert: {
+            createdAt: new Date(),
           },
         },
         { upsert: true }
@@ -141,11 +150,28 @@ export class MongoDBSaver extends BaseCheckpointSaver {
       }
 
       const query = { threadId: thread_id };
+
+      // If 'before' checkpoint_id is provided, find its creation timestamp
+      // to filter for checkpoints truly "older than" it chronologically.
       if (before?.configurable?.checkpoint_id) {
-        query.checkpointId = { $lt: before.configurable.checkpoint_id };
+        const beforeDoc = await WorkflowCheckpoint.findOne(
+          {
+            threadId: thread_id, // Ensure scoping to the current thread for security and correctness
+            checkpointId: before.configurable.checkpoint_id,
+          },
+          { createdAt: 1 } // Only project the 'createdAt' field to minimize data transfer
+        );
+
+        if (beforeDoc?.createdAt) {
+          query.createdAt = { $lt: beforeDoc.createdAt };
+        }
+        // If beforeDoc is not found or has no createdAt, the 'before' filter is effectively ignored,
+        // which is a reasonable default behavior rather than throwing an error or returning no results.
       }
 
-      let cursor = WorkflowCheckpoint.find(query).sort({ checkpointId: -1 });
+      // Sort by 'createdAt' in descending order to list the newest checkpoints first.
+      // Assumes 'createdAt' field exists in the WorkflowCheckpoint model for chronological sorting.
+      let cursor = WorkflowCheckpoint.find(query).sort({ createdAt: -1 });
       if (limit !== undefined) {
         cursor = cursor.limit(limit);
       }
