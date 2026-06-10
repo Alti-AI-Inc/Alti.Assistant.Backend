@@ -88,6 +88,11 @@ const getSupportedAppsController = catchAsync(async (req, res) => {
     // Dynamically load all available apps and their actions from the Tool model
     const Tool = (await import('./tools.model.js')).default;
     
+    // Optimization: The .lean() method is already used, which is good for performance
+    // by returning plain JavaScript objects instead of Mongoose documents.
+    // Indexing Recommendation: For better performance on large collections, consider adding
+    // indexes to 'appName' and 'slug' fields in the Tool model, especially if these fields
+    // are frequently used in queries or sorting operations.
     const tools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1 }).lean();
     
     // Group tools by appName to build a comprehensive app->actions map
@@ -99,13 +104,20 @@ const getSupportedAppsController = catchAsync(async (req, res) => {
         supportedApps[appKey] = {
           name: tool.appName || appKey,
           description: tool.description || `Integration with ${appKey}`,
-          actions: [],
+          // Optimization: Use a Set for 'actions' to improve the efficiency of uniqueness checks
+          // from O(N) (with Array.includes) to O(1) average case.
+          actions: new Set(), 
         };
       }
       
-      if (tool.slug && !supportedApps[appKey].actions.includes(tool.slug)) {
-        supportedApps[appKey].actions.push(tool.slug);
+      if (tool.slug) { // Only add if slug exists
+        supportedApps[appKey].actions.add(tool.slug);
       }
+    }
+
+    // Convert Sets back to Arrays for the final response data
+    for (const appKey in supportedApps) {
+      supportedApps[appKey].actions = Array.from(supportedApps[appKey].actions);
     }
 
     sendResponse(res, {

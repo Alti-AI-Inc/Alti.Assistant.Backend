@@ -59,6 +59,8 @@ export const toolBasedSearchNode = async (state) => {
         massiveSymbol: financialIntent?.symbol || null,
       };
     } else {
+      // Bug fix: Ensure massiveIntentType and massiveSymbol are consistently included
+      // even if runIntelligentSearch returns an unstructured result.
       return {
         ...state,
         answer: result,
@@ -67,6 +69,8 @@ export const toolBasedSearchNode = async (state) => {
         searchMethod: financialIntent ? 'massive_realtime' : 'tool_based',
         searchDuration: duration,
         timestamp: new Date().toISOString(),
+        massiveIntentType: financialIntent?.type || null,
+        massiveSymbol: financialIntent?.symbol || null,
       };
     }
   } catch (error) {
