@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import config from '../../../../../config/index.js';
+// import config from '../../../../../config/index.js'; // config is imported but not used in this file.
 
 export const blockedTenantsCache = new Set();
 
@@ -316,20 +316,30 @@ export async function checkTenantBudgetStatus(tenantId) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const logs = await ConsumptionLog.find({
-      tenantId,
-      timestamp: { $gte: startOfMonth }
-    });
+    // BUG FIX: Replaced inefficient .find() and in-memory summation with Mongoose aggregation
+    // This significantly improves performance for tenants with large numbers of consumption logs
+    const aggregationResult = await ConsumptionLog.aggregate([
+      {
+        $match: {
+          tenantId,
+          timestamp: { $gte: startOfMonth }
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matching documents into a single result
+          totalInputTokens: { $sum: '$inputTokens' },
+          totalOutputTokens: { $sum: '$outputTokens' },
+          totalSearches: { $sum: '$webSearchCount' }
+        }
+      }
+    ]);
 
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    let totalSearches = 0;
-
-    for (const log of logs) {
-      totalInputTokens += log.inputTokens || 0;
-      totalOutputTokens += log.outputTokens || 0;
-      totalSearches += log.webSearchCount || 0;
-    }
+    const {
+      totalInputTokens = 0,
+      totalOutputTokens = 0,
+      totalSearches = 0
+    } = aggregationResult.length > 0 ? aggregationResult[0] : {};
 
     const inputCost = (totalInputTokens / 1000000) * billingConfig.inputTokenCostPerMillion;
     const outputCost = (totalOutputTokens / 1000000) * billingConfig.outputTokenCostPerMillion;
@@ -355,7 +365,7 @@ export async function checkTenantBudgetStatus(tenantId) {
     }
 
     if (alertTriggered) {
-      console.warn(`⚠️ [Billing Alert] Tenant "${tenantId}" spending is at $${totalCost.toFixed(2)} / limit $${billingConfig.monthlyBudgetLimit.toFixed(2)}`);
+      console.warn(`⚠️ [Billing Alert] Tenant "${tenantId}" spending is at ${totalCost.toFixed(2)} / limit ${billingConfig.monthlyBudgetLimit.toFixed(2)}`);
     }
 
     return {
@@ -418,20 +428,30 @@ export async function getTenantSpendingHistory(tenantId, year, month) {
     const startDate = new Date(queryYear, queryMonth, 1);
     const endDate = new Date(queryYear, queryMonth + 1, 1);
 
-    const logs = await ConsumptionLog.find({
-      tenantId,
-      timestamp: { $gte: startDate, $lt: endDate }
-    });
+    // BUG FIX: Replaced inefficient .find() and in-memory summation with Mongoose aggregation
+    // This significantly improves performance for tenants with large numbers of consumption logs
+    const aggregationResult = await ConsumptionLog.aggregate([
+      {
+        $match: {
+          tenantId,
+          timestamp: { $gte: startDate, $lt: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matching documents into a single result
+          totalInputTokens: { $sum: '$inputTokens' },
+          totalOutputTokens: { $sum: '$outputTokens' },
+          totalSearches: { $sum: '$webSearchCount' }
+        }
+      }
+    ]);
 
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    let totalSearches = 0;
-
-    for (const log of logs) {
-      totalInputTokens += log.inputTokens || 0;
-      totalOutputTokens += log.outputTokens || 0;
-      totalSearches += log.webSearchCount || 0;
-    }
+    const {
+      totalInputTokens = 0,
+      totalOutputTokens = 0,
+      totalSearches = 0
+    } = aggregationResult.length > 0 ? aggregationResult[0] : {};
 
     const inputCost = (totalInputTokens / 1000000) * billingConfig.inputTokenCostPerMillion;
     const outputCost = (totalOutputTokens / 1000000) * billingConfig.outputTokenCostPerMillion;

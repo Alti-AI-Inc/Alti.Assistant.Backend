@@ -5,6 +5,30 @@ import { logger } from '../../../shared/logger.js';
 /**
  * Searches the Google Knowledge Graph API for a target entity (Person, Organization, Place, Movie, etc.).
  * Returns a highly structured entity summary card.
+ *
+ * @param {string} query - The text string to search for in the Knowledge Graph.
+ * @param {number} [limit=5] - The maximum number of results to return. Clamped between 1 and 500.
+ * @param {string[]} [types=[]] - An array of entity types to filter the results by (e.g., 'Person', 'Organization').
+ * @param {string[]} [languages=['en']] - An array of language codes to filter the results by (e.g., 'en', 'es').
+ * @returns {Promise<object>} A promise that resolves to an object containing the search results.
+ * @returns {boolean} return.success - Indicates if the operation was successful.
+ * @returns {string} return.query - The original query string.
+ * @returns {number} return.totalCount - The total number of entities found.
+ * @returns {Array<object>} return.entities - An array of found entities, each with detailed information.
+ * @returns {string} return.entities[].id - The unique ID of the entity (e.g., `kg:/g/11c0vmg_0`).
+ * @returns {string} return.entities[].name - The primary name of the entity.
+ * @returns {string[]} return.entities[].types - An array of types for the entity (e.g., `['Thing', 'Person']`).
+ * @returns {string} return.entities[].description - A short description of the entity.
+ * @returns {object} return.entities[].detailedDescription - More detailed description information.
+ * @returns {string} return.entities[].detailedDescription.body - The main body of the detailed description.
+ * @returns {string} return.entities[].detailedDescription.url - URL to the detailed description source.
+ * @returns {string} return.entities[].detailedDescription.license - License information for the detailed description.
+ * @returns {object} return.entities[].image - Image information for the entity.
+ * @returns {string} return.entities[].image.url - URL of the entity's image.
+ * @returns {string} return.entities[].image.sourceUrl - URL to the source of the image.
+ * @returns {string} return.entities[].url - The canonical URL for the entity (e.g., Wikipedia page).
+ * @returns {number} return.entities[].relevanceScore - A score indicating the relevance of the entity to the query.
+ * @throws {Error} If the Google Search API Key is not configured or if the API call fails.
  */
 const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) => {
   try {
@@ -79,6 +103,11 @@ const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) =>
   }
 };
 
+/**
+ * @namespace GcpKnowledgeGraphService
+ * @description Provides methods for interacting with the Google Knowledge Graph API.
+ * This service allows searching for entities and retrieving structured information about them.
+ */
 export const GcpKnowledgeGraphService = {
   lookupEntity
 };
