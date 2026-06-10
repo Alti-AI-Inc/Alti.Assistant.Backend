@@ -7,7 +7,28 @@
  * @module VideoAssistantConstants
  */
 
-export const VIDEO_ASSISTANT_CONSTANTS = {
+/**
+ * Recursively freezes an object to make it immutable.
+ * This prevents accidental modification of constant values at runtime.
+ * @param {object} obj The object to freeze.
+ * @returns {object} The frozen object.
+ */
+const deepFreeze = (obj) => {
+  Object.freeze(obj);
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const prop = obj[key];
+      // Freeze properties that are objects or arrays, and not already frozen
+      if (typeof prop === 'object' && prop !== null && !Object.isFrozen(prop)) {
+        deepFreeze(prop);
+      }
+    }
+  }
+  return obj;
+};
+
+export const VIDEO_ASSISTANT_CONSTANTS = deepFreeze({
   // Message constraints
   MESSAGE: {
     MIN_LENGTH: 3,
@@ -100,4 +121,4 @@ export const VIDEO_ASSISTANT_CONSTANTS = {
     MAX_DAILY_GENERATIONS: 100,
     MAX_MONTHLY_GENERATIONS: 1000,
   },
-};
+});
