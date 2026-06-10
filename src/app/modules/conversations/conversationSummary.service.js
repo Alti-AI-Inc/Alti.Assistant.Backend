@@ -173,7 +173,7 @@ APPS: [app1, app2, app3]`;
 export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
   try {
     // Optimization: Add .lean() as the conversation document is only read from here.
-    // Indexing Recommendation: Ensure 'conversationId' and 'userId' are indexed on the Conversation model.
+    // Indexing Recommendation: Ensure 'conversationId' and 'userId' are indexed on the Conversation model for efficient lookups.
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
@@ -198,7 +198,7 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
 
     // Check if we already have an active summary that covers all current messages
     // Note: .lean() is not used here because existingSummary might be updated and saved later.
-    // Indexing Recommendation: Ensure 'conversationId', 'userId', and 'status' are indexed on the ConversationSummary model.
+    // Indexing Recommendation: Ensure 'conversationId', 'userId', and 'status' are indexed on the ConversationSummary model for efficient lookups.
     const existingSummary = await ConversationSummary.findActiveForConversation(
       conversationId,
       userId
@@ -279,14 +279,14 @@ export const getConversationContext = async (
 ) => {
   try {
     // Optimization: Add .lean() as the summary document is only read from here.
-    // Indexing Recommendation: Ensure 'conversationId', 'userId', and 'status' are indexed on the ConversationSummary model.
+    // Indexing Recommendation: Ensure 'conversationId', 'userId', and 'status' are indexed on the ConversationSummary model for efficient lookups.
     const summary = await ConversationSummary.findActiveForConversation(
       conversationId,
       userId
     ).lean();
 
     // Optimization: Add .lean() as the conversation document is only read from here.
-    // Indexing Recommendation: Ensure 'conversationId' and 'userId' are indexed on the Conversation model.
+    // Indexing Recommendation: Ensure 'conversationId' and 'userId' are indexed on the Conversation model for efficient lookups.
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
