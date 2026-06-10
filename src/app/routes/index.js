@@ -1,7 +1,6 @@
 import express from 'express';
 import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
-import { deepseekAiRoutes } from '../modules/deepseek/deepseek.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
 import { llamaAiRoutes } from '../modules/groq/groq.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
