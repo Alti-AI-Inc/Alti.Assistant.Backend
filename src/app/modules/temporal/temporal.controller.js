@@ -118,12 +118,16 @@ const getRepositories = async (req, res, next) => {
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
 
+    // Optimization: Pass `lean: true` to the service layer to retrieve plain JavaScript objects
+    // instead of Mongoose documents. This reduces Mongoose overhead for read-only operations
+    // where no further modification or saving is needed.
     const result = await TemporalCatalogService.searchCatalog(query, {
       license,
       status,
       limit,
       page,
-      sortBy
+      sortBy,
+      lean: true // Added for performance optimization
     });
     res.status(httpStatus.OK).json(result);
   } catch (error) {
