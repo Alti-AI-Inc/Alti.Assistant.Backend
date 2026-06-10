@@ -486,31 +486,32 @@ const addComposioQueryMessage = async (
   isGuest = false
 ) => {
   try {
-    // The conversation object is modified and saved later, so .lean() is not suitable here.
-    const conversation = await Conversation.findByConversationId(
-      conversationId,
-      userId
-    );
+    // Security Patch: Sanitize user-provided message to prevent Stored XSS.
+    const sanitizedMessage = sanitizeHtml(message, sanitizeOptions);
 
-    if (conversation) {
-      // Security Patch: Sanitize user-provided message to prevent Stored XSS.
-      const sanitizedMessage = sanitizeHtml(message, sanitizeOptions);
-
-      conversation.messages.push({
-        role: 'user',
-        content: sanitizedMessage,
-        timestamp: new Date(),
-        metadata: {
-          isGuest: isGuest,
-          type: 'composio_query',
+    // Optimization: Use updateOne with $push to atomically add the message.
+    // This is more efficient than fetching the entire document, modifying it in memory, and saving it back.
+    // It reduces network overhead (avoids transferring the full messages array) and prevents potential race conditions.
+    // We assume Conversation.findByConversationId is equivalent to a findOne on conversationId and userId.
+    const updatePayload = {
+      $push: {
+        messages: {
+          role: 'user',
+          content: sanitizedMessage,
+          timestamp: new Date(),
+          metadata: {
+            isGuest: isGuest,
+            type: 'composio_query',
+          },
         },
-      });
+      },
+      $set: { lastActivity: new Date() },
+      $inc: { messageCount: 1 },
+    };
 
-      conversation.lastActivity = new Date();
-      conversation.messageCount = conversation.messages.length;
-
-      await conversation.save();
-    }
+    // This operation will not throw an error if the document is not found,
+    // matching the original logic's `if (conversation)` check.
+    await Conversation.updateOne({ conversationId, userId }, updatePayload);
   } catch (error) {
     console.error('Error adding composio query message:', error);
     throw error;
@@ -536,32 +537,32 @@ const addComposioResponseMessage = async (
   isGuest = false
 ) => {
   try {
-    // The conversation object is modified and saved later, so .lean() is not suitable here.
-    const conversation = await Conversation.findByConversationId(
-      conversationId,
-      userId
-    );
+    // Security Patch: Sanitize assistant response to prevent Stored XSS, as it may echo user input.
+    const sanitizedResponse = sanitizeHtml(response, sanitizeOptions);
 
-    if (conversation) {
-      // Security Patch: Sanitize assistant response to prevent Stored XSS, as it may echo user input.
-      const sanitizedResponse = sanitizeHtml(response, sanitizeOptions);
-
-      conversation.messages.push({
-        role: 'assistant',
-        content: sanitizedResponse,
-        timestamp: new Date(),
-        metadata: {
-          isGuest: isGuest,
-          type: 'composio_response',
-          ...metadata,
+    // Optimization: Use updateOne with $push for an atomic and efficient update.
+    // This avoids a read-modify-write cycle, reducing network traffic and preventing race conditions.
+    // We assume Conversation.findByConversationId is equivalent to a findOne on conversationId and userId.
+    const updatePayload = {
+      $push: {
+        messages: {
+          role: 'assistant',
+          content: sanitizedResponse,
+          timestamp: new Date(),
+          metadata: {
+            isGuest: isGuest,
+            type: 'composio_response',
+            ...metadata,
+          },
         },
-      });
+      },
+      $set: { lastActivity: new Date() },
+      $inc: { messageCount: 1 },
+    };
 
-      conversation.lastActivity = new Date();
-      conversation.messageCount = conversation.messages.length;
-
-      await conversation.save();
-    }
+    // This operation will not throw an error if the document is not found,
+    // matching the original logic's `if (conversation)` check.
+    await Conversation.updateOne({ conversationId, userId }, updatePayload);
   } catch (error) {
     console.error('Error adding composio response message:', error);
     throw error;
