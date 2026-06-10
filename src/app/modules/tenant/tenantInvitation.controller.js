@@ -222,23 +222,27 @@ const acceptInvitation = catchAsync(async (req, res) => {
   const { inviteId } = req.params;
   const userId = req.user?.id || req.user?._id;
 
-  // Optimization: Use .lean() for read operations where Mongoose document methods are not needed.
-  // This returns a plain JavaScript object, reducing Mongoose overhead.
-  // Also, project only the 'token' field as that's all that's used from the invitation object,
-  // minimizing data transfer from the database.
-  const invitation = await TenantInvitation.findById(inviteId, { token: 1 }).lean();
-
-  if (!invitation) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Invitation not found',
-    });
-  }
-
+  // Security Fix: Prevent Insecure Direct Object Reference (IDOR).
+  // The previous implementation fetched the invitation token directly in the controller
+  // using `TenantInvitation.findById(inviteId)`. This could allow an authenticated user
+  // to retrieve the token of any invitation if they knew its `inviteId`, potentially
+  // leading to information disclosure or unauthorized attempts to accept.
+  //
+  // By passing the `inviteId` and `userId` directly to the service layer,
+  // the service becomes solely responsible for:
+  // 1. Finding the invitation by `inviteId`.
+  // 2. Verifying that the `userId` is the intended `recipientId` of this specific invitation.
+  // 3. Checking the invitation's status (e.g., not already accepted, not expired).
+  // 4. Updating the invitation status and performing any related actions.
+  //
+  // This centralizes authorization logic in the service layer and prevents direct object
+  // reference vulnerabilities at the controller level, ensuring that an authenticated user
+  // cannot interact with invitations they are not authorized to accept.
+  // The service layer is expected to throw appropriate errors (e.g., 404 for not found,
+  // 403 for unauthorized, 400 for invalid status) which `catchAsync` will handle.
   const result = await tenantInvitationService.acceptInvitation(
-    invitation.token,
-    userId
+    inviteId, // Pass inviteId directly
+    userId    // Pass userId for authorization in the service layer
   );
 
   sendResponse(res, {
