@@ -7,7 +7,17 @@ import config from '../../../../../config/index.js';
  */
 
 /**
- * Detects if the user is specifically asking for video content using LLM
+ * Detects if the user is specifically asking for video content using an LLM.
+ * This function analyzes the user's query and the conversation context to determine
+ * if the primary intent is to find or watch video content.
+ *
+ * @async
+ * @param {string} query - The user's current query string.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation.
+ *   Each object should typically have `role` ('user' or 'assistant') and `content` (string) properties,
+ *   providing context to the LLM for better classification.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the query is classified as video-only,
+ *   `false` otherwise or if an error occurs during the LLM interaction.
  */
 export const isVideoOnlyQuery = async (query, conversationContext = []) => {
   try {
@@ -96,7 +106,17 @@ Determine if this is a video-only query:`,
 };
 
 /**
- * Extracts the number of videos requested from the query using LLM
+ * Extracts the number of videos requested from a user's query using an LLM.
+ * This function parses the query and conversation context to identify explicit
+ * or implied numerical requests for video content.
+ *
+ * @async
+ * @param {string} query - The user's current query string.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation.
+ *   Each object should typically have `role` ('user' or 'assistant') and `content` (string) properties,
+ *   providing context to the LLM for better analysis.
+ * @returns {Promise<number>} A promise that resolves to the extracted number of videos (clamped between 1 and 20).
+ *   Defaults to 1 if no number is found or if an error occurs.
  */
 export const extractVideoCount = async (query, conversationContext = []) => {
   try {
@@ -200,7 +220,18 @@ Extract the number of videos requested:`,
 };
 
 /**
- * Analyzes video query and extracts the requested count using LLM
+ * Analyzes a user's query to determine if it's a video-only request and, if so,
+ * extracts the requested video count. This function combines the logic of
+ * `isVideoOnlyQuery` and `extractVideoCount`.
+ *
+ * @async
+ * @param {string} query - The user's current query string.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation.
+ *   Each object should typically have `role` ('user' or 'assistant') and `content` (string) properties,
+ *   providing context to the LLM for better analysis.
+ * @returns {Promise<{isVideoOnly: boolean, videoCount: number}>} A promise that resolves to an object
+ *   containing `isVideoOnly` (boolean indicating if the query is video-only) and `videoCount` (number,
+ *   representing the extracted count, or 1 if not a video-only query or on error).
  */
 export const analyzeVideoQuery = async (query, conversationContext = []) => {
   try {
@@ -227,7 +258,17 @@ export const analyzeVideoQuery = async (query, conversationContext = []) => {
 };
 
 /**
- * Determines if YouTube search would be relevant for the given query
+ * Determines if a YouTube search would be relevant for the given query,
+ * leveraging an LLM for contextual understanding. This helps decide whether
+ * to include YouTube results in a broader search or to prioritize video content.
+ *
+ * @async
+ * @param {string} query - The user's current query string.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation.
+ *   Each object should typically have `role` ('user' or 'assistant') and `content` (string) properties,
+ *   providing context to the LLM for better classification.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if YouTube search is deemed relevant
+ *   for the query, `false` otherwise or if an error occurs.
  */
 export const shouldSearchYouTube = async (query, conversationContext = []) => {
   try {
@@ -313,7 +354,17 @@ Determine if YouTube search would be relevant:`,
 };
 
 /**
- * Creates an optimized YouTube search query from the original query and context
+ * Creates an optimized YouTube search query from the original user query and
+ * conversation context using an LLM. This helps improve the relevance and
+ * quality of video search results on YouTube.
+ *
+ * @async
+ * @param {string} query - The original user query string.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation.
+ *   Each object should typically have `role` ('user' or 'assistant') and `content` (string) properties,
+ *   providing context to the LLM for better query refinement.
+ * @returns {Promise<string>} A promise that resolves to the optimized YouTube search query string.
+ *   If an error occurs, the original query is returned as a fallback.
  */
 export const createOptimizedYouTubeQuery = async (
   query,
@@ -398,7 +449,27 @@ Create an optimized YouTube search query:`,
 };
 
 /**
- * Performs YouTube search using YouTube Data API v3
+ * Performs a YouTube video search using the YouTube Data API v3.
+ * The user's query is first optimized using an LLM to enhance search relevance.
+ *
+ * @async
+ * @param {string} query - The user's search query. This query will be optimized before being sent to YouTube.
+ * @param {number} [maxResults=5] - The maximum number of video results to return. Defaults to 5.
+ * @param {Array<Object>} [conversationContext=[]] - An optional array of previous messages in the conversation,
+ *   used to provide context for query optimization. Each object should have `role` and `content` properties.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of YouTube video result objects.
+ *   Each object typically includes:
+ *   - `title` (string): The title of the video.
+ *   - `description` (string): A brief description of the video.
+ *   - `url` (string): The direct URL to the YouTube video.
+ *   - `videoId` (string): The unique ID of the YouTube video.
+ *   - `channelTitle` (string): The title of the YouTube channel that published the video.
+ *   - `publishedAt` (string): The ISO 8601 formatted date and time the video was published.
+ *   - `thumbnails` (Object): An object containing various thumbnail URLs (e.g., `default`, `medium`, `high`).
+ *   - `relevanceScore` (number): A simple calculated score indicating the result's relevance (higher is better).
+ *   - `source` (string): Always 'youtube'.
+ *   - `citationIndex` (number): The 1-based index of the result in the returned list.
+ *   Returns an empty array if the YouTube API key is not configured, an error occurs, or no results are found.
  */
 export const searchYouTube = async (
   query,
