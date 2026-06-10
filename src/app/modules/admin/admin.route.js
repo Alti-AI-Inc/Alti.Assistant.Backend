@@ -9,12 +9,16 @@ import { AdminController } from './admin.controller.js';
  */
 const router = express.Router();
 
+// =================================================================
+// == SUPER ADMIN ROUTES (Platform-Level Management)
+// =================================================================
+
 /**
  * @swagger
  * /api/v1/admin/update-user-role/{id}:
  *   put:
- *     summary: Update a user's role
- *     description: Allows a Super Admin to change the role of an existing user identified by their ID.
+ *     summary: Update a user's role (Super Admin)
+ *     description: Allows a Super Admin to change the role of any existing user identified by their ID.
  *     tags:
  *       - Admin
  *     security:
@@ -429,8 +433,6 @@ router.get(
   AdminController.getUserStatisticsByMonth
 );
 
-// ============= Tenant Management Routes (Super Admin) =============
-
 /**
  * @swagger
  * /api/v1/admin/tenants:
@@ -748,6 +750,223 @@ router.post(
   // REASON: Modifying tenant subscription details is a platform-level administrative task.
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.extendTenantTrial
+);
+
+// =================================================================
+// == MANAGER & ADMIN ROUTES (Workspace-Level Management)
+// =================================================================
+
+/**
+ * @swagger
+ * /api/v1/admin/manager/workspace/team:
+ *   get:
+ *     summary: Get workspace team members
+ *     description: Retrieves a list of all members belonging to the manager's or admin's workspace.
+ *     tags:
+ *       - Manager
+ *       - Team Management
+ *     security:
+ *       - BearerAuth: [admin, manager]
+ *     responses:
+ *       200:
+ *         description: A list of team members.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/manager/workspace/team',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  AdminController.getWorkspaceTeam
+);
+
+/**
+ * @swagger
+ * /api/v1/admin/manager/workspace/invitations:
+ *   post:
+ *     summary: Invite a new member to the workspace
+ *     description: Sends an invitation to a new member to join the workspace. The number of members is subject to the workspace's subscription plan limits.
+ *     tags:
+ *       - Manager
+ *       - Team Management
+ *     security:
+ *       - BearerAuth: [admin, manager]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email of the user to invite.
+ *               role:
+ *                 type: string
+ *                 enum: [user] # Managers can only invite users with roles below their own.
+ *                 description: The role to assign to the new member.
+ *             example:
+ *               email: new.user@example.com
+ *               role: user
+ *     responses:
+ *       201:
+ *         description: Invitation sent successfully.
+ *       400:
+ *         description: Invalid email or role provided.
+ *       402:
+ *         description: Plan limit reached. Cannot invite more members.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       409:
+ *         description: User is already a member of the workspace or has a pending invitation.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.post(
+  '/manager/workspace/invitations',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  AdminController.inviteWorkspaceMember
+);
+
+/**
+ * @swagger
+ * /api/v1/admin/manager/workspace/team/{userId}/role:
+ *   patch:
+ *     summary: Update a team member's role
+ *     description: Updates the role of an existing member within the workspace. Managers cannot assign roles equal to or higher than their own.
+ *     tags:
+ *       - Manager
+ *       - Team Management
+ *     security:
+ *       - BearerAuth: [admin, manager]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID of the user whose role is to be updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [user] # Example of a lower-level role
+ *                 description: The new role to assign.
+ *             example:
+ *               role: user
+ *     responses:
+ *       200:
+ *         description: User role updated successfully.
+ *       400:
+ *         description: Invalid role provided.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden to assign this role or manage this user.
+ *       404:
+ *         description: User not found in this workspace.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.patch(
+  '/manager/workspace/team/:userId/role',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  AdminController.updateWorkspaceMemberRole
+);
+
+/**
+ * @swagger
+ * /api/v1/admin/manager/workspace/team/{userId}:
+ *   delete:
+ *     summary: Remove a member from the workspace
+ *     description: Removes a user's access to the current workspace. This action does not delete the user's account from the platform.
+ *     tags:
+ *       - Manager
+ *       - Team Management
+ *     security:
+ *       - BearerAuth: [admin, manager]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID of the user to remove from the workspace.
+ *     responses:
+ *       204:
+ *         description: User removed from workspace successfully.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden to remove this user (e.g., cannot remove workspace owner).
+ *       404:
+ *         description: User not found in this workspace.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.delete(
+  '/manager/workspace/team/:userId',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  AdminController.removeWorkspaceMember
+);
+
+/**
+ * @swagger
+ * /api/v1/admin/manager/workspace/metrics:
+ *   get:
+ *     summary: Get workspace metrics
+ *     description: Retrieves usage and performance metrics for the manager's or admin's workspace. This endpoint does not provide any billing or payment information.
+ *     tags:
+ *       - Manager
+ *       - Workspace Metrics
+ *     security:
+ *       - BearerAuth: [admin, manager]
+ *     responses:
+ *       200:
+ *         description: Workspace metrics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     activeUsers:
+ *                       type: integer
+ *                     projectsCount:
+ *                       type: integer
+ *                     dataUsage:
+ *                       type: string
+ *                       example: "2.5 GB"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/manager/workspace/metrics',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  AdminController.getWorkspaceMetrics
 );
 
 /**

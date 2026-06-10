@@ -3,6 +3,7 @@ import { BrowserUseController } from './browserUse.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { requireRole } from '../../middlewares/auth/requireRole.js'; // Middleware to enforce role-based access
+import catchAsync from '../../utils/catchAsync.js'; // Utility to catch errors from async express handlers
 
 /**
  * @constant {express.Router} router - Express router instance for browser use AI routes.
@@ -90,7 +91,7 @@ router.post(
   auth(),
   extractTenantContext,
   // FIX: The controller must verify user/tenant usage limits before initiating a task.
-  BrowserUseController.runTaskController
+  catchAsync(BrowserUseController.runTaskController)
 );
 
 /**
@@ -171,7 +172,7 @@ router.get(
   auth(),
   extractTenantContext,
   // FIX: The controller must validate that the requested session/task belongs to the authenticated user (req.user.id).
-  BrowserUseController.getTaskStatusController
+  catchAsync(BrowserUseController.getTaskStatusController)
 );
 
 /**
@@ -199,7 +200,7 @@ router.get(
   // This prevents one user from accessing another user's session list.
   auth(),
   extractTenantContext,
-  BrowserUseController.getMySessionsController
+  catchAsync(BrowserUseController.getMySessionsController)
 );
 
 /**
@@ -238,7 +239,7 @@ router.get(
   // The controller must now validate that the requested session belongs to the authenticated user (req.user.id).
   auth(),
   extractTenantContext,
-  BrowserUseController.getSessionByIdForUserController
+  catchAsync(BrowserUseController.getSessionByIdForUserController)
 );
 
 // --- ADMIN & MANAGER ROUTES (Tenant-scoped management) ---
@@ -282,7 +283,7 @@ router.get(
   auth(),
   extractTenantContext,
   requireRole('admin', 'manager'),
-  BrowserUseController.getSessionsForUserByAdminManager
+  catchAsync(BrowserUseController.getSessionsForUserByAdminManager)
 );
 
 /**
@@ -320,7 +321,7 @@ router.get(
   auth(),
   extractTenantContext,
   requireRole('admin'),
-  BrowserUseController.getAllSessionsForTenant
+  catchAsync(BrowserUseController.getAllSessionsForTenant)
 );
 
 /**
@@ -356,7 +357,7 @@ router.post(
   auth(),
   extractTenantContext,
   requireRole('admin'),
-  BrowserUseController.terminateSessionForAdmin
+  catchAsync(BrowserUseController.terminateSessionForAdmin)
 );
 
 /**
@@ -383,9 +384,8 @@ router.get(
   auth(),
   extractTenantContext,
   requireRole('admin'),
-  BrowserUseController.getTenantStats
+  catchAsync(BrowserUseController.getTenantStats)
 );
-
 
 // --- SUPER ADMIN ROUTES ---
 // These routes provide global oversight and are NOT tenant-scoped.
@@ -443,7 +443,7 @@ router.get(
   auth(),
   // FIX: Standardized role name to 'super_admin' for consistency.
   requireRole('super_admin'),
-  BrowserUseController.getAllSessionsForSuperAdmin
+  catchAsync(BrowserUseController.getAllSessionsForSuperAdmin)
 );
 
 /**
@@ -478,7 +478,7 @@ router.get(
   auth(),
   // FIX: Standardized role name to 'super_admin' for consistency.
   requireRole('super_admin'),
-  BrowserUseController.getSessionByIdForSuperAdmin
+  catchAsync(BrowserUseController.getSessionByIdForSuperAdmin)
 );
 
 /**
@@ -513,7 +513,7 @@ router.post(
   auth(),
   // FIX: Standardized role name to 'super_admin' for consistency.
   requireRole('super_admin'),
-  BrowserUseController.terminateSessionForSuperAdmin
+  catchAsync(BrowserUseController.terminateSessionForSuperAdmin)
 );
 
 /**
@@ -571,7 +571,7 @@ router.get(
   auth(),
   // FIX: Standardized role name to 'super_admin' for consistency.
   requireRole('super_admin'),
-  BrowserUseController.getPlatformStatsForSuperAdmin
+  catchAsync(BrowserUseController.getPlatformStatsForSuperAdmin)
 );
 
 /**
