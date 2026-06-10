@@ -2,12 +2,26 @@
  * @file This file defines the API routes for managing notes in the Alti.Assistant application.
  * @module app/modules/notes/notes.route
  * @requires express
+ * @requires @google-cloud/pubsub
  * @requires ../../middlewares/validateRequest/validateRequest
  * @requires ./notes.controller
  * @requires ./notes.validation
  */
 
+// GCP_INTEGRATION: Importing the Google Cloud Pub/Sub client for asynchronous task offloading.
+const { PubSub } = require('@google-cloud/pubsub');
 const express = require('express');
+
+// GCP_INTEGRATION: Initialize the Pub/Sub client.
+// This should be done once per application instance and the client should be reused.
+// Ensure your environment is authenticated (e.g., by setting GOOGLE_APPLICATION_CREDENTIALS).
+const pubSubClient = new PubSub();
+
+// GCP_INTEGRATION: Define the Pub/Sub topic for offloading bulk delete operations.
+// Using environment variables for configuration is a best practice.
+const bulkDeleteTopicName =
+  process.env.NOTES_BULK_DELETE_TOPIC || 'note-bulk-delete-topic';
+
 /**
  * Express router to handle note-related API endpoints.
  * @type {express.Router}
@@ -70,8 +84,8 @@ router.route('/all-note/:userId').get(taskController.getAllTask);
  * @swagger
  * /api/v1/notes/bulk-delete:
  *   delete:
- *     summary: Bulk delete multiple notes
- *     description: Deletes multiple notes based on an array of note IDs provided in the request body.
+ *     summary: Asynchronously bulk delete multiple notes
+ *     description: Accepts a request to delete multiple notes and offloads the task to a background worker via Pub/Sub. Returns a 202 Accepted response immediately.
  *     tags:
  *       - Notes
  *     requestBody:
@@ -90,8 +104,8 @@ router.route('/all-note/:userId').get(taskController.getAllTask);
  *                 description: An array of note IDs to be deleted.
  *                 example: ["noteId1", "noteId2"]
  *     responses:
- *       200:
- *         description: Successfully deleted the specified notes.
+ *       202:
+ *         description: The bulk delete request has been accepted for background processing.
  *         content:
  *           application/json:
  *             schema:
@@ -99,13 +113,60 @@ router.route('/all-note/:userId').get(taskController.getAllTask);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Notes deleted successfully"
+ *                   example: "Bulk delete request accepted. The notes will be deleted in the background."
+ *                 jobId:
+ *                   type: string
+ *                   description: The unique ID of the published message, which can be used for tracking.
+ *                   example: "1234567890"
  *       400:
  *         description: Invalid request body or no IDs provided.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error, e.g., failed to publish the job to Pub/Sub.
  */
-router.route('/bulk-delete').delete(taskController.bulkDeleteTask);
+router.route('/bulk-delete').delete(
+  // ASYNC_REFACTOR: Offloaded bulk delete to a background worker via Pub/Sub.
+  // This endpoint now accepts the request and publishes a message to a topic instead of deleting synchronously.
+  // A separate, stateless worker service will subscribe to this topic to perform the actual database deletion.
+  // This prevents long-running requests, improves API responsiveness, and allows for better scaling and resilience.
+  async (req, res, next) => {
+    try {
+      const { ids } = req.body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res
+          .status(400)
+          .json({ message: 'Invalid request: "ids" must be a non-empty array.' });
+      }
+
+      // The message payload for Pub/Sub must be a Buffer.
+      const dataBuffer = Buffer.from(JSON.stringify({ ids }));
+
+      // Publishes the message to the designated Pub/Sub topic.
+      const messageId = await pubSubClient
+        .topic(bulkDeleteTopicName)
+        .publishMessage({ data: dataBuffer });
+
+      // It's good practice to log the successful publishing of a message for traceability.
+      console.log(
+        `Message ${messageId} published to topic ${bulkDeleteTopicName} for bulk deletion.`
+      );
+
+      // Respond with 202 Accepted to indicate the request has been received for processing.
+      res.status(202).json({
+        message:
+          'Bulk delete request accepted. The notes will be deleted in the background.',
+        jobId: messageId, // Optionally return the messageId as a job identifier for tracking.
+      });
+    } catch (error) {
+      console.error(
+        `Error publishing bulk delete message to Pub/Sub: ${error.message}`,
+        error
+      );
+      // Pass the error to the Express error handling middleware for a consistent 500 response.
+      next(error);
+    }
+  }
+);
 
 router
   .route('/:id')
