@@ -77,8 +77,9 @@ router.post(
   '/assistant',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
+  // Rate limiting should generally come before daily limits to quickly reject high-volume requests.
   createRateLimiter(30, 15),
+  checkDailyRequestLimit,
   validateRequest(BrainstormValidation.conversationalBrainstormSchema),
   brainstormController.conversationalAssistant
 );
@@ -148,7 +149,10 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
+  // Added checkDailyRequestLimit for consistency with other generation endpoints.
+  // Rate limiting should generally come before daily limits.
   createRateLimiter(20, 15),
+  checkDailyRequestLimit,
   validateRequest(BrainstormValidation.structuredBrainstormSchema),
   brainstormController.generateBrainstorm
 );
@@ -221,7 +225,12 @@ router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // Added rate limiter to prevent abuse/scraping of conversation history.
+  createRateLimiter(60, 15), // Example: 60 requests per 15 minutes for retrieval
   validateRequest(BrainstormValidation.getConversationHistorySchema),
+  // IMPORTANT: The controller (brainstormController.getConversationHistory) MUST verify
+  // that the requested conversationId belongs to the authenticated user (req.user.id)
+  // or their tenant (req.tenant.id) to prevent Insecure Direct Object Reference (IDOR).
   brainstormController.getConversationHistory
 );
 
@@ -289,8 +298,14 @@ router.post(
   '/export',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // Added checkDailyRequestLimit for consistency with other generation/resource-intensive endpoints.
+  // Rate limiting should generally come before daily limits.
   createRateLimiter(10, 15),
+  checkDailyRequestLimit,
   validateRequest(BrainstormValidation.exportBrainstormSchema),
+  // IMPORTANT: The controller (brainstormController.exportBrainstorm) MUST verify
+  // that the requested brainstormId belongs to the authenticated user (req.user.id)
+  // or their tenant (req.tenant.id) to prevent Insecure Direct Object Reference (IDOR).
   brainstormController.exportBrainstorm
 );
 
@@ -359,8 +374,14 @@ router.post(
   '/refine',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // Added checkDailyRequestLimit for consistency with other generation/modification endpoints.
+  // Rate limiting should generally come before daily limits.
   createRateLimiter(20, 15),
+  checkDailyRequestLimit,
   validateRequest(BrainstormValidation.refineBrainstormSchema),
+  // IMPORTANT: The controller (brainstormController.refineBrainstorm) MUST verify
+  // that the requested brainstormId belongs to the authenticated user (req.user.id)
+  // or their tenant (req.tenant.id) to prevent Insecure Direct Object Reference (IDOR).
   brainstormController.refineBrainstorm
 );
 
