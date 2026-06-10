@@ -3,26 +3,34 @@ import logger from '../../../config/logger.js'; // Import the pre-configured Win
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { orchestratorService } from './orchestrator.service.js';
+// Assume a service exists for platform administration tasks.
+// This service would handle the business logic for managing tenants, configs, etc.
+import { platformAdminService } from './platformAdmin.service.js';
+
+// ===================================================================================
+// == Standard User-Facing Endpoints
+// ===================================================================================
 
 const routePrompt = catchAsync(async (req, res) => {
   const { message, prompt, sessionId, conversationId } = req.body;
   const userPrompt = message || prompt;
   // Safely access user ID from the authenticated user object, using optional chaining.
   const userId = req.user?.id || req.user?._id || req.user?.userId;
+  // Platform Owner check: Allow Platform Owner to impersonate a user for testing/debugging.
+  // The actual user ID to be acted upon would be passed in the request body.
+  const effectiveUserId = req.user?.role === 'PLATFORM_OWNER' && req.body.impersonatedUserId ? req.body.impersonatedUserId : userId;
 
-  // GCP structured logging: Log the start of the request processing with context.
-  // The 'severity' property is automatically recognized by Google Cloud Logging.
   logger.info('Orchestrator routePrompt request received', {
     severity: 'INFO',
     userId,
+    effectiveUserId,
     sessionId,
     conversationId,
     promptLength: userPrompt?.length || 0,
+    isImpersonating: !!(req.user?.role === 'PLATFORM_OWNER' && req.body.impersonatedUserId),
   });
 
-  // Validate that a user prompt is provided and is a non-empty string.
   if (!userPrompt || typeof userPrompt !== 'string' || userPrompt.trim().length === 0) {
-    // GCP structured logging: Log validation failures as warnings.
     logger.warn('Validation failed: Prompt message is required and cannot be empty.', {
       severity: 'WARNING',
       userId,
@@ -37,51 +45,29 @@ const routePrompt = catchAsync(async (req, res) => {
     });
   }
 
-  // Validate that a user ID is available from the authentication context.
-  // This prevents operations without a clear user identity, which could lead to security issues.
-  if (!userId) {
-    // GCP structured logging: Log authentication/authorization failures as warnings.
-    logger.warn('Validation failed: User ID is missing from request.', {
+  if (!effectiveUserId) {
+    logger.warn('Validation failed: Effective User ID is missing from request.', {
       severity: 'WARNING',
       sessionId,
       conversationId,
       validationError: 'missing_user_id',
     });
     return sendResponse(res, {
-      statusCode: httpStatus.FORBIDDEN, // Or UNAUTHORIZED if authentication itself failed
+      statusCode: httpStatus.FORBIDDEN,
       success: false,
       message: 'User ID is missing or invalid. Authentication required.',
     });
   }
 
-  // Further validation for sessionId and conversationId could be added here
-  // if they are mandatory or have specific format requirements (e.g., UUIDs).
-  // For example:
-  // if (sessionId && typeof sessionId !== 'string') {
-  //   logger.warn('Validation failed: Invalid Session ID format.', {
-  //     severity: 'WARNING',
-  //     userId,
-  //     sessionId,
-  //     validationError: 'invalid_session_id_format',
-  //   });
-  //   return sendResponse(res, {
-  //     statusCode: httpStatus.BAD_REQUEST,
-  //     success: false,
-  //     message: 'Session ID must be a string if provided.',
-  //   });
-  // }
+  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, effectiveUserId, conversationId);
 
-  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, userId, conversationId);
-
-  // GCP structured logging: Log successful processing.
   logger.info('Prompt successfully routed and processed', {
     severity: 'INFO',
     userId,
+    effectiveUserId,
     sessionId,
     conversationId,
-    // Avoid logging the entire 'result' object if it contains sensitive or very large data.
-    // Log key identifiers or metadata from the result instead.
-    resultType: result?.type, // Example of logging a key piece of data from the result
+    resultType: result?.type,
   });
 
   sendResponse(res, {
@@ -92,6 +78,209 @@ const routePrompt = catchAsync(async (req, res) => {
   });
 });
 
+// ===================================================================================
+// == Platform Owner / Super Admin Endpoints
+// == NOTE: All routes using these controllers MUST be protected by an authorization
+// == middleware that verifies req.user.role === 'PLATFORM_OWNER'.
+// ===================================================================================
+
+/**
+ * @description Get global, platform-wide statistics for oversight.
+ * @access PLATFORM_OWNER
+ */
+const getGlobalStatistics = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  logger.info('Platform Owner requested global statistics', {
+    severity: 'NOTICE',
+    adminId,
+  });
+
+  const stats = await platformAdminService.getGlobalStatistics();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Global statistics retrieved successfully.',
+    data: stats,
+  });
+});
+
+/**
+ * @description Get a list of all tenants on the platform.
+ * @access PLATFORM_OWNER
+ */
+const getAllTenants = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  // Add pagination and filtering from query params for scalability
+  const { page = 1, limit = 20, status, sortBy } = req.query;
+  const options = { page, limit, status, sortBy };
+
+  logger.info('Platform Owner requested list of all tenants', {
+    severity: 'NOTICE',
+    adminId,
+    options,
+  });
+
+  const tenants = await platformAdminService.getAllTenants(options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All tenants retrieved successfully.',
+    data: tenants,
+  });
+});
+
+/**
+ * @description Suspend or unsuspend a tenant.
+ * @access PLATFORM_OWNER
+ */
+const updateTenantStatus = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const { tenantId } = req.params;
+  const { status, reason } = req.body; // Expecting status: 'active' or 'suspended'
+
+  if (!tenantId || !status || !['active', 'suspended'].includes(status)) {
+    logger.warn('Invalid request to update tenant status', {
+      severity: 'WARNING',
+      adminId,
+      tenantId,
+      status,
+      reason: 'Missing or invalid parameters',
+    });
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Tenant ID and a valid status ("active" or "suspended") are required.',
+    });
+  }
+
+  logger.info(`Platform Owner is updating tenant status`, {
+    severity: 'NOTICE',
+    adminId,
+    tenantId,
+    newStatus: status,
+    reason,
+  });
+
+  const updatedTenant = await platformAdminService.updateTenantStatus(tenantId, status, reason, adminId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Tenant ${tenantId} has been successfully ${status}.`,
+    data: updatedTenant,
+  });
+});
+
+/**
+ * @description Override limits or configuration for a specific tenant.
+ * @access PLATFORM_OWNER
+ */
+const overrideTenantLimits = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const { tenantId } = req.params;
+  const newLimits = req.body; // e.g., { maxUsers: 1000, monthlyTokenLimit: 50000000, features: { customModels: true } }
+
+  logger.info('Platform Owner is overriding tenant limits', {
+    severity: 'NOTICE',
+    adminId,
+    tenantId,
+    newLimits,
+  });
+
+  const updatedTenant = await platformAdminService.overrideTenantLimits(tenantId, newLimits, adminId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Successfully updated limits for tenant ${tenantId}.`,
+    data: updatedTenant,
+  });
+});
+
+/**
+ * @description Get the current system-wide configuration.
+ * @access PLATFORM_OWNER
+ */
+const getSystemConfiguration = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  logger.info('Platform Owner requested system configuration', {
+    severity: 'NOTICE',
+    adminId,
+  });
+
+  const config = await platformAdminService.getSystemConfiguration();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration retrieved successfully.',
+    data: config,
+  });
+});
+
+/**
+ * @description Update the system-wide configuration.
+ * @access PLATFORM_OWNER
+ */
+const updateSystemConfiguration = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const configUpdates = req.body;
+
+  logger.warn('Platform Owner is updating system-wide configuration. This is a high-impact action.', {
+    severity: 'WARNING', // Use a higher severity for critical changes
+    adminId,
+    configUpdates,
+  });
+
+  const updatedConfig = await platformAdminService.updateSystemConfiguration(configUpdates, adminId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration updated successfully.',
+    data: updatedConfig,
+  });
+});
+
+/**
+ * @description Query global system logs.
+ * @access PLATFORM_OWNER
+ */
+const queryGlobalLogs = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  // Basic filtering options from query params
+  const { level, service, userId, tenantId, startTime, endTime, limit = 100 } = req.query;
+  const filter = { level, service, userId, tenantId, startTime, endTime, limit };
+
+  logger.info('Platform Owner is querying global logs', {
+    severity: 'NOTICE',
+    adminId,
+    filter,
+  });
+
+  // In a real application, this service would interact with your logging provider's API
+  // (e.g., GCP Logging, Datadog, ELK) to fetch structured logs.
+  const logs = await platformAdminService.queryLogs(filter);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logs retrieved successfully.',
+    data: logs,
+  });
+});
+
 export const orchestratorController = {
+  // User-facing
   routePrompt,
+  // Platform Owner / Super Admin
+  getGlobalStatistics,
+  getAllTenants,
+  updateTenantStatus,
+  overrideTenantLimits,
+  getSystemConfiguration,
+  updateSystemConfiguration,
+  queryGlobalLogs,
 };
