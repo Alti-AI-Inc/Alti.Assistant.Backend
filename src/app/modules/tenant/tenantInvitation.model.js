@@ -168,16 +168,28 @@ const TenantInvitationSchema = new mongoose.Schema(
 
 /**
  * Compound index for efficient lookup of invitations by email, tenant, and status.
+ * Useful for checking if a user is already invited to a specific tenant.
  * @index
  */
 TenantInvitationSchema.index({ email: 1, tenantId: 1, status: 1 });
+
 /**
- * Compound index for efficient lookup of invitations by token and status.
+ * OPTIMIZATION: Compound index to support the `findPendingByEmail` static method efficiently.
+ * This allows the database to quickly find all pending, non-expired invitations for a given email.
  * @index
  */
-TenantInvitationSchema.index({ token: 1, status: 1 });
+TenantInvitationSchema.index({ email: 1, status: 1, expiresAt: 1 });
+
+/**
+ * OPTIMIZATION: Compound index to support the `findByToken` static method efficiently.
+ * Since token is unique, this ensures the lookup and subsequent filter by status and expiry is as fast as possible.
+ * @index
+ */
+TenantInvitationSchema.index({ token: 1, status: 1, expiresAt: 1 });
+
 /**
  * Compound index for efficient lookup of invitations by expiry date and status.
+ * Useful for background jobs that process expiring or expired invitations.
  * @index
  */
 TenantInvitationSchema.index({ expiresAt: 1, status: 1 });
@@ -219,7 +231,7 @@ TenantInvitationSchema.statics.findPendingByEmail = function (email) {
     email: email.toLowerCase(),
     status: 'pending',
     expiresAt: { $gt: new Date() }, // Ensure the invitation has not expired
-  });
+  }).lean(); // OPTIMIZATION: Use .lean() for faster, read-only queries. Skips creating full Mongoose documents, which is ideal for list-based lookups.
 };
 
 /**
@@ -231,6 +243,8 @@ TenantInvitationSchema.statics.findPendingByEmail = function (email) {
  * @returns {Promise<TenantInvitationSchema|null>} The found invitation document, or null if not found or expired.
  */
 TenantInvitationSchema.statics.findByToken = async function (token) {
+  // NOTE: .lean() is intentionally omitted here. The result is expected to be a full Mongoose document
+  // so that instance methods like .markAsAccepted() can be called on it.
   return await this.findOne({
     token,
     status: 'pending',
@@ -280,6 +294,11 @@ TenantInvitationSchema.methods.cancel = async function () {
  * @param {function} next - The next middleware function.
  */
 TenantInvitationSchema.pre('save', function (next) {
+  if (this.isModified('status')) {
+    // If status is being changed, don't interfere.
+    return next();
+  }
+
   if (this.status === 'pending' && this.isExpired()) {
     this.status = 'expired';
   }

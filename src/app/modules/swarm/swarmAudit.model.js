@@ -3,6 +3,7 @@
  * @module modules/swarm/swarmAudit.model
  * @description Defines the Mongoose schema and model for auditing Swarm tool executions.
  * This model tracks the usage, attempts, and outcomes of various tools within the Swarm system.
+ * It includes critical fields for multi-tenancy to ensure data isolation and proper hierarchical usage tracking.
  */
 
 import mongoose from 'mongoose';
@@ -20,7 +21,10 @@ import mongoose from 'mongoose';
 
 /**
  * @typedef {object} SwarmAudit
- * @property {string} userId - The ID of the user who initiated the tool execution.
+ * @property {mongoose.Schema.Types.ObjectId} organizationId - The ID of the organization (platform tenant).
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace (admin/owner tenant).
+ * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who initiated the tool execution.
+ * @property {mongoose.Schema.Types.ObjectId} [conversationId] - The ID of the conversation session this audit belongs to.
  * @property {string} toolName - The name of the tool that was executed.
  * @property {'dynamic-skill' | 'standard-tool' | 'reflection-self-healing'} type - The type of tool being audited.
  * @property {SwarmAuditAttempt[]} attempts - An array of detailed records for each execution attempt.
@@ -41,17 +45,69 @@ import mongoose from 'mongoose';
  */
 const SwarmAuditSchema = new mongoose.Schema(
   {
+    // --- HIERARCHY & CONTEXT FIELDS (CRITICAL FOR SECURITY & INTEGRATION) ---
+
     /**
-     * The ID of the user who initiated the tool execution.
-     * @type {string}
+     * BUG FIX: Added organizationId to enforce top-level tenant boundaries (super_admin).
+     * This is CRITICAL for preventing data leakage between different organizations on the platform
+     * and for aggregating usage data at the platform owner level.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Organization
+     * @required
+     * @index
+     */
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+      index: true,
+    },
+    /**
+     * BUG FIX: Added workspaceId to enforce workspace-level tenant boundaries (admin/manager).
+     * This prevents users/managers from accessing audit data outside their assigned workspace (potential IDOR).
+     * It is essential for tracking usage and enforcing limits at the workspace level.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @required
+     * @index
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true,
+    },
+    /**
+     * BUG FIX: Changed type from String to ObjectId and added a ref to the User model.
+     * This establishes a proper database relation, improving data integrity and query performance via population.
+     * It links the audit record to a specific user (user/manager role).
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
      * @required
      * @index
      */
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
       index: true,
     },
+    /**
+     * INTEGRATION: Added optional conversationId to link tool executions to a specific session.
+     * This provides better context for debugging and tracing the full sequence of events initiated by a user.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Conversation
+     * @index
+     */
+    conversationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Conversation',
+      index: true,
+      required: false,
+    },
+
+    // --- AUDIT DETAILS ---
+
     /**
      * The name of the tool that was executed.
      * @type {string}
@@ -76,7 +132,7 @@ const SwarmAuditSchema = new mongoose.Schema(
       type: String,
       enum: ['dynamic-skill', 'standard-tool', 'reflection-self-healing'],
       default: 'dynamic-skill',
-      index: true, // Added index for performance, as 'type' is likely used in queries.
+      index: true,
     },
     /**
      * An array of detailed records for each execution attempt.
@@ -84,41 +140,12 @@ const SwarmAuditSchema = new mongoose.Schema(
      */
     attempts: [
       {
-        /**
-         * The sequential number of the attempt within a single audit record.
-         * @type {number}
-         */
         attempt: Number,
-        /**
-         * The date and time when this specific attempt occurred.
-         * @type {Date}
-         * @default Date.now
-         */
         timestamp: { type: Date, default: Date.now },
-        /**
-         * The name of the package that was missing, if applicable, leading to an installation attempt.
-         * @type {string}
-         */
         missingPackage: String,
-        /**
-         * Indicates whether the package installation (if attempted) was successful.
-         * @type {boolean}
-         */
         installSuccess: Boolean,
-        /**
-         * The standard output from the tool execution or installation attempt.
-         * @type {string}
-         */
         stdout: String,
-        /**
-         * The standard error output from the tool execution or installation attempt.
-         * @type {string}
-         */
         stderr: String,
-        /**
-         * The duration of this specific attempt in milliseconds.
-         * @type {number}
-         */
         durationMs: Number,
       },
     ],
@@ -136,7 +163,7 @@ const SwarmAuditSchema = new mongoose.Schema(
       type: String,
       enum: ['success', 'failed', 'security-blocked', 'resource-aborted'],
       required: true,
-      index: true, // Added index for performance, as 'status' is likely used in queries.
+      index: true,
     },
     /**
      * The final result or output from the successful tool execution.
@@ -164,6 +191,9 @@ const SwarmAuditSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// PERFORMANCE: Add a compound index for common query patterns, such as fetching a user's audit history within their workspace.
+SwarmAuditSchema.index({ workspaceId: 1, userId: 1, createdAt: -1 });
 
 /**
  * SwarmAudit Mongoose Model.
