@@ -1,10 +1,11 @@
 /**
  * @module aviationstack.route
- * @fileoverview AviationStack REST API Router
+ * @fileoverview AviationStack REST API Router and Server Entrypoint
  *
  * Exposes API routes for real-time tracking, flight routes schedules,
  * airport information, airline profiles, and airplane registrations.
- * This module defines the API endpoints for interacting with the AviationStack service.
+ * This module defines the API endpoints for interacting with the AviationStack service
+ * and includes the server startup and graceful shutdown logic for Cloud Run.
  */
 
 import express from 'express';
@@ -52,10 +53,13 @@ import {
 // Initialize Redis client for rate limiting.
 // In a production environment, connection details should come from environment variables.
 const redisClient = createClient({
-  // url: 'redis://your-redis-host:6379' // Example connection string for production
+  // url: process.env.REDIS_URL || 'redis://localhost:6379' // Example connection string for production
 });
-redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiter', err));
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+// Wait for the Redis client to connect before starting the server.
+// This ensures the rate limiter is ready to handle requests.
 await redisClient.connect();
+console.log('Redis client connected successfully.');
 
 // Create a Redis store for the rate limiter.
 const redisStore = new RedisStore({
@@ -510,9 +514,66 @@ router.get('/airplanes', aviationStackApiLimiter, async (req, res) => {
   }
 });
 
-/**
- * @exports aviationStackRoutes
- * @description The Express router instance containing all AviationStack API routes.
- * @type {express.Router}
- */
-export const aviationStackRoutes = router;
+// --- GCP Cloud Run Server Implementation ---
+
+const app = express();
+
+// Mount the business logic router
+app.use('/api/aviationstack', router);
+
+// Liveness probe: A simple check to see if the server process is running.
+// Cloud Run uses this to determine if the container needs to be restarted.
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
+// Readiness probe: Checks if the application is ready to accept traffic.
+// This should verify that all critical dependencies (like Redis) are connected.
+app.get('/readyz', (req, res) => {
+  if (redisClient.isReady) {
+    res.status(200).send('ok');
+  } else {
+    // If dependencies are not ready, return 503 to signal Cloud Run
+    // to not send traffic to this instance.
+    res.status(503).send('Service Unavailable: Not connected to dependencies.');
+  }
+});
+
+// Define the port. Cloud Run provides the PORT environment variable.
+// Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+
+// Start the server
+const server = app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// Graceful shutdown logic for SIGTERM signal from Cloud Run
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: starting graceful shutdown.');
+
+  // Stop the server from accepting new connections. It will wait for existing
+  // connections to finish before calling the callback.
+  server.close(async () => {
+    console.log('HTTP server closed.');
+
+    // Close the Redis client connection
+    try {
+      await redisClient.quit();
+      console.log('Redis client disconnected successfully.');
+    } catch (err) {
+      console.error('Error during Redis disconnection:', err);
+    }
+
+    // Exit the process cleanly
+    process.exit(0);
+  });
+
+  // If the server hasn't closed after a timeout, force exit.
+  // Cloud Run gives a 10-second grace period by default. We set the
+  // timeout slightly shorter to ensure our cleanup logic can complete.
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down.');
+    process.exit(1);
+  }, 9500); // 9.5 seconds
+});

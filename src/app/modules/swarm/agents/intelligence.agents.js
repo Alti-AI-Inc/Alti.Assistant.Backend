@@ -1,8 +1,28 @@
 /**
- * Cognitive Logic and Deep Reasoning Specialists
+ * @file Defines the agent configurations for cognitive logic and deep reasoning specialists.
+ * These agents are designed to handle complex analytical, mathematical, architectural, and strategic tasks.
+ * Each agent has a specific system instruction, model, and set of keywords to specialize its function.
+ * @module modules/swarm/agents/intelligence.agents
  */
 
-// Existing: Synapse Reasoning Engine
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - The unique identifier for the agent.
+ * @property {string} name - The display name of the agent.
+ * @property {string} description - A brief summary of the agent's capabilities.
+ * @property {string} systemInstruction - The detailed system prompt that defines the agent's behavior, rules, and personality.
+ * @property {string} model - The specific AI model used by the agent (e.g., 'gemini-2.5-pro').
+ * @property {Array<object>} tools - A list of tools the agent is equipped with.
+ * @property {Array<string>} keywords - A list of keywords that help in routing user prompts to this agent.
+ */
+
+/**
+ * The Synapse Reasoning Engine agent definition.
+ * This agent specializes in advanced cognitive logic, multi-stage tactical planning,
+ * deep chain-of-thought reasoning, and self-reflective critique to solve complex analytical problems.
+ * It is designed to be the core cognitive unit for deconstructing ambitious or abstract prompts.
+ * @type {AgentDefinition}
+ */
 export const intelligenceAgent = {
   id: 'intelligence_agent',
   name: 'Synapse Reasoning Engine',
@@ -24,7 +44,12 @@ CRITICAL LAWS:
   ]
 };
 
-// Existing: Manus Workflow Planner
+/**
+ * The Manus Workflow Planner agent definition.
+ * Inspired by Manus AI, this agent excels at decomposing complex, multi-stage user goals
+ * into detailed, step-by-step tactical blueprints. It categorizes steps, dependencies, and required tools.
+ * @type {AgentDefinition}
+ */
 export const manusStrategicPlanner = {
   id: 'manus_strategic_planner',
   name: 'Manus Workflow Planner',
@@ -37,7 +62,12 @@ Categorize steps by immediate action items, sub-tasks, dependencies, required to
   keywords: ['build me a project', 'how to make a startup', 'step by step plan', 'planning', 'strategic roadmap', 'complex task', 'workflow plan']
 };
 
-// Existing: STEM Quantitative Tutor
+/**
+ * The STEM Quantitative Tutor agent definition.
+ * This agent acts as a distinguished professor of STEM, deconstructing complex mathematical problems,
+ * physics equations, and logic proofs in a clear, step-by-step manner.
+ * @type {AgentDefinition}
+ */
 export const mathTutor = {
   id: 'math_tutor',
   name: 'STEM Quantitative Tutor',
@@ -50,7 +80,12 @@ Use clear formatting, explain the underlying axioms, and show intermediate stage
   keywords: ['solve math', 'calculus', 'physics equation', 'proof', 'algebra', 'statistics problem', 'geometry']
 };
 
-// Existing: DSA Technical Interview Coach
+/**
+ * The DSA Technical Interview Coach agent definition.
+ * This agent is designed to help users prepare for technical interviews by breaking down
+ * complex software algorithms and data structures, providing optimal solutions with time/space complexity analysis.
+ * @type {AgentDefinition}
+ */
 export const leetcodeCoach = {
   id: 'leetcode_coach',
   name: 'DSA Technical Interview Coach',
@@ -63,7 +98,12 @@ Walk through edge cases and dry-run execution steps.`,
   keywords: ['leetcode', 'dsa', 'data structures', 'algorithms', 'big o', 'complexity', 'dynamic programming', 'sliding window', 'binary search', 'graph']
 };
 
-// Existing: High-Scale Systems Architect
+/**
+ * The High-Scale Systems Architect agent definition.
+ * This agent functions as a principal architect, designing highly available and scalable
+ * distributed system architectures, including components like message queues, caches, and load balancers.
+ * @type {AgentDefinition}
+ */
 export const systemDesignExpert = {
   id: 'system_design_expert',
   name: 'High-Scale Systems Architect',
@@ -76,7 +116,12 @@ Draw high-level Mermaid layout flows.`,
   keywords: ['system design', 'distributed systems', 'kafka', 'redis', 'load balancer', 'cdn', 'rate limiter', 'message queue', 'scale', 'high availability']
 };
 
-// Existing: Sectigo Penetration Tester
+/**
+ * The Sectigo Penetration Tester agent definition.
+ * This agent acts as an ethical penetration tester, auditing codebases and APIs against
+ * common security vulnerabilities like the OWASP Top 10 and proposing concrete fixes.
+ * @type {AgentDefinition}
+ */
 export const pentestAuditor = {
   id: 'pentest_auditor',
   name: 'Sectigo Penetration Tester',
@@ -89,7 +134,12 @@ Propose explicit fixes, CSP security headers, and sanitization wrappers.`,
   keywords: ['owasp', 'penetration testing', 'pentest', 'xss', 'csrf', 'sql injection', 'vulnerability', 'sanitization', 'security headers', 'csp']
 };
 
-// NEW: Sovereign Cloud Architect (Architectural Reasoning Specialist)
+/**
+ * The Sovereign Cloud Architect agent definition.
+ * An advanced architectural reasoning specialist that designs massive-scale distributed cloud systems.
+ * It analyzes latency, fault tolerance, security vectors, and cost-efficiency trade-offs.
+ * @type {AgentDefinition}
+ */
 export const architecturalReasoningAgent = {
   id: 'architectural_reasoning_agent',
   name: 'Sovereign Cloud Architect',
@@ -111,7 +161,12 @@ CRITICAL LAWS:
   ]
 };
 
-// NEW: Gödel Logic Engine (Math Logic Prover Specialist)
+/**
+ * The Gödel Logic Engine agent definition.
+ * A specialized agent for formal symbolic logic, theorem proving, and rigorous mathematical modeling.
+ * It constructs formal proofs and performs detailed algorithmic complexity analysis.
+ * @type {AgentDefinition}
+ */
 export const mathLogicProverAgent = {
   id: 'math_logic_prover_agent',
   name: 'Gödel Logic Engine',
