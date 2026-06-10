@@ -45,23 +45,60 @@ const registerTrigger = async (userId, appName, eventName, dispatchType, targetI
     // to prevent IDOR (Insecure Direct Object Reference) vulnerabilities where a user could register triggers for another user.
 
     // Normalize appName and eventName to lowercase for consistent storage and lookup.
-    // This fixes a bug where `receiveWebhookEvent` queries using .toLowerCase() but `registerTrigger`
-    // might store them with inconsistent casing, leading to triggers not being found.
     const normalizedAppName = appName.toLowerCase();
     const normalizedEventName = eventName.toLowerCase();
 
-    // Optimization: Consider adding a compound index on { userId: 1, appName: 1, eventName: 1 }
-    // to the EventTrigger model for faster upsert operations.
+    // Optimization: Added .lean() to avoid Mongoose document instantiation overhead for read/write upsert.
+    // Optimization: Ensure a compound index exists on { userId: 1, appName: 1, eventName: 1 } for fast upserts.
     const trigger = await EventTrigger.findOneAndUpdate(
       { userId, appName: normalizedAppName, eventName: normalizedEventName },
       { dispatchType, targetId, paramMapping, isActive: true, appName: normalizedAppName, eventName: normalizedEventName },
       { new: true, upsert: true }
-    );
+    ).lean();
     logger.info(`EventTrigger: registered trigger for user ${userId} on event ${normalizedAppName}:${normalizedEventName}`);
     return { success: true, trigger };
   } catch (err) {
     logger.error('EventTrigger: registration failed:', err);
     throw err;
+  }
+};
+
+/**
+ * Helper function to handle asynchronous dispatching of triggers.
+ * Defined outside the loop to avoid creating anonymous functions/closures in a loop,
+ * which reduces garbage collection overhead and improves performance.
+ *
+ * @param {object} trigger - The event trigger configuration.
+ * @param {object} payload - The incoming webhook payload.
+ */
+const dispatchTrigger = async (trigger, payload) => {
+  try {
+    const resolvedInputs = {};
+    const paramMapping = trigger.paramMapping || {};
+    const keys = Object.keys(paramMapping);
+    
+    // Optimization: Use a fast procedural loop instead of Object.entries to avoid array allocations.
+    for (let i = 0; i < keys.length; i++) {
+      const inputKey = keys[i];
+      const payloadPath = paramMapping[inputKey];
+      const val = getNestedValue(payload, payloadPath);
+      if (val !== undefined) {
+        resolvedInputs[inputKey] = val;
+      }
+    }
+
+    logger.info(`EventTrigger: dispatching execution of type "${trigger.dispatchType}" for user ${trigger.userId}`);
+
+    if (trigger.dispatchType === 'chain') {
+      await LangchainExecutionService.executeChain(trigger.targetId, resolvedInputs, trigger.userId);
+    } else if (trigger.dispatchType === 'workflow') {
+      await workflowExecutionService.executeWorkflow(trigger.targetId, trigger.userId, {
+        webhookPayload: payload,
+        webhookInputs: resolvedInputs,
+      });
+    }
+  } catch (execErr) {
+    logger.error(`EventTrigger: failed to execute dispatched target ${trigger.targetId}:`, execErr);
   }
 };
 
@@ -82,64 +119,30 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
     logger.info(`EventTrigger: processing incoming webhook for "${appName}:${eventName}"`);
 
     // Find all active triggers matching this app and event
-    // appName and eventName are converted to lowercase to match the normalized storage from registerTrigger.
-    // Optimization: Add .lean() for read-only queries to return plain JavaScript objects, reducing Mongoose overhead.
-    // Optimization: Consider adding a compound index on { appName: 1, eventName: 1, isActive: 1 }
-    // to the EventTrigger model for faster query performance.
+    // Optimization: .lean() is used to return plain JavaScript objects, reducing Mongoose overhead.
+    // Optimization: Ensure a compound index exists on { appName: 1, eventName: 1, isActive: 1 } for fast lookups.
     const activeTriggers = await EventTrigger.find({
       appName: appName.toLowerCase(),
       eventName: eventName.toLowerCase(),
       isActive: true,
     }).lean();
 
-    if (activeTriggers.length === 0) {
+    const len = activeTriggers.length;
+    if (len === 0) {
       logger.info(`EventTrigger: no active triggers matched "${appName}:${eventName}"`);
       return { success: true, executedCount: 0 };
     }
 
-    let dispatchedCount = 0;
-    for (const trigger of activeTriggers) {
-      // Asynchronously resolve parameters and execute to ensure webhooks return immediately.
-      // The .catch(() => {}) on the IIFE prevents unhandled promise rejections from crashing the process,
-      // while the internal try/catch logs specific execution errors.
-      (async () => {
-        try {
-          const resolvedInputs = {};
-          for (const [inputKey, payloadPath] of Object.entries(trigger.paramMapping || {})) {
-            const val = getNestedValue(payload, payloadPath);
-            if (val !== undefined) {
-              resolvedInputs[inputKey] = val;
-            }
-          }
-
-          logger.info(`EventTrigger: dispatching execution of type "${trigger.dispatchType}" for user ${trigger.userId}`);
-
-          if (trigger.dispatchType === 'chain') {
-            await LangchainExecutionService.executeChain(trigger.targetId, resolvedInputs, trigger.userId);
-          } else if (trigger.dispatchType === 'workflow') {
-            await workflowExecutionService.executeWorkflow(trigger.targetId, trigger.userId, {
-              webhookPayload: payload,
-              webhookInputs: resolvedInputs,
-            });
-          }
-        } catch (execErr) {
-          // Log errors for individual asynchronous dispatches
-          logger.error(`EventTrigger: failed to execute dispatched target ${trigger.targetId}:`, execErr);
-        }
-      })().catch(() => {
-        // This outer catch prevents unhandled promise rejections from the IIFE itself,
-        // but individual execution errors are already logged by the inner catch.
-      });
-
-      dispatchedCount++;
+    // Optimization: Use a fast procedural loop and delegate execution to a dedicated helper function.
+    // This avoids creating nested closures/IIFEs inside the loop, saving memory and CPU cycles.
+    for (let i = 0; i < len; i++) {
+      dispatchTrigger(activeTriggers[i], payload).catch(() => {});
     }
 
-    // Bug Fix: Adjusted the message to accurately reflect that automations are *initiated* asynchronously,
-    // not necessarily completed successfully, as the webhook returns immediately.
     return {
       success: true,
-      message: `Webhook received. Initiated ${dispatchedCount} automation dispatch(es) asynchronously.`,
-      dispatchedCount: dispatchedCount,
+      message: `Webhook received. Initiated ${len} automation dispatch(es) asynchronously.`,
+      dispatchedCount: len,
     };
   } catch (err) {
     logger.error(`EventTrigger: receiveWebhookEvent failed:`, err);
