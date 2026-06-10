@@ -226,20 +226,38 @@ const _handleGeminiInteraction = async (
       await Promise.all(propagationPromises);
 
     } catch (error) {
-      // --- Compensation Logic ---
-      // If any usage update failed (e.g., tenant limit exceeded), we must revert the user's personal prompt increment
-      // to ensure they are not charged for a request that couldn't be fully tracked.
-      await UserModel.findByIdAndUpdate(userId, { $inc: { promptsUsed: -1 } });
-
+      // Log the primary error immediately to ensure it's captured, regardless of compensation logic outcome.
       logger.error({
-        message: 'Failed to update and propagate prompt usage after AI generation. Reverted user prompt count.',
+        message: 'Failed to update and propagate prompt usage after AI generation. Attempting compensation.',
         severity: 'ERROR',
         userId,
         sessionId,
-        error: { name: error.name, message: error.message, stack: error.stack },
+        originalError: { name: error.name, message: error.message, stack: error.stack },
       });
 
-      // Re-throw the original error (e.g., the ApiError for limit exceeded).
+      // --- Compensation Logic ---
+      // Attempt to revert the user's personal prompt increment to prevent incorrect billing/usage tracking.
+      // This operation is wrapped in its own try/catch to prevent a compensation failure from masking the original error.
+      try {
+        await UserModel.findByIdAndUpdate(userId, { $inc: { promptsUsed: -1 } });
+        logger.info({
+          message: 'Successfully reverted user prompt count as part of error compensation.',
+          severity: 'INFO',
+          userId,
+          sessionId,
+        });
+      } catch (compensationError) {
+        // If compensation fails, log it as a critical issue for manual review.
+        logger.error({
+          message: 'CRITICAL: Failed to revert user prompt count during error compensation. Manual usage review may be required.',
+          severity: 'CRITICAL',
+          userId,
+          sessionId,
+          compensationError: { name: compensationError.name, message: compensationError.message, stack: compensationError.stack },
+        });
+      }
+
+      // Re-throw the original error that triggered this catch block (e.g., ApiError for limit exceeded).
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
