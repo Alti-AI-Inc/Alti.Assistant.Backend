@@ -133,7 +133,8 @@ for (const file of files) {
                     currentVerse = parseInt(item.number, 10) || parseInt(item.number.split('-')[0], 10);
                 } else if (item.type === 'char') {
                     // Extract text from character-level formatting.
-                    verseText += extractText([item]).trim() + ' ';
+                    // The extractText function already returns a trimmed string, so .trim() is redundant here.
+                    verseText += extractText([item]) + ' ';
                 }
             }
         }
