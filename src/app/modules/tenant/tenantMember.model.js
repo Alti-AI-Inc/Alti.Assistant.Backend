@@ -9,8 +9,9 @@ import mongoose from 'mongoose';
  * @property {'active'|'invited'|'suspended'} status - The current status of the user's membership in the tenant.
  * @property {mongoose.Types.ObjectId} [invitedBy] - The ID of the user who invited this member, if applicable.
  * @property {Date} [invitedAt] - The timestamp when the user was invited to the tenant.
- * @property {Date} joinedAt - The timestamp when the user officially joined the tenant.
- * @property {Date} lastAccessedAt - The timestamp of the user's last activity or access within the tenant.
+ * @property {Date} [joinedAt] - The timestamp when the user officially joined the tenant.
+ * @property {Date} [lastAccessedAt] - The timestamp of the user's last activity or access within the tenant.
+ * @property {mongoose.Types.ObjectId} [managedBy] - The ID of the manager's TenantMember record for this user, establishing a hierarchy.
  * @property {Date} createdAt - The timestamp when the membership record was created.
  * @property {Date} updatedAt - The timestamp when the membership record was last updated.
  */
@@ -83,13 +84,16 @@ const TenantMemberSchema = new mongoose.Schema(
      * The current status of the user's membership in the tenant.
      * @type {'active'|'invited'|'suspended'}
      * @enum ['active', 'invited', 'suspended']
-     * @default 'active'
+     * @default 'invited'
      * @index
      */
     status: {
       type: String,
       enum: ['active', 'invited', 'suspended'],
-      default: 'active',
+      // BUGFIX: Defaulting to 'invited' is safer for invitation flows. The service layer should
+      // explicitly set 'active' for the tenant creator or other direct additions, preventing
+      // invited users from being active by default.
+      default: 'invited',
       index: true,
     },
     /**
@@ -111,20 +115,31 @@ const TenantMemberSchema = new mongoose.Schema(
     /**
      * The timestamp when the user officially joined the tenant.
      * @type {Date}
-     * @default Date.now
      */
     joinedAt: {
+      // BUGFIX: Removed default. This should be set explicitly by the service layer
+      // when a user's status becomes 'active' to ensure data integrity.
       type: Date,
-      default: Date.now,
     },
     /**
      * The timestamp of the user's last activity or access within the tenant.
      * @type {Date}
-     * @default Date.now
      */
     lastAccessedAt: {
+      // BUGFIX: Removed default. This should be set explicitly on user activity,
+      // not on record creation, especially for invited users.
       type: Date,
-      default: Date.now,
+    },
+    /**
+     * INTEGRATION: The unique identifier of the manager's TenantMember record for this user.
+     * This creates a direct hierarchical link within the tenant, enabling propagation of usage
+     * details, limits, and notifications from users to their managers.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref TenantMember
+     */
+    managedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TenantMember',
     },
   },
   {
@@ -152,6 +167,12 @@ TenantMemberSchema.index({ userId: 1, status: 1 });
 TenantMemberSchema.index({ tenantId: 1, status: 1 });
 
 /**
+ * INTEGRATION: Index for efficiently finding all members managed by a specific manager.
+ * @index
+ */
+TenantMemberSchema.index({ managedBy: 1 });
+
+/**
  * Static method to check if a user is an active member of a specific tenant.
  *
  * @param {mongoose.Types.ObjectId} userId - The ID of the user.
@@ -159,12 +180,13 @@ TenantMemberSchema.index({ tenantId: 1, status: 1 });
  * @returns {Promise<boolean>} - True if the user is an active member of the tenant, false otherwise.
  */
 TenantMemberSchema.statics.isMember = async function (userId, tenantId) {
-  const membership = await this.findOne({
+  // OPTIMIZATION: Using countDocuments is more efficient as it doesn't retrieve the document.
+  const count = await this.countDocuments({
     userId,
     tenantId,
     status: 'active',
   });
-  return !!membership;
+  return count > 0;
 };
 
 /**
@@ -203,11 +225,11 @@ TenantMemberSchema.statics.getUserTenants = async function (userId) {
 
 /**
  * Static method to get all members (active or invited) of a specific tenant.
- * Populates user and inviter details.
+ * Populates user, inviter, and manager details.
  *
  * @param {mongoose.Types.ObjectId} tenantId - The ID of the tenant.
  * @returns {Promise<Array<TenantMemberDocument>>} - A promise that resolves to an array of tenant membership objects,
- *   populated with selected user details (email, firstName, lastName, avatar) and inviter details.
+ *   populated with selected user details (email, firstName, lastName, avatar), inviter details, and manager details.
  */
 TenantMemberSchema.statics.getTenantMembers = async function (tenantId) {
   return this.find({
@@ -216,6 +238,15 @@ TenantMemberSchema.statics.getTenantMembers = async function (tenantId) {
   })
     .populate('userId', 'email firstName lastName avatar')
     .populate('invitedBy', 'email firstName lastName')
+    // INTEGRATION: Populate manager details to support hierarchical views and logic.
+    .populate({
+      path: 'managedBy',
+      select: 'userId role', // Select fields from the manager's TenantMember record
+      populate: {
+        path: 'userId', // Populate the user record associated with the manager's membership
+        select: 'email firstName lastName',
+      },
+    })
     .sort({ createdAt: -1 });
 };
 
