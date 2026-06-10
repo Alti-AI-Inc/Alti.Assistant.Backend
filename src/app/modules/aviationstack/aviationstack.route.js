@@ -8,6 +8,9 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { createClient } from 'redis';
 import {
   /**
    * @function getFlightsService
@@ -45,6 +48,34 @@ import {
    */
   getAirplanesService,
 } from './aviationstack.service.js';
+
+// Initialize Redis client for rate limiting.
+// In a production environment, connection details should come from environment variables.
+const redisClient = createClient({
+  // url: 'redis://your-redis-host:6379' // Example connection string for production
+});
+redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiter', err));
+await redisClient.connect();
+
+// Create a Redis store for the rate limiter.
+const redisStore = new RedisStore({
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+// Define a rate limiter for the AviationStack API endpoints.
+// This helps prevent DDOS attacks, API abuse, and excessive costs from the external API provider.
+// The limit is set to 100 requests per 15 minutes per IP address.
+const aviationStackApiLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `windowMs`
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again after 15 minutes.',
+  },
+});
 
 /**
  * @constant {express.Router} router
@@ -129,6 +160,8 @@ const router = express.Router();
  *                       arrival: { type: object, description: "Arrival airport details" }
  *                       airline: { type: object, description: "Airline details" }
  *                       flight: { type: object, description: "Flight details" }
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -143,7 +176,7 @@ const router = express.Router();
  *                   type: string
  *                   example: "Failed to fetch flight data from external API."
  */
-router.get('/flights', async (req, res) => {
+router.get('/flights', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getFlightsService(req.query);
     res.status(200).json({ success: true, data });
@@ -208,6 +241,8 @@ router.get('/flights', async (req, res) => {
  *                       departure_iata: { type: string, example: "LHR" }
  *                       arrival_iata: { type: string, example: "JFK" }
  *                       flight_number: { type: string, example: "BA177" }
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -222,7 +257,7 @@ router.get('/flights', async (req, res) => {
  *                   type: string
  *                   example: "Failed to fetch route data from external API."
  */
-router.get('/routes', async (req, res) => {
+router.get('/routes', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getRoutesService(req.query);
     res.status(200).json({ success: true, data });
@@ -294,6 +329,8 @@ router.get('/routes', async (req, res) => {
  *                       icao_code: { type: string, example: "EGLL" }
  *                       city_iata_code: { type: string, example: "LON" }
  *                       country_name: { type: string, example: "United Kingdom" }
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -308,7 +345,7 @@ router.get('/routes', async (req, res) => {
  *                   type: string
  *                   example: "Failed to fetch airport data from external API."
  */
-router.get('/airports', async (req, res) => {
+router.get('/airports', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirportsService(req.query);
     res.status(200).json({ success: true, data });
@@ -373,6 +410,8 @@ router.get('/airports', async (req, res) => {
  *                       iata_code: { type: string, example: "BA" }
  *                       icao_code: { type: string, example: "BAW" }
  *                       country_name: { type: string, example: "United Kingdom" }
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -387,7 +426,7 @@ router.get('/airports', async (req, res) => {
  *                   type: string
  *                   example: "Failed to fetch airline data from external API."
  */
-router.get('/airlines', async (req, res) => {
+router.get('/airlines', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirlinesService(req.query);
     res.status(200).json({ success: true, data });
@@ -446,6 +485,8 @@ router.get('/airlines', async (req, res) => {
  *                       plane_model: { type: string, example: "Boeing 747-400" }
  *                       plane_icao_code: { type: string, example: "B744" }
  *                       manufacturer: { type: string, example: "Boeing" }
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -460,7 +501,7 @@ router.get('/airlines', async (req, res) => {
  *                   type: string
  *                   example: "Failed to fetch airplane data from external API."
  */
-router.get('/airplanes', async (req, res) => {
+router.get('/airplanes', aviationStackApiLimiter, async (req, res) => {
   try {
     const data = await getAirplanesService(req.query);
     res.status(200).json({ success: true, data });
