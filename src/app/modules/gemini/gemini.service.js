@@ -36,11 +36,6 @@ const model = client.getGenerativeModel({
   generationConfig: { temperature: 0.1 },
 });
 
-// Removed `model1` as it was a duplicate of `model`.
-// Removed `sessionMemoryStore` and `sessionMemoryStore25Preview` as they were in-memory global stores
-// that would lose state on process restart or in scaled environments, leading to loss of conversation context.
-// Chat history will now be loaded dynamically from the database for each request.
-
 /**
  * Handles the core interaction with the Gemini AI model, manages chat history,
  * tracks prompt usage, and persists conversation data for a given session and user.
@@ -65,9 +60,37 @@ const _handleGeminiInteraction = async (
   shouldPublishToRedis
 ) => {
   try {
+    // 1. Fetch user and validate hierarchy, roles, and tenant context boundaries
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    }
+
+    // Validate role hierarchy
+    const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+    if (!user.role || !validRoles.includes(user.role)) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized role or invalid role configuration');
+    }
+
+    // Validate tenant context boundary (except for platform-wide super_admin)
+    if (user.role !== 'super_admin' && !user.tenantId) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'User is not associated with any tenant/workspace context');
+    }
+
+    // Check individual user limits
+    if (user.promptLimit !== undefined && user.promptsUsed >= user.promptLimit) {
+      throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'User prompt limit exceeded');
+    }
+
+    // Check tenant-wide limits if applicable
+    if (user.tenantId && user.role !== 'super_admin') {
+      const tenantAdmin = await UserModel.findOne({ tenantId: user.tenantId, role: 'admin' });
+      if (tenantAdmin && tenantAdmin.tenantLimit !== undefined && tenantAdmin.tenantUsage >= tenantAdmin.tenantLimit) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded');
+      }
+    }
+
     // Dynamically load chat history from the database for the current session.
-    // This ensures conversation context is maintained across restarts and scaled instances,
-    // addressing the bug of ephemeral in-memory stores.
     const existingChatHistoryDoc = await ChatHistory.findOne({ user: userId, sessionId });
 
     const chatHistory = new InMemoryChatMessageHistory();
@@ -106,42 +129,68 @@ const _handleGeminiInteraction = async (
       }
     } catch (error) {
       logger.error('Error in incrementPromptsUsed:', error);
-      // Re-throw as ApiError to be caught by the outer try-catch or handled upstream
+      if (error instanceof ApiError) throw error;
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
         error.message || 'An error occurred while updating prompt usage.'
       );
     }
 
+    // Propagate usage details, limits, and notifications up the hierarchy
+    const propagationPromises = [];
+
+    // Propagate to Manager
+    if (user.managerId) {
+      propagationPromises.push(
+        UserModel.findByIdAndUpdate(user.managerId, {
+          $inc: { managedUsageCount: 1 }
+        })
+      );
+      logger.info(`Notification: Usage propagated to Manager ${user.managerId} for User ${userId}`);
+    }
+
+    // Propagate to Tenant Administrator / Workspace Owner
+    if (user.tenantId) {
+      propagationPromises.push(
+        UserModel.updateMany(
+          { tenantId: user.tenantId, role: 'admin' },
+          { $inc: { tenantUsageCount: 1 } }
+        )
+      );
+      logger.info(`Notification: Usage propagated to Tenant Admins for Tenant ${user.tenantId}`);
+    }
+
+    // Propagate to Super Admin / Platform Owner
+    propagationPromises.push(
+      UserModel.updateMany(
+        { role: 'super_admin' },
+        { $inc: { platformUsageCount: 1 } }
+      )
+    );
+
+    // Execute propagation concurrently
+    await Promise.all(propagationPromises);
+
     await memory.chatHistory.addMessage(new AIMessage(reply));
 
     const responseData = {
       prompt,
-      model: 'gemini-2.5-flash', // Model name is hardcoded, ensure it matches `modelToUse` if dynamic models are introduced
+      model: 'gemini-2.5-flash',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
 
-    // Optimization: Use updateOne to push to responses array directly,
-    // then check if a new document needs to be created.
-    // This avoids fetching the full document, modifying it in memory, and then saving it.
-    // Recommended Index: For ChatHistory model, create a compound index on `{ user: 1, sessionId: 1 }`
-    // to optimize the lookup for both update and create operations.
     const updateResult = await ChatHistory.updateOne(
       { user: userId, sessionId },
       { $push: { responses: responseData } }
     );
 
     if (updateResult.modifiedCount === 0) {
-      // If no document was modified, it means the session didn't exist, so create a new one
       const newGeminiSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
-      // Only update UserModel if a new session was created.
-      // Corrected field name from `llamaAiSessions` to `geminiAiSessions` for consistency
-      // with the service's purpose. If `geminiAiSessions` does not exist, Mongoose will add it.
       await UserModel.findByIdAndUpdate(userId, {
         $push: { geminiAiSessions: newGeminiSession._id },
       });
@@ -157,9 +206,6 @@ const _handleGeminiInteraction = async (
     return payload;
   } catch (err) {
     logger.error('Gemini Service Error:', err);
-    // Re-throw the original ApiError if it's already an ApiError,
-    // otherwise wrap it in a generic ApiError. This ensures specific errors
-    // (like payment issues) are propagated correctly.
     if (err instanceof ApiError) {
       throw err;
     }
@@ -184,7 +230,6 @@ const _handleGeminiInteraction = async (
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const geminiService = async (sessionId, prompt, userId) => {
-  // Uses the shared internal handler with Redis publishing enabled.
   return _handleGeminiInteraction(sessionId, prompt, userId, model, true);
 };
 
@@ -192,7 +237,6 @@ const geminiService = async (sessionId, prompt, userId) => {
  * Handles interaction with a Gemini AI model instance (currently identical to the primary model),
  * manages chat history, tracks prompt usage, and persists conversation data for a given session and user.
  * This service is functionally very similar to `geminiService` but does not publish to Redis.
- * It might be intended for a preview or alternative model version.
  *
  * @async
  * @function gemini25PreviewService
@@ -204,9 +248,6 @@ const geminiService = async (sessionId, prompt, userId) => {
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
  */
 const gemini25PreviewService = async (sessionId, prompt, userId) => {
-  // Uses the shared internal handler with Redis publishing disabled.
-  // Note: If a different model or configuration is truly intended for a "preview",
-  // `model` should be replaced with a distinct `modelPreview` instance.
   return _handleGeminiInteraction(sessionId, prompt, userId, model, false);
 };
 
@@ -215,28 +256,6 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
  * @namespace GeminiAiService
  */
 export const GeminiAiService = {
-  /**
-   * The primary service function for interacting with the Gemini AI model.
-   * @function
-   * @memberof GeminiAiService
-   * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
-   * @param {string} sessionId - The unique identifier for the current chat session.
-   * @param {string} prompt - The user's input prompt.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the prompt, sessionId, and the AI's reply.
-   * @throws {ApiError}
-   */
   geminiService,
-  /**
-   * A service function for interacting with a preview or alternative Gemini AI model instance.
-   * @function
-   * @memberof GeminiAiService
-   * @security User-Scoped Isolation: Access is restricted to the authenticated user matching `userId`.
-   * @param {string} sessionId - The unique identifier for the current chat session.
-   * @param {string} prompt - The user's input prompt.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the prompt, sessionId, and the AI's reply.
-   * @throws {ApiError}
-   */
   gemini25PreviewService,
 };

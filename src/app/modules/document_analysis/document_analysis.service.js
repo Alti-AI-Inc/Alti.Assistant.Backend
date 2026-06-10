@@ -30,6 +30,7 @@ import {
  * Generates a unique guest user ID using Mongoose's ObjectId.
  * This ID can be used for unauthenticated users to track their analysis sessions.
  *
+ * @function generateGuestUserId
  * @returns {string} A unique guest user ID.
  */
 const generateGuestUserId = () => {
@@ -40,6 +41,7 @@ const generateGuestUserId = () => {
  * Generates a unique conversation ID for document analysis sessions.
  * The ID is a combination of a timestamp and a random string to ensure uniqueness.
  *
+ * @function generateConversationId
  * @returns {string} A unique conversation ID string.
  */
 const generateConversationId = () => {
@@ -50,6 +52,9 @@ const generateConversationId = () => {
  * Adds a new message (either from the user or the assistant) to an existing conversation.
  * This function interacts with the `conversationService` to persist the message.
  *
+ * @function addMessage
+ * @async
+ * @security Multi-tenant isolation: The message is only added if the `userId` matches the conversation owner.
  * @param {string} conversationId - The ID of the conversation to add the message to.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @param {'user' | 'assistant'} role - The role of the message sender ('user' or 'assistant').
@@ -87,6 +92,9 @@ const addMessage = async (
  * If a `conversationId` is provided, it attempts to fetch the existing conversation.
  * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
  *
+ * @function handleAnalysisConversation
+ * @async
+ * @security Multi-tenant isolation: Ensures that the conversation fetched or created is strictly bound to the provided `userId`.
  * @param {string} userId - The ID of the user initiating the analysis.
  * @param {string | null} conversationId - The ID of an existing conversation, or `null` to create a new one.
  * @param {string} userMessage - The initial user message or prompt for the analysis, used for the conversation title.
@@ -181,12 +189,18 @@ const handleAnalysisConversation = async (
  * conversation creation/retrieval, AI analysis (with or without context), and
  * saving messages and metadata to the conversation.
  *
+ * @function analyzeContent
+ * @async
+ * @security Multi-tenant & Role Context:
+ * - Supports both 'authenticated' and 'guest' user roles (via the `isGuest` flag).
+ * - Enforces strict multi-tenant isolation by scoping all file processing, conversation retrieval,
+ *   and message additions to the provided `userId`.
  * @param {string} userId - The ID of the user performing the analysis.
  * @param {string | null} message - The user's text message for analysis. Can be `null` if `fileInfo` is provided.
  * @param {object | null} fileInfo - Information about an uploaded file, if any.
- *   - `fileInfo.path` {string} The temporary path where the file is stored.
- *   - `fileInfo.originalname` {string} The original name of the uploaded file.
- *   - `fileInfo.filename` {string} The unique filename assigned to the uploaded file.
+ * @param {string} fileInfo.path - The temporary path where the file is stored.
+ * @param {string} fileInfo.originalname - The original name of the uploaded file.
+ * @param {string} fileInfo.filename - The unique filename assigned to the uploaded file.
  * @param {string | null} conversationId - The ID of an existing conversation, or `null` to start a new one.
  * @param {string} analysisType - The type of analysis to perform (e.g., 'summary', 'keywords').
  * @param {string} outputFormat - The desired output format for the analysis (e.g., 'text', 'json').
@@ -394,6 +408,9 @@ const analyzeContent = async (
 /**
  * Retrieves the complete history of a specific conversation, including its title, messages, and metadata.
  *
+ * @function getConversationHistory
+ * @async
+ * @security Multi-tenant isolation: Access is restricted. The requesting `userId` must match the owner of the conversation.
  * @param {string} conversationId - The ID of the conversation to retrieve.
  * @param {string} userId - The ID of the user who owns the conversation.
  * @param {object | null} [req=null] - Optional Express request object.
