@@ -398,7 +398,7 @@ KnowledgeBankFileSchema.virtual('fileExtension').get(function () {
  * @param {mongoose.Types.ObjectId | null} [options.folderId] - Filter by folder ID (null for root).
  * @param {number} [options.limit=100] - Maximum number of files to return.
  * @param {number} [options.skip=0] - Number of files to skip for pagination.
- * @param {boolean} [options.lean=false] - OPTIMIZATION: Return plain JS objects instead of heavy Mongoose documents.
+ * @param {boolean} [options.lean=true] - OPTIMIZATION: Return plain JS objects instead of heavy Mongoose documents. Defaults to true for performance.
  * @returns {Promise<Array<KnowledgeBankFileSchema>>} A promise that resolves to an array of KnowledgeBankFile documents.
  * @static
  */
@@ -427,8 +427,9 @@ KnowledgeBankFileSchema.statics.findByUserId = async function (
     .limit(options.limit || 100)
     .skip(options.skip || 0);
 
-  // OPTIMIZATION: Use lean queries when requested for massive performance gains
-  if (options.lean) {
+  // OPTIMIZATION: Use lean queries by default for massive performance gains in read operations.
+  // Allow overriding for cases where Mongoose documents are needed (e.g., to use instance methods).
+  if (options.lean !== false) {
     queryBuilder.lean();
   }
 
