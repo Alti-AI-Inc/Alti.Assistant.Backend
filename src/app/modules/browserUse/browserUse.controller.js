@@ -3,6 +3,8 @@ import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { BrowserUseServices } from './browserUse.service.js';
+// Assuming a pre-configured Winston logger is available for GCP structured logging.
+import logger from '../../../config/logger.js';
 
 /**
  * @swagger
@@ -90,7 +92,36 @@ const runTaskController = catchAsync(async (req, res) => {
 
   // Platform Owner Override: Allow running tasks on behalf of another user/tenant
   if (isPlatformOwner && req.body.userId) {
+    const originalUserId = req.user?._id;
     userId = req.body.userId;
+    // Security-sensitive actions like impersonation should be logged with higher severity.
+    // A properly configured Winston logger will map 'warn' to the 'WARNING' severity level in GCP.
+    logger.warn({
+        message: 'Platform Owner override: Running task on behalf of another user.',
+        actor: { id: originalUserId, role: req.user?.role },
+        target: { userId: userId },
+        sessionId: sessionId || 'new_session',
+        httpRequest: { // This structure helps Cloud Logging associate the log with the request
+            requestMethod: req.method,
+            requestUrl: req.originalUrl,
+            remoteIp: req.ip,
+        },
+    });
+  } else {
+    // Standard operational log.
+    // A properly configured Winston logger will map 'info' to the 'INFO' severity level in GCP.
+    logger.info({
+        message: 'Initiating browser use task.',
+        context: {
+            userId: userId,
+            sessionId: sessionId || 'new_session',
+        },
+        httpRequest: {
+            requestMethod: req.method,
+            requestUrl: req.originalUrl,
+            remoteIp: req.ip,
+        },
+    });
   }
 
   if (!prompt) {
@@ -164,6 +195,22 @@ const getTaskStatusController = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
+  // GCP-compatible structured log. The severity 'INFO' is added by the logger configuration.
+  logger.info({
+    message: 'Fetching browser task status.',
+    context: {
+        authenticatedUserId: userId,
+        sessionId: sessionId,
+        taskId: taskId,
+        isPlatformOwnerBypass: isPlatformOwner,
+    },
+    httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+    },
+  });
+
   // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
   const authUserId = isPlatformOwner ? null : userId;
 
@@ -224,6 +271,19 @@ const getUserSessionsController = catchAsync(async (req, res) => {
   let result;
   if (isPlatformOwner) {
     const targetUserId = req.query.userId;
+    // GCP-compatible structured log for privileged access.
+    logger.info({
+        message: 'Platform Owner retrieving user sessions.',
+        context: {
+            actorId: userId,
+            targetUserId: targetUserId || 'ALL_USERS', // Log if fetching for a specific user or all
+        },
+        httpRequest: {
+            requestMethod: req.method,
+            requestUrl: req.originalUrl,
+            remoteIp: req.ip,
+        },
+    });
     if (targetUserId) {
       // Platform Owner viewing sessions of a specific user
       result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
@@ -237,6 +297,18 @@ const getUserSessionsController = catchAsync(async (req, res) => {
       }
     }
   } else {
+    // GCP-compatible structured log for standard access.
+    logger.info({
+        message: 'User retrieving their sessions.',
+        context: {
+            userId: userId,
+        },
+        httpRequest: {
+            requestMethod: req.method,
+            requestUrl: req.originalUrl,
+            remoteIp: req.ip,
+        },
+    });
     // Regular user: retrieve only their own sessions
     result = await BrowserUseServices.getSessionsForUserService(userId, req);
   }
@@ -291,6 +363,21 @@ const getSessionByIdController = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
+  // GCP-compatible structured log.
+  logger.info({
+    message: 'Fetching browser session by ID.',
+    context: {
+        authenticatedUserId: userId,
+        sessionId: sessionId,
+        isPlatformOwnerBypass: isPlatformOwner,
+    },
+    httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+    },
+  });
+
   // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
   const authUserId = isPlatformOwner ? null : userId;
 
@@ -338,6 +425,20 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
   if (!isPlatformOwner) {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. Platform Owner privilege required.');
   }
+
+  // GCP-compatible structured log for privileged endpoint access.
+  logger.info({
+    message: 'Platform Owner retrieving global browser-use statistics.',
+    context: {
+        actorId: req.user?._id,
+        actorRole: req.user?.role,
+    },
+    httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+    },
+  });
 
   let stats = {};
   if (typeof BrowserUseServices.getGlobalStatsService === 'function') {
