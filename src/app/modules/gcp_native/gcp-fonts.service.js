@@ -17,6 +17,14 @@ const resolveGoogleFonts = async (filterQuery = '', sortBy = 'popularity', limit
       throw new Error('Google Search/Fonts API Key is not configured.');
     }
 
+    // Validate sortBy parameter to ensure it's one of the accepted values by the Google Fonts API.
+    // If an invalid value is provided, default to 'popularity' to prevent API errors or unexpected behavior.
+    const validSortByOptions = ['alpha', 'date', 'popularity', 'style', 'trending'];
+    if (!validSortByOptions.includes(sortBy)) {
+      logger.warn(`GCP Fonts API: Invalid sortBy parameter "${sortBy}" provided. Defaulting to "popularity".`);
+      sortBy = 'popularity';
+    }
+
     logger.info(`GCP Fonts API: Resolving web fonts (filter: "${filterQuery}", sort: "${sortBy}", limit: ${limit})...`);
 
     const endpoint = 'https://www.googleapis.com/webfonts/v1/webfonts';
@@ -25,6 +33,11 @@ const resolveGoogleFonts = async (filterQuery = '', sortBy = 'popularity', limit
       sort: sortBy
     };
 
+    // NOTE ON PERFORMANCE: The Google Fonts API (webfonts/v1/webfonts) does not support
+    // server-side filtering by family name or limiting the number of results directly.
+    // Therefore, all available fonts are fetched first, and then client-side filtering
+    // and limiting are applied. For very large font lists or frequent calls with small limits,
+    // this might lead to higher network usage and processing overhead than ideal.
     const response = await axios.get(endpoint, { params });
     let items = response.data.items || [];
 
@@ -57,6 +70,7 @@ const resolveGoogleFonts = async (filterQuery = '', sortBy = 'popularity', limit
     };
   } catch (err) {
     logger.error('GCP Fonts API Resolution Error:', err);
+    // Re-throw a new error with a more specific message for the caller.
     throw new Error(`Google Fonts resolution failed: ${err.message}`);
   }
 };

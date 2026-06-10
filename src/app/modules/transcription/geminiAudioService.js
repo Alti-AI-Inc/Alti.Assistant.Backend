@@ -19,10 +19,17 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
 
 /**
- * Upload audio file to Gemini Files API
- * @param {string} filePath - Local file path
- * @param {string} mimeType - Audio mime type
- * @returns {Promise<Object>}
+ * Uploads an audio file to the Gemini Files API.
+ * This makes the file available for processing by Gemini models.
+ *
+ * @param {string} filePath - The local path to the audio file.
+ * @param {string} mimeType - The MIME type of the audio file (e.g., 'audio/mpeg', 'audio/wav').
+ * @returns {Promise<Object>} A promise that resolves to an object containing the uploaded file's details.
+ * @returns {string} .fileUri - The URI of the uploaded file on the Gemini Files API.
+ * @returns {string} .fileName - The resource name of the uploaded file (e.g., 'files/12345').
+ * @returns {string} .mimeType - The MIME type of the uploaded file.
+ * @returns {number} .sizeBytes - The size of the uploaded file in bytes.
+ * @throws {ApiError} If the file upload fails due to an internal server error.
  */
 const uploadAudioFile = async (filePath, mimeType) => {
   try {
@@ -51,12 +58,29 @@ const uploadAudioFile = async (filePath, mimeType) => {
 };
 
 /**
- * Process audio file with Gemini
- * @param {Object} audioFile - Audio file object from upload (can contain fileUri or bucketUrl)
- * @param {string} prompt - User prompt
- * @param {string} processingType - Type of processing
- * @param {Object} options - Additional options
- * @returns {Promise<Object>}
+ * Processes an audio file (either uploaded to Gemini Files API or accessible via GCS URI)
+ * using the Gemini Pro Vision model for various tasks like transcription, summarization, or description.
+ *
+ * @param {Object} audioFile - An object containing information about the audio file.
+ * @param {string} audioFile.fileUri - The URI of the audio file on the Gemini Files API.
+ * @param {string} [audioFile.gsUri] - Optional GCS URI of the audio file (e.g., 'gs://bucket/file.mp3').
+ * @param {string} audioFile.mimeType - The MIME type of the audio file.
+ * @param {string} [audioFile.fileName] - Optional original file name for logging/metadata.
+ * @param {string} prompt - The user's specific prompt or question for the audio processing.
+ * @param {string} processingType - The type of processing to perform (e.g., 'transcribe', 'summarize', 'describe').
+ * @param {Object} [options={}] - Additional options for processing.
+ * @param {string} [options.startTimestamp] - Optional start timestamp for processing a specific segment (e.g., '0:00:10').
+ * @param {string} [options.endTimestamp] - Optional end timestamp for processing a specific segment (e.g., '0:00:30').
+ * @param {boolean} [options.includeTimestamps=false] - Whether to include timestamps in the transcription output.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the processed text and metadata.
+ * @returns {string} .text - The processed text output from Gemini.
+ * @returns {string} .processingType - The type of processing performed.
+ * @returns {Object} .metadata - Additional metadata about the processing.
+ * @returns {string} .metadata.model - The Gemini model used.
+ * @returns {string} .metadata.fileUri - The URI of the processed audio file.
+ * @returns {string} [.metadata.fileName] - The original file name if available.
+ * @returns {string} [.metadata.gsUri] - The GCS URI if used.
+ * @throws {ApiError} If the audio processing fails due to an internal server error.
  */
 const processAudioWithGemini = async (
   audioFile,
@@ -116,13 +140,24 @@ const processAudioWithGemini = async (
 };
 
 /**
- * Process inline audio data
- * @param {Buffer} audioBuffer - Audio data buffer
- * @param {string} mimeType - Audio mime type
- * @param {string} prompt - User prompt
- * @param {string} processingType - Type of processing
- * @param {Object} options - Additional options
- * @returns {Promise<Object>}
+ * Processes audio data provided directly as a buffer (inline) using the Gemini Pro Vision model.
+ * This is suitable for smaller audio clips that don't require prior upload to the Gemini Files API.
+ *
+ * @param {Buffer} audioBuffer - The audio data as a Buffer.
+ * @param {string} mimeType - The MIME type of the audio data (e.g., 'audio/mpeg').
+ * @param {string} prompt - The user's specific prompt or question for the audio processing.
+ * @param {string} processingType - The type of processing to perform (e.g., 'transcribe', 'summarize').
+ * @param {Object} [options={}] - Additional options for processing.
+ * @param {string} [options.startTimestamp] - Optional start timestamp for processing a specific segment (e.g., '0:00:10').
+ * @param {string} [options.endTimestamp] - Optional end timestamp for processing a specific segment (e.g., '0:00:30').
+ * @param {boolean} [options.includeTimestamps=false] - Whether to include timestamps in the transcription output.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the processed text and metadata.
+ * @returns {string} .text - The processed text output from Gemini.
+ * @returns {string} .processingType - The type of processing performed.
+ * @returns {Object} .metadata - Additional metadata about the processing.
+ * @returns {string} .metadata.model - The Gemini model used.
+ * @returns {boolean} .metadata.processedInline - Indicates that the audio was processed inline.
+ * @throws {ApiError} If the inline audio processing fails due to an internal server error.
  */
 const processInlineAudio = async (
   audioBuffer,
@@ -175,10 +210,15 @@ const processInlineAudio = async (
 };
 
 /**
- * Build prompt based on processing type
- * @param {string} processingType
- * @param {Object} options
- * @returns {string}
+ * Constructs a system prompt based on the desired processing type and additional options.
+ * This prompt guides the Gemini model on how to interpret and respond to the audio input.
+ *
+ * @param {string} processingType - The type of processing (e.g., 'transcribe', 'summarize', 'describe', 'analyze', 'segment', 'question').
+ * @param {Object} [options={}] - Additional options that might influence the prompt.
+ * @param {string} [options.startTimestamp] - Optional start timestamp for focusing on a specific audio segment.
+ * @param {string} [options.endTimestamp] - Optional end timestamp for focusing on a specific audio segment.
+ * @param {boolean} [options.includeTimestamps=false] - Whether to request timestamps in the transcription output.
+ * @returns {string} The constructed system prompt.
  */
 const buildPromptForType = (processingType, options = {}) => {
   const { startTimestamp, endTimestamp, includeTimestamps } = options;
@@ -236,9 +276,15 @@ const buildPromptForType = (processingType, options = {}) => {
 };
 
 /**
- * Count tokens in audio file
- * @param {Object} audioFile - Audio file object
- * @returns {Promise<Object>}
+ * Counts the number of tokens in an audio file using the Gemini model.
+ * This can be useful for estimating costs or understanding input size limitations.
+ *
+ * @param {Object} audioFile - An object containing information about the audio file.
+ * @param {string} audioFile.fileUri - The URI of the audio file on the Gemini Files API.
+ * @param {string} audioFile.mimeType - The MIME type of the audio file.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the total token count.
+ * @returns {number} .totalTokens - The total number of tokens in the audio file.
+ * @throws {ApiError} If token counting fails due to an internal server error.
  */
 const countAudioTokens = async (audioFile) => {
   try {
@@ -268,10 +314,18 @@ const countAudioTokens = async (audioFile) => {
 };
 
 /**
- * Process batch audio files
- * @param {Array} audioFiles - Array of audio file objects
- * @param {Object} options - Processing options
- * @returns {Promise<Array>}
+ * Processes multiple audio files in a batch using `processAudioWithGemini`.
+ * Each audio file can have its own prompt and processing type.
+ *
+ * @param {Array<Object>} audioFiles - An array of audio file configurations to process.
+ * @param {Object} audioFiles[].file - The audio file object (same as `audioFile` parameter for `processAudioWithGemini`).
+ * @param {string} audioFiles[].prompt - The specific prompt for this audio file.
+ * @param {string} [audioFiles[].processingType='transcribe'] - The processing type for this audio file. Defaults to 'transcribe'.
+ * @param {Object} [options={}] - General options to apply to all batch processing tasks (e.g., global timestamps).
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of results for each processed audio file.
+ * @returns {string} .fileName - The name of the processed file.
+ * @returns {Object} .result - The processing result for the file (same as return for `processAudioWithGemini`).
+ * @throws {ApiError} If any part of the batch processing fails due to an internal server error.
  */
 const processBatchAudio = async (audioFiles, options = {}) => {
   try {
@@ -304,9 +358,12 @@ const processBatchAudio = async (audioFiles, options = {}) => {
 };
 
 /**
- * Delete uploaded file
- * @param {string} fileName - File name from upload
- * @returns {Promise<void>}
+ * Deletes an uploaded file from the Gemini Files API.
+ * This helps manage storage and comply with data retention policies.
+ * Errors during deletion are logged but not re-thrown to avoid disrupting other operations.
+ *
+ * @param {string} fileName - The resource name of the file to delete (e.g., 'files/12345').
+ * @returns {Promise<void>} A promise that resolves when the file is deleted.
  */
 const deleteUploadedFile = async (fileName) => {
   try {
@@ -319,20 +376,31 @@ const deleteUploadedFile = async (fileName) => {
 };
 
 /**
- * Validate audio file format
- * @param {string} mimeType
- * @returns {boolean}
+ * Validates if the given MIME type is a supported audio format for Gemini processing.
+ *
+ * @param {string} mimeType - The MIME type to validate (e.g., 'audio/mpeg', 'audio/wav').
+ * @returns {boolean} True if the format is supported, false otherwise.
  */
 const isValidAudioFormat = (mimeType) => {
   return Object.values(SUPPORTED_AUDIO_FORMATS).includes(mimeType);
 };
 
 /**
- * Process chat message with context from previous transcriptions
- * @param {string} message - User message
- * @param {Array} conversationHistory - Previous messages
- * @param {string} audioFileUri - Optional audio file URI for context
- * @returns {Promise<Object>}
+ * Processes a chat message, optionally with audio context, using the Gemini model.
+ * This allows for conversational interactions where audio can provide additional context.
+ *
+ * @param {string} message - The user's current message.
+ * @param {Array<Object>} conversationHistory - An array of previous chat messages to provide context for the current turn.
+ * @param {string} conversationHistory[].role - The role of the sender ('user' or 'assistant').
+ * @param {string} conversationHistory[].content - The content of the message.
+ * @param {string} [audioFileUri=null] - Optional URI of an audio file to include as context for the current message.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the model's response and metadata.
+ * @returns {string} .text - The text response from the Gemini model.
+ * @returns {Object} .metadata - Additional metadata about the chat processing.
+ * @returns {string} .metadata.model - The Gemini model used.
+ * @returns {boolean} .metadata.hasAudioContext - Indicates if an audio file was provided as context.
+ * @returns {number} .metadata.historyLength - The number of messages in the conversation history.
+ * @throws {ApiError} If the chat message processing fails due to an internal server error.
  */
 const processChatMessage = async (
   message,
@@ -395,6 +463,10 @@ const processChatMessage = async (
   }
 };
 
+/**
+ * @constant {Object} geminiAudioService - Provides a collection of services for interacting with the Gemini API for audio processing tasks.
+ * This service encapsulates functionalities like uploading, processing, token counting, and managing audio files with Gemini.
+ */
 export const geminiAudioService = {
   uploadAudioFile,
   processAudioWithGemini,
