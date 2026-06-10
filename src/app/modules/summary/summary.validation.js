@@ -15,26 +15,20 @@ const { z } = zod;
  */
 
 /**
- * @typedef {object} SummaryQuerySchema
- * @property {SummaryRequestBody} body - The request body containing the summary parameters.
- */
-
-/**
  * Zod schema for validating the request body when generating a summary.
  * Ensures that the `message` is provided and not empty, and optionally validates
  * `conversationId` and `fileType`.
- * @type {z.ZodObject<SummaryQuerySchema>}
+ * This schema is intended to validate `req.body` directly.
+ * @type {z.ZodObject<SummaryRequestBody>}
  */
 const summaryQuerySchema = z.object({
-  body: z.object({
-    message: z
-      .string({
-        required_error: 'Summary content or URL is required',
-      })
-      .min(1, 'Summary content cannot be empty'),
-    conversationId: z.string().optional(),
-    fileType: z.enum(['pdf', 'docx', 'txt', 'csv', 'url']).optional(),
-  }),
+  message: z
+    .string({
+      required_error: 'Summary content or URL is required',
+    })
+    .min(1, 'Summary content cannot be empty'),
+  conversationId: z.string().optional(),
+  fileType: z.enum(['pdf', 'docx', 'txt', 'csv', 'url']).optional(),
 });
 
 /**
@@ -44,23 +38,15 @@ const summaryQuerySchema = z.object({
  */
 
 /**
- * @typedef {object} GuestRateLimitSchema
- * @property {GuestRateLimitHeaders} [headers] - Optional HTTP headers for guest rate limiting.
- */
-
-/**
  * Zod schema for validating headers related to guest user rate limiting.
  * This schema is intended for future enhancements to manage guest user access.
  * It optionally checks for `x-guest-id` and `x-forwarded-for` headers.
- * @type {z.ZodObject<GuestRateLimitSchema>}
+ * This schema is intended to validate `req.headers` directly.
+ * @type {z.ZodObject<GuestRateLimitHeaders>}
  */
 const guestRateLimitSchema = z.object({
-  headers: z
-    .object({
-      'x-guest-id': z.string().optional(),
-      'x-forwarded-for': z.string().optional(),
-    })
-    .optional(),
+  'x-guest-id': z.string().optional(),
+  'x-forwarded-for': z.string().optional(),
 });
 
 /**
