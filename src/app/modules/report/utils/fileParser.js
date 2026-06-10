@@ -3,10 +3,20 @@ import path from 'path';
 import { promisify } from 'util';
 import { logger } from '../../../../shared/logger.js';
 
+/**
+ * Promisified version of Node.js `fs.readFile` for asynchronous file reading.
+ * @type {function(path: fs.PathLike | number, options?: { encoding?: null | undefined, flag?: string | undefined } | null): Promise<Buffer>}
+ * @type {function(path: fs.PathLike | number, options: { encoding: BufferEncoding, flag?: string | undefined } | BufferEncoding): Promise<string>}
+ */
 const readFile = promisify(fs.readFile);
 
 /**
- * Parse text file
+ * Parses a text-based file (e.g., .txt, .md, .html) and returns its content and basic metadata.
+ *
+ * @param {string} filePath - The absolute path to the text file.
+ * @returns {Promise<{ content: string, metadata: { type: 'text', size: number } }>} A promise that resolves to an object
+ *   containing the file's content as a string and metadata.
+ * @throws {Error} If the file cannot be read or parsed.
  */
 export const parseTextFile = async (filePath) => {
   try {
@@ -25,8 +35,15 @@ export const parseTextFile = async (filePath) => {
 };
 
 /**
- * Parse PDF file
- * Note: This is a placeholder. You'll need to install pdf-parse package
+ * Parses a PDF file. This is a placeholder function and requires the `pdf-parse` package
+ * to be installed and integrated for full functionality.
+ *
+ * @param {string} filePath - The absolute path to the PDF file.
+ * @returns {Promise<{ content: string, metadata: { type: 'pdf', pages: number } }>} A promise that resolves to an object
+ *   containing a placeholder content string and metadata.
+ * @throws {Error} If the file cannot be read or parsing fails (even in placeholder mode).
+ * @note This function currently returns placeholder content. Install `pdf-parse` package
+ *   and uncomment the relevant lines for actual PDF content extraction.
  */
 export const parsePDFFile = async (filePath) => {
   try {
@@ -53,7 +70,14 @@ export const parsePDFFile = async (filePath) => {
 };
 
 /**
- * Parse CSV file
+ * Parses a CSV (Comma Separated Values) file, extracting its content, headers, and data
+ * as an array of objects.
+ *
+ * @param {string} filePath - The absolute path to the CSV file.
+ * @returns {Promise<{ content: string, data: Array<object>, headers: Array<string>, metadata: { type: 'csv', rows: number, columns: number } }>}
+ *   A promise that resolves to an object containing the raw content, parsed data (array of objects),
+ *   headers, and metadata.
+ * @throws {Error} If the file cannot be read or parsed.
  */
 export const parseCSVFile = async (filePath) => {
   try {
@@ -96,7 +120,12 @@ export const parseCSVFile = async (filePath) => {
 };
 
 /**
- * Parse JSON file
+ * Parses a JSON (JavaScript Object Notation) file, extracting its content and the parsed JavaScript object/array.
+ *
+ * @param {string} filePath - The absolute path to the JSON file.
+ * @returns {Promise<{ content: string, data: object|Array<any>, metadata: { type: 'json', keys: Array<string> } }>}
+ *   A promise that resolves to an object containing the raw content, the parsed JSON data, and metadata.
+ * @throws {Error} If the file cannot be read or if the content is not valid JSON.
  */
 export const parseJSONFile = async (filePath) => {
   try {
@@ -118,8 +147,15 @@ export const parseJSONFile = async (filePath) => {
 };
 
 /**
- * Parse XLSX file
- * Note: Requires xlsx package
+ * Parses an XLSX (Excel Open XML Spreadsheet) file. This is a placeholder function and requires
+ * the `xlsx` package to be installed and integrated for full functionality.
+ *
+ * @param {string} filePath - The absolute path to the XLSX file.
+ * @returns {Promise<{ content: string, metadata: { type: 'xlsx', sheets: number } }>} A promise that resolves to an object
+ *   containing a placeholder content string and metadata.
+ * @throws {Error} If the file cannot be read or parsing fails (even in placeholder mode).
+ * @note This function currently returns placeholder content. Install `xlsx` package
+ *   and uncomment the relevant lines for actual XLSX content extraction.
  */
 export const parseXLSXFile = async (filePath) => {
   try {
@@ -142,8 +178,15 @@ export const parseXLSXFile = async (filePath) => {
 };
 
 /**
- * Parse DOCX file
- * Note: Requires mammoth package
+ * Parses a DOCX (Microsoft Word Document) file. This is a placeholder function and requires
+ * the `mammoth` package to be installed and integrated for full functionality.
+ *
+ * @param {string} filePath - The absolute path to the DOCX file.
+ * @returns {Promise<{ content: string, metadata: { type: 'docx' } }>} A promise that resolves to an object
+ *   containing a placeholder content string and metadata.
+ * @throws {Error} If the file cannot be read or parsing fails (even in placeholder mode).
+ * @note This function currently returns placeholder content. Install `mammoth` package
+ *   and uncomment the relevant lines for actual DOCX content extraction.
  */
 export const parseDOCXFile = async (filePath) => {
   try {
@@ -165,7 +208,26 @@ export const parseDOCXFile = async (filePath) => {
 };
 
 /**
- * Main file parser dispatcher
+ * Dispatches file parsing to the appropriate handler based on the file's extension.
+ * It supports various file types including text, PDF, CSV, JSON, XLSX, and DOCX.
+ *
+ * @param {string} filePath - The absolute path to the file to be parsed.
+ * @returns {Promise<object>} A promise that resolves to the parsed content and metadata
+ *   from the specific parser function. The structure of the returned object varies
+ *   depending on the file type.
+ * @throws {Error} If the file format is not supported or if an error occurs during parsing.
+ *
+ * @property {object} parsers - An internal mapping of file extensions to their respective parsing functions.
+ * @property {function(string): Promise<object>} parsers.txt - Handler for .txt, .md, .html files.
+ * @property {function(string): Promise<object>} parsers.md - Handler for .txt, .md, .html files.
+ * @property {function(string): Promise<object>} parsers.html - Handler for .txt, .md, .html files.
+ * @property {function(string): Promise<object>} parsers.pdf - Handler for .pdf files (placeholder).
+ * @property {function(string): Promise<object>} parsers.csv - Handler for .csv files.
+ * @property {function(string): Promise<object>} parsers.json - Handler for .json files.
+ * @property {function(string): Promise<object>} parsers.xlsx - Handler for .xlsx, .xls files (placeholder).
+ * @property {function(string): Promise<object>} parsers.xls - Handler for .xlsx, .xls files (placeholder).
+ * @property {function(string): Promise<object>} parsers.docx - Handler for .docx, .doc files (placeholder).
+ * @property {function(string): Promise<object>} parsers.doc - Handler for .docx, .doc files (placeholder).
  */
 export const parseFile = async (filePath) => {
   const ext = path.extname(filePath).toLowerCase().substring(1);
@@ -193,7 +255,16 @@ export const parseFile = async (filePath) => {
 };
 
 /**
- * Validate file size and format
+ * Validates a file's format and size against specified criteria.
+ * This function is typically used for uploaded files.
+ *
+ * @param {object} file - The file object to validate. Expected to have `originalname` and `size` properties.
+ * @param {string} file.originalname - The original name of the file, including its extension.
+ * @param {number} file.size - The size of the file in bytes.
+ * @param {number} maxSize - The maximum allowed file size in bytes.
+ * @param {Array<string>} allowedFormats - An array of allowed file extensions (e.g., ['txt', 'pdf', 'csv']).
+ * @returns {boolean} Returns `true` if the file passes all validation checks.
+ * @throws {Error} If the file format is not supported or if the file size exceeds the maximum limit.
  */
 export const validateFile = (file, maxSize, allowedFormats) => {
   const ext = path.extname(file.originalname).toLowerCase().substring(1);
@@ -214,7 +285,17 @@ export const validateFile = (file, maxSize, allowedFormats) => {
 };
 
 /**
- * Extract text content from multiple files
+ * Processes an array of file objects, attempting to extract content from each using the `parseFile` utility.
+ * It handles errors gracefully for individual files, logging them and returning an error message in the result
+ * for that specific file, rather than stopping the entire process.
+ *
+ * @param {Array<object>} files - An array of file objects. Each object is expected to have at least
+ *   `path` (absolute path to the file on disk) and `originalname` (the original name of the file).
+ * @param {string} files[].path - The absolute path to the file on the server's file system.
+ * @param {string} files[].originalname - The original name of the file as uploaded.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of results. Each result object
+ *   will contain `filename`, `content`, `data`, and `metadata` if parsing was successful, or `filename`
+ *   and an `error` message if parsing failed for that specific file.
  */
 export const extractContentFromFiles = async (files) => {
   const results = [];
