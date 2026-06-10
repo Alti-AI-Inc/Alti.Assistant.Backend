@@ -36,7 +36,7 @@ const router = express.Router();
  *             properties:
  *               role:
  *                 type: string
- *                 enum: [super_admin, admin, buyer, seller, user] # Example roles, adjust as per ENUM_USER_ROLE
+ *                 enum: [super_admin, admin, manager, user] # Example roles, adjust as per ENUM_USER_ROLE
  *                 description: The new role to assign to the user.
  *             example:
  *               role: admin
@@ -75,12 +75,12 @@ router.put(
  * @swagger
  * /api/v1/admin/delete-user/{objectId}:
  *   delete:
- *     summary: Delete a user
- *     description: Allows an Admin to delete an existing user account identified by their ID.
+ *     summary: Delete a user (Super Admin)
+ *     description: Allows a Super Admin to delete any existing user account identified by their ID. This is a platform-level administrative action.
  *     tags:
  *       - Admin
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: objectId
@@ -103,7 +103,10 @@ router.put(
  */
 router.delete(
   '/delete-user/:objectId',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: The 'admin' role is for a workspace/tenant owner and should not have permission to delete arbitrary users across the platform.
+  // This prevents a critical IDOR vulnerability where an admin from one tenant could delete users from another.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.deleteUser
 );
 
@@ -111,13 +114,13 @@ router.delete(
  * @swagger
  * /api/v1/admin/buyer/all-user:
  *   get:
- *     summary: Get all buyer users
- *     description: Retrieves a list of all users who have the 'buyer' role.
+ *     summary: Get all buyer users (Super Admin)
+ *     description: Retrieves a list of all users who have the 'buyer' role across the entire platform.
  *     tags:
  *       - Admin
  *       - Users
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: A list of buyer users.
@@ -145,7 +148,9 @@ router.delete(
  */
 router.get(
   '/buyer/all-user',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Listing all users of a specific type is a platform-wide operation and should not be accessible to a tenant-level admin.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getAllBuyer
 );
 
@@ -153,13 +158,13 @@ router.get(
  * @swagger
  * /api/v1/admin/all-user:
  *   get:
- *     summary: Get all users
- *     description: Retrieves a comprehensive list of all users in the system.
+ *     summary: Get all users (Super Admin)
+ *     description: Retrieves a comprehensive list of all users in the system. For platform owners only.
  *     tags:
  *       - Admin
  *       - Users
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: A list of all users.
@@ -187,7 +192,9 @@ router.get(
  */
 router.get(
   '/all-user',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Listing all users across all tenants is a platform-wide operation and must be restricted to SUPER_ADMIN to maintain tenant isolation.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getAllUsers
 );
 
@@ -195,13 +202,13 @@ router.get(
  * @swagger
  * /api/v1/admin/all-payment:
  *   get:
- *     summary: Get all payment records
- *     description: Retrieves a list of all payment transactions recorded in the system.
+ *     summary: Get all payment records (Super Admin)
+ *     description: Retrieves a list of all payment transactions recorded in the system. For platform owners only.
  *     tags:
  *       - Admin
  *       - Payments
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: A list of all payment records.
@@ -229,7 +236,9 @@ router.get(
  */
 router.get(
   '/all-payment',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Accessing all payment records is a sensitive, platform-wide operation.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getAllPayment
 );
 
@@ -237,14 +246,14 @@ router.get(
  * @swagger
  * /api/v1/admin/billing/audit-logs:
  *   get:
- *     summary: Get billing audit logs
- *     description: Retrieves audit logs specifically related to billing activities.
+ *     summary: Get billing audit logs (Super Admin)
+ *     description: Retrieves audit logs specifically related to billing activities across the entire platform.
  *     tags:
  *       - Admin
  *       - Audit Logs
  *       - Billing
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: A list of billing audit logs.
@@ -272,7 +281,9 @@ router.get(
  */
 router.get(
   '/billing/audit-logs',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Platform-wide audit logs should only be accessible by the platform owner.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getBillingAuditLogs
 );
 
@@ -280,14 +291,14 @@ router.get(
  * @swagger
  * /api/v1/admin/swarm-audits:
  *   get:
- *     summary: Get swarm audit logs
- *     description: Retrieves audit logs related to swarm activities or operations.
+ *     summary: Get swarm audit logs (Super Admin)
+ *     description: Retrieves audit logs related to swarm activities or operations across the entire platform.
  *     tags:
  *       - Admin
  *       - Audit Logs
  *       - Swarm
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: A list of swarm audit logs.
@@ -315,7 +326,9 @@ router.get(
  */
 router.get(
   '/swarm-audits',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Platform-wide audit logs must be restricted to the highest administrative level.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getSwarmAudits
 );
 
@@ -323,13 +336,13 @@ router.get(
  * @swagger
  * /api/v1/admin/admin/{email}:
  *   get:
- *     summary: Get admin user by email
- *     description: Retrieves details of an admin user by their email address.
+ *     summary: Get admin user by email (Super Admin)
+ *     description: Retrieves details of any admin user by their email address.
  *     tags:
  *       - Admin
  *       - Users
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: email
@@ -365,7 +378,9 @@ router.get(
  */
 router.get(
   '/admin/:email',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Prevents tenant admins from enumerating or retrieving details of other admins in the system.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getAdmin
 );
 
@@ -373,14 +388,14 @@ router.get(
  * @swagger
  * /api/v1/admin/all-user/statistics:
  *   get:
- *     summary: Get user statistics by month
- *     description: Retrieves monthly statistics for all users, such as new registrations or active users.
+ *     summary: Get user statistics by month (Super Admin)
+ *     description: Retrieves monthly statistics for all users across the platform, such as new registrations or active users.
  *     tags:
  *       - Admin
  *       - Users
  *       - Statistics
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     responses:
  *       200:
  *         description: Monthly user statistics retrieved successfully.
@@ -408,23 +423,25 @@ router.get(
  */
 router.get(
   '/all-user/statistics',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Platform-wide statistics are sensitive and should only be available to the platform owner.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getUserStatisticsByMonth
 );
 
-// ============= Tenant Management Routes (Admin) =============
+// ============= Tenant Management Routes (Super Admin) =============
 
 /**
  * @swagger
  * /api/v1/admin/tenants:
  *   get:
- *     summary: Get all tenants with pagination
- *     description: Retrieves a paginated list of all tenants in the system.
+ *     summary: Get all tenants with pagination (Super Admin)
+ *     description: Retrieves a paginated list of all tenants in the system. For platform owners only.
  *     tags:
  *       - Admin
  *       - Tenant Management
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: query
  *         name: page
@@ -488,7 +505,9 @@ router.get(
  */
 router.get(
   '/tenants',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Listing all tenants is a core platform management function and must be restricted to SUPER_ADMIN.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getAllTenants
 );
 
@@ -496,13 +515,13 @@ router.get(
  * @swagger
  * /api/v1/admin/tenants/{tenantId}:
  *   get:
- *     summary: Get tenant details
- *     description: Retrieves detailed information for a specific tenant by their ID.
+ *     summary: Get tenant details (Super Admin)
+ *     description: Retrieves detailed information for a specific tenant by their ID. For platform owners only.
  *     tags:
  *       - Admin
  *       - Tenant Management
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: tenantId
@@ -538,7 +557,9 @@ router.get(
  */
 router.get(
   '/tenants/:tenantId',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Prevents a tenant admin from accessing details of other tenants (IDOR).
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getTenantDetails
 );
 
@@ -546,13 +567,13 @@ router.get(
  * @swagger
  * /api/v1/admin/tenants/{tenantId}/status:
  *   patch:
- *     summary: Update tenant status
- *     description: Updates the status of a tenant (e.g., active, suspended, cancelled) by their ID.
+ *     summary: Update tenant status (Super Admin)
+ *     description: Updates the status of a tenant (e.g., active, suspended, cancelled) by their ID. For platform owners only.
  *     tags:
  *       - Admin
  *       - Tenant Management
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: tenantId
@@ -603,7 +624,9 @@ router.get(
  */
 router.patch(
   '/tenants/:tenantId/status',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Changing a tenant's status is a critical platform-level action.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.updateTenantStatus
 );
 
@@ -611,14 +634,14 @@ router.patch(
  * @swagger
  * /api/v1/admin/tenants/{tenantId}/usage:
  *   get:
- *     summary: View tenant usage statistics
- *     description: Retrieves usage statistics for a specific tenant by their ID.
+ *     summary: View tenant usage statistics (Super Admin)
+ *     description: Retrieves usage statistics for a specific tenant by their ID. For platform owners only.
  *     tags:
  *       - Admin
  *       - Tenant Management
  *       - Statistics
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: tenantId
@@ -654,7 +677,9 @@ router.patch(
  */
 router.get(
   '/tenants/:tenantId/usage',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Prevents a tenant admin from viewing usage data of other tenants.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.getTenantUsageAdmin
 );
 
@@ -662,13 +687,13 @@ router.get(
  * @swagger
  * /api/v1/admin/tenants/{tenantId}/extend-trial:
  *   post:
- *     summary: Extend tenant trial period
- *     description: Extends the trial period for a specific tenant by their ID.
+ *     summary: Extend tenant trial period (Super Admin)
+ *     description: Extends the trial period for a specific tenant by their ID. For platform owners only.
  *     tags:
  *       - Admin
  *       - Tenant Management
  *     security:
- *       - BearerAuth: [admin]
+ *       - BearerAuth: [super_admin]
  *     parameters:
  *       - in: path
  *         name: tenantId
@@ -719,7 +744,9 @@ router.get(
  */
 router.post(
   '/tenants/:tenantId/extend-trial',
-  auth(ENUM_USER_ROLE.ADMIN),
+  // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
+  // REASON: Modifying tenant subscription details is a platform-level administrative task.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
   AdminController.extendTenantTrial
 );
 
