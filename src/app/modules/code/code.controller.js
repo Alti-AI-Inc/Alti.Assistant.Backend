@@ -113,7 +113,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
   // Skip subscription check for guest users
   if (!isGuest) {
-    // Optimize: Add .lean() for read-only query to return a plain JavaScript object, reducing Mongoose overhead.
+    // Optimization: Add .lean() for read-only query to return a plain JavaScript object, reducing Mongoose overhead.
     // Indexing Recommendation: For SubscriptionModel, consider creating an index on `userId`
     // and a compound index on `{ userId: 1, createdAt: -1 }` to optimize this query and sort.
     const userSubscription = await SubscriptionModel.findOne({ userId })
@@ -192,6 +192,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
     // The previous implementation only sent the latest message.
     // Assuming `codeService.getConversationHistory` retrieves messages in the format
     // `{ role: 'user' | 'assistant', content: string }[]`.
+    // Indexing Recommendation: For the collection used by `codeService.getConversationHistory`,
+    // consider creating an index on `conversationId` to optimize retrieval of conversation history.
     const conversationHistory = await codeService.getConversationHistory(actualConversationId);
 
     const inputs = {
@@ -357,7 +359,9 @@ const getCodeStats = catchAsync(async (req, res) => {
   }
 
   // Optimization Note: If codeService.getCodeStats performs read-only DB queries,
-  // consider adding .lean() within that function.
+  // consider adding .lean() within that function for similar performance benefits.
+  // Indexing Recommendation: For the collection(s) used by `codeService.getCodeStats`,
+  // consider creating an index on `userId` to optimize statistics retrieval.
   const stats = await codeService.getCodeStats(userId, req);
 
   sendResponse(res, {
