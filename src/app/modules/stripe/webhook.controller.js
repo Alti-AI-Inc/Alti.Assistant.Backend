@@ -9,13 +9,111 @@ import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 import StripeEvent from '../subscription/stripeEvent.model.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
 
+/**
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ * @typedef {import('express').NextFunction} NextFunction
+ */
+
+/**
+ * Initializes the Stripe API client with the secret key and API version.
+ * @type {Stripe}
+ */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
 /**
- * Stripe Webhook Handler
- * Handles all Stripe webhook events for subscription management
+ * @swagger
+ * tags:
+ *   name: Stripe Webhooks
+ *   description: Endpoints for handling Stripe webhook events.
+ *
+ * /api/v1/stripe/webhook:
+ *   post:
+ *     summary: Handles all incoming Stripe webhook events.
+ *     description: |
+ *       This endpoint receives and processes various Stripe webhook events, such as `checkout.session.completed`,
+ *       `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, etc.
+ *       It performs critical security checks including IP verification and signature verification to ensure
+ *       the authenticity and integrity of the webhook payload. It also implements replay protection.
+ *
+ *       **Important Security Notes:**
+ *       1.  **IP Verification:** Only requests originating from official Stripe IP ranges are processed.
+ *           Requests from untrusted IPs are logged, trigger security alerts, and are rejected with a 403 Forbidden.
+ *       2.  **Signature Verification:** The `Stripe-Signature` header is used to verify the authenticity
+ *           of the webhook payload. If verification fails, the request is rejected with a 400 Bad Request
+ *           and a security alert is dispatched. Fallback secrets are supported.
+ *       3.  **Raw Body Requirement:** This endpoint *must* be configured with `express.raw({ type: 'application/json' })`
+ *           middleware to ensure `req.body` is the raw buffer, which is essential for signature verification.
+ *           If `req.body` is already parsed (e.g., by `express.json()`), verification will fail.
+ *       4.  **Replay Protection:** Each unique Stripe event ID is stored to prevent processing the same
+ *           event multiple times, guarding against replay attacks or duplicate deliveries.
+ *
+ *       Upon successful verification and processing, the relevant subscription or payment services are invoked.
+ *     tags:
+ *       - Stripe Webhooks
+ *     requestBody:
+ *       description: The raw JSON payload from Stripe.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: The raw Stripe event object.
+ *             example:
+ *               id: "evt_12345"
+ *               object: "event"
+ *               type: "checkout.session.completed"
+ *               data:
+ *                 object:
+ *                   id: "cs_test_12345"
+ *                   object: "checkout.session"
+ *     parameters:
+ *       - in: header
+ *         name: stripe-signature
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The Stripe-Signature header containing the timestamp and signature(s).
+ *     responses:
+ *       200:
+ *         description: Webhook event received and processed successfully (or acknowledged for retry prevention).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *                   description: Indicates if the webhook was received.
+ *                   example: true
+ *                 duplicate:
+ *                   type: boolean
+ *                   description: (Optional) Indicates if the event was a duplicate and discarded.
+ *                   example: true
+ *                 error:
+ *                   type: string
+ *                   description: (Optional) Error message if processing failed but 200 is returned to prevent retries.
+ *                   example: "Error processing event"
+ *       400:
+ *         description: Bad Request - Signature verification failed or payload format error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
+ *       403:
+ *         description: Forbidden - Request originated from an untrusted IP address.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
+ *       500:
+ *         description: Internal Server Error - Webhook secret not configured or other server-side issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
  */
 const handleStripeWebhook = catchAsync(async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -229,8 +327,94 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
 });
 
 /**
- * Test webhook endpoint (for development)
- * Simulates webhook events without Stripe CLI
+ * @swagger
+ * /api/v1/stripe/test-webhook:
+ *   post:
+ *     summary: Simulates Stripe webhook events for development and testing.
+ *     description: |
+ *       This endpoint allows developers to manually trigger specific Stripe webhook event processing
+ *       without needing to use the Stripe CLI or actual Stripe transactions.
+ *       It is **disabled in production environments** for security reasons.
+ *
+ *       **Available `eventType` values:**
+ *       - `checkout.session.completed`: Simulates a completed checkout session. Requires `data.sessionId`.
+ *       - `customer.subscription.updated`: Simulates a subscription update. Requires `data.subscription` object.
+ *
+ *       This is useful for local development and integration testing of webhook handlers.
+ *     tags:
+ *       - Stripe Webhooks
+ *       - Development
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - eventType
+ *               - data
+ *             properties:
+ *               eventType:
+ *                 type: string
+ *                 description: The type of Stripe event to simulate.
+ *                 enum:
+ *                   - checkout.session.completed
+ *                   - customer.subscription.updated
+ *                 example: "checkout.session.completed"
+ *               data:
+ *                 type: object
+ *                 description: The data payload for the simulated event.
+ *                 oneOf:
+ *                   - properties:
+ *                       sessionId:
+ *                         type: string
+ *                         description: The ID of the checkout session to process.
+ *                         example: "cs_test_12345"
+ *                     required:
+ *                       - sessionId
+ *                   - properties:
+ *                       subscription:
+ *                         type: object
+ *                         description: The Stripe subscription object to update.
+ *                         example:
+ *                           id: "sub_12345"
+ *                           status: "active"
+ *                           items:
+ *                             data:
+ *                               - id: "si_12345"
+ *                                 price:
+ *                                   id: "price_12345"
+ *                     required:
+ *                       - subscription
+ *     responses:
+ *       200:
+ *         description: Test webhook event processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Test webhook checkout.session.completed processed"
+ *                 result:
+ *                   type: object
+ *                   description: The result of the service operation.
+ *       400:
+ *         description: Bad Request - Unsupported test event type or missing data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
+ *       403:
+ *         description: Forbidden - Test webhook is disabled in production.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
  */
 const testWebhook = catchAsync(async (req, res) => {
   if (config.env === 'production') {
@@ -264,6 +448,10 @@ const testWebhook = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Exports the Stripe webhook controller functions.
+ * @namespace StripeWebhookController
+ */
 export default {
   handleStripeWebhook,
   testWebhook,
