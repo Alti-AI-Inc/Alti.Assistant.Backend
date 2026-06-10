@@ -29,8 +29,8 @@ class SchedulerInitializer {
    * @description Creates an instance of SchedulerInitializer.
    */
   constructor() {
-    this.initialized = false;
-    this.gracefulShutdownHandlers = [];
+    // Class properties 'initialized' and 'gracefulShutdownHandlers' are already initialized
+    // with default values, so explicit assignments in the constructor are redundant.
   }
 
   /**
@@ -101,10 +101,11 @@ class SchedulerInitializer {
         nextRun: { $gt: new Date() }, // Only workflows with future runs
       }).lean();
 
-      let scheduledCount = 0;
-      let errorCount = 0;
+      // Use Promise.allSettled to schedule workflows concurrently for better performance
+      const schedulingPromises = activeWorkflows.map(async (workflow) => {
+        let scheduledThisWorkflow = false;
+        let hadErrorThisWorkflow = false;
 
-      for (const workflow of activeWorkflows) {
         try {
           // Schedule if cron expression exists
           if (workflow.cronExpression) {
@@ -116,14 +117,14 @@ class SchedulerInitializer {
             );
 
             if (result.success) {
-              scheduledCount++;
+              scheduledThisWorkflow = true;
               logger.info(
                 `Scheduled workflow: ${workflow.workflowId} (${workflow.name})`
               );
             } else {
-              errorCount++;
+              hadErrorThisWorkflow = true;
               logger.error(
-                `Failed to schedule workflow ${workflow.workflowId}: ${result.error}`
+                `Failed to schedule workflow ${workflow.workflowId} (cron): ${result.error}`
               );
             }
           }
@@ -142,25 +143,47 @@ class SchedulerInitializer {
             );
 
             if (result.success) {
-              scheduledCount++;
+              scheduledThisWorkflow = true;
               logger.info(
                 `Scheduled one-time workflow: ${workflow.workflowId} for ${workflow.oneTimeDate}`
               );
             } else {
-              errorCount++;
+              hadErrorThisWorkflow = true;
               logger.error(
                 `Failed to schedule one-time workflow ${workflow.workflowId}: ${result.error}`
               );
             }
           }
         } catch (workflowError) {
-          errorCount++;
+          hadErrorThisWorkflow = true;
           logger.error(
             `Error processing workflow ${workflow.workflowId}:`,
             workflowError
           );
         }
-      }
+        return { scheduled: scheduledThisWorkflow, error: hadErrorThisWorkflow };
+      });
+
+      const results = await Promise.allSettled(schedulingPromises);
+
+      let scheduledCount = 0;
+      let errorCount = 0;
+
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          if (result.value.scheduled) {
+            scheduledCount++;
+          }
+          if (result.value.error) {
+            errorCount++;
+          }
+        } else {
+          // This case should ideally be caught by the inner try/catch,
+          // but as a fallback, count it as an error if the promise itself rejected.
+          errorCount++;
+          logger.error('Unhandled promise rejection during workflow scheduling:', result.reason);
+        }
+      });
 
       logger.info(
         `Loaded ${activeWorkflows.length} workflows, scheduled ${scheduledCount}, errors: ${errorCount}`
@@ -218,14 +241,15 @@ class SchedulerInitializer {
     process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
 
     // Handle uncaught exceptions and rejections
-    process.on('uncaughtException', (error) => {
+    // Ensure gracefulShutdown is awaited to allow async cleanup to complete before process exit.
+    process.on('uncaughtException', async (error) => {
       logger.error('Uncaught exception:', error);
-      gracefulShutdown('UNCAUGHT_EXCEPTION');
+      await gracefulShutdown('UNCAUGHT_EXCEPTION');
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', async (reason, promise) => {
       logger.error('Unhandled rejection at:', promise, 'reason:', reason);
-      gracefulShutdown('UNHANDLED_REJECTION');
+      await gracefulShutdown('UNHANDLED_REJECTION');
     });
   }
 
