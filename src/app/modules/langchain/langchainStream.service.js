@@ -304,6 +304,9 @@ const streamChainExecution = async (chainId, inputs, user, emit) => { // FIX: Ch
   try {
     // SECURITY (IDOR): The original code fetched a chain by its ID without checking if the user had permission.
     // FIX: The query is now scoped to the user's workspaceId, preventing users from accessing or executing chains from other tenants.
+    // OPTIMIZATION: This query is highly performant due to .lean() and filtering by the unique _id.
+    // For broader system performance in a multi-tenant environment, ensure an index exists on `workspaceId` in the `LangchainChain` model.
+    // e.g., in the Mongoose schema: LangchainChainSchema.index({ workspaceId: 1 });
     const chain = await LangchainChain.findOne({ _id: chainId, workspaceId }).lean();
     if (!chain) {
       const notFoundError = new ApiError(404, `Chain not found or you do not have permission to access it.`);

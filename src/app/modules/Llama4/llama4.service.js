@@ -70,6 +70,15 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       PlatformConfig.findOne({}).lean(), // Assuming a singleton document for platform settings.
     ]);
 
+    // PLATFORM_OWNER_FEATURE: Global service kill switch.
+    // Allows the Platform Owner to disable the AI service for all tenants during maintenance or emergencies.
+    if (platformConfig?.service?.enabled === false) {
+      throw new ApiError(
+        httpStatus.SERVICE_UNAVAILABLE,
+        'The AI service is temporarily unavailable. Please try again later.'
+      );
+    }
+
     // PLATFORM_OWNER_FEATURE: Enforce tenant/user suspension.
     // A Platform Owner can suspend a user, and this check ensures they cannot use the service.
     if (!user) {

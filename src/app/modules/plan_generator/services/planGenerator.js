@@ -2,11 +2,21 @@ import { Storage } from '@google-cloud/storage';
 import { GoogleGenerativeAI } from '@google-generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
+// FIX: Import usage service to enforce limits and track tenant-specific usage.
+import { usageService } from '../../usage/usage.service.js';
+import { ServiceError } from '../../../../shared/errors/service.error.js';
 import {
   SYSTEM_PROMPTS,
   PLAN_GENERATOR_CONFIG,
   PLAN_DEPTH,
 } from '../plan_generator.constant.js';
+
+/**
+ * @typedef {object} UserContext
+ * @property {string} userId - The ID of the user making the request.
+ * @property {string} workspaceId - The ID of the workspace to scope the request.
+ * @property {'super_admin'|'admin'|'manager'|'user'} role - The role of the user.
+ */
 
 /**
  * @typedef {object} PlanAnalysis
@@ -95,23 +105,34 @@ const storage = new Storage();
  * Generates a comprehensive project plan based on an idea, analysis, brainstorming insights, and optional constraints.
  * It leverages the Google Generative AI model to create a structured JSON plan.
  *
+ * CRITICAL INTEGRATION: This function now requires a `userContext` to enforce tenant boundaries and usage limits.
+ *
+ * @param {UserContext} userContext - The context of the user making the request, for authorization and usage tracking.
  * @param {string} ideaText - The core idea or problem statement for which the plan is being generated.
  * @param {PlanAnalysis} analysis - An object containing the initial analysis of the idea.
  * @param {object} brainstorm - Detailed brainstorming insights and raw data, which can be any JSON structure.
  * @param {string} [planDepth=PLAN_DEPTH.STANDARD] - The desired depth or level of detail for the plan. Defaults to standard.
  * @param {object} [constraints={}] - Optional constraints or limitations to consider during plan generation.
  * @returns {Promise<GeneratedPlan>} A promise that resolves to a structured JSON object representing the generated plan.
+ * @throws {ServiceError} If the user exceeds their usage limits.
  * @throws {Error} If there is an error during plan generation, API call, or JSON parsing.
  */
 export const generatePlan = async (
+  userContext,
   ideaText,
   analysis,
   brainstorm,
   planDepth = PLAN_DEPTH.STANDARD,
   constraints = {}
 ) => {
+  // FIX: Enforce usage limits and role-based access before making an expensive API call.
+  // This prevents resource abuse and ensures actions are tracked against the correct tenant/workspace.
+  await usageService.checkUsageLimits(userContext, 'planGeneration');
+
   try {
     logger.info('Generating plan:', {
+      workspaceId: userContext.workspaceId,
+      userId: userContext.userId,
       planDepth,
       complexity: analysis.complexity,
     });
@@ -245,7 +266,7 @@ Only return the JSON object itself.`;
       // Attempt to repair common JSON issues
       logger.info('Attempting to repair JSON...');
       try {
-        // Remove trailing commas before } or ]
+        // NOTE: This repair logic is basic and may not cover all LLM formatting errors.
         let repairedJson = jsonString
           .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
           .replace(/([}\]])(\s*)([{"\w])/g, '$1,$2$3') // Add missing commas between objects
@@ -289,11 +310,20 @@ Only return the JSON object itself.`;
       }
     }
 
+    // FIX: Record the successful usage against the user and workspace.
+    // This ensures accurate billing and allows for hierarchical usage reporting (user -> manager -> admin).
+    await usageService.recordUsage(userContext, 'planGeneration', 1);
+
     logger.info('Plan generated successfully:', { title: plan.title });
 
     return plan;
   } catch (error) {
-    logger.error('Error generating plan:', error);
+    // Do not record usage if the generation failed.
+    logger.error('Error generating plan:', {
+      error,
+      workspaceId: userContext.workspaceId,
+    });
+    // Re-throw the original error to be handled by the controller.
     throw error;
   }
 };
@@ -301,12 +331,19 @@ Only return the JSON object itself.`;
 /**
  * Generates a list of immediate, quick action items for a given idea using the Generative AI model.
  *
+ * CRITICAL INTEGRATION: This function now requires a `userContext` to enforce tenant boundaries and usage limits.
+ *
+ * @param {UserContext} userContext - The context of the user making the request, for authorization and usage tracking.
  * @param {string} ideaText - The core idea for which action items are needed.
  * @param {PlanAnalysis} analysis - An object containing the initial analysis of the idea (currently not directly used in prompt but kept for consistency).
- * @returns {Promise<PlanActionItem[]>} A promise that resolves to an array of action item objects, or an empty array if generation fails or no items are found.
+ * @returns {Promise<PlanActionItem[]>} A promise that resolves to an array of action item objects.
+ * @throws {ServiceError} If the user exceeds their usage limits.
  * @throws {Error} If there is an error during action item generation or API call.
  */
-export const generateQuickActionItems = async (ideaText, analysis) => {
+export const generateQuickActionItems = async (userContext, ideaText, analysis) => {
+  // FIX: Enforce usage limits before making an expensive API call.
+  await usageService.checkUsageLimits(userContext, 'quickActions');
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -342,15 +379,26 @@ Return only JSON:
     const lastBrace = response.lastIndexOf('}');
 
     if (firstBrace === -1 || lastBrace === -1) {
-      return [];
+      // BUG FIX: If no valid JSON is found, throw an error instead of returning an empty array.
+      // This allows the caller to distinguish between a failed generation and a valid empty result.
+      throw new Error('Failed to generate valid action items JSON.');
     }
 
     const jsonString = response.substring(firstBrace, lastBrace + 1);
     const parsed = JSON.parse(jsonString);
+
+    // FIX: Record successful usage after the operation completes.
+    await usageService.recordUsage(userContext, 'quickActions', 1);
+
     return parsed.action_items || [];
   } catch (error) {
-    logger.error('Error generating quick action items:', error);
-    return [];
+    logger.error('Error generating quick action items:', {
+      error,
+      workspaceId: userContext.workspaceId,
+    });
+    // BUG FIX: Re-throw the error instead of swallowing it and returning an empty array.
+    // The calling function needs to know that the operation failed.
+    throw error;
   }
 };
 
@@ -493,8 +541,8 @@ export const formatPlanForPresentation = (plan) => {
  * An object consolidating all plan generation and related utility functions.
  * This serves as a single export point for the plan generator module's services.
  * @namespace
- * @property {function(string, PlanAnalysis, object, string, object): Promise<GeneratedPlan>} generatePlan - Function to generate a comprehensive plan.
- * @property {function(string, PlanAnalysis): Promise<PlanActionItem[]>} generateQuickActionItems - Function to generate quick action items.
+ * @property {function(UserContext, string, PlanAnalysis, object, string, object): Promise<GeneratedPlan>} generatePlan - Function to generate a comprehensive plan.
+ * @property {function(UserContext, string, PlanAnalysis): Promise<PlanActionItem[]>} generateQuickActionItems - Function to generate quick action items.
  * @property {function(object, string): Array<object>} createPhasedTimeline - Function to create a phased timeline.
  * @property {function(PlanActionItem[]): object} prioritizeTasks - Function to prioritize action items.
  * @property {function(PlanActionItem[], PlanPhase[]): string[]} calculateCriticalPath - Function to calculate the critical path.

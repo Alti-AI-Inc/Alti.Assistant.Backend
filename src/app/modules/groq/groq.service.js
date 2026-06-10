@@ -15,22 +15,25 @@ import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
 
 /**
- * @constant {number} MAX_MEMORY_SIZE
- * @description Defines the maximum number of chat messages to retain in memory for a session.
+ * Defines the maximum number of chat messages to retain in memory for a session.
  * This prevents excessive context accumulation and manages memory usage.
+ * @constant {number} MAX_MEMORY_SIZE
  */
 const MAX_MEMORY_SIZE = 12; // Limits stored messages per session
 
 /**
- * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
+ * Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
  * This function acts as a proxy, ensuring that all Groq-related AI interactions for registered users
  * are handled by the Gemini AI service for consistency and potentially enhanced capabilities.
  *
+ * @async
+ * @function getAiResponsesGroqService
  * @param {string} prompt - The user's input prompt for the AI.
  * @param {string} userId - The ID of the registered user making the request.
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @returns {Promise<Object>} A promise that resolves to the AI's response,
  *                            delegated from the Gemini AI service.
+ * @permission This service is intended for authenticated users. The `userId` parameter implies that the caller has verified the user's identity.
  */
 const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
   logger.info({
@@ -49,8 +52,10 @@ const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
  */
 
 /**
- * @description Converts an array of database-stored message objects into Langchain BaseMessage instances.
+ * Converts an array of database-stored message objects into Langchain BaseMessage instances.
  * Assumes the database message objects have 'type' ('human' or 'ai') and 'content' fields.
+ *
+ * @function toLangchainMessages
  * @param {DBChatMessage[]} dbMessages - An array of message objects from the database.
  * @returns {import('@langchain/core/messages').BaseMessage[]} An array of Langchain BaseMessage instances.
  */
@@ -71,7 +76,9 @@ const toLangchainMessages = (dbMessages) => {
 };
 
 /**
- * @description Converts an array of Langchain BaseMessage instances into database-storable message objects.
+ * Converts an array of Langchain BaseMessage instances into database-storable message objects.
+ *
+ * @function toDbMessages
  * @param {import('@langchain/core/messages').BaseMessage[]} lcMessages - An array of Langchain BaseMessage instances.
  * @returns {DBChatMessage[]} An array of database-storable message objects.
  */
@@ -83,7 +90,7 @@ const toDbMessages = (lcMessages) => {
 };
 
 /**
- * @description Handles anonymous, search-enhanced AI completions by redirecting requests
+ * Handles anonymous, search-enhanced AI completions by redirecting requests
  * to the Google Gemini 3.1 Flash service. This service manages session memory,
  * enhances prompts with real-time market data, fetches search results, and constructs
  * a rich context for the AI model to generate a response.
@@ -91,12 +98,15 @@ const toDbMessages = (lcMessages) => {
  * This function now persists anonymous chat history to the `ChatHistory` MongoDB model,
  * ensuring scalability and data persistence across server restarts or multiple instances.
  *
+ * @async
+ * @function GroqAiGetResponseAnonymousService
  * @param {string} prompt - The user's input prompt for the AI.
  * @param {string} [sessionIdFromClient] - An optional unique identifier for the current chat session.
  *                                         If not provided, a new UUID will be generated.
  * @returns {Promise<Object>} A promise that resolves to an object containing the session ID,
  *                            the original prompt, the AI's reply, and any fetched search results.
  * @throws {ApiError} If the prompt is missing or other internal errors occur.
+ * @permission This service is designed for anonymous (unauthenticated) users.
  */
 const GroqAiGetResponseAnonymousService = async (
   prompt,
@@ -218,13 +228,17 @@ User Query: ${enhancedPrompt}`;
 };
 
 /**
- * @description Retrieves all AI chat sessions associated with a specific user ID.
+ * Retrieves all AI chat sessions associated with a specific user ID.
  * It populates the 'llamaAiSessions' field from the User model to fetch detailed
  * session information.
  *
+ * @async
+ * @function getAiResponsesByUserIdService
  * @param {string} userId - The unique identifier of the user.
  * @returns {Promise<Object>} A promise that resolves to the user's session data.
  * @throws {ApiError} If the user or session data is not found.
+ * @permission Requires an authenticated user. The calling context should ensure that the user making the request
+ * is either the user specified by `userId` or an administrator with appropriate permissions.
  */
 const getAiResponsesByUserIdService = async (userId) => {
   // Optimization: Added .lean() for this read-only query to improve performance by returning a plain JS object instead of a full Mongoose document.
@@ -243,12 +257,16 @@ const getAiResponsesByUserIdService = async (userId) => {
 };
 
 /**
- * @description Retrieves a single AI chat session by its unique session ID.
+ * Retrieves a single AI chat session by its unique session ID.
  *
+ * @async
+ * @function getAiResponsesBySession
  * @param {string} id - The unique identifier of the chat session.
  * @returns {Promise<Object>} A promise that resolves to the chat session data.
  * @throws {ApiError} If the session is not found.
  * @remarks Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
+ * @permission Access to a session should be restricted. The calling context should verify that the requester
+ * (whether an authenticated user or an anonymous user with a matching session cookie) has the right to view this session.
  */
 const getAiResponsesBySession = async (id) => {
   // Optimization: Added .lean() for this read-only query to improve performance.
@@ -264,14 +282,18 @@ const getAiResponsesBySession = async (id) => {
 };
 
 /**
- * @description Deletes a single AI chat session by its MongoDB ObjectId and removes
+ * Deletes a single AI chat session by its MongoDB ObjectId and removes
  * its reference from the associated user's `llamaAiSessions` array.
  * This operation ensures data consistency across related models.
  *
+ * @async
+ * @function deleteOneLlamaAiSession
  * @param {string} objectId - The MongoDB ObjectId of the chat session to delete.
  * @returns {Promise<Object>} A promise that resolves to an object indicating
  *                            the success of the deletion and update operation.
  * @throws {ApiError} If the LlamaAiSession is not found, or if deletion/user update fails.
+ * @permission Requires an authenticated user. The calling context must verify that the user making the request
+ * owns the session associated with the `objectId` or is an administrator.
  */
 const deleteOneLlamaAiSession = async (objectId) => {
   // Optimization: Added .lean() for this read-only query to fetch user data before deletion.
@@ -316,14 +338,19 @@ const deleteOneLlamaAiSession = async (objectId) => {
 };
 
 /**
- * @description Deletes all AI chat sessions associated with a given user ID and
+ * Deletes all AI chat sessions associated with a given user ID and
  * removes their references from the user's `llamaAiSessions` array.
  * This operation is performed within a MongoDB transaction to ensure atomicity
  * and data consistency.
  *
+ * @async
+ * @function deleteAllAiSessionsService
  * @param {string} userId - The unique identifier of the user whose sessions are to be deleted.
  * @returns {Promise<Object>} A promise that resolves to an object indicating
  *                            the success or failure of the bulk deletion operation.
+ * @throws {ApiError} If the user is not found or if the transaction fails.
+ * @permission Requires an authenticated user. The calling context must ensure the user making the request
+ * is the user specified by `userId` or an administrator.
  */
 const deleteAllAiSessionsService = async (userId) => {
   const session = await mongoose.startSession();
@@ -403,56 +430,56 @@ const deleteAllAiSessionsService = async (userId) => {
 };
 
 /**
- * @namespace LlamaAiService
- * @description Provides a collection of services for managing AI chat interactions,
- * including generating responses, retrieving chat history, and managing sessions.
+ * Provides a collection of services for managing AI chat interactions.
  * This service primarily acts as a proxy or orchestrator for Groq-related requests,
  * redirecting them to the Google Gemini AI service and handling anonymous sessions
- * with search enhancement and memory management.
+ * with search enhancement and memory management. It also includes utilities for
+ * retrieving and deleting chat histories.
+ * @namespace LlamaAiService
  */
 export const LlamaAiService = {
   /**
-   * @function getAiResponsesGroqService
+   * Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
    * @memberof LlamaAiService
-   * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
+   * @function getAiResponsesGroqService
    * @see {@link getAiResponsesGroqService} for implementation details.
    */
   getAiResponsesGroqService,
   /**
-   * @function GroqAiGetResponseAnonymousService
-   * @memberof LlamaAiService
-   * @description Handles anonymous, search-enhanced AI completions by redirecting requests
+   * Handles anonymous, search-enhanced AI completions by redirecting requests
    * to the Google Gemini 3.1 Flash service, managing session memory and search context.
+   * @memberof LlamaAiService
+   * @function GroqAiGetResponseAnonymousService
    * @see {@link GroqAiGetResponseAnonymousService} for implementation details.
    */
   GroqAiGetResponseAnonymousService,
   /**
-   * @function getAiResponsesByUserIdService
+   * Retrieves all AI chat sessions associated with a specific user ID.
    * @memberof LlamaAiService
-   * @description Retrieves all AI chat sessions associated with a specific user ID.
+   * @function getAiResponsesByUserIdService
    * @see {@link getAiResponsesByUserIdService} for implementation details.
    */
   getAiResponsesByUserIdService,
   /**
-   * @function getAiResponsesBySession
+   * Retrieves a single AI chat session by its unique session ID.
    * @memberof LlamaAiService
-   * @description Retrieves a single AI chat session by its unique session ID.
+   * @function getAiResponsesBySession
    * @see {@link getAiResponsesBySession} for implementation details.
    */
   getAiResponsesBySession,
   /**
-   * @function deleteOneLlamaAiSession
-   * @memberof LlamaAiService
-   * @description Deletes a single AI chat session by its MongoDB ObjectId and removes
+   * Deletes a single AI chat session by its MongoDB ObjectId and removes
    * its reference from the associated user's `llamaAiSessions` array.
+   * @memberof LlamaAiService
+   * @function deleteOneLlamaAiSession
    * @see {@link deleteOneLlamaAiSession} for implementation details.
    */
   deleteOneLlamaAiSession,
   /**
-   * @function deleteAllAiSessionsService
-   * @memberof LlamaAiService
-   * @description Deletes all AI chat sessions associated with a given user ID and
+   * Deletes all AI chat sessions associated with a given user ID and
    * removes their references from the user's `llamaAiSessions` array, using a transaction.
+   * @memberof LlamaAiService
+   * @function deleteAllAiSessionsService
    * @see {@link deleteAllAiSessionsService} for implementation details.
    */
   deleteAllAiSessionsService,
