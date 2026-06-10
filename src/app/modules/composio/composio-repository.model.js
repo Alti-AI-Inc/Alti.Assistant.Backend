@@ -38,13 +38,15 @@ const ComposioRepositorySchema = new mongoose.Schema(
      * The software license under which the repository is distributed.
      * @type {string}
      * @required
-     * @enum ['MIT', 'Apache 2.0']
+     * @enum ['MIT', 'Apache 2.0', 'GPL-3.0', 'BSD-3-Clause', 'Unlicense', 'Other']
      * @indexed
      */
     license: {
       type: String,
       required: true,
-      enum: ['MIT', 'Apache 2.0'],
+      // BUGFIX: Expanded enum to include more common licenses and an 'Other' option.
+      // The original enum was too restrictive and would cause validation errors for many valid repositories.
+      enum: ['MIT', 'Apache 2.0', 'GPL-3.0', 'BSD-3-Clause', 'Unlicense', 'Other'],
       index: true
     },
     /**
@@ -93,11 +95,57 @@ const ComposioRepositorySchema = new mongoose.Schema(
       type: String,
       default: 'Unknown',
       index: true
+    },
+
+    // HIERARCHY & TENANCY FIX: Added fields to support multi-tenancy and ownership.
+    // The original schema lacked any concept of workspace or user ownership, making it impossible
+    // to enforce tenant boundaries or track actions, which is a critical security and integration gap.
+
+    /**
+     * The ID of the workspace this repository is associated with.
+     * This is crucial for enforcing tenant data isolation.
+     * It is null for global repositories (isPublic: true) managed by super_admins.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @indexed
+     */
+    workspaceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Workspace',
+        index: true,
+        // A repository must be associated with a workspace if it's not public.
+        // This enforces data integrity for tenant-specific resources.
+        required: function() {
+            return this.isPublic === false;
+        },
+        default: null
+    },
+
+    /**
+     * The ID of the user (e.g., admin, manager) who added this repository.
+     * Essential for auditing, permissions, and propagating usage information up the hierarchy.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
+     */
+    ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false // May be null for repositories seeded by the system.
+    },
+
+    /**
+     * Flag indicating if the repository is globally available to all workspaces.
+     * `true` for repositories added by a super_admin for platform-wide use.
+     * `false` for repositories specific to a single workspace.
+     * @type {boolean}
+     * @default false
+     * @indexed
+     */
+    isPublic: {
+        type: Boolean,
+        default: false,
+        index: true
     }
-    // Removed custom 'updated_at' field.
-    // The 'timestamps: true' option below automatically adds 'createdAt' and 'updatedAt' fields,
-    // making a custom 'updated_at' redundant and potentially confusing.
-    // Relying on Mongoose's automatic 'updatedAt' for consistency.
   },
   {
     /**

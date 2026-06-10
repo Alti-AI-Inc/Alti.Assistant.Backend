@@ -1,4 +1,6 @@
 import express from 'express';
+// SECURITY: Import express-validator for input validation and sanitization.
+import { body, validationResult } from 'express-validator';
 import { ComposioCatalogController } from './composio-catalog.controller.js';
 // Assuming an authentication middleware exists for protecting routes.
 // Adjust the path to your actual authentication middleware file.
@@ -18,6 +20,64 @@ const router = express.Router();
  */
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// SECURITY PATCH: Add validation and sanitization middleware for the '/import' route.
+// This prevents vulnerabilities like Command Injection and Server-Side Request Forgery (SSRF).
+
+/**
+ * Defines validation rules for the submodule import endpoint.
+ * @returns {Array} An array of express-validator middleware.
+ */
+const importSubmoduleValidationRules = () => {
+  return [
+    // SECURITY: Validate 'url' to prevent SSRF and command injection.
+    // It must be a well-formed URL with specific, allowed protocols.
+    body('url')
+      .trim()
+      .notEmpty().withMessage('URL is required.')
+      .isURL({
+        protocols: ['http', 'https', 'git'], // Restrict to expected protocols for git repositories.
+        require_protocol: true,
+        require_host: true,
+      }).withMessage('Must be a valid URL using http, https, or git protocol.'),
+
+    // SECURITY: Validate 'branch' to prevent command injection.
+    // A git branch name has some restrictions, but can contain characters like '/'.
+    // This validation ensures it doesn't contain shell metacharacters.
+    body('branch')
+      .optional({ checkFalsy: true }) // It's an optional field.
+      .trim()
+      // This regex allows alphanumeric characters, hyphens, underscores, dots, and forward slashes,
+      // which are common in branch names. It explicitly disallows characters that could be
+      // used for command injection (e.g., ;, |, &, $, <, >, `).
+      .matches(/^[a-zA-Z0-9\-_/.]+$/)
+      .withMessage('Branch name contains invalid characters.')
+      // SECURITY: Sanitize input to prevent XSS in case this value is ever reflected in an HTML response.
+      .escape(),
+  ];
+};
+
+/**
+ * Middleware to handle validation errors from express-validator.
+ * It checks for validation errors and sends a 422 Unprocessable Entity response if any exist.
+ * This prevents invalid data from reaching the controller logic.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) {
+    return next();
+  }
+  // Create a structured error response.
+  const extractedErrors = errors.array().map(err => ({ [err.param || 'general']: err.msg }));
+
+  return res.status(422).json({
+    message: 'Input validation failed.',
+    errors: extractedErrors,
+  });
 };
 
 // Apply authentication middleware to all routes for security.
@@ -143,10 +203,20 @@ router.get('/stats', authMiddleware, asyncHandler(ComposioCatalogController.getS
  *         description: Bad request if input is invalid (e.g., missing URL, invalid URL).
  *       401:
  *         description: Unauthorized if authentication fails.
+ *       422:
+ *         description: Unprocessable Entity if validation fails.
  *       500:
  *         description: Server error during the import process.
  */
-router.post('/import', authMiddleware, asyncHandler(ComposioCatalogController.importSubmodule));
+// SECURITY PATCH: Added validation middleware (importSubmoduleValidationRules and validate)
+// to sanitize and validate user input before it reaches the controller.
+router.post(
+  '/import',
+  authMiddleware,
+  importSubmoduleValidationRules(),
+  validate,
+  asyncHandler(ComposioCatalogController.importSubmodule)
+);
 
 /**
  * @typedef {import('express').Router} Router
