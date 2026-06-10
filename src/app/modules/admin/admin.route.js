@@ -325,11 +325,11 @@ router.get(
  *   get:
  *     summary: Get admin user by email
  *     description: Retrieves details of an admin user by their email address.
- *                  Note: This endpoint does not explicitly use the 'auth' middleware in the route definition.
- *                  Ensure proper access control is handled at the controller level or through other means if intended to be protected.
  *     tags:
  *       - Admin
  *       - Users
+ *     security:
+ *       - BearerAuth: [admin]
  *     parameters:
  *       - in: path
  *         name: email
@@ -354,12 +354,20 @@ router.get(
  *                   example: Admin user retrieved successfully
  *                 data:
  *                   type: object # Adjust based on actual user schema
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
  *         description: Admin user not found.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/admin/:email', AdminController.getAdmin);
+router.get(
+  '/admin/:email',
+  auth(ENUM_USER_ROLE.ADMIN),
+  AdminController.getAdmin
+);
 
 /**
  * @swagger
