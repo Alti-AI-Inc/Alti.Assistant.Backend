@@ -34,7 +34,7 @@ const intentSchema = z.object({
 const parser = StructuredOutputParser.fromZodSchema(intentSchema);
 
 /**
- * A simple in-memory class to manage conversation history.
+ * A simple in-memory class to manage conversation history for a single session.
  * It stores input/output pairs and can format them for use in prompts.
  */
 class SimpleMemory {
@@ -94,12 +94,12 @@ class SimpleMemory {
 }
 
 /**
- * Global instance of SimpleMemory to maintain conversation history across calls
- * if no specific memory instance is provided to `classifyImageGenIntent`.
- * It is initialized to `null` and created on the first use or reset.
- * @type {SimpleMemory | null}
+ * In-memory store for user-specific conversation histories.
+ * Using a Map keyed by a session ID ensures that each user's conversation
+ * is isolated and not shared with others, which is critical for a multi-user environment.
+ * @type {Map<string, SimpleMemory>}
  */
-let conversationMemory = null;
+const userMemoryStore = new Map();
 
 /**
  * Defines the prompt template used for the intent classification model.
@@ -127,58 +127,79 @@ Analyze the request and determine the appropriate service based on the current r
 
 /**
  * Classifies user intent to determine which image generation service to use based on the request
- * and optional conversation history. It leverages a Google Generative AI model.
+ * and conversation history specific to the user's session.
  * @param {string} userRequest - The user's image generation request or query.
- * @param {object} [options] - Configuration options for the classification.
- * @param {string} [options.apiKey] - Google API key. Defaults to `config.gemini_secret_key` or `process.env.GEMINI_API_KEY`.
- * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the Google Generative AI model to use.
- * @param {SimpleMemory} [options.memory=null] - An optional custom memory instance to use for conversation history.
- *                                               If not provided, the global `conversationMemory` is used or initialized.
- * @returns {Promise<IntentSchema>} A promise that resolves to an object containing the classified service,
- *                                  reasoning, and confidence score.
- * @throws {Error} If the API key is missing or the model fails to respond.
+ * @param {object} options - Configuration options for the classification.
+ * @param {string} options.sessionId - A unique identifier for the user's session. This is REQUIRED to maintain isolated conversation histories.
+ * @param {string} [options.apiKey] - Google API key. Defaults to configured value.
+ * @param {string} [options.modelName='gemini-1.5-flash'] - The name of the Google Generative AI model to use for classification.
+ * @returns {Promise<IntentSchema>} A promise that resolves to an object containing the classified service, reasoning, and confidence score.
+ * @throws {Error} If `sessionId` is not provided, the API key is missing, or the model fails to respond.
  */
 export async function classifyImageGenIntent(
   userRequest,
-  { apiKey, modelName = 'gemini-3.5-flash', memory = null } = {}
+  { sessionId, apiKey, modelName = 'gemini-1.5-flash' }
 ) {
-  const model = new ChatGoogleGenerativeAI({
-    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
-    model: modelName,
-    project: config.google.gcp_project_id,
-    location: config.google.vertex_ai_region || 'us-central1',
-    temperature: 0,
-  });
-
-  // Use provided memory or create a new one
-  const activeMemory = memory || conversationMemory || new SimpleMemory();
-
-  // Store memory for subsequent calls if it's the first time
-  if (!conversationMemory) {
-    conversationMemory = activeMemory;
+  if (!sessionId) {
+    throw new Error(
+      'A sessionId is required to maintain conversation context and ensure data isolation.'
+    );
   }
 
-  // Get conversation history
-  const historyContext = await activeMemory.loadMemoryVariables({});
-  const history = historyContext.history || 'No previous conversation.';
+  const resolvedApiKey =
+    apiKey || config.gemini_secret_key || process.env.GEMINI_API_KEY;
+  if (!resolvedApiKey) {
+    throw new Error(
+      'Google Generative AI API key is missing. Please provide it in the options or configure it in the environment.'
+    );
+  }
 
-  const chain = promptTemplate.pipe(model).pipe(parser);
+  try {
+    const model = new ChatGoogleGenerativeAI({
+      apiKey: resolvedApiKey,
+      model: modelName,
+      project: config.google.gcp_project_id,
+      location: config.google.vertex_ai_region || 'us-central1',
+      temperature: 0,
+    });
 
-  const result = await chain.invoke({
-    userRequest,
-    history,
-    format_instructions: parser.getFormatInstructions(),
-  });
-
-  // Save to memory
-  await activeMemory.saveContext(
-    { input: userRequest },
-    {
-      output: `Selected service: ${result.service}. Reasoning: ${result.reasoning}`,
+    // Get or create a memory instance for the specific user session
+    if (!userMemoryStore.has(sessionId)) {
+      userMemoryStore.set(sessionId, new SimpleMemory());
     }
-  );
+    const activeMemory = userMemoryStore.get(sessionId);
 
-  return result;
+    // Get conversation history for the current session
+    const historyContext = await activeMemory.loadMemoryVariables({});
+    const history = historyContext.history || 'No previous conversation.';
+
+    const chain = promptTemplate.pipe(model).pipe(parser);
+
+    const result = await chain.invoke({
+      userRequest,
+      history,
+      format_instructions: parser.getFormatInstructions(),
+    });
+
+    // Save the new interaction to the session's memory
+    await activeMemory.saveContext(
+      { input: userRequest },
+      {
+        output: `Selected service: ${result.service}. Reasoning: ${result.reasoning}`,
+      }
+    );
+
+    return result;
+  } catch (error) {
+    // Provide more context on failure for better debugging.
+    console.error(
+      `[IntentClassifier] Failed to classify intent for session ${sessionId}:`,
+      error
+    );
+    throw new Error(
+      `Failed to get a response from the classification model. Reason: ${error.message}`
+    );
+  }
 }
 
 /**
@@ -186,7 +207,8 @@ export async function classifyImageGenIntent(
  * and returning a structured decision on which service to use.
  * This function wraps `classifyImageGenIntent` and adds convenience boolean flags.
  * @param {string} userRequest - The user's image generation request.
- * @param {object} [options] - Configuration options passed directly to `classifyImageGenIntent`.
+ * @param {object} options - Configuration options passed directly to `classifyImageGenIntent`, including the required `sessionId`.
+ * @param {string} options.sessionId - A unique identifier for the user's session.
  * @returns {Promise<object>} A promise that resolves to an object containing:
  *   - `service`: The recommended image generation service ('imagen4' or 'gemini2.5flash').
  *   - `reasoning`: A brief explanation for the service choice.
@@ -194,34 +216,46 @@ export async function classifyImageGenIntent(
  *   - `shouldUseImagen4`: Boolean indicating if 'imagen4' should be used.
  *   - `shouldUseGemini25Flash`: Boolean indicating if 'gemini2.5flash' should be used.
  */
-export async function routeImageGenRequest(userRequest, options = {}) {
+export async function routeImageGenRequest(userRequest, options) {
   const intent = await classifyImageGenIntent(userRequest, options);
 
   return {
-    service: intent.service,
-    reasoning: intent.reasoning,
-    confidence: intent.confidence,
+    ...intent,
     shouldUseImagen4: intent.service === 'imagen4',
     shouldUseGemini25Flash: intent.service === 'gemini2.5flash',
   };
 }
 
 /**
- * Resets the global conversation memory, effectively starting a new conversation
- * for subsequent calls to `classifyImageGenIntent` that do not provide a custom memory instance.
+ * Resets the conversation memory for a specific user session.
+ * @param {string} sessionId - The unique identifier for the user's session to be reset.
  * @returns {void}
  */
-export function resetConversationMemory() {
-  conversationMemory = new SimpleMemory();
+export function resetConversationMemory(sessionId) {
+  if (sessionId) {
+    userMemoryStore.delete(sessionId);
+  }
 }
 
 /**
- * Retrieves the current formatted conversation history from the global memory instance.
- * If no conversation has occurred or the memory is not initialized, it returns a default message.
+ * Clears all conversation memories from the store.
+ * Useful for testing or application restarts.
+ * @returns {void}
+ */
+export function clearAllConversationMemories() {
+  userMemoryStore.clear();
+}
+
+/**
+ * Retrieves the current formatted conversation history for a specific user session.
+ * @param {string} sessionId - The unique identifier for the user's session.
  * @returns {Promise<string>} A promise that resolves to the formatted conversation history string.
  */
-export async function getConversationHistory() {
-  if (!conversationMemory) return 'No conversation history.';
-  const context = await conversationMemory.loadMemoryVariables({});
+export async function getConversationHistory(sessionId) {
+  if (!sessionId || !userMemoryStore.has(sessionId)) {
+    return 'No conversation history.';
+  }
+  const memory = userMemoryStore.get(sessionId);
+  const context = await memory.loadMemoryVariables({});
   return context.history || 'No conversation history.';
 }
