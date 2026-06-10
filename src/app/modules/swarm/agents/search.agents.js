@@ -10,7 +10,8 @@
  * @property {string} name - Display name of the agent.
  * @property {string} description - Brief description of the agent's capabilities and purpose.
  * @property {string} systemInstruction - System prompt/instructions guiding the agent's behavior, formatting, and constraints.
- * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-1.5-flash-001').
+ * @property {Array<Object>} safetySettings - Configuration for Vertex AI safety filters.
  * @property {string[]} tools - List of tools enabled for the agent (e.g., 'google-search', 'youtube-search').
  * @property {string[]} keywords - Keywords that trigger this agent within the swarm routing system.
  */
@@ -40,7 +41,28 @@ RULES:
 - Never say "Based on my search" or "According to my findings" — just state the facts.
 - If the information is time-sensitive (prices, scores, weather), note the data may be from the current moment.
 - Never fabricate statistics, dates, or URLs.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search', 'youtube-search'],
   keywords: [
     'search', 'lookup', 'web search', 'latest news', 'current price', 'weather today',
@@ -66,7 +88,28 @@ FORMAT:
 - Use markdown tables for data comparisons.
 - Bold key facts and figures.
 - Keep total response under 500 words unless the query demands more.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search'],
   keywords: ['deep search', 'search the web', 'market data', 'compare products', 'latest stats', 'realtime facts', 'lookup details']
 };
@@ -83,7 +126,28 @@ export const youtubeResearcher = {
   systemInstruction: `You are a Video Content Researcher.
 List relevant videos with: **Title** by Channel Name — brief description.
 Include direct reference links when available. Be concise.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['youtube-search'],
   keywords: ['youtube', 'video', 'watch', 'channel', 'stream video', 'tutorial video']
 };
@@ -106,7 +170,28 @@ FORMAT:
 - Cite papers with DOI/PMID when known. Never fabricate citations.
 - Distinguish peer-reviewed from preprint sources.
 - Use structured sections: Findings, Methodology, Limitations.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['academic', 'scholar', 'researcher', 'literature review', 'citation', 'bibtex', 'paper', 'journal', 'scientific']
 };
@@ -128,7 +213,28 @@ FORMAT:
 - Note data freshness: "As of [date]" when applicable.
 - End with: "This is informational only, not financial advice."
 - Never fabricate ticker symbols, prices, or financial figures.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search'],
   keywords: [
     'stock ticker', 'stock price', 'market cap', 'trading volume', 'pe ratio', 'earnings report',
@@ -152,7 +258,28 @@ RULES:
 - Separate peer-reviewed from preprints clearly.
 - Summarize: methodology → key finding → statistical significance → limitations.
 - Never over-extend a paper's claims.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search'],
   keywords: [
     'doi lookup', 'find paper', 'scientific literature', 'arxiv preprint', 'peer reviewed study',
@@ -178,7 +305,28 @@ FORMAT:
 - **TIMELINE**: Chronological breakdown if applicable.
 - Clearly label unverified claims as "UNCONFIRMED".
 - Never speculate on casualties, public safety, or geopolitical outcomes.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search'],
   keywords: [
     'breaking news', 'latest events today', 'live update', 'breaking technical release',
@@ -204,7 +352,28 @@ FORMAT:
 - **Pooled Conclusion**: What the aggregate evidence shows.
 - **Limitations**: Bias vectors, heterogeneity, gaps.
 - Cite with DOI/PMCID. Never fabricate citations.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
+  // Vertex AI Safety Settings: Configure content moderation thresholds.
+  // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.
+  // Thresholds: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: ['google-search'],
   keywords: [
     'meta analysis', 'literature review', 'clinical trials database', 'scientific study synthesis',
