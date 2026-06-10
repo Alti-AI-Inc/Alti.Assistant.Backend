@@ -7,6 +7,7 @@
  *
  * All routes are protected and require the user to be an authenticated manager
  * of the specified workspace.
+ * @module routes/manager
  */
 
 import { Router } from 'express';
@@ -19,14 +20,23 @@ import { isAuthenticated, isWorkspaceManager } from '../middleware/auth.middlewa
 import { validateRequest } from '../middleware/validation.middleware.js';
 import { checkPlanLimits } from '../middleware/plan.middleware.js';
 
+/**
+ * Express router to handle manager-specific API requests.
+ * @type {import('express').Router}
+ */
 const router = Router();
 
-// This middleware chain applies to all routes defined in this file.
-// 1. `isAuthenticated`: Ensures the user is logged in.
-// 2. `param('workspaceId').isMongoId()`: Validates the workspace ID format.
-// 3. `validateRequest`: Handles any validation errors from the previous step.
-// 4. `isWorkspaceManager`: Verifies that the authenticated user has a 'manager' or 'owner' role
-//    for the workspace specified by `:workspaceId`. This is the primary authorization check.
+/**
+ * @name /api/manager/:workspaceId
+ * @description Middleware stack for all routes in this module. It ensures that the user is authenticated,
+ * the workspace ID is valid, and the user has a 'manager' or 'owner' role for the specified workspace.
+ * This provides a multi-tenant context and role-based access control for all subsequent routes.
+ * @property {string} workspaceId - The MongoDB ObjectId of the workspace.
+ * @middleware isAuthenticated - Ensures the user is logged in.
+ * @middleware param('workspaceId').isMongoId() - Validates the workspace ID format.
+ * @middleware validateRequest - Handles validation errors.
+ * @middleware isWorkspaceManager - Verifies the user's manager/owner role for the workspace.
+ */
 router.use(
   '/:workspaceId',
   isAuthenticated,
@@ -43,15 +53,117 @@ router.use(
  * =================================================================
  */
 
-// GET /api/manager/:workspaceId/team
-// Fetches all members of the workspace. The controller ensures that sensitive
-// user data is not exposed, returning only necessary information like id, name, email, and role.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/team:
+ *   get:
+ *     summary: Get Team Members
+ *     description: Fetches a list of all members in the specified workspace. Requires manager-level permissions.
+ *     tags:
+ *       - Manager - Team
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *     responses:
+ *       '200':
+ *         description: A list of team members.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace does not exist.
+ */
 router.get('/:workspaceId/team', managerController.getTeamMembers);
 
-// PATCH /api/manager/:workspaceId/team/:memberId
-// Updates the role of a specific team member.
-// The controller logic must prevent a manager from changing their own role
-// or the role of the workspace owner to ensure system integrity.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/team/{memberId}:
+ *   patch:
+ *     summary: Update Member Role
+ *     description: >
+ *       Updates the role of a specific team member.
+ *       Requires manager-level permissions.
+ *       A manager cannot change their own role or the role of the workspace owner.
+ *     tags:
+ *       - Manager - Team
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the member to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [admin, member]
+ *                 description: The new role for the team member.
+ *     responses:
+ *       '200':
+ *         description: The member's role was updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *       '400':
+ *         description: Bad Request - Invalid role, invalid member ID, or attempt to change owner/self role.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace or member does not exist.
+ */
 router.patch(
   '/:workspaceId/team/:memberId',
   [
@@ -65,10 +177,46 @@ router.patch(
   managerController.updateMemberRole
 );
 
-// DELETE /api/manager/:workspaceId/team/:memberId
-// Removes a member from the workspace.
-// The controller must include logic to prevent a manager from removing themselves
-// or the workspace owner.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/team/{memberId}:
+ *   delete:
+ *     summary: Remove Team Member
+ *     description: >
+ *       Removes a member from the workspace.
+ *       Requires manager-level permissions.
+ *       A manager cannot remove themselves or the workspace owner.
+ *     tags:
+ *       - Manager - Team
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the member to remove.
+ *     responses:
+ *       '204':
+ *         description: The member was removed successfully.
+ *       '400':
+ *         description: Bad Request - Attempt to remove owner or self.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace or member does not exist.
+ */
 router.delete(
   '/:workspaceId/team/:memberId',
   param('memberId').isMongoId().withMessage('Invalid member ID format.'),
@@ -84,11 +232,57 @@ router.delete(
  * =================================================================
  */
 
-// POST /api/manager/:workspaceId/invitations
-// Invites a new member to the workspace by email.
-// The `checkPlanLimits` middleware is crucial here. It runs before the controller
-// to verify that adding a new member will not exceed the workspace's subscription plan limits.
-// If the limit is reached, it will return an error and prevent the invitation.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/invitations:
+ *   post:
+ *     summary: Invite New Member
+ *     description: >
+ *       Invites a new member to the workspace by email.
+ *       Requires manager-level permissions.
+ *       This action is subject to the workspace's subscription plan limits.
+ *     tags:
+ *       - Manager - Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - role
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address of the user to invite.
+ *               role:
+ *                 type: string
+ *                 enum: [admin, member]
+ *                 description: The role to assign to the new member upon joining.
+ *     responses:
+ *       '201':
+ *         description: Invitation sent successfully.
+ *       '400':
+ *         description: Bad Request - Invalid email/role, or user is already a member/invited.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager or plan limit has been reached.
+ *       '404':
+ *         description: Not Found - The workspace does not exist.
+ */
 router.post(
   '/:workspaceId/invitations',
   [
@@ -102,14 +296,94 @@ router.post(
   managerController.inviteMember
 );
 
-// GET /api/manager/:workspaceId/invitations
-// Lists all pending invitations for the workspace, allowing managers to see
-// who has been invited but has not yet joined.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/invitations:
+ *   get:
+ *     summary: Get Pending Invitations
+ *     description: >
+ *       Lists all pending invitations for the workspace.
+ *       Requires manager-level permissions.
+ *     tags:
+ *       - Manager - Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *     responses:
+ *       '200':
+ *         description: A list of pending invitations.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                     example: pending
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace does not exist.
+ */
 router.get('/:workspaceId/invitations', managerController.getPendingInvitations);
 
-// DELETE /api/manager/:workspaceId/invitations/:invitationId
-// Revokes a pending invitation. This is useful if an invitation was sent
-// in error or is no longer needed.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/invitations/{invitationId}:
+ *   delete:
+ *     summary: Revoke Invitation
+ *     description: >
+ *       Revokes a pending invitation, making it invalid.
+ *       Requires manager-level permissions.
+ *     tags:
+ *       - Manager - Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the invitation to revoke.
+ *     responses:
+ *       '204':
+ *         description: The invitation was revoked successfully.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace or invitation does not exist.
+ */
 router.delete(
   '/:workspaceId/invitations/:invitationId',
   param('invitationId').isMongoId().withMessage('Invalid invitation ID format.'),
@@ -125,12 +399,49 @@ router.delete(
  * =================================================================
  */
 
-// GET /api/manager/:workspaceId/metrics
-// Retrieves key performance and usage metrics for the workspace.
-// This endpoint is strictly for operational metrics (e.g., API calls used,
-// active projects, storage consumed). It is designed to NEVER expose any
-// billing, subscription, or payment information, ensuring a secure separation
-// of concerns between management and billing roles.
+/**
+ * @openapi
+ * /api/manager/{workspaceId}/metrics:
+ *   get:
+ *     summary: Get Workspace Metrics
+ *     description: >
+ *       Retrieves key performance and usage metrics for the workspace.
+ *       This endpoint is strictly for operational metrics (e.g., API calls used,
+ *       active projects, storage consumed) and does NOT expose any billing or
+ *       subscription information. Requires manager-level permissions.
+ *     tags:
+ *       - Manager - Metrics
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the workspace.
+ *     responses:
+ *       '200':
+ *         description: An object containing workspace metrics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 apiCallsUsed:
+ *                   type: integer
+ *                 storageConsumed:
+ *                   type: integer
+ *                 activeProjects:
+ *                   type: integer
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '403':
+ *         description: Forbidden - User is not a manager of this workspace.
+ *       '404':
+ *         description: Not Found - The workspace does not exist.
+ */
 router.get('/:workspaceId/metrics', managerController.getWorkspaceMetrics);
 
 export default router;

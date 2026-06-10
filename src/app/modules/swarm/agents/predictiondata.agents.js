@@ -25,6 +25,12 @@
  * @property {string} model - The specific AI model used by this agent (e.g., 'gemini-2.0-flash').
  * @property {Array<string>} tools - An array of tools (if any) that this agent can utilize. Currently empty for these agents.
  * @property {Array<string>} keywords - A list of keywords associated with this agent, useful for routing or discovery.
+ * @property {object} accessControl - Defines access rules and permissions for this agent.
+ * @property {Array<string>} accessControl.allowedRoles - List of roles permitted to use this agent (e.g., ['user', 'manager', 'admin']). Super admins have implicit access.
+ * @property {string} accessControl.featureId - The specific feature or subscription plan ID required to access this agent, enforced by middleware.
+ * @property {object} usageDetails - Defines how usage is tracked, costed, and reported within a tenant.
+ * @property {number} usageDetails.costPerInvocation - The cost in usage credits for a single call to this agent.
+ * @property {boolean} usageDetails.notifyManagerOnUse - Flag to determine if a manager should be notified of usage, propagating activity up the hierarchy.
  */
 
 // ─── 1. Arbitrage Scanner ─────────────────────────────────────────────────────
@@ -63,7 +69,18 @@ FORMAT:
   keywords: [
     'arbitrage', 'arb betting', 'risk free profit', 'surebets', 'sure bets',
     'arbitrage scanner', 'risk-free bet', 'payout matrix', 'arbitrage calculator'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  // This metadata allows consuming services to correctly apply business and security logic.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 2. Parlay Architect ──────────────────────────────────────────────────────
@@ -102,7 +119,17 @@ FORMAT:
   keywords: [
     'parlay', 'accumulator', 'multi bet', 'parlay builder', 'price parlay',
     'combined odds', 'parlay payout', 'parlay legs', 'teaser bet', 'round robin'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 3. Sharp Money Analyst ───────────────────────────────────────────────────
@@ -140,7 +167,17 @@ FORMAT:
   keywords: [
     'sharp money', 'smart money', 'steam move', 'reverse line movement',
     'rlm', 'pinnacle line', 'sharp action', 'public consensus', 'sharp books'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 4. Player Props Predictor ────────────────────────────────────────────────
@@ -178,7 +215,17 @@ FORMAT:
   keywords: [
     'player props', 'passing yards', 'rebounds', 'strikeouts', 'touchdown scorer',
     'prop bet', 'yards props', 'points props', 'assists props', 'over under player'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 5. Value Betting Quant ───────────────────────────────────────────────────
@@ -215,7 +262,17 @@ FORMAT:
   keywords: [
     'value bets', 'ev betting', 'positive expected value', 'kelly criterion',
     'vig-free odds', 'juice-free odds', 'betting edge', 'expected value calculator', 'quant bets'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 6. DFS Expert ────────────────────────────────────────────────────────────
@@ -254,7 +311,17 @@ FORMAT:
   keywords: [
     'prizepicks', 'underdog', 'sleeper fantasy', 'dfs optimizer', 'dfs slip',
     'fantasy props', 'dfs projection', 'more or less', 'dfs value', 'prizepicks slip'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 7. Live Odds Orchestrator ────────────────────────────────────────────────
@@ -291,7 +358,17 @@ FORMAT:
   keywords: [
     'live odds', 'in-play', 'live score', 'live bet', 'in game odds',
     'hedging live', 'live spread', 'live moneyline', 'live game update', 'middle bet'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
 
 // ─── 8. Futures Speculator ────────────────────────────────────────────────────
@@ -328,5 +405,15 @@ FORMAT:
   keywords: [
     'futures odds', 'super bowl odds', 'mvp odds', 'championship odds', 'outright winner',
     'win totals', 'regular season wins', 'cy young odds', 'rookie of the year', 'division winner'
-  ]
+  ],
+  // INTEGRATION FIX: Added accessControl and usageDetails to enforce role-based access,
+  // respect tenant boundaries via feature flags, and propagate usage data up the hierarchy.
+  accessControl: {
+    allowedRoles: ['user', 'manager', 'admin'],
+    featureId: 'PREDICTIONDATA_IO_AGENTS'
+  },
+  usageDetails: {
+    costPerInvocation: 10, // Cost in workspace credits
+    notifyManagerOnUse: true
+  }
 };
