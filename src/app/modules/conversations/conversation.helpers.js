@@ -2,32 +2,23 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Conversation from './conversation.model.js';
-import { withTenantFilter } from '../../helpers/tenantQuery.js';
+import { withTenantFilter, withTenantPipeline } from '../../helpers/tenantQuery.js'; // Added withTenantPipeline
 
 /**
  * Get conversation by conversationId
  * @param {string} conversationId
- * @param {string} userId - Optional user ID for security check
+ * @param {string} userId - User ID for security check (now mandatory)
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
 const getConversationById = async (
   conversationId,
-  userId = null,
+  userId, // Made userId mandatory for security
   req = null
 ) => {
   try {
-    console.log(
-      'Fetching conversation with ID:',
-      conversationId,
-      'for user:',
-      userId
-    );
-    // Build query with tenant filtering
-    const query = { conversationId };
-    if (userId) {
-      query.userId = userId;
-    }
+    // Build query with tenant filtering and mandatory userId for security
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     );
@@ -35,7 +26,6 @@ const getConversationById = async (
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    // console.log("Fetched conversation:", conversation);
     return conversation;
   } catch (error) {
     logger.error('Error fetching conversation by ID:', error);
@@ -82,10 +72,7 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     if (is_deep_search !== null) {
       query.is_deep_search = is_deep_search;
     }
-    console.log(
-      'Check currentTenantId in getUserConversations:',
-      req && req.user ? withTenantFilter(req, query) : 'No req or user'
-    );
+
     // Get conversations without messages for list view
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
@@ -136,44 +123,67 @@ const getConversationMessages = async (
 ) => {
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
+    const skip = (page - 1) * limit;
 
-    const query = { conversationId, userId };
-    const conversation = await Conversation.findOne(
-      req ? withTenantFilter(req, query) : query
-    );
+    const baseQuery = { conversationId, userId };
+    const finalQuery = req ? withTenantFilter(req, baseQuery) : baseQuery;
 
-    if (!conversation) {
+    // First, verify conversation existence and get its metadata
+    const conversationMetadata = await Conversation.findOne(finalQuery)
+      .select('conversationId title')
+      .lean(); // Use lean for performance
+
+    if (!conversationMetadata) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
-    let messages = conversation.messages;
+    // Now, build a pipeline to get paginated messages efficiently using aggregation
+    const messagePipeline = [
+      { $match: finalQuery }, // Match the specific conversation
+      {
+        $project: {
+          _id: 0, // Exclude _id from the root document
+          messages: {
+            $filter: {
+              input: '$messages',
+              as: 'msg',
+              cond: beforeDate ? { $lt: ['$$msg.timestamp', new Date(beforeDate)] } : true,
+            },
+          },
+        },
+      },
+      { $unwind: '$messages' }, // Deconstruct the filtered messages array
+      { $sort: { 'messages.timestamp': -1 } }, // Sort newest first for pagination logic
+      {
+        $facet: {
+          metadata: [
+            { $count: 'total' } // Count total filtered messages
+          ],
+          data: [
+            { $skip: skip }, // Apply pagination
+            { $limit: limit },
+            { $sort: { 'messages.timestamp': 1 } }, // Re-sort oldest first for response
+            { $replaceRoot: { newRoot: '$messages' } } // Promote the message subdocument to the root
+          ]
+        }
+      }
+    ];
 
-    // Filter by date if provided
-    if (beforeDate) {
-      messages = messages.filter((msg) => msg.timestamp < new Date(beforeDate));
-    }
+    const [messageResult] = await Conversation.aggregate(messagePipeline);
 
-    // Sort messages by timestamp (newest first for pagination)
-    messages.sort((a, b) => b.timestamp - a.timestamp);
-
-    // Apply pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedMessages = messages.slice(startIndex, endIndex);
-
-    // Reverse to show oldest first in the response
-    paginatedMessages.reverse();
+    const paginatedMessages = messageResult.data || [];
+    const total = messageResult.metadata.length > 0 ? messageResult.metadata[0].total : 0;
 
     return {
-      conversationId: conversation.conversationId,
-      title: conversation.title,
+      conversationId: conversationMetadata.conversationId,
+      title: conversationMetadata.title,
       messages: paginatedMessages,
       pagination: {
         page,
         limit,
-        total: messages.length,
-        pages: Math.ceil(messages.length / limit),
-        hasNext: endIndex < messages.length,
+        total,
+        pages: Math.ceil(total / limit),
+        hasNext: skip + limit < total,
         hasPrev: page > 1,
       },
     };
@@ -205,6 +215,8 @@ const searchConversations = async (
       status: 'active',
       $or: [
         { title: { $regex: searchTerm, $options: 'i' } },
+        // Searching 'messages.content' can be inefficient for large embedded arrays without a text index.
+        // Consider creating a text index on 'messages.content' for better performance if this is a frequent operation.
         { 'messages.content': { $regex: searchTerm, $options: 'i' } },
         { 'metadata.tags': { $in: [new RegExp(searchTerm, 'i')] } },
       ],
@@ -213,8 +225,6 @@ const searchConversations = async (
     if (category) {
       query['metadata.category'] = category;
     }
-
-    console.log('Search Query:', JSON.stringify(query, null, 2));
 
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
@@ -292,12 +302,9 @@ const getConversationStats = async (userId, req = null) => {
       },
     ];
 
-    // Apply tenant filtering using withTenantPipeline if req available
+    // Apply tenant filtering using withTenantPipeline
     const tenantPipeline = req
-      ? (await import('../../helpers/tenantQuery.js')).withTenantPipeline(
-          req,
-          pipeline
-        )
+      ? withTenantPipeline(req, pipeline) // Use the imported withTenantPipeline
       : pipeline;
 
     const stats = await Conversation.aggregate(tenantPipeline);
