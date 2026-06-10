@@ -4,6 +4,7 @@ import LangchainExecution from './langchain-execution.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
+import ApiError from '../../../errors/ApiError.js';
 
 /**
  * Initializes the Google Generative AI client with the API key from configuration.
@@ -36,12 +37,6 @@ const formatPrompt = (template, scope) => {
   });
 };
 
-// The 'extractVariables' helper is no longer needed with the optimized 'formatPrompt'.
-// const extractVariables = (template) => {
-//   const matches = template.match(/\{[a-zA-Z0-9_]+\}/g);
-//   return matches ? matches.map((m) => m.slice(1, -1)) : [];
-// };
-
 /**
  * Executes a single chain step based on its type and configuration, updating the shared scope.
  *
@@ -53,7 +48,7 @@ const formatPrompt = (template, scope) => {
  * @param {Object.<string, any>} scope - The shared execution scope containing variables and outputs from previous steps.
  * @param {string} userId - The ID of the user performing the execution, used for services like RAG.
  * @returns {Promise<Object>} An object containing the step's execution details, including input, output, duration, and token usage.
- * @throws {Error} If an unsupported chain step type is encountered.
+ * @throws {ApiError} If execution fails or an unsupported chain step type is encountered.
  */
 const executeSingleStep = async (step, scope, userId) => {
   const stepStart = Date.now();
@@ -61,141 +56,153 @@ const executeSingleStep = async (step, scope, userId) => {
   let stepOutput = null;
   let tokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
-  switch (step.type) {
-    case 'prompt': {
-      const template = step.config.template || '';
-      stepInput = { template };
-      const rendered = formatPrompt(template, scope);
-      stepOutput = rendered;
-      scope[step.name] = rendered;
-      break;
-    }
-
-    case 'llm': {
-      // Bug fix: Ensure promptSource is a valid, non-empty string key before accessing scope.
-      // The original `scope[step.config.promptSource || '']` could incorrectly try to access `scope['']`.
-      const promptSourceKey = step.config.promptSource;
-      const rawPromptText = (typeof promptSourceKey === 'string' && promptSourceKey.length > 0 && scope[promptSourceKey] !== undefined)
-        ? scope[promptSourceKey]
-        : step.config.systemPrompt || '';
-      // Bug fix: Ensure promptText is safely coerced to a string to prevent crashes on .substring or .length if it is an object.
-      const promptText = typeof rawPromptText === 'string' ? rawPromptText : (typeof rawPromptText === 'object' ? JSON.stringify(rawPromptText) : String(rawPromptText));
-      const temperature = step.config.temperature ?? 0.7;
-      const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-      const modelName = step.config.model || 'gemini-2.5-flash';
-
-      stepInput = { promptText: promptText.substring(0, 200) + '...', modelName, temperature };
-
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: promptText }] }],
-        generationConfig: { temperature, maxOutputTokens },
-      });
-
-      const responseText = result.response.text();
-      stepOutput = responseText;
-      scope[step.name] = responseText;
-
-      const usage = result.response.usageMetadata || {};
-      const promptTokens = usage.promptTokenCount || Math.ceil(promptText.length / 4);
-      const completionTokens = usage.candidatesTokenCount || Math.ceil(responseText.length / 4);
-      // Bug fix: Ensure totalTokens is calculated correctly using the resolved promptTokens and completionTokens.
-      tokenUsage = {
-        promptTokens,
-        completionTokens,
-        totalTokens: promptTokens + completionTokens,
-      };
-      break;
-    }
-
-    case 'parser': {
-      // Bug fix: Ensure sourceVariable is a valid, non-empty string key before accessing scope.
-      // The original `scope[step.config.sourceVariable || '']` could incorrectly try to access `scope['']`.
-      const sourceVariableKey = step.config.sourceVariable;
-      const sourceText = (typeof sourceVariableKey === 'string' && sourceVariableKey.length > 0 && scope[sourceVariableKey] !== undefined)
-        ? scope[sourceVariableKey]
-        : '';
-      stepInput = { sourceVariable: step.config.sourceVariable };
-
-      // Bug fix: Ensure sourceText is safely coerced to a string before calling .trim() to prevent crashes if it is an object.
-      let cleanText = typeof sourceText === 'string' ? sourceText.trim() : (typeof sourceText === 'object' ? JSON.stringify(sourceText) : String(sourceText).trim());
-      if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+  try {
+    switch (step.type) {
+      case 'prompt': {
+        const template = step.config.template || '';
+        stepInput = { template };
+        const rendered = formatPrompt(template, scope);
+        stepOutput = rendered;
+        scope[step.name] = rendered;
+        break;
       }
 
-      try {
-        const parsed = JSON.parse(cleanText);
-        stepOutput = parsed;
-        scope[step.name] = parsed;
-      } catch {
-        // Performance fix: Pre-compile regexes outside the loop to avoid repeated compilation.
-        // This improves performance for templates with many expectedFields.
-        const extracted = {};
-        const fieldRegexes = {};
-        for (const f of (step.config.expectedFields || [])) {
-          fieldRegexes[f] = new RegExp(`"${f}"\\s*:\\s*"([^"]+)"`, 'i');
+      case 'llm': {
+        const promptSourceKey = step.config.promptSource;
+        const rawPromptText = (typeof promptSourceKey === 'string' && promptSourceKey.length > 0 && scope[promptSourceKey] !== undefined)
+          ? scope[promptSourceKey]
+          : step.config.systemPrompt || '';
+        const promptText = typeof rawPromptText === 'string' ? rawPromptText : (typeof rawPromptText === 'object' ? JSON.stringify(rawPromptText) : String(rawPromptText));
+        const temperature = step.config.temperature ?? 0.7;
+        const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
+        const modelName = step.config.model || 'gemini-2.5-flash';
+
+        stepInput = { promptText: promptText.substring(0, 200) + '...', modelName, temperature };
+
+        let result;
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            generationConfig: { temperature, maxOutputTokens },
+          });
+        } catch (llmErr) {
+          throw new ApiError(502, `LLM generation failed: ${llmErr.message}`, llmErr.stack);
         }
 
-        for (const f of (step.config.expectedFields || [])) {
-          const regex = fieldRegexes[f]; // Use the pre-compiled regex
-          const match = cleanText.match(regex);
-          if (match) extracted[f] = match[1];
+        const responseText = result.response.text();
+        stepOutput = responseText;
+        scope[step.name] = responseText;
+
+        const usage = result.response.usageMetadata || {};
+        const promptTokens = usage.promptTokenCount || Math.ceil(promptText.length / 4);
+        const completionTokens = usage.candidatesTokenCount || Math.ceil(responseText.length / 4);
+        tokenUsage = {
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+        };
+        break;
+      }
+
+      case 'parser': {
+        const sourceVariableKey = step.config.sourceVariable;
+        const sourceText = (typeof sourceVariableKey === 'string' && sourceVariableKey.length > 0 && scope[sourceVariableKey] !== undefined)
+          ? scope[sourceVariableKey]
+          : '';
+        stepInput = { sourceVariable: step.config.sourceVariable };
+
+        let cleanText = typeof sourceText === 'string' ? sourceText.trim() : (typeof sourceText === 'object' ? JSON.stringify(sourceText) : String(sourceText).trim());
+        if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
         }
-        stepOutput = extracted;
-        scope[step.name] = extracted;
+
+        try {
+          const parsed = JSON.parse(cleanText);
+          stepOutput = parsed;
+          scope[step.name] = parsed;
+        } catch {
+          const extracted = {};
+          const fieldRegexes = {};
+          for (const f of (step.config.expectedFields || [])) {
+            fieldRegexes[f] = new RegExp(`"${f}"\\s*:\\s*"([^"]+)"`, 'i');
+          }
+
+          for (const f of (step.config.expectedFields || [])) {
+            const regex = fieldRegexes[f];
+            const match = cleanText.match(regex);
+            if (match) extracted[f] = match[1];
+          }
+          stepOutput = extracted;
+          scope[step.name] = extracted;
+        }
+        break;
       }
-      break;
-    }
 
-    case 'retriever': {
-      const queryTemplate = step.config.queryTemplate || '{query}';
-      const queryText = formatPrompt(queryTemplate, scope);
-      stepInput = { queryText };
+      case 'retriever': {
+        const queryTemplate = step.config.queryTemplate || '{query}';
+        const queryText = formatPrompt(queryTemplate, scope);
+        stepInput = { queryText };
 
-      const context = await ragService.queryDocument(queryText, userId);
-      stepOutput = context;
-      scope[step.name] = context;
-      break;
-    }
-
-    case 'tool': {
-      const toolName = step.config.toolName;
-      const params = step.config.params || {};
-      const resolvedParams = {};
-      for (const [key, val] of Object.entries(params)) {
-        resolvedParams[key] = typeof val === 'string' ? formatPrompt(val, scope) : val;
+        let context;
+        try {
+          context = await ragService.queryDocument(queryText, userId);
+        } catch (ragErr) {
+          throw new ApiError(500, `RAG retrieval failed: ${ragErr.message}`, ragErr.stack);
+        }
+        stepOutput = context;
+        scope[step.name] = context;
+        break;
       }
-      stepInput = { toolName, params: resolvedParams };
-      stepOutput = {
-        executed: true,
-        tool: toolName,
-        timestamp: new Date().toISOString(),
-        result: `Mock successful trigger of tool: ${toolName}`,
-      };
-      scope[step.name] = stepOutput;
-      break;
+
+      case 'tool': {
+        const toolName = step.config.toolName;
+        const params = step.config.params || {};
+        const resolvedParams = {};
+        for (const [key, val] of Object.entries(params)) {
+          resolvedParams[key] = typeof val === 'string' ? formatPrompt(val, scope) : val;
+        }
+        stepInput = { toolName, params: resolvedParams };
+        stepOutput = {
+          executed: true,
+          tool: toolName,
+          timestamp: new Date().toISOString(),
+          result: `Mock successful trigger of tool: ${toolName}`,
+        };
+        scope[step.name] = stepOutput;
+        break;
+      }
+
+      case 'branch': {
+        const variable = step.config.conditionVariable;
+        const operator = step.config.operator || 'equals';
+        const targetValue = step.config.value;
+        const currentValue = scope[variable];
+
+        stepInput = { variable, currentValue, operator, targetValue };
+
+        let branchMatch = false;
+        if (operator === 'equals') branchMatch = String(currentValue) === String(targetValue);
+        else if (operator === 'contains') branchMatch = String(currentValue).includes(String(targetValue));
+        else if (operator === 'greaterThan') branchMatch = Number(currentValue) > Number(targetValue);
+
+        stepOutput = { match: branchMatch };
+        scope[step.name] = stepOutput;
+        break;
+      }
+
+      default:
+        throw new ApiError(400, `Unsupported chain step type: ${step.type}`);
     }
-
-    case 'branch': {
-      const variable = step.config.conditionVariable;
-      const operator = step.config.operator || 'equals';
-      const targetValue = step.config.value;
-      const currentValue = scope[variable];
-
-      stepInput = { variable, currentValue, operator, targetValue };
-
-      let branchMatch = false;
-      if (operator === 'equals') branchMatch = String(currentValue) === String(targetValue);
-      else if (operator === 'contains') branchMatch = String(currentValue).includes(String(targetValue));
-      else if (operator === 'greaterThan') branchMatch = Number(currentValue) > Number(targetValue);
-
-      stepOutput = { match: branchMatch };
-      scope[step.name] = stepOutput;
-      break;
-    }
-
-    default:
-      throw new Error(`Unsupported chain step type: ${step.type}`);
+  } catch (err) {
+    const normalizedErr = err instanceof ApiError ? err : new ApiError(500, `Step [${step.name}] execution failed: ${err.message}`, err.stack);
+    logger.error(`executeSingleStep failed for step [${step.name}]:`, {
+      message: normalizedErr.message,
+      stack: normalizedErr.stack,
+      stepName: step.name,
+      stepType: step.type
+    });
+    throw normalizedErr;
   }
 
   return {
@@ -218,8 +225,6 @@ const executeSingleStep = async (step, scope, userId) => {
  * @param {Object.<string, any>} inputs - Initial input variables for the chain execution.
  * @param {string} userId - The ID of the user performing the execution.
  * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events.
- *   It expects an object with an `event` property (e.g., 'start', 'step_start', 'step_complete', 'step_error', 'done')
- *   and additional data relevant to the event.
  * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an error occurs.
  */
 const streamChainExecution = async (chainId, inputs, userId, emit) => {
@@ -227,12 +232,11 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
   let execution;
 
   try {
-    // Optimization: Added .lean() to Mongoose query for read-only operations.
-    // This converts the Mongoose document to a plain JavaScript object, improving performance
-    // as Mongoose doesn't need to hydrate it into a full Mongoose model instance.
     const chain = await LangchainChain.findById(chainId).lean();
     if (!chain) {
-      emit({ event: 'error', message: `Chain not found: ${chainId}` });
+      const notFoundError = new ApiError(404, `Chain not found: ${chainId}`);
+      logger.error(`StreamChain execution failed: Chain not found`, { chainId });
+      emit({ event: 'error', message: notFoundError.message });
       return;
     }
 
@@ -246,12 +250,6 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Recommendation: For the LangchainExecution model, consider adding indexes on `chainId` and `userId`
-    // if these fields are frequently used in queries to retrieve execution records.
-    // Example (in LangchainExecution model definition):
-    // LangchainExecutionSchema.index({ chainId: 1 });
-    // LangchainExecutionSchema.index({ userId: 1 });
-    // LangchainExecutionSchema.index({ chainId: 1, userId: 1 }); // For compound queries
     execution = new LangchainExecution({
       chainId,
       userId,
@@ -299,10 +297,9 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
           stepNumber,
           totalSteps,
           stepName: result.stepName,
-          stepType: result.stepType, // Corrected from result.type to result.stepType for consistency with original
+          stepType: result.stepType,
           durationMs: result.durationMs,
           tokenUsage: result.tokenUsage,
-          // Truncate output to avoid huge SSE payloads
           outputPreview: typeof result.output === 'string'
             ? result.output.substring(0, 500)
             : JSON.stringify(result.output).substring(0, 500),
@@ -310,15 +307,23 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
         });
       } catch (stepErr) {
         success = false;
-        errorMsg = stepErr.message;
-        logger.error(`StreamChain: step [${step.name}] failed:`, stepErr);
+        const normalizedErr = stepErr instanceof ApiError ? stepErr : new ApiError(500, stepErr.message, stepErr.stack);
+        errorMsg = normalizedErr.message;
+        
+        logger.error(`StreamChain: step [${step.name}] failed:`, {
+          message: normalizedErr.message,
+          stack: normalizedErr.stack,
+          stepName: step.name,
+          stepType: step.type,
+          chainId
+        });
 
         stepsExecution.push({
           stepName: step.name,
           stepType: step.type,
           durationMs: 0,
           status: 'failed',
-          error: stepErr.message,
+          error: normalizedErr.message,
         });
 
         emit({
@@ -327,7 +332,7 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
           totalSteps,
           stepName: step.name,
           stepType: step.type,
-          error: stepErr.message,
+          error: normalizedErr.message,
         });
 
         break; // Halt on step failure
@@ -361,16 +366,25 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
       finalOutputs: scope,
     });
   } catch (err) {
-    // Bug fix: Wrap the entire execution in a try-catch block to handle unexpected errors outside the step loop,
-    // preventing unhandled promise rejections and ensuring the client receives an error event.
-    logger.error(`StreamChain execution failed:`, err);
-    emit({ event: 'error', message: err.message || 'An unexpected error occurred' });
+    const apiError = err instanceof ApiError ? err : new ApiError(500, err.message || 'An unexpected error occurred during chain execution', err.stack);
+    logger.error(`StreamChain execution failed:`, {
+      message: apiError.message,
+      stack: apiError.stack,
+      chainId,
+      userId
+    });
+    
+    emit({ event: 'error', message: apiError.message });
+    
     if (execution) {
       try {
         execution.status = 'failed';
         await execution.save();
       } catch (saveErr) {
-        logger.error(`Failed to save failed execution state:`, saveErr);
+        logger.error(`Failed to save failed execution state:`, {
+          message: saveErr.message,
+          stack: saveErr.stack
+        });
       }
     }
   }
@@ -380,7 +394,6 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
  * Service object for streaming Langchain chain executions.
  * Provides methods to execute chains step-by-step and emit progress via Server-Sent Events.
  * @type {Object}
- * @property {function(string, Object.<string, any>, string, Function): Promise<void>} streamChainExecution - Initiates and streams the execution of a Langchain chain.
  */
 export const langchainStreamService = {
   streamChainExecution,
