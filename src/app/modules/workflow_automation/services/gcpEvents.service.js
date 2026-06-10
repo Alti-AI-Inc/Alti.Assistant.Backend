@@ -71,6 +71,11 @@ class GcpEventsService {
         await this.initializePubSubTriggers();
       }
 
+      // BUG FIX: Check if pubSubClient was successfully initialized to prevent TypeError
+      if (!this.pubSubClient) {
+        throw new Error('GCP Pub/Sub client is not initialized. Check configuration and credentials.');
+      }
+
       const topic = this.pubSubClient.topic(topicName);
       
       // Ensure subscription exists, otherwise create it dynamically
@@ -173,7 +178,8 @@ class GcpEventsService {
         return { success: true, mocked: true, result: {} };
       }
 
-      const { GoogleGenAI } = await import('@google-genai');
+      // BUG FIX: Corrected package name from '@google-genai' to '@google/genai'
+      const { GoogleGenAI } = await import('@google/genai');
       const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
       
       const response = await aiClient.models.generateContent({
