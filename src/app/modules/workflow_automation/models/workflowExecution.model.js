@@ -1,29 +1,17 @@
 import mongoose from 'mongoose';
+// GCP Agent AI: Import the Google Cloud Pub/Sub client.
+// This allows us to asynchronously trigger workflow processing,
+// ensuring the main application thread is not blocked and the system is scalable.
+import { PubSub } from '@google-cloud/pubsub';
 
-/**
- * @typedef {object} WorkflowExecutionError
- * @property {string} [message] - The error message.
- * @property {string} [stack] - The stack trace of the error.
- * @property {string} [code] - An optional error code.
- */
+// GCP Agent AI: Initialize the Pub/Sub client.
+// It's a good practice to initialize it once and reuse the client instance.
+const pubSubClient = new PubSub();
 
-/**
- * @typedef {object} WorkflowExecutionStep
- * @property {string} stepId - The unique identifier for the step within the workflow definition.
- * @property {'pending'|'running'|'completed'|'failed'|'skipped'} status - The current status of the step execution.
- * @property {Date} [startTime] - The timestamp when the step execution began.
- * @property {Date} [endTime] - The timestamp when the step execution finished.
- * @property {number} [duration] - The duration of the step execution in milliseconds.
- * @property {object} [result] - The output or result of the step's execution.
- * @property {WorkflowExecutionError} [error] - Details of any error that occurred during the step's execution.
- * @property {number} retryCount - The number of times this step has been retried.
- */
+// GCP Agent AI: Define the Pub/Sub topic name.
+// Using an environment variable makes the configuration flexible across different environments (dev, staging, prod).
+const WORKFLOW_EXECUTION_TOPIC = process.env.WORKFLOW_EXECUTION_TOPIC || 'workflow-execution-events';
 
-/**
- * Represents a single step within a workflow execution. This is a sub-document
- * of the main WorkflowExecution schema.
- * @type {mongoose.Schema<WorkflowExecutionStep>}
- */
 const WorkflowExecutionStepSchema = new mongoose.Schema({
   stepId: String,
   status: {
@@ -46,53 +34,6 @@ const WorkflowExecutionStepSchema = new mongoose.Schema({
   },
 });
 
-/**
- * @typedef {object} WorkflowExecutionLog
- * @property {Date} timestamp - The timestamp of the log entry.
- * @property {'info'|'warn'|'error'|'debug'} level - The severity level of the log.
- * @property {string} message - The log message.
- * @property {string} [stepId] - The ID of the step that generated the log, if applicable.
- * @property {object} [data] - Additional structured data associated with the log entry.
- */
-
-/**
- * @typedef {object} WorkflowExecutionResult
- * @property {boolean} success - Indicates if the workflow completed successfully.
- * @property {object} [data] - The final output or data from the workflow execution.
- * @property {string} [summary] - A summary of the execution result.
- */
-
-/**
- * @typedef {object} WorkflowExecutionTopLevelError
- * @property {string} [message] - The error message.
- * @property {string} [stack] - The stack trace of the error.
- * @property {string} [stepId] - The ID of the step where the fatal error occurred.
- */
-
-/**
- * Represents the Mongoose schema for a single execution of a workflow.
- * It tracks the overall status, timing, steps, logs, and results of a workflow run.
- *
- * @property {mongoose.Schema.Types.ObjectId} workflowId - Reference to the parent Workflow document.
- * @property {mongoose.Schema.Types.ObjectId} userId - Reference to the User who initiated or owns this execution. This is crucial for multi-tenancy and permissions.
- * @property {string} executionId - A unique identifier for this specific workflow run.
- * @property {'pending'|'running'|'completed'|'failed'|'cancelled'|'paused'|'awaiting_approval'} status - The overall status of the workflow execution.
- * @property {number} currentStepIndex - The index of the step that is currently running or was last run.
- * @property {'schedule'|'manual'|'webhook'|'event'} triggerType - The mechanism that initiated this workflow execution.
- * @property {Date} [startTime] - The timestamp when the execution began.
- * @property {Date} [endTime] - The timestamp when the execution finished.
- * @property {number} [duration] - The total duration of the execution in milliseconds.
- * @property {Array<WorkflowExecutionStep>} steps - An array of objects tracking the state of each individual step in the workflow.
- * @property {number} [totalSteps] - The total number of steps in the workflow at the time of execution.
- * @property {number} [completedSteps] - A counter for the number of successfully completed steps.
- * @property {number} [failedSteps] - A counter for the number of failed steps.
- * @property {Array<WorkflowExecutionLog>} logs - A collection of log entries generated during the execution.
- * @property {WorkflowExecutionResult} [result] - The final result of the workflow execution.
- * @property {WorkflowExecutionTopLevelError} [error] - Details of a fatal error that stopped the entire workflow.
- * @property {object} context - A flexible object for storing state, variables, and data that is passed between steps during execution.
- * @property {number} retryCount - The number of times this entire workflow execution has been retried.
- * @property {string} [parentExecutionId] - If this is a retry, this field stores the `executionId` of the original run.
- */
 const WorkflowExecutionSchema = new mongoose.Schema(
   {
     workflowId: {
@@ -175,6 +116,53 @@ const WorkflowExecutionSchema = new mongoose.Schema(
   }
 );
 
+// GCP Agent AI: Mongoose middleware to offload workflow execution.
+// This hook ensures that whenever a new workflow execution is created and saved,
+// a message is published to a Pub/Sub topic. This decouples the API from the
+// workflow executor, allowing for a scalable, resilient, and stateless architecture.
+// A separate worker service will subscribe to this topic to process the workflows.
+
+// Step 1: Use a 'pre' hook to check if the document is new before it's saved.
+// We store this state on the document instance to access it in the 'post' hook.
+WorkflowExecutionSchema.pre('save', function (next) {
+  // `this.isNew` is a Mongoose boolean flag that is true if the document is new.
+  this._wasNew = this.isNew;
+  next();
+});
+
+// Step 2: Use a 'post' hook, which runs after the document is successfully saved to the database.
+WorkflowExecutionSchema.post('save', async function (doc) {
+  // We only want to trigger on the initial creation of a 'pending' or 'awaiting_approval' execution.
+  // The `_wasNew` flag ensures we don't re-trigger on subsequent updates.
+  const shouldTrigger = this._wasNew && ['pending', 'awaiting_approval'].includes(this.status);
+
+  if (shouldTrigger) {
+    try {
+      // The message payload contains essential identifiers for the worker to fetch the full execution details.
+      const messagePayload = {
+        executionId: this.executionId,
+        workflowId: this.workflowId.toString(),
+        status: this.status, // Pass the status to allow workers to handle different initial states.
+      };
+      const dataBuffer = Buffer.from(JSON.stringify(messagePayload));
+
+      // Publish the message to the designated Pub/Sub topic.
+      const messageId = await pubSubClient.topic(WORKFLOW_EXECUTION_TOPIC).publishMessage({ data: dataBuffer });
+      console.log(`[WorkflowExecution] Pub/Sub message ${messageId} published for executionId: ${this.executionId}`);
+    } catch (error) {
+      // Critical: If publishing fails, the workflow will not start.
+      // This must be logged and monitored. A dead-letter queue or a separate
+      // cleanup job could be used to find and re-trigger these failed publications.
+      console.error(
+        `[WorkflowExecution] FATAL: Failed to publish start event for executionId ${this.executionId}. Manual intervention may be required.`,
+        error
+      );
+      // We do not throw an error here, as the document has already been saved.
+      // Throwing would not roll back the save and could crash the server process.
+    }
+  }
+});
+
 // Indexes for efficient querying
 // Common query: Find latest executions for a specific workflow
 WorkflowExecutionSchema.index({ workflowId: 1, createdAt: -1 });
@@ -185,14 +173,7 @@ WorkflowExecutionSchema.index({ status: 1, createdAt: -1 });
 // OPTIMIZATION: Removed redundant `WorkflowExecutionSchema.index({ executionId: 1 });`
 // The `unique: true` option on the `executionId` field already creates a unique index, making a separate index definition unnecessary.
 
-/**
- * Mongoose model for Workflow Executions.
- * This model is used to create, read, update, and delete workflow execution records in the database.
- * The check `mongoose.models.WorkflowExecution || mongoose.model(...)` prevents
- * the "OverwriteModelError" in environments like Next.js or with hot-reloading
- * where the model might be re-compiled.
- * @type {mongoose.Model<mongoose.Document & typeof WorkflowExecutionSchema>}
- */
+// Check if model is already compiled to prevent OverwriteModelError
 const WorkflowExecution =
   mongoose.models.WorkflowExecution ||
   mongoose.model('WorkflowExecution', WorkflowExecutionSchema);
