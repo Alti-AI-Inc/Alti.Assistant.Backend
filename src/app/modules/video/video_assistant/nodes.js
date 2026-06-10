@@ -1,3 +1,8 @@
+// Imports for Express server and graceful shutdown
+import express from 'express';
+import http from 'http';
+
+// Original business logic imports
 import {
   generateVideoClarifyingQuestions,
   isUserFinishedVideo,
@@ -173,3 +178,76 @@ export const routeVideoNextStep = async (state) => {
   // If no more questions, ask the user for confirmation to proceed.
   return 'get_video_confirmation';
 };
+
+// --- Express Server Setup & Cloud Run Lifecycle ---
+
+// A variable to track the server's readiness state.
+let isServerReady = true;
+
+const app = express();
+app.use(express.json()); // Middleware to parse JSON bodies
+
+/**
+ * Liveness probe endpoint (/healthz).
+ * Cloud Run uses this to check if the container's server process is running.
+ * A 200 OK response indicates the server is alive.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
+/**
+ * Readiness probe endpoint (/readyz).
+ * Cloud Run uses this to check if the container is ready to accept traffic.
+ * Once shutdown begins, this will report the server as not ready.
+ * In a real application, you would also check for database connections or other dependencies.
+ */
+app.get('/readyz', (req, res) => {
+  if (isServerReady) {
+    // TODO: Add checks for essential dependencies (e.g., database connection).
+    // If a dependency is down, return 503.
+    res.status(200).send('ok');
+  } else {
+    res.status(503).send('Service Unavailable: Server is shutting down.');
+  }
+});
+
+// Use the PORT environment variable provided by Cloud Run.
+const PORT = process.env.PORT || 8080;
+
+// Create an HTTP server to have more control over the shutdown process.
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// --- Graceful Shutdown Logic ---
+
+const gracefulShutdown = () => {
+  console.log('Received signal to terminate: closing HTTP server.');
+
+  // Signal that the server is no longer ready to accept new traffic for the readiness probe.
+  isServerReady = false;
+
+  // Stop the server from accepting new connections and wait for existing ones to finish.
+  // Cloud Run gives a 10-second grace period by default before sending SIGKILL.
+  server.close(() => {
+    console.log('HTTP server closed.');
+    // Here you would close any database connections or other resources.
+    // For example: await database.close();
+    process.exit(0);
+  });
+
+  // If server.close() is taking too long, force a shutdown after a timeout.
+  // This is a failsafe to ensure the process exits before Cloud Run sends SIGKILL.
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 9500); // 9.5 seconds, slightly less than the default 10s Cloud Run grace period
+};
+
+// Listen for the termination signal from Cloud Run.
+process.on('SIGTERM', gracefulShutdown);
+// Also handle Ctrl+C for local development.
+process.on('SIGINT', gracefulShutdown);

@@ -2,9 +2,12 @@
 import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import winston from 'winston';
 
-// Create a Winston logger configured for GCP Cloud Logging.
-// Logs will be in structured JSON format with a 'severity' property that Cloud Logging
-// understands, allowing automatic parsing of log levels (INFO, WARNING, ERROR).
+/**
+ * A Winston logger configured for GCP Cloud Logging.
+ * Logs are formatted as structured JSON with a 'severity' property that Cloud Logging
+ * understands, allowing for automatic parsing of log levels (e.g., INFO, WARNING, ERROR).
+ * @type {winston.Logger}
+ */
 const logger = winston.createLogger({
   level: 'info', // Default log level.
   format: winston.format.combine(
@@ -41,8 +44,13 @@ const logger = winston.createLogger({
  * @property {Array<string>} [dataHandlingNotes] - Developer notes for data pre-processing, e.g., ['PII_FILTERING_REQUIRED']. This is a reminder that the calling code must handle PII.
  */
 
-// Enterprise-default safety settings. Block content with a medium or higher probability of being unsafe.
-// This configuration should be applied to all generative model calls unless overridden by the Platform Owner.
+/**
+ * Enterprise-default safety settings for Google's generative AI models.
+ * This configuration blocks content with a medium or higher probability of being unsafe across
+ * several harm categories. It should be applied to all generative model calls unless
+ * a specific override is provided by a Platform Owner.
+ * @type {Array<{category: HarmCategory, threshold: HarmBlockThreshold}>}
+ */
 const defaultSafetySettings = [
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -55,6 +63,7 @@ const defaultSafetySettings = [
  * This centralized configuration object allows Super Admins to manage the entire platform's agent behavior.
  * It includes controls for tenant suspension, global model/safety settings, and granular per-agent/per-tenant overrides.
  * This object should be managed via a secure admin API and persisted in a database or configuration store.
+ * @type {{enabled: boolean, globalModelOverride: (string|null), globalSafetySettingsOverride: (Array<object>|null), overrides: object, tenantOverrides: object, disabledAgents: Set<string>, tenantDisabledAgents: object, suspendedTenants: Set<string>}}
  */
 export const globalAgentOverrides = {
   enabled: true, // A master switch to enable/disable the entire override system. If false, all agents revert to their default definitions.
@@ -68,9 +77,11 @@ export const globalAgentOverrides = {
 };
 
 /**
- * Updates the global agent overrides. Restricted to Platform Owner / Super Admin.
+ * Updates the global agent overrides configuration.
  * This function provides a safe, deep-merge update mechanism to prevent accidental data loss.
+ * It is a highly sensitive operation and should be restricted to Platform Owner / Super Admin roles.
  * @param {object} newOverrides - The new overrides configuration. Can be a partial object.
+ *        Passing `null` for a specific agent or tenant override will remove it.
  */
 export function updateGlobalAgentOverrides(newOverrides) {
   // PLATFORM_OWNER_AUDIT_LOG: Log the entire newOverrides object and the admin user who initiated the change for security and compliance.
@@ -150,11 +161,18 @@ export function updateGlobalAgentOverrides(newOverrides) {
 }
 
 /**
- * Resolves an agent definition, applying any global or tenant-specific overrides configured by the Platform Owner.
- * The order of precedence is: Tenant Override > Global Agent Override > Global Platform Override > Base Definition.
- * @param {AgentDefinition} baseAgent - The base agent definition.
- * @param {string} [tenantId] - The tenant ID requesting the agent.
- * @returns {AgentDefinition|null} The resolved agent definition with overrides applied, or null if disabled/suspended.
+ * Resolves an agent's definition by applying any global or tenant-specific overrides.
+ * This function is central to the multi-tenant permission and customization system.
+ * The order of precedence for overrides is:
+ * 1. Tenant-specific agent override
+ * 2. Global agent-specific override
+ * 3. Global platform-wide override (e.g., global model)
+ * 4. Base agent definition
+ * It also checks for tenant suspensions and disabled agents.
+ * @param {AgentDefinition} baseAgent - The base agent definition from the agent library.
+ * @param {string} [tenantId] - The ID of the tenant requesting the agent. If provided, tenant-specific rules are applied.
+ * @returns {AgentDefinition|null} The resolved agent definition with all overrides applied, or `null` if the agent is
+ *                                 unavailable to the tenant due to suspension or being disabled.
  */
 export function resolveAgent(baseAgent, tenantId = null) {
   if (!baseAgent) return null;
@@ -234,10 +252,11 @@ export function resolveAgent(baseAgent, tenantId = null) {
 }
 
 /**
- * Retrieves all utility agents with optional Platform Owner overrides applied.
- * Filters out any agents disabled globally, for the specific tenant, or if the tenant is suspended.
- * @param {string} [tenantId] - Optional tenant ID to apply tenant-specific overrides and checks.
- * @returns {Array<AgentDefinition>} List of resolved agent definitions available to the user/tenant.
+ * Retrieves all available utility agents, applying context-specific overrides and permissions.
+ * This function filters out any agents that are disabled globally or for the specific tenant.
+ * It also returns an empty array if the entire tenant is suspended.
+ * @param {string} [tenantId] - The optional tenant ID used to apply tenant-specific overrides and permission checks.
+ * @returns {Array<AgentDefinition>} A list of resolved agent definitions available to the user or tenant.
  */
 export function getAllUtilityAgents(tenantId = null) {
   // Platform Owner tenant suspension check. If suspended, the tenant has access to no utility agents.
