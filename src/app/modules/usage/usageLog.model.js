@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { PubSub } from '@google-cloud/pubsub';
 
-// Instantiate a new Pub/Sub client.
 // It's a best practice to create one client and reuse it across the application.
 // Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set or you are
 // running in a GCP environment with appropriate service account permissions.
@@ -11,9 +10,12 @@ const pubSubClient = new PubSub();
 // It's recommended to configure this via environment variables.
 const usageLogTopicName = process.env.USAGE_LOG_TOPIC || 'usage-log-events';
 
+// Allows disabling Pub/Sub for local development or specific environments.
+const pubSubEnabled = process.env.PUBSUB_ENABLED === 'true';
+
 /**
  * Usage Log Model Schema
- * Tracks API usage, performance, and resource consumption
+ * Tracks API usage, performance, and resource consumption for billing, limits, and analytics.
  */
 const UsageLogSchema = new mongoose.Schema(
   {
@@ -133,16 +135,30 @@ const UsageLogSchema = new mongoose.Schema(
       // Brief, sanitized error description (no PII)
     },
 
-    // Resource Usage (AI/ML specific)
+    // Resource Usage & Costing
     tokensUsed: {
       type: Number,
       default: 0,
+      min: 0, // Ensure non-negative
       // AI tokens consumed in this request
     },
     modelUsed: {
       type: String,
       default: null,
-      // Example: 'gpt-4', 'claude-sonnet-4', 'gemini-pro'
+      // Example: 'gpt-4-turbo', 'claude-3-opus', 'gemini-1.5-pro'
+    },
+    cost: {
+      type: Number,
+      default: 0,
+      min: 0, // Cost cannot be negative
+      // Calculated monetary cost for the operation (e.g., in micro-units like 1/1,000,000th of a dollar for precision)
+    },
+    creditType: {
+      type: String,
+      enum: ['paid', 'free_trial', 'bonus', 'internal'],
+      default: 'paid',
+      index: true,
+      // Categorizes usage for billing against different credit pools
     },
     inputSize: {
       type: Number,
@@ -196,26 +212,39 @@ UsageLogSchema.index({ userId: 1, timestamp: -1 }); // User activity history
 UsageLogSchema.index({ module: 1, timestamp: -1 }); // Module popularity
 UsageLogSchema.index({ status: 1, timestamp: -1 }); // Error tracking
 UsageLogSchema.index({ tenantId: 1, module: 1, timestamp: -1 }); // Tenant module usage
+UsageLogSchema.index({ tenantId: 1, creditType: 1, timestamp: -1 }); // Tenant billing queries
 
-// TTL Index - Auto-delete logs older than 90 days
+// TTL Index - Auto-delete logs older than a configurable period (e.g., 180 days for billing records).
+// Ensure this retention period aligns with your data retention policy and financial auditing requirements.
+const ttlInDays = parseInt(process.env.USAGE_LOG_TTL_DAYS || '180', 10);
 UsageLogSchema.index(
   { timestamp: 1 },
-  { expireAfterSeconds: 90 * 24 * 60 * 60 }
+  { expireAfterSeconds: ttlInDays * 24 * 60 * 60 }
 );
 
-// Static method to create log asynchronously by publishing to a Pub/Sub topic.
-// This offloads the database write from the request-response cycle, ensuring
-// durability and scalability. A separate worker service (e.g., a Cloud Function)
-// will subscribe to the topic and handle the database insertion.
+/**
+ * Asynchronously logs usage data by publishing it to a Google Cloud Pub/Sub topic.
+ * This offloads the database write from the request-response cycle, improving API performance and resilience.
+ * A separate worker service (e.g., a Cloud Function) subscribes to the topic to handle database insertion.
+ *
+ * If Pub/Sub is disabled via `PUBSUB_ENABLED` env var, it will log to the console in non-production environments
+ * for development visibility and do nothing in production.
+ *
+ * @param {object} logData The usage data to log.
+ */
 UsageLogSchema.statics.logAsync = async function (logData) {
-  try {
-    // The data for a Pub/Sub message must be a Buffer.
-    const dataBuffer = Buffer.from(JSON.stringify(logData));
+  if (!pubSubEnabled) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        '[INFO] Pub/Sub disabled. Usage log data:',
+        JSON.stringify(logData, null, 2)
+      );
+    }
+    return;
+  }
 
-    // Publish the message to the configured GCP Pub/Sub topic.
-    // This is a "fire-and-forget" operation from the perspective of the caller.
-    // The actual publishing is awaited here to handle potential errors, but the
-    // calling service does not need to await this static method.
+  try {
+    const dataBuffer = Buffer.from(JSON.stringify(logData));
     await pubSubClient.topic(usageLogTopicName).publishMessage({
       data: dataBuffer,
     });
@@ -230,7 +259,15 @@ UsageLogSchema.statics.logAsync = async function (logData) {
   }
 };
 
-// Static method to get tenant usage summary
+/**
+ * Generates a detailed usage and cost summary for a given tenant within a date range.
+ * This is the primary data source for customer-facing billing dashboards and invoices.
+ *
+ * @param {string|mongoose.Types.ObjectId} tenantId The ID of the tenant.
+ * @param {Date} startDate The start of the reporting period.
+ * @param {Date} endDate The end of the reporting period.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of usage summary objects.
+ */
 UsageLogSchema.statics.getTenantUsageSummary = async function (
   tenantId,
   startDate,
@@ -247,8 +284,9 @@ UsageLogSchema.statics.getTenantUsageSummary = async function (
       },
     },
     {
+      // Group by both module and credit type for a detailed breakdown
       $group: {
-        _id: '$module',
+        _id: { module: '$module', creditType: '$creditType' },
         totalRequests: { $sum: 1 },
         successCount: {
           $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
@@ -258,25 +296,51 @@ UsageLogSchema.statics.getTenantUsageSummary = async function (
         },
         avgDuration: { $avg: '$duration' },
         totalTokens: { $sum: '$tokensUsed' },
+        totalCost: { $sum: '$cost' }, // Sum the new cost field
       },
     },
     {
       $project: {
-        module: '$_id',
+        _id: 0, // Exclude the default _id field
+        module: '$_id.module',
+        creditType: '$_id.creditType',
         totalRequests: 1,
         successCount: 1,
         errorCount: 1,
+        // Safely calculate success rate, avoiding division by zero
         successRate: {
-          $multiply: [{ $divide: ['$successCount', '$totalRequests'] }, 100],
+          $cond: {
+            if: { $gt: ['$totalRequests', 0] },
+            then: {
+              $multiply: [
+                { $divide: ['$successCount', '$totalRequests'] },
+                100,
+              ],
+            },
+            else: 0,
+          },
         },
         avgDuration: { $round: ['$avgDuration', 2] },
         totalTokens: 1,
+        totalCost: 1, // Include total cost in the final output
       },
+    },
+    {
+      // Sort the results for consistent ordering
+      $sort: { module: 1, creditType: 1 },
     },
   ]);
 };
 
-// Static method to get user usage summary
+/**
+ * Generates a usage summary for a specific user within a date range.
+ * Useful for internal admin dashboards to track individual user activity.
+ *
+ * @param {string|mongoose.Types.ObjectId} userId The ID of the user.
+ * @param {Date} startDate The start of the reporting period.
+ * @param {Date} endDate The end of the reporting period.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of usage summary objects.
+ */
 UsageLogSchema.statics.getUserUsageSummary = async function (
   userId,
   startDate,
@@ -295,13 +359,24 @@ UsageLogSchema.statics.getUserUsageSummary = async function (
     {
       $group: {
         _id: '$module',
-        count: { $sum: 1 },
+        totalRequests: { $sum: 1 },
         totalTokens: { $sum: '$tokensUsed' },
+        totalCost: { $sum: '$cost' },
         avgDuration: { $avg: '$duration' },
       },
     },
     {
-      $sort: { count: -1 },
+      $project: {
+        _id: 0,
+        module: '$_id',
+        totalRequests: 1,
+        totalTokens: 1,
+        totalCost: 1,
+        avgDuration: { $round: ['$avgDuration', 2] },
+      },
+    },
+    {
+      $sort: { totalRequests: -1 },
     },
   ]);
 };

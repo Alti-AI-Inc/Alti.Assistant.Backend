@@ -53,7 +53,7 @@ class TelemetryCollector {
   constructor() {
     /**
      * @type {Map<string, Object>} activeTraces - Stores currently active telemetry traces, keyed by traceId.
-     * Each trace object contains `traceId`, `queryType`, `userId`, `startTime`, `expiresAt`, and `metadata`.
+     * Each trace object contains `traceId`, `queryType`, `userId`, `workspaceId`, `startTime`, `expiresAt`, and `metadata`.
      */
     this.activeTraces = new Map();
 
@@ -156,10 +156,11 @@ class TelemetryCollector {
    *
    * @param {string} queryType - The endpoint or query type (e.g., 'query', 'query-stream', 'query-classify').
    * @param {string} userId - The identifier of the user initiating the query.
+   * @param {string} workspaceId - The identifier of the workspace the query belongs to.
    * @param {Object} [metadata={}] - Additional metadata relevant to the query (e.g., query text length, mode).
    * @returns {string} traceId - A unique identifier for the started trace. This ID must be used to call `endTrace()`.
    */
-  startTrace(queryType, userId, metadata = {}) {
+  startTrace(queryType, userId, workspaceId, metadata = {}) {
     // Ensure collector is initialized. This call is idempotent after the first successful initialization.
     this.initialize();
 
@@ -170,6 +171,7 @@ class TelemetryCollector {
       traceId,
       queryType,
       userId,
+      workspaceId, // INTEGRATION: Store workspaceId for tenant context
       startTime: startTime,
       expiresAt: startTime + ACTIVE_TRACE_TIMEOUT_MS, // Add expiration timestamp
       metadata,
@@ -210,6 +212,7 @@ class TelemetryCollector {
       traceId: trace.traceId,
       queryType: trace.queryType,
       userId: trace.userId,
+      workspaceId: trace.workspaceId, // INTEGRATION: Persist workspaceId
       startTime: new Date(trace.startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
       durationMs,
@@ -237,13 +240,15 @@ class TelemetryCollector {
 
   /**
    * Retrieves aggregated analytics for telemetry data.
-   * Analytics are computed from the in-memory ring buffer, filtered by user and time window.
+   * Analytics are computed from the in-memory ring buffer, filtered by context and time window.
    *
-   * @param {string|null} [userId=null] - Optional. Filters analytics to a specific user. If null, global analytics are returned.
+   * @param {Object} [filters={}] - Optional. An object containing filters for the analytics.
+   * @param {string} [filters.userId] - Filters analytics to a specific user.
+   * @param {string} [filters.workspaceId] - Filters analytics to a specific workspace.
    * @param {string} [window='24h'] - The time window for aggregation. Supported values: '1h', '6h', '24h', '7d', '30d', 'all'.
    * @returns {Object} An object containing aggregated telemetry analytics.
    * @property {string} window - The time window used for aggregation.
-   * @property {string} userId - The user ID for which analytics are provided, or 'global'.
+   * @property {Object} filters - The filters applied to the analytics query.
    * @property {number} totalQueries - The total number of queries within the specified window and filter.
    * @property {number} successRate - The proportion of successful queries (0.0 - 1.0).
    * @property {number} cacheHitRate - The proportion of cache hits (0.0 - 1.0).
@@ -260,7 +265,7 @@ class TelemetryCollector {
    * @property {Array<Object>} recentErrors - A list of up to 10 most recent errors, including query type, error message, time, and duration.
    * @property {number} totalRecordedAllTime - The total number of entries ever recorded by this collector instance.
    */
-  getAnalytics(userId = null, window = '24h') {
+  getAnalytics(filters = {}, window = '24h') {
     const now = Date.now();
     const windowMs = this._parseWindow(window);
 
@@ -270,14 +275,19 @@ class TelemetryCollector {
       return (now - entryTime) <= windowMs;
     });
 
-    if (userId) {
-      filtered = filtered.filter((e) => e.userId === userId);
+    // SECURITY: Apply filters to respect tenant/user boundaries.
+    // The calling service is responsible for providing the correct filters based on the requester's role.
+    if (filters.workspaceId) {
+      filtered = filtered.filter((e) => e.workspaceId === filters.workspaceId);
+    }
+    if (filters.userId) {
+      filtered = filtered.filter((e) => e.userId === filters.userId);
     }
 
     if (filtered.length === 0) {
       return {
         window,
-        userId: userId || 'global',
+        filters,
         totalQueries: 0,
         successRate: 1.0,
         cacheHitRate: 0,
@@ -329,7 +339,7 @@ class TelemetryCollector {
 
     return {
       window,
-      userId: userId || 'global',
+      filters,
       totalQueries: filtered.length,
       successRate: Math.round((successCount / filtered.length) * 1000) / 1000,
       cacheHitRate: Math.round((cacheHitCount / filtered.length) * 1000) / 1000,
@@ -473,6 +483,7 @@ class TelemetryCollector {
           traceId,
           queryType: trace.queryType,
           userId: trace.userId,
+          workspaceId: trace.workspaceId,
         });
 
         // Record an "abandoned" entry to both the ring buffer and pending flush
@@ -480,6 +491,7 @@ class TelemetryCollector {
           traceId: trace.traceId,
           queryType: trace.queryType,
           userId: trace.userId,
+          workspaceId: trace.workspaceId, // INTEGRATION: Persist workspaceId for abandoned traces
           startTime: new Date(trace.startTime).toISOString(),
           endTime: new Date(trace.expiresAt).toISOString(), // Use expiration time as end time
           durationMs: trace.expiresAt - trace.startTime,
@@ -535,8 +547,8 @@ export const telemetryCollector = new TelemetryCollector();
 /**
  * A higher-order function that wraps an Express controller handler to automatically
  * collect telemetry data for the request. It starts a trace before the handler
- * executes and ends it upon response completion (either `res.json` or `res.end`),
- * capturing success/failure and other relevant metadata.
+ * executes and ends it upon response completion, capturing success/failure and other
+ * relevant metadata. It is robust against premature client disconnects.
  *
  * @param {string} queryType - A descriptive label for the type of query or operation being performed (e.g., 'query', 'query-stream').
  * @param {Function} handler - The original Express controller handler function with signature `(req, res, next) => Promise<void>`.
@@ -545,12 +557,13 @@ export const telemetryCollector = new TelemetryCollector();
 export const withTelemetry = (queryType, handler) => {
   // The handler must be an async function to be properly wrapped.
   return async (req, res, next) => {
-    const userId = req.user?.userId || req.user?.id || 'default_user';
-    const traceId = telemetryCollector.startTrace(queryType, userId, {
+    // INTEGRATION: Capture userId and workspaceId to enforce tenant boundaries.
+    const userId = req.user?.userId || req.user?.id || 'unauthenticated_user';
+    const workspaceId = req.user?.workspaceId || 'default_workspace';
+    const traceId = telemetryCollector.startTrace(queryType, userId, workspaceId, {
       queryLength: (req.body?.query || req.body?.message || '').length,
     });
 
-    // Intercept response methods to capture result metadata
     const originalJson = res.json.bind(res);
     const originalEnd = res.end.bind(res);
     let captured = false;
@@ -562,17 +575,34 @@ export const withTelemetry = (queryType, handler) => {
     const captureEnd = (results = {}) => {
       if (captured) return;
       captured = true;
-      telemetryCollector.endTrace(traceId, {
-        success: res.statusCode < 400,
-        error: res.statusCode >= 400 ? results.error : null,
-        ...results,
+      // BUGFIX: Clean up listener to prevent memory leaks.
+      res.removeListener('close', captureOnClose);
+
+      const finalResults = { ...results };
+
+      // Preserve error from results if it exists.
+      // If not, and the request failed by status code, provide a default message.
+      finalResults.error = finalResults.error ?? (res.statusCode >= 400 ? `Request failed with status code ${res.statusCode}` : null);
+
+      // Determine success. If an error exists, it's not a success.
+      // Otherwise, base it on status code. `results.success` can override.
+      finalResults.success = finalResults.error ? false : (finalResults.success ?? (res.statusCode < 400));
+
+      telemetryCollector.endTrace(traceId, finalResults);
+    };
+
+    // BUGFIX: Add listener for premature client disconnect to ensure trace is ended.
+    const captureOnClose = () => {
+      captureEnd({
+        success: false,
+        error: 'Client connection closed prematurely',
       });
     };
+    res.on('close', captureOnClose);
 
     // Override res.json to capture telemetry before sending JSON response
     res.json = function (body) {
       captureEnd({
-        success: res.statusCode < 400,
         // If the body contains an error property, capture it.
         error: body?.error,
       });
@@ -582,7 +612,7 @@ export const withTelemetry = (queryType, handler) => {
     // Override res.end for cases like SSE endpoints that call res.end() directly
     res.end = function (...args) {
       // Only capture if not already captured by res.json or an error.
-      captureEnd({ success: res.statusCode < 400 });
+      captureEnd();
       return originalEnd(...args);
     };
 
@@ -598,6 +628,7 @@ export const withTelemetry = (queryType, handler) => {
         traceId,
         queryType,
         userId,
+        workspaceId, // INTEGRATION: Add workspaceId to error logs
       });
 
       // Ensure telemetry is captured even if the handler throws an error.
