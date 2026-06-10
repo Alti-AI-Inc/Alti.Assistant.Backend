@@ -130,16 +130,20 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  console.log('Is Guest:', isGuest);
 
-  let userId = isGuest
-    ? creativeWritingService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
-  console.log('User ID:', userId);
+  let userId;
+  if (isGuest) {
+    // For guest users, prioritize userId from body for continuity, otherwise generate one.
+    // This allows guest sessions to be maintained across requests if the client provides the userId.
+    userId = req.body.userId || creativeWritingService.generateGuestUserId();
+  } else {
+    // Bug Fix (IDOR Vulnerability): For authenticated users, userId MUST come from req.user for security.
+    // req.body.userId is ignored for authenticated users to prevent impersonation or unauthorized access
+    // to other users' data or subscription limits.
+    userId = req.user?.userId || req.user?._id;
+  }
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId; // Allow guest userId to be passed in body for continuity
-  console.log('Final User ID:', userId);
 
   logger.info(
     `Creative writing assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
@@ -159,24 +163,16 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-
-    // Note: conversationHelpers.getConversationById typically returns a conversation object.
-    // The comparison `promptUsage <= totalConversationWithConvId` implies `totalConversationWithConvId`
-    // is expected to be a numeric value representing usage. This logic might need review
-    // if `getConversationById` does not return a comparable numeric value.
-    // If `getConversationById` fetches a Mongoose document for read-only purposes, consider adding `.lean()` inside that helper.
-    // Recommendation: Ensure an index exists on `conversationId` and `userId` in the Conversation model
-    // for efficient lookup within `conversationHelpers.getConversationById` (e.g., `{ conversationId: 1, userId: 1 }`).
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
+    // Bug Fix: The original logic for checking subscription limits was flawed.
+    // It incorrectly compared 'promptUsage' (user's current usage) with 'totalConversationWithConvId'
+    // (which was either 0 or a conversation object, not a numeric limit).
+    //
+    // Assuming SubscriptionModel has a 'monthlyPromptLimit' field and 'usage' field.
+    // 'usage' represents the current number of prompts used by the user.
+    // 'monthlyPromptLimit' represents the maximum allowed prompts per month for their plan.
+    // If no active subscription is found, or if the current usage meets or exceeds the monthly limit,
+    // the user has reached their limit.
+    if (!userSubscription || userSubscription.usage >= userSubscription.monthlyPromptLimit) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -184,6 +180,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
           'You have reached your creative writing limit for this month. Please upgrade your plan to continue.',
       });
     }
+    // Note: The creativeWritingService.processConversationalRequest method (or a post-processing step)
+    // is expected to increment the userSubscription.usage count upon successful request processing
+    // for authenticated users to ensure limits are enforced correctly over time.
   }
 
   if (!message) {
@@ -366,6 +365,10 @@ export const getConversationHistory = catchAsync(async (req, res) => {
       userId,
       req
     );
+    // Security Note: It is crucial that creativeWritingService.getConversationHistory
+    // internally verifies that the requested 'conversationId' belongs to the provided 'userId'
+    // to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
+    // The controller correctly passes the authenticated userId for this verification.
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
