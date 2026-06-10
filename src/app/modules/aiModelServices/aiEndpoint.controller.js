@@ -1,12 +1,17 @@
 /**
  * @file Controller for managing AI endpoint configurations.
  * @module app/modules/aiModelServices/aiEndpoint.controller
+ * @description This controller provides platform-owner/super-admin functionalities for global oversight and
+ * system-wide configuration of AI model service endpoints. It allows for adding, viewing, updating, and deleting
+ * AI service configurations, which are available to all tenants on the platform. Access to administrative
+ * endpoints (POST, PATCH, DELETE) must be restricted to users with 'platform-owner' or 'super-admin' roles.
  * @author Your Name <your.email@example.com>
  */
 
 import httpStatus from 'http-status';
 import AiEndpoint from './aiEndpoint.Model.js';
-import aiEndpoints from './aiEndpoint.utils.js';
+// Hypothetical audit logger for Platform Owner actions. Assumes a logger is configured elsewhere.
+import auditLogger from '../../../shared/auditLogger.js';
 
 // Optimization Recommendation:
 // For improved query performance, especially for `findOne` and `findOneAndUpdate` operations
@@ -18,21 +23,23 @@ import aiEndpoints from './aiEndpoint.utils.js';
 /**
  * @swagger
  * tags:
- *   name: AI Endpoints
- *   description: API for managing AI model service endpoints
+ *   name: AI Endpoints (Platform Owner)
+ *   description: API for global management of AI model service endpoints. Requires Platform Owner role for CUD operations.
  */
 
 /**
  * Adds a new AI endpoint configuration to the database.
+ * Platform Owner role required.
  *
  * @function addAiEndpoint
  * @param {object} req - The Express request object.
+ * @param {object} req.user - The authenticated user object (from auth middleware).
+ * @param {string} req.user.id - The ID of the user performing the action.
  * @param {object} req.body - The request body containing AI endpoint details.
- * @param {string} [req.body.id] - Optional unique identifier for the endpoint (if provided, checked for existence).
  * @param {string} req.body.title - The unique title of the AI endpoint.
  * @param {string} req.body.nickName - A user-friendly nickname for the AI endpoint.
- * @param {boolean} [req.body.enabled=false] - Indicates if the endpoint is enabled.
- * @param {boolean} [req.body.default=false] - Indicates if this is the default AI endpoint.
+ * @param {boolean} [req.body.enabled=false] - Indicates if the endpoint is enabled globally.
+ * @param {boolean} [req.body.default=false] - Indicates if this is the default AI endpoint for the platform.
  * @param {string} req.body.add - The URL or path for adding new AI interactions.
  * @param {string} req.body.history - The URL or path for retrieving AI interaction history.
  * @param {string} req.body.delete - The URL or path for deleting AI interactions.
@@ -42,93 +49,40 @@ import aiEndpoints from './aiEndpoint.utils.js';
  * @swagger
  * /api/ai-endpoints:
  *   post:
- *     summary: Add a new AI endpoint
- *     tags: [AI Endpoints]
- *     description: Creates a new AI endpoint configuration in the database.
+ *     summary: (Admin) Add a new AI endpoint
+ *     tags: [AI Endpoints (Platform Owner)]
+ *     description: Creates a new AI endpoint configuration for the entire platform. Requires Platform Owner role.
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - nickName
- *               - add
- *               - history
- *               - delete
- *             properties:
- *               id:
- *                 type: string
- *                 description: Optional unique identifier for the endpoint. If provided, it will be checked for existing entries.
- *                 example: "65e6d6b2a7b8c9d0e1f2a3b4"
- *               title:
- *                 type: string
- *                 description: The unique title of the AI endpoint.
- *                 example: "Groq Llama3 Endpoint"
- *               nickName:
- *                 type: string
- *                 description: A user-friendly nickname for the AI endpoint.
- *                 example: "Groq Llama3"
- *               enabled:
- *                 type: boolean
- *                 description: Whether the endpoint is currently enabled.
- *                 default: false
- *                 example: true
- *               default:
- *                 type: boolean
- *                 description: Whether this endpoint is set as the default.
- *                 default: false
- *                 example: false
- *               add:
- *                 type: string
- *                 description: The URL or path for adding new AI interactions.
- *                 example: "/groq/add-interaction"
- *               history:
- *                 type: string
- *                 description: The URL or path for retrieving AI interaction history.
- *                 example: "/groq/get-history"
- *               delete:
- *                 type: string
- *                 description: The URL or path for deleting AI interactions.
- *                 example: "/groq/delete-interaction"
+ *             $ref: '#/components/schemas/AiEndpointInput'
  *     responses:
  *       201:
  *         description: AI endpoint created successfully.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 statusCode: { type: number, example: 200 }
- *                 status: { type: string, example: "Success" }
- *                 message: { type: string, example: "AI endpoint 'Groq Llama3 Endpoint' created successfully." }
- *                 data:
- *                   $ref: '#/components/schemas/AiEndpoint'
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
  *         description: Bad request due to missing fields or existing endpoint.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "All fields (title, add, history, delete) are required." }
+ *               $ref: '#/components/schemas/ApiResponseFail'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User does not have Platform Owner role.
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "Error creating AI endpoint" }
- *                 error: { type: string, example: "Database connection failed" }
  */
 const addAiEndpoint = async (req, res) => {
   try {
     const {
-      id,
       title,
       nickName,
       enabled,
@@ -139,42 +93,25 @@ const addAiEndpoint = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!title || !add || !history || !deleteUrl || !nickName) {
-      // GCP Logging: Log validation failure as a warning.
-      console.log(JSON.stringify({
-        severity: 'WARNING',
-        message: 'Attempt to create AI endpoint with missing required fields.',
-        component: 'AiEndpointsController.addAiEndpoint',
-        requestBody: req.body,
-      }));
-      return res.status(400).json({
+    if (!title || !nickName || !add || !history || !deleteUrl) {
+      return res.status(httpStatus.BAD_REQUEST).json({
         status: 'fail',
         message: 'All fields (title, nickName, add, history, delete) are required.',
       });
     }
 
-    // Check if the title or _id already exists
-    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects.
-    // Also, only query by _id if a valid 24-character hex string is provided to prevent CastError.
-    const query = id && typeof id === 'string' && id.length === 24
-      ? { $or: [{ title }, { _id: id }] }
-      : { title };
-
-    const existingEndpoint = await AiEndpoint.findOne(query).lean();
-
+    // Check if the title already exists
+    const existingEndpoint = await AiEndpoint.findOne({ title }).lean();
     if (existingEndpoint) {
-      // GCP Logging: Log duplicate creation attempt as a warning.
-      const identifier = existingEndpoint.title ? `'${existingEndpoint.title}'` : `'${existingEndpoint._id}'`;
-      console.log(JSON.stringify({
-        severity: 'WARNING',
-        message: `Attempt to create duplicate AI endpoint with identifier: ${identifier}`,
-        component: 'AiEndpointsController.addAiEndpoint',
-        requestBody: req.body,
-      }));
-      return res.status(400).json({
+      return res.status(httpStatus.BAD_REQUEST).json({
         status: 'fail',
-        message: `AI endpoint with ${identifier} already exists.`,
+        message: `AI endpoint with title '${title}' already exists.`,
       });
+    }
+
+    // If setting this as the new default, unset the current default
+    if (isDefault === true) {
+      await AiEndpoint.updateMany({ default: true }, { $set: { default: false } });
     }
 
     // Create and save the new endpoint
@@ -188,30 +125,30 @@ const addAiEndpoint = async (req, res) => {
       delete: deleteUrl,
     });
 
-    // GCP Logging: Log successful creation.
-    console.log(JSON.stringify({
-      severity: 'INFO',
-      message: `AI endpoint '${title}' created successfully.`,
-      component: 'AiEndpointsController.addAiEndpoint',
-      data: newEndpoint,
-    }));
+    // Audit log for platform owner action
+    auditLogger.info({
+      actor: req.user.id, // Assumes auth middleware provides req.user
+      action: 'create_ai_endpoint',
+      resource: newEndpoint._id,
+      details: { title: newEndpoint.title, enabled: newEndpoint.enabled, default: newEndpoint.default },
+      status: 'success',
+    });
 
-    res.status(201).json({
-      statusCode: httpStatus.OK,
+    res.status(httpStatus.CREATED).json({
+      statusCode: httpStatus.CREATED,
       status: 'Success',
       message: `AI endpoint '${title}' created successfully.`,
       data: newEndpoint,
     });
   } catch (error) {
-    // GCP Logging: Log internal server error.
-    console.log(JSON.stringify({
-      severity: 'ERROR',
-      message: 'Error creating AI endpoint',
-      component: 'AiEndpointsController.addAiEndpoint',
-      error: { message: error.message, stack: error.stack },
-      requestBody: req.body,
-    }));
-    res.status(500).json({
+    auditLogger.error({
+      actor: req.user?.id,
+      action: 'create_ai_endpoint',
+      details: req.body,
+      status: 'failure',
+      error: error.message,
+    });
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
       message: 'Error creating AI endpoint',
       error: error.message,
@@ -220,22 +157,23 @@ const addAiEndpoint = async (req, res) => {
 };
 
 /**
- * Retrieves all AI endpoint configurations from the database for web display.
+ * Retrieves all AI endpoint configurations from the database.
+ * Provides global oversight for platform owners and can be used by clients to fetch available services.
  *
- * @function getWebAiEndpoint
+ * @function getAllAiEndpoints
  * @param {object} req - The Express request object.
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A Promise that resolves when the response is sent.
  *
  * @swagger
- * /api/ai-endpoints/web:
+ * /api/ai-endpoints:
  *   get:
- *     summary: Get all AI endpoints for web display
- *     tags: [AI Endpoints]
- *     description: Fetches all AI endpoint configurations stored in the database.
+ *     summary: Get all AI endpoints
+ *     tags: [AI Endpoints (Platform Owner)]
+ *     description: Fetches all AI endpoint configurations stored in the database. This provides a global view of all available AI services on the platform.
  *     responses:
  *       200:
- *         description: Successfully fetched AI socket endpoints.
+ *         description: Successfully fetched AI endpoints.
  *         content:
  *           application/json:
  *             schema:
@@ -243,53 +181,26 @@ const addAiEndpoint = async (req, res) => {
  *               properties:
  *                 statusCode: { type: number, example: 200 }
  *                 status: { type: string, example: "Success" }
- *                 message: { type: string, example: "Fetched AI socket endpoints successfully" }
- *                 anonymously: { type: string, example: "/groq/get-response-anonymously" }
+ *                 message: { type: string, example: "Fetched AI endpoints successfully" }
  *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/AiEndpoint'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "Error fetching AI endpoints" }
- *                 error: { type: string, example: "Database connection failed" }
  */
-const getWebAiEndpoint = async (req, res) => {
+const getAllAiEndpoints = async (req, res) => {
   try {
-    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects,
-    // which bypasses Mongoose document instantiation overhead.
-    const aiEndpoints = await AiEndpoint.find().lean(); // Fetch from DB
-
-    // GCP Logging: Log successful fetch.
-    console.log(JSON.stringify({
-      severity: 'INFO',
-      message: 'Fetched AI socket endpoints successfully for web.',
-      component: 'AiEndpointsController.getWebAiEndpoint',
-      count: aiEndpoints.length,
-    }));
-
-    res.status(200).json({
+    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects.
+    const endpoints = await AiEndpoint.find().sort({ createdAt: -1 }).lean();
+    res.status(httpStatus.OK).json({
       statusCode: httpStatus.OK,
       status: 'Success',
-      message: 'Fetched AI socket endpoints successfully',
-      anonymously: '/groq/get-response-anonymously',
-      data: aiEndpoints,
+      message: 'Fetched AI endpoints successfully',
+      data: endpoints,
     });
   } catch (error) {
-    // GCP Logging: Log internal server error.
-    console.log(JSON.stringify({
-      severity: 'ERROR',
-      message: 'Error fetching AI endpoints for web',
-      component: 'AiEndpointsController.getWebAiEndpoint',
-      error: { message: error.message, stack: error.stack },
-    }));
-    res.status(500).json({
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
       message: 'Error fetching AI endpoints',
       error: error.message,
@@ -298,127 +209,214 @@ const getWebAiEndpoint = async (req, res) => {
 };
 
 /**
- * Retrieves a predefined list of AI endpoint configurations for application use.
- * This function returns a static list from `aiEndpoint.utils.js`, not from the database.
+ * Retrieves a single AI endpoint by its ID.
  *
- * @function getAiEndpointForApp
+ * @function getAiEndpointById
  * @param {object} req - The Express request object.
+ * @param {string} req.params.id - The ID of the endpoint to retrieve.
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A Promise that resolves when the response is sent.
  *
  * @swagger
- * /api/ai-endpoints/app:
+ * /api/ai-endpoints/{id}:
  *   get:
- *     summary: Get AI endpoints for application use (static list)
- *     tags: [AI Endpoints]
- *     description: Retrieves a predefined, static list of AI endpoint configurations for direct application consumption. This list is not fetched from the database.
+ *     summary: Get a single AI endpoint by ID
+ *     tags: [AI Endpoints (Platform Owner)]
+ *     description: Fetches a specific AI endpoint configuration by its unique ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the AI endpoint.
  *     responses:
  *       200:
- *         description: Successfully retrieved AI socket endpoints.
+ *         description: Successfully fetched AI endpoint.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 statusCode: { type: number, example: 200 }
- *                 status: { type: string, example: "Success" }
- *                 message: { type: string, example: "Get aiSocketEndpoint successfully" }
- *                 anonymously: { type: string, example: "/groq/get-response-anonymously" }
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       title: { type: string, example: "Groq Llama3" }
- *                       add: { type: string, example: "/groq/add-interaction" }
- *                       history: { type: string, example: "/groq/get-history" }
- *                       delete: { type: string, example: "/groq/delete-interaction" }
- *                       enabled: { type: boolean, example: true }
- *                       default: { type: boolean, example: false }
- *       400:
- *         description: Error retrieving AI socket endpoints.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "Couldn't not get aiSocketEndpoint" }
- *                 error: { type: string, example: "An unexpected error occurred." }
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
+ *       404:
+ *         description: AI endpoint not found.
+ *       500:
+ *         description: Internal server error.
  */
-const getAiEndpointForApp = async (req, res) => {
+const getAiEndpointById = async (req, res) => {
   try {
-    // GCP Logging: Log successful fetch of static data.
-    console.log(JSON.stringify({
-      severity: 'INFO',
-      message: 'Get aiSocketEndpoint successfully for app.',
-      component: 'AiEndpointsController.getAiEndpointForApp',
-    }));
-    res.status(200).json({
+    const { id } = req.params;
+    const endpoint = await AiEndpoint.findById(id).lean();
+
+    if (!endpoint) {
+      return res.status(httpStatus.NOT_FOUND).json({
+        status: 'fail',
+        message: `AI endpoint with ID '${id}' not found.`,
+      });
+    }
+
+    res.status(httpStatus.OK).json({
       statusCode: httpStatus.OK,
       status: 'Success',
-      message: 'Get aiSocketEndpoint successfully',
-      anonymously: '/groq/get-response-anonymously',
-      data: aiEndpoints,
+      message: 'Fetched AI endpoint successfully',
+      data: endpoint,
     });
   } catch (error) {
-    // GCP Logging: Log internal server error (though less likely for static data).
-    console.log(JSON.stringify({
-      severity: 'ERROR',
-      message: "Couldn't not get aiSocketEndpoint for app",
-      component: 'AiEndpointsController.getAiEndpointForApp',
-      error: { message: error.message, stack: error.stack },
-    }));
-    res.status(400).json({
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
-      message: "Couldn't not get aiSocketEndpoint",
+      message: 'Error fetching AI endpoint',
       error: error.message,
     });
   }
 };
 
 /**
- * Updates an existing AI endpoint configuration in the database.
+ * Updates an existing AI endpoint configuration.
+ * Platform Owner role required.
  *
- * @function updateWebAiEndpoint
+ * @function updateAiEndpoint
  * @param {object} req - The Express request object.
+ * @param {object} req.user - The authenticated user object.
+ * @param {string} req.user.id - The ID of the user performing the action.
+ * @param {string} req.params.id - The ID of the endpoint to update.
  * @param {object} req.body - The request body containing update details.
- * @param {string} req.body.title - The unique title of the AI endpoint to update.
- * @param {boolean} [req.body.enabled] - New enabled status for the endpoint.
- * @param {boolean} [req.body.default] - New default status for the endpoint. If true, all other endpoints will be set to non-default.
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A Promise that resolves when the response is sent.
  *
  * @swagger
- * /api/ai-endpoints:
+ * /api/ai-endpoints/{id}:
  *   patch:
- *     summary: Update an existing AI endpoint
- *     tags: [AI Endpoints]
- *     description: Updates the `enabled` and `default` status of an existing AI endpoint identified by its title. If `default` is set to true, all other endpoints will have their `default` status set to false.
+ *     summary: (Admin) Update an AI endpoint
+ *     tags: [AI Endpoints (Platform Owner)]
+ *     description: Updates any field of an existing AI endpoint. If `default` is set to true, all other endpoints will be set to non-default. Requires Platform Owner role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the AI endpoint to update.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *             properties:
- *               title:
- *                 type: string
- *                 description: The unique title of the AI endpoint to update.
- *                 example: "Groq Llama3 Endpoint"
- *               enabled:
- *                 type: boolean
- *                 description: The new enabled status for the endpoint.
- *                 example: false
- *               default:
- *                 type: boolean
- *                 description: The new default status for the endpoint. If true, all other endpoints will be set to non-default.
- *                 example: true
+ *             $ref: '#/components/schemas/AiEndpointUpdateInput'
  *     responses:
  *       200:
  *         description: AI endpoint updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
+ *       400:
+ *         description: Bad request (e.g., duplicate title).
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ *       404:
+ *         description: AI endpoint not found.
+ *       500:
+ *         description: Internal server error.
+ */
+const updateAiEndpoint = async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  try {
+    // Prevent changing the unique title to one that already exists
+    if (updateData.title) {
+      const existingEndpoint = await AiEndpoint.findOne({ title: updateData.title, _id: { $ne: id } }).lean();
+      if (existingEndpoint) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          status: 'fail',
+          message: `An AI endpoint with title '${updateData.title}' already exists.`,
+        });
+      }
+    }
+
+    // If setting this as the new default, unset the current default
+    if (updateData.default === true) {
+      await AiEndpoint.updateMany({ _id: { $ne: id }, default: true }, { $set: { default: false } });
+    }
+
+    const updatedEndpoint = await AiEndpoint.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!updatedEndpoint) {
+      return res.status(httpStatus.NOT_FOUND).json({
+        status: 'fail',
+        message: `AI endpoint with ID '${id}' not found.`,
+      });
+    }
+
+    // Audit log for platform owner action
+    auditLogger.info({
+      actor: req.user.id,
+      action: 'update_ai_endpoint',
+      resource: updatedEndpoint._id,
+      details: { changes: updateData },
+      status: 'success',
+    });
+
+    res.status(httpStatus.OK).json({
+      statusCode: httpStatus.OK,
+      status: 'Success',
+      message: `Updated AI endpoint '${updatedEndpoint.title}' successfully.`,
+      data: updatedEndpoint,
+    });
+  } catch (error) {
+    auditLogger.error({
+      actor: req.user?.id,
+      action: 'update_ai_endpoint',
+      resource: id,
+      details: { changes: updateData },
+      status: 'failure',
+      error: error.message,
+    });
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      status: 'fail',
+      message: 'Error updating AI endpoint',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Deletes an AI endpoint configuration.
+ * Platform Owner role required.
+ *
+ * @function deleteAiEndpoint
+ * @param {object} req - The Express request object.
+ * @param {object} req.user - The authenticated user object.
+ * @param {string} req.user.id - The ID of the user performing the action.
+ * @param {string} req.params.id - The ID of the endpoint to delete.
+ * @param {object} res - The Express response object.
+ * @returns {Promise<void>} A Promise that resolves when the response is sent.
+ *
+ * @swagger
+ * /api/ai-endpoints/{id}:
+ *   delete:
+ *     summary: (Admin) Delete an AI endpoint
+ *     tags: [AI Endpoints (Platform Owner)]
+ *     description: Permanently deletes an AI endpoint configuration. The default endpoint cannot be deleted. Requires Platform Owner role.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the AI endpoint to delete.
+ *     responses:
+ *       200:
+ *         description: AI endpoint deleted successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -426,115 +424,69 @@ const getAiEndpointForApp = async (req, res) => {
  *               properties:
  *                 statusCode: { type: number, example: 200 }
  *                 status: { type: string, example: "Success" }
- *                 message: { type: string, example: "Updated AI endpoint 'Groq Llama3 Endpoint' successfully." }
- *                 data:
- *                   $ref: '#/components/schemas/AiEndpoint'
+ *                 message: { type: string, example: "AI endpoint deleted successfully." }
+ *                 data: { type: object, example: null }
  *       400:
- *         description: Bad request due to missing title.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "Title is required to identify the AI endpoint." }
+ *         description: Bad request (e.g., trying to delete the default endpoint).
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
  *       404:
  *         description: AI endpoint not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "AI endpoint 'Groq Llama3 Endpoint' not found." }
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status: { type: string, example: "fail" }
- *                 message: { type: string, example: "Error updating AI endpoint" }
- *                 error: { type: string, example: "Database connection failed" }
  */
-const updateWebAiEndpoint = async (req, res) => {
+const deleteAiEndpoint = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { title, enabled, default: isDefault } = req.body;
+    // First, find the endpoint to check if it's the default
+    const endpointToDelete = await AiEndpoint.findById(id).lean();
 
-    if (!title) {
-      // GCP Logging: Log validation failure as a warning.
-      console.log(JSON.stringify({
-        severity: 'WARNING',
-        message: 'Attempt to update AI endpoint without providing a title.',
-        component: 'AiEndpointsController.updateWebAiEndpoint',
-        requestBody: req.body,
-      }));
-      return res.status(400).json({
+    if (!endpointToDelete) {
+      return res.status(httpStatus.NOT_FOUND).json({
         status: 'fail',
-        message: 'Title is required to identify the AI endpoint.',
+        message: `AI endpoint with ID '${id}' not found.`,
       });
     }
 
-    // If isDefault is true, first set all other AI endpoints to false
-    if (isDefault === true) {
-      // Optimization: Only update documents where `default` is currently true,
-      // avoiding a full collection write scan. For large collections, a sparse
-      // index on the `default` field will significantly improve performance.
-      // Example in aiEndpoint.Model.js:
-      // aiEndpointSchema.index({ default: 1 }, { sparse: true });
-      await AiEndpoint.updateMany({ default: true }, { default: false });
-    }
-
-    // Update the AI endpoint without modifying the title
-    // Optimization: Ensure an index exists on the 'title' field for efficient lookup.
-    // Optimization: Use .lean() to return a plain JavaScript object instead of a full Mongoose document.
-    const updatedEndpoint = await AiEndpoint.findOneAndUpdate(
-      { title }, // Find by title
-      { enabled, default: isDefault }, // Only update enabled & default
-      { new: true, runValidators: true }
-    ).lean();
-
-    if (!updatedEndpoint) {
-      // GCP Logging: Log not found error as a warning.
-      console.log(JSON.stringify({
-        severity: 'WARNING',
-        message: `Attempt to update non-existent AI endpoint with title: '${title}'.`,
-        component: 'AiEndpointsController.updateWebAiEndpoint',
-        requestBody: req.body,
-      }));
-      return res.status(404).json({
+    // Business logic: Prevent deletion of the default endpoint.
+    // A new default must be assigned before the old one can be deleted.
+    if (endpointToDelete.default) {
+      return res.status(httpStatus.BAD_REQUEST).json({
         status: 'fail',
-        message: `AI endpoint '${title}' not found.`,
+        message: 'Cannot delete the default AI endpoint. Please set a different endpoint as default before deleting this one.',
       });
     }
 
-    // GCP Logging: Log successful update.
-    console.log(JSON.stringify({
-      severity: 'INFO',
-      message: `Updated AI endpoint '${title}' successfully.`,
-      component: 'AiEndpointsController.updateWebAiEndpoint',
-      data: updatedEndpoint,
-    }));
+    await AiEndpoint.findByIdAndDelete(id);
 
-    res.status(200).json({
+    // Audit log for platform owner action
+    auditLogger.info({
+      actor: req.user.id,
+      action: 'delete_ai_endpoint',
+      resource: id,
+      details: { title: endpointToDelete.title },
+      status: 'success',
+    });
+
+    res.status(httpStatus.OK).json({
       statusCode: httpStatus.OK,
       status: 'Success',
-      message: `Updated AI endpoint '${title}' successfully.`,
-      data: updatedEndpoint,
+      message: `AI endpoint '${endpointToDelete.title}' deleted successfully.`,
+      data: null,
     });
   } catch (error) {
-    // GCP Logging: Log internal server error.
-    console.log(JSON.stringify({
-      severity: 'ERROR',
-      message: 'Error updating AI endpoint',
-      component: 'AiEndpointsController.updateWebAiEndpoint',
-      error: { message: error.message, stack: error.stack },
-      requestBody: req.body,
-    }));
-    res.status(500).json({
+    auditLogger.error({
+      actor: req.user?.id,
+      action: 'delete_ai_endpoint',
+      resource: id,
+      status: 'failure',
+      error: error.message,
+    });
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
-      message: 'Error updating AI endpoint',
+      message: 'Error deleting AI endpoint',
       error: error.message,
     });
   }
@@ -546,12 +498,6 @@ const updateWebAiEndpoint = async (req, res) => {
  *   schemas:
  *     AiEndpoint:
  *       type: object
- *       required:
- *         - title
- *         - nickName
- *         - add
- *         - history
- *         - delete
  *       properties:
  *         _id:
  *           type: string
@@ -567,14 +513,14 @@ const updateWebAiEndpoint = async (req, res) => {
  *           example: "Groq Llama3"
  *         enabled:
  *           type: boolean
- *           description: Whether the endpoint is currently enabled.
+ *           description: Whether the endpoint is currently enabled for the platform.
  *           default: false
  *           example: true
  *         default:
  *           type: boolean
- *           description: Whether this endpoint is set as the default.
+ *           description: Whether this endpoint is set as the platform default.
  *           default: false
-           example: false
+ *           example: false
  *         add:
  *           type: string
  *           description: The URL or path for adding new AI interactions.
@@ -597,16 +543,58 @@ const updateWebAiEndpoint = async (req, res) => {
  *           format: date-time
  *           description: The date and time when the endpoint was last updated.
  *           example: "2024-03-04T11:00:00.000Z"
+ *     AiEndpointInput:
+ *       type: object
+ *       required:
+ *         - title
+ *         - nickName
+ *         - add
+ *         - history
+ *         - delete
+ *       properties:
+ *         title: { type: string, example: "New OpenAI GPT-4o Endpoint" }
+ *         nickName: { type: string, example: "GPT-4o" }
+ *         enabled: { type: boolean, default: true }
+ *         default: { type: boolean, default: false }
+ *         add: { type: string, example: "/openai/add-interaction" }
+ *         history: { type: string, example: "/openai/get-history" }
+ *         delete: { type: string, example: "/openai/delete-interaction" }
+ *     AiEndpointUpdateInput:
+ *       type: object
+ *       properties:
+ *         title: { type: string, example: "Updated Groq Llama3 Endpoint" }
+ *         nickName: { type: string, example: "Groq Llama3 (Fast)" }
+ *         enabled: { type: boolean, example: false }
+ *         default: { type: boolean, example: true }
+ *     ApiResponseSuccess:
+ *       type: object
+ *       properties:
+ *         statusCode: { type: number }
+ *         status: { type: string, example: "Success" }
+ *         message: { type: string }
+ *         data:
+ *           $ref: '#/components/schemas/AiEndpoint'
+ *     ApiResponseFail:
+ *       type: object
+ *       properties:
+ *         status: { type: string, example: "fail" }
+ *         message: { type: string }
+ *         error: { type: string }
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 /**
  * @namespace AiEndpointsController
- * @description Controller methods for managing AI endpoint configurations.
- * This object groups all the route handlers related to AI endpoints.
+ * @description Controller methods for Platform Owner management of AI endpoints.
  */
 export const AiEndpointsController = {
   addAiEndpoint,
-  getAiEndpointForApp,
-  getWebAiEndpoint,
-  updateWebAiEndpoint,
+  getAllAiEndpoints,
+  getAiEndpointById,
+  updateAiEndpoint,
+  deleteAiEndpoint,
 };
