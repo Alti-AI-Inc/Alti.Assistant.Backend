@@ -1,5 +1,21 @@
 import { runGeminiTask } from '../services/aiClassificationService.js';
 
+// Security: Sanitize string inputs to prevent prompt injection by escaping double quotes.
+const escapeQuotes = (str) => (typeof str === 'string' ? str.replace(/"/g, '\\"') : str);
+
+// Security: Sanitize output strings to prevent XSS by encoding HTML special characters.
+const sanitizeForXSS = (str) => {
+  if (typeof str !== 'string' || str === null) return str;
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return str.replace(/[&<>"']/g, (m) => map[m]);
+};
+
 /**
  * @module ScheduleDetectionService
  * @description Provides services for detecting scheduling requirements, parsing schedule expressions,
@@ -48,7 +64,10 @@ SCHEDULING KEYWORDS TO DETECT:
 
 You must respond with ONLY a valid JSON object.`;
 
-  const userPrompt = `USER INPUT: "${userInput}"
+  // Security: Sanitize user input to prevent prompt injection.
+  const sanitizedUserInput = escapeQuotes(userInput);
+
+  const userPrompt = `USER INPUT: "${sanitizedUserInput}"
 
 CONVERSATION CONTEXT: ${JSON.stringify(conversationContext)}
 
@@ -103,9 +122,18 @@ Respond with a JSON object:
       throw new Error('Invalid schedule detection structure');
     }
 
+    // Security: Sanitize AI-generated output to prevent XSS before returning.
+    const sanitizedData = {
+      ...parsed,
+      scheduleExpression: sanitizeForXSS(parsed.scheduleExpression),
+      reasoning: sanitizeForXSS(parsed.reasoning),
+      workflowTitle: sanitizeForXSS(parsed.workflowTitle),
+      workflowDescription: sanitizeForXSS(parsed.workflowDescription),
+    };
+
     return {
       success: true,
-      data: parsed,
+      data: sanitizedData,
     };
   } catch (error) {
     console.error('Error in detectSchedulingRequirements:', error);
@@ -113,9 +141,16 @@ Respond with a JSON object:
     // Fallback detection based on keywords
     const fallbackDetection = fallbackScheduleDetection(userInput);
 
+    // Security: Sanitize fallback output to prevent XSS before returning.
+    const sanitizedFallbackData = {
+      ...fallbackDetection,
+      scheduleExpression: sanitizeForXSS(fallbackDetection.scheduleExpression),
+      reasoning: sanitizeForXSS(fallbackDetection.reasoning),
+    };
+
     return {
       success: true,
-      data: fallbackDetection,
+      data: sanitizedFallbackData,
     };
   }
 };
@@ -153,7 +188,10 @@ Examples:
 
 You must respond with ONLY a valid JSON object.`;
 
-  const userPrompt = `SCHEDULE EXPRESSION: "${scheduleExpression}"
+  // Security: Sanitize user input to prevent prompt injection.
+  const sanitizedScheduleExpression = escapeQuotes(scheduleExpression);
+
+  const userPrompt = `SCHEDULE EXPRESSION: "${sanitizedScheduleExpression}"
 TIMEZONE: ${timezone}
 
 Convert this natural language expression to a cron expression. Consider:
@@ -192,9 +230,16 @@ Respond with a JSON object:
 
     const parsed = JSON.parse(cleanedResult);
 
+    // Security: Sanitize AI-generated output to prevent XSS before returning.
+    const sanitizedData = {
+      ...parsed,
+      description: sanitizeForXSS(parsed.description),
+      nextExecution: sanitizeForXSS(parsed.nextExecution),
+    };
+
     return {
       success: true,
-      data: parsed,
+      data: sanitizedData,
     };
   } catch (error) {
     console.error('Error in parseScheduleExpression:', error);
@@ -250,9 +295,13 @@ DESCRIPTION GUIDELINES:
 
 You must respond with ONLY a valid JSON object.`;
 
-  const userPrompt = `USER INPUT: "${userInput}"
+  // Security: Sanitize user input to prevent prompt injection.
+  const sanitizedUserInput = escapeQuotes(userInput);
+  const sanitizedApps = requiredApps.map(escapeQuotes);
 
-REQUIRED APPS: ${requiredApps.join(', ')}
+  const userPrompt = `USER INPUT: "${sanitizedUserInput}"
+
+REQUIRED APPS: ${sanitizedApps.join(', ')}
 
 EXECUTION PLAN: ${JSON.stringify(executionPlan, null, 2)}
 
@@ -287,9 +336,17 @@ Respond with a JSON object:
 
     const parsed = JSON.parse(cleanedResult);
 
+    // Security: Sanitize AI-generated output to prevent XSS before returning.
+    const sanitizedData = {
+      ...parsed,
+      title: sanitizeForXSS(parsed.title),
+      description: sanitizeForXSS(parsed.description),
+      tags: Array.isArray(parsed.tags) ? parsed.tags.map(sanitizeForXSS) : [],
+    };
+
     return {
       success: true,
-      data: parsed,
+      data: sanitizedData,
     };
   } catch (error) {
     console.error('Error in generateWorkflowMetadata:', error);
@@ -300,9 +357,10 @@ Respond with a JSON object:
     return {
       success: true,
       data: {
-        title: fallbackTitle,
-        description: `Automated workflow: ${userInput}`,
-        tags: requiredApps,
+        // Security: Sanitize fallback output to prevent XSS before returning.
+        title: sanitizeForXSS(fallbackTitle),
+        description: `Automated workflow: ${sanitizeForXSS(userInput)}`,
+        tags: requiredApps.map(sanitizeForXSS),
       },
     };
   }

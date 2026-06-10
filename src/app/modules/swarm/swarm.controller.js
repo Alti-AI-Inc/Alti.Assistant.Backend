@@ -1,4 +1,5 @@
 import httpStatus from 'http-status';
+import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai'; // Import Vertex AI SDK components for safety settings
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
@@ -7,6 +8,52 @@ import { SwarmService } from './swarm.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 import ApiError from '../../../errors/ApiError.js';
+
+// Enterprise-grade safety settings for all Google Generative AI model calls.
+// These settings block content with a low or higher probability of being harmful.
+const GcpSafetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+  },
+];
+
+/**
+ * Masks common Personally Identifiable Information (PII) in a given text.
+ * This is a critical security step to prevent sensitive user data from being
+ * sent to third-party AI models or logged.
+ * @param {string} text The input text to sanitize.
+ * @returns {string} The text with PII masked.
+ */
+const maskPII = text => {
+  if (!text || typeof text !== 'string') return text;
+  // A simple regex for email addresses.
+  let maskedText = text.replace(
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    '[EMAIL_REDACTED]'
+  );
+  // A simple regex for North American phone numbers.
+  maskedText = maskedText.replace(
+    /\b(?:\+?1[ -]?)?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}\b/g,
+    '[PHONE_REDACTED]'
+  );
+  // NOTE: More robust PII detection might be required for production,
+  // potentially using a dedicated service or more comprehensive regex patterns
+  // for things like credit card numbers, social security numbers, etc.
+  return maskedText;
+};
 
 /**
  * @swagger
@@ -169,6 +216,10 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     });
   }
 
+  // SAFETY & SECURITY: Sanitize user input to remove PII before sending to the model.
+  // The original message is still used for saving to the database to maintain conversation history integrity for the user.
+  const sanitizedMessage = maskPII(message);
+
   const thread_id =
     conversationId || searchService.generateSearchConversationId();
 
@@ -187,7 +238,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
-      message,
+      message, // Save original message to DB
       isGuest,
       req
     );
@@ -200,7 +251,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       // if '.lean()' was applied in 'handleSearchConversation' to avoid Mongoose hydration overhead here.
       conversationHistory = conversation.messages.slice(-10).map(msg => ({
         role: msg.role,
-        content: msg.content,
+        // SAFETY: Ensure history sent to the model is also sanitized.
+        content: maskPII(msg.content),
       }));
     }
 
@@ -211,7 +263,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
-      message,
+      message, // Save original message to DB
       isGuest,
       req
     );
@@ -233,10 +285,10 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     // Stream the dynamic Swarm response
     for await (const chunk of SwarmService.executeSwarmStream(
-      message,
+      sanitizedMessage, // Use the sanitized message for the model call
       conversationHistory,
       userId,
-      { requireSearch }
+      { requireSearch, safetySettings: GcpSafetySettings } // Pass explicit safety settings to the model service
     )) {
       if (chunk.type === 'agent_start') {
         // Silent - don't send agent routing details to the user
@@ -272,7 +324,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       // Assuming citationMetadata structure is an object with a 'citations' array
       citationMetadata:
         finalCitations.length > 0 ? { citations: finalCitations } : null,
-      searchQuery: message,
+      searchQuery: message, // Log original query for metadata
       searchTimestamp: new Date().toISOString(),
       streamingMode: true,
       mode: 'agent_swarm',
@@ -293,19 +345,28 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
     // This operation is already asynchronous and non-blocking.
     if (userId && !isGuest && fullText) {
-      userMemoryService.asyncExtractFacts(userId, message, fullText).catch(err => {
-        // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
-        logger.error({
-          message: 'Failed to extract facts during async memory extraction',
-          component: 'SwarmController.userMemoryService',
+      // SAFETY & SECURITY: Sanitize both user message and model response before sending to the memory extraction service.
+      // This prevents PII from being stored in long-term memory facts.
+      const sanitizedFullTextForMemory = maskPII(fullText);
+      userMemoryService
+        .asyncExtractFacts(
           userId,
-          error: {
-            message: err.message,
-            stack: err.stack,
-            name: err.name,
-          },
+          sanitizedMessage,
+          sanitizedFullTextForMemory
+        )
+        .catch(err => {
+          // GCP Logging: Structured JSON log for better parsing and analysis in Cloud Logging.
+          logger.error({
+            message: 'Failed to extract facts during async memory extraction',
+            component: 'SwarmController.userMemoryService',
+            userId,
+            error: {
+              message: err.message,
+              stack: err.stack,
+              name: err.name,
+            },
+          });
         });
-      });
     }
 
     // Send completion event
