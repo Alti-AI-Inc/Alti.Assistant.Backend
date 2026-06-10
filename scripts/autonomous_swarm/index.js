@@ -46,7 +46,7 @@ console.log('         LAUNCHING AUTONOMOUS SWARM ORCHESTRATOR    ');
 console.log('                 32 AGENTS ACTIVE SWARM             ');
 console.log('====================================================');
 
-// Spawn 20 worker processes
+// Spawn 32 worker processes
 for (const zoneId of Object.keys(zones)) {
   const modules = zones[zoneId];
   const agents = zoneAgents[zoneId];

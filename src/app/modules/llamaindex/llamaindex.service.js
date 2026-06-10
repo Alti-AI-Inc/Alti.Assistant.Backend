@@ -1,237 +1,478 @@
 import * as llama from './llamaindex.indexer.js';
+import logger from '../../../utils/logger.js';
+import ApiError from '../../../utils/ApiError.js';
 
 const uploadAndIndexDocumentService = async (filePath, originalName, userId) => {
-  return await llama.createIndexFromFile(filePath, originalName, userId);
+  try {
+    return await llama.createIndexFromFile(filePath, originalName, userId);
+  } catch (error) {
+    logger.error('Error in uploadAndIndexDocumentService:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to upload and index document', true, error.stack);
+  }
 };
 
 const queryDocument = async (query, userId) => {
-  return await llama.askQuery(query, userId);
+  try {
+    return await llama.askQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocument:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query document', true, error.stack);
+  }
 };
 
 const queryDocumentStream = async (query, userId, onChunk) => {
-  return await llama.askQueryStream(query, userId, onChunk);
+  try {
+    return await llama.askQueryStream(query, userId, onChunk);
+  } catch (error) {
+    logger.error('Error in queryDocumentStream:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query document stream', true, error.stack);
+  }
 };
 
 // Phase 5: Advanced query with RouterQueryEngine / SubQuestionQueryEngine
 const queryDocumentAdvanced = async (query, userId, mode) => {
-  return await llama.askAdvancedQuery(query, userId, mode);
+  try {
+    return await llama.askAdvancedQuery(query, userId, mode);
+  } catch (error) {
+    logger.error('Error in queryDocumentAdvanced:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform advanced query', true, error.stack);
+  }
 };
 
 // Phase 6: ReAct Agent query with tool calling
 const queryDocumentAgent = async (query, userId) => {
-  return await llama.askAgentQuery(query, userId);
+  try {
+    return await llama.askAgentQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentAgent:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform agent query', true, error.stack);
+  }
 };
 
 // Phase 6: CondenseQuestionChatEngine with ChatSummaryMemoryBuffer
 const queryDocumentChatEngine = async (query, userId) => {
-  return await llama.askChatEngineQuery(query, userId);
+  try {
+    return await llama.askChatEngineQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentChatEngine:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query chat engine', true, error.stack);
+  }
 };
 
 // Phase 7: Self-Correcting Query Pipeline
 const queryDocumentSelfCorrecting = async (query, userId) => {
-  return await llama.askSelfCorrectingQuery(query, userId);
+  try {
+    return await llama.askSelfCorrectingQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentSelfCorrecting:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform self-correcting query', true, error.stack);
+  }
 };
 
 // Phase 7: Hybrid Search (Vector + Keyword Fusion via RRF)
 const queryDocumentHybrid = async (query, userId) => {
-  return await llama.askHybridQuery(query, userId);
+  try {
+    return await llama.askHybridQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentHybrid:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform hybrid query', true, error.stack);
+  }
 };
 
 // Phase 8: Full-Spectrum Retrieval (6 Retriever Types + RRF + MMR)
 const queryDocumentFullSpectrum = async (query, userId) => {
-  return await llama.askFullSpectrumQuery(query, userId);
+  try {
+    return await llama.askFullSpectrumQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentFullSpectrum:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform full-spectrum query', true, error.stack);
+  }
 };
 
 // Phase 8: ObjectIndex Agent (SimpleToolNodeMapping)
 const queryDocumentObjectAgent = async (query, userId) => {
-  return await llama.askObjectIndexAgent(query, userId);
+  try {
+    return await llama.askObjectIndexAgent(query, userId);
+  } catch (error) {
+    logger.error('Error in queryDocumentObjectAgent:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query object index agent', true, error.stack);
+  }
 };
 
 // Phase 8: Simple Chat (no index required)
 const querySimpleChat = async (message, userId) => {
-  return await llama.askSimpleChat(message, userId);
+  try {
+    return await llama.askSimpleChat(message, userId);
+  } catch (error) {
+    logger.error('Error in querySimpleChat:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform simple chat', true, error.stack);
+  }
 };
 
 // Phase 8: Document Comparison
 const compareDocuments = async (docId1, docId2, userId) => {
-  return await llama.compareDocuments(docId1, docId2, userId);
+  try {
+    return await llama.compareDocuments(docId1, docId2, userId);
+  } catch (error) {
+    logger.error('Error in compareDocuments:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to compare documents', true, error.stack);
+  }
 };
 
 // Phase 8: Export Corpus Snapshot
 const exportCorpusSnapshot = async (userId) => {
-  return await llama.exportCorpusSnapshot(userId);
+  try {
+    return await llama.exportCorpusSnapshot(userId);
+  } catch (error) {
+    logger.error('Error in exportCorpusSnapshot:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to export corpus snapshot', true, error.stack);
+  }
 };
 
 // Phase 9: Intelligent Query Classifier (auto-routes to best engine)
 const classifyAndRoute = async (query, userId) => {
-  return await llama.classifyAndRoute(query, userId);
+  try {
+    return await llama.classifyAndRoute(query, userId);
+  } catch (error) {
+    logger.error('Error in classifyAndRoute:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to classify and route query', true, error.stack);
+  }
 };
 
 // Phase 9: Context-Aware Chat (DefaultContextGenerator)
 const queryContextAwareChat = async (message, userId) => {
-  return await llama.askContextAwareChat(message, userId);
+  try {
+    return await llama.askContextAwareChat(message, userId);
+  } catch (error) {
+    logger.error('Error in queryContextAwareChat:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform context-aware chat', true, error.stack);
+  }
 };
 
 // Phase 9: Index Diagnostics (node introspection)
 const getIndexDiagnostics = async (userId) => {
-  return await llama.getIndexDiagnostics(userId);
+  try {
+    return await llama.getIndexDiagnostics(userId);
+  } catch (error) {
+    logger.error('Error in getIndexDiagnostics:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get index diagnostics', true, error.stack);
+  }
 };
 
 // Phase 9: Pipeline Health Check (MockLLM self-test)
 const runPipelineHealthCheck = async () => {
-  return await llama.runPipelineHealthCheck();
+  try {
+    return await llama.runPipelineHealthCheck();
+  } catch (error) {
+    logger.error('Error in runPipelineHealthCheck:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to run pipeline health check', true, error.stack);
+  }
 };
 
 // Phase 9: Batch Document Processing
 const batchProcessDocuments = async (userId) => {
-  return await llama.batchProcessDocuments(userId);
+  try {
+    return await llama.batchProcessDocuments(userId);
+  } catch (error) {
+    logger.error('Error in batchProcessDocuments:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to batch process documents', true, error.stack);
+  }
 };
 
 // Phase 9: Enhanced Streaming Query
 const queryStreamingQuery = async (query, userId) => {
-  return await llama.askStreamingQuery(query, userId);
+  try {
+    return await llama.askStreamingQuery(query, userId);
+  } catch (error) {
+    logger.error('Error in queryStreamingQuery:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to perform streaming query', true, error.stack);
+  }
 };
 
 // Phase 10: Multi-Modal Image Document Indexing
 const indexImageDocument = async (imagePath, originalName, userId) => {
-  return await llama.indexImageDocument(imagePath, originalName, userId);
+  try {
+    return await llama.indexImageDocument(imagePath, originalName, userId);
+  } catch (error) {
+    logger.error('Error in indexImageDocument:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to index image document', true, error.stack);
+  }
 };
 
 // Phase 10: Complete Pipeline Introspection
 const getCompletePipelineIntrospection = async (userId) => {
-  return await llama.getCompletePipelineIntrospection(userId);
+  try {
+    return await llama.getCompletePipelineIntrospection(userId);
+  } catch (error) {
+    logger.error('Error in getCompletePipelineIntrospection:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get pipeline introspection', true, error.stack);
+  }
 };
 
 // Phase 10: Advanced Text Analysis
 const analyzeDocumentText = async (docId, userId) => {
-  return await llama.analyzeDocumentText(docId, userId);
+  try {
+    return await llama.analyzeDocumentText(docId, userId);
+  } catch (error) {
+    logger.error('Error in analyzeDocumentText:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to analyze document text', true, error.stack);
+  }
 };
 
 // Phase 10: Pipeline Configuration Validation
 const validatePipelineConfiguration = () => {
-  return llama.validatePipelineConfiguration();
+  try {
+    return llama.validatePipelineConfiguration();
+  } catch (error) {
+    logger.error('Error in validatePipelineConfiguration:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to validate pipeline configuration', true, error.stack);
+  }
 };
 
 // Phase 6: Corpus analytics & insights
 const getCorpusAnalytics = async (userId) => {
-  return await llama.getCorpusAnalytics(userId);
+  try {
+    return await llama.getCorpusAnalytics(userId);
+  } catch (error) {
+    logger.error('Error in getCorpusAnalytics:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get corpus analytics', true, error.stack);
+  }
 };
 
 // Phase 7: Pipeline observability
 const getPipelineObservability = () => {
-  return llama.getPipelineObservability();
+  try {
+    return llama.getPipelineObservability();
+  } catch (error) {
+    logger.error('Error in getPipelineObservability:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get pipeline observability', true, error.stack);
+  }
 };
 
 // Phase 7: Document keyword extraction
 const extractDocumentKeywords = async (userId) => {
-  return await llama.extractDocumentKeywords(userId);
+  try {
+    return await llama.extractDocumentKeywords(userId);
+  } catch (error) {
+    logger.error('Error in extractDocumentKeywords:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to extract document keywords', true, error.stack);
+  }
 };
 
 // Phase 6: Chat history summarization
 const summarizeChatHistory = async (userId) => {
-  return await llama.summarizeChatHistory(userId);
+  try {
+    return await llama.summarizeChatHistory(userId);
+  } catch (error) {
+    logger.error('Error in summarizeChatHistory:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to summarize chat history', true, error.stack);
+  }
 };
 
 const listDocuments = async (userId) => {
-  return await llama.listDocuments(userId);
+  try {
+    return await llama.listDocuments(userId);
+  } catch (error) {
+    logger.error('Error in listDocuments:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to list documents', true, error.stack);
+  }
 };
 
 const deleteDocument = async (userId, docId) => {
-  return await llama.deleteDocument(userId, docId);
+  try {
+    return await llama.deleteDocument(userId, docId);
+  } catch (error) {
+    logger.error('Error in deleteDocument:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to delete document', true, error.stack);
+  }
 };
 
 const clearAllDocuments = async (userId) => {
-  return await llama.clearAllDocuments(userId);
+  try {
+    return await llama.clearAllDocuments(userId);
+  } catch (error) {
+    logger.error('Error in clearAllDocuments:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to clear all documents', true, error.stack);
+  }
 };
 
 // Phase 11: Configuration Registry
 const getConfigurationRegistry = () => {
-  return llama.getConfigurationRegistry();
+  try {
+    return llama.getConfigurationRegistry();
+  } catch (error) {
+    logger.error('Error in getConfigurationRegistry:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get configuration registry', true, error.stack);
+  }
 };
 
 // Phase 11: Prompt Library
 const getPromptLibrary = () => {
-  return llama.getPromptLibrary();
+  try {
+    return llama.getPromptLibrary();
+  } catch (error) {
+    logger.error('Error in getPromptLibrary:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get prompt library', true, error.stack);
+  }
 };
 
 // Phase 11: Schema Validation
 const validateWithSchemas = (data, schemaName) => {
-  return llama.validateWithSchemas(data, schemaName);
+  try {
+    return llama.validateWithSchemas(data, schemaName);
+  } catch (error) {
+    logger.error('Error in validateWithSchemas:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to validate with schemas', true, error.stack);
+  }
 };
 
 // Phase 12: Semantic Query Cache
 const querySemanticallyCached = async (query, userId) => {
-  // Bug fix: Corrected typo in function call from 'querySemanticallycached' to 'querySemanticallyCached'
-  return await llama.querySemanticallyCached(query, userId);
+  try {
+    return await llama.querySemanticallyCached(query, userId);
+  } catch (error) {
+    logger.error('Error in querySemanticallyCached:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query semantically cached', true, error.stack);
+  }
 };
 
 // Phase 12: Adaptive Chunking Strategy
 const getAdaptiveChunkingStrategy = (fileName) => {
-  return llama.getAdaptiveChunkingStrategy(fileName);
+  try {
+    return llama.getAdaptiveChunkingStrategy(fileName);
+  } catch (error) {
+    logger.error('Error in getAdaptiveChunkingStrategy:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get adaptive chunking strategy', true, error.stack);
+  }
 };
 
 // Phase 12: Document Relationship Graph
 const buildDocumentRelationshipGraph = async (userId) => {
-  return await llama.buildDocumentRelationshipGraph(userId);
+  try {
+    return await llama.buildDocumentRelationshipGraph(userId);
+  } catch (error) {
+    logger.error('Error in buildDocumentRelationshipGraph:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to build document relationship graph', true, error.stack);
+  }
 };
 
 // Phase 12: Retrieval Benchmark
 const benchmarkRetrievalStrategies = async (query, userId) => {
-  return await llama.benchmarkRetrievalStrategies(query, userId);
+  try {
+    return await llama.benchmarkRetrievalStrategies(query, userId);
+  } catch (error) {
+    logger.error('Error in benchmarkRetrievalStrategies:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to benchmark retrieval strategies', true, error.stack);
+  }
 };
 
 // Phase 13: Query Decomposition
 const queryWithDecomposition = async (query, userId) => {
-  return await llama.queryWithDecomposition(query, userId);
+  try {
+    return await llama.queryWithDecomposition(query, userId);
+  } catch (error) {
+    logger.error('Error in queryWithDecomposition:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query with decomposition', true, error.stack);
+  }
 };
 
 // Phase 13: Metadata Extraction Pipeline
 const runMetadataExtractionPipeline = async (userId) => {
-  return await llama.runMetadataExtractionPipeline(userId);
+  try {
+    return await llama.runMetadataExtractionPipeline(userId);
+  } catch (error) {
+    logger.error('Error in runMetadataExtractionPipeline:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to run metadata extraction pipeline', true, error.stack);
+  }
 };
 
 // Phase 13: Custom Re-Ranking
 const queryWithReranking = async (query, userId, options) => {
-  return await llama.queryWithReranking(query, userId, options);
+  try {
+    return await llama.queryWithReranking(query, userId, options);
+  } catch (error) {
+    logger.error('Error in queryWithReranking:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to query with reranking', true, error.stack);
+  }
 };
 
 // Phase 13: Query Feedback
 const submitQueryFeedback = async (userId, feedbackData) => {
-  return await llama.submitQueryFeedback(userId, feedbackData);
+  try {
+    return await llama.submitQueryFeedback(userId, feedbackData);
+  } catch (error) {
+    logger.error('Error in submitQueryFeedback:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to submit query feedback', true, error.stack);
+  }
 };
 
 // Phase 13: Feedback Analytics
 const getQueryFeedbackAnalytics = async (userId) => {
-  return await llama.getQueryFeedbackAnalytics(userId);
+  try {
+    return await llama.getQueryFeedbackAnalytics(userId);
+  } catch (error) {
+    logger.error('Error in getQueryFeedbackAnalytics:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get query feedback analytics', true, error.stack);
+  }
 };
 
 // Phase 14: Automated Evaluation Pipeline
 const evaluateArbitraryResponse = async (query, response, context, userId) => {
-  return await llama.evaluateArbitraryResponse(query, response, context, userId);
+  try {
+    return await llama.evaluateArbitraryResponse(query, response, context, userId);
+  } catch (error) {
+    logger.error('Error in evaluateArbitraryResponse:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to evaluate response', true, error.stack);
+  }
 };
 
 const getEvaluationHistory = async (userId) => {
-  return await llama.getEvaluationHistoryFromDisk(userId);
+  try {
+    return await llama.getEvaluationHistoryFromDisk(userId);
+  } catch (error) {
+    logger.error('Error in getEvaluationHistory:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to get evaluation history', true, error.stack);
+  }
 };
 
 // Phase 15: Event-Driven Live Sessions
 const streamLiveSession = async (query, userId, onChunk) => {
-  return await llama.streamLiveSession(query, userId, onChunk);
+  try {
+    return await llama.streamLiveSession(query, userId, onChunk);
+  } catch (error) {
+    logger.error('Error in streamLiveSession:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to stream live session', true, error.stack);
+  }
 };
 
 // Phase 16: Advanced Storage Strategies
 const indexDocumentAdvanced = async (filePath, originalName, userId, strategyOption) => {
-  return await llama.indexDocumentAdvancedWithStrategy(filePath, originalName, userId, strategyOption);
+  try {
+    return await llama.indexDocumentAdvancedWithStrategy(filePath, originalName, userId, strategyOption);
+  } catch (error) {
+    logger.error('Error in indexDocumentAdvanced:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to index document with advanced strategy', true, error.stack);
+  }
 };
 
 // Phase 17: Multi-Step Agent Workflows
 const runAgentWorkflow = async (query, userId) => {
-  return await llama.runAgentWorkflowStepByStep(query, userId);
+  try {
+    return await llama.runAgentWorkflowStepByStep(query, userId);
+  } catch (error) {
+    logger.error('Error in runAgentWorkflow:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to run agent workflow', true, error.stack);
+  }
 };
 
 // Phase 18: Prompt Optimization API
 const optimizePrompt = async (promptText, userId) => {
-  return llama.optimizePromptWithHelper(promptText, userId);
+  try {
+    return await llama.optimizePromptWithHelper(promptText, userId);
+  } catch (error) {
+    logger.error('Error in optimizePrompt:', error);
+    throw error instanceof ApiError ? error : new ApiError(500, error.message || 'Failed to optimize prompt', true, error.stack);
+  }
 };
 
 export const ragService = {
