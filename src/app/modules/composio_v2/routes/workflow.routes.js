@@ -158,6 +158,105 @@ router.post('/', workflowController.createWorkflowController);
  */
 router.get('/', workflowController.getUserWorkflowsController);
 
+// BUG FIX: Reordered routes to ensure more specific paths are matched before more general ones.
+// The route '/executions/:executionId' and '/:workflowId/executions' are more specific
+// than '/:workflowId' and must be defined first to prevent '/:workflowId' from
+// incorrectly matching 'executions' as a workflowId.
+
+/**
+ * @swagger
+ * /workflows/{workflowId}/executions:
+ *   get:
+ *     summary: Get workflow execution history
+ *     description: Retrieves a list of past execution records for a specific workflow.
+ *     tags:
+ *       - Workflow Execution
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the workflow to get executions for.
+ *         example: "wf-12345"
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: The maximum number of executions to return.
+ *         example: 5
+ *     responses:
+ *       200:
+ *         description: A list of workflow executions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object # Placeholder for WorkflowExecution schema
+ *                 properties:
+ *                   id: { type: string, example: "exec-67890" }
+ *                   workflowId: { type: string, example: "wf-12345" }
+ *                   status: { type: string, example: "completed" }
+ *                   startTime: { type: string, format: date-time }
+ *                   endTime: { type: string, format: date-time }
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Workflow not found.
+ */
+router.get(
+  '/:workflowId/executions',
+  workflowController.getWorkflowExecutionsController
+);
+
+/**
+ * @swagger
+ * /executions/{executionId}:
+ *   get:
+ *     summary: Get execution details by ID
+ *     description: Retrieves the detailed status, logs, and results of a specific workflow execution.
+ *     tags:
+ *       - Workflow Execution
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: executionId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the execution to retrieve.
+ *         example: "exec-67890"
+ *     responses:
+ *       200:
+ *         description: Execution details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object # Placeholder for detailed WorkflowExecution schema
+ *               properties:
+ *                 id: { type: string, example: "exec-67890" }
+ *                 workflowId: { type: string, example: "wf-12345" }
+ *                 status: { type: string, example: "completed" }
+ *                 startTime: { type: string, format: date-time }
+ *                 endTime: { type: string, format: date-time }
+ *                 logs: { type: array, items: { type: object } }
+ *                 result: { type: object }
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Execution not found.
+ */
+router.get(
+  '/executions/:executionId',
+  workflowController.getExecutionController
+);
+
 /**
  * @swagger
  * /workflows/{workflowId}:
@@ -289,7 +388,7 @@ router.put('/:workflowId', workflowController.updateWorkflowController);
  *         example: "wf-12345"
  *     responses:
  *       204:
- *         description: Workflow deleted successfully.
+         description: Workflow deleted successfully.
  *       401:
  *         description: Unauthorized.
  *       404:
@@ -415,101 +514,6 @@ router.post('/:workflowId/pause', workflowController.pauseWorkflowController);
  */
 router.post('/:workflowId/resume', workflowController.resumeWorkflowController);
 
-/**
- * @swagger
- * /workflows/{workflowId}/executions:
- *   get:
- *     summary: Get workflow execution history
- *     description: Retrieves a list of past execution records for a specific workflow.
- *     tags:
- *       - Workflow Execution
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: workflowId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the workflow to get executions for.
- *         example: "wf-12345"
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 10
- *         description: The maximum number of executions to return.
- *         example: 5
- *     responses:
- *       200:
- *         description: A list of workflow executions.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object # Placeholder for WorkflowExecution schema
- *                 properties:
- *                   id: { type: string, example: "exec-67890" }
- *                   workflowId: { type: string, example: "wf-12345" }
- *                   status: { type: string, example: "completed" }
- *                   startTime: { type: string, format: date-time }
- *                   endTime: { type: string, format: date-time }
- *       401:
- *         description: Unauthorized.
- *       404:
- *         description: Workflow not found.
- */
-router.get(
-  '/:workflowId/executions',
-  workflowController.getWorkflowExecutionsController
-);
-
-// Execution Routes
-
-/**
- * @swagger
- * /executions/{executionId}:
- *   get:
- *     summary: Get execution details by ID
- *     description: Retrieves the detailed status, logs, and results of a specific workflow execution.
- *     tags:
- *       - Workflow Execution
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: executionId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the execution to retrieve.
- *         example: "exec-67890"
- *     responses:
- *       200:
- *         description: Execution details.
- *         content:
- *           application/json:
- *             schema:
- *               type: object # Placeholder for detailed WorkflowExecution schema
- *               properties:
- *                 id: { type: string, example: "exec-67890" }
- *                 workflowId: { type: string, example: "wf-12345" }
- *                 status: { type: string, example: "completed" }
- *                 startTime: { type: string, format: date-time }
- *                 endTime: { type: string, format: date-time }
- *                 logs: { type: array, items: { type: object } }
- *                 result: { type: object }
- *       401:
- *         description: Unauthorized.
- *       404:
- *         description: Execution not found.
- */
-router.get(
-  '/executions/:executionId',
-  workflowController.getExecutionController
-);
 
 /**
  * Exports the workflow routes for use by the Express application.
