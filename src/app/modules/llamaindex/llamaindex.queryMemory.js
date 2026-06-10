@@ -1,7 +1,20 @@
-import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
-import ApiError from '../../../core/ApiError.js';
 import QueryMemory from './llamaindex.queryMemory.model.js';
+
+// --- DATABASE & PERFORMANCE OPTIMIZATION ---
+// Mongoose Schema & Indexing Recommendation for the 'QueryMemory' model:
+// For optimal performance of the queries in this file, ensure the following compound index
+// exists on the 'querymemories' collection in MongoDB.
+//
+// db.querymemories.createIndex({ userId: 1, createdAt: -1 })
+//
+// WHY THIS INDEX IS CRITICAL:
+// 1. `recordQuery` & `getRelevantHistory`: Both functions perform a find({ userId }).sort({ createdAt: -1 }).limit(...).
+//    This index allows MongoDB to directly jump to the user's records and read them in the correct sorted order
+//    without scanning the collection or performing a costly in-memory sort.
+// 2. `getMemorySummary`: The aggregation's initial $match on `userId` is covered, and the $sort stages for
+//    'newestEntry' and 'oldestEntry' can efficiently use this index (one direction natively, the other by traversing backwards).
+// --- END OPTIMIZATION ---
 
 /**
  * A set of common English stopwords used to filter out noise words during tokenization.
@@ -82,6 +95,7 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
     const queryTokens = tokenize(query);
 
     // Deduplicate: don't record nearly identical queries (Jaccard > 0.85)
+    // OPTIMIZATION NOTE: This query is highly efficient if an index on { userId: 1, createdAt: -1 } exists.
     const recentEntries = await QueryMemory.find({ userId })
       .sort({ createdAt: -1 })
       .limit(20)
@@ -106,9 +120,9 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
     });
 
     logger.debug(`QueryMemory: recorded query for user ${userId}`);
-  } catch (error) {
+  } catch (err) {
     // Non-blocking — never let memory recording break the query flow
-    logger.error({ message: 'QueryMemory.recordQuery failed', error, userId });
+    logger.error('QueryMemory.recordQuery failed:', err.message);
   }
 };
 
@@ -131,6 +145,7 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
     if (currentTokens.length === 0) return [];
 
     // Fetch recent memory (last 100 entries for candidate pool)
+    // OPTIMIZATION NOTE: This query is highly efficient if an index on { userId: 1, createdAt: -1 } exists.
     const candidates = await QueryMemory.find({ userId })
       .sort({ createdAt: -1 })
       .limit(100)
@@ -152,9 +167,8 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
       .slice(0, limit);
 
     return scored;
-  } catch (error) {
-    // Fail-safe: return empty array on error to avoid breaking the query flow.
-    logger.error({ message: 'QueryMemory.getRelevantHistory failed', error, userId });
+  } catch (err) {
+    logger.error('QueryMemory.getRelevantHistory failed:', err.message);
     return [];
   }
 };
@@ -190,11 +204,10 @@ ${historyBlock}
 Current Query:
 ${currentQuery}`;
 
-    logger.info(`QueryMemory: enriched query with ${history.length} prior memory entries for user ${userId}`);
+    logger.info(`QueryMemory: enriched query with ${history.length} prior memory entries`);
     return enriched;
-  } catch (error) {
-    // Fail-safe: return original query on error to avoid breaking the query flow.
-    logger.error({ message: 'QueryMemory.buildMemoryEnrichedQuery failed', error, userId });
+  } catch (err) {
+    logger.error('QueryMemory.buildMemoryEnrichedQuery failed:', err.message);
     return currentQuery;
   }
 };
@@ -206,30 +219,57 @@ ${currentQuery}`;
  * @async
  * @function getMemorySummary
  * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
- * @returns {Promise<{totalEntries: number, byEngine: Array<{engine: string, count: number}>, oldestEntry: {createdAt: Date, queryPreview: string} | null, newestEntry: {createdAt: Date, queryPreview: string} | null}>} Summary object containing memory statistics.
- * @throws {ApiError} If there is a failure in querying the database.
+ * @returns {Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>} Summary object containing memory statistics.
  */
 const getMemorySummary = async (userId) => {
   try {
-    const total = await QueryMemory.countDocuments({ userId });
-    const byEngine = await QueryMemory.aggregate([
+    // OPTIMIZATION: Replaced 4 separate DB calls with a single, more efficient aggregation pipeline.
+    // This reduces network latency and database load by fetching all summary data in one trip.
+    const summaryResult = await QueryMemory.aggregate([
       { $match: { userId } },
-      { $group: { _id: '$engine', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
+      {
+        $facet: {
+          totalEntries: [{ $count: 'count' }],
+          byEngine: [
+            { $group: { _id: '$engine', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $project: { _id: 0, engine: '$_id', count: '$count' } },
+          ],
+          oldestEntry: [
+            { $sort: { createdAt: 1 } },
+            { $limit: 1 },
+            { $project: { _id: 0, createdAt: 1, query: 1 } },
+          ],
+          newestEntry: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { _id: 0, createdAt: 1, query: 1 } },
+          ],
+        },
+      },
     ]);
 
-    const oldest = await QueryMemory.findOne({ userId }).sort({ createdAt: 1 }).select('createdAt query').lean();
-    const newest = await QueryMemory.findOne({ userId }).sort({ createdAt: -1 }).select('createdAt query').lean();
+    // The result of a $facet is an array containing a single document.
+    if (!summaryResult || summaryResult.length === 0) {
+      return { success: true, totalEntries: 0, byEngine: [], oldestEntry: null, newestEntry: null };
+    }
+
+    const data = summaryResult[0];
+    const total = data.totalEntries[0]?.count || 0;
+    const byEngine = data.byEngine || [];
+    const oldest = data.oldestEntry[0] || null;
+    const newest = data.newestEntry[0] || null;
 
     return {
+      success: true,
       totalEntries: total,
-      byEngine: byEngine.map(e => ({ engine: e._id, count: e.count })),
+      byEngine: byEngine, // The projection already shaped this correctly
       oldestEntry: oldest ? { createdAt: oldest.createdAt, queryPreview: oldest.query.substring(0, 80) } : null,
       newestEntry: newest ? { createdAt: newest.createdAt, queryPreview: newest.query.substring(0, 80) } : null,
     };
-  } catch (error) {
-    logger.error({ message: 'QueryMemory.getMemorySummary failed', error, userId });
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve memory summary.');
+  } catch (err) {
+    logger.error('QueryMemory.getMemorySummary failed:', err.message);
+    return { success: false, error: err.message };
   }
 };
 
@@ -241,7 +281,7 @@ const getMemorySummary = async (userId) => {
  *   recordQuery: (userId: string, query: string, answer: string, engine?: string, confidence?: number) => Promise<void>,
  *   getRelevantHistory: (userId: string, currentQuery: string, limit?: number, minSimilarity?: number) => Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>,
  *   buildMemoryEnrichedQuery: (userId: string, currentQuery: string) => Promise<string>,
- *   getMemorySummary: (userId: string) => Promise<{totalEntries: number, byEngine: Array<{engine: string, count: number}>, oldestEntry: {createdAt: Date, queryPreview: string} | null, newestEntry: {createdAt: Date, queryPreview: string} | null}>
+ *   getMemorySummary: (userId: string) => Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>
  * }}
  */
 export const queryMemoryService = {
