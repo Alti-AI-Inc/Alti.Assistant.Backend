@@ -15,7 +15,7 @@ const { z } = zod;
  * @property {string} body.message - The user's message for the conversational brainstorm.
  *   Must be between 10 and 5000 characters.
  * @property {string} [body.conversationId] - Optional ID of an existing conversation to continue.
- * @property {string} [body.userId] - Optional user ID, primarily for guest users or tracking.
+ * @property {string} [body.workspaceId] - Optional ID of the workspace to associate the conversation with. Enforces tenant context.
  */
 const conversationalBrainstormSchema = z.object({
   body: z.object({
@@ -25,8 +25,11 @@ const conversationalBrainstormSchema = z.object({
       })
       .min(10, 'Message must be at least 10 characters')
       .max(5000, 'Message too long'),
-    conversationId: z.string().optional(),
-    userId: z.string().optional(), // For guest users
+    conversationId: z.string().cuid('Invalid Conversation ID format').optional(),
+    workspaceId: z.string().cuid('Invalid Workspace ID format').optional(),
+    // SECURITY FIX: Removed `userId` field. Client-provided user identifiers are a severe security risk (IDOR/impersonation).
+    // User identity MUST be determined from a secure, server-managed session or token (e.g., req.user from JWT middleware).
+    // This prevents any user from performing actions on behalf of another.
   }),
 });
 
@@ -34,6 +37,7 @@ const conversationalBrainstormSchema = z.object({
  * @constant {z.ZodObject} structuredBrainstormSchema
  * @description Zod schema for validating the request body of a structured brainstorm initiation.
  * @property {object} body - The request body.
+ * @property {string} body.workspaceId - The ID of the workspace where the brainstorm will be created. Required for tenant context.
  * @property {string} body.idea - The core idea or problem statement for the structured brainstorm.
  *   Must be between 10 and 2000 characters.
  * @property {('product_idea'|'business_strategy'|'marketing_campaign'|'technical_solution'|'creative_content'|'problem_solving'|'process_improvement'|'general')} [body.brainstormType] - The type of brainstorm.
@@ -53,6 +57,11 @@ const conversationalBrainstormSchema = z.object({
  */
 const structuredBrainstormSchema = z.object({
   body: z.object({
+    // INTEGRATION FIX: Added workspaceId to ensure all new resources are explicitly tied to a tenant.
+    // The controller must validate that the authenticated user has permissions for this workspace.
+    workspaceId: z
+      .string({ required_error: 'Workspace ID is required' })
+      .cuid('Invalid Workspace ID format'),
     idea: z
       .string({
         required_error: 'Idea is required',
@@ -133,14 +142,23 @@ const structuredBrainstormSchema = z.object({
  * @constant {z.ZodObject} getConversationHistorySchema
  * @description Zod schema for validating the request parameters when fetching conversation history.
  * @property {object} params - The request parameters.
+ * @property {string} params.workspaceId - The ID of the workspace containing the conversation. Prevents cross-tenant IDOR.
  * @property {string} params.conversationId - The ID of the conversation whose history is to be retrieved.
  *   This field is required.
  */
 const getConversationHistorySchema = z.object({
   params: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    // SECURITY FIX: Added workspaceId to the route parameters to enforce tenant boundaries.
+    // This prevents Insecure Direct Object Reference (IDOR) vulnerabilities across different workspaces.
+    // The API route should be structured like /api/workspaces/:workspaceId/conversations/:conversationId
+    workspaceId: z
+      .string({ required_error: 'Workspace ID is required' })
+      .cuid('Invalid Workspace ID format'),
+    conversationId: z
+      .string({
+        required_error: 'Conversation ID is required',
+      })
+      .cuid('Invalid Conversation ID format'),
   }),
 });
 
@@ -148,15 +166,23 @@ const getConversationHistorySchema = z.object({
  * @constant {z.ZodObject} exportBrainstormSchema
  * @description Zod schema for validating the request body when exporting a brainstorm conversation.
  * @property {object} body - The request body.
+ * @property {string} body.workspaceId - The ID of the workspace containing the conversation. Enforces tenant context.
  * @property {string} body.conversationId - The ID of the conversation to be exported. This field is required.
  * @property {('json'|'markdown'|'pdf'|'html')} [body.format='markdown'] - The desired export format. Defaults to 'markdown'.
  * @property {boolean} [body.includeHistory=true] - Whether to include the full conversation history in the export. Defaults to true.
  */
 const exportBrainstormSchema = z.object({
   body: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    // SECURITY FIX: Added workspaceId to scope the request to a specific tenant.
+    // The controller must validate that the conversationId belongs to this workspaceId and the user has access.
+    workspaceId: z
+      .string({ required_error: 'Workspace ID is required' })
+      .cuid('Invalid Workspace ID format'),
+    conversationId: z
+      .string({
+        required_error: 'Conversation ID is required',
+      })
+      .cuid('Invalid Conversation ID format'),
     format: z
       .enum(['json', 'markdown', 'pdf', 'html'])
       .optional()
@@ -169,6 +195,7 @@ const exportBrainstormSchema = z.object({
  * @constant {z.ZodObject} refineBrainstormSchema
  * @description Zod schema for validating the request body when refining an existing brainstorm.
  * @property {object} body - The request body.
+ * @property {string} body.workspaceId - The ID of the workspace containing the conversation. Enforces tenant context.
  * @property {string} body.conversationId - The ID of the conversation to refine. This field is required.
  * @property {string} body.message - The refinement instruction or new input for the brainstorm.
  *   Must be between 10 and 2000 characters.
@@ -176,9 +203,16 @@ const exportBrainstormSchema = z.object({
  */
 const refineBrainstormSchema = z.object({
   body: z.object({
-    conversationId: z.string({
-      required_error: 'Conversation ID is required',
-    }),
+    // SECURITY FIX: Added workspaceId to scope the request to a specific tenant.
+    // This prevents a user from one workspace from refining a conversation in another.
+    workspaceId: z
+      .string({ required_error: 'Workspace ID is required' })
+      .cuid('Invalid Workspace ID format'),
+    conversationId: z
+      .string({
+        required_error: 'Conversation ID is required',
+      })
+      .cuid('Invalid Conversation ID format'),
     message: z.string().min(10).max(2000),
     focusOn: z
       .array(z.string())

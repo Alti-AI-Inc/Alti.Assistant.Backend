@@ -105,17 +105,23 @@ const extractTextFromTXT = async (filePath) => {
 const extractTextFromXLSX = async (filePath) => {
   try {
     const XLSX = await import('xlsx');
-    // PERFORMANCE FIX: Read file asynchronously first, then process buffer with XLSX.read
+    // PERFORMANCE: Read file into buffer asynchronously before synchronous parsing.
     const dataBuffer = await fs.readFile(filePath);
+    // NOTE: The XLSX.read call is synchronous and can block the event loop on very large files.
+    // For true non-blocking processing, this operation should be moved to a worker thread.
     const workbook = XLSX.read(dataBuffer, { type: 'buffer' });
-    let text = '';
+    
+    // OPTIMIZATION: Use an array and join for better performance with a large number of sheets
+    // compared to repeated string concatenation, which can be less efficient.
+    const sheetsText = [];
 
-    workbook.SheetNames.forEach((sheetName) => {
+    for (const sheetName of workbook.SheetNames) {
       const worksheet = workbook.Sheets[sheetName];
-      text += XLSX.utils.sheet_to_csv(worksheet) + '\n\n';
-    });
+      // This conversion can also be CPU-intensive for large sheets.
+      sheetsText.push(XLSX.utils.sheet_to_csv(worksheet));
+    }
 
-    return text;
+    return sheetsText.join('\n\n');
   } catch (error) {
     logger.error('XLSX extraction error:', error);
     throw new ApiError(
@@ -319,12 +325,16 @@ const deleteFromGCS = async (gcsPath) => {
  */
 const cleanupFile = async (filePath) => {
   try {
-    if (fsSync.existsSync(filePath)) {
-      await fs.unlink(filePath);
-      logger.info(`Cleaned up temporary file: ${filePath}`);
-    }
+    // OPTIMIZATION: Directly attempt to unlink the file and handle the error,
+    // which avoids a blocking, synchronous fs.existsSync call inside an async function.
+    await fs.unlink(filePath);
+    logger.info(`Cleaned up temporary file: ${filePath}`);
   } catch (error) {
-    logger.warn(`Failed to cleanup file ${filePath}:`, error);
+    // If the file doesn't exist (error code 'ENOENT'), we can safely ignore the error,
+    // as the desired state (file is removed) is already met. Log other unexpected errors.
+    if (error.code !== 'ENOENT') {
+      logger.warn(`Failed to cleanup file ${filePath}:`, error);
+    }
   }
 };
 
