@@ -161,6 +161,8 @@ ProductSchema.statics.isPlanValid = async function (planKey) {
 
 // Get pricing summary
 ProductSchema.methods.getPricingSummary = function (seats = 1) {
+  // Ensure currency is included in formatted price for clarity
+  const currencySymbol = this.currency.toUpperCase();
   return {
     plan: this.plan,
     name: this.name,
@@ -169,8 +171,8 @@ ProductSchema.methods.getPricingSummary = function (seats = 1) {
     totalPrice: this.price * seats,
     currency: this.currency,
     interval: this.interval,
-    formattedPrice: `$${this.price}/${this.interval}`,
-    formattedTotal: `$${this.price * seats}/${this.interval}`,
+    formattedPrice: `${currencySymbol} ${this.price}/${this.interval}`,
+    formattedTotal: `${currencySymbol} ${this.price * seats}/${this.interval}`,
   };
 };
 
