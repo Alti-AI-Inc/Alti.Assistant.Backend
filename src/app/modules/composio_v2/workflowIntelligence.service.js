@@ -1,17 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import { logger } from '../../../shared/logger.js';
 import ActionAuditLog from './models/actionAuditLog.model.js';
 import WorkflowPattern from './models/workflowPattern.model.js';
 
 /**
- * Initializes the Google Generative AI client.
- * The API key is sourced from the GEMINI_API_KEY environment variable.
- * In a production environment like Cloud Run, this variable should be securely
- * injected from GCP Secret Manager.
- * If the environment variable is not set, it defaults to 'mock-key' for local development/testing.
- * @type {GoogleGenerativeAI}
+ * Initializes the Vertex AI client for generative AI models.
+ * This client authenticates using Application Default Credentials (ADC).
+ * In a GCP environment (like Cloud Run, GKE, GCE), the service account
+ * running this code must have the "Vertex AI User" IAM role.
+ * The GCP_PROJECT_ID and GCP_LOCATION environment variables must be set.
  */
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
+const vertex_ai = new VertexAI({
+  project: process.env.GCP_PROJECT_ID,
+  location: process.env.GCP_LOCATION,
+});
 
 /**
  * Maximum allowed time gap in milliseconds between two consecutive actions
@@ -100,7 +102,7 @@ const extractSubSequences = (session) => {
 };
 
 /**
- * Uses the Gemini AI model to generate a human-readable title and a compelling suggestion
+ * Uses the Gemini AI model via Vertex AI to generate a human-readable title and a compelling suggestion
  * for automating a detected workflow pattern.
  *
  * @param {Array<string>} sequence - The array of tool/action slugs representing the workflow pattern.
@@ -108,11 +110,11 @@ const extractSubSequences = (session) => {
  * @param {number} successRate - The success rate of this sequence (expected to be 100 for this analysis).
  * @param {number} avgLatencyMs - The average duration in milliseconds for a single run of this sequence.
  * @returns {Promise<{title: string, suggestion: string}>} An object containing a short title and a detailed suggestion for automation.
- * @throws {Error} If the Gemini API call fails or returns an unparseable response.
+ * @throws {Error} If the Vertex AI API call fails or returns an unparseable response.
  */
 const generateGeminiSuggestion = async (sequence, occurrenceCount, successRate, avgLatencyMs) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = vertex_ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are an expert workflow automation consultant.
 A user has repeatedly performed the following sequence of actions ${occurrenceCount} times:
@@ -136,7 +138,13 @@ Return ONLY a JSON object with this exact structure (no markdown):
       generationConfig: { temperature: 0.7 },
     });
 
-    let text = result.response.text().trim();
+    // The response structure for Vertex AI SDK is different from the Google AI SDK.
+    const response = result.response;
+    if (!response.candidates?.length || !response.candidates[0].content?.parts?.length) {
+      throw new Error('Invalid response structure from Vertex AI API');
+    }
+    let text = response.candidates[0].content.parts[0].text.trim();
+
     if (text.startsWith('```')) {
       text = text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
     }

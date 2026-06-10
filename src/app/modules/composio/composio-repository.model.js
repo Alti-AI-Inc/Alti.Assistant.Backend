@@ -15,6 +15,7 @@ import mongoose from 'mongoose';
  *   stars: number;
  *   forks: number;
  *   language: string;
+ *   executionCount: number;
  *   workspaceId: mongoose.Schema.Types.ObjectId | null;
  *   ownerId?: mongoose.Schema.Types.ObjectId;
  *   isPublic: boolean;
@@ -129,6 +130,21 @@ const ComposioRepositorySchema = new mongoose.Schema(
       trim: true // SECURITY: Trim whitespace to ensure data consistency.
     },
 
+    // METRICS ENHANCEMENT: Added a field to track tool usage within a workspace.
+    // This provides managers with valuable metrics on which tools are most frequently used by their team,
+    // helping them understand workflow and optimize tool selection.
+    /**
+     * The number of times this repository (tool) has been executed or used.
+     * This metric is scoped by the workspace if the repository is not public.
+     * @type {number}
+     * @default 0
+     */
+    executionCount: {
+        type: Number,
+        default: 0,
+        min: 0 // SECURITY: Ensure count is a non-negative number.
+    },
+
     // HIERARCHY & TENANCY FIX: Added fields to support multi-tenancy and ownership.
     // The original schema lacked any concept of workspace or user ownership, making it impossible
     // to enforce tenant boundaries or track actions, which is a critical security and integration gap.
@@ -201,6 +217,11 @@ ComposioRepositorySchema.index(
 // This index covers the most common access pattern: finding all repositories for a workspace (private and public)
 // and sorting them, which is more efficient than relying on multiple single-field indexes.
 ComposioRepositorySchema.index({ workspaceId: 1, isPublic: 1, stars: -1, name: 1 });
+
+// PERFORMANCE: Add a compound index to optimize queries for most-used tools.
+// This allows managers to quickly view metrics on tool usage within their workspace,
+// directly supporting the manager dashboard's metric-viewing requirements.
+ComposioRepositorySchema.index({ workspaceId: 1, isPublic: 1, executionCount: -1 });
 
 
 /**
