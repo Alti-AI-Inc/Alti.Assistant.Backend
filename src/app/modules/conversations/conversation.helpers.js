@@ -5,11 +5,14 @@ import Conversation from './conversation.model.js';
 import { withTenantFilter, withTenantPipeline } from '../../helpers/tenantQuery.js'; // Added withTenantPipeline
 
 /**
- * Get conversation by conversationId
- * @param {string} conversationId
- * @param {string} userId - User ID for security check (now mandatory)
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Object>}
+ * Retrieves a single conversation by its ID, ensuring it belongs to the specified user
+ * and respects tenant isolation if a request object is provided.
+ *
+ * @param {string} conversationId - The unique identifier of the conversation.
+ * @param {string} userId - The ID of the user attempting to access the conversation. This is mandatory for security.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Object>} A promise that resolves to the conversation object.
+ * @throws {ApiError} If the conversation is not found or if an internal error occurs.
  */
 const getConversationById = async (
   conversationId,
@@ -34,11 +37,21 @@ const getConversationById = async (
 };
 
 /**
- * Get conversations for a specific user
- * @param {string} userId
- * @param {Object} options - Query options
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Object>}
+ * Retrieves a paginated list of conversations for a specific user, with filtering and sorting options.
+ *
+ * @param {string} userId - The ID of the user whose conversations are to be retrieved.
+ * @param {Object} [options={}] - Query options for pagination, filtering, and sorting.
+ * @param {number} [options.page=1] - The page number for pagination.
+ * @param {number} [options.limit=20] - The maximum number of conversations per page.
+ * @param {string} [options.status='active'] - Filter conversations by their status (e.g., 'active', 'archived', 'deleted').
+ * @param {string} [options.sortBy='lastActivity'] - The field to sort the conversations by.
+ * @param {number} [options.sortOrder=-1] - The sort order (-1 for descending, 1 for ascending).
+ * @param {string} [options.search=''] - A search term to filter conversations by title or metadata tags.
+ * @param {string} [options.category=null] - Filter conversations by a specific category in metadata.
+ * @param {boolean} [options.is_deep_search=null] - Filter conversations by the `is_deep_search` flag.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the paginated conversations and pagination metadata.
+ * @throws {ApiError} If an internal server error occurs during the fetch operation.
  */
 const getUserConversations = async (userId, options = {}, req = null) => {
   try {
@@ -108,12 +121,18 @@ const getUserConversations = async (userId, options = {}, req = null) => {
 };
 
 /**
- * Get conversation messages with pagination
- * @param {string} conversationId
- * @param {string} userId
- * @param {Object} options - Query options
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Object>}
+ * Retrieves paginated messages for a specific conversation, ensuring user access and tenant isolation.
+ * Messages can be filtered by a `beforeDate` to fetch older messages.
+ *
+ * @param {string} conversationId - The unique identifier of the conversation.
+ * @param {string} userId - The ID of the user attempting to access the conversation messages.
+ * @param {Object} [options={}] - Query options for pagination and filtering.
+ * @param {number} [options.page=1] - The page number for pagination.
+ * @param {number} [options.limit=50] - The maximum number of messages per page.
+ * @param {string} [options.beforeDate=null] - An ISO date string. Only messages with a timestamp older than this date will be returned.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Object>} A promise that resolves to an object containing conversation metadata, paginated messages, and pagination details.
+ * @throws {ApiError} If the conversation is not found or if an internal error occurs during message retrieval.
  */
 const getConversationMessages = async (
   conversationId,
@@ -194,12 +213,17 @@ const getConversationMessages = async (
 };
 
 /**
- * Search conversations by content
- * @param {string} userId
- * @param {string} searchTerm
- * @param {Object} options - Query options
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Array>}
+ * Searches for conversations belonging to a user based on a search term,
+ * filtering by title, message content, or metadata tags.
+ *
+ * @param {string} userId - The ID of the user whose conversations are to be searched.
+ * @param {string} searchTerm - The term to search for within conversation titles, messages, or tags.
+ * @param {Object} [options={}] - Query options for limiting results and filtering by category.
+ * @param {number} [options.limit=10] - The maximum number of search results to return.
+ * @param {string} [options.category=null] - Filter search results by a specific category in metadata.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of matching conversation objects.
+ * @throws {ApiError} If an internal server error occurs during the search operation.
  */
 const searchConversations = async (
   userId,
@@ -243,6 +267,16 @@ const searchConversations = async (
   }
 };
 
+/**
+ * Retrieves a paginated list of all conversations marked as 'saved' for a specific user.
+ *
+ * @param {string} userId - The ID of the user whose saved conversations are to be retrieved.
+ * @param {number} [limit=20] - The maximum number of saved conversations per page.
+ * @param {number} [page=1] - The page number for pagination.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the paginated saved conversations and pagination metadata.
+ * @throws {ApiError} If an internal server error occurs during the fetch operation.
+ */
 const getAllSavedConversations = async (
   userId,
   limit = 20,
@@ -284,10 +318,12 @@ const getAllSavedConversations = async (
 };
 
 /**
- * Get conversation statistics for a user
- * @param {string} userId
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Object>}
+ * Retrieves statistics about a user's conversations, grouped by status.
+ *
+ * @param {string} userId - The ID of the user for whom to retrieve conversation statistics.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Object>} A promise that resolves to an object containing conversation counts by status (active, archived, deleted) and total messages.
+ * @throws {ApiError} If an internal server error occurs during the aggregation.
  */
 const getConversationStats = async (userId, req = null) => {
   try {
@@ -334,12 +370,17 @@ const getConversationStats = async (userId, req = null) => {
 };
 
 /**
- * Get conversations by category
- * @param {string} userId
- * @param {string} category
- * @param {Object} options - Query options
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Array>}
+ * Retrieves a list of conversations for a specific user, filtered by category.
+ *
+ * @param {string} userId - The ID of the user whose conversations are to be retrieved.
+ * @param {string} category - The category to filter conversations by (e.g., 'support', 'sales').
+ * @param {Object} [options={}] - Query options for limiting and sorting.
+ * @param {number} [options.limit=20] - The maximum number of conversations to return.
+ * @param {string} [options.sortBy='lastActivity'] - The field to sort the conversations by.
+ * @param {number} [options.sortOrder=-1] - The sort order (-1 for descending, 1 for ascending).
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of conversation objects belonging to the specified category.
+ * @throws {ApiError} If an internal server error occurs during the fetch operation.
  */
 const getConversationsByCategory = async (
   userId,
@@ -375,11 +416,12 @@ const getConversationsByCategory = async (
 };
 
 /**
- * Check if conversation exists and user has access
- * @param {string} conversationId
- * @param {string} userId
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<boolean>}
+ * Checks if a specific user has access to a given conversation.
+ *
+ * @param {string} conversationId - The unique identifier of the conversation.
+ * @param {string} userId - The ID of the user to check access for.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the user has access, `false` otherwise.
  */
 const hasConversationAccess = async (conversationId, userId, req = null) => {
   try {
@@ -399,11 +441,13 @@ const hasConversationAccess = async (conversationId, userId, req = null) => {
 };
 
 /**
- * Get recent active conversations for a user
- * @param {string} userId
- * @param {number} limit
- * @param {Object} req - Request object for tenant context
- * @returns {Promise<Array>}
+ * Retrieves a list of recent active conversations for a specific user.
+ *
+ * @param {string} userId - The ID of the user whose recent conversations are to be retrieved.
+ * @param {number} [limit=5] - The maximum number of recent conversations to return.
+ * @param {Object} [req=null] - The Express request object, used to extract tenant information for multi-tenancy.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of recent conversation objects, including ID, title, last activity, and message count.
+ * @throws {ApiError} If an internal server error occurs during the fetch operation.
  */
 const getRecentConversations = async (userId, limit = 5, req = null) => {
   try {
@@ -428,6 +472,23 @@ const getRecentConversations = async (userId, limit = 5, req = null) => {
   }
 };
 
+/**
+ * @typedef {Object} ConversationHelpers
+ * @property {function(string, string, Object): Promise<Object>} getConversationById - Retrieves a single conversation by its ID.
+ * @property {function(string, Object, Object): Promise<Object>} getUserConversations - Retrieves a paginated list of conversations for a specific user.
+ * @property {function(string, string, Object, Object): Promise<Object>} getConversationMessages - Retrieves paginated messages for a specific conversation.
+ * @property {function(string, string, Object, Object): Promise<Array<Object>>} searchConversations - Searches for conversations belonging to a user.
+ * @property {function(string, number, number, Object): Promise<Object>} getAllSavedConversations - Retrieves a paginated list of all saved conversations for a user.
+ * @property {function(string, Object): Promise<Object>} getConversationStats - Retrieves statistics about a user's conversations.
+ * @property {function(string, string, Object, Object): Promise<Array<Object>>} getConversationsByCategory - Retrieves conversations for a user filtered by category.
+ * @property {function(string, string, Object): Promise<boolean>} hasConversationAccess - Checks if a user has access to a given conversation.
+ * @property {function(string, number, Object): Promise<Array<Object>>} getRecentConversations - Retrieves a list of recent active conversations for a user.
+ */
+
+/**
+ * An object containing helper functions for managing conversations.
+ * @type {ConversationHelpers}
+ */
 export const conversationHelpers = {
   getConversationById,
   getUserConversations,
