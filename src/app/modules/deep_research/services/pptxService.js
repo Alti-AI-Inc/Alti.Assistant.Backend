@@ -4,7 +4,9 @@ import pptxgen from 'pptxgenjs';
  * Main function: Generates a premium 16:9 strategic PowerPoint slide deck (PPTX)
  * from recursive deep research results matching the McKinsey Slide Dashboard.
  */
-export const generatePPTXReport = async (reportData) => {
+export const generatePPTXReport = async (reportDataParam) => {
+  // Ensure reportData is an object to prevent destructuring errors if null/undefined
+  const reportData = reportDataParam || {};
   const { title, query, answer, sources, quantitativeFacts, metadata } = reportData;
 
   const pptx = new pptxgen();
@@ -42,7 +44,7 @@ export const generatePPTXReport = async (reportData) => {
   
   // Subtitle / Objective Context Box
   slide1.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: 1.3, w: 12.3, h: 0.6, fill: { color: 'F1F5F9' } });
-  slide1.addText(`Objective: "${query}"`, {
+  slide1.addText(`Objective: "${query || 'No specific query provided'}"`, { // Added fallback for query
     x: 0.7, y: 1.4, w: 11.9, h: 0.4, fontSize: 11, italic: true, color: '334155', fontFace: 'Arial'
   });
   
@@ -110,7 +112,7 @@ export const generatePPTXReport = async (reportData) => {
     x: 0.7, y: 6.4, w: 1.5, h: 0.5, fontSize: 24, bold: true, color: COLOR_TEAL, fontFace: 'Arial'
   });
   
-  slide1.addText(`"${goldFact.metric.replace('_____', ' ')}" - Verified in: ${goldFact.source}`, {
+  slide1.addText(`"${(goldFact.metric || '').replace('_____', ' ')}" - Verified in: ${goldFact.source || 'N/A'}`, { // Added fallback for metric and source
     x: 2.2, y: 6.45, w: 10.2, h: 0.4, fontSize: 9.5, color: COLOR_DARK_SLATE, fontFace: 'Arial'
   });
   
@@ -300,7 +302,8 @@ export const generatePPTXReport = async (reportData) => {
   // Export presentation to node buffer
   const buffer = await pptx.write('nodebuffer');
   
-  const sanitizedQuery = query
+  // Sanitize query for filename, providing a fallback if query is empty or null
+  const sanitizedQuery = (query || 'untitled_report')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, '_')
