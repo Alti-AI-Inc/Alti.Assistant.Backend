@@ -4,7 +4,23 @@
  * in the Swarm Engine, giving them live web data with real citations.
  */
 
-// Primary web search agent — the Perplexity killer
+/**
+ * @typedef {Object} SwarmAgent
+ * @property {string} id - Unique identifier for the agent.
+ * @property {string} name - Display name of the agent.
+ * @property {string} description - Brief description of the agent's capabilities and purpose.
+ * @property {string} systemInstruction - System prompt/instructions guiding the agent's behavior, formatting, and constraints.
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {string[]} tools - List of tools enabled for the agent (e.g., 'google-search', 'youtube-search').
+ * @property {string[]} keywords - Keywords that trigger this agent within the swarm routing system.
+ */
+
+/**
+ * Primary web search agent designed for real-time information retrieval.
+ * Acts as a high-speed, factual search engine with Google Search Grounding.
+ * 
+ * @type {SwarmAgent}
+ */
 export const realtimeSearchAgent = {
   id: 'realtime_search_agent',
   name: 'Alti Search',
@@ -32,7 +48,12 @@ RULES:
   ]
 };
 
-// Deep search — multi-source synthesis
+/**
+ * Deep search agent designed for multi-source synthesis and comprehensive research.
+ * Synthesizes information from multiple sources into a structured, factual answer.
+ * 
+ * @type {SwarmAgent}
+ */
 export const perplexityDeepSearcher = {
   id: 'perplexity_deep_searcher',
   name: 'Deep Web Researcher',
@@ -50,7 +71,11 @@ FORMAT:
   keywords: ['deep search', 'search the web', 'market data', 'compare products', 'latest stats', 'realtime facts', 'lookup details']
 };
 
-// YouTube search
+/**
+ * YouTube content auditor agent designed to search and summarize video content.
+ * 
+ * @type {SwarmAgent}
+ */
 export const youtubeResearcher = {
   id: 'youtube_researcher',
   name: 'YouTube Content Auditor',
@@ -63,7 +88,13 @@ Include direct reference links when available. Be concise.`,
   keywords: ['youtube', 'video', 'watch', 'channel', 'stream video', 'tutorial video']
 };
 
-// Academic search
+/**
+ * Academic scholar agent designed for scientific summaries and literature reviews.
+ * Note: This agent does not have active search tools enabled by default in this config,
+ * relying on internal knowledge or pre-routed context.
+ * 
+ * @type {SwarmAgent}
+ */
 export const academicScholar = {
   id: 'academic_scholar',
   name: 'Academic Scholar & Researcher',
@@ -80,7 +111,11 @@ FORMAT:
   keywords: ['academic', 'scholar', 'researcher', 'literature review', 'citation', 'bibtex', 'paper', 'journal', 'scientific']
 };
 
-// Financial search
+/**
+ * Financial search agent designed for real-time market data, stock prices, and corporate financials.
+ * 
+ * @type {SwarmAgent}
+ */
 export const financialSearchAgent = {
   id: 'financial_search_agent',
   name: 'Market & Ticker Auditor',
@@ -101,7 +136,11 @@ FORMAT:
   ]
 };
 
-// Academic paper search
+/**
+ * Research paper grounder agent designed to search and verify scientific literature across databases.
+ * 
+ * @type {SwarmAgent}
+ */
 export const academicSearchAgent = {
   id: 'academic_search_agent',
   name: 'Research Paper Grounder',
@@ -121,7 +160,11 @@ RULES:
   ]
 };
 
-// Live news aggregator
+/**
+ * Live news and event aggregator agent designed for real-time breaking news synthesis.
+ * 
+ * @type {SwarmAgent}
+ */
 export const liveIntelAggregator = {
   id: 'live_intel_aggregator',
   name: 'Live News & Event Aggregator',
@@ -144,7 +187,11 @@ FORMAT:
   ]
 };
 
-// Academic meta-analysis
+/**
+ * Academic meta-analyst agent designed for systematic literature reviews and clinical trial synthesis.
+ * 
+ * @type {SwarmAgent}
+ */
 export const academicMetaAnalyst = {
   id: 'academic_meta_analyst',
   name: 'Academic Meta-Analysis & Literature Reviewer',

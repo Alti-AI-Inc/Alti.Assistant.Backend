@@ -352,6 +352,17 @@ KnowledgeBankFileSchema.index({ userId: 1, folderId: 1, isActive: 1 });
  */
 KnowledgeBankFileSchema.index({ documentId: 1 }, { sparse: true });
 
+// OPTIMIZATION: Compound index for covered queries when calculating total storage size.
+// This allows MongoDB to calculate the sum of fileSize directly from the index without loading documents from disk.
+KnowledgeBankFileSchema.index({ userId: 1, isActive: 1, fileSize: 1 });
+
+// OPTIMIZATION: Compound index for filtering user files by processing status.
+KnowledgeBankFileSchema.index({ userId: 1, isProcessed: 1, isActive: 1 });
+
+// OPTIMIZATION: Compound indexes for multi-tenant isolation queries.
+KnowledgeBankFileSchema.index({ tenantId: 1, isActive: 1 });
+KnowledgeBankFileSchema.index({ tenantId: 1, userId: 1, isActive: 1 });
+
 /**
  * Virtual property to get the file size formatted into human-readable units (e.g., "1.23 MB").
  * @member {string} formattedFileSize
@@ -387,6 +398,7 @@ KnowledgeBankFileSchema.virtual('fileExtension').get(function () {
  * @param {mongoose.Types.ObjectId | null} [options.folderId] - Filter by folder ID (null for root).
  * @param {number} [options.limit=100] - Maximum number of files to return.
  * @param {number} [options.skip=0] - Number of files to skip for pagination.
+ * @param {boolean} [options.lean=false] - OPTIMIZATION: Return plain JS objects instead of heavy Mongoose documents.
  * @returns {Promise<Array<KnowledgeBankFileSchema>>} A promise that resolves to an array of KnowledgeBankFile documents.
  * @static
  */
@@ -410,10 +422,17 @@ KnowledgeBankFileSchema.statics.findByUserId = async function (
     query.folderId = options.folderId;
   }
 
-  return this.find(query)
+  const queryBuilder = this.find(query)
     .sort({ createdAt: -1 })
     .limit(options.limit || 100)
     .skip(options.skip || 0);
+
+  // OPTIMIZATION: Use lean queries when requested for massive performance gains
+  if (options.lean) {
+    queryBuilder.lean();
+  }
+
+  return queryBuilder;
 };
 
 /**
@@ -431,6 +450,7 @@ KnowledgeBankFileSchema.statics.countByUserId = async function (
   if (activeOnly) {
     query.isActive = true;
   }
+  // OPTIMIZATION: countDocuments utilizes index-only scans when matched with compound indexes
   return this.countDocuments(query);
 };
 
@@ -450,6 +470,7 @@ KnowledgeBankFileSchema.statics.getTotalStorageByUserId = async function (
     query.isActive = true;
   }
 
+  // OPTIMIZATION: This aggregation is fully covered by the { userId: 1, isActive: 1, fileSize: 1 } index
   const result = await this.aggregate([
     { $match: query },
     { $group: { _id: null, totalSize: { $sum: '$fileSize' } } },

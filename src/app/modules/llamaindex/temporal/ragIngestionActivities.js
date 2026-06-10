@@ -11,6 +11,18 @@ import config from '../../../../../config/index.js';
 const activityTransitiveState = new Map();
 
 /**
+ * Helper to resolve a safe, non-traversable persistence directory for a user
+ */
+function getSafePersistDir(userId) {
+  const baseDir = path.resolve('storage/ragsystem');
+  const persistDir = path.resolve(baseDir, String(userId));
+  if (!persistDir.startsWith(baseDir)) {
+    throw new Error('Security violation: Path traversal detected');
+  }
+  return persistDir;
+}
+
+/**
  * Resilient Temporal Activity validating and loading document buffer
  */
 export async function downloadAndLoadFileActivity(filePath, originalName, docId) {
@@ -124,27 +136,33 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
       throw new Error('Transitive vector nodes state not found.');
     }
 
-    const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+    const persistDir = getSafePersistDir(userId);
     await fsPromises.mkdir(persistDir, { recursive: true });
 
     const vectorStorePath = path.join(persistDir, 'vector_store.json');
     let currentNodes = [];
     if (existsSync(vectorStorePath)) {
       try {
-        currentNodes = JSON.parse(await fsPromises.readFile(vectorStorePath, 'utf-8'));
+        const parsed = JSON.parse(await fsPromises.readFile(vectorStorePath, 'utf-8'));
+        if (Array.isArray(parsed)) {
+          currentNodes = parsed;
+        }
       } catch (err) { /* ignore */ }
     }
 
     // Upsert strategy: Clean out any previous nodes matching the same source filename
-    const baseNodes = currentNodes.filter(n => n.metadata?.fileName !== originalName);
+    const baseNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName);
     const finalNodes = [...baseNodes, ...nodes.map(nodeToMetadata)];
 
     // Commit back to local storage
     await fsPromises.writeFile(vectorStorePath, JSON.stringify(finalNodes, null, 2), 'utf-8');
 
     // Update the knowledge bank manifest
-    const manifest = await loadManifest(persistDir);
-    const existingDocIdx = manifest.documents.findIndex(d => d.docId === docId || d.fileName === originalName);
+    const manifest = await loadManifest(persistDir) || {};
+    if (!manifest.documents || !Array.isArray(manifest.documents)) {
+      manifest.documents = [];
+    }
+    const existingDocIdx = manifest.documents.findIndex(d => d && (d.docId === docId || d.fileName === originalName));
 
     const docRecord = {
       docId,
@@ -190,16 +208,18 @@ export async function commitToVectorStoreActivity(filePath, originalName, docId,
 export async function cleanupFailedIngestionActivity(filePath, originalName, docId, userId) {
   logger.warn(`[Temporal Saga Compensating Activity] Reverting RAG vectors and purging records for document ID: ${docId}`);
   try {
-    const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+    const persistDir = getSafePersistDir(userId);
     const vectorStorePath = path.join(persistDir, 'vector_store.json');
 
     // Revert nodes from vector store JSON
     if (existsSync(vectorStorePath)) {
       try {
         const currentNodes = JSON.parse(await fsPromises.readFile(vectorStorePath, 'utf-8'));
-        const cleanedNodes = currentNodes.filter(n => n.metadata?.fileName !== originalName && n.metadata?.docId !== docId);
-        await fsPromises.writeFile(vectorStorePath, JSON.stringify(cleanedNodes, null, 2), 'utf-8');
-        logger.info('[Temporal Saga] Successfully purged transaction records from vector store.');
+        if (Array.isArray(currentNodes)) {
+          const cleanedNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName && n?.metadata?.docId !== docId);
+          await fsPromises.writeFile(vectorStorePath, JSON.stringify(cleanedNodes, null, 2), 'utf-8');
+          logger.info('[Temporal Saga] Successfully purged transaction records from vector store.');
+        }
       } catch (err) {
         logger.warn(`[Temporal Saga] Could not revert vector store database records: ${err.message}`);
       }
@@ -207,13 +227,15 @@ export async function cleanupFailedIngestionActivity(filePath, originalName, doc
 
     // Revert document manifests
     const manifest = await loadManifest(persistDir);
-    const existingDocIdx = manifest.documents.findIndex(d => d.docId === docId || d.fileName === originalName);
-    if (existingDocIdx > -1) {
-      manifest.documents[existingDocIdx].processingStatus = 'failed';
-      manifest.documents[existingDocIdx].isProcessed = false;
-      manifest.documents[existingDocIdx].processingError = 'Temporal execution crashed, transaction rolled back.';
-      await saveManifest(persistDir, manifest);
-      logger.info('[Temporal Saga] Reverted document index manifest registers to failed state.');
+    if (manifest && Array.isArray(manifest.documents)) {
+      const existingDocIdx = manifest.documents.findIndex(d => d && (d.docId === docId || d.fileName === originalName));
+      if (existingDocIdx > -1) {
+        manifest.documents[existingDocIdx].processingStatus = 'failed';
+        manifest.documents[existingDocIdx].isProcessed = false;
+        manifest.documents[existingDocIdx].processingError = 'Temporal execution crashed, transaction rolled back.';
+        await saveManifest(persistDir, manifest);
+        logger.info('[Temporal Saga] Reverted document index manifest registers to failed state.');
+      }
     }
 
     // Purge transitional memory cache
