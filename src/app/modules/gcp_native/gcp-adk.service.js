@@ -7,6 +7,12 @@ import { logger } from '../../../shared/logger.js';
  * @returns {string} Formatted ADK manifest package
  */
 const compileAdkManifest = (pluginConfig) => {
+  // Bug fix: Validate pluginConfig is a valid object before accessing its properties.
+  // If pluginConfig is null, undefined, or not an object, accessing its properties would throw an error.
+  if (!pluginConfig || typeof pluginConfig !== 'object' || Array.isArray(pluginConfig)) {
+    throw new Error('Invalid plugin configuration provided. Expected a non-null object.');
+  }
+
   logger.info(`GCP ADK: Compiling developer manifest package for "${pluginConfig.name}"...`);
 
   const manifest = {
@@ -58,11 +64,13 @@ const validateAdkManifest = (rawText) => {
     if (!manifest.version) errors.push('ADK Manifest missing mandatory field: "version"');
     if (!manifest.scope) errors.push('ADK Manifest missing mandatory field: "scope"');
     
-    if (!Array.isArray(manifest.permissions)) {
+    // Bug fix: Enhance permissions validation to check for non-empty array of strings,
+    // as implied by the error message.
+    if (!Array.isArray(manifest.permissions) || manifest.permissions.length === 0 || !manifest.permissions.every(p => typeof p === 'string')) {
       errors.push('ADK Manifest permissions must be a non-empty array of strings.');
     }
 
-    if (!manifest.entryPoints || typeof manifest.entryPoints !== 'object') {
+    if (!manifest.entryPoints || typeof manifest.entryPoints !== 'object' || Array.isArray(manifest.entryPoints)) { // Added Array.isArray check for robustness
       errors.push('ADK Manifest entryPoints must be a valid defined configuration object.');
     }
 
