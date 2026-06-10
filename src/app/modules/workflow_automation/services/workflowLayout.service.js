@@ -141,10 +141,16 @@ function validateLayoutSchema(nodes, edges = []) {
       // Use pre-computed inDegree and outDegree for O(1) lookup instead of O(M) filter
       const incomingCount = inDegree.get(node.id) || 0;
       const outgoingCount = outDegree.get(node.id) || 0;
-      const isTrigger = node.type === 'trigger' || (node.data && node.data.stepType === 'trigger') || incomingCount === 0;
 
-      if (incomingCount === 0 && outgoingCount === 0 && !isTrigger) {
-        warnings.push(`Node '${node.id}' is completely disconnected from the rest of the workflow.`);
+      // BUG FIX: The original `isTrigger` definition incorrectly included `incomingCount === 0`,
+      // which caused the `!isTrigger` condition to always be false when `incomingCount === 0`.
+      // This prevented the warning for completely disconnected nodes that were not explicit triggers.
+      // Now, `isExplicitTrigger` only checks the node's type/data, ensuring the warning
+      // correctly fires for isolated nodes that are not designated triggers.
+      const isExplicitTrigger = node.type === 'trigger' || (node.data && node.data.stepType === 'trigger');
+
+      if (incomingCount === 0 && outgoingCount === 0 && !isExplicitTrigger) {
+        warnings.push(`Node '${node.id}' is completely disconnected from the rest of the workflow and is not an explicit trigger.`);
       }
     });
 
