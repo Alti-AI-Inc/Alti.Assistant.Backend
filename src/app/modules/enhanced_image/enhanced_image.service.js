@@ -18,16 +18,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Generate unique guest user ID
- * @returns {string}
+ * Generates a unique ID for a guest user.
+ * @returns {string} A unique guest user ID.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID for images
- * @returns {string}
+ * Generates a unique ID for an image-related conversation.
+ * @returns {string} A unique conversation ID, prefixed with "image-".
  */
 // BUG FIX: Moved this function definition before its first use in handleImageConversation
 const generateImageConversationId = () => {
@@ -35,13 +35,16 @@ const generateImageConversationId = () => {
 };
 
 /**
- * Create or get image conversation (supports both authenticated and guest users)
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} prompt
- * @param {boolean} isGuest
- * @param {string} category - 'image_generation' or 'image_editing'
- * @returns {Promise<Object>}
+ * Finds an existing image conversation or creates a new one.
+ * This function supports both authenticated and guest users.
+ * @param {string} userId - The ID of the user (can be a guest ID).
+ * @param {string|null} conversationId - The ID of an existing conversation. If null or not found, a new one is created.
+ * @param {string} prompt - The user's initial prompt, used to generate a title for new conversations.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {('image_generation'|'image_editing')} [category='image_generation'] - The category of the conversation.
+ * @param {import('express').Request | null} [req=null] - The Express request object, for context.
+ * @returns {Promise<object>} A promise that resolves to the conversation object.
+ * @throws {ApiError} If there's a server error while handling the conversation.
  */
 const handleImageConversation = async (
   userId,
@@ -138,13 +141,15 @@ const handleImageConversation = async (
 };
 
 /**
- * Add image request message to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} prompt
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a user's image request message to a conversation and logs it to OpenMemory if enabled.
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} userId - The ID of the user.
+ * @param {string} prompt - The user's prompt/message content.
+ * @param {object} [metadata={}] - Additional metadata to store with the message.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {import('express').Request | null} [req=null] - The Express request object, for context.
+ * @returns {Promise<object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If adding the message fails.
  */
 const addImageRequestMessage = async (
   conversationId,
@@ -209,13 +214,15 @@ const addImageRequestMessage = async (
 };
 
 /**
- * Add image result message to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} result
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an assistant's image result message to a conversation and logs it to OpenMemory if enabled.
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string} result - The content of the result message (e.g., URL to the image).
+ * @param {object} [metadata={}] - Additional metadata about the generated image (e.g., service used).
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {import('express').Request | null} [req=null] - The Express request object, for context.
+ * @returns {Promise<object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If adding the message fails.
  */
 const addImageResultMessage = async (
   conversationId,
@@ -280,13 +287,14 @@ const addImageResultMessage = async (
 };
 
 /**
- * Add error message to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} errorMessage
- * @param {Error} originalError
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an error message to a conversation when an operation fails.
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} userId - The ID of the user.
+ * @param {string} errorMessage - The user-facing error message.
+ * @param {Error} originalError - The original error object for logging.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {import('express').Request | null} [req=null] - The Express request object, for context.
+ * @returns {Promise<object|undefined>} A promise that resolves to the saved message object, or undefined if saving fails.
  */
 const addErrorMessage = async (
   conversationId,
@@ -323,11 +331,15 @@ const addErrorMessage = async (
 };
 
 /**
- * Generate image with prompt
- * @param {string} prompt
- * @param {string} filename
- * @param {Object} options
- * @returns {Promise<Object>}
+ * Generates an image based on a prompt. It routes the request to the most suitable image generation service and saves the result.
+ * @param {string} prompt - The text prompt describing the image to generate.
+ * @param {string} filename - The desired filename for the output image.
+ * @param {object} [options={}] - Optional parameters for image generation.
+ * @param {string|null} [options.referenceImage] - A reference image for the generation process.
+ * @param {string|null} [options.aspectRatio] - The desired aspect ratio (e.g., "16:9").
+ * @param {string|null} [options.negativePrompt] - A prompt describing what to avoid in the image.
+ * @returns {Promise<object>} A promise that resolves to an object containing the filename, public URL, and metadata about the generation service.
+ * @throws {ApiError} If image generation fails.
  */
 const generateImage = async (
   prompt,
@@ -383,12 +395,13 @@ const generateImage = async (
 };
 
 /**
- * Edit image with prompt and base64 image
- * @param {string} prompt
- * @param {string} imageBase64
- * @param {string} filename
- * @param {Object} options
- * @returns {Promise<Object>}
+ * Edits an existing image based on a text prompt using an inpainting/outpainting model.
+ * @param {string} prompt - The text prompt describing the edits.
+ * @param {string} imageBase64 - The base64 encoded string of the image to edit.
+ * @param {string} filename - The desired filename for the output image.
+ * @param {object} [options={}] - Optional parameters for the editing process.
+ * @returns {Promise<object>} A promise that resolves to an object containing the filename, public URL, and service metadata.
+ * @throws {ApiError} If image editing fails.
  */
 const editImage = async (prompt, imageBase64, filename, options = {}) => {
   try {
@@ -421,9 +434,10 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
 };
 
 /**
- * Analyze image intent
- * @param {string} prompt
- * @returns {Promise<Object>}
+ * Analyzes a user's prompt to determine the intent related to image generation or editing.
+ * @param {string} prompt - The user's prompt.
+ * @returns {Promise<object>} A promise that resolves to the intent analysis result.
+ * @throws {ApiError} If intent analysis fails.
  */
 const analyzeImageIntent = async (prompt) => {
   try {
@@ -442,11 +456,12 @@ const analyzeImageIntent = async (prompt) => {
 };
 
 /**
- * Analyze image intent with context
- * @param {string} prompt
- * @param {boolean} hasImage
- * @param {string} context
- * @returns {Promise<Object>}
+ * Analyzes a user's prompt with additional context from the conversation to determine intent.
+ * @param {string} prompt - The user's prompt.
+ * @param {boolean} hasImage - Whether the current context includes an image.
+ * @param {string} context - The preceding conversation history or context.
+ * @returns {Promise<object>} A promise that resolves to the intent analysis result.
+ * @throws {ApiError} If intent analysis fails.
  */
 const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
   try {
@@ -468,10 +483,11 @@ const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
 };
 
 /**
- * Evaluate prompt quality
- * @param {string} prompt
- * @param {string} history
- * @returns {Promise<Object>}
+ * Evaluates the quality and clarity of a user's prompt for image generation.
+ * @param {string} prompt - The user's prompt to evaluate.
+ * @param {string} history - The conversation history for context.
+ * @returns {Promise<object>} A promise that resolves to the evaluation result.
+ * @throws {ApiError} If prompt evaluation fails.
  */
 const evaluatePromptQuality = async (prompt, history) => {
   try {
@@ -491,9 +507,10 @@ const evaluatePromptQuality = async (prompt, history) => {
 };
 
 /**
- * Build enhanced prompt from conversation history
- * @param {Array} conversationHistory
- * @returns {Promise<string>}
+ * Constructs an enhanced, more detailed prompt for image generation by synthesizing information from the conversation history.
+ * @param {Array<object>} conversationHistory - An array of message objects from the conversation.
+ * @returns {Promise<string>} A promise that resolves to the enhanced prompt string.
+ * @throws {ApiError} If prompt enhancement fails.
  */
 const buildEnhancedPromptFromHistory = async (conversationHistory) => {
   try {
@@ -511,9 +528,11 @@ const buildEnhancedPromptFromHistory = async (conversationHistory) => {
 };
 
 /**
- * Get image conversation statistics
- * @param {string} userId
- * @returns {Promise<Object>}
+ * Retrieves statistics about a user's image generation and editing activities.
+ * @permission This service is intended for authenticated users to retrieve their own stats. Access control should be enforced by the caller.
+ * @param {string} userId - The ID of the user whose stats are being requested.
+ * @param {import('express').Request | null} [req=null] - The Express request object, for context.
+ * @returns {Promise<object>} A promise that resolves to an object containing image-related statistics.
  */
 const getImageStats = async (userId, req = null) => {
   try {
@@ -572,6 +591,10 @@ const getImageStats = async (userId, req = null) => {
   }
 };
 
+/**
+ * A service object that encapsulates all functionalities related to enhanced image generation, editing, and conversation management.
+ * @namespace enhancedImageService
+ */
 export const enhancedImageService = {
   handleImageConversation,
   addImageRequestMessage,

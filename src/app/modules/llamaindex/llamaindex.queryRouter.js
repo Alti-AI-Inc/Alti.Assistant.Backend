@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url'; // Added for __dirname equivalent
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
+import ApiError from '../../../shared/ApiError.js';
 
 // Get __dirname equivalent for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -76,54 +77,65 @@ class QueryRouterService {
    * @returns {Promise<Object>} Routing decision with engine, confidence, and reasoning
    */
   async route(query, options = {}) {
-    this.totalRouted++;
-    const queryLower = query.toLowerCase();
-    const userId = options.userId || 'default_user';
-
-    // Fetch user's enriched document metadata for semantic alignment
-    let userMetadataList = [];
+    // PATCH: Added a top-level try/catch block to handle any unexpected errors during routing logic.
+    // This ensures all failures are logged centrally and a normalized ApiError is thrown.
     try {
-      userMetadataList = await DocumentMetadata.find({ userId }).lean();
-    } catch (err) {
-      logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}:`, err.message);
+      this.totalRouted++;
+      const queryLower = query.toLowerCase();
+      const userId = options.userId || 'default_user';
+
+      // Fetch user's enriched document metadata for semantic alignment
+      let userMetadataList = [];
+      try {
+        userMetadataList = await DocumentMetadata.find({ userId }).lean();
+      } catch (dbError) {
+        // PATCH: Improved logging for non-fatal DB errors. Log the full error object for better diagnostics.
+        // This is a non-fatal error for routing; log as a warning and continue with degraded accuracy.
+        logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}. Routing will proceed without it.`, { error: dbError });
+      }
+
+      // Step 1: Classify query profile using keywords + semantic tags from user documents
+      const profile = this._classifyProfile(queryLower, userMetadataList);
+
+      // Step 2: Score each engine
+      const scores = {};
+      for (const engine of ENGINES) {
+        scores[engine] = this._scoreEngine(engine, profile, queryLower, options, userMetadataList);
+      }
+
+      // Step 3: Pick the winner
+      const ranked = Object.entries(scores)
+        .sort(([, a], [, b]) => b - a);
+
+      const [bestEngine, bestScore] = ranked[0];
+      const [secondEngine, secondScore] = ranked[1] || [null, 0];
+
+      // Calculate confidence (how much better is the best vs second)
+      const confidence = secondScore > 0
+        ? Math.min(1, (bestScore - secondScore) / secondScore + 0.5)
+        : 0.95;
+
+      const decision = {
+        engine: bestEngine,
+        confidence: Math.round(confidence * 100) / 100,
+        profile: profile.name,
+        reasoning: this._buildReasoning(bestEngine, profile, options, userMetadataList),
+        alternatives: ranked.slice(1, 3).map(([eng, score]) => ({
+          engine: eng,
+          score: Math.round(score * 100) / 100,
+        })),
+        scores,
+      };
+
+      logger.info(`QueryRouter: "${query.substring(0, 50)}..." → ${bestEngine} (${profile.name}, conf=${decision.confidence})`);
+
+      return decision;
+    } catch (error) {
+      // PATCH: Catch any unexpected errors during the routing logic.
+      logger.error('QueryRouter: an unexpected error occurred during query routing.', { query, options, error });
+      // PATCH: Normalize the error for the controller/service layer to ensure a consistent error response format.
+      throw new ApiError(500, 'Failed to route query due to an internal system error.');
     }
-
-    // Step 1: Classify query profile using keywords + semantic tags from user documents
-    const profile = this._classifyProfile(queryLower, userMetadataList);
-
-    // Step 2: Score each engine
-    const scores = {};
-    for (const engine of ENGINES) {
-      scores[engine] = this._scoreEngine(engine, profile, queryLower, options, userMetadataList);
-    }
-
-    // Step 3: Pick the winner
-    const ranked = Object.entries(scores)
-      .sort(([, a], [, b]) => b - a);
-
-    const [bestEngine, bestScore] = ranked[0];
-    const [secondEngine, secondScore] = ranked[1] || [null, 0];
-
-    // Calculate confidence (how much better is the best vs second)
-    const confidence = secondScore > 0
-      ? Math.min(1, (bestScore - secondScore) / secondScore + 0.5)
-      : 0.95;
-
-    const decision = {
-      engine: bestEngine,
-      confidence: Math.round(confidence * 100) / 100,
-      profile: profile.name,
-      reasoning: this._buildReasoning(bestEngine, profile, options, userMetadataList),
-      alternatives: ranked.slice(1, 3).map(([eng, score]) => ({
-        engine: eng,
-        score: Math.round(score * 100) / 100,
-      })),
-      scores,
-    };
-
-    logger.info(`QueryRouter: "${query.substring(0, 50)}..." → ${bestEngine} (${profile.name}, conf=${decision.confidence})`);
-
-    return decision;
   }
 
   /**
@@ -160,7 +172,8 @@ class QueryRouterService {
       // Performance Fix & Unhandled Promise Fix:
       // Call _saveState asynchronously without awaiting, but attach a .catch() handler
       // to prevent unhandled promise rejections and avoid blocking the event loop.
-      this._saveState().catch(err => logger.error('QueryRouter: Error during async state save:', err));
+      // PATCH: Improved log message and ensures the full error object is captured.
+      this._saveState().catch(err => logger.error('QueryRouter: background state persistence failed.', { error: err }));
     }
   }
 
@@ -191,10 +204,19 @@ class QueryRouterService {
 
       const ep = analytics.enginePerformance[engine];
       ep.totalQueries += data.count;
-      ep.avgLatencyMs = Math.round(data.totalLatencyMs / data.count);
-      ep.avgQuality = Math.round((data.totalQuality / data.count) * 100) / 100;
-      ep.successRate = Math.round((data.successes / data.count) * 100);
-      ep.cacheHitRate = Math.round((data.cacheHits / data.count) * 100);
+
+      // PATCH: Added a defensive check to prevent division-by-zero errors if count is malformed.
+      if (data.count > 0) {
+        ep.avgLatencyMs = Math.round(data.totalLatencyMs / data.count);
+        ep.avgQuality = Math.round((data.totalQuality / data.count) * 100) / 100;
+        ep.successRate = Math.round((data.successes / data.count) * 100);
+        ep.cacheHitRate = Math.round((data.cacheHits / data.count) * 100);
+      } else {
+        ep.avgLatencyMs = 0;
+        ep.avgQuality = 0;
+        ep.successRate = 0;
+        ep.cacheHitRate = 0;
+      }
 
       if (!analytics.profileDistribution[profile]) {
         analytics.profileDistribution[profile] = 0;
@@ -344,7 +366,9 @@ class QueryRouterService {
         logger.info(`QueryRouter: loaded state — ${this.performanceScores.size} profile:engine entries`);
       }
     } catch (error) {
-      logger.warn('QueryRouter: failed to load state, starting fresh:', error.message);
+      // PATCH: Improved logging to include the full error object for better diagnostics in GCP/structured logging.
+      // This is a non-fatal warning as the service can start with a fresh state.
+      logger.warn('QueryRouter: failed to load state, starting fresh. State file might be corrupted or inaccessible.', { error });
     }
   }
 
@@ -352,24 +376,23 @@ class QueryRouterService {
    * Persist router state to disk.
    * @private
    */
-  async _saveState() { // Performance Fix: Made async to prevent blocking the event loop
-    try {
-      // Ensure directory exists. fs.promises.mkdir with recursive: true is idempotent
-      // and handles creation if the directory doesn't exist.
-      await fs.promises.mkdir(TELEMETRY_DIR, { recursive: true });
+  async _saveState() {
+    // PATCH: Removed the try/catch block. This method now throws on failure, allowing the caller
+    // (recordOutcome) to handle the error, which it does by logging it as a critical error.
+    // This centralizes error handling logic in the calling context.
 
-      const state = {
-        performanceScores: Object.fromEntries(this.performanceScores),
-        totalRouted: this.totalRouted,
-        lastSaved: new Date().toISOString(),
-      };
+    // Ensure directory exists. fs.promises.mkdir with recursive: true is idempotent.
+    await fs.promises.mkdir(TELEMETRY_DIR, { recursive: true });
 
-      // Performance Fix: Use async writeFile to prevent blocking the event loop
-      await fs.promises.writeFile(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
-      logger.info('QueryRouter: state persisted');
-    } catch (error) {
-      logger.warn('QueryRouter: failed to save state:', error.message);
-    }
+    const state = {
+      performanceScores: Object.fromEntries(this.performanceScores),
+      totalRouted: this.totalRouted,
+      lastSaved: new Date().toISOString(),
+    };
+
+    // Use async writeFile to prevent blocking the event loop. Throws on error.
+    await fs.promises.writeFile(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
+    logger.info('QueryRouter: state persisted');
   }
 }
 
