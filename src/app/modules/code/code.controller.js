@@ -8,6 +8,101 @@ import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { codeHelpers } from './code.helper.js';
 
+/**
+ * @swagger
+ * /api/v1/code/perform-task:
+ *   post:
+ *     summary: Initiate a code generation or assistance task.
+ *     description: |
+ *       Handles requests for code generation or assistance from both authenticated and guest users.
+ *       For authenticated users, it checks monthly subscription limits before processing the request.
+ *       It interacts with an AI assistant to generate or modify code based on the user's message,
+ *       manages conversation history, and saves messages and responses.
+ *     tags:
+ *       - Code
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's query or instruction for the code assistant.
+ *                 example: "Generate a simple Express.js route for user login."
+ *               conversationId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Optional. The ID of an existing conversation to continue. If not provided, a new conversation is started.
+ *                 example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+ *     responses:
+ *       200:
+ *         description: Code task completed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Code task completed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     response:
+ *                       type: string
+ *                       description: The AI assistant's response, potentially containing code.
+ *                       example: "```javascript\n// Your generated code here\n```"
+ *                     conversationId:
+ *                       type: string
+ *                       format: uuid
+ *                       description: The ID of the conversation.
+ *                       example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+ *                     messageCount:
+ *                       type: number
+ *                       description: The total number of messages in the conversation after this interaction.
+ *                       example: 4
+ *                     userType:
+ *                       type: string
+ *                       enum: [guest, authenticated]
+ *                       description: Indicates if the user was a guest or authenticated.
+ *                       example: "authenticated"
+ *                     userId:
+ *                       type: string
+ *                       description: The user ID (only included for guest users for frontend tracking).
+ *                       example: "guest_12345"
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       403:
+ *         description: Forbidden. User has reached their code assistance limit.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 403
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "You have reached your code assistance limit for this month. Please upgrade your plan to continue."
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 export const performCodeTask = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
@@ -168,7 +263,68 @@ export const performCodeTask = catchAsync(async (req, res) => {
 });
 
 /**
- * Get code statistics for the user (authenticated users only)
+ * @swagger
+ * /api/v1/code/stats:
+ *   get:
+ *     summary: Get code statistics for the authenticated user.
+ *     description: |
+ *       Retrieves usage statistics related to the code assistant for the currently authenticated user.
+ *       This endpoint is not available for guest users.
+ *     tags:
+ *       - Code
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Code statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Code statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalConversations:
+ *                       type: number
+ *                       description: Total number of code conversations initiated by the user.
+ *                       example: 15
+ *                     totalMessages:
+ *                       type: number
+ *                       description: Total number of messages exchanged in code conversations.
+ *                       example: 60
+ *                     lastActivity:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Timestamp of the user's last interaction with the code assistant.
+ *                       example: "2023-10-27T10:00:00.000Z"
+ *       401:
+ *         description: Unauthorized. Statistics are only available for authenticated users or user authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 401
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Statistics are only available for authenticated users"
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const getCodeStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -203,6 +359,17 @@ const getCodeStats = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @typedef {object} CodeController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} performCodeTask - Handles requests for code generation or assistance.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getCodeStats - Retrieves code usage statistics for the authenticated user.
+ */
+
+/**
+ * CodeController provides handlers for code-related API endpoints.
+ * It encapsulates the logic for performing code tasks and retrieving user statistics.
+ * @type {CodeController}
+ */
 export const codeController = {
   performCodeTask,
   getCodeStats,

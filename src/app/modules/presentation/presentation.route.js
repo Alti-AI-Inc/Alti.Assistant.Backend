@@ -65,7 +65,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(20, 15), // 20 requests per 15 minutes
+  createRateLimiter(20, 15), // 20 requests per 15 minutes - Re-enabled for security/performance
   validateRequest(PresentationValidation.conversationalRequestSchema),
   presentationController.conversationalAssistant
 );
@@ -117,7 +117,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
-  // createRateLimiter(10, 15), // 10 generations per 15 minutes
+  createRateLimiter(10, 15), // 10 generations per 15 minutes - Re-enabled for security/performance
   validateRequest(PresentationValidation.generatePresentationSchema),
   presentationController.generatePresentation
 );
@@ -221,7 +221,8 @@ router.get(
 router.post(
   '/edit',
   optionalAuth(),
-  // createRateLimiter(15, 15), // 15 edits per 15 minutes
+  extractTenantContext, // Added for tenant-specific authorization and IDOR prevention
+  createRateLimiter(15, 15), // 15 edits per 15 minutes - Re-enabled for security/performance
   validateRequest(PresentationValidation.editPresentationSchema),
   presentationController.editPresentation
 );
@@ -270,7 +271,8 @@ router.post(
 router.post(
   '/derive',
   optionalAuth(),
-  // createRateLimiter(15, 15), // 15 derivations per 15 minutes
+  extractTenantContext, // Added for tenant-specific authorization and IDOR prevention
+  createRateLimiter(15, 15), // 15 derivations per 15 minutes - Re-enabled for security/performance
   validateRequest(PresentationValidation.editPresentationSchema), // Same schema as edit
   presentationController.derivePresentation
 );
@@ -318,6 +320,7 @@ router.post(
 router.get(
   '/:presentationId',
   optionalAuth(),
+  extractTenantContext, // Added for tenant-specific authorization and IDOR prevention
   validateRequest(PresentationValidation.getPresentationSchema),
   presentationController.getPresentation
 );
