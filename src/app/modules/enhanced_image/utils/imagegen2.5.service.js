@@ -1,11 +1,19 @@
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'node:fs/promises'; // Use the promise-based fs API for asynchronous operations
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { v4 as uuidv4 } from 'uuid'; // USER DATA: For generating unique, non-colliding filenames.
 import dotenv from 'dotenv';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
 
 dotenv.config();
+
+// CONFIGURATION: Centralize configurable values for easier management and environment-specific settings.
+const MODEL_NAME = config.google.gemini_image_model || 'gemini-1.5-flash-001';
+const GCP_BUCKET_NAME = config.gcp.storage_bucket_name || 'alti_assistant_generated_photo';
+const GCP_KEY_PATH = config.gcp.key_file_path || path.join(process.cwd(), 'alti_gcp.json');
+const MAX_REFERENCE_IMAGES = 5; // USER LIMITS: Enforce a reasonable limit on reference images to prevent abuse and manage costs.
+const SAFE_UPLOADS_DIR = path.resolve(process.cwd(), 'temp_uploads'); // SECURITY: Define a sandboxed directory for user-provided files.
 
 const ai = new GoogleGenAI({
   vertexAI: {
@@ -15,139 +23,112 @@ const ai = new GoogleGenAI({
 });
 
 // Initialize GCP Storage
-const gcpKeyPath = path.join(process.cwd(), 'alti_gcp.json');
-const gcpStorage = new GCPStorageService(
-  'alti_assistant_generated_photo',
-  gcpKeyPath
-);
+const gcpStorage = new GCPStorageService(GCP_BUCKET_NAME, GCP_KEY_PATH);
+
+// ROBUSTNESS: A map for MIME types to file extensions ensures correct file naming.
+const mimeTypeToExtension = {
+  'image/png': '.png',
+  'image/jpeg': '.jpeg',
+  'image/jpg': '.jpg',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+};
 
 /**
- * Generates an image using the Google Gemini 3.1 Flash Image model based on a text prompt and optional reference images.
- * The generated image is then uploaded to a Google Cloud Platform (GCP) storage bucket.
+ * Generates an image based on a user prompt and optional reference images.
+ * This function ensures user data isolation, enforces limits, and handles file operations securely.
  *
- * @async
- * @function imagen3
- * @param {string} prompt - The text prompt to guide the image generation. If not provided, a default creative prompt is used.
- * @param {string[]} [referenceImages] - An array of local file paths to reference images that provide additional context to the model.
- * @param {string} [filename='image.png'] - The desired base filename for the generated image in GCP Storage. The file extension will be automatically corrected based on the MIME type of the generated image.
- * @returns {Promise<string|null>} A promise that resolves to the public URL of the uploaded image. Returns `null` if the AI model does not generate an image.
- * @throws {Error} Throws an error if there is a failure in reading reference images (e.g., path traversal attempt), communicating with the AI API, or uploading the image to GCP Storage.
- * @example
- * // Generate an image with a simple prompt
- * const imageUrl = await imagen3('A futuristic cityscape at sunset.');
- * console.log(imageUrl);
- *
- * // Generate an image with a prompt and a reference image
- * const imageUrlWithRef = await imagen3('A cat wearing a hat, in the style of this image.', ['./path/to/style-reference.png']);
- * console.log(imageUrlWithRef);
+ * @param {string} userId - The unique identifier for the user to ensure data isolation and for usage tracking.
+ * @param {string} prompt - The text prompt for image generation.
+ * @param {Array<{path: string, mimeType: string}>} [referenceImages] - An array of objects, each with a path to a temporary reference image and its MIME type.
+ * @returns {Promise<string|null>} The public URL of the generated and uploaded image, or null if no image was generated.
+ * @throws {Error} Throws an error for invalid input, security violations, or failures in the generation/upload process.
  */
-export async function imagen3(prompt, referenceImages, filename = 'image.png') {
+export async function imagen3(userId, prompt, referenceImages = []) {
+  // USER EXPERIENCE/ROBUSTNESS: Validate inputs at the beginning of the function to fail fast with clear errors.
+  if (!userId) {
+    throw new Error('User ID is required for image generation to ensure data isolation.');
+  }
+  if (!prompt || prompt.trim().length === 0) {
+    throw new Error('A non-empty prompt is required for image generation.');
+  }
+  if (referenceImages.length > MAX_REFERENCE_IMAGES) {
+    throw new Error(`The number of reference images cannot exceed ${MAX_REFERENCE_IMAGES}.`);
+  }
+
   try {
-    const message = prompt
-      ? prompt
-      : 'Create a vibrant infographic that explains photosynthesis as if it were a recipe for a plant\'s favorite food. Show the "ingredients" (sunlight, water, CO2) and the "finished dish" (sugar/energy). The style should be like a page from a colorful kids\' cookbook, suitable for a 4th grader.';
+    const content = [{ text: prompt }];
 
-    const content = [{ text: message }];
-
-    if (referenceImages && referenceImages.length > 0) {
-      // Optimization: Read all reference images concurrently using fs.promises.readFile
-      // This avoids blocking the event loop with synchronous fs.readFileSync calls in a loop.
-      const imagePromises = referenceImages.map(async (imgPath) => {
-        // SECURITY: Validate imgPath to prevent path traversal (LFI).
-        // If referenceImages can come from user input, robust validation is crucial.
-        // This basic check prevents common path traversal attempts like '..' or absolute paths.
-        const normalizedPath = path.normalize(imgPath);
-        if (normalizedPath.includes('..') || path.isAbsolute(normalizedPath)) {
-          throw new Error(`Invalid reference image path: ${imgPath}. Path traversal detected.`);
+    if (referenceImages.length > 0) {
+      // OPTIMIZATION/SECURITY: Process all reference images concurrently with security checks.
+      const imagePromises = referenceImages.map(async (image) => {
+        if (!image || !image.path || !image.mimeType) {
+          throw new Error('Invalid reference image object. Both path and mimeType are required.');
         }
-        // For stronger security, ensure the path resolves within a designated safe directory:
-        // const safeBaseDir = path.resolve(process.cwd(), 'temp_uploads'); // Example safe directory
-        // const resolvedPath = path.resolve(imgPath);
-        // if (!resolvedPath.startsWith(safeBaseDir + path.sep) && resolvedPath !== safeBaseDir) {
-        //   throw new Error('Access denied: Reference image path is outside allowed directory.');
-        // }
 
-        const imgBytes = await fs.readFile(imgPath); // Asynchronously read file content
-        const base64Image = imgBytes.toString('base64');
+        // SECURITY (Path Traversal): Ensure the image path resolves within the designated safe directory.
+        const resolvedPath = path.resolve(image.path);
+        if (!resolvedPath.startsWith(SAFE_UPLOADS_DIR + path.sep) && resolvedPath !== SAFE_UPLOADS_DIR) {
+          console.error(`Security violation: User ${userId} attempted to access path '${resolvedPath}' outside of the safe directory '${SAFE_UPLOADS_DIR}'.`);
+          throw new Error('Access denied: Reference image path is outside the allowed directory.');
+        }
+
+        const imgBytes = await fs.readFile(resolvedPath);
         return {
           inlineData: {
-            // ROBUSTNESS: Assuming all reference images are PNGs.
-            // If other image types are possible, dynamic MIME type detection (e.g., using 'mime-types' library)
-            // or explicit MIME type passing would be required here for accuracy.
-            mimeType: 'image/png',
-            data: base64Image,
+            mimeType: image.mimeType,
+            data: imgBytes.toString('base64'),
           },
         };
       });
-      const imageContents = await Promise.all(imagePromises); // Wait for all images to be read
+      const imageContents = await Promise.all(imagePromises);
       content.push(...imageContents);
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image',
+      model: MODEL_NAME,
       contents: content,
     });
 
-    let uploadedUrl = null;
-
-    // ROBUSTNESS: Check if response.candidates and response.candidates[0] exist before accessing.
-    if (!response || !response.candidates || response.candidates.length === 0) {
-      console.error('No candidates found in the AI model response.');
-      return null; // Or throw a specific error
+    // ROBUSTNESS: Validate the AI model's response structure before processing.
+    if (!response?.candidates?.[0]?.content?.parts) {
+      console.error('Invalid or empty response from the AI model:', JSON.stringify(response, null, 2));
+      throw new Error('Failed to generate image. The AI model returned an unexpected response.');
     }
 
-    for (const part of response.candidates[0].content.parts) {
-      if (part.text) {
-        console.log(part.text);
-      } else if (part.inlineData) {
-        const imageData = part.inlineData.data;
-        // BUG FIX: Use the actual MIME type from the AI response, defaulting to 'image/png'.
-        const actualMimeType = part.inlineData.mimeType || 'image/png';
-        const buffer = Buffer.from(imageData, 'base64');
+    // Find the first image part in the response, as we typically expect one generated image.
+    const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
 
-        // ROBUSTNESS: Determine file extension from MIME type to ensure correct filename.
-        let fileExtension = '.bin'; // Fallback for unknown types
-        if (actualMimeType.includes('image/png')) {
-          fileExtension = '.png';
-        } else if (actualMimeType.includes('image/jpeg')) {
-          fileExtension = '.jpeg';
-        } else if (actualMimeType.includes('image/gif')) {
-          fileExtension = '.gif';
-        } else if (actualMimeType.includes('image/webp')) {
-          fileExtension = '.webp';
-        }
-        // Add more image types as needed
+    if (imagePart) {
+      const { mimeType, data } = imagePart.inlineData;
+      const buffer = Buffer.from(data, 'base64');
 
-        // Ensure the filename has the correct extension based on the actual MIME type.
-        let finalFilename = filename;
-        const currentExt = path.extname(filename);
-        if (currentExt) {
-          // If filename already has an extension, replace it if it doesn't match the actual content type.
-          if (currentExt.toLowerCase() !== fileExtension.toLowerCase()) {
-            finalFilename = filename.slice(0, -currentExt.length) + fileExtension;
-          }
-        } else {
-          // If filename has no extension, append the correct one.
-          finalFilename = filename + fileExtension;
-        }
+      // ROBUSTNESS: Determine file extension from the actual MIME type returned by the model.
+      const fileExtension = mimeTypeToExtension[mimeType] || '.bin'; // Fallback for unknown types.
 
-        // Upload to GCP bucket
-        uploadedUrl = await gcpStorage.uploadBuffer(
-          buffer,
-          finalFilename, // Use the potentially adjusted filename
-          actualMimeType // Use the actual MIME type from the AI response
-        );
-        console.log(`Image uploaded to GCP: ${uploadedUrl}`);
-      }
+      // DATA ISOLATION/SECURITY: Generate a unique, non-guessable filename within a user-specific folder.
+      const uniqueFilename = `${uuidv4()}${fileExtension}`;
+      const storagePath = `users/${userId}/generated/${uniqueFilename}`;
+
+      // Upload the generated image buffer to cloud storage.
+      const uploadedUrl = await gcpStorage.uploadBuffer(
+        buffer,
+        storagePath,
+        mimeType
+      );
+      console.log(`User ${userId} image uploaded to GCP: ${uploadedUrl}`);
+      return uploadedUrl;
+    } else {
+      // USER EXPERIENCE: Handle cases where the model returns text instead of an image (e.g., due to safety filters).
+      const textResponse = response.candidates[0].content.parts.map(p => p.text).join('\n');
+      console.warn(`AI model did not return an image for user ${userId}. Text response: "${textResponse}"`);
+      return null; // Explicitly return null if no image was generated.
     }
 
-    return uploadedUrl;
   } catch (error) {
-    // UNHANDLED PROMISE/ERROR HANDLING: Catch and log errors for robustness.
-    // This ensures that any failures during file operations, AI API calls,
-    // or GCP storage uploads are caught and reported.
-    console.error('Error in imagen3 function:', error);
-    // Re-throw the error so the caller can handle it appropriately.
+    // ERROR HANDLING: Log the detailed error with user context for debugging and re-throw to be handled by the calling service.
+    console.error(`Error in imagen3 for user ${userId}:`, error);
+    // Propagate the error to allow the controller to send an appropriate HTTP response to the end-user.
     throw error;
   }
 }
