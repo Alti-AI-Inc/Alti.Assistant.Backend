@@ -14,13 +14,35 @@ import { RedisClient } from '../../../shared/redis.js';
 
 dotenv.config();
 
+/**
+ * The base URL for the RealEstateAPI.com API.
+ * @type {string}
+ */
 const BASE_URL = 'https://api.realestateapi.com';
 
+/**
+ * Retrieves the RealEstateAPI.com API key from environment variables.
+ * It also cleans up potential Byte Order Mark (BOM) and trims whitespace.
+ * If the key is not set, a warning is logged by `reFetch`.
+ * @returns {string} The cleaned API key, or an empty string if not found.
+ */
 const getApiKey = () => {
   return (process.env.REALESTATE_API_KEY || '').replace(/^\uFEFF+/, '').trim();
 };
 
-// Caching TTLs (seconds)
+/**
+ * @typedef {Object} CacheTTLs
+ * @property {number} detail - Time-to-live for property detail cache in seconds (5 minutes).
+ * @property {number} avm - Time-to-live for AVM (Automated Valuation Model) cache in seconds (5 minutes).
+ * @property {number} comps - Time-to-live for comparable sales cache in seconds (15 minutes).
+ * @property {number} mls - Time-to-live for MLS search results cache in seconds (2 minutes).
+ * @property {number} skip - Time-to-live for skip trace results cache in seconds (30 minutes).
+ */
+
+/**
+ * Caching Time-To-Live (TTL) values in seconds for different API endpoints.
+ * @type {CacheTTLs}
+ */
 const TTL = {
   detail: 300,  // 5 minutes
   avm: 300,
@@ -29,12 +51,38 @@ const TTL = {
   skip: 1800,   // 30 minutes
 };
 
-// ─── Cache & Latency Performance Diagnostics Tracker ─────────────────────────
+/**
+ * @typedef {Object} ServiceDiagnosticCall
+ * @property {string} timestamp - ISO string of when the call was made.
+ * @property {number} latencyMs - Latency of the API call or mock data retrieval in milliseconds.
+ * @property {'HIT' | 'MISS'} cacheStatus - Indicates if the data was served from cache or fetched from the API/mock.
+ */
+
+/**
+ * @typedef {Object} ServiceDiagnostics
+ * @property {Object.<string, ServiceDiagnosticCall[]>} calls - A map where keys are service method names and values are arrays of diagnostic call records.
+ * @property {Object} cacheStats - Statistics for cache hits and misses.
+ * @property {number} cacheStats.hits - Total number of cache hits.
+ * @property {number} cacheStats.misses - Total number of cache misses.
+ */
+
+/**
+ * Global object to track service call diagnostics, including latency and cache performance.
+ * @type {ServiceDiagnostics}
+ */
 export const serviceDiagnostics = {
   calls: {},
   cacheStats: { hits: 0, misses: 0 }
 };
 
+/**
+ * Registers a diagnostic entry for a service method call.
+ * Tracks latency and cache status for performance monitoring.
+ * @param {string} methodName - The name of the service method being called.
+ * @param {number} latencyMs - The time taken for the operation in milliseconds.
+ * @param {'HIT' | 'MISS'} cacheStatus - The cache status of the operation ('HIT' if from cache, 'MISS' otherwise).
+ * @returns {void}
+ */
 const registerDiagnostic = (methodName, latencyMs, cacheStatus) => {
   if (!serviceDiagnostics.calls[methodName]) {
     serviceDiagnostics.calls[methodName] = [];
@@ -51,7 +99,24 @@ const registerDiagnostic = (methodName, latencyMs, cacheStatus) => {
   }
 };
 
-// ─── Core HTTP Helper ──────────────────────────────────────────────────────────
+/**
+ * @typedef {Object} RealEstateAPIResponse
+ * @property {Array<Object>} [results] - An array of results, common in RealEstateAPI responses.
+ * @property {string} [message] - An optional message from the API.
+ * // ... other potential properties
+ */
+
+/**
+ * Core HTTP helper function to make requests to the RealEstateAPI.com API.
+ * Handles API key authentication, JSON serialization, and error responses.
+ * If `REALESTATE_API_KEY` is not configured, it returns `null` to trigger mock fallback.
+ * @param {string} path - The API endpoint path (e.g., '/v2/PropertyDetail').
+ * @param {Object} [body={}] - The request body for POST/PUT requests.
+ * @param {'GET' | 'POST' | 'PUT' | 'DELETE'} [method='POST'] - The HTTP method to use.
+ * @returns {Promise<RealEstateAPIResponse | null>} A promise that resolves to the JSON response from the API,
+ *   or `null` if the API key is missing, or throws an error if the response is not OK.
+ * @throws {Error} If the API response is not successful (response.ok is false).
+ */
 async function reFetch(path, body = {}, method = 'POST') {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -80,7 +145,12 @@ async function reFetch(path, body = {}, method = 'POST') {
   return response.json();
 }
 
-// ─── Caching Helpers ──────────────────────────────────────────────────────────
+/**
+ * Retrieves a value from the Redis cache.
+ * The key is prefixed with 'realestate:' to avoid collisions.
+ * @param {string} key - The unique identifier for the cached item.
+ * @returns {Promise<Object | null>} A promise that resolves to the parsed JSON object if found, otherwise `null`.
+ */
 async function cacheGet(key) {
   try {
     const val = await RedisClient.get(`realestate:${key}`);
@@ -92,6 +162,14 @@ async function cacheGet(key) {
   }
 }
 
+/**
+ * Sets a value in the Redis cache with an expiration time.
+ * The key is prefixed with 'realestate:' to avoid collisions.
+ * @param {string} key - The unique identifier for the item to cache.
+ * @param {Object} val - The JavaScript object to be cached (will be JSON.stringified).
+ * @param {number} ttlSeconds - The time-to-live for the cached item in seconds.
+ * @returns {Promise<void>} A promise that resolves when the item is set in cache.
+ */
 async function cacheSet(key, val, ttlSeconds) {
   try {
     await RedisClient.setEx(`realestate:${key}`, ttlSeconds, JSON.stringify(val));
@@ -104,6 +182,8 @@ async function cacheSet(key, val, ttlSeconds) {
 /**
  * Helper for consistent cache keys for objects by sorting keys before stringifying.
  * This prevents cache misses due to inconsistent key order in JSON.stringify.
+ * @param {Object | string | number | boolean | null | undefined} obj - The object or primitive to generate a stable cache key for.
+ * @returns {string} A stable string representation of the object suitable for use as a cache key.
  */
 const getStableCacheKey = (obj) => {
   if (typeof obj !== 'object' || obj === null) {
@@ -117,7 +197,29 @@ const getStableCacheKey = (obj) => {
   return JSON.stringify(sortedObj);
 };
 
-// ─── High-Fidelity Mock Data ──────────────────────────────────────────────────
+/**
+ * @typedef {Object} MockProperty
+ * @property {string} id - Unique identifier for the property.
+ * @property {string} address - Street address.
+ * @property {string} city - City.
+ * @property {string} state - State abbreviation.
+ * @property {string} zip - Zip code.
+ * @property {string} ownerName - Name of the property owner.
+ * @property {number} yearBuilt - Year the property was built.
+ * @property {number} beds - Number of bedrooms.
+ * @property {number} baths - Number of bathrooms.
+ * @property {number} sqft - Square footage of the property.
+ * @property {number} lotSizeAcres - Lot size in acres.
+ * @property {number} lastSalePrice - Price of the last sale.
+ * @property {string | null} lastSaleDate - Date of the last sale (YYYY-MM-DD).
+ * @property {number} taxAssessedValue - Tax assessed value of the property.
+ */
+
+/**
+ * High-fidelity mock data for property details.
+ * Used when the RealEstateAPI.com API key is not configured.
+ * @type {MockProperty[]}
+ */
 const MOCK_PROPERTIES = [
   {
     id: 'prop_90210_1',
@@ -169,12 +271,42 @@ const MOCK_PROPERTIES = [
   }
 ];
 
+/**
+ * @typedef {Object} MockAvm
+ * @property {number} valuation - Estimated property valuation.
+ * @property {number} highValue - High end of the valuation range.
+ * @property {number} lowValue - Low end of the valuation range.
+ * @property {number} confidenceScore - Confidence score of the valuation (0-100).
+ * @property {number} rentalValuation - Estimated monthly rental valuation.
+ */
+
+/**
+ * High-fidelity mock data for Automated Valuation Model (AVM) results.
+ * Used when the RealEstateAPI.com API key is not configured.
+ * @type {Object.<string, MockAvm>}
+ */
 const MOCK_AVM = {
   prop_90210_1: { valuation: 672000, highValue: 710000, lowValue: 635000, confidenceScore: 88, rentalValuation: 3950 },
   prop_90210_2: { valuation: 535000, highValue: 565000, lowValue: 505000, confidenceScore: 92, rentalValuation: 3200 },
   prop_90210_3: { valuation: 485000000, highValue: 520000000, lowValue: 450000000, confidenceScore: 75, rentalValuation: 120000 }
 };
 
+/**
+ * @typedef {Object} MockComp
+ * @property {string} address - Address of the comparable property.
+ * @property {number} distanceMiles - Distance from the subject property in miles.
+ * @property {number} beds - Number of bedrooms.
+ * @property {number} baths - Number of bathrooms.
+ * @property {number} sqft - Square footage.
+ * @property {number} salePrice - Sale price of the comparable.
+ * @property {string} saleDate - Sale date (YYYY-MM-DD).
+ */
+
+/**
+ * High-fidelity mock data for comparable sales.
+ * Used when the RealEstateAPI.com API key is not configured.
+ * @type {Object.<string, MockComp[]>}
+ */
 const MOCK_COMPS = {
   prop_90210_1: [
     { address: '129 Main St', distanceMiles: 0.05, beds: 4, baths: 3.5, sqft: 3050, salePrice: 599000, saleDate: '2025-11-10' },
@@ -190,6 +322,31 @@ const MOCK_COMPS = {
   ]
 };
 
+/**
+ * @typedef {'SingleFamily' | 'Condominium' | 'Townhouse' | 'MultiFamily' | 'Land'} PropertyType
+ */
+
+/**
+ * @typedef {Object} MockMlsListing
+ * @property {string} address - Street address.
+ * @property {string} city - City.
+ * @property {string} state - State abbreviation.
+ * @property {string} zip - Zip code.
+ * @property {number} price - Listing price.
+ * @property {number} beds - Number of bedrooms.
+ * @property {number} baths - Number of bathrooms.
+ * @property {number} sqft - Square footage.
+ * @property {string} status - Listing status (e.g., 'Active', 'Pending', 'Sold').
+ * @property {string} listDate - Date the property was listed (YYYY-MM-DD).
+ * @property {number} daysOnMarket - Number of days the property has been on the market.
+ * @property {PropertyType} propertyType - Type of property.
+ */
+
+/**
+ * High-fidelity mock data for MLS listings.
+ * Used when the RealEstateAPI.com API key is not configured.
+ * @type {MockMlsListing[]}
+ */
 const MOCK_MLS = [
   { address: '789 Maple Ave', city: 'Atlanta', state: 'GA', zip: '30303', price: 625000, beds: 4, baths: 3.5, sqft: 2950, status: 'Active', listDate: '2026-05-10', daysOnMarket: 11, propertyType: 'SingleFamily' },
   { address: '221 Elmwood Dr', city: 'Atlanta', state: 'GA', zip: '30303', price: 549000, beds: 3, baths: 2.5, sqft: 2400, status: 'Pending', listDate: '2026-04-18', daysOnMarket: 33, propertyType: 'SingleFamily' },
@@ -203,6 +360,26 @@ const MOCK_MLS = [
   { address: '1240 Eighth St', city: 'Austin', state: 'TX', zip: '78701', price: 685000, beds: 3, baths: 3, sqft: 2250, status: 'Active', listDate: '2026-05-02', daysOnMarket: 19, propertyType: 'SingleFamily' }
 ];
 
+/**
+ * @typedef {Object} MockSkipTraceDemographics
+ * @property {string} netWorth - Estimated net worth range.
+ * @property {string} creditRange - Estimated credit score range.
+ */
+
+/**
+ * @typedef {Object} MockSkipTraceResult
+ * @property {string} owner - Name of the owner.
+ * @property {string[]} phoneNumbers - Array of phone numbers associated with the owner.
+ * @property {string[]} emails - Array of email addresses associated with the owner.
+ * @property {string} currentAddress - Current mailing address of the owner.
+ * @property {MockSkipTraceDemographics} demographics - Demographic information about the owner.
+ */
+
+/**
+ * High-fidelity mock data for skip trace results.
+ * Used when the RealEstateAPI.com API key is not configured.
+ * @type {Object.<string, MockSkipTraceResult>}
+ */
 const MOCK_SKIP = {
   prop_90210_1: {
     owner: 'Altis Holdings LLC',
@@ -227,10 +404,17 @@ const MOCK_SKIP = {
   }
 };
 
-// ─── Service API Implementations ──────────────────────────────────────────────
+/**
+ * @typedef {Object} AutoCompleteResult
+ * @property {string} address - The suggested full address.
+ * @property {string} propId - The property ID associated with the suggested address.
+ */
 
 /**
- * AutoComplete address strings to suggest real properties or standard layouts
+ * AutoCompletes address strings to suggest real properties or standard layouts.
+ * Fetches suggestions from RealEstateAPI.com or provides mock data if the API key is missing.
+ * @param {string} text - The partial address string to autocomplete.
+ * @returns {Promise<AutoCompleteResult[]>} A promise that resolves to an array of autocomplete suggestions.
  */
 export const autoCompleteService = async (text) => {
   const start = Date.now();
@@ -250,7 +434,19 @@ export const autoCompleteService = async (text) => {
 };
 
 /**
- * Searches properties on criteria
+ * @typedef {Object} PropertySearchCriteria
+ * @property {string} [address] - Street address to search for.
+ * @property {string} [city] - City to search within.
+ * @property {string} [state] - State abbreviation to search within.
+ * @property {string} [zip] - Zip code to search within.
+ * // ... other potential search criteria
+ */
+
+/**
+ * Searches properties based on specified criteria.
+ * Fetches property search results from RealEstateAPI.com or provides mock data if the API key is missing.
+ * @param {PropertySearchCriteria} criteria - An object containing search parameters like address, city, state, zip.
+ * @returns {Promise<MockProperty[]>} A promise that resolves to an array of properties matching the criteria.
  */
 export const searchPropertyService = async (criteria) => {
   const start = Date.now();
@@ -276,7 +472,15 @@ export const searchPropertyService = async (criteria) => {
 };
 
 /**
- * Fetches comprehensive public record details for a property ID
+ * @typedef {string | { id?: string, propertyId?: string }} PropertyIdParams
+ * Represents parameters for identifying a property, either by a direct ID string or an object containing `id` or `propertyId`.
+ */
+
+/**
+ * Fetches comprehensive public record details for a property ID.
+ * Retrieves data from cache, RealEstateAPI.com, or provides mock data.
+ * @param {PropertyIdParams} idParams - The property ID as a string, or an object with `id` or `propertyId`.
+ * @returns {Promise<MockProperty | null>} A promise that resolves to the detailed property object, or `null` if not found.
  */
 export const getPropertyDetailService = async (idParams) => {
   const start = Date.now();
@@ -309,7 +513,10 @@ export const getPropertyDetailService = async (idParams) => {
 };
 
 /**
- * Retreives lender-grade property valuation estimates (AVM)
+ * Retreives lender-grade property valuation estimates (AVM).
+ * Retrieves data from cache, RealEstateAPI.com, or provides mock data.
+ * @param {PropertyIdParams} idParams - The property ID as a string, or an object with `id` or `propertyId`.
+ * @returns {Promise<MockAvm | null>} A promise that resolves to the AVM object, or `null` if not found.
  */
 export const getPropertyAvmService = async (idParams) => {
   const start = Date.now();
@@ -342,7 +549,18 @@ export const getPropertyAvmService = async (idParams) => {
 };
 
 /**
- * Returns comparable sales in the nearby neighborhood
+ * @typedef {Object} PropertyCompsParams
+ * @property {string} [id] - The property ID.
+ * @property {string} [propertyId] - The property ID (alternative to `id`).
+ * @property {number} [radiusMiles] - Optional radius in miles to search for comps.
+ * @property {number} [compsLimit] - Optional limit on the number of comparable properties to return.
+ */
+
+/**
+ * Returns comparable sales in the nearby neighborhood for a given property.
+ * Retrieves data from cache, RealEstateAPI.com, or provides mock data.
+ * @param {PropertyIdParams | PropertyCompsParams} idParams - The property ID as a string, or an object with `id`, `propertyId`, `radiusMiles`, and `compsLimit`.
+ * @returns {Promise<MockComp[]>} A promise that resolves to an array of comparable properties.
  */
 export const getPropertyCompsService = async (idParams) => {
   const start = Date.now();
@@ -384,7 +602,23 @@ export const getPropertyCompsService = async (idParams) => {
 };
 
 /**
- * Query active listing MLS database for specific properties or city regions
+ * @typedef {Object} MlsSearchCriteria
+ * @property {string} [city] - City to search within.
+ * @property {string} [state] - State abbreviation to search within.
+ * @property {string} [zip] - Zip code to search within.
+ * @property {number} [minBeds] - Minimum number of bedrooms.
+ * @property {number} [minBaths] - Minimum number of bathrooms.
+ * @property {number} [minPrice] - Minimum listing price.
+ * @property {number} [maxPrice] - Maximum listing price.
+ * @property {PropertyType} [propertyType] - Type of property (e.g., 'SingleFamily', 'Condominium').
+ * // ... other potential MLS search criteria
+ */
+
+/**
+ * Queries the active listing MLS database for specific properties or city regions.
+ * Retrieves data from cache, RealEstateAPI.com, or provides mock data.
+ * @param {MlsSearchCriteria} criteria - An object containing search parameters for MLS listings.
+ * @returns {Promise<MockMlsListing[]>} A promise that resolves to an array of MLS listings.
  */
 export const searchMlsService = async (criteria) => {
   const start = Date.now();
@@ -452,7 +686,10 @@ export const searchMlsService = async (criteria) => {
 };
 
 /**
- * Fetch skipped owner records (phones, emails, etc.) for a property ID
+ * Fetch skipped owner records (phones, emails, etc.) for a property ID.
+ * Retrieves data from cache, RealEstateAPI.com, or provides mock data.
+ * @param {PropertyIdParams} idParams - The property ID as a string, or an object with `id` or `propertyId`.
+ * @returns {Promise<MockSkipTraceResult | null>} A promise that resolves to the skip trace result object, or `null` if not found.
  */
 export const getSkipTraceService = async (idParams) => {
   const start = Date.now();
@@ -484,7 +721,18 @@ export const getSkipTraceService = async (idParams) => {
   return data;
 };
 
-// Export consolidated object
+/**
+ * Consolidated object exporting all RealEstateAPI service functions and diagnostics.
+ * @type {Object}
+ * @property {function(string): Promise<AutoCompleteResult[]>} autoCompleteService - Function to autocomplete addresses.
+ * @property {function(PropertySearchCriteria): Promise<MockProperty[]>} searchPropertyService - Function to search properties by criteria.
+ * @property {function(PropertyIdParams): Promise<MockProperty | null>} getPropertyDetailService - Function to get detailed property information.
+ * @property {function(PropertyIdParams): Promise<MockAvm | null>} getPropertyAvmService - Function to get property AVM.
+ * @property {function(PropertyIdParams | PropertyCompsParams): Promise<MockComp[]>} getPropertyCompsService - Function to get comparable sales.
+ * @property {function(MlsSearchCriteria): Promise<MockMlsListing[]>} searchMlsService - Function to search MLS listings.
+ * @property {function(PropertyIdParams): Promise<MockSkipTraceResult | null>} getSkipTraceService - Function to get skip trace records.
+ * @property {ServiceDiagnostics} serviceDiagnostics - Object containing service call diagnostics.
+ */
 export const realestateService = {
   autoCompleteService,
   searchPropertyService,
