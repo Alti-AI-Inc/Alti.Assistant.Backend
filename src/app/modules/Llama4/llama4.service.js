@@ -1,3 +1,8 @@
+/**
+ * @typedef {import('@langchain/core/chat_history').BaseListChatMessageHistory} BaseListChatMessageHistory
+ * @typedef {import('@langchain/core/messages').BaseMessage} BaseMessage
+ */
+
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
@@ -11,8 +16,30 @@ import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 
+/**
+ * @typedef {Object} SessionMemory
+ * @property {BufferMemory} memory - The BufferMemory instance for the session.
+ */
+
+/**
+ * Stores session memory for each user session.
+ * The key is the sessionId, and the value is a BufferMemory instance.
+ * @type {Record<string, BufferMemory>}
+ */
 const sessionMemoryStore = {}; // Stores session memory for each user session
 
+/**
+ * Handles the AI interaction for Llama4, processes user prompts,
+ * manages conversation history, updates payment usage, and persists chat data.
+ *
+ * @async
+ * @param {string} prompt - The user's input prompt.
+ * @param {string} userId - The ID of the user initiating the conversation.
+ * @param {string} sessionId - The unique ID for the current conversation session.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, session ID, and the AI's reply.
+ * @throws {ApiError} If there's an issue with payment usage increment,
+ *                     an internal server error during AI processing, or database operations.
+ */
 const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
   // Initialize session memory for conversation history
   let memory = sessionMemoryStore[sessionId];
@@ -101,6 +128,10 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
   }
 };
 
+/**
+ * Provides a collection of Llama4 AI related services.
+ * @namespace Llama4AiServices
+ */
 export const Llama4AiServices = {
   Llama4AiGetResponseService,
 };
