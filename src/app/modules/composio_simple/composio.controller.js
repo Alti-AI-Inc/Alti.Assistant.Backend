@@ -54,6 +54,8 @@ export const chatController = catchAsync(async (req, res) => {
     const activeConversationId = conversationId || generateConversationId();
     // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
     // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
+    // Security Note: The `conversationService.getOrCreateConversation` function MUST validate that `activeConversationId`
+    // (if provided) belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
     const conversation = await conversationService.getOrCreateConversation(
       userId,
       activeConversationId,
@@ -63,6 +65,8 @@ export const chatController = catchAsync(async (req, res) => {
     // Save user message
     // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
     // If it queries before saving, ensure relevant fields are indexed.
+    // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
+    // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
     await conversationService.saveMessage(
       conversation.conversationId,
       userId,
@@ -83,6 +87,8 @@ export const chatController = catchAsync(async (req, res) => {
       // Save assistant response
       // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
       // If it queries before saving, ensure relevant fields are indexed.
+      // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
+      // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
@@ -109,6 +115,8 @@ export const chatController = catchAsync(async (req, res) => {
       // Save error message
       // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
       // If it queries before saving, ensure relevant fields are indexed.
+      // Security Note: The `conversationService.saveMessage` function MUST validate that `conversation.conversationId`
+      // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
@@ -262,7 +270,16 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
   res.flushHeaders();
 
   // Handle both auth middleware user and default fallback
-  const userId = req.user?._id?.toString() || 'default_user';
+  // Security Fix: Removed 'default_user' fallback. If userId is not present,
+  // it indicates an unauthenticated request to an endpoint that requires authentication.
+  const userId = req.user?._id?.toString();
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required for SSE stream',
+    });
+  }
 
   // Helper to fetch and send
   const sendStatus = async () => {
@@ -305,6 +322,8 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
     });
   }
 
+  // Security Note: The `composioService.waitForConnection` function MUST validate that `connected_account_id`
+  // belongs to the authenticated `userId` (available via `req.user`) to prevent Insecure Direct Object Reference (IDOR).
   const result = await composioService.waitForConnection(connected_account_id);
 
   if (result.success) {
@@ -362,6 +381,8 @@ export const getConversationController = catchAsync(async (req, res) => {
 
   // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
   // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
+  // Security Note: The `conversationService.getOrCreateConversation` function MUST validate that `conversationId`
+  // belongs to the `userId` to prevent Insecure Direct Object Reference (IDOR).
   const conversation = await conversationService.getOrCreateConversation(
     userId,
     conversationId,
