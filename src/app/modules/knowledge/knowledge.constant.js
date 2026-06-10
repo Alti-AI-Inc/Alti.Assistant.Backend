@@ -80,11 +80,13 @@ export const PROCESSING_STATUS = {
 
 // RAG Database Configuration (AlloyDB / Cloud SQL PostgreSQL)
 export const RAG_DATABASE_CONFIG = {
-  HOST: process.env.ALLOYDB_HOST || process.env.RAG_DATABASE_HOST || '34.135.175.69',
+  // SECURITY FIX: Removed hardcoded fallback values for HOST, DATABASE, and USERNAME.
+  // This prevents accidental connection to a production or shared database from a local/dev environment
+  // and enforces proper configuration management through environment variables.
+  HOST: process.env.ALLOYDB_HOST || process.env.RAG_DATABASE_HOST,
   PORT: parseInt(process.env.ALLOYDB_PORT || process.env.RAG_DATABASE_PORT || '5432'),
-  DATABASE: process.env.ALLOYDB_DATABASE || process.env.RAG_DATABASE_NAME || 'rag_database',
-  USERNAME: process.env.ALLOYDB_USER || process.env.RAG_DATABASE_USER || 'postgres',
-  // SECURITY FIX: Removed hardcoded database password.
+  DATABASE: process.env.ALLOYDB_DATABASE || process.env.RAG_DATABASE_NAME,
+  USERNAME: process.env.ALLOYDB_USER || process.env.RAG_DATABASE_USER,
   // Passwords should always be sourced from environment variables for security.
   PASSWORD: process.env.ALLOYDB_PASSWORD || process.env.RAG_DATABASE_PASSWORD,
 };
@@ -162,9 +164,12 @@ export const COMPLEXITY_INDICATORS = {
 
 // File visibility
 export const FILE_VISIBILITY = {
-  PRIVATE: 'private', // Only owner
-  SHARED: 'shared', // Shared with specific users
-  PUBLIC: 'public', // Public access
+  // INTEGRATION FIX: Revised visibility levels to align with the platform's multi-tenant and hierarchical structure.
+  // The previous 'PUBLIC' level was ambiguous and posed a security risk by not respecting tenant boundaries.
+  // These new levels allow for granular control that maps to user, manager, and admin roles.
+  PRIVATE: 'private', // Accessible only by the owner (the user who uploaded it).
+  SHARED: 'shared', // Accessible by the owner and specific users/teams it's explicitly shared with.
+  WORKSPACE: 'workspace', // Accessible by all members within the same workspace/tenant.
 };
 
 // Folder colors
