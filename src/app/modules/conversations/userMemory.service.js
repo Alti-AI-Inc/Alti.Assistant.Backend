@@ -5,16 +5,15 @@
  */
 
 import UserMemory from './userMemory.model.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// AUDIT: Replaced '@google/generative-ai' with '@google-cloud/vertexai' to use Application Default Credentials (ADC).
+import { VertexAI } from '@google-cloud/vertexai';
 import sanitizeHtml from 'sanitize-html'; // Security Patch: Import library to sanitize input and prevent Stored XSS.
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-/**
- * Initializes the Google Generative AI client with the API key from the configuration.
- * @type {GoogleGenerativeAI}
- */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+// AUDIT: Removed global client initialization with an API key.
+// The Vertex AI client will be initialized within the function that uses it,
+// relying on Application Default Credentials for authentication.
 
 /**
  * The system instruction prompt used for the Generative AI model to extract, update,
@@ -131,8 +130,17 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       let rawJson = '[]';
 
       try {
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-2.5-flash',
+        // AUDIT: Initialize the Vertex AI client using Application Default Credentials (ADC).
+        // This removes the need for hardcoded API keys. The service account running this
+        // code must have the "Vertex AI User" IAM role in the target GCP project.
+        const vertexAI = new VertexAI({
+          project: config.gcp_project_id,
+          location: config.gcp_location,
+        });
+
+        // AUDIT: Switched to a valid Vertex AI model name.
+        const model = vertexAI.getGenerativeModel({
+          model: 'gemini-1.5-flash-001',
           generationConfig: {
             temperature: 0.1,
             responseMimeType: "application/json",
