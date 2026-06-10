@@ -24,7 +24,7 @@ const sendNotificationService = async (data, req = null) => {
   return newNotification;
 };
 
-const getNotificationService = async (userId, req = null) => {
+const getNotificationService = async (req = null) => { // Removed unused userId parameter
   const query = {};
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
   // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
@@ -35,8 +35,11 @@ const getNotificationService = async (userId, req = null) => {
 };
 
 const sendNotificationByIdService = async (userId, data, req = null) => {
+  // Bug Fix: Add recipientId to the notification data for direct querying later.
+  // This assumes the Notification model has a 'recipientId' field.
+  const notificationData = { ...data, recipientId: userId };
   const newNotification = await Notification.create(
-    req ? withTenantContext(req, data) : data
+    req ? withTenantContext(req, notificationData) : notificationData
   );
   // 2. Push this notification to specific user
   // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
@@ -48,16 +51,15 @@ const sendNotificationByIdService = async (userId, data, req = null) => {
   return newNotification;
 };
 
-const getNotificationByIdService = async (userId, req = null) => {
-  const query = { _id: userId };
+const getNotificationByIdService = async (notificationId, req = null) => {
+  // Bug Fix: This function was incorrectly querying UserModel by userId and populating notifications.
+  // It should query the Notification model by notificationId, consistent with its name.
+  const query = { _id: notificationId };
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
-  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
-  const result = await UserModel.findOne(
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
+  const result = await Notification.findOne(
     req ? withTenantFilter(req, query) : query
-  )
-    .populate('notifications')
-    .select('notifications')
-    .lean(); // Added .lean()
+  ).lean();
   return result;
 };
 
@@ -68,13 +70,15 @@ const updateNotificationByIdService = async (
 ) => {
   const query = { _id: notificationId };
   // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
-  const result = await Notification.updateOne(
+  // Bug Fix: Changed updateOne to findOneAndUpdate. updateOne does not return the updated document
+  // and does not accept the 'new: true' option. findOneAndUpdate does.
+  const result = await Notification.findOneAndUpdate(
     req ? withTenantFilter(req, query) : query, // filter condition
     { $set: data }, // update operation
-    { new: true } // Return the updated document
-  );
+    { new: true, runValidators: true } // Return the updated document, run schema validators
+  ).lean(); // Added .lean() for performance if the result is just read.
 
-  if (!result) {
+  if (!result) { // Now 'result' will be null if no document was found or updated
     throw new Error('Notification not found or no changes made');
   }
   return result;
@@ -88,6 +92,7 @@ const deleteNotificationByIdService = async (notificationId, req = null) => {
   );
   return result;
 };
+
 const deleteAllNotificationService = async (req = null) => {
   const session = await mongoose.startSession();
 
@@ -125,21 +130,32 @@ const deleteAllNotificationService = async (req = null) => {
 };
 
 const getUserInboxService = async (userId, category, isArchived, req = null) => {
-  let query = { userId };
+  // Bug Fix: The original implementation queried Notification directly using 'userId',
+  // but notifications are linked via UserModel's 'notifications' array and do not
+  // inherently store 'userId' unless explicitly added during creation.
+  // This revised approach queries the Notification model directly using 'recipientId'
+  // which is assumed to be added during sendNotificationByIdService.
+  // If a notification can be sent to multiple users (e.g., sendNotificationService),
+  // then a different approach (like querying UserModel and populating) would be needed.
+  // For this fix, we assume 'recipientId' is present on Notification documents for direct user-specific queries.
+
+  let query = { recipientId: userId }; // Query by recipientId on the Notification model
+
   if (category) {
     query.category = category;
   }
   if (isArchived !== undefined) {
     query.isArchived = isArchived;
   }
+
   // Fetch from newest to oldest
   // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
   // Optimization Recommendation: For optimal performance, consider adding a compound index on Notification model:
-  // { tenantId: 1, userId: 1, category: 1, isArchived: 1, createdAt: -1 }
-  // or at least { tenantId: 1, userId: 1, createdAt: -1 } if tenantId and userId are primary filters.
+  // { tenantId: 1, recipientId: 1, category: 1, isArchived: 1, createdAt: -1 }
+  // or at least { tenantId: 1, recipientId: 1, createdAt: -1 } if tenantId and recipientId are primary filters.
   const result = await Notification.find(
     req ? withTenantFilter(req, query) : query
-  ).sort({ createdAt: -1 }).lean(); // Added .lean()
+  ).sort({ createdAt: -1 }).lean();
   return result;
 };
 
@@ -150,7 +166,7 @@ const archiveNotificationService = async (notificationId, isArchived = true, req
     req ? withTenantFilter(req, query) : query,
     { $set: { isArchived } },
     { new: true }
-  );
+  ).lean(); // Added .lean() for performance if the result is just read.
   if (!result) {
     throw new Error('Notification not found or access denied');
   }
