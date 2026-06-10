@@ -45,7 +45,12 @@ const UserValidationSchema = z.object({
       confirmPassword: z.string({
         required_error: 'Password confirmation is required',
       }),
-      profile: z.string().optional(),
+      // Security Patch: Sanitize profile input to prevent stored XSS by stripping HTML tags.
+      // This is a defense-in-depth measure. Output encoding on the client-side is still essential.
+      profile: z
+        .string()
+        .optional()
+        .transform(val => (val ? val.replace(/<[^>]*>?/gm, '') : val)),
       // For invitation-based registration to a specific workspace/tenant.
       // The token's validity and association with the tenantId must be verified server-side.
       tenantId: z.string().optional(),
@@ -100,7 +105,12 @@ const AdminCreateUserValidationSchema = z.object({
         required_error: 'Role is required',
         invalid_type_error: "Role must be one of 'admin', 'manager', or 'user'",
       }),
-      profile: z.string().optional(),
+      // Security Patch: Sanitize profile input to prevent stored XSS by stripping HTML tags.
+      // This is a defense-in-depth measure. Output encoding on the client-side is still essential.
+      profile: z
+        .string()
+        .optional()
+        .transform(val => (val ? val.replace(/<[^>]*>?/gm, '') : val)),
     })
     .superRefine((data, ctx) => {
       if (data.password !== data.confirmPassword) {
