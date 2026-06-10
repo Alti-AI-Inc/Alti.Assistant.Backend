@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsp from 'fs/promises'; // Import fs.promises for asynchronous file system operations
 import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -107,13 +108,25 @@ async function downloadAndParse() {
     let rawData = '';
     await new Promise((resolve, reject) => {
         https.get(URL, (res) => {
+            // Handle HTTP errors (e.g., 404, 500)
+            if (res.statusCode && res.statusCode >= 400) {
+                reject(new Error(`Failed to download Tanakh JSON: HTTP Status ${res.statusCode}`));
+                res.resume(); // Consume the response data to free up memory
+                return;
+            }
             res.on('data', chunk => rawData += chunk);
             res.on('end', resolve);
-        }).on('error', reject);
+        }).on('error', reject); // Handle network errors
     });
 
     console.log('Parsing Tanakh JSON...');
-    const data = JSON.parse(rawData);
+    let data;
+    try {
+        data = JSON.parse(rawData);
+    } catch (error) {
+        // Catch and re-throw JSON parsing errors for better specificity
+        throw new Error(`Failed to parse Tanakh JSON: ${error.message}`);
+    }
     
     /**
      * Array to store flattened English (JPS) verses.
@@ -126,15 +139,16 @@ async function downloadAndParse() {
      */
     const flatHeb = [];
 
-    // Ensure the data directory exists
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+    // Ensure the data directory exists asynchronously.
+    // fs.promises.mkdir with recursive: true is idempotent, so it won't throw if the directory already exists.
+    await fsp.mkdir(DATA_DIR, { recursive: true });
 
     for (const [bookName, chapters] of Object.entries(data)) {
         let code = bookMap[bookName];
         if (!code) {
             // Handle variations in book names if any
+            // It's generally better to normalize book names before lookup or ensure bookMap is exhaustive.
+            // This block handles specific known variations not in the primary map.
             if (bookName === '1 Samuel') code = '1SA';
             else if (bookName === '2 Samuel') code = '2SA';
             else if (bookName === '1 Kings') code = '1KI';
@@ -143,39 +157,51 @@ async function downloadAndParse() {
             else if (bookName === '2 Chronicles') code = '2CH';
             else if (bookName === 'Song of Solomon' || bookName === 'Song of Songs') code = 'SNG';
             else {
-                console.log('Unknown book:', bookName);
+                console.warn('Unknown book, skipping:', bookName); // Changed to console.warn for non-critical issues
                 continue;
             }
         }
 
         for (const [chapterNum, verses] of Object.entries(chapters)) {
-            let verseIndex = 1;
+            let verseIndex = 1; // Initialize verse index for each chapter
             
             for (let i = 0; i < verses.length; i++) {
                 const item = verses[i];
                 
+                // Process Hebrew verse if it exists in the current item
                 if (item.verse_he) {
                     flatHeb.push({
                         book: code,
                         chapter: parseInt(chapterNum, 10),
-                        verse: verseIndex,
+                        verse: verseIndex, // Use the current logical verse number
                         text: item.verse_he.trim()
                     });
-                } else if (item.verse_en) {
+                }
+                
+                // Process English verse if it exists in the current item
+                // This should be an independent 'if' statement, not 'else if',
+                // as a single JSON item can contain both Hebrew and English text for the same verse.
+                // The previous 'else if' would cause English text to be ignored if Hebrew text was present.
+                if (item.verse_en) {
                     flatJps.push({
                         book: code,
                         chapter: parseInt(chapterNum, 10),
-                        verse: verseIndex,
+                        verse: verseIndex, // Use the current logical verse number
                         text: item.verse_en.trim()
                     });
-                    verseIndex++; // Increment verse after English is processed
                 }
+                
+                // Increment the logical verse index for the next item,
+                // regardless of whether Hebrew or English text (or both) were found for the current item.
+                // The previous logic only incremented if English was processed, leading to incorrect numbering.
+                verseIndex++; 
             }
         }
     }
 
-    fs.writeFileSync(OUT_JPS, JSON.stringify(flatJps, null, 0), 'utf8');
-    fs.writeFileSync(OUT_HEB, JSON.stringify(flatHeb, null, 0), 'utf8');
+    // Write flattened data to files asynchronously to avoid blocking the event loop.
+    await fsp.writeFile(OUT_JPS, JSON.stringify(flatJps, null, 0), 'utf8');
+    await fsp.writeFile(OUT_HEB, JSON.stringify(flatHeb, null, 0), 'utf8');
 
     console.log(`Successfully flattened ${flatJps.length} English verses to ${OUT_JPS}`);
     console.log(`Successfully flattened ${flatHeb.length} Hebrew verses to ${OUT_HEB}`);

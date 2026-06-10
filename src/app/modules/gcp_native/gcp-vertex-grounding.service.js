@@ -114,20 +114,30 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     };
 
     // Save prompt & response session in DB
-    let session = await ChatHistory.findOne({ user: userId, sessionId });
-    if (session) {
-      session.responses.push(responseData);
-      await session.save();
-    } else {
-      session = await ChatHistory.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: session._id },
-      });
-    }
+    // Optimization: Use findOneAndUpdate with upsert: true for atomic update/create.
+    // Recommendation: For optimal performance, ensure an index exists on ChatHistory:
+    // db.chathistories.createIndex({ user: 1, sessionId: 1 })
+    const updatedSession = await ChatHistory.findOneAndUpdate(
+      { user: userId, sessionId },
+      {
+        $push: { responses: responseData },
+        // If there were other fields that should only be set on initial creation,
+        // they could be added using $setOnInsert: { field: value }
+      },
+      {
+        new: true, // Return the updated document
+        upsert: true, // Create a new document if no document matches the filter
+        setDefaultsOnInsert: true, // Apply schema defaults when creating a new document
+      }
+    );
+
+    // Optimization: Use $addToSet to add the session ID to the user's sessions array
+    // only if it's not already present, preventing duplicates and ensuring atomicity.
+    await UserModel.findByIdAndUpdate(
+      userId,
+      { $addToSet: { llamaAiSessions: updatedSession._id } },
+      { new: true } // Optionally return the updated user document
+    );
 
     const payload = { prompt, sessionId, reply, groundingMetadata };
     
