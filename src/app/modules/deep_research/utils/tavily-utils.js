@@ -5,10 +5,18 @@ import { GcpSearchAggregatorService } from '../../gcp_native/gcp-search-aggregat
 import { UnifiedSmartRouter } from '../../../helpers/UnifiedSmartRouter.js';
 import { logger } from '../../../../shared/logger.js';
 
+/**
+ * Initializes a GoogleGenAI instance for interacting with Gemini models.
+ * The API key is sourced from the application configuration or environment variables.
+ * @type {GoogleGenAI}
+ */
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
 
 /**
- * Strips HTML tags (e.g. <b>...</b> from Custom Search results) and sanitizes title text.
+ * Strips HTML tags (e.g., `<b>...</b>` from Custom Search results) and sanitizes title text.
+ * It also removes square brackets to avoid collision with citation syntax.
+ * @param {string} title - The input title string, potentially containing HTML or special characters.
+ * @returns {string} The sanitized title string. Returns an empty string if the input is not a valid string.
  */
 const sanitizeTitle = (title) => {
   if (!title || typeof title !== 'string') return '';
@@ -20,6 +28,9 @@ const sanitizeTitle = (title) => {
 
 /**
  * Extracts a clean hostname domain from a URL string.
+ * Removes 'www.' prefix for a cleaner representation.
+ * @param {string} urlStr - The URL string from which to extract the domain.
+ * @returns {string} The clean domain name (e.g., 'example.com'). Returns 'Web Source' if the URL is invalid or not a string.
  */
 const getDomainFromUrl = (urlStr) => {
   if (!urlStr || typeof urlStr !== 'string') return 'Web Source';
@@ -34,6 +45,12 @@ const getDomainFromUrl = (urlStr) => {
 /**
  * Executes a Gemini model call, automatically wrapping it in a resilient
  * billing/quota dunning error fallback for standard sandbox environments.
+ * If a billing or API key related error occurs, it invokes a fallback generator.
+ * @param {import('@google/generative-ai').GenerateContentRequest} params - The parameters for the Gemini `generateContent` call.
+ * @param {function(): Promise<import('@google/generative-ai').GenerateContentResponse>} fallbackGenerator - A function that returns a promise resolving to a fallback response
+ *   when a billing/API error is detected.
+ * @returns {Promise<import('@google/generative-ai').GenerateContentResponse>} A promise that resolves to the Gemini model's response.
+ * @throws {Error} Throws an error if the Gemini call fails for reasons other than billing/API issues.
  */
 const callGeminiWithResilience = async (params, fallbackGenerator) => {
   try {
@@ -55,15 +72,63 @@ const callGeminiWithResilience = async (params, fallbackGenerator) => {
   }
 };
 
+/**
+ * A LangChain-compatible structured tool for performing advanced web searches using
+ * Google Search Grounding (via Gemini native tools) and Google Custom Search Engine (CSE).
+ * This tool deconstructs complex queries into multiple sub-queries, performs parallel searches,
+ * deduplicates results, and synthesizes a concise answer based on the retrieved information.
+ * It includes resilience mechanisms for Gemini API calls.
+ * @augments StructuredTool
+ */
 export class GoogleSearchGroundingTool extends StructuredTool {
+  /**
+   * The name of the tool, used for identification in agent systems.
+   * @type {string}
+   */
   name = 'google_search_grounding';
+
+  /**
+   * A description of the tool's functionality, explaining its purpose.
+   * @type {string}
+   */
   description = 'Search the web using Google Search Grounding and Custom Search APIs for real-time information';
 
+  /**
+   * Creates an instance of GoogleSearchGroundingTool.
+   * @param {object} [options={}] - Configuration options for the tool.
+   * @param {number} [options.maxResults=8] - The maximum number of unique search results to return.
+   */
   constructor(options = {}) {
     super();
     this.maxResults = options.maxResults || 8;
   }
 
+  /**
+   * Invokes the Google Search Grounding tool to perform a web search.
+   * This method orchestrates query deconstruction, parallel search execution,
+   * result deduplication, relevance scoring, and optional answer synthesis.
+   * @param {object} params - Parameters for the search operation.
+   * @param {string} params.query - The main search query provided by the user.
+   * @param {'basic'|'advanced'} [params.searchDepth='basic'] - The depth of the search. Currently, 'advanced' is the primary implementation.
+   * @param {boolean} [params.includeAnswer=true] - Whether to synthesize a direct answer from the search results.
+   * @param {function(string): void} [params.onProgressUpdate] - Optional callback function to provide real-time progress updates during the search process.
+   * @returns {Promise<object>} A promise that resolves to an object containing the search results and metadata.
+   * @returns {string} returns.query - The original search query.
+   * @returns {string} returns.answer - The synthesized answer based on the search results (if `includeAnswer` is true).
+   * @returns {Array<object>} returns.results - An array of top relevant search results/citations.
+   * @returns {number} returns.results[].index - The 1-based index of the source.
+   * @returns {string} returns.results[].title - The title of the search result.
+   * @returns {string} returns.results[].url - The URL of the search result.
+   * @returns {string} returns.results[].domain - The clean domain name of the search result URL.
+   * @returns {string} returns.results[].content - A consolidated snippet of content from the source, truncated to 600 characters.
+   * @returns {number} returns.results[].score - A relevance score for the source (higher is better).
+   * @returns {object} returns.search_metadata - Metadata about the search operation.
+   * @returns {string} returns.search_metadata.search_depth - The effective search depth used.
+   * @returns {number} returns.search_metadata.total_results - The total number of unique, high-fidelity results returned.
+   * @returns {string} returns.search_metadata.timestamp - ISO 8601 timestamp of when the search was performed.
+   * @returns {Array<string>} returns.search_metadata.webSearchQueries - The list of sub-queries actually executed against the search engines.
+   * @throws {Error} Throws an error if the search process encounters a critical failure.
+   */
   async invoke(params) {
     const {
       query,
@@ -350,10 +415,19 @@ export class GoogleSearchGroundingTool extends StructuredTool {
     }
   }
 
+  /**
+   * Alias for the `invoke` method, providing backward compatibility or alternative calling convention.
+   * @param {object} params - Parameters for the search operation, identical to `invoke`.
+   * @returns {Promise<object>} A promise that resolves to the search results and metadata.
+   */
   async call(params) {
     return this.invoke(params);
   }
 }
 
-// Backward-compatible export alias
+/**
+ * Backward-compatible export alias for GoogleSearchGroundingTool.
+ * This allows consumers to refer to the tool as `TavilySearchTool` if preferred.
+ * @type {typeof GoogleSearchGroundingTool}
+ */
 export const TavilySearchTool = GoogleSearchGroundingTool;
