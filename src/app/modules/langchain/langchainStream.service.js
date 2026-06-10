@@ -66,7 +66,12 @@ const executeSingleStep = async (step, scope, userId) => {
     }
 
     case 'llm': {
-      const promptText = scope[step.config.promptSource || ''] || step.config.systemPrompt || '';
+      // Bug fix: Ensure promptSource is a valid, non-empty string key before accessing scope.
+      // The original `scope[step.config.promptSource || '']` could incorrectly try to access `scope['']`.
+      const promptSourceKey = step.config.promptSource;
+      const promptText = (typeof promptSourceKey === 'string' && promptSourceKey.length > 0 && scope[promptSourceKey] !== undefined)
+        ? scope[promptSourceKey]
+        : step.config.systemPrompt || '';
       const temperature = step.config.temperature ?? 0.7;
       const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
       const modelName = step.config.model || 'gemini-2.5-flash';
@@ -93,7 +98,12 @@ const executeSingleStep = async (step, scope, userId) => {
     }
 
     case 'parser': {
-      const sourceText = scope[step.config.sourceVariable || ''] || '';
+      // Bug fix: Ensure sourceVariable is a valid, non-empty string key before accessing scope.
+      // The original `scope[step.config.sourceVariable || '']` could incorrectly try to access `scope['']`.
+      const sourceVariableKey = step.config.sourceVariable;
+      const sourceText = (typeof sourceVariableKey === 'string' && sourceVariableKey.length > 0 && scope[sourceVariableKey] !== undefined)
+        ? scope[sourceVariableKey]
+        : '';
       stepInput = { sourceVariable: step.config.sourceVariable };
 
       let cleanText = sourceText.trim();
@@ -106,12 +116,16 @@ const executeSingleStep = async (step, scope, userId) => {
         stepOutput = parsed;
         scope[step.name] = parsed;
       } catch {
-        // Fallback for malformed JSON: attempt to extract fields using regex.
-        // This loop creates a new RegExp object for each field. For a very large number of expectedFields,
-        // this could be optimized by pre-compiling regexes if fields are known, or using a more generic parser.
+        // Performance fix: Pre-compile regexes outside the loop to avoid repeated compilation.
+        // This improves performance for templates with many expectedFields.
         const extracted = {};
+        const fieldRegexes = {};
         for (const f of (step.config.expectedFields || [])) {
-          const regex = new RegExp(`"${f}"\\s*:\\s*"([^"]+)"`, 'i');
+          fieldRegexes[f] = new RegExp(`"${f}"\\s*:\\s*"([^"]+)"`, 'i');
+        }
+
+        for (const f of (step.config.expectedFields || [])) {
+          const regex = fieldRegexes[f]; // Use the pre-compiled regex
           const match = cleanText.match(regex);
           if (match) extracted[f] = match[1];
         }
