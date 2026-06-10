@@ -1,3 +1,11 @@
+/**
+ * @file Defines and configures the deep research agent workflow using LangGraph.
+ * This file sets up a state machine for a multi-step research process,
+ * handles state persistence with a fallback mechanism (in-memory vs. MongoDB),
+ * and exports the compiled agent application and a function to run it.
+ * @module modules/deep_research/workflow
+ */
+
 import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
 import { deepResearchAgentState } from './state.js';
 import {
@@ -14,7 +22,12 @@ import {
 import config from '../../../../../config/index.js';
 import { MongoDBSaver } from '../../code/code_assistant/MongoDBSaver.js';
 
-// Create the deep research agent workflow
+/**
+ * The core state machine for the deep research agent.
+ * It's an instance of LangGraph's StateGraph, defining all possible states (nodes)
+ * and transitions (edges) in the research process.
+ * @type {import('@langchain/langgraph').StateGraph}
+ */
 const workflow = new StateGraph({ channels: deepResearchAgentState });
 
 // Add all nodes for the recursive deep research process
@@ -43,8 +56,17 @@ workflow.addEdge('generate_pdf', END);
 // Compile immediately with in-memory checkpointer to avoid blocking startup
 let checkpointer = new MemorySaver();
 
-// Export the deep research agent app as a mutable variable so its checkpointer can be updated.
-// It's initially compiled with an in-memory checkpointer.
+/**
+ * The compiled, runnable deep research agent application.
+ * This is a LangGraph runnable instance that executes the defined workflow.
+ *
+ * It is exported as a mutable `let` variable to allow for a non-blocking,
+ * deferred upgrade of its state persistence mechanism (checkpointer).
+ * It initially uses an in-memory checkpointer for immediate availability
+ * and attempts to asynchronously switch to a more persistent MongoDB checkpointer.
+ *
+ * @type {import('@langchain/langgraph').CompiledGraph}
+ */
 export let deepResearchAgentApp = workflow.compile({
   checkpointer,
   debug: true,
@@ -97,7 +119,26 @@ if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
   console.log('ℹ️ Deep research: MongoDB checkpointer disabled, using in-memory MemorySaver');
 }
 
-// Export utility function to invoke the deep research agent
+/**
+ * Invokes the deep research agent workflow with a given query and options.
+ * This function serves as the primary entry point for initiating a research task.
+ * It sets up the initial state, invokes the LangGraph application, and formats the final result.
+ * The state of the research is isolated by the `conversationId`, allowing for concurrent, independent research tasks.
+ *
+ * @async
+ * @function runDeepResearchAgent
+ * @param {string} query - The main research question or topic to investigate.
+ * @param {object} [options={}] - Optional parameters to configure the research process.
+ * @param {boolean} [options.generatePdf=false] - If true, a PDF report will be generated at the end.
+ * @param {string|null} [options.conversationId=null] - A unique identifier for the conversation thread. If provided, the agent can resume from a previous state. If null, a new ID is generated.
+ * @param {Array<object>} [options.history=[]] - Previous conversation history, if any.
+ * @param {number} [options.maxDepth=3] - The maximum recursion depth for the research process.
+ * @param {string[]} [options.boardPersonas=['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect']] - An array of personas for the 'board debate' node to simulate a multi-perspective review.
+ * @param {string} [options.consensusLevel='majority'] - The level of agreement required from the board debate to finalize the report.
+ * @returns {Promise<object>} A promise that resolves to an object containing the research results.
+ * On success, the object includes properties like `answer` (the final report), `sources`, `promisingLeads`, etc.
+ * On failure, it includes `success: false` and an `error` message.
+ */
 export const runDeepResearchAgent = async (query, options = {}) => {
   const {
     generatePdf = false,

@@ -1,6 +1,8 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
+import logger from '../../../config/logger.js'; // Added for robust logging
+import ApiError from '../../../errors/ApiError.js'; // Added for normalized error handling
 // import { ConversationChain } from 'langchain/chains';
 import { GeminiAiService } from './gemini.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
@@ -130,42 +132,58 @@ const maskPII = text => {
  *         description: Too Many Requests - Tenant rate limit exceeded.
  */
 const GeminiAiGetResponse = catchAsync(async (req, res) => {
-  // Platform Owner AI Enhancement: The validatePromptRequest function should be aware of user roles
-  // to bypass tenant-specific limits for Platform Owners.
-  const { prompt, userId, sessionId, errorResponse } =
-    await validatePromptRequest(req);
+  try {
+    // Platform Owner AI Enhancement: The validatePromptRequest function should be aware of user roles
+    // to bypass tenant-specific limits for Platform Owners.
+    const { prompt, userId, sessionId, errorResponse } =
+      await validatePromptRequest(req);
 
-  if (errorResponse) {
-    return sendResponse(res, {
-      statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST,
-      success: false,
-      message: errorResponse.message || 'Validation failed.',
-      data: null,
+    if (errorResponse) {
+      // This is a controlled, expected error (e.g., validation failure), so we send a specific response.
+      return sendResponse(res, {
+        statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST,
+        success: false,
+        message: errorResponse.message || 'Validation failed.',
+        data: null,
+      });
+    }
+
+    // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
+    const maskedPrompt = maskPII(prompt);
+
+    // Platform Owner AI Enhancement: Pass role-based options to the service layer.
+    // This allows the service to bypass throttling or apply special logic for admins.
+    const serviceOptions = {
+      isPlatformOwner: req.user?.role === 'PLATFORM_OWNER', // Assumes auth middleware sets req.user
+    };
+
+    const result = await GeminiAiService.geminiService(
+      sessionId,
+      maskedPrompt, // Use the sanitized prompt
+      userId,
+      serviceOptions,
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Response processed successfully.',
+      data: result,
     });
+  } catch (error) {
+    // Log the detailed error for internal review, providing context.
+    logger.error(
+      `Gemini AI controller error in GeminiAiGetResponse for user ${req.body?.userId || 'N/A'}:`,
+      error,
+    );
+
+    // Throw a normalized, user-friendly error to be handled by the global error handler.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An unexpected error occurred while processing your request with the AI service.',
+      error.stack, // Pass the original stack for detailed logging by the global handler.
+    );
   }
-
-  // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
-  const maskedPrompt = maskPII(prompt);
-
-  // Platform Owner AI Enhancement: Pass role-based options to the service layer.
-  // This allows the service to bypass throttling or apply special logic for admins.
-  const serviceOptions = {
-    isPlatformOwner: req.user?.role === 'PLATFORM_OWNER', // Assumes auth middleware sets req.user
-  };
-
-  const result = await GeminiAiService.geminiService(
-    sessionId,
-    maskedPrompt, // Use the sanitized prompt
-    userId,
-    serviceOptions,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Response processed successfully.',
-    data: result,
-  });
 });
 
 /**
@@ -210,39 +228,54 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
  *         description: Too Many Requests - Tenant rate limit exceeded.
  */
 const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
-  const { prompt, userId, sessionId, errorResponse } =
-    await validatePromptRequest(req);
+  try {
+    const { prompt, userId, sessionId, errorResponse } =
+      await validatePromptRequest(req);
 
-  if (errorResponse) {
-    return sendResponse(res, {
-      statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST,
-      success: false,
-      message: errorResponse.message || 'Validation failed.',
-      data: null,
+    if (errorResponse) {
+      return sendResponse(res, {
+        statusCode: errorResponse.statusCode || httpStatus.BAD_REQUEST,
+        success: false,
+        message: errorResponse.message || 'Validation failed.',
+        data: null,
+      });
+    }
+
+    // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
+    const maskedPrompt = maskPII(prompt);
+
+    // Platform Owner AI Enhancement: Pass role-based options to the service layer.
+    const serviceOptions = {
+      isPlatformOwner: req.user?.role === 'PLATFORM_OWNER',
+    };
+
+    const result = await GeminiAiService.gemini25PreviewService(
+      sessionId,
+      maskedPrompt, // Use the sanitized prompt
+      userId,
+      serviceOptions,
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Response processed successfully.',
+      data: result,
     });
+  } catch (error) {
+    // Log the detailed error for internal review, providing context.
+    logger.error(
+      `Gemini AI controller error in Gemini25PreviewAiGetResponse for user ${req.body?.userId || 'N/A'}:`,
+      error,
+    );
+
+    // Throw a normalized, user-friendly error.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An unexpected error occurred while processing your request with the AI service.',
+      error.stack,
+    );
   }
-
-  // Vertex AI Safety Guard: Mask PII from the prompt before sending it to the service layer and the model.
-  const maskedPrompt = maskPII(prompt);
-
-  // Platform Owner AI Enhancement: Pass role-based options to the service layer.
-  const serviceOptions = {
-    isPlatformOwner: req.user?.role === 'PLATFORM_OWNER',
-  };
-
-  const result = await GeminiAiService.gemini25PreviewService(
-    sessionId,
-    maskedPrompt, // Use the sanitized prompt
-    userId,
-    serviceOptions,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Response processed successfully.',
-    data: result,
-  });
 });
 
 // =================================================================================================
@@ -293,16 +326,28 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
  *         description: Forbidden - User is not a Platform Owner.
  */
 const getGlobalUsageStats = catchAsync(async (req, res) => {
-  // In a real app, this route would be protected by auth and role-checking middleware:
-  // e.g., router.get('/admin/stats', auth, checkRole('PLATFORM_OWNER'), getGlobalUsageStats);
-  const stats = await GeminiAiService.getPlatformStats();
+  try {
+    // In a real app, this route would be protected by auth and role-checking middleware:
+    // e.g., router.get('/admin/stats', auth, checkRole('PLATFORM_OWNER'), getGlobalUsageStats);
+    const stats = await GeminiAiService.getPlatformStats();
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Platform-wide statistics retrieved successfully.',
-    data: stats,
-  });
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Platform-wide statistics retrieved successfully.',
+      data: stats,
+    });
+  } catch (error) {
+    // Log any unexpected errors during stat retrieval.
+    logger.error('Failed to retrieve global Gemini usage stats:', error);
+
+    // Normalize the error before sending it to the global error handler.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve platform-wide statistics.',
+      error.stack,
+    );
+  }
 });
 
 /**
@@ -347,15 +392,27 @@ const getGlobalUsageStats = catchAsync(async (req, res) => {
  *         description: Forbidden - User is not a Platform Owner.
  */
 const getGlobalLogs = catchAsync(async (req, res) => {
-  const filters = req.query; // Contains page, limit, tenantId, etc.
-  const logs = await GeminiAiService.getPlatformLogs(filters);
+  try {
+    const filters = req.query; // Contains page, limit, tenantId, etc.
+    const logs = await GeminiAiService.getPlatformLogs(filters);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Platform-wide logs retrieved successfully.',
-    data: logs,
-  });
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Platform-wide logs retrieved successfully.',
+      data: logs,
+    });
+  } catch (error) {
+    // Log any unexpected errors during log retrieval.
+    logger.error('Failed to retrieve global Gemini logs:', error);
+
+    // Normalize the error.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve platform-wide logs.',
+      error.stack,
+    );
+  }
 });
 
 /**
@@ -424,24 +481,57 @@ const getGlobalLogs = catchAsync(async (req, res) => {
  *         description: Forbidden - User is not a Platform Owner.
  */
 const getPlatformConfiguration = catchAsync(async (req, res) => {
-  const config = await GeminiAiService.getPlatformConfig();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Platform configuration retrieved successfully.',
-    data: config,
-  });
+  try {
+    const config = await GeminiAiService.getPlatformConfig();
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Platform configuration retrieved successfully.',
+      data: config,
+    });
+  } catch (error) {
+    // Log any unexpected errors.
+    logger.error('Failed to retrieve Gemini platform configuration:', error);
+
+    // Normalize the error.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve platform configuration.',
+      error.stack,
+    );
+  }
 });
 
 const updatePlatformConfiguration = catchAsync(async (req, res) => {
-  const newConfig = req.body;
-  const updatedConfig = await GeminiAiService.updatePlatformConfig(newConfig);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Platform configuration updated successfully.',
-    data: updatedConfig,
-  });
+  try {
+    const newConfig = req.body;
+    // Basic validation to ensure we're not passing an empty object.
+    if (!newConfig || Object.keys(newConfig).length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Configuration payload cannot be empty.',
+      );
+    }
+    const updatedConfig = await GeminiAiService.updatePlatformConfig(newConfig);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Platform configuration updated successfully.',
+      data: updatedConfig,
+    });
+  } catch (error) {
+    // If it's a controlled error we threw (like validation), re-throw it.
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Otherwise, log the unexpected error and normalize it.
+    logger.error('Failed to update Gemini platform configuration:', error);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to update platform configuration.',
+      error.stack,
+    );
+  }
 });
 
 /**
