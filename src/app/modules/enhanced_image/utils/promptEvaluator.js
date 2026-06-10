@@ -108,10 +108,11 @@ export async function evaluatePromptQuality(
     return result;
   } catch (error) {
     // Handle parsing errors by extracting JSON from markdown code blocks
+    // LangChain's OutputParserException typically has the raw LLM output in the 'output' property.
     if (error.message && error.message.includes('Failed to parse')) {
       try {
-        // Extract the raw LLM output
-        const llmOutput = error.llmOutput || '';
+        // Extract the raw LLM output string that failed to parse
+        const llmOutput = error.output || '';
 
         // Remove markdown code blocks
         let jsonString = llmOutput
