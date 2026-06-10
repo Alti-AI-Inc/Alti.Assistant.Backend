@@ -42,6 +42,12 @@ export const generateOTP = async () => {
  *   - `message`: The HTML content of the email.
  */
 export const registrationOtpTemplate = (email, token) => {
+  // BUG FIX: Add input validation for the recipient email address to prevent downstream errors.
+  if (!email || typeof email !== 'string') {
+    throw new Error(
+      'A valid email string is required for registrationOtpTemplate.',
+    );
+  }
   const frontendUrl = config.client_url || 'https://altiassistant.com';
   const verificationLink = `${frontendUrl}/register?code=${encodeURIComponent(token)}`;
 
@@ -84,6 +90,10 @@ export const registrationOtpTemplate = (email, token) => {
  *   - `message`: The HTML content of the email.
  */
 export const forgetPassOtpTemplate = (email, user, OTP) => {
+  // BUG FIX: Add input validation for the recipient email address to prevent downstream errors.
+  if (!email || typeof email !== 'string') {
+    throw new Error('A valid email string is required for forgetPassOtpTemplate.');
+  }
   const mailData = {
     userEmail: email,
     sub: 'Verify Your One-Time Password (OTP)',
@@ -124,8 +134,15 @@ export const forgetPassOtpTemplate = (email, user, OTP) => {
  *   - `message`: The HTML content of the email.
  */
 export const deleteUserOtpTemplate = (user, OTP) => {
+  // BUG FIX: Add input validation to ensure a valid user object with an email is provided.
+  // This prevents runtime errors in the email sending service if the user object is malformed or null.
+  if (!user || !user.email) {
+    throw new Error(
+      'A valid user object with an email property is required for deleteUserOtpTemplate.',
+    );
+  }
   const mailData = {
-    userEmail: user?.email,
+    userEmail: user.email,
     sub: 'Delete Account OTP',
     message: `
       <div style="max-width: 800px; font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 50%;">
@@ -167,6 +184,12 @@ export const teamInvitationTemplate = (
   workspaceName,
   invitationToken,
 ) => {
+  // BUG FIX: Add input validation for the recipient email address to prevent downstream errors.
+  if (!inviteeEmail || typeof inviteeEmail !== 'string') {
+    throw new Error(
+      'A valid inviteeEmail string is required for teamInvitationTemplate.',
+    );
+  }
   const frontendUrl = config.client_url || 'https://altiassistant.com';
   const invitationLink = `${frontendUrl}/accept-invitation?token=${encodeURIComponent(invitationToken)}`;
 
@@ -210,11 +233,18 @@ export const roleUpdateNotificationTemplate = (
   workspaceName,
   newRole,
 ) => {
+  // BUG FIX: Add input validation to ensure a valid user object with an email is provided.
+  // This prevents runtime errors in the email sending service if the user object is malformed or null.
+  if (!user || !user.email) {
+    throw new Error(
+      'A valid user object with an email property is required for roleUpdateNotificationTemplate.',
+    );
+  }
   const frontendUrl = config.client_url || 'https://altiassistant.com';
   const dashboardLink = `${frontendUrl}/dashboard`;
 
   const mailData = {
-    userEmail: user?.email,
+    userEmail: user.email,
     sub: `Your role in ${escapeHtml(workspaceName)} has been updated`,
     message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
                 <div style="max-width: 1050px; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
