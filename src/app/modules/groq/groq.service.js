@@ -188,7 +188,7 @@ User Query: ${enhancedPrompt}`;
 
   // Initialize Google Gemini model
   const client = new GoogleGenerativeAI(config.gemini_secret_key);
-  const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   // Add the new user message to memory
   await memory.chatHistory.addMessage(new HumanMessage(prompt));
@@ -223,8 +223,8 @@ User Query: ${enhancedPrompt}`;
  * session information.
  *
  * @param {string} userId - The unique identifier of the user.
- * @returns {Promise<Object>} A promise that resolves to the user's session data
- *                            or an error object if the user/session is not found.
+ * @returns {Promise<Object>} A promise that resolves to the user's session data.
+ * @throws {ApiError} If the user or session data is not found.
  */
 const getAiResponsesByUserIdService = async (userId) => {
   // Optimization: Added .lean() for this read-only query to improve performance by returning a plain JS object instead of a full Mongoose document.
@@ -237,12 +237,7 @@ const getAiResponsesByUserIdService = async (userId) => {
     })
     .lean();
   if (!sessionData) {
-    return {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Session not found',
-      reply: sessionData,
-    };
+    throw new ApiError(httpStatus.NOT_FOUND, 'User or session data not found');
   }
   return sessionData;
 };
@@ -251,8 +246,8 @@ const getAiResponsesByUserIdService = async (userId) => {
  * @description Retrieves a single AI chat session by its unique session ID.
  *
  * @param {string} id - The unique identifier of the chat session.
- * @returns {Promise<Object>} A promise that resolves to the chat session data
- *                            or an error object if the session is not found.
+ * @returns {Promise<Object>} A promise that resolves to the chat session data.
+ * @throws {ApiError} If the session is not found.
  * @remarks Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
  */
 const getAiResponsesBySession = async (id) => {
@@ -263,12 +258,7 @@ const getAiResponsesBySession = async (id) => {
   }).lean();
 
   if (!sessionData) {
-    return {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Session not found',
-      response: sessionData,
-    };
+    throw new ApiError(httpStatus.NOT_FOUND, 'Session not found');
   }
   return sessionData;
 };
@@ -404,12 +394,11 @@ const deleteAllAiSessionsService = async (userId) => {
       error: error.message || error,
       stack: error.stack
     });
-    return {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR, // Added status code for consistency in error returns
-      success: false,
-      message: 'An internal server error occurred',
-      error: error.message,
-    };
+    // Re-throw the original ApiError or a generic one to be handled by a global error handler
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal server error occurred during the deletion process.');
   }
 };
 
