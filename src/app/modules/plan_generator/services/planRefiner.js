@@ -1,17 +1,3 @@
-/**
- * @fileoverview This service module provides functions for refining and modifying project plans using a generative AI model (Google Gemini).
- * It includes capabilities for refining specific sections, adjusting for new constraints, generating alternatives, optimizing timelines and budgets,
- * expanding sections, simplifying the overall plan, and applying iterative feedback.
- * All AI-powered operations are rate-limited to prevent abuse and manage costs.
- *
- * @requires rate-limiter-flexible - For rate limiting API requests.
- * @requires redis - For the rate limiter's distributed store.
- * @requires @google/generative-ai - The official Google Gemini AI SDK.
- * @requires ../../../../../config/index.js - Application configuration.
- * @requires ../../../../shared/logger.js - The application's logger.
- * @requires ../plan_generator.constant.js - Constants specific to the plan generator module.
- */
-
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -22,15 +8,18 @@ import {
   PLAN_GENERATOR_CONFIG,
   PLAN_SECTIONS,
 } from '../plan_generator.constant.js';
+// BUG FIX: Import services and custom errors for authorization, usage tracking, and better error handling.
+import { UsageService } from '../../usage/usage.service.js';
+import {
+  AuthorizationError,
+  InsufficientCreditsError,
+  RateLimitError,
+  ServiceError,
+} from '../../../../shared/errors.js';
 
 // -- Rate Limiting & DDOS Protection Setup --
 
-/**
- * Redis client instance for the rate limiter.
- * Connects to the Redis server specified in the application configuration.
- * It includes an error listener to log any connection or operational issues.
- * @type {import('redis').RedisClientType}
- */
+// Initialize Redis client. Assumes `redis_url` is present in the config.
 const redisClient = createClient({
   url: config.redis_url,
   enable_offline_queue: false,
@@ -43,12 +32,8 @@ redisClient.on('error', (err) => {
 // Asynchronously connect to Redis. The rate limiter library handles connection readiness.
 redisClient.connect().catch((err) => logger.error('Failed to connect to Redis:', err));
 
-/**
- * Rate limiter for expensive AI generation and refinement tasks.
- * This limiter is configured to prevent abuse and control API costs by restricting
- * the number of requests per user ID or IP address within a specific time window.
- * @type {RateLimiterRedis}
- */
+// Rate limiter for expensive AI generation/refinement tasks.
+// Limits are applied per user ID or IP address to prevent abuse and cost overruns.
 const aiApiLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_plan_refiner', // Unique prefix for this set of limiters
@@ -59,20 +44,18 @@ const aiApiLimiter = new RateLimiterRedis({
 
 /**
  * Middleware-like function to consume a point from the rate limiter for a given user/IP.
- * @param {object} context - The context object, expected to contain `userId` or `ip`.
- * @param {string} [context.userId] - The ID of the user making the request.
- * @param {string} [context.ip] - The IP address of the user making the request.
- * @throws {Error} Throws a 429 "Too Many Requests" error if the rate limit is exceeded.
- * @throws {Error} Throws a 500 error if no user/IP identifier is found in the context.
+ * @param {object} context - The context object, expected to contain `user.id` or `ip`.
+ * @throws {RateLimitError} Throws a 429 "Too Many Requests" error if the rate limit is exceeded.
+ * @throws {ServiceError} Throws a 500 error if no user/IP identifier is found in the context.
  */
 const applyRateLimit = async (context) => {
-  // A user ID or IP must be provided in the context for effective rate limiting.
-  const key = context?.userId || context?.ip;
+  // SECURITY FIX: Prioritize authenticated user ID for rate limiting over IP.
+  const key = context?.user?.id || context?.ip;
   if (!key) {
     // Fail-safe: If no identifier is provided, we can't apply user-specific limits.
     // For security, we throw an error to enforce that the calling code provides context.
-    logger.warn('Rate limit check failed: No userId or ip in context.');
-    throw new Error('Cannot process request without a user or IP identifier for rate limiting.');
+    logger.error('Rate limit check failed: No user.id or ip in context.');
+    throw new ServiceError('Cannot process request without a user or IP identifier for rate limiting.');
   }
   try {
     await aiApiLimiter.consume(key);
@@ -80,19 +63,82 @@ const applyRateLimit = async (context) => {
     // This block executes when the user has consumed all their points.
     logger.warn('Rate limit exceeded for plan refinement', { key });
     const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000);
-    const error = new Error(`Too many requests. Please try again in ${retryAfter} seconds.`);
-    error.status = 429; // This status can be used by the controller to send the correct HTTP response.
-    throw error;
+    // BUG FIX: Use a specific error type for rate limiting.
+    throw new RateLimitError(`Too many requests. Please try again in ${retryAfter} seconds.`);
   }
 };
 
 // -- End of Rate Limiting Setup --
 
+// -- Authorization and Usage Tracking --
+
 /**
- * Google Generative AI client instance.
- * Initialized with the secret key from the application configuration.
- * @type {GoogleGenerativeAI}
+ * Authorizes a user action against a plan, ensuring they belong to the correct workspace.
+ * This prevents Insecure Direct Object Reference (IDOR) vulnerabilities.
+ * @param {object} plan - The plan object, must contain a `workspaceId`.
+ * @param {object} context - The user context, must contain `user.workspaceId` and `user.role`.
+ * @throws {AuthorizationError} If the user is not authorized to access or modify the plan.
  */
+const authorizeAction = (plan, context) => {
+  // INTEGRATION FIX: Ensure a valid user context from an authentication middleware exists.
+  if (!context?.user?.workspaceId || !context?.user?.id) {
+    throw new AuthorizationError('User context is missing or invalid.');
+  }
+  // INTEGRATION FIX: Ensure the plan object has the necessary data for authorization.
+  if (!plan?.workspaceId) {
+    logger.error('Authorization check failed: Plan object is missing workspaceId.', { planId: plan?.id });
+    throw new ServiceError('Plan object is malformed and cannot be authorized.');
+  }
+  // SECURITY FIX (IDOR): Ensure the user's workspace matches the plan's workspace.
+  if (plan.workspaceId !== context.user.workspaceId) {
+    logger.warn('Authorization failed: User from one workspace attempted to access a plan from another.', {
+      userId: context.user.id,
+      userWorkspaceId: context.user.workspaceId,
+      planWorkspaceId: plan.workspaceId,
+    });
+    throw new AuthorizationError('You do not have permission to access this resource.');
+  }
+  // INTEGRATION POINT: Role-specific logic can be added here.
+  // For example, if 'user' roles have restrictions on certain refinement types.
+  // const { role } = context.user;
+  // if (role === 'user' && some_condition) {
+  //   throw new AuthorizationError('Your role does not permit this action.');
+  // }
+};
+
+/**
+ * Records token usage metrics from the Gemini response and propagates it to the workspace level.
+ * @param {object} response - The Gemini response object.
+ * @param {string} action - The name of the action being performed.
+ * @param {object} context - The user context.
+ */
+const recordUsage = async (response, action, context) => {
+  if (response && response.usageMetadata) {
+    const usageData = {
+      ...response.usageMetadata,
+      userId: context.user.id,
+      workspaceId: context.user.workspaceId,
+    };
+    logger.info(`Gemini token usage for ${action}:`, usageData);
+
+    // INTEGRATION FIX: Propagate usage details up to the workspace/tenant for billing and limits.
+    try {
+      await UsageService.recordTokens(context.user.workspaceId, response.usageMetadata);
+    } catch (error) {
+      // This failure is critical for billing/limits but should not fail the user's request.
+      // It must be monitored closely by an external system.
+      logger.error('CRITICAL: Failed to record token usage to database', {
+        error: error.message,
+        workspaceId: context.user.workspaceId,
+        usage: response.usageMetadata,
+      });
+    }
+  }
+};
+
+// -- End of Authorization and Usage Tracking --
+
+// Initialize Gemini client
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
@@ -138,24 +184,13 @@ const parseRobustJson = (text) => {
 };
 
 /**
- * Logs token usage metrics from the Gemini response metadata.
- * @param {object} response - The Gemini response object.
- * @param {string} action - The name of the action being performed.
- */
-const logUsage = (response, action) => {
-  if (response && response.usageMetadata) {
-    logger.info(`Gemini token usage for ${action}:`, response.usageMetadata);
-  }
-};
-
-/**
  * Refines a specific section of a given plan based on a refinement request using a generative AI model.
  * The AI attempts to update the specified section while maintaining its original JSON structure.
  *
- * @param {object} plan - The overall plan object containing various sections.
+ * @param {object} plan - The overall plan object containing various sections and a `workspaceId`.
  * @param {string} section - The name of the section to refine (e.g., 'phases', 'resources', 'introduction').
  * @param {string} refinementRequest - The specific request or instruction for refinement (e.g., "Make this section more detailed", "Adjust the timeline in this phase").
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object>} A promise that resolves to the refined section object.
  * @throws {Error} If the specified section is not found in the plan, if the AI response does not contain valid JSON, or if the AI generation fails.
  */
@@ -163,12 +198,17 @@ export const refineSection = async (
   plan,
   section,
   refinementRequest,
-  context = {}
+  context
 ) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+  // INTEGRATION FIX: Perform authorization and check usage limits before any processing.
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     logger.info('Refining plan section:', {
       section,
+      userId: context.user.id,
       request: refinementRequest,
     });
 
@@ -206,16 +246,17 @@ Please refine this section based on the request. Return the updated section in t
     });
 
     const response = result.response;
-    logUsage(response, `refineSection (${section})`);
+    // INTEGRATION FIX: Record usage after a successful AI call.
+    await recordUsage(response, `refineSection (${section})`, context);
     const refinedText = response.text();
 
     const refinedSection = parseRobustJson(refinedText);
 
-    logger.info('Section refined successfully:', { section });
+    logger.info('Section refined successfully:', { section, userId: context.user.id });
 
     return refinedSection;
   } catch (error) {
-    logger.error('Error refining section:', error);
+    logger.error('Error refining section:', { error: error.message, userId: context.user.id });
     throw error;
   }
 };
@@ -224,16 +265,19 @@ Please refine this section based on the request. Return the updated section in t
  * Adjusts the entire plan to accommodate new constraints using a generative AI model.
  * The AI will consider various aspects like timeline, budget, resources, and priorities to integrate the new constraints.
  *
- * @param {object} plan - The current plan object to be adjusted.
+ * @param {object} plan - The current plan object to be adjusted, must include `workspaceId`.
  * @param {object} newConstraints - An object detailing the new constraints (e.g., `{ budget: "$5000", timeline: "2 months" }`).
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object>} A promise that resolves to the adjusted plan object.
  * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
-export const adjustForConstraints = async (plan, newConstraints, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const adjustForConstraints = async (plan, newConstraints, context) => {
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
-    logger.info('Adjusting plan for new constraints:', newConstraints);
+    logger.info('Adjusting plan for new constraints:', { newConstraints, userId: context.user.id });
 
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -265,16 +309,16 @@ Return the complete updated plan in the same JSON structure. Only return valid J
     });
 
     const response = result.response;
-    logUsage(response, 'adjustForConstraints');
+    await recordUsage(response, 'adjustForConstraints', context);
     const adjustedText = response.text();
 
     const adjustedPlan = parseRobustJson(adjustedText);
 
-    logger.info('Plan adjusted successfully');
+    logger.info('Plan adjusted successfully', { userId: context.user.id });
 
     return adjustedPlan;
   } catch (error) {
-    logger.error('Error adjusting plan:', error);
+    logger.error('Error adjusting plan:', { error: error.message, userId: context.user.id });
     throw error;
   }
 };
@@ -283,15 +327,18 @@ Return the complete updated plan in the same JSON structure. Only return valid J
  * Generates 2-3 alternative approaches or variations for a given idea within the context of an existing plan.
  * Each alternative includes a description, pros, cons, estimated timeline, and estimated budget.
  *
- * @param {object} plan - The current plan object, used as context for generating relevant alternatives.
+ * @param {object} plan - The current plan object, used as context for generating relevant alternatives, must include `workspaceId`.
  * @param {string} ideaText - The specific idea or concept for which alternatives are to be generated.
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<Array<object>>} A promise that resolves to an array of alternative approach objects.
- *   Each object typically has properties like `approach`, `pros`, `cons`, `estimated_timeline`, and `estimated_budget`.
  *   Returns an empty array if an error occurs or if no valid JSON alternatives can be extracted.
  */
-export const addAlternatives = async (plan, ideaText, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const addAlternatives = async (plan, ideaText, context) => {
+  authorizeAction(plan, context);
+  // BUG FIX: Unhandled promise. Added await.
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -325,7 +372,7 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
     });
 
     const response = result.response;
-    logUsage(response, 'addAlternatives');
+    await recordUsage(response, 'addAlternatives', context);
     const responseText = response.text();
 
     try {
@@ -336,11 +383,15 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
         return parsedResponse;
       }
     } catch (parseError) {
-      logger.error('Failed to parse JSON for alternatives or invalid structure:', parseError);
+      logger.error('Failed to parse JSON for alternatives or invalid structure:', { error: parseError.message, userId: context.user.id });
     }
     return [];
   } catch (error) {
-    logger.error('Error adding alternatives:', error);
+    // BUG FIX: Do not throw errors that should be handled gracefully (e.g., credit/rate limit errors).
+    if (error instanceof AuthorizationError || error instanceof InsufficientCreditsError || error instanceof RateLimitError) {
+        throw error;
+    }
+    logger.error('Error adding alternatives:', { error: error.message, userId: context.user.id });
     return [];
   }
 };
@@ -349,14 +400,17 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
  * Optimizes the timeline (phases) of a plan to meet a specified target duration.
  * The AI considers factors like parallel tasks, critical path, resource allocation, and scope adjustments.
  *
- * @param {object} plan - The current plan object, expected to have a `phases` property.
+ * @param {object} plan - The current plan object, expected to have a `phases` property and a `workspaceId`.
  * @param {string} targetDuration - The desired target duration for the plan (e.g., "3 months", "6 weeks", "end of Q4").
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<Array<object>>} A promise that resolves to an array of optimized phase objects.
  *   Returns the original `plan.phases` array if an error occurs or if no valid JSON can be extracted.
  */
-export const optimizeTimeline = async (plan, targetDuration, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const optimizeTimeline = async (plan, targetDuration, context) => {
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -384,7 +438,7 @@ Return optimized phases in same JSON format.`;
     });
 
     const response = result.response;
-    logUsage(response, 'optimizeTimeline');
+    await recordUsage(response, 'optimizeTimeline', context);
     const responseText = response.text();
 
     try {
@@ -395,11 +449,14 @@ Return optimized phases in same JSON format.`;
         return parsedResponse.phases;
       }
     } catch (parseError) {
-      logger.error('Failed to parse JSON for optimized timeline or invalid structure:', parseError);
+      logger.error('Failed to parse JSON for optimized timeline or invalid structure:', { error: parseError.message, userId: context.user.id });
     }
     return plan.phases;
   } catch (error) {
-    logger.error('Error optimizing timeline:', error);
+    if (error instanceof AuthorizationError || error instanceof InsufficientCreditsError || error instanceof RateLimitError) {
+        throw error;
+    }
+    logger.error('Error optimizing timeline:', { error: error.message, userId: context.user.id });
     return plan.phases;
   }
 };
@@ -408,14 +465,17 @@ Return optimized phases in same JSON format.`;
  * Optimizes the resource allocation of a plan to meet a specified target budget.
  * The AI will suggest adjustments to resources to align with the financial constraint.
  *
- * @param {object} plan - The current plan object, expected to have a `resources` property.
+ * @param {object} plan - The current plan object, expected to have a `resources` property and a `workspaceId`.
  * @param {string} targetBudget - The desired target budget for the plan (e.g., "$10,000", "5000 USD", "within 15k").
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object>} A promise that resolves to an object representing the optimized resources.
  *   Returns the original `plan.resources` object if an error occurs or if no valid JSON can be extracted.
  */
-export const optimizeBudget = async (plan, targetBudget, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const optimizeBudget = async (plan, targetBudget, context) => {
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -437,7 +497,7 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
     });
 
     const response = result.response;
-    logUsage(response, 'optimizeBudget');
+    await recordUsage(response, 'optimizeBudget', context);
     const responseText = response.text();
 
     try {
@@ -447,11 +507,14 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
       }
       return parsedResponse || plan.resources;
     } catch (parseError) {
-      logger.error('Failed to parse JSON for optimized budget:', parseError);
+      logger.error('Failed to parse JSON for optimized budget:', { error: parseError.message, userId: context.user.id });
       return plan.resources;
     }
   } catch (error) {
-    logger.error('Error optimizing budget:', error);
+    if (error instanceof AuthorizationError || error instanceof InsufficientCreditsError || error instanceof RateLimitError) {
+        throw error;
+    }
+    logger.error('Error optimizing budget:', { error: error.message, userId: context.user.id });
     return plan.resources;
   }
 };
@@ -460,14 +523,17 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
  * Expands a specific section of the plan with more detailed information using a generative AI model.
  * The AI will provide a more comprehensive version of the specified section, maintaining its JSON structure.
  *
- * @param {object} plan - The overall plan object.
+ * @param {object} plan - The overall plan object, must include `workspaceId`.
  * @param {string} section - The name of the section to expand (e.g., 'introduction', 'phases', 'risks').
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object|Array>} A promise that resolves to the expanded section content (can be an object or an array depending on the section).
  *   Returns the original `plan[section]` content if an error occurs or if no valid JSON can be extracted.
  */
-export const expandSection = async (plan, section, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const expandSection = async (plan, section, context) => {
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -493,7 +559,7 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
     });
 
     const response = result.response;
-    logUsage(response, `expandSection (${section})`);
+    await recordUsage(response, `expandSection (${section})`, context);
     const responseText = response.text();
 
     try {
@@ -503,11 +569,14 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
       }
       return parsedResponse || plan[section];
     } catch (parseError) {
-      logger.error('Failed to parse JSON for expanded section:', parseError);
+      logger.error('Failed to parse JSON for expanded section:', { error: parseError.message, userId: context.user.id });
       return plan[section];
     }
   } catch (error) {
-    logger.error('Error expanding section:', error);
+    if (error instanceof AuthorizationError || error instanceof InsufficientCreditsError || error instanceof RateLimitError) {
+        throw error;
+    }
+    logger.error('Error expanding section:', { error: error.message, userId: context.user.id });
     return plan[section];
   }
 };
@@ -516,13 +585,16 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
  * Simplifies the entire plan to make it more concise and easier to understand.
  * The AI will rephrase and condense the plan while retaining all essential information and its original JSON structure.
  *
- * @param {object} plan - The current plan object to be simplified.
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} plan - The current plan object to be simplified, must include `workspaceId`.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object>} A promise that resolves to the simplified plan object.
  *   Returns the original plan object if an error occurs or if no valid JSON can be extracted.
  */
-export const simplifyPlan = async (plan, context = {}) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+export const simplifyPlan = async (plan, context) => {
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     const model = genAI.getGenerativeModel({
       model: PLAN_GENERATOR_CONFIG.MODEL,
@@ -543,17 +615,20 @@ Keep all essential information but make it more accessible. Return in same JSON 
     });
 
     const response = result.response;
-    logUsage(response, 'simplifyPlan');
+    await recordUsage(response, 'simplifyPlan', context);
     const responseText = response.text();
 
     try {
       return parseRobustJson(responseText);
     } catch (parseError) {
-      logger.error('Failed to parse JSON for simplified plan:', parseError);
+      logger.error('Failed to parse JSON for simplified plan:', { error: parseError.message, userId: context.user.id });
       return plan;
     }
   } catch (error) {
-    logger.error('Error simplifying plan:', error);
+    if (error instanceof AuthorizationError || error instanceof InsufficientCreditsError || error instanceof RateLimitError) {
+        throw error;
+    }
+    logger.error('Error simplifying plan:', { error: error.message, userId: context.user.id });
     return plan;
   }
 };
@@ -562,10 +637,10 @@ Keep all essential information but make it more accessible. Return in same JSON 
  * Applies user feedback to an existing plan, iteratively improving it using a generative AI model.
  * The AI considers the current plan, the specific feedback, and optionally previous conversation history to make appropriate changes.
  *
- * @param {object} plan - The current plan object.
+ * @param {object} plan - The current plan object, must include `workspaceId`.
  * @param {string} feedback - The user's feedback or instructions for improvement (e.g., "Make the budget more realistic", "Add a contingency plan").
  * @param {Array<object>} [conversationHistory=[]] - Optional array of previous conversation turns.
- * @param {object} [context={}] - Optional context, must include `userId` or `ip` for rate limiting.
+ * @param {object} context - Context object, must include `user: {id, workspaceId, role}` and `ip`.
  * @returns {Promise<object>} A promise that resolves to the improved plan object.
  * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
@@ -573,12 +648,16 @@ export const applyFeedback = async (
   plan,
   feedback,
   conversationHistory = [],
-  context = {}
+  context
 ) => {
-  await applyRateLimit(context); // Apply rate limiting before proceeding
+  authorizeAction(plan, context);
+  await UsageService.checkHasSufficientCredits(context.user.workspaceId);
+  await applyRateLimit(context);
+
   try {
     logger.info('Applying feedback to plan:', {
       feedbackLength: feedback.length,
+      userId: context.user.id,
     });
 
     const model = genAI.getGenerativeModel({
@@ -605,36 +684,37 @@ Apply this feedback to improve the plan. Consider what the user is asking for an
     });
 
     const response = result.response;
-    logUsage(response, 'applyFeedback');
+    await recordUsage(response, 'applyFeedback', context);
     const improvedText = response.text();
 
     const improvedPlan = parseRobustJson(improvedText);
 
-    logger.info('Feedback applied successfully');
+    logger.info('Feedback applied successfully', { userId: context.user.id });
 
     return improvedPlan;
   } catch (error) {
-    logger.error('Error applying feedback:', error);
+    logger.error('Error applying feedback:', { error: error.message, userId: context.user.id });
     throw error;
   }
 };
 
 /**
  * @typedef {object} PlanRefinerService
- * @property {function(object, string, string, object=): Promise<object>} refineSection - Refines a specific section of a plan.
- * @property {function(object, object, object=): Promise<object>} adjustForConstraints - Adjusts the entire plan based on new constraints.
- * @property {function(object, string, object=): Promise<Array<object>>} addAlternatives - Generates alternative approaches for an idea within a plan.
- * @property {function(object, string, object=): Promise<Array<object>>} optimizeTimeline - Optimizes the plan's timeline to meet a target duration.
- * @property {function(object, string, object=): Promise<object>} optimizeBudget - Optimizes the plan's budget to meet a target.
- * @property {function(object, string, object=): Promise<object|Array>} expandSection - Expands a specific section of the plan with more details.
- * @property {function(object, object=): Promise<object>} simplifyPlan - Simplifies the entire plan for easier understanding.
- * @property {function(object, string, Array<object>=, object=): Promise<object>} applyFeedback - Applies user feedback to iteratively improve the plan.
+ * @property {function(object, string, string, object): Promise<object>} refineSection - Refines a specific section of a plan.
+ * @property {function(object, object, object): Promise<object>} adjustForConstraints - Adjusts the entire plan based on new constraints.
+ * @property {function(object, string, object): Promise<Array<object>>} addAlternatives - Generates alternative approaches for an idea within a plan.
+ * @property {function(object, string, object): Promise<Array<object>>} optimizeTimeline - Optimizes the plan's timeline to meet a target duration.
+ * @property {function(object, string, object): Promise<object>} optimizeBudget - Optimizes the plan's budget to meet a target.
+ * @property {function(object, string, object): Promise<object|Array>} expandSection - Expands a specific section of the plan with more details.
+ * @property {function(object, object): Promise<object>} simplifyPlan - Simplifies the entire plan for easier understanding.
+ * @property {function(object, string, Array<object>=, object): Promise<object>} applyFeedback - Applies user feedback to iteratively improve the plan.
  */
 
 /**
  * An object consolidating all plan refinement and adjustment functions.
  * This service provides various utilities for modifying, optimizing, and enhancing project plans
- * using generative AI capabilities. All functions are rate-limited to prevent abuse.
+ * using generative AI capabilities. All functions are rate-limited, authorized, and usage-tracked to prevent abuse,
+ * enforce tenant boundaries, and respect business limits.
  * @type {PlanRefinerService}
  */
 export const planRefiner = {

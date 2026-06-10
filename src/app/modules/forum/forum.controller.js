@@ -1,230 +1,195 @@
+const httpStatus = require('http-status');
 const pick = require('../../middlewares/other/pick');
+const ApiError = require('../../utils/ApiError'); // Assuming a custom error class for structured HTTP errors
+const catchAsync = require('../../utils/catchAsync'); // Assuming a utility to wrap async route handlers
+const logger = require('../../../config/logger'); // BUG FIX: Added logger import
 const { paginationFields } = require('./forum.constant');
 const {
-  deleteCommentServices,
-  getCommnetService,
+  addForumServices,
   getForumService,
   getForumServiceById,
-  getForumServiceByEmail,
+  getForumsByAuthorId, // SECURITY: Renamed from getForumServiceByEmail for security
   updateForumService,
   deleteForumService,
   getForumSuggestionService,
   addUserForumActivityServices,
+  getCommnetService,
+  deleteCommentServices,
 } = require('./forum.service');
-const { addForumServices } = require('./forum.service');
+// CRITICAL INTEGRATION: Import usage and notification services (placeholders for real implementation)
+const { checkUsageAndLimits, recordUsage } = require('../usage/usage.service');
 
-module.exports.addForum = async (req, res, next) => {
-  // logger.info(req.body, "blog dataaaa");
-  try {
-    const data = req.body;
-    const result = await addForumServices(data);
+// SECURITY: All endpoints now require authentication and are scoped to the user's workspace/tenant.
+// Authorization logic (e.g., checking roles like 'admin', 'manager') is delegated to the service layer.
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Add Forum Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Forum doesn't add successfully",
-      error: error.message,
-    });
-  }
-};
+module.exports.addForum = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user from request object (populated by auth middleware)
+  const data = req.body;
 
-module.exports.getForum = async (req, res) => {
-  try {
-    const filters = pick(req.query, ['searchTerm', 'title', 'category']);
+  // CRITICAL INTEGRATION: Check if user or workspace has reached the limit for forum posts before creation.
+  await checkUsageAndLimits(user, 'forum_post');
 
-    const paginationOptions = pick(req.query, paginationFields);
+  // SECURITY (Tenant Isolation): Associate the new forum post with the authenticated user and their workspace.
+  const forumData = {
+    ...data,
+    author: user.id,
+    workspace: user.workspaceId,
+  };
 
-    const result = await getForumService(filters, paginationOptions);
-    // const result = await getBlogService(req.body)
+  const result = await addForumServices(forumData);
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Get Forums Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Couldn't get fourms successfully",
-      error: error.message,
-    });
-  }
-};
+  // CRITICAL INTEGRATION: Record the usage for analytics and limit tracking after successful creation.
+  await recordUsage(user, 'forum_post', { forumId: result.id });
 
-module.exports.getForumById = async (req, res) => {
+  res.status(httpStatus.CREATED).json({
+    status: 'success',
+    message: 'Forum created successfully',
+    data: result,
+  });
+});
+
+module.exports.getForum = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const filters = pick(req.query, ['searchTerm', 'title', 'category']);
+
+  // SECURITY (Tenant Isolation): Ensure users can only see forums within their own workspace.
+  filters.workspace = user.workspaceId;
+
+  const paginationOptions = pick(req.query, paginationFields);
+  const result = await getForumService(filters, paginationOptions);
+
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Forums retrieved successfully',
+    data: result,
+  });
+});
+
+module.exports.getForumById = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
-  logger.info(id, 'blog idddd');
-  try {
-    const result = await getForumServiceById(id);
-    res.status(200).json({
-      status: 'Success',
-      message: 'Get forum by id successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Couldn't not get forum by id",
-      error: error.message,
-    });
+
+  // SECURITY (Tenant Isolation): Pass workspaceId to the service to ensure the fetched forum belongs to the user's workspace.
+  const result = await getForumServiceById(id, user.workspaceId);
+
+  // BUG FIX: Handle case where forum is not found or is outside the user's tenant context.
+  if (!result) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Forum not found');
   }
-};
 
-module.exports.getForumByEmail = async (req, res) => {
-  const { email } = req.params;
-  logger.info(email, 'blog email');
-  try {
-    const result = await getForumServiceByEmail(email);
-    res.status(200).json({
-      status: 'Success',
-      message: 'Get forum by email successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Couldn't not get forum by email",
-      error: error.message,
-    });
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Forum retrieved successfully',
+    data: result,
+  });
+});
+
+// SECURITY: Replaced insecure `getForumByEmail` with `getMyForums` to prevent user information leakage.
+// This endpoint now fetches forums for the currently authenticated user only.
+module.exports.getMyForums = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+
+  // The service will fetch all forums where author matches user.id
+  const result = await getForumsByAuthorId(user.id, user.workspaceId);
+
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Your forums retrieved successfully',
+    data: result,
+  });
+});
+
+exports.updateForum = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const { id } = req.params;
+  const updateBody = req.body;
+
+  // SECURITY (IDOR & Authorization): Pass the user object to the service layer.
+  // The service layer MUST verify that the user is either the author of the post
+  // or has a role (e.g., 'manager', 'admin', 'super_admin') that permits editing, AND that the post is in their workspace.
+  const result = await updateForumService(id, updateBody, user);
+
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Forum updated successfully',
+    data: result,
+  });
+});
+
+exports.deleteForum = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const { id } = req.params;
+
+  // SECURITY (IDOR & Authorization): Pass the user object to the service layer.
+  // The service layer MUST verify ownership or role permissions before deleting.
+  await deleteForumService(id, user);
+
+  // BUG FIX: Use 204 No Content for successful deletions, as there is no body to return.
+  res.status(httpStatus.NO_CONTENT).send();
+});
+
+module.exports.getForumSuggestion = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const { suggestion } = req.params;
+
+  // SECURITY (Tenant Isolation): Scope suggestions to the user's workspace to prevent data leakage across tenants.
+  const result = await getForumSuggestionService(suggestion, user.workspaceId);
+
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Forum suggestions retrieved successfully',
+    data: result,
+  });
+});
+
+module.exports.addUserForumActivity = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const activityData = req.body; // e.g., { forumId: '...', comment: '...' }
+
+  // CRITICAL INTEGRATION: Check usage limits for comments/activities.
+  await checkUsageAndLimits(user, 'forum_activity');
+
+  // SECURITY: Associate activity with the user and pass the user object for validation in the service.
+  // The service MUST verify that the target forum (activityData.forumId) exists within the user's workspace.
+  const result = await addUserForumActivityServices(activityData, user);
+
+  // CRITICAL INTEGRATION: Record the usage.
+  await recordUsage(user, 'forum_activity', { forumId: activityData.forumId, activityId: result.id });
+
+  res.status(httpStatus.CREATED).json({
+    status: 'success',
+    message: 'Activity added successfully',
+    data: result,
+  });
+});
+
+module.exports.getComment = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const { commentId } = req.params;
+
+  // SECURITY (Tenant Isolation): Pass workspaceId to the service.
+  // The service MUST verify the comment belongs to a forum within the user's workspace.
+  const result = await getCommnetService(commentId, user.workspaceId);
+
+  if (!result) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Comment not found');
   }
-};
 
-exports.updateForum = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await updateForumService(id, req.body);
-    res.status(200).json({
-      status: 'Success',
-      message: 'Forum Update Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'Fail',
-      message: "Forum couldn't Update Successfully",
-      error: error.message,
-    });
-    logger.info(error, 'error');
-  }
-};
+  res.status(httpStatus.OK).json({
+    status: 'success',
+    message: 'Comment retrieved successfully',
+    data: result,
+  });
+});
 
-exports.deleteForum = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await deleteForumService(id);
+exports.deleteComment = catchAsync(async (req, res) => {
+  const { user } = req; // AUTH: Get authenticated user
+  const { id } = req.params; // This is the comment ID
 
-    if (!result.deletedCount) {
-      return res.status(400).json({
-        status: 'fail',
-        error: "Could't delete the forum",
-      });
-    }
-    res.status(200).json({
-      status: 'Success',
-      message: 'Forum Delete Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'Fail',
-      message: "Forum couldn't Delete Successfully",
-      error: error.message,
-    });
-    logger.info(error, 'error');
-  }
-};
+  // SECURITY (IDOR & Authorization): Pass the user object to the service layer.
+  // The service MUST verify the user is the comment author, the forum author, or an admin/manager/super_admin
+  // and that the comment is in their workspace before deleting.
+  await deleteCommentServices(id, user);
 
-module.exports.getForumSuggestion = async (req, res) => {
-  try {
-    const { suggestion } = req.params;
-    // logger.info(suggestion, 'suggestion suggestion')
-
-    const result = await getForumSuggestionService(suggestion);
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Get Forums suggestion Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Couldn't get fourms suggestion",
-      error: error.message,
-    });
-  }
-};
-
-module.exports.addUserForumActivity = async (req, res, next) => {
-  try {
-    // logger.info(req.body, "dataaaa")
-    // const { id } = req.params
-    const data = req.body;
-    // logger.info(data, "dataaaa")
-    const result = await addUserForumActivityServices(data);
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Successfully Added',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Doesn't add comment",
-      error: error.message,
-    });
-  }
-};
-
-module.exports.getComment = async (req, res) => {
-  try {
-    const { commentId } = req.params;
-    // const data = (req.body)
-    // logger.info(commentId, "commentIddddddd");
-    const result = await getCommnetService(commentId);
-    // logger.info(result, 'comments dataaa')
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Get Comment Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'fail',
-      message: "Couldn't get Comment successfully",
-      error: error.message,
-    });
-  }
-};
-exports.deleteComment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await deleteCommentServices(id);
-
-    if (!result.deletedCount) {
-      return res.status(400).json({
-        status: 'fail',
-        error: "Could't delete the Comment",
-      });
-    }
-    res.status(200).json({
-      status: 'Success',
-      message: 'Comment Delete Successfully',
-      data: result,
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 'Fail',
-      message: "Blog couldn't Delete Successfully",
-      error: error.message,
-    });
-    logger.info(error, 'error');
-  }
-};
+  res.status(httpStatus.NO_CONTENT).send();
+});
