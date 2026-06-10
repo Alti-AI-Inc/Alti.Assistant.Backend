@@ -16,7 +16,32 @@
  *   8. massivePortfolioAdvisor   — Multi-asset portfolio snapshot and allocation insight
  */
 
+/**
+ * @typedef {object} MassiveAgentConfig
+ * @property {string} id - A unique, machine-readable identifier for the AI agent.
+ * @property {string} name - The human-readable name of the AI agent.
+ * @property {string} description - A concise summary of the agent's expertise and primary function.
+ * @property {string} systemInstruction - The detailed system-level prompt that defines the AI's persona,
+ *           response format, and analytical laws. This instruction guides the AI's behavior and output.
+ * @property {string} model - The specific AI model used by this agent (e.g., 'gemini-2.0-flash').
+ * @property {Array<any>} tools - An array of external tools or functions that the agent can utilize.
+ *           Currently, these agents do not use external tools.
+ * @property {Array<string>} keywords - A list of keywords or phrases that are likely to trigger or
+ *           be relevant to this agent's domain, used for routing user queries.
+ */
+
 // ─── 1. Equity Analyst ────────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Equity Analyst AI micro-agent.
+ *
+ * This agent acts as a senior Wall Street equity research analyst, providing
+ * comprehensive equity research reports by synthesizing real-time stock price,
+ * fundamental, technical, and news data from Massive.com. It delivers high-conviction
+ * investment theses based on a structured analysis of P/E, P/B, EPS, market cap,
+ * revenue, RSI, MACD, EMA, recent news, and risk factors.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveEquityAnalyst = {
   id: 'massive_equity_analyst',
   name: 'Massive Equity Analyst',
@@ -56,6 +81,16 @@ FORMAT:
 };
 
 // ─── 2. Options Strategist ────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Options Strategist AI micro-agent.
+ *
+ * This agent functions as a professional derivatives trader and options educator,
+ * leveraging live Massive.com options chain data. It specializes in analyzing
+ * Greeks, implied volatility (IV), open interest, and structuring optimal
+ * risk/reward options strategies for various market outlooks.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveOptionsStrategist = {
   id: 'massive_options_strategist',
   name: 'Massive Options Strategist',
@@ -102,6 +137,16 @@ FORMAT:
 };
 
 // ─── 3. Crypto Analyst ────────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Crypto Analyst AI micro-agent.
+ *
+ * This agent operates as an institutional-grade cryptocurrency researcher and trader,
+ * utilizing live Massive.com crypto market data. It provides comprehensive analysis
+ * covering price action, technical indicators (RSI, MACD, EMAs), market structure,
+ * and macro crypto sentiment, offering clear directional biases and entry/exit zones.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveCryptoAnalyst = {
   id: 'massive_crypto_analyst',
   name: 'Massive Crypto Analyst',
@@ -144,6 +189,16 @@ FORMAT:
 };
 
 // ─── 4. Forex Trader ──────────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Forex Trader AI micro-agent.
+ *
+ * This agent serves as a professional FX desk analyst at an institutional trading firm,
+ * powered by live Massive.com forex data. It analyzes currency pairs through the lens
+ * of macroeconomics, central bank policy, and technical price action, providing
+ * trade biases with entry, stop-loss, and target levels.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveForexTrader = {
   id: 'massive_forex_trader',
   name: 'Massive Forex Trader',
@@ -187,6 +242,17 @@ FORMAT:
 };
 
 // ─── 5. Macro Economist ───────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Macro Economist AI micro-agent.
+ *
+ * This agent functions as a senior macro strategist at a global investment bank,
+ * powered by live Massive.com Federal Reserve and economic data. It interprets
+ * key economic indicators like CPI, treasury yields, and labor market data,
+ * translating them into actionable market implications across equities, bonds,
+ * forex, and crypto, and providing forward outlooks on Fed policy.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveMacroEconomist = {
   id: 'massive_macro_economist',
   name: 'Massive Macro Economist',
@@ -234,6 +300,17 @@ FORMAT:
 };
 
 // ─── 6. Technical Chartist ────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Technical Chartist AI micro-agent.
+ *
+ * This agent operates as an elite quantitative technical analyst and systematic trader,
+ * powered by live Massive.com indicator data. It performs rigorous multi-indicator
+ * signal confluence analysis (RSI, MACD, Moving Averages) to identify high-probability
+ * trading setups across stocks, crypto, and forex, providing clear signal verdicts
+ * with conviction levels.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveTechnicalChartist = {
   id: 'massive_technical_chartist',
   name: 'Massive Technical Chartist',
@@ -285,6 +362,17 @@ FORMAT:
 };
 
 // ─── 7. Fundamentals Auditor ──────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Fundamentals Auditor AI micro-agent.
+ *
+ * This agent acts as a CFA-level equity analyst specializing in fundamental
+ * financial statement analysis, powered by live Massive.com financial data.
+ * It performs a rigorous forensic audit of a company's financial health and
+ * intrinsic value by analyzing income statements, balance sheets, cash flows,
+ * and valuation multiples, providing a clear fundamental verdict and quality score.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massiveFundamentalsAudit = {
   id: 'massive_fundamentals_audit',
   name: 'Massive Fundamentals Auditor',
@@ -339,6 +427,16 @@ FORMAT:
 };
 
 // ─── 8. Portfolio Advisor ─────────────────────────────────────────────────────
+/**
+ * Configuration for the Massive Portfolio Advisor AI micro-agent.
+ *
+ * This agent functions as an institutional portfolio strategist and multi-asset allocator,
+ * powered by live Massive.com multi-asset data. It analyzes cross-asset correlations,
+ * sector allocation, risk metrics (like Beta and drawdown risk), and performance attribution
+ * to provide portfolio-level insights, rebalancing signals, and overall health assessments.
+ *
+ * @type {MassiveAgentConfig}
+ */
 export const massivePortfolioAdvisor = {
   id: 'massive_portfolio_advisor',
   name: 'Massive Portfolio Advisor',
