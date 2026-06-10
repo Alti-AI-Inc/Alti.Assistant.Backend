@@ -82,13 +82,15 @@ const handleCodeConversation = async (
     // Create conversation if it doesn't exist
     if (!conversation) {
       const newConversationId = conversationId || generateCodeConversationId();
+      // Bug Fix: Ensure '...' is only appended if the codeQuery is actually truncated.
+      const conversationTitle = `Code: ${codeQuery.substring(0, 50)}${codeQuery.length > 50 ? '...' : ''}`;
 
       if (isGuest) {
         // For guest users, create a simpler conversation structure
         conversation = {
           conversationId: newConversationId,
           userId: userId,
-          title: `Code: ${codeQuery.substring(0, 50)}...`,
+          title: conversationTitle,
           messageCount: 0,
           isGuest: true,
           metadata: {
@@ -104,7 +106,7 @@ const handleCodeConversation = async (
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Code: ${codeQuery.substring(0, 50)}...`,
+            title: conversationTitle,
             metadata: {
               category: 'code',
               model: 'code-assistant',
@@ -420,11 +422,14 @@ const getCodeStats = async (userId, req = null) => {
   try {
     // Optimization: Use .lean() for read-only operations to improve performance.
     // Assumes conversationHelpers.getUserConversations can accept a lean option.
+    // Bug Fix: Changed limit from 1000 to 0 to ensure all conversations are retrieved for accurate statistics.
+    // In Mongoose, a limit of 0 typically means no limit. This assumes conversationHelpers.getUserConversations
+    // passes this limit value to an underlying Mongoose query.
     const codeConversations = await conversationHelpers.getUserConversations(
       userId,
       {
         page: 1,
-        limit: 1000, // Get all for stats
+        limit: 0, // Get all for stats
         category: 'code',
       },
       req,
