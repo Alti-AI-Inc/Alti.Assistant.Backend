@@ -76,11 +76,12 @@ const handleImageConversation = async (
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        // FIX: Mongoose query options should not include the entire 'req' object.
-        // Only pass specific Mongoose options like 'lean', 'populate', etc.
+        // OPTIMIZATION: Use .lean() for faster read-only queries and create a clean options object.
+        // Do not pass the entire 'req' object to Mongoose options, as it can cause unexpected behavior and leaks.
         const queryOptions = { lean: true };
         if (isGuest) {
-          // For guest users, explicitly filter for guest conversations in the DB
+          // For guest users, explicitly filter for guest conversations in the DB.
+          // This assumes getConversationById can handle additional filters in its options object.
           queryOptions['metadata.userType'] = 'guest';
         }
 
@@ -124,8 +125,11 @@ const handleImageConversation = async (
     if (!conversation) {
       // Use the newly generated ID. This will be set if no conversationId was provided
       // or if a provided conversationId failed to yield an existing conversation.
-      const finalConversationId = newConversationIdToCreate || generateImageConversationId();
-      const safeTitle = imageQuery ? `${imageQuery.substring(0, 50)}...` : 'New Image Assistant Chat';
+      const finalConversationId =
+        newConversationIdToCreate || generateImageConversationId();
+      const safeTitle = imageQuery
+        ? `${imageQuery.substring(0, 50)}...`
+        : 'New Image Assistant Chat';
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
@@ -216,7 +220,9 @@ const addImageQueryMessage = async (
     );
 
     logger.info(
-      `Added image query message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+      `Added image query message to conversation ${conversationId} for ${
+        isGuest ? 'guest' : 'authenticated'
+      } user ${userId}`
     );
     return message;
   } catch (error) {
@@ -268,7 +274,9 @@ const addImageResultMessage = async (
     );
 
     logger.info(
-      `Added image result message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+      `Added image result message to conversation ${conversationId} for ${
+        isGuest ? 'guest' : 'authenticated'
+      } user ${userId}`
     );
     return message;
   } catch (error) {
@@ -320,7 +328,9 @@ const addErrorMessage = async (
     );
 
     logger.info(
-      `Added error message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+      `Added error message to conversation ${conversationId} for ${
+        isGuest ? 'guest' : 'authenticated'
+      } user ${userId}`
     );
     return message;
   } catch (convError) {
@@ -340,13 +350,13 @@ const getGuestConversations = async (guestUserId, req = null) => {
   try {
     // OPTIMIZATION: Use projection ('select') to avoid fetching heavy fields (like messages array)
     // when retrieving a list of conversations. This significantly reduces network overhead and memory usage.
-    const queryOptions = { 
+    const queryOptions = {
       lean: true,
-      select: 'title metadata lastActivity messageCount'
+      select: 'title metadata lastActivity messageCount',
     };
 
-    // Push the 'metadata.userType' filter to the database query
-    // and use .lean() for performance as documents are read-only.
+    // OPTIMIZATION: Push the 'metadata.userType' filter to the database query instead of filtering on the client-side.
+    // This is far more efficient as it reduces data transfer and application-layer processing.
     const conversations = await conversationHelpers.getUserConversations(
       guestUserId,
       {
@@ -386,12 +396,12 @@ const getGuestConversation = async (
   req = null
 ) => {
   try {
-    // FIX: Mongoose query options should not include the entire 'req' object.
-    // Only pass specific Mongoose options like 'lean', 'populate', etc.
+    // OPTIMIZATION: Push the 'metadata.userType' filter to the database query options.
+    // This ensures the DB does the filtering, which is more efficient than client-side checks.
+    // Use .lean() for performance as the document is read-only.
+    // Do not pass the entire 'req' object to Mongoose options.
     const queryOptions = { 'metadata.userType': 'guest', lean: true };
 
-    // Push the 'metadata.userType' filter to the database query
-    // and use .lean() for performance as the document is read-only.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       guestUserId,
@@ -421,13 +431,13 @@ const getImageStats = async (userId, req = null) => {
   try {
     // OPTIMIZATION: Use projection ('select') to only fetch fields needed for statistics calculation.
     // This prevents loading heavy message arrays into memory for up to 1000 conversations.
-    const queryOptions = { 
+    const queryOptions = {
       lean: true,
-      select: 'messageCount lastActivity'
+      select: 'messageCount lastActivity',
     };
 
-    // Get conversation count for image category
-    // Use .lean() for performance as documents are read-only.
+    // Get conversation count for image category.
+    // Do not pass the 'req' object to Mongoose options.
     const imageConversations = await conversationHelpers.getUserConversations(
       userId,
       {
@@ -442,7 +452,7 @@ const getImageStats = async (userId, req = null) => {
     let totalImages = 0;
     const conversations = imageConversations?.conversations || [];
 
-    // OPTIMIZATION: Use a standard for-loop for maximum performance over large arrays
+    // OPTIMIZATION: Use a standard for-loop for maximum performance over large arrays.
     for (let i = 0; i < conversations.length; i++) {
       const msgCount = conversations[i].messageCount || 0;
       totalMessages += msgCount;
@@ -450,14 +460,14 @@ const getImageStats = async (userId, req = null) => {
       totalImages += Math.floor(msgCount / 2);
     }
 
+    const totalConvos = imageConversations?.totalCount || conversations.length;
+
     const stats = {
-      totalConversations: imageConversations?.totalCount || conversations.length,
+      totalConversations: totalConvos,
       totalMessages,
       totalImages,
       averageMessagesPerConversation:
-        (imageConversations?.totalCount || conversations.length) > 0
-          ? (totalMessages / (imageConversations?.totalCount || conversations.length)).toFixed(2)
-          : 0,
+        totalConvos > 0 ? (totalMessages / totalConvos).toFixed(2) : 0,
       lastActivity: conversations[0]?.lastActivity || null,
     };
 
@@ -477,7 +487,7 @@ const getImageStats = async (userId, req = null) => {
  * @param {string} imageData
  * @returns {Object}
  */
-const validateImageData = (imageData) => {
+const validateImageData = imageData => {
   try {
     if (!imageData || typeof imageData !== 'string') {
       return {
@@ -506,13 +516,16 @@ const validateImageData = (imageData) => {
     if (imageData.startsWith('data:image/')) {
       const base64Pattern = /^data:image\/(png|jpeg|jpg|gif|bmp|webp);base64,/;
       if (base64Pattern.test(imageData)) {
-        // OPTIMIZATION: Prevent high memory usage and potential crashes by enforcing a size limit on base64 payloads (e.g., 10MB)
-        const sizeInBytes = (imageData.length * 3) / 4;
+        // OPTIMIZATION: Prevent high memory usage and potential crashes by enforcing a size limit on base64 payloads (e.g., 10MB).
+        // This is a crucial security and stability measure against DoS attacks.
+        const sizeInBytes = (imageData.length * 3) / 4; // Approximate decoded size
         const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit
         if (sizeInBytes > maxSizeBytes) {
           return {
             isValid: false,
-            error: 'Image size exceeds the maximum limit of 10MB',
+            error: `Image size exceeds the maximum limit of ${
+              maxSizeBytes / 1024 / 1024
+            }MB`,
           };
         }
         return {
