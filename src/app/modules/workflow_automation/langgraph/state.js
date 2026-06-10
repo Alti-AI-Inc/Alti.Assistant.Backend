@@ -6,14 +6,27 @@
  * @property {string} conversationId - The ID of the current conversation.
  *
  * @property {string} workspaceId - The ID of the workspace the user belongs to.
- * @property {boolean} isOwnerOrAdmin - Flag indicating if the user has admin/owner privileges for the workspace.
+ * // BUG-FIX: Replaced isOwnerOrAdmin with a granular role and hierarchy context.
+ * // This is critical for proper authorization and hierarchical operations (e.g., manager notifications).
+ * @property {string} userRole - The role of the user within the workspace (e.g., 'user', 'manager', 'admin', 'super_admin').
+ * @property {string|null} managerId - The ID of the user's manager, if applicable. Used for notifications and hierarchical approvals.
+ * @property {string|null} teamId - The ID of the user's team, if applicable. Used for team-based usage tracking.
  * @property {string} planTier - The subscription plan tier for the workspace (e.g., 'free', 'pro', 'enterprise').
  * @property {string} subscriptionStatus - The status of the workspace's subscription (e.g., 'active', 'past_due').
- * @property {object} usageLimits - Object containing usage limits and current consumption for the workspace.
- * @property {number} usageLimits.maxWorkflows - Maximum number of workflows allowed by the subscription plan.
- * @property {number} usageLimits.currentWorkflowCount - Current number of workflows in the workspace.
- * @property {number} usageLimits.maxExecutionsPerMonth - Monthly execution limit allowed by the subscription plan.
- * @property {number} usageLimits.currentExecutionsThisMonth - Executions used in the current billing cycle.
+ * // BUG-FIX: Restructured usageLimits to support hierarchical tracking (workspace, team, user).
+ * // This enables correct propagation of usage details and enforcement of granular limits.
+ * @property {object} usageLimits - Object containing usage limits and current consumption.
+ * @property {object} usageLimits.workspace - Workspace-level limits and consumption.
+ * @property {number} usageLimits.workspace.maxWorkflows - Maximum number of workflows allowed in the workspace.
+ * @property {number} usageLimits.workspace.currentWorkflowCount - Current number of workflows in the workspace.
+ * @property {number} usageLimits.workspace.maxExecutionsPerMonth - Monthly execution limit for the workspace.
+ * @property {number} usageLimits.workspace.currentExecutionsThisMonth - Executions used by the workspace in the current billing cycle.
+ * @property {object|null} usageLimits.team - Team-level limits and consumption, if applicable.
+ * @property {number} usageLimits.team.maxExecutionsPerMonth - Monthly execution limit for the user's team.
+ * @property {number} usageLimits.team.currentExecutionsThisMonth - Executions used by the user's team this month.
+ * @property {object|null} usageLimits.user - User-specific limits and consumption, if applicable.
+ * @property {number} usageLimits.user.maxExecutionsPerMonth - Monthly execution limit for the individual user.
+ * @property {number} usageLimits.user.currentExecutionsThisMonth - Executions used by the user this month.
  *
  * @property {string} userIntent - The detected intent of the user's prompt (e.g., "create workflow", "get status").
  * @property {string} taskType - The type of task identified from the user's intent.
@@ -98,9 +111,19 @@ export const workflowAutomationState = {
     reducer: (x, y) => y ?? x,
     default: () => '',
   },
-  isOwnerOrAdmin: {
+  // BUG-FIX: Replaced isOwnerOrAdmin with a granular role and hierarchy context.
+  // This is critical for proper authorization and hierarchical operations (e.g., manager notifications).
+  userRole: {
     reducer: (x, y) => y ?? x,
-    default: () => false,
+    default: () => 'user', // Default to the least privileged role for security.
+  },
+  managerId: {
+    reducer: (x, y) => y ?? x,
+    default: () => null,
+  },
+  teamId: {
+    reducer: (x, y) => y ?? x,
+    default: () => null,
   },
   planTier: {
     reducer: (x, y) => y ?? x,
@@ -110,13 +133,26 @@ export const workflowAutomationState = {
     reducer: (x, y) => y ?? x,
     default: () => 'inactive',
   },
+  // BUG-FIX: Restructured usageLimits to support hierarchical tracking (workspace, team, user).
+  // This enables correct propagation of usage details and enforcement of granular limits.
   usageLimits: {
-    reducer: (x, y) => ({ ...x, ...y }), // Merge updates into the existing limits object
+    // The reducer performs a safe, nested merge of new usage data into the existing structure.
+    reducer: (x, y) => {
+      const newLimits = JSON.parse(JSON.stringify(x)); // Deep copy to avoid mutation issues.
+      if (y.workspace) newLimits.workspace = { ...newLimits.workspace, ...y.workspace };
+      if (y.team) newLimits.team = { ...(newLimits.team || {}), ...y.team };
+      if (y.user) newLimits.user = { ...(newLimits.user || {}), ...y.user };
+      return newLimits;
+    },
     default: () => ({
-      maxWorkflows: 5,
-      currentWorkflowCount: 0,
-      maxExecutionsPerMonth: 100,
-      currentExecutionsThisMonth: 0,
+      workspace: {
+        maxWorkflows: 5,
+        currentWorkflowCount: 0,
+        maxExecutionsPerMonth: 100,
+        currentExecutionsThisMonth: 0,
+      },
+      team: null, // Populated if the user is part of a team with specific limits.
+      user: null, // Populated if the user has individual limits.
     }),
   },
 
