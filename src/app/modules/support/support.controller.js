@@ -97,15 +97,40 @@ import mongoose from 'mongoose'; // Optimization: Imported mongoose for ObjectId
  * @throws {Error} If an error occurs during the support request creation process.
  */
 const reqForSupport = catchAsync(async (req, res) => {
-  // logger.info(req.body, "blog dataaaa");
-  const data = req.body;
-  const userId = req.body.id; // This `id` is the user's ID, not the support request's `_id`.
+  // Security Fix: Ensure the support request is created for the authenticated user.
+  // The 'id' in req.body should be ignored or validated against the authenticated user's ID
+  // to prevent IDOR (Insecure Direct Object Reference).
+  // This assumes 'req.user' is populated by an authentication middleware.
+  const authenticatedUserId = req.user?.id;
 
-  // Optimization Recommendation:
-  // If `userId` is frequently used to query support requests (e.g., "get all support requests for a user"),
-  // ensure there is an index on the `userId` field in the SupportRequest Mongoose model.
-  // Example: `supportRequestSchema.index({ userId: 1 });`
-  const result = await supportService.reqForSupportService(userId, data);
+  if (!authenticatedUserId) {
+    // This scenario indicates a missing authentication middleware or an unauthenticated route.
+    // For a security-critical operation like creating a support request,
+    // an authenticated user is typically required.
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Authentication required to create a support request.',
+    });
+  }
+
+  // Security Fix: Extract allowed fields from req.body to prevent mass assignment vulnerabilities.
+  // The userId is explicitly set from the authenticated user, overriding any 'id' from req.body.
+  const { subject, description, priority, status } = req.body;
+  const supportRequestData = {
+    userId: authenticatedUserId, // Use authenticated user's ID
+    subject,
+    description,
+    priority,
+    status,
+  };
+
+  // Filter out undefined values if they are not meant to be stored or if the schema handles defaults.
+  Object.keys(supportRequestData).forEach(key => supportRequestData[key] === undefined && delete supportRequestData[key]);
+
+  // The service function expects userId and data.
+  // We pass the authenticatedUserId and the constructed supportRequestData.
+  const result = await supportService.reqForSupportService(authenticatedUserId, supportRequestData);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -226,6 +251,11 @@ const getAllSupportReq = catchAsync(async (req, res) => {
 const getSupportById = catchAsync(async (req, res) => {
   const id = req.params?.id;
   logger.info(id, 'idddddddd');
+  // Security Note: The supportService.getSupportServiceById(id) function
+  // should implement authorization checks (e.g., ensure the authenticated user
+  // owns this support request or has appropriate administrative privileges)
+  // to prevent IDOR (Insecure Direct Object Reference).
+
   // Optimization Recommendation:
   // For read operations like this, consider adding `.lean()` to the Mongoose query
   // in `supportService.getSupportServiceById(id)` if the returned document is
@@ -316,7 +346,19 @@ const getSupportById = catchAsync(async (req, res) => {
  */
 const updateSupportReq = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await supportService.updateSupportReqService(id, req.body);
+  // Security Fix: Filter allowed fields from req.body to prevent mass assignment vulnerabilities.
+  // Only fields explicitly listed here can be updated by the client.
+  const { subject, description, priority, status } = req.body;
+  const updateData = { subject, description, priority, status };
+
+  // Remove undefined values from updateData to avoid setting fields to undefined
+  Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+  // Security Note: The supportService.updateSupportReqService(id, updateData) function
+  // should implement authorization checks (e.g., ensure the authenticated user
+  // owns this support request or has appropriate administrative privileges)
+  // to prevent IDOR (Insecure Direct Object Reference).
+  const result = await supportService.updateSupportReqService(id, updateData);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -378,6 +420,10 @@ const updateSupportReq = catchAsync(async (req, res) => {
  */
 const deleteSupportReq = catchAsync(async (req, res) => {
   const { id } = req.params;
+  // Security Note: The supportService.deleteSupportReqService(id) function
+  // should implement authorization checks (e.g., ensure the authenticated user
+  // owns this support request or has appropriate administrative privileges)
+  // to prevent IDOR (Insecure Direct Object Reference).
   const result = await supportService.deleteSupportReqService(id);
 
   sendResponse(res, {
@@ -453,21 +499,42 @@ const deleteSupportReq = catchAsync(async (req, res) => {
  * @throws {Error} If invalid IDs are provided or an error occurs during deletion.
  */
 const bulkDeleteSupportReq = catchAsync(async (req, res) => {
-  const ids = req.body?.ids || [];
-  logger.info(ids, 'controller idddddddddddd');
+  const ids = req.body?.ids;
+  // logger.info(ids, 'controller idddddddddddd'); // Consider removing or setting to debug level in production
+
+  // Bug Fix: Ensure 'ids' is an array and not empty.
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'An array of IDs is required for bulk deletion.',
+    });
+  }
 
   // Validate IDs using Mongoose's ObjectId validator.
-  // Optimization: `mongoose` is now imported at the top of the file to ensure `mongoose.Types.ObjectId.isValid` is available.
+  // Security Fix: Ensure all provided IDs are valid MongoDB ObjectIds.
+  // Security Note: The supportService.bulkDeleteSupportReqService(ids) function
+  // must implement authorization checks to prevent IDOR (e.g., only allow deletion
+  // of requests owned by the authenticated user or by an admin).
   if (mongoose.Types && typeof mongoose.Types.ObjectId.isValid === 'function') {
     if (!ids.every((id) => mongoose.Types.ObjectId.isValid(id))) {
-      throw { message: 'Invalid IDs provided' };
+      // Bug Fix: Use a proper HTTP status for invalid input.
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'One or more provided IDs are invalid.',
+      });
     }
   } else {
     // Fallback or alternative validation if mongoose is not available or not configured
-    // For example, a simple regex check for MongoDB ObjectId format
     const objectIdRegex = /^[0-9a-fA-F]{24}$/;
     if (!ids.every((id) => typeof id === 'string' && objectIdRegex.test(id))) {
-      throw { message: 'Invalid IDs provided (format mismatch)' };
+      // Bug Fix: Use a proper HTTP status for invalid input.
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'One or more provided IDs are invalid (format mismatch).',
+      });
     }
   }
 
