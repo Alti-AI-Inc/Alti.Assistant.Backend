@@ -2,13 +2,33 @@ import { logger } from '../../../shared/logger.js';
 import { planGeneratorService } from './plan_generator.service.js';
 
 /**
- * In-memory task storage
- * In production, this should be replaced with Redis or a database
+ * @typedef {object} Task
+ * @property {string} taskId - Unique identifier for the task.
+ * @property {string} userId - The ID of the user who owns this task.
+ * @property {string} conversationId - The ID of the conversation associated with this task.
+ * @property {TASK_STATUS[keyof TASK_STATUS]} status - The current status of the task.
+ * @property {TASK_STAGES[keyof TASK_STAGES]} stage - The current stage of the plan generation process.
+ * @property {number} progress - The progress percentage of the task (0-100).
+ * @property {string} message - A human-readable message describing the current state or progress.
+ * @property {any | null} result - The final result of the task upon completion.
+ * @property {string | null} error - An error message if the task failed.
+ * @property {Date} createdAt - Timestamp when the task was created.
+ * @property {Date | null} startedAt - Timestamp when the task started processing.
+ * @property {Date | null} completedAt - Timestamp when the task completed or failed.
+ * @property {Date | null} [updatedAt] - Timestamp when the task was last updated.
+ */
+
+/**
+ * In-memory task storage.
+ * In production, this should be replaced with Redis or a database for persistence and scalability.
+ * @type {Map<string, Task>}
  */
 const tasks = new Map();
 
 /**
- * Task statuses
+ * Task statuses for the plan generation process.
+ * @readonly
+ * @enum {string}
  */
 export const TASK_STATUS = {
   PENDING: 'pending',
@@ -18,7 +38,9 @@ export const TASK_STATUS = {
 };
 
 /**
- * Task stages for plan generation
+ * Task stages for the plan generation process, detailing the steps involved.
+ * @readonly
+ * @enum {string}
  */
 export const TASK_STAGES = {
   INITIALIZING: 'initializing',
@@ -31,7 +53,11 @@ export const TASK_STAGES = {
 };
 
 /**
- * Create a new task
+ * Creates a new task for plan generation and stores it in memory.
+ *
+ * @param {string} userId - The ID of the user initiating the task.
+ * @param {string} conversationId - The ID of the conversation associated with this task.
+ * @returns {Task} The newly created task object.
  */
 export const createTask = (userId, conversationId) => {
   const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -58,8 +84,13 @@ export const createTask = (userId, conversationId) => {
 };
 
 /**
- * Get task by ID, with optional user ID for authorization.
- * If expectedUserId is provided, it verifies task ownership.
+ * Retrieves a task by its ID.
+ * Optionally, verifies task ownership if `expectedUserId` is provided, preventing unauthorized access.
+ *
+ * @param {string} taskId - The unique identifier of the task to retrieve.
+ * @param {string | null} [expectedUserId=null] - Optional. The ID of the user expected to own the task.
+ *   If provided, the function will return `null` if the task exists but does not belong to this user.
+ * @returns {Task | null} The task object if found and authorized, otherwise `null`.
  */
 export const getTask = (taskId, expectedUserId = null) => {
   const task = tasks.get(taskId);
@@ -72,8 +103,14 @@ export const getTask = (taskId, expectedUserId = null) => {
 };
 
 /**
- * Update task progress, with optional user ID for authorization.
- * If expectedUserId is provided, it verifies task ownership before updating.
+ * Updates the progress and status of an existing task.
+ * Optionally, verifies task ownership if `expectedUserId` is provided, preventing unauthorized updates.
+ *
+ * @param {string} taskId - The unique identifier of the task to update.
+ * @param {Partial<Task>} updates - An object containing the fields to update (e.g., `status`, `stage`, `progress`, `message`, `result`, `error`).
+ * @param {string | null} [expectedUserId=null] - Optional. The ID of the user expected to own the task.
+ *   If provided, the function will return `null` if the task exists but does not belong to this user.
+ * @returns {Task | null} The updated task object if successful and authorized, otherwise `null`.
  */
 export const updateTaskProgress = (taskId, updates, expectedUserId = null) => {
   const task = tasks.get(taskId); // Retrieve task first
@@ -102,7 +139,19 @@ export const updateTaskProgress = (taskId, updates, expectedUserId = null) => {
 };
 
 /**
- * Process plan generation task asynchronously
+ * Asynchronously processes a plan generation task through various stages.
+ * This function orchestrates the call to the `planGeneratorService` and updates the task's
+ * status, stage, and progress in real-time.
+ *
+ * @param {string} taskId - The unique identifier of the task to process.
+ * @param {string} userId - The ID of the user who owns the task and initiated the process. Used for initial authorization.
+ * @param {string} message - The user's input message or prompt for plan generation.
+ * @param {string} conversationId - The ID of the conversation context.
+ * @param {boolean} isGuest - Boolean indicating if the user is a guest.
+ * @param {object | null} fileInfo - Optional object containing information about an uploaded file.
+ * @param {string} [fileInfo.fileName] - The name of the uploaded file.
+ * @param {string} [fileInfo.fileContent] - The extracted content of the uploaded file.
+ * @returns {Promise<void>} A promise that resolves when the task processing is complete (success or failure).
  */
 export const processTask = async (
   taskId,
@@ -207,7 +256,12 @@ export const processTask = async (
 };
 
 /**
- * Clean up old tasks (optional - run periodically)
+ * Cleans up old tasks from the in-memory storage.
+ * Tasks that are either completed or failed and exceed a specified age will be removed.
+ * This function is intended to be run periodically to prevent memory leaks.
+ *
+ * @param {number} [maxAgeMinutes=60] - The maximum age (in minutes) for a task to be kept after completion or failure.
+ * @returns {void}
  */
 export const cleanupOldTasks = (maxAgeMinutes = 60) => {
   const now = new Date();
@@ -233,6 +287,15 @@ export const cleanupOldTasks = (maxAgeMinutes = 60) => {
 // Cleanup old tasks every 30 minutes
 setInterval(() => cleanupOldTasks(60), 30 * 60 * 1000);
 
+/**
+ * An object exporting all task management functions for easy access.
+ * @namespace taskManager
+ * @property {function(string, string): Task} createTask - Function to create a new task.
+ * @property {function(string, string=): (Task | null)} getTask - Function to retrieve a task by ID with optional authorization.
+ * @property {function(string, Partial<Task>, string=): (Task | null)} updateTaskProgress - Function to update task progress with optional authorization.
+ * @property {function(string, string, string, string, boolean, object | null): Promise<void>} processTask - Function to asynchronously process a plan generation task.
+ * @property {function(number=): void} cleanupOldTasks - Function to clean up old tasks from memory.
+ */
 export const taskManager = {
   createTask,
   getTask,
