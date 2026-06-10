@@ -4,13 +4,24 @@ export class SessionManager {
   // and potential Denial of Service (DoS) if not managed.
   // maxConversationEntries: Limits the number of entries in the conversationHistory array.
   // maxHistoryStringLength: Limits the total length of the 'history' string.
-  constructor(maxConversationEntries = 50, maxHistoryStringLength = 10000) {
+  // maxActiveSessions: Sets a hard limit on the total number of concurrent sessions to prevent
+  // memory exhaustion from a flood of new session requests (DoS protection).
+  constructor(maxConversationEntries = 50, maxHistoryStringLength = 10000, maxActiveSessions = 10000) {
     this.sessions = new Map();
     this.maxConversationEntries = maxConversationEntries;
     this.maxHistoryStringLength = maxHistoryStringLength;
+    this.maxActiveSessions = maxActiveSessions;
   }
 
   createSession() {
+    // Enforce a hard limit on the total number of active sessions to prevent DoS attacks
+    // via memory exhaustion. This acts as a crucial server-wide safeguard against abuse.
+    if (this.sessions.size >= this.maxActiveSessions) {
+      // In a production environment, this event should be logged to alert on potential attacks.
+      // e.g., logger.warn('Maximum active sessions reached. Rejecting new session creation.');
+      throw new Error('Server is currently at capacity. Please try again later.');
+    }
+
     // Generates a reasonably unique session ID using timestamp and a random string.
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 

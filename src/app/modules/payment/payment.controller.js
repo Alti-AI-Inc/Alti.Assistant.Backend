@@ -1,4 +1,16 @@
 import mongoose from 'mongoose';
+import { PubSub } from '@google-cloud/pubsub'; // GCP Pub/Sub for asynchronous task offloading
+
+// --- GCP Pub/Sub Configuration ---
+// Initialize the Pub/Sub client.
+// In a production environment on GCP, authentication is handled automatically
+// via the service account of the running resource (e.g., Cloud Run, GKE).
+const pubSubClient = new PubSub();
+
+// It's a best practice to use environment variables for topic names.
+const STRIPE_WEBHOOK_TOPIC = process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhooks';
+const USAGE_TRACKING_TOPIC = process.env.USAGE_TRACKING_TOPIC || 'usage-tracking';
+// --- End of GCP Pub/Sub Configuration ---
 
 // --- GCP Database Resiliency Configuration ---
 // NOTE: It is a best practice to centralize this connection logic in a dedicated module (e.g., /config/database.js)
@@ -192,7 +204,35 @@ const createCheckoutSession = catchAsync(async (req, res) => {
  * @returns {Promise<void>} Delegates to the webhook service and sends a response.
  */
 const handleWebhook = catchAsync(async (req, res) => {
-  await PaymentService.handleWebhookService(req, res);
+  // REFACTOR: Offload Stripe webhook processing to a background worker via Pub/Sub.
+  // This ensures the endpoint responds to Stripe immediately, preventing timeouts and retries,
+  // and makes the system more resilient to processing failures. The heavy lifting (database updates,
+  // sending emails, etc.) is handled asynchronously by a separate, scalable worker service.
+
+  // The background worker will need the raw body for signature verification.
+  // This assumes a middleware like `express.json({ verify: ... })` has attached `req.rawBody`.
+  const payload = {
+    // Pass all headers, as some may be relevant for processing.
+    headers: req.headers,
+    // Stripe's SDK requires the raw, unparsed request body as a Buffer or string.
+    // We send it as a string for JSON compatibility. The worker will handle it.
+    body: req.rawBody ? req.rawBody.toString('utf-8') : JSON.stringify(req.body),
+    // Explicitly include the signature for the worker to use in verification.
+    stripeSignature: req.headers['stripe-signature'],
+  };
+
+  const dataBuffer = Buffer.from(JSON.stringify(payload));
+
+  // Asynchronously publish the entire webhook event for a separate worker to process.
+  await pubSubClient.topic(STRIPE_WEBHOOK_TOPIC).publishMessage({ data: dataBuffer });
+
+  // Immediately acknowledge receipt to Stripe.
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Webhook received and queued for processing.',
+    data: { received: true },
+  });
 });
 
 /**
@@ -330,118 +370,57 @@ const getSubscriptionsByUserId = catchAsync(async (req, res) => {
 });
 
 /**
- * Increments the prompt usage count for a user.
- * This function handles both free and subscribed users within a database transaction to ensure atomicity.
- * If the user is on a free plan, it increments their `freePlanUsage.promptsUsed`.
- * If the user is subscribed, it increments the `usage.promptsUsed` on their active subscription record.
- * It gracefully handles database disconnection by bypassing the update.
+ * Publishes a message to GCP Pub/Sub to increment a user's prompt usage count.
+ * This function is now a lightweight, non-blocking "fire-and-forget" operation.
+ * The actual database transaction and usage limit checks are handled by a separate background worker.
  * @param {string | mongoose.Types.ObjectId} userId - The ID of the user whose prompt usage is to be incremented.
- * @returns {Promise<{success: boolean, message: string}>} An object indicating the outcome of the operation.
+ * @returns {Promise<{success: boolean, message: string}>} An object indicating if the offloading was successful.
  */
 const incrementPromptsUsed = async (userId) => {
-  if (mongoose.connection.readyState !== 1) {
-    console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing prompt usage increment.');
-    return { success: true, message: 'Database disconnected. Bypassed prompt usage update.' };
-  }
-  const session = await mongoose.startSession();
+  // REFACTOR: Offload usage tracking to a background worker via Pub/Sub.
+  // This decouples the core application logic from the billing/metering system,
+  // improving performance and resilience. The main user-facing request is no longer
+  // blocked by this database write.
   try {
-    session.startTransaction();
-    // The `checkFreePlanLimits` function is expected to return a Mongoose document
-    // because `user.save()` is called later if the user is not subscribed.
-    const user = await checkFreePlanLimits(userId, 'prompt', session);
+    const payload = { userId: userId.toString(), type: 'prompt', timestamp: new Date().toISOString() };
+    const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-    if (user.isSubscribed) {
-      // The `checkUsageLimits` function is external. If it performs a read-only lookup
-      // for the subscription, it should internally use `.lean()` for performance.
-      const subscription = await checkUsageLimits(userId);
-      console.log('Subscription check result:', subscription);
+    // Asynchronously publish the usage event. The actual database update is handled by a separate worker.
+    await pubSubClient.topic(USAGE_TRACKING_TOPIC).publishMessage({ data: dataBuffer });
 
-      if (!subscription || !subscription._id) {
-        throw new Error('Subscription not found or invalid.');
-      }
-
-      await SubscriptionModel.updateOne(
-        { _id: subscription._id },
-        { $inc: { 'usage.promptsUsed': 1 } },
-        { session }
-      );
-    } else {
-      if (!user.freePlanUsage) {
-        user.freePlanUsage = { promptsUsed: 0, imagesUsed: 0 };
-      }
-      user.freePlanUsage.promptsUsed = (user.freePlanUsage.promptsUsed || 0) + 1;
-      user.markModified('freePlanUsage');
-      await user.save({ session });
-    }
-
-    await session.commitTransaction();
-    return { success: true, message: 'Prompt usage updated successfully.' };
+    // This function now returns immediately after publishing the message.
+    return { success: true, message: 'Prompt usage increment task was successfully offloaded.' };
   } catch (error) {
-    console.error('Error in incrementPromptsUsed:', error);
-    await session.abortTransaction();
-    return { success: false, message: error.message };
-  } finally {
-    session.endSession();
+    // In a production system, use a more robust logger and set up monitoring/alerting
+    // for Pub/Sub publishing failures.
+    console.error(`[FATAL] Failed to publish 'prompt' usage event for userId: ${userId}. This may lead to incorrect billing.`, error);
+    // Return a failure but do not throw, to avoid crashing the primary user workflow.
+    // The calling service must decide how to handle this failure (e.g., retry, log, alert).
+    return { success: false, message: 'Failed to offload usage increment task.' };
   }
 };
 
 /**
- * Increments the image generation usage count for a user.
- * This function handles both free and subscribed users within a database transaction to ensure atomicity.
- * If the user is on a free plan, it increments their `freePlanUsage.imagesUsed`.
- * If the user is subscribed, it increments the `usage.imagesUsed` on their active subscription record.
- * It gracefully handles database disconnection by bypassing the update.
+ * Publishes a message to GCP Pub/Sub to increment a user's image generation usage count.
+ * This function is now a lightweight, non-blocking "fire-and-forget" operation.
+ * The actual database transaction and usage limit checks are handled by a separate background worker.
  * @param {string | mongoose.Types.ObjectId} userId - The ID of the user whose image usage is to be incremented.
- * @returns {Promise<{success: boolean, message: string}>} An object indicating the outcome of the operation.
+ * @returns {Promise<{success: boolean, message: string}>} An object indicating if the offloading was successful.
  */
 const incrementImagesUsed = async (userId) => {
-  if (mongoose.connection.readyState !== 1) {
-    console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing image usage increment.');
-    return { success: true, message: 'Database disconnected. Bypassed image usage update.' };
-  }
-  const session = await mongoose.startSession();
+  // REFACTOR: Offload usage tracking to a background worker via Pub/Sub.
+  // This follows the same pattern as incrementPromptsUsed for decoupling and scalability.
   try {
-    session.startTransaction();
-    // Bug Fix: Changed 'prompt' to 'image' in checkFreePlanLimits for image usage increment.
-    // The `checkFreePlanLimits` function is expected to return a Mongoose document
-    // because `user.save()` is called later if the user is not subscribed.
-    const user = await checkFreePlanLimits(userId, 'image', session); // Optimization: Corrected 'prompt' to 'image' for accurate usage tracking.
+    const payload = { userId: userId.toString(), type: 'image', timestamp: new Date().toISOString() };
+    const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-    if (user.isSubscribed) {
-      // The `checkUsageLimits` function is external. If it performs a read-only lookup
-      // for the subscription, it should internally use `.lean()` for performance.
-      const subscription = await checkUsageLimits(userId);
-      // console.log("Subscription check result:", subscription);
+    // Asynchronously publish the usage event.
+    await pubSubClient.topic(USAGE_TRACKING_TOPIC).publishMessage({ data: dataBuffer });
 
-      if (!subscription || !subscription._id) {
-        throw new Error('Subscription not found or invalid.');
-      }
-
-      await SubscriptionModel.updateOne(
-        { _id: subscription._id },
-        { $inc: { 'usage.imagesUsed': 1 } },
-        { session }
-      );
-    } else {
-      if (!user.freePlanUsage) {
-        user.freePlanUsage = { promptsUsed: 0, imagesUsed: 0 };
-      }
-      user.freePlanUsage.imagesUsed = (user.freePlanUsage.imagesUsed || 0) + 1;
-      user.markModified('freePlanUsage');
-      await user.save({ session });
-    }
-
-    await session.commitTransaction();
-    return { success: true, message: 'Image usage updated successfully.' };
+    return { success: true, message: 'Image usage increment task was successfully offloaded.' };
   } catch (error) {
-    console.error('Error in incrementImagesUsed:', error);
-    await session.abortTransaction();
-    return {
-      success: false,
-      message: error.message || 'An error occurred while updating image usage.',
-    };
-  } finally {
-    session.endSession();
+    console.error(`[FATAL] Failed to publish 'image' usage event for userId: ${userId}. This may lead to incorrect billing.`, error);
+    return { success: false, message: 'Failed to offload usage increment task.' };
   }
 };
 
