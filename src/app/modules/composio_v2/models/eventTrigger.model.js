@@ -36,19 +36,22 @@ const EventTriggerSchema = new mongoose.Schema(
      */
     userId: {
       type: String,
-      required: true
+      required: true,
+      // OPTIMIZATION: Added index for efficient lookups of triggers by user.
+      index: true
     },
     /**
      * The ID of the workspace this event trigger belongs to.
      * This is crucial for team management, workspace-level metrics, and plan limits.
+     * NOTE: A single-field index is not needed here as it's the leading field
+     * in the compound index defined at the end of the schema. Removing the
+     * redundant index saves storage and write overhead.
      * @type {string}
      * @required
-     * @index
      */
     workspaceId: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
     /**
      * The name of the application associated with this event trigger (e.g., "github", "slack").
@@ -91,7 +94,10 @@ const EventTriggerSchema = new mongoose.Schema(
      */
     targetId: {
       type: String,
-      required: true
+      required: true,
+      // OPTIMIZATION: Added index for efficient lookups of triggers
+      // pointing to a specific workflow or chain, useful for dependency checks.
+      index: true
     },
     /**
      * A mapping object that defines how to extract data from the incoming event payload
@@ -125,6 +131,8 @@ const EventTriggerSchema = new mongoose.Schema(
 // Compound index to ensure uniqueness per workspace, app, and event.
 // This prevents duplicate triggers for the same event within a single workspace,
 // which is essential for correct team-level behavior.
+// This index also supports efficient lookups for the most common query pattern:
+// finding a trigger for a specific event, from a specific app, within a workspace.
 EventTriggerSchema.index({ workspaceId: 1, appName: 1, eventName: 1 }, { unique: true });
 
 /**

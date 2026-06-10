@@ -40,10 +40,13 @@
  * @property {Array<object>|null} history.value - An array of message objects representing the conversation flow.
  * @property {object} metadata - General metadata about the research session.
  * @property {object|null} metadata.value - An object containing session ID, timestamps, user info, etc.
- * @property {object} generatePdf - Flag to indicate whether a PDF report should be generated.
- * @property {boolean} generatePdf.value - True if PDF generation is requested, false otherwise.
- * @property {object} pdfData - Content and metadata specifically for PDF generation.
- * @property {object|null} pdfData.value - An object containing the PDF's content, layout preferences, and other relevant data.
+ * @property {object} pdfGeneration - Manages the state of the asynchronous PDF report generation task.
+ * @property {object} pdfGeneration.value - The state object for the PDF generation job.
+ * @property {boolean} pdfGeneration.value.requested - A flag to initiate the PDF generation task.
+ * @property {string|null} pdfGeneration.value.taskId - The ID of the Cloud Task or Pub/Sub message for the generation job.
+ * @property {string} pdfGeneration.value.status - The current status of the job (e.g., 'idle', 'queued', 'processing', 'completed', 'failed').
+ * @property {string|null} pdfGeneration.value.fileUrl - The public or signed URL to the generated PDF in Cloud Storage.
+ * @property {string|null} pdfGeneration.value.error - Error message if the generation task failed.
  * @property {object} quantitativeFacts - Quantitative statistics and verified facts gathered during research.
  * @property {Array<object>|null} quantitativeFacts.value - An array of structured facts, potentially with sources and confidence levels.
  * @property {object} errors - Any errors encountered during the research process.
@@ -107,11 +110,22 @@ export const deepResearchAgentState = {
     value: null,
   },
 
-  // PDF generation flag
-  generatePdf: { value: false },
-
-  // PDF content and metadata
-  pdfData: { value: null },
+  // PDF generation state for offloading to a background worker (e.g., via Cloud Tasks).
+  // This replaces a simple boolean flag to better support asynchronous, stateless processing.
+  pdfGeneration: {
+    value: {
+      // Set to true to trigger a PDF generation task. The backend should reset this after queuing the task.
+      requested: false,
+      // The ID of the Cloud Task or Pub/Sub message for generating the PDF.
+      taskId: null,
+      // The current status of the PDF generation job ('idle', 'queued', 'processing', 'completed', 'failed').
+      status: 'idle',
+      // The URL of the generated PDF in Cloud Storage once the task is complete.
+      fileUrl: null,
+      // Details of any error that occurred during generation.
+      error: null,
+    },
+  },
 
   // Phase 3 & 4: Quantitative statistics and verified facts
   quantitativeFacts: {
