@@ -33,8 +33,11 @@ const getUsageStats = catchAsync(async (req, res) => {
   // Indexing Recommendation: For UserUsageModel, consider creating indexes on `userId`, `tenantId`,
   // and any timestamp/date field used for filtering (e.g., `createdAt`) to optimize `getTodayRequests`
   // and `getTotalStorage` methods.
-  const todayCount = await UserUsageModel.getTodayRequests(userId, tenantId);
-  const storageUsedBytes = await UserUsageModel.getTotalStorage(userId, tenantId);
+  // Performance Improvement: Run database queries for today's requests and total storage in parallel.
+  const [todayCount, storageUsedBytes] = await Promise.all([
+    UserUsageModel.getTodayRequests(userId, tenantId),
+    UserUsageModel.getTotalStorage(userId, tenantId),
+  ]);
 
   // Daily request limit details
   const dailyRequestLimit = limits.dailyRequestLimit;
