@@ -3,7 +3,7 @@
  * These constants are used for inter-service communication, typically with a message broker
  * like RabbitMQ, to identify specific types of requests or responses within the Qwen module.
  * @module qwen/qwen.constant
- * @author Your Name/Organization (if applicable)
+ * @author Your Name/Organization
  */
 
 /**
