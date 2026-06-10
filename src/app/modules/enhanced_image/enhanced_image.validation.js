@@ -41,6 +41,7 @@ const generateImageSchema = z.object({
 
 /**
  * @description Zod schema for validating the request body for editing an existing image.
+ * This schema expects the client to have already uploaded the image to GCS via a signed URL.
  */
 const editImageSchema = z.object({
   body: z.object({
@@ -55,16 +56,16 @@ const editImageSchema = z.object({
       .min(1, 'Prompt cannot be empty')
       .max(2000, 'Prompt too long'),
     /**
-     * The base64 encoded string of the image to be edited.
+     * The path/name of the image file in the GCS bucket to be edited.
+     * The client is expected to first request a signed URL, upload the file directly
+     * to GCS, and then provide the resulting file path in this field.
      * @type {string}
      */
-    imageBase64: z
+    gcsImagePath: z
       .string({
-        required_error: 'Image base64 is required',
+        required_error: 'GCS image path is required',
       })
-      .min(1, 'Image base64 cannot be empty')
-      // Added a max length for base64 string to prevent excessively large payloads (e.g., 5MB image equivalent)
-      .max(7000000, 'Image base64 too large (max 5MB equivalent)'),
+      .min(1, 'GCS image path cannot be empty'),
     /**
      * Optional ID for an existing conversation.
      * @type {string|undefined}
