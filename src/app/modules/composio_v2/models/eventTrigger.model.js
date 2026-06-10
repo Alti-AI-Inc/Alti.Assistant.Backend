@@ -8,7 +8,8 @@ import mongoose from 'mongoose';
 
 /**
  * @typedef {object} EventTriggerSchema
- * @property {string} userId - The ID of the user who owns this event trigger.
+ * @property {string} userId - The ID of the user who created this event trigger.
+ * @property {string} workspaceId - The ID of the workspace this event trigger belongs to.
  * @property {string} appName - The name of the application associated with this event trigger (e.g., "github", "slack").
  * @property {string} eventName - The specific event name from the application (e.g., "issue.opened", "message.created").
  * @property {'workflow'|'chain'} dispatchType - The type of target to dispatch to, either 'workflow' or 'chain'.
@@ -22,19 +23,29 @@ import mongoose from 'mongoose';
 /**
  * Mongoose Schema for an Event Trigger.
  * Defines the structure for storing event triggers, which link specific application events
- * to workflows or chains for execution.
+ * to workflows or chains for execution within a workspace.
  *
  * @type {mongoose.Schema<EventTriggerSchema>}
  */
 const EventTriggerSchema = new mongoose.Schema(
   {
     /**
-     * The ID of the user who owns this event trigger.
+     * The ID of the user who created this event trigger.
+     * @type {string}
+     * @required
+     */
+    userId: {
+      type: String,
+      required: true
+    },
+    /**
+     * The ID of the workspace this event trigger belongs to.
+     * This is crucial for team management, workspace-level metrics, and plan limits.
      * @type {string}
      * @required
      * @index
      */
-    userId: {
+    workspaceId: {
       type: String,
       required: true,
       index: true
@@ -111,9 +122,10 @@ const EventTriggerSchema = new mongoose.Schema(
   }
 );
 
-
-// Compound index to ensure uniqueness per user, app, and event
-EventTriggerSchema.index({ userId: 1, appName: 1, eventName: 1 }, { unique: true });
+// Compound index to ensure uniqueness per workspace, app, and event.
+// This prevents duplicate triggers for the same event within a single workspace,
+// which is essential for correct team-level behavior.
+EventTriggerSchema.index({ workspaceId: 1, appName: 1, eventName: 1 }, { unique: true });
 
 /**
  * Mongoose Model for EventTrigger.
