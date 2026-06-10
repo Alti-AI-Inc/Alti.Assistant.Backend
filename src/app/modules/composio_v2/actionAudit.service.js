@@ -62,7 +62,8 @@ class ActionAuditService {
    */
   async logStart(params) {
     try {
-      const entry = await ActionAuditLog.create({
+      // OPTIMIZATION: Use insertMany with lean: true to bypass expensive Mongoose document hydration
+      const [entry] = await ActionAuditLog.insertMany([{
         userId: params.userId,
         app: params.app,
         action: params.action,
@@ -79,7 +80,7 @@ class ActionAuditService {
         totalSteps: params.context?.totalSteps,
         stepId: params.context?.stepId,
         redacted: true, // Parameters are always redacted
-      });
+      }], { lean: true });
 
       return entry._id.toString();
     } catch (error) {
@@ -271,67 +272,68 @@ class ActionAuditService {
         createdAt: { $gte: since },
       };
 
-      const [statusAgg, appAgg, performanceAgg, dailyAgg] = await Promise.all([
-        // Status distribution
-        ActionAuditLog.aggregate([
-          { $match: matchStage },
-          { $group: { _id: '$status', count: { $sum: 1 } } },
-        ]),
-
-        // Per-app breakdown
-        ActionAuditLog.aggregate([
-          { $match: matchStage },
-          {
-            $group: {
-              _id: '$app',
-              total: { $sum: 1 },
-              successes: {
-                $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+      // OPTIMIZATION: Combine 4 separate aggregation queries into a single aggregation pipeline using $facet.
+      // This reduces database roundtrips from 4 to 1 and allows MongoDB to optimize the shared $match stage.
+      const [analyticsResult] = await ActionAuditLog.aggregate([
+        { $match: matchStage },
+        {
+          $facet: {
+            statusAgg: [
+              { $group: { _id: '$status', count: { $sum: 1 } } }
+            ],
+            appAgg: [
+              {
+                $group: {
+                  _id: '$app',
+                  total: { $sum: 1 },
+                  successes: {
+                    $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+                  },
+                  failures: {
+                    $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+                  },
+                  avgDurationMs: { $avg: '$durationMs' },
+                },
               },
-              failures: {
-                $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+              { $sort: { total: -1 } },
+            ],
+            performanceAgg: [
+              { $match: { status: { $in: ['success', 'failed'] } } },
+              {
+                $group: {
+                  _id: null,
+                  totalActions: { $sum: 1 },
+                  totalRetries: { $sum: { $cond: ['$retried', 1, 0] } },
+                  avgDurationMs: { $avg: '$durationMs' },
+                  p95DurationMs: { $percentile: { input: '$durationMs', p: [0.95], method: 'approximate' } },
+                  successRate: {
+                    $avg: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+                  },
+                },
               },
-              avgDurationMs: { $avg: '$durationMs' },
-            },
-          },
-          { $sort: { total: -1 } },
-        ]),
-
-        // Overall performance metrics
-        ActionAuditLog.aggregate([
-          { $match: { ...matchStage, status: { $in: ['success', 'failed'] } } },
-          {
-            $group: {
-              _id: null,
-              totalActions: { $sum: 1 },
-              totalRetries: { $sum: { $cond: ['$retried', 1, 0] } },
-              avgDurationMs: { $avg: '$durationMs' },
-              // $percentile operator requires MongoDB 5.0 or later.
-              p95DurationMs: { $percentile: { input: '$durationMs', p: [0.95], method: 'approximate' } },
-              successRate: {
-                $avg: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+            ],
+            dailyAgg: [
+              {
+                $group: {
+                  _id: {
+                    $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+                  },
+                  count: { $sum: 1 },
+                  successes: {
+                    $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+                  },
+                },
               },
-            },
-          },
-        ]),
-
-        // Daily trend
-        ActionAuditLog.aggregate([
-          { $match: matchStage },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-              },
-              count: { $sum: 1 },
-              successes: {
-                $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
-              },
-            },
-          },
-          { $sort: { _id: 1 } },
-        ]),
+              { $sort: { _id: 1 } },
+            ]
+          }
+        }
       ]);
+
+      const statusAgg = analyticsResult?.statusAgg || [];
+      const appAgg = analyticsResult?.appAgg || [];
+      const performanceAgg = analyticsResult?.performanceAgg || [];
+      const dailyAgg = analyticsResult?.dailyAgg || [];
 
       const perf = performanceAgg[0] || {};
 

@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
 import { PDFParse } from 'pdf-parse';
@@ -42,7 +42,8 @@ const storage = new Storage({
  */
 const extractTextFromPDF = async (filePath) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);
+    // Optimized: Use non-blocking asynchronous file reading to prevent event loop blocking
+    const dataBuffer = await fs.readFile(filePath);
     const data = new PDFParse({
       data: dataBuffer,
     });
@@ -82,7 +83,8 @@ const extractTextFromDOCX = async (filePath) => {
  */
 const extractTextFromTXT = async (filePath) => {
   try {
-    return fs.readFileSync(filePath, 'utf8');
+    // Optimized: Use non-blocking asynchronous file reading to prevent event loop blocking
+    return await fs.readFile(filePath, 'utf8');
   } catch (error) {
     logger.error('Error reading text file:', error);
     throw new Error(`Failed to read text file: ${error.message}`);
@@ -194,7 +196,8 @@ export const uploadToGCS = async (fileData, fileName, metadata = {}) => {
     if (Buffer.isBuffer(fileData)) {
       fileBuffer = fileData;
     } else if (typeof fileData === 'string') {
-      fileBuffer = fs.readFileSync(fileData);
+      // Optimized: Use non-blocking asynchronous file reading to prevent event loop blocking
+      fileBuffer = await fs.readFile(fileData);
     } else {
       throw new Error('Invalid file data: must be Buffer or file path string');
     }
@@ -237,12 +240,14 @@ export const uploadToGCS = async (fileData, fileName, metadata = {}) => {
  */
 export const cleanupTempFile = async (filePath) => {
   try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      logger.info(`Cleaned up temp file: ${filePath}`);
-    }
+    // Optimized: Use non-blocking asynchronous unlink to prevent event loop blocking.
+    // Directly attempting to delete and catching ENOENT is faster and avoids race conditions.
+    await fs.unlink(filePath);
+    logger.info(`Cleaned up temp file: ${filePath}`);
   } catch (error) {
-    logger.warn(`Failed to cleanup temp file: ${filePath}`, error);
+    if (error.code !== 'ENOENT') {
+      logger.warn(`Failed to cleanup temp file: ${filePath}`, error);
+    }
   }
 };
 
