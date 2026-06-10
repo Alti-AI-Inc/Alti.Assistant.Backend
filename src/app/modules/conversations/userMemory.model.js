@@ -135,7 +135,9 @@ const userMemorySchema = new Schema(
     userId: {
       type: String,
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index.
+      // The compound index { userId: 1, key: 1 } below covers queries on userId alone,
+      // making this one unnecessary and saving on write overhead/storage space.
     },
     key: {
       type: String,
@@ -165,7 +167,8 @@ const userMemorySchema = new Schema(
   }
 );
 
-// Ensure a user can only have one unique record per key (e.g. unique occupation, tech stack)
+// PERFORMANCE: This compound index is crucial for performance on findOne({ userId, key }) lookups.
+// It also ensures a user can only have one unique record per key (e.g. unique occupation, tech stack).
 userMemorySchema.index({ userId: 1, key: 1 }, { unique: true });
 
 const UserMemory = model('UserMemory', userMemorySchema);
