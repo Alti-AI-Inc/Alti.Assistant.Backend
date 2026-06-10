@@ -24,7 +24,7 @@ import mongoose from 'mongoose';
 
 /**
  * @typedef {object} SubscriptionSchemaObject
- * @property {mongoose.Types.ObjectId} userId - The ID of the user associated with this subscription.
+ * @property {mongoose.Types.ObjectId} ownerId - The ID of the user who owns/manages this subscription, typically the workspace admin.
  * @property {string} [transactionId] - The ID of the payment transaction.
  * @property {number} price - The price of the subscription.
  * @property {'free'|'explore'|'execute'|'command'} [plan_name] - The name of the subscription plan.
@@ -34,7 +34,7 @@ import mongoose from 'mongoose';
  * @property {'paid'|'canceled'|'expired'|'pending'} paymentStatus - The current status of the payment for the subscription.
  * @property {string} [invoiceUrl=null] - The URL to the invoice for this subscription.
  * @property {SubscriptionLimits} limits - Features and limits associated with the subscription plan.
- * @property {mongoose.Types.ObjectId} [tenantId=null] - The ID of the tenant associated with this subscription, if applicable.
+ * @property {mongoose.Types.ObjectId} [tenantId] - The ID of the tenant (workspace) associated with this subscription. Required for all non-free plans.
  * @property {string} [stripeSubscriptionId] - The ID of the subscription in Stripe. Unique and sparse.
  * @property {string} [stripeCustomerId] - The ID of the customer in Stripe.
  * @property {string} [stripePriceId] - The ID of the price object in Stripe.
@@ -56,17 +56,18 @@ import mongoose from 'mongoose';
 const SubscriptionSchema = new mongoose.Schema(
   {
     /**
-     * The ID of the user associated with this subscription.
+     * HIERARCHY FIX: Renamed from userId to ownerId for clarity. This is the user who owns/manages the subscription,
+     * typically the workspace admin or the user who initiated the subscription.
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref User
      * @required true
      * @index true
      */
-    userId: {
+    ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true, // BUG FIX: Added index for better query performance on userId, as it's a common lookup field.
+      index: true,
     },
     /**
      * The ID of the payment transaction.
@@ -79,9 +80,9 @@ const SubscriptionSchema = new mongoose.Schema(
      * @type {number}
      * @required true
      */
-    price: { 
-      type: Number, // BUG FIX: Changed type from String to Number for monetary values to prevent type-related bugs and enable proper arithmetic operations.
-      required: true 
+    price: {
+      type: Number, // BUG FIX: Storing monetary values as Number enables proper arithmetic operations and prevents type-related bugs.
+      required: true,
     },
     /**
      * The name of the subscription plan.
@@ -121,6 +122,7 @@ const SubscriptionSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       enum: ['paid', 'canceled', 'expired', 'pending'],
+      index: true, // INTEGRATION FIX: Indexing status for efficient querying of active/inactive subscriptions.
     },
     /**
      * The URL to the invoice for this subscription.
@@ -166,17 +168,20 @@ const SubscriptionSchema = new mongoose.Schema(
     },
 
     /**
-     * Multi-tenant support. The ID of the tenant associated with this subscription.
+     * HIERARCHY FIX: A subscription for a team plan must be associated with a tenant (workspace).
+     * This ensures that limits and features are applied correctly to all members of the tenant.
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Tenant
-     * @default null
      * @index true
      */
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
-      default: null,
       index: true,
+      required: function () {
+        // The 'free' plan can be personal (no tenant), but all paid/team plans must belong to a tenant.
+        return this.plan_name && this.plan_name !== 'free';
+      },
     },
 
     /**
@@ -219,6 +224,22 @@ const SubscriptionSchema = new mongoose.Schema(
     canceledAt: { type: Date },
   },
   { timestamps: true }
+);
+
+/**
+ * HIERARCHY & INTEGRATION FIX: Ensures data integrity by preventing a tenant from having more than one active, paid subscription.
+ * This is critical for correctly applying limits and features across a workspace.
+ * It uses a partial filter to only apply the unique constraint to relevant documents.
+ */
+SubscriptionSchema.index(
+  { tenantId: 1, paymentStatus: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      paymentStatus: 'paid',
+      tenantId: { $ne: null },
+    },
+  }
 );
 
 /**

@@ -196,6 +196,13 @@ ComposioRepositorySchema.index(
   { weights: { name: 10, description: 2 }, name: 'TextIndex', language_override: 'none' }
 );
 
+// PERFORMANCE: Add a compound index to optimize common multi-tenant queries.
+// Queries will frequently filter by `workspaceId` and/or `isPublic`, and often sort by `name` or `stars`.
+// This index covers the most common access pattern: finding all repositories for a workspace (private and public)
+// and sorting them, which is more efficient than relying on multiple single-field indexes.
+ComposioRepositorySchema.index({ workspaceId: 1, isPublic: 1, stars: -1, name: 1 });
+
+
 /**
  * The Mongoose model for a Composio Repository.
  * This model is used to interact with the 'composiorepositories' collection in MongoDB.
