@@ -20,13 +20,83 @@ import { usageService } from '../usage/usage.service.js';
  */
 const escapeRegExp = string => {
   // BUG_FIX: The original replacement logic was incorrect.
-  // The '\\$&' replacement pattern correctly inserts the matched special character,
+  // The '\\{FILE_CONTENT}' replacement pattern correctly inserts the matched special character,
   // prefixed with a backslash, effectively escaping it. For example, '.' becomes '\.'.
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\{FILE_CONTENT}');
 };
 
 /**
- * Main chat endpoint - handles user messages and executes actions
+ * @openapi
+ * /api/v1/composio-simple/chat:
+ *   post:
+ *     summary: Process a user's chat message and execute actions
+ *     description: >
+ *       Handles user messages, orchestrates tool execution via Composio,
+ *       manages conversation history, and enforces workspace usage limits.
+ *       This is the primary interaction endpoint.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's message or query.
+ *                 example: "Create a new Trello card named 'Deploy to production' in the 'Engineering' board."
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional ID of an existing conversation to continue. A new one is created if omitted.
+ *                 example: "conv_123456789"
+ *               scopedApp:
+ *                 type: string
+ *                 description: Optional app name to scope the tool execution to a specific integration (e.g., 'trello').
+ *                 example: "trello"
+ *     responses:
+ *       '200':
+ *         description: Request processed successfully. The response contains the assistant's reply and execution details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     response:
+ *                       type: string
+ *                     toolsUsed:
+ *                       type: array
+ *                     executionTime:
+ *                       type: number
+ *                     conversationId:
+ *                       type: string
+ *       '400':
+ *         description: Bad Request - The 'message' field is missing.
+ *       '401':
+ *         description: Unauthorized - User authentication context is missing or incomplete.
+ *       '403':
+ *         description: Forbidden - The workspace has reached its usage limit or has no active subscription.
+ *       '500':
+ *         description: Internal Server Error - An unexpected error occurred while processing the request.
+ */
+/**
+ * @description Main chat endpoint - handles user messages and executes actions.
+ * @permission Authenticated users.
+ * @multitenant This endpoint is multi-tenant. All operations, including conversation management and usage tracking, are scoped to the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const chatController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Destructure full user context including role and workspace.
@@ -177,7 +247,52 @@ export const chatController = catchAsync(async (req, res) => {
 });
 
 /**
- * Initiate app authentication
+ * @openapi
+ * /api/v1/composio-simple/initiate-auth:
+ *   post:
+ *     summary: Initiate authentication for a new app
+ *     description: Starts the OAuth or API key connection process for a specified application via Composio.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - app_name
+ *             properties:
+ *               app_name:
+ *                 type: string
+ *                 description: The unique name of the app to connect (e.g., 'github', 'trello').
+ *                 example: "trello"
+ *     responses:
+ *       '200':
+ *         description: Authentication initiated successfully. The response contains the authorization URL.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 redirect_url:
+ *                   type: string
+ *                   format: uri
+ *                 connected_account_id:
+ *                   type: string
+ *       '400':
+ *         description: Bad Request - The 'app_name' is missing, or the Composio API key is invalid.
+ *       '500':
+ *         description: Internal Server Error - Failed to initiate the authentication flow.
+ */
+/**
+ * @description Initiate app authentication.
+ * @permission Authenticated users.
+ * @multitenant The new app connection will be associated with the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const initiateAuthController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Actions must be performed within the user's tenant context.
@@ -224,7 +339,42 @@ export const initiateAuthController = catchAsync(async (req, res) => {
 });
 
 /**
- * Disconnect an active app integration
+ * @openapi
+ * /api/v1/composio-simple/disconnect-app:
+ *   post:
+ *     summary: Disconnect an integrated app
+ *     description: Removes an active app integration for the user's workspace.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - app_name
+ *             properties:
+ *               app_name:
+ *                 type: string
+ *                 description: The unique name of the app to disconnect.
+ *                 example: "trello"
+ *     responses:
+ *       '200':
+ *         description: App disconnected successfully.
+ *       '400':
+ *         description: Bad Request - The 'app_name' is missing.
+ *       '500':
+ *         description: Internal Server Error - Failed to disconnect the app.
+ */
+/**
+ * @description Disconnect an active app integration.
+ * @permission Authenticated users.
+ * @multitenant Disconnects an app connection associated with the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const disconnectAppController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Actions must be performed within the user's tenant context.
@@ -260,7 +410,53 @@ export const disconnectAppController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get capabilities (actions) for a specific app
+ * @openapi
+ * /api/v1/composio-simple/capabilities:
+ *   get:
+ *     summary: Get available actions for an app
+ *     description: Retrieves a list of available capabilities (tools/actions) for a given application.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: app
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the app to query for capabilities.
+ *         example: "trello"
+ *     responses:
+ *       '200':
+ *         description: A list of capabilities for the specified app.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *       '400':
+ *         description: Bad Request - The 'app' query parameter is required.
+ */
+/**
+ * @description Get capabilities (actions) for a specific app.
+ * @permission Publicly accessible to authenticated users.
+ * @multitenant This is a global, informational endpoint and is not tenant-scoped.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const getAppCapabilitiesController = catchAsync(async (req, res) => {
   const { app } = req.query;
@@ -291,7 +487,36 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
 });
 
 /**
- * SSE endpoint for streaming connection status
+ * @openapi
+ * /api/v1/composio-simple/connection-status-stream:
+ *   get:
+ *     summary: Stream app connection status
+ *     description: >
+ *       Provides a Server-Sent Events (SSE) stream to monitor the status of connected applications for the user's workspace.
+ *       The stream pushes updates periodically.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: An active SSE stream.
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: |
+ *                 data: {"type":"connected_apps","data":[{"appName":"trello","status":"active"}]}
+ *
+ *       '401':
+ *         description: Unauthorized - User authentication context is missing.
+ */
+/**
+ * @description SSE endpoint for streaming connection status.
+ * @permission Authenticated users.
+ * @multitenant The stream reports the connection status for all apps within the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const connectionStatusStreamController = catchAsync(async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -329,7 +554,42 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
 });
 
 /**
- * Wait for connection completion
+ * @openapi
+ * /api/v1/composio-simple/wait-for-connection:
+ *   post:
+ *     summary: Wait for an app connection to complete
+ *     description: A long-polling or wait endpoint to confirm that an app connection initiated via OAuth has been successfully established.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - connected_account_id
+ *             properties:
+ *               connected_account_id:
+ *                 type: string
+ *                 description: The ID of the connection attempt, received from the initiate-auth endpoint.
+ *                 example: "cacc_12345"
+ *     responses:
+ *       '200':
+ *         description: Connection successfully established.
+ *       '400':
+ *         description: Bad Request - The 'connected_account_id' is missing.
+ *       '500':
+ *         description: Internal Server Error - The connection process failed or timed out.
+ */
+/**
+ * @description Wait for connection completion.
+ * @permission Authenticated users.
+ * @multitenant Validates that the `connected_account_id` belongs to the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const waitForConnectionController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Retrieve user context to enforce security checks.
@@ -366,7 +626,54 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get user's conversations
+ * @openapi
+ * /api/v1/composio-simple/conversations:
+ *   get:
+ *     summary: Get a list of user's conversations
+ *     description: Retrieves a paginated list of conversations for the authenticated user within their workspace.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: The number of conversations per page.
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [lastActivity, createdAt]
+ *           default: lastActivity
+ *         description: The field to sort conversations by.
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: The sort order.
+ *     responses:
+ *       '200':
+ *         description: A paginated list of conversations.
+ *       '401':
+ *         description: Unauthorized.
+ */
+/**
+ * @description Get user's conversations.
+ * @permission Authenticated users.
+ * @multitenant Retrieves conversations scoped to the user's `userId` and `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const getConversationsController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: All data access must be scoped to the user's tenant.
@@ -402,7 +709,36 @@ export const getConversationsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get specific conversation
+ * @openapi
+ * /api/v1/composio-simple/conversations/{conversationId}:
+ *   get:
+ *     summary: Get a specific conversation
+ *     description: Retrieves the full message history for a single conversation.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the conversation.
+ *     responses:
+ *       '200':
+ *         description: The requested conversation object.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Conversation not found or user does not have access.
+ */
+/**
+ * @description Get specific conversation.
+ * @permission Authenticated users.
+ * @multitenant Validates that the requested `conversationId` belongs to the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const getConversationController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: All data access must be scoped to the user's tenant.
@@ -434,7 +770,29 @@ export const getConversationController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get user's connected accounts
+ * @openapi
+ * /api/v1/composio-simple/connected-accounts:
+ *   get:
+ *     summary: Get all connected accounts for the workspace
+ *     description: Retrieves a list of all applications that have been successfully connected to the user's workspace.
+ *     tags:
+ *       - Composio Simple
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: A list of connected accounts.
+ *       '401':
+ *         description: Unauthorized.
+ *       '500':
+ *         description: Internal Server Error - Failed to retrieve accounts.
+ */
+/**
+ * @description Get user's connected accounts.
+ * @permission Authenticated users.
+ * @multitenant Retrieves all connected accounts for the user's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const getConnectedAccountsController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Connections are a workspace-level resource.
@@ -461,8 +819,65 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Compare both systems - runs the same request through simplified and v2
- * Useful for side-by-side testing and performance comparison
+ * @openapi
+ * /api/v1/composio-simple/compare:
+ *   post:
+ *     summary: Compare simplified and v2 systems (Admin)
+ *     description: >
+ *       Runs the same user message through both the simplified and v2 (complex) execution engines
+ *       for performance and accuracy comparison. Requires admin privileges.
+ *     tags:
+ *       - Composio Simple
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user message to use for the comparison.
+ *                 example: "What are the top 3 open issues in the 'Alti.Assistant' repo on GitHub?"
+ *     responses:
+ *       '200':
+ *         description: Comparison completed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     simplified:
+ *                       type: object
+ *                     v2:
+ *                       type: object
+ *                     comparison:
+ *                       type: object
+ *       '400':
+ *         description: Bad Request - The 'message' field is missing.
+ *       '401':
+ *         description: Unauthorized.
+ *       '403':
+ *         description: Forbidden - User does not have admin privileges.
+ */
+/**
+ * @description Compare both systems - runs the same request through simplified and v2. Useful for side-by-side testing and performance comparison.
+ * @permission Requires 'admin' or 'super_admin' role.
+ * @multitenant The comparison is executed within the context of the admin's `workspaceId`.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
  */
 export const compareController = catchAsync(async (req, res) => {
   // HIERARCHY_GAP_FIX: Add role-based access control (RBAC) for sensitive/debug endpoints.
@@ -576,6 +991,11 @@ export const compareController = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * A collection of controller functions for the Composio Simple module,
+ * handling chat, authentication, and conversation management.
+ * @namespace composioSimpleController
+ */
 export const composioSimpleController = {
   chatController,
   initiateAuthController,

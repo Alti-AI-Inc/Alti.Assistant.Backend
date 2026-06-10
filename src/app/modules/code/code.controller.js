@@ -125,6 +125,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
   // Skip subscription check for guest users
   if (!isGuest) {
+    // OPTIMIZATION: Ensure an index exists on { userId: 1, createdAt: -1 } in the 'subscriptions' collection.
+    // This compound index allows MongoDB to efficiently find the user and sort by creation date to get the latest record without scanning.
     const userSubscription = await SubscriptionModel.findOne({ userId })
       .sort({
         createdAt: -1,
@@ -135,6 +137,9 @@ export const performCodeTask = catchAsync(async (req, res) => {
       ? userSubscription.usage
       : codeService.getDefaultFreeTierLimit();
 
+    // OPTIMIZATION: The underlying query in getMonthlyMessageCount should be indexed.
+    // A compound index on { userId: 1, createdAt: -1 } on the messages collection is recommended
+    // to efficiently count a user's messages within the current month's date range.
     const currentMonthlyUsage = await codeService.getMonthlyMessageCount(userId);
 
     if (currentMonthlyUsage >= monthlyLimit) {
@@ -331,7 +336,11 @@ const getCodeStats = catchAsync(async (req, res) => {
     });
   }
 
-  // This is a fast, read-only operation and does not need to be offloaded.
+  // OPTIMIZATION: The codeService.getCodeStats method likely performs multiple queries (e.g., count conversations, count messages, find last activity).
+  // Ensure that the underlying collections have appropriate indexes to accelerate these lookups.
+  // Recommended indexes:
+  // - On 'conversations' collection: { userId: 1 }
+  // - On 'messages' collection: { userId: 1, createdAt: -1 }
   const stats = await codeService.getCodeStats(userId, req);
 
   sendResponse(res, {
