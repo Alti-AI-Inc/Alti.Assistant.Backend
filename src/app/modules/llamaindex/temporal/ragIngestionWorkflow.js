@@ -3,12 +3,13 @@
  * resilient document loading, structured Markdown parsing, metadata extraction,
  * text-embedding-004 embedding generation, and pgvector RAG database synchronization.
  * Implements the transactional Saga pattern for compensating compensating rollbacks.
- * 
+ *
  * @param {string} filePath - Absolute path to the source file (local or GCS prefix).
  * @param {string} originalName - User-provided original filename.
  * @param {string} userId - User identifier for isolated storage workspace.
  * @param {string} docId - Unique document identifier.
- * @returns {Promise<object>} Ingestion execution report.
+ * @returns {Promise<object>} Ingestion execution report containing success status, docId, originalName, and a message.
+ * @throws {Error} If any step of the ingestion process fails, or if the rollback compensation fails.
  */
 export async function resilientRAGIngestionWorkflow(filePath, originalName, userId, docId) {
   let activities;
