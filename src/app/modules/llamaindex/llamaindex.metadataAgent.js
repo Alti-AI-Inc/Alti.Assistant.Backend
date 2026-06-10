@@ -6,11 +6,9 @@ import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertex
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
-// PERFORMANCE_OPTIMIZATION: For optimal query performance, ensure the 'DocumentMetadata'
-// collection has a compound index on { userId: 1, docId: 1 }.
-// Example Mongoose Schema definition:
-// schema.index({ userId: 1, docId: 1 }, { unique: true });
 import * as llama from './llamaindex.indexer.js';
+// PLATFORM OWNER IMPROVEMENT: Import Tenant model to check status and iterate through tenants.
+import Tenant from '../../tenants/tenant.model.js'; // NOTE: Assuming a Tenant model exists for platform management.
 
 /**
  * Initializes the Vertex AI client for enterprise-grade features and safety controls.
@@ -105,7 +103,8 @@ ${sanitizedPreview}`;
 
     // Use the Vertex AI model with explicit safety settings.
     const model = vertex_ai.getGenerativeModel({
-      model: 'gemini-1.5-flash-preview-0514', // Use a valid Vertex AI model identifier
+      // PLATFORM OWNER IMPROVEMENT: Model is sourced from global config for easy system-wide updates.
+      model: config.gcp_gemini_model || 'gemini-1.5-flash-preview-0514',
       // Configure Google's safety filters to block harmful content.
       safetySettings: [
         {
@@ -135,7 +134,6 @@ ${sanitizedPreview}`;
       },
     });
 
-    // The Vertex AI SDK response structure differs slightly from the consumer SDK.
     if (!result.response.candidates?.[0]?.content?.parts?.[0]?.text) {
       throw new Error('Invalid or empty response from Vertex AI model.');
     }
@@ -184,11 +182,13 @@ ${sanitizedPreview}`;
  * in the application's database. It processes documents asynchronously but sequentially to manage API rate limits.
  *
  * @param {string} userId The unique identifier for the user whose documents are to be enriched.
+ * @param {object} [options={}] - The options for the enrichment process.
+ * @param {boolean} [options.force=false] - If true, re-enriches documents that already have metadata.
  * @returns {Promise<{ success: boolean, message: string, enrichedCount: number }>} A promise that resolves to an object
  *   indicating the success of the operation, a descriptive message, and the count of newly enriched documents.
  * @throws {Error} If there's a critical failure in listing documents or during the enrichment cycle.
  */
-const enrichAllUserDocuments = async (userId) => {
+const enrichAllUserDocuments = async (userId, options = { force: false }) => {
   try {
     // List indexed documents from current LlamaIndex corpus
     const docs = await llama.listDocuments(userId);
@@ -196,25 +196,22 @@ const enrichAllUserDocuments = async (userId) => {
       return { success: true, message: 'No documents in corpus to enrich.', enrichedCount: 0 };
     }
 
-    // PERFORMANCE_OPTIMIZATION: Solved N+1 query problem.
-    // Instead of querying for each document inside the loop, fetch all existing metadata
-    // for the user's documents in a single query.
-    const docIds = docs.map(doc => doc.id || doc.docId || doc.id_);
-    const existingMetadata = await DocumentMetadata.find({
-      userId,
-      docId: { $in: docIds },
-    }).lean(); // .lean() is used for faster, read-only queries as we only need the docId.
-
-    // Create a Set for O(1) lookup of existing document IDs.
-    const existingDocIds = new Set(existingMetadata.map(meta => meta.docId));
-
     let enrichedCount = 0;
     for (const doc of docs) {
       const docId = doc.id || doc.docId || doc.id_;
+      let shouldEnrich = false;
 
-      // Check against the pre-fetched set instead of hitting the database.
-      if (!existingDocIds.has(docId)) {
-        // Enforce asynchronous enrichment
+      // PLATFORM OWNER IMPROVEMENT: Allow forcing re-enrichment of existing documents.
+      if (options.force) {
+        shouldEnrich = true;
+      } else {
+        const existing = await DocumentMetadata.findOne({ userId, docId }).lean();
+        if (!existing) {
+          shouldEnrich = true;
+        }
+      }
+
+      if (shouldEnrich) {
         await enrichDocument(null, doc.fileName || doc.name || 'unnamed_doc', docId, userId);
         enrichedCount++;
       }
@@ -222,26 +219,157 @@ const enrichAllUserDocuments = async (userId) => {
 
     return {
       success: true,
-      message: `Enrichment cycle completed. Analyzed ${docs.length} files. Enriched ${enrichedCount} new files.`,
+      message: `Enrichment cycle completed. Analyzed ${docs.length} files. Enriched ${enrichedCount} files.`,
       enrichedCount,
     };
   } catch (err) {
-    logger.error(`MetadataAgent enrichAllUserDocuments failed:`, err);
+    logger.error(`MetadataAgent enrichAllUserDocuments failed for user ${userId}:`, err);
     throw err;
   }
 };
 
 /**
- * @typedef {Object} MetadataAgentService
- * @property {function(string | null, string, string, string): Promise<DocumentMetadata>} enrichDocument - Function to enrich a single document's metadata.
- * @property {function(string): Promise<{ success: boolean, message: string, enrichedCount: number }>} enrichAllUserDocuments - Function to enrich all documents for a given user that are missing metadata.
+ * =============================================================================
+ * PLATFORM OWNER / SUPER ADMIN FEATURES
+ * =============================================================================
  */
 
 /**
- * Exports the core services of the metadata agent.
- * @type {MetadataAgentService}
+ * Triggers a metadata enrichment cycle for all active tenants on the platform.
+ * This is a resource-intensive operation and should be run by a Platform Owner during off-peak hours.
+ *
+ * @param {object} [options={}] - The options for the enrichment process.
+ * @param {boolean} [options.force=false] - If true, re-enriches documents that already have metadata.
+ * @returns {Promise<object>} A summary of the global enrichment task.
+ */
+const enrichAllPlatformDocuments = async (options = { force: false }) => {
+  logger.info(
+    `PLATFORM_OWNER_TASK: Starting global document enrichment cycle. Force re-enrichment: ${options.force}`
+  );
+  const startTime = Date.now();
+  let totalTenantsProcessed = 0;
+  let totalDocumentsEnriched = 0;
+  const failedTenants = [];
+
+  try {
+    // Fetch all active tenants to process. This ensures suspended tenants are skipped.
+    const activeTenants = await Tenant.find({ status: 'active' }).select('_id name').lean();
+    logger.info(`PLATFORM_OWNER_TASK: Found ${activeTenants.length} active tenants to process.`);
+
+    for (const tenant of activeTenants) {
+      try {
+        logger.info(`PLATFORM_OWNER_TASK: Processing tenant ${tenant.name} (${tenant._id})`);
+        const result = await enrichAllUserDocuments(tenant._id.toString(), options);
+        totalDocumentsEnriched += result.enrichedCount;
+        totalTenantsProcessed++;
+      } catch (err) {
+        logger.error(
+          `PLATFORM_OWNER_TASK: Failed to process tenant ${tenant.name} (${tenant._id}). Error: ${err.message}`
+        );
+        failedTenants.push({ id: tenant._id, name: tenant.name, error: err.message });
+      }
+    }
+
+    const duration = (Date.now() - startTime) / 1000; // in seconds
+    const summary = {
+      success: failedTenants.length === 0,
+      message: 'Global enrichment cycle completed.',
+      durationSeconds: duration,
+      tenantsProcessed: totalTenantsProcessed,
+      tenantsFailed: failedTenants.length,
+      totalDocumentsEnriched,
+      failedTenants,
+    };
+
+    logger.info('PLATFORM_OWNER_TASK: Global enrichment summary:', summary);
+    return summary;
+  } catch (err) {
+    logger.error('PLATFORM_OWNER_TASK: A critical error occurred during the global enrichment cycle.', err);
+    throw new Error('Global enrichment cycle failed critically.');
+  }
+};
+
+/**
+ * Retrieves platform-wide statistics on document metadata enrichment for global oversight.
+ *
+ * @returns {Promise<object>} An object containing global and per-tenant statistics.
+ */
+const getPlatformEnrichmentStatistics = async () => {
+  try {
+    const totalEnriched = await DocumentMetadata.countDocuments();
+
+    // Aggregation pipeline to count enriched documents per tenant (userId) and join with tenant info.
+    const perTenantCounts = await DocumentMetadata.aggregate([
+      { $group: { _id: '$userId', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      {
+        $lookup: {
+          from: 'tenants', // Assumes the tenant collection is named 'tenants'
+          localField: '_id',
+          foreignField: '_id',
+          as: 'tenantInfo',
+        },
+      },
+      { $unwind: { path: '$tenantInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          tenantId: '$_id',
+          tenantName: { $ifNull: ['$tenantInfo.name', 'Unknown/Deleted Tenant'] },
+          enrichedDocumentCount: '$count',
+        },
+      },
+    ]);
+
+    return {
+      totalEnrichedDocuments: totalEnriched,
+      tenantBreakdown: perTenantCounts,
+    };
+  } catch (err) {
+    logger.error('PLATFORM_OWNER_TASK: Failed to retrieve platform enrichment statistics.', err);
+    throw new Error('Could not retrieve platform statistics.');
+  }
+};
+
+/**
+ * Retrieves metadata enrichment statistics for a specific tenant, comparing against their live corpus.
+ *
+ * @param {string} userId The unique identifier for the user/tenant.
+ * @returns {Promise<object>} An object containing the statistics for the specified tenant.
+ */
+const getTenantEnrichmentStatistics = async (userId) => {
+  try {
+    if (!userId) {
+      throw new Error('User ID (tenant ID) is required.');
+    }
+    const enrichedCount = await DocumentMetadata.countDocuments({ userId });
+    const totalDocsInCorpus = (await llama.listDocuments(userId)).length;
+
+    return {
+      userId,
+      totalDocumentsInCorpus,
+      enrichedDocumentCount: enrichedCount,
+      unenrichedDocumentCount: totalDocsInCorpus - enrichedCount,
+    };
+  } catch (err) {
+    logger.error(`PLATFORM_OWNER_TASK: Failed to retrieve enrichment statistics for user ${userId}.`, err);
+    throw new Error(`Could not retrieve statistics for user ${userId}.`);
+  }
+};
+
+/**
+ * Exports tenant-scoped services for regular application use.
  */
 export const metadataAgentService = {
   enrichDocument,
   enrichAllUserDocuments,
+};
+
+/**
+ * Exports platform-scoped services for Super Admin / Platform Owner use.
+ */
+export const platformOwnerMetadataService = {
+  enrichAllPlatformDocuments,
+  getPlatformEnrichmentStatistics,
+  getTenantEnrichmentStatistics,
 };
