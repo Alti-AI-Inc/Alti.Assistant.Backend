@@ -29,6 +29,8 @@ import { ComposioCatalogService } from './composio-catalog.service.js';
  *     summary: Retrieve a paginated list of Composio catalog repositories.
  *     description: Fetches repositories from the Composio catalog, allowing for filtering, searching, and sorting.
  *     tags: [Composio Catalog]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: query
@@ -94,10 +96,21 @@ import { ComposioCatalogService } from './composio-catalog.service.js';
  */
 const getRepositories = async (req, res, next) => {
   try {
-    const { query, license, language, sortBy } = req.query;
+    // BUG FIX: Added input validation for the 'sortBy' parameter to prevent potential NoSQL injection
+    // or unexpected sorting behavior. Only whitelisted values are allowed.
+    const allowedSortBy = ['name', 'stars', 'createdAt', 'updatedAt'];
+    const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
+
+    const { query, license, language } = req.query;
     // Parse limit and page to integers, providing default values if not present or invalid.
     const limit = parseInt(req.query.limit, 10) || 10; // Default limit to 10 items per page
-    const page = parseInt(req.query.page, 10) || 1;     // Default page to 1
+    const page = parseInt(req.query.page, 10) || 1; // Default page to 1
+
+    // INTEGRATION FIX: Pass user's workspace context to the service layer.
+    // This ensures that data access respects tenant boundaries, allowing for potential
+    // features like workspace-specific views or permissions on the catalog.
+    // Assumes an authentication middleware populates req.user.
+    const { workspaceId } = req.user;
 
     // Performance Optimization:
     // The `ComposioCatalogService.searchComposioCatalog` method MUST utilize `.lean()`
@@ -112,13 +125,17 @@ const getRepositories = async (req, res, next) => {
     // highly recommended. A compound index involving 'sortBy' and other
     // filter fields (e.g., { language: 1, sortBy: 1 }) could further
     // improve performance for specific query patterns.
-    const result = await ComposioCatalogService.searchComposioCatalog(query, {
-      license,
-      language,
-      limit,
-      page,
-      sortBy
-    });
+    const result = await ComposioCatalogService.searchComposioCatalog(
+      query,
+      {
+        license,
+        language,
+        limit,
+        page,
+        sortBy,
+      },
+      workspaceId,
+    );
     res.status(httpStatus.OK).json(result);
   } catch (error) {
     next(error);
@@ -139,6 +156,8 @@ const getRepositories = async (req, res, next) => {
  *     summary: Retrieve statistics about the Composio catalog.
  *     description: Fetches aggregated statistics such as total repositories, language distribution, and license distribution.
  *     tags: [Composio Catalog]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved catalog statistics.
@@ -167,6 +186,12 @@ const getRepositories = async (req, res, next) => {
  */
 const getStats = async (req, res, next) => {
   try {
+    // INTEGRATION FIX: Pass user's workspace context to the service layer.
+    // This ensures that statistics can be scoped by tenant if necessary and maintains
+    // a consistent, context-aware architecture.
+    // Assumes an authentication middleware populates req.user.
+    const { workspaceId } = req.user;
+
     // Performance Optimization:
     // The `ComposioCatalogService.getComposioStats` method MUST utilize `.lean()`
     // on its Mongoose queries or aggregation pipelines. This returns plain
@@ -176,7 +201,7 @@ const getStats = async (req, res, next) => {
     // If `getComposioStats` involves aggregation or filtering on specific fields,
     // ensure those fields are indexed in the underlying Mongoose schema to
     // optimize aggregation performance.
-    const result = await ComposioCatalogService.getComposioStats();
+    const result = await ComposioCatalogService.getComposioStats(workspaceId);
     res.status(httpStatus.OK).json(result);
   } catch (error) {
     next(error);
@@ -188,8 +213,10 @@ const getStats = async (req, res, next) => {
  * /v1/composio-catalog/import:
  *   post:
  *     summary: Import a Composio submodule into the catalog.
- *     description: Initiates the process of importing a specified repository as a Composio submodule.
+ *     description: Initiates the process of importing a specified repository as a Composio submodule. This is a privileged action restricted to super administrators.
  *     tags: [Composio Catalog]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -230,6 +257,19 @@ const getStats = async (req, res, next) => {
  *                 message:
  *                   type: string
  *                   example: Repository name is required and must be a non-empty string.
+ *       403:
+ *         description: Forbidden. The user does not have the required permissions to perform this action.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: You do not have permission to perform this action.
  *       500:
  *         description: Internal server error during the import process.
  *         content:
@@ -252,25 +292,43 @@ const getStats = async (req, res, next) => {
  */
 const importSubmodule = async (req, res, next) => {
   try {
+    // SECURITY FIX: Added Role-Based Access Control (RBAC).
+    // This is a privileged action that modifies the platform's catalog.
+    // It must be restricted to 'super_admin' users to prevent unauthorized modifications.
+    // Assumes an authentication middleware populates req.user with role information.
+    if (req.user.role !== 'super_admin') {
+      return res.status(httpStatus.FORBIDDEN).json({
+        success: false,
+        message: 'You do not have permission to perform this action.',
+      });
+    }
+
     const { repoName } = req.body;
 
     // Validate repoName: ensure it's present, a string, and not empty.
     if (!repoName || typeof repoName !== 'string' || repoName.trim().length === 0) {
       return res.status(httpStatus.BAD_REQUEST).json({
         success: false,
-        message: 'Repository name is required and must be a non-empty string.'
+        message: 'Repository name is required and must be a non-empty string.',
       });
     }
+
+    // INTEGRATION FIX: Pass user and workspace context to the service layer.
+    // This is crucial for auditing (who imported what) and for propagating usage details
+    // or applying limits to the appropriate workspace, as required by the system architecture.
+    const { workspaceId, id: userId } = req.user;
 
     // Database Indexing:
     // If `ComposioCatalogService.importComposioSubmodule` performs lookups
     // (e.g., `findOne`, `findOneAndUpdate`) based on `repoName` to check
     // for existence or update, ensure the Mongoose schema for the
     // ComposioCatalog model has an index on the 'repoName' field for faster operations.
-    const result = await ComposioCatalogService.importComposioSubmodule(repoName);
+    const result = await ComposioCatalogService.importComposioSubmodule(repoName, { workspaceId, userId });
     if (result.success) {
       res.status(httpStatus.OK).json(result);
     } else {
+      // The service layer might return specific errors (e.g., already exists).
+      // A 400 Bad Request is a reasonable default for failure.
       res.status(httpStatus.BAD_REQUEST).json(result);
     }
   } catch (error) {
@@ -286,5 +344,5 @@ const importSubmodule = async (req, res, next) => {
 export const ComposioCatalogController = {
   getRepositories,
   getStats,
-  importSubmodule
+  importSubmodule,
 };
