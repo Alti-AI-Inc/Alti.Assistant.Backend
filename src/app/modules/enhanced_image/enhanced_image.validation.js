@@ -28,7 +28,9 @@ const editImageSchema = z.object({
       .string({
         required_error: 'Image base64 is required',
       })
-      .min(1, 'Image base64 cannot be empty'),
+      .min(1, 'Image base64 cannot be empty')
+      // Added a max length for base64 string to prevent excessively large payloads (e.g., 5MB image equivalent)
+      .max(7000000, 'Image base64 too large (max 5MB equivalent)'),
     conversationId: z.string().optional(),
     aspectRatio: z.string().optional(),
     userId: z.string().optional(),
