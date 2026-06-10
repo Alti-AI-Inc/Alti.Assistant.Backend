@@ -10,6 +10,7 @@ import { orchestratorController } from './orchestrator.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import { shieldOfLight } from '../../middlewares/shieldOfLight.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
+import catchAsync from '../../utils/catchAsync.js';
 
 /**
  * Express router instance for orchestrator routes.
@@ -123,7 +124,7 @@ router.post(
   auth(), // Protect route with standard auth middleware
   shieldOfLight(), // Filter out malicious requests before processing
   createRateLimiter(20, 15), // 20 requests per 15 minutes — most expensive endpoint
-  orchestratorController.routePrompt
+  catchAsync(orchestratorController.routePrompt) // Wrap async controller to ensure errors are passed to the global error handler
 );
 
 /**

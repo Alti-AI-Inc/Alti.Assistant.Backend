@@ -194,14 +194,88 @@ router.get(
 
 /**
  * @openapi
- * /api/v1/deep-research/download-pdf/{savedId}:
+ * /api/v1/deep-research:
  *   get:
- *     summary: Download a deep research report as a PDF
- *     description: Allows downloading a previously saved deep research report in PDF format. This endpoint is accessible to both authenticated users and guests.
+ *     summary: List all deep research reports for the workspace (Admin)
+ *     description: Retrieves a paginated list of all deep research reports within the current workspace. Accessible only to users with `ADMIN` or `SUPER_ADMIN` roles for management and oversight.
  *     tags:
  *       - Deep Research
  *     security:
- *       - optionalAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of deep research reports.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Reports retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object # Define the report object structure here
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ */
+router.get(
+  '/',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN), // Optimization: Add admin-only route to list all reports for workspace management.
+  extractTenantContext,
+  deepResearchController.listAllReports
+);
+
+/**
+ * @openapi
+ * /api/v1/deep-research/{savedId}:
+ *   delete:
+ *     summary: Delete a deep research report (Admin)
+ *     description: Deletes a specific deep research report by its ID. Accessible only to users with `ADMIN` or `SUPER_ADMIN` roles to manage workspace content.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: savedId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the deep research report to delete.
+ *     responses:
+ *       200:
+ *         description: Report deleted successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ *       404:
+ *         description: Report not found.
+ */
+router.delete(
+  '/:savedId',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN), // Optimization: Add admin-only route for deleting reports.
+  extractTenantContext,
+  deepResearchController.deleteReport
+);
+
+/**
+ * @openapi
+ * /api/v1/deep-research/download-pdf/{savedId}:
+ *   get:
+ *     summary: Download a deep research report as a PDF
+ *     description: Allows an authenticated user to download a previously saved deep research report in PDF format. Access is restricted to workspace members to ensure data security.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: savedId
@@ -218,27 +292,18 @@ router.get(
  *               type: string
  *               format: binary
  *       401:
- *         description: Unauthorized if optional authentication fails.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
  *       404:
  *         description: Report not found.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/download-pdf/:savedId',
-  optionalAuth(), // Allow guest access to download PDFs
+  // Security Optimization: Changed from optionalAuth to auth to ensure only authenticated workspace members can download potentially sensitive reports.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext, // Extract tenant context after auth
   createRateLimiter(20, 15), // Rate limit downloads to prevent heavy PDF generation/bandwidth abuse
   deepResearchController.downloadPDF
@@ -249,11 +314,11 @@ router.get(
  * /api/v1/deep-research/download-pptx/{savedId}:
  *   get:
  *     summary: Download a deep research presentation as a PPTX
- *     description: Allows downloading a previously saved deep research report in PPTX (PowerPoint) format. This endpoint is accessible to both authenticated users and guests.
+ *     description: Allows an authenticated user to download a previously saved deep research report in PPTX (PowerPoint) format. Access is restricted to workspace members.
  *     tags:
  *       - Deep Research
  *     security:
- *       - optionalAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: savedId
@@ -270,27 +335,18 @@ router.get(
  *               type: string
  *               format: binary
  *       401:
- *         description: Unauthorized if optional authentication fails.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
  *       404:
  *         description: Report not found.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/download-pptx/:savedId',
-  optionalAuth(), // Allow guest access to download PPTX
+  // Security Optimization: Changed from optionalAuth to auth to ensure only authenticated workspace members can download reports.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext, // Extract tenant context after auth
   createRateLimiter(20, 15), // Rate limit downloads to prevent heavy PPTX generation/bandwidth abuse
   deepResearchController.downloadPPTX

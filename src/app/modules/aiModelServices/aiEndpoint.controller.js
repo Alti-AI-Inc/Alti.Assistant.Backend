@@ -140,6 +140,13 @@ const addAiEndpoint = async (req, res) => {
 
     // Validate required fields
     if (!title || !add || !history || !deleteUrl || !nickName) {
+      // GCP Logging: Log validation failure as a warning.
+      console.log(JSON.stringify({
+        severity: 'WARNING',
+        message: 'Attempt to create AI endpoint with missing required fields.',
+        component: 'AiEndpointsController.addAiEndpoint',
+        requestBody: req.body,
+      }));
       return res.status(400).json({
         status: 'fail',
         message: 'All fields (title, nickName, add, history, delete) are required.',
@@ -156,9 +163,17 @@ const addAiEndpoint = async (req, res) => {
     const existingEndpoint = await AiEndpoint.findOne(query).lean();
 
     if (existingEndpoint) {
+      // GCP Logging: Log duplicate creation attempt as a warning.
+      const identifier = existingEndpoint.title ? `'${existingEndpoint.title}'` : `'${existingEndpoint._id}'`;
+      console.log(JSON.stringify({
+        severity: 'WARNING',
+        message: `Attempt to create duplicate AI endpoint with identifier: ${identifier}`,
+        component: 'AiEndpointsController.addAiEndpoint',
+        requestBody: req.body,
+      }));
       return res.status(400).json({
         status: 'fail',
-        message: `AI endpoint with ${existingEndpoint.title ? `'${existingEndpoint.title}'` : `'${existingEndpoint._id}'`} already exists.`,
+        message: `AI endpoint with ${identifier} already exists.`,
       });
     }
 
@@ -173,6 +188,14 @@ const addAiEndpoint = async (req, res) => {
       delete: deleteUrl,
     });
 
+    // GCP Logging: Log successful creation.
+    console.log(JSON.stringify({
+      severity: 'INFO',
+      message: `AI endpoint '${title}' created successfully.`,
+      component: 'AiEndpointsController.addAiEndpoint',
+      data: newEndpoint,
+    }));
+
     res.status(201).json({
       statusCode: httpStatus.OK,
       status: 'Success',
@@ -180,6 +203,14 @@ const addAiEndpoint = async (req, res) => {
       data: newEndpoint,
     });
   } catch (error) {
+    // GCP Logging: Log internal server error.
+    console.log(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Error creating AI endpoint',
+      component: 'AiEndpointsController.addAiEndpoint',
+      error: { message: error.message, stack: error.stack },
+      requestBody: req.body,
+    }));
     res.status(500).json({
       status: 'fail',
       message: 'Error creating AI endpoint',
@@ -234,6 +265,15 @@ const getWebAiEndpoint = async (req, res) => {
     // Optimization: Use .lean() for read-only queries to get plain JavaScript objects,
     // which bypasses Mongoose document instantiation overhead.
     const aiEndpoints = await AiEndpoint.find().lean(); // Fetch from DB
+
+    // GCP Logging: Log successful fetch.
+    console.log(JSON.stringify({
+      severity: 'INFO',
+      message: 'Fetched AI socket endpoints successfully for web.',
+      component: 'AiEndpointsController.getWebAiEndpoint',
+      count: aiEndpoints.length,
+    }));
+
     res.status(200).json({
       statusCode: httpStatus.OK,
       status: 'Success',
@@ -242,6 +282,13 @@ const getWebAiEndpoint = async (req, res) => {
       data: aiEndpoints,
     });
   } catch (error) {
+    // GCP Logging: Log internal server error.
+    console.log(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Error fetching AI endpoints for web',
+      component: 'AiEndpointsController.getWebAiEndpoint',
+      error: { message: error.message, stack: error.stack },
+    }));
     res.status(500).json({
       status: 'fail',
       message: 'Error fetching AI endpoints',
@@ -301,6 +348,12 @@ const getWebAiEndpoint = async (req, res) => {
  */
 const getAiEndpointForApp = async (req, res) => {
   try {
+    // GCP Logging: Log successful fetch of static data.
+    console.log(JSON.stringify({
+      severity: 'INFO',
+      message: 'Get aiSocketEndpoint successfully for app.',
+      component: 'AiEndpointsController.getAiEndpointForApp',
+    }));
     res.status(200).json({
       statusCode: httpStatus.OK,
       status: 'Success',
@@ -309,6 +362,13 @@ const getAiEndpointForApp = async (req, res) => {
       data: aiEndpoints,
     });
   } catch (error) {
+    // GCP Logging: Log internal server error (though less likely for static data).
+    console.log(JSON.stringify({
+      severity: 'ERROR',
+      message: "Couldn't not get aiSocketEndpoint for app",
+      component: 'AiEndpointsController.getAiEndpointForApp',
+      error: { message: error.message, stack: error.stack },
+    }));
     res.status(400).json({
       status: 'fail',
       message: "Couldn't not get aiSocketEndpoint",
@@ -403,6 +463,13 @@ const updateWebAiEndpoint = async (req, res) => {
     const { title, enabled, default: isDefault } = req.body;
 
     if (!title) {
+      // GCP Logging: Log validation failure as a warning.
+      console.log(JSON.stringify({
+        severity: 'WARNING',
+        message: 'Attempt to update AI endpoint without providing a title.',
+        component: 'AiEndpointsController.updateWebAiEndpoint',
+        requestBody: req.body,
+      }));
       return res.status(400).json({
         status: 'fail',
         message: 'Title is required to identify the AI endpoint.',
@@ -429,11 +496,26 @@ const updateWebAiEndpoint = async (req, res) => {
     ).lean();
 
     if (!updatedEndpoint) {
+      // GCP Logging: Log not found error as a warning.
+      console.log(JSON.stringify({
+        severity: 'WARNING',
+        message: `Attempt to update non-existent AI endpoint with title: '${title}'.`,
+        component: 'AiEndpointsController.updateWebAiEndpoint',
+        requestBody: req.body,
+      }));
       return res.status(404).json({
         status: 'fail',
         message: `AI endpoint '${title}' not found.`,
       });
     }
+
+    // GCP Logging: Log successful update.
+    console.log(JSON.stringify({
+      severity: 'INFO',
+      message: `Updated AI endpoint '${title}' successfully.`,
+      component: 'AiEndpointsController.updateWebAiEndpoint',
+      data: updatedEndpoint,
+    }));
 
     res.status(200).json({
       statusCode: httpStatus.OK,
@@ -442,6 +524,14 @@ const updateWebAiEndpoint = async (req, res) => {
       data: updatedEndpoint,
     });
   } catch (error) {
+    // GCP Logging: Log internal server error.
+    console.log(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Error updating AI endpoint',
+      component: 'AiEndpointsController.updateWebAiEndpoint',
+      error: { message: error.message, stack: error.stack },
+      requestBody: req.body,
+    }));
     res.status(500).json({
       status: 'fail',
       message: 'Error updating AI endpoint',
