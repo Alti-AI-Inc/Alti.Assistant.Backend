@@ -25,7 +25,7 @@ for (const varName of requiredEnvVars) {
  * This strategy is responsible for authenticating users via Apple's OAuth 2.0 service.
  * It uses environment variables for sensitive client information and a callback URL.
  *
- * The verify callback function (`async (accessToken, refreshToken, idToken, profile, done) => { ... }`)
+ * The verify callback function (`async (req, accessToken, refreshToken, idToken, profile, done) => { ... }`)
  * is executed after Apple successfully authenticates a user. It attempts to find an existing user
  * in the application's database or create a new one based on the `profile` data provided by Apple.
  *
@@ -41,15 +41,17 @@ const strategy = new AppleStrategy(
     privateKeyString: process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     callbackURL: process.env.APPLE_CALLBACK_URL || '/api/v1/auth-social/apple/callback',
     scope: ['name', 'email'],
+    passReqToCallback: true, // Integration Fix: Pass the request object to the verify callback. This is essential for context-aware sign-ups (e.g., using an invite token from the session) to correctly associate a new user with a workspace/tenant, fulfilling hierarchical requirements.
   },
   /**
    * The verify callback function for the Apple Passport strategy.
    *
    * This function is called after a user has successfully authenticated with Apple.
-   * It receives the access token, refresh token, ID token, user profile, and a `done` callback.
+   * It receives the request object, access token, refresh token, ID token, user profile, and a `done` callback.
    * It then uses the `findOrCreateUserModel` utility to either retrieve an existing user
-   * from the database or create a new one based on the Apple profile.
+   * from the database or create a new one based on the Apple profile, using context from the request.
    *
+   * @param {import('express').Request} req - The Express request object, passed in because `passReqToCallback` is true.
    * @param {string} accessToken - The access token provided by Apple.
    * @param {string} refreshToken - The refresh token provided by Apple (if applicable).
    * @param {string} idToken - The ID token provided by Apple.
@@ -61,12 +63,16 @@ const strategy = new AppleStrategy(
    * @returns {Promise<void>} A promise that resolves when the `done` callback is invoked.
    * @throws {Error} If an error occurs during the `findOrCreateUserModel` process.
    */
-  async (accessToken, refreshToken, idToken, profile, done) => {
+  async (req, accessToken, refreshToken, idToken, profile, done) => {
     try {
       // Security Note: The 'profile' object from a trusted OAuth provider like Apple is generally
       // considered safe. However, the `findOrCreateUserModel` function is responsible for any
       // necessary validation and sanitization before database operations to prevent injection attacks.
-      const result = await findOrCreateUserModel(profile, 'apple');
+      // Integration Fix: Pass the 'req' object to the user creation/retrieval logic.
+      // This allows the function to access session data (e.g., req.session.inviteCode)
+      // to correctly associate the new user with a specific tenant or workspace,
+      // ensuring proper hierarchical placement.
+      const result = await findOrCreateUserModel(profile, 'apple', req);
       // Passport's 'done' function expects the user object as the second argument.
       // The original comment "Pass the {user, status, message} object." implies
       // that 'result' is an object containing a 'user' property.
