@@ -154,6 +154,8 @@ router.post(
  *       This is a preliminary step in the guided prompt creation flow and is open to all users.
  *     tags:
  *       - Enhanced Image
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -186,6 +188,8 @@ router.post(
  */
 router.post(
   '/analyze-intent',
+  optionalAuth(), // SECURE: Enable user-specific rate limiting and context for authenticated users.
+  extractTenantContext,
   createRateLimiter(30, 15), // Rate limit intent analysis to prevent LLM cost runaway
   validateRequest(EnhancedImageValidation.analyzeIntentSchema),
   enhancedImageController.analyzeIntent

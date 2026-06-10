@@ -19,10 +19,15 @@ const router = express.Router();
 // provide an additional layer of defense in the browser against common attacks.
 router.use(helmet());
 
-// SECURITY-PATCH: Middleware to handle validation errors from express-validator.
-// This centralizes error handling, ensuring that any request failing validation
-// is rejected with a clear 400 Bad Request response, preventing malformed data
-// from reaching the application logic.
+/**
+ * Middleware to handle validation errors from express-validator.
+ * It checks for validation errors on the request object. If any exist,
+ * it sends a 400 Bad Request response with the errors. Otherwise, it passes
+ * control to the next middleware.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -41,9 +46,12 @@ const handleValidationErrors = (req, res, next) => {
 // This is crucial for security and multi-tenancy.
 router.use(requireWorkspace);
 
-// SECURITY-PATCH: Define validation rules for creating a chatbot.
-// - `name` is trimmed, checked for non-emptiness, and escaped to prevent XSS.
-// - `config` is validated to ensure it's an object, preventing unexpected data types.
+/**
+ * Validation middleware chain for creating a new chatbot.
+ * Ensures that the `name` is a non-empty, trimmed, and escaped string,
+ * and that the `config` is an object.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const createChatbotValidation = [
   body('name').trim().notEmpty().withMessage('Chatbot name is required.').escape(),
   body('config').isObject().withMessage('Config must be an object.'),
@@ -118,15 +126,20 @@ router
     chatbotController.getChatbots
   );
 
-// SECURITY-PATCH: Define validation rules for route parameters containing IDs.
-// This ensures that IDs conform to the expected format (e.g., MongoDB ObjectId),
-// preventing potential NoSQL injection or malformed query errors in the controller.
+/**
+ * Validation middleware chain for a chatbot ID provided as a URL parameter.
+ * Ensures the `id` parameter is a valid MongoDB ObjectId.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const chatbotIdValidation = [
   param('id').isMongoId().withMessage('Invalid chatbot ID format.'),
 ];
 
-// SECURITY-PATCH: Define validation rules for updating a chatbot.
-// All fields are optional, but if provided, they are validated and sanitized to prevent XSS.
+/**
+ * Validation middleware chain for updating an existing chatbot.
+ * Validates `name` and `config` fields if they are provided in the request body.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const updateChatbotValidation = [
   body('name').optional().trim().notEmpty().withMessage('Chatbot name cannot be empty.').escape(),
   body('config').optional().isObject().withMessage('Config must be an object.'),
@@ -260,6 +273,11 @@ router
 // as requested. In a production application, these would be logically separated into their own modules and files
 // (e.g., `team.routes.js`, `workspace.routes.js`) for better maintainability and separation of concerns.
 
+/**
+ * Express sub-router for manager-specific dashboard endpoints.
+ * All routes under this router require MANAGER or SUPER_ADMIN role.
+ * @type {import('express').Router}
+ */
 const managerRouter = express.Router();
 
 // All manager-specific routes require the user to be a MANAGER or SUPER_ADMIN and operate within the workspace context.
@@ -315,13 +333,20 @@ managerRouter.get('/team/members', (req, res) => {
   });
 });
 
-// SECURITY-PATCH: Define validation rules for the user ID parameter.
+/**
+ * Validation middleware chain for a user ID provided as a URL parameter.
+ * Ensures the `userId` parameter is a valid MongoDB ObjectId.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const userIdValidation = [
   param('userId').isMongoId().withMessage('Invalid user ID format.'),
 ];
 
-// SECURITY-PATCH: Define validation for the role update payload.
-// Ensures the 'role' field is one of the allowed enumerated values, preventing privilege escalation.
+/**
+ * Validation middleware chain for updating a team member's role.
+ * Ensures the `role` field in the request body is one of the permitted values.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const updateRoleValidation = [
   body('role')
     .isIn([ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER])
@@ -382,9 +407,11 @@ managerRouter.patch(
   }
 );
 
-// SECURITY-PATCH: Define validation for the invitation payload.
-// - `email` is validated and normalized to prevent malformed data and potential injection.
-// - `role` is validated against the allowed enum values.
+/**
+ * Validation middleware chain for inviting a new member to the workspace.
+ * Validates and normalizes the `email` and checks that the `role` (if provided) is valid.
+ * @type {import('express-validator').ValidationChain[]}
+ */
 const inviteMemberValidation = [
   body('email').isEmail().withMessage('A valid email is required.').normalizeEmail(),
   body('role')
@@ -453,9 +480,11 @@ router.use('/manager', managerRouter);
 
 /**
  * Express router for chatbot and manager-related endpoints.
- * This module now encapsulates both chatbot CRUD operations and the core features
+ * This module encapsulates both chatbot CRUD operations and the core features
  * for the Manager Dashboard, including team, metrics, and invitation management.
+ * All routes are protected by authentication and scoped to a workspace.
  *
+ * @namespace chatbotRoutes
  * @type {import('express').Router}
  */
 export const chatbotRoutes = router;
