@@ -355,45 +355,47 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
 
     // 3. Propagate Notifications to Managers and Admins
     if (userRole !== 'super_admin' && tenantId) {
-      const notificationPromises = [];
-      // Notify manager if exists
+      const notificationsToCreate = [];
+
+      // Prepare manager notification
       if (currentUser.managerId) {
-        notificationPromises.push(
-          Notification.create({
-            recipientId: currentUser.managerId,
-            title: 'Chain Optimized by Team Member',
-            message: `User ${currentUser.name || userId} optimized chain "${chain.name}" with success rate ${successRate}%.`,
-            type: 'info',
-          }),
-        );
+        notificationsToCreate.push({
+          recipientId: currentUser.managerId,
+          title: 'Chain Optimized by Team Member',
+          message: `User ${currentUser.name || userId} optimized chain "${chain.name}" with success rate ${successRate}%.`,
+          type: 'info',
+        });
       }
 
-      // Notify tenant admins
+      // Prepare tenant admin notifications
       // OPTIMIZATION: The recommended compound index on { tenantId: 1, role: 1 } in the User model also benefits this query.
       const admins = await User.find({ tenantId, role: 'admin', _id: { $ne: userId } })
         .select('_id')
         .lean();
-      // OPTIMIZATION: Use insertMany to avoid N+1 query problem when creating multiple notifications.
+
       if (admins.length > 0) {
-        const notifications = admins.map(admin => ({
+        const adminNotifications = admins.map(admin => ({
           recipientId: admin._id,
           title: 'Chain Optimization Executed',
           message: `Optimization completed for chain "${chain.name}" in your workspace.`,
           type: 'info',
         }));
-        notificationPromises.push(Notification.insertMany(notifications));
+        notificationsToCreate.push(...adminNotifications);
       }
 
-      // Execute all notification creations in parallel and log any failures without blocking the main response.
-      Promise.all(notificationPromises).catch(err => {
-        logger.error({
-          severity: 'ERROR',
-          message: `Failed to create optimization notifications for chain ${chainId}`,
-          error: err.stack || err.toString(),
-          chainId,
-          tenantId,
+      // OPTIMIZATION: Use a single insertMany call to create all notifications in one database round trip.
+      if (notificationsToCreate.length > 0) {
+        // Fire-and-forget notification creation to not block the user response, but log any errors.
+        Notification.insertMany(notificationsToCreate).catch(err => {
+          logger.error({
+            severity: 'ERROR',
+            message: `Failed to create optimization notifications for chain ${chainId}`,
+            error: err.stack || err.toString(),
+            chainId,
+            tenantId,
+          });
         });
-      });
+      }
     }
 
     return {
