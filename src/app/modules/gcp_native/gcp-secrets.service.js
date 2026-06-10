@@ -1,16 +1,42 @@
+/**
+ * @file This module provides a service for interacting with Google Cloud Secret Manager.
+ * It encapsulates logic for accessing and managing secrets, including retrieving secret values
+ * and creating new secrets with their initial versions.
+ *
+ * @module GcpSecretsService
+ * @author Your Name/Organization (if applicable)
+ * @version 1.0.0
+ */
+
 import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
+/**
+ * @constant {GoogleAuth} auth - An instance of GoogleAuth configured with the necessary
+ * scopes to interact with Google Cloud Platform services, specifically Secret Manager.
+ * This client is used to obtain authenticated HTTP clients for making API requests.
+ */
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
 /**
  * Accesses the latest payload version of a Secret in Google Cloud Secret Manager.
- * 
- * @param {string} secretId - Secret identifier
- * @returns {Promise<object>} Secret value payload report
+ *
+ * This function retrieves the most recent version of a specified secret, decodes its
+ * base64 payload, and returns the plain text value along with metadata.
+ *
+ * @async
+ * @param {string} secretId - The unique identifier of the secret to retrieve (e.g., 'my-api-key').
+ * @returns {Promise<{ success: boolean, secretId: string, value: string }>} A promise that resolves to an object
+ *   containing the secret's value and metadata.
+ *   - `success`: `true` if the secret was retrieved successfully.
+ *   - `secretId`: The ID of the secret that was retrieved.
+ *   - `value`: The decoded string value of the secret.
+ * @throws {Error} If `GCP_PROJECT_ID` is not configured in the application config or environment variables.
+ * @throws {Error} If the secret payload is empty or cannot be decoded.
+ * @throws {Error} If there's any other error during secret retrieval (e.g., permissions, secret not found, network issues).
  */
 const getSecretValue = async (secretId) => {
   try {
@@ -49,11 +75,23 @@ const getSecretValue = async (secretId) => {
 };
 
 /**
- * Programmatically creates a new Secret and adds a version payload.
- * 
- * @param {string} secretId - Secret name
- * @param {string} secretValue - Secret payload string
- * @returns {Promise<object>} Secret creation report
+ * Programmatically creates a new Secret in Google Cloud Secret Manager and adds an initial version payload.
+ *
+ * If a secret container with the given `secretId` already exists, this function will proceed
+ * to add a new version to that existing secret. Otherwise, it will first create the secret container.
+ *
+ * @async
+ * @param {string} secretId - The unique identifier for the secret container to create or update (e.g., 'my-new-secret').
+ * @param {string} secretValue - The string value to be stored as the secret's initial payload.
+ * @returns {Promise<{ success: boolean, secretId: string, version: string, state: string }>} A promise that resolves to an object
+ *   containing details of the created/updated secret version.
+ *   - `success`: `true` if the secret and its version were created/updated successfully.
+ *   - `secretId`: The ID of the secret that was created/updated.
+ *   - `version`: The full resource name of the secret version (e.g., `projects/PROJECT_ID/secrets/SECRET_ID/versions/VERSION_NUMBER`).
+ *   - `state`: The state of the secret version (e.g., 'ENABLED').
+ * @throws {Error} If `GCP_PROJECT_ID` is not configured in the application config or environment variables.
+ * @throws {Error} If there's a failure creating the secret container for reasons other than it already existing (e.g., permissions).
+ * @throws {Error} If there's any other error during secret version addition (e.g., invalid payload, network issues).
  */
 const createSecretValue = async (secretId, secretValue) => {
   try {
@@ -120,6 +158,13 @@ const createSecretValue = async (secretId, secretValue) => {
   }
 };
 
+/**
+ * @exports {object} GcpSecretsService - An object containing functions to interact with Google Cloud Secret Manager.
+ * @property {function(string): Promise<{ success: boolean, secretId: string, value: string }>} getSecretValue -
+ *   Function to retrieve the latest version of a secret by its ID.
+ * @property {function(string, string): Promise<{ success: boolean, secretId: string, version: string, state: string }>} createSecretValue -
+ *   Function to create a new secret container and add an initial version, or add a new version to an existing secret.
+ */
 export const GcpSecretsService = {
   getSecretValue,
   createSecretValue
