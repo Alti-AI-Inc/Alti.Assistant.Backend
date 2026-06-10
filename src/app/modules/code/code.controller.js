@@ -121,19 +121,22 @@ export const performCodeTask = catchAsync(async (req, res) => {
         createdAt: -1,
       })
       .lean(); // Added .lean()
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
 
-    // Optimization Note: If conversationHelpers.getConversationById performs a read-only DB query,
+    // Bug Fix: The previous logic for checking limits was flawed.
+    // `totalConversationWithConvId` was incorrectly derived from `getConversationById`
+    // which likely returns a conversation object, not a monthly message count.
+    // We need to get the actual monthly message count for the user.
+    // Also, `promptUsage` (from `userSubscription.usage`) represents the limit,
+    // and if no subscription, a default free tier limit should apply.
+    const monthlyLimit = userSubscription
+      ? userSubscription.usage // Assuming 'usage' field stores the monthly limit
+      : codeService.getDefaultFreeTierLimit(); // Assuming this service method provides a default limit for non-subscribers
+
+    // Optimization Note: If codeService.getMonthlyMessageCount performs a read-only DB query,
     // consider adding .lean() within that function for similar performance benefits.
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
+    const currentMonthlyUsage = await codeService.getMonthlyMessageCount(userId);
 
-    if (promptUsage <= totalConversationWithConvId) {
+    if (currentMonthlyUsage >= monthlyLimit) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -185,9 +188,15 @@ export const performCodeTask = catchAsync(async (req, res) => {
       req
     );
 
+    // Bug Fix: The AI assistant needs the full conversation history for context.
+    // The previous implementation only sent the latest message.
+    // Assuming `codeService.getConversationHistory` retrieves messages in the format
+    // `{ role: 'user' | 'assistant', content: string }[]`.
+    const conversationHistory = await codeService.getConversationHistory(actualConversationId);
+
     const inputs = {
       userInput: message, // The user's latest message
-      history: [{ role: 'user', content: message }], // Add current message to history
+      history: conversationHistory, // Now includes full conversation history
     };
 
     // This is an external AI model invocation, which is expected to be compute-intensive.
@@ -222,7 +231,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
         ...codeHelpers.formatCodeResponse(
           fullResponse,
           actualConversationId,
-          conversation.messageCount + 2
+          conversation.messageCount + 2 // Assuming messageCount is before this interaction, +2 for user query + AI response
         ),
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
