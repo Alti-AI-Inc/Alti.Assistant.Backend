@@ -69,7 +69,9 @@ export const RAG_DATABASE_CONFIG = {
   PORT: parseInt(process.env.ALLOYDB_PORT || process.env.RAG_DATABASE_PORT || '5432'),
   DATABASE: process.env.ALLOYDB_DATABASE || process.env.RAG_DATABASE_NAME || 'rag_database',
   USERNAME: process.env.ALLOYDB_USER || process.env.RAG_DATABASE_USER || 'postgres',
-  PASSWORD: process.env.ALLOYDB_PASSWORD || process.env.RAG_DATABASE_PASSWORD || 'Em0nd4r0ck@2',
+  // SECURITY FIX: Removed hardcoded database password.
+  // Passwords should always be sourced from environment variables for security.
+  PASSWORD: process.env.ALLOYDB_PASSWORD || process.env.RAG_DATABASE_PASSWORD,
 };
 
 // Search types
