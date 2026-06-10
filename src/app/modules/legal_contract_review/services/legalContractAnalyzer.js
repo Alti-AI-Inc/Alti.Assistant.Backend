@@ -6,10 +6,38 @@ import {
   INTENT_KEYWORDS,
 } from '../legal_contract_review.constant.js';
 
+/**
+ * Google Generative AI instance initialized with the API key from configuration.
+ * Used to interact with the Gemini models for AI-powered tasks.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Analyze user intent from message for legal contract review
+ * Analyzes the user's message to determine their primary intent and extract specific parameters
+ * related to legal contract review. It leverages the Google Gemini AI model for natural language understanding.
+ * Includes a fallback mechanism using keyword detection if the AI analysis fails or encounters an error.
+ *
+ * The AI prompt is carefully constructed to guide the model to identify:
+ * 1. Primary intent (e.g., general_review, clause_analysis, risk_assessment).
+ * 2. Specific parameters like review depth, contract type, and aspects to focus on.
+ * It also incorporates recent conversation history and already collected parameters for better context.
+ *
+ * @param {string} userMessage - The current message from the user.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation,
+ *   each object having `role` (e.g., 'user', 'model') and `content` properties.
+ * @param {Object} [existingParams={}] - An object containing parameters already collected or known
+ *   from previous interactions. These are used to provide context to the AI.
+ * @returns {Promise<Object>} A promise that resolves to an object containing:
+ *   - `intent` {string}: The determined primary intent (e.g., 'general_review', 'clause_analysis').
+ *     Defaults to `CONTRACT_REVIEW_INTENTS.GENERAL_REVIEW` on failure.
+ *   - `confidence` {number}: A confidence score (0.0-1.0) for the determined intent.
+ *     Defaults to 0.5 on failure.
+ *   - `parameters` {Object}: An object containing extracted parameters like `reviewType`, `reviewDepth`,
+ *     `contractType`, `aspects`, `additionalInstructions`. Null or empty values are cleaned.
+ *   - `reasoning` {string}: A brief explanation for the determined intent and parameters.
+ * @throws {Error} If there's a critical error during AI model interaction or response parsing
+ *   that cannot be handled by the internal fallback mechanisms.
  */
 const analyzeIntent = async (
   userMessage,
@@ -162,7 +190,19 @@ Respond in JSON format only:
 };
 
 /**
- * Determine if more information is needed based on intent and collected params
+ * Determines if more information is needed from the user based on the current intent
+ * and the parameters already collected. It checks if any of the `requiredParams` are
+ * missing from the `collectedParams`.
+ *
+ * @param {string} intent - The current determined intent. While not directly used in the
+ *   current implementation of the function's logic, it provides context and can be used
+ *   for future enhancements where required parameters might vary by intent.
+ * @param {Object} collectedParams - An object containing parameters that have been collected so far.
+ *   Keys are parameter names (e.g., 'contractType', 'reviewDepth'), and values are the collected data.
+ * @param {Array<string>} requiredParams - An array of strings, where each string is the name of a
+ *   parameter that is considered essential for the current intent to proceed.
+ * @returns {boolean} True if any of the `requiredParams` are missing (i.e., not present or falsy)
+ *   from `collectedParams`, indicating that more information is needed. Returns false otherwise.
  */
 const needsMoreInfo = (intent, collectedParams, requiredParams) => {
   if (!requiredParams || requiredParams.length === 0) {
@@ -178,6 +218,12 @@ const needsMoreInfo = (intent, collectedParams, requiredParams) => {
   return false;
 };
 
+/**
+ * @namespace legalContractAnalyzer
+ * @description Provides services for analyzing user intent and managing information
+ *   collection related to legal contract review processes. This module encapsulates
+ *   AI-powered intent detection and utility functions for conversational flow management.
+ */
 export const legalContractAnalyzer = {
   analyzeIntent,
   needsMoreInfo,
