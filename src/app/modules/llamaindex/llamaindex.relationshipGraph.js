@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
@@ -8,11 +8,33 @@ import DocumentRelationship from './llamaindex.relationship.model.js';
 // import { usageService } from '../../usage/usage.service.js';
 
 /**
- * Initializes the Google Generative AI client with the API key from the configuration.
- * This instance is used for deep semantic analysis and relationship extraction.
- * @type {GoogleGenerativeAI}
+ * SECURITY: Initialize the Vertex AI client using Application Default Credentials.
+ * This is the recommended enterprise approach, avoiding hardcoded API keys.
+ * Ensure the service account running this Node.js process has the "Vertex AI User" role.
+ * @type {VertexAI}
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+const vertex_ai = new VertexAI({
+  project: config.gcp_project_id,
+  location: config.gcp_location,
+});
+
+/**
+ * Masks potential PII in a given text string.
+ * This is a simplified example. In a production environment, use a dedicated PII detection
+ * service like the Cloud Data Loss Prevention (DLP) API for robust and accurate redaction.
+ * @param {string} text - The input text to sanitize.
+ * @returns {string} The text with potential PII masked.
+ */
+const filterPII = (text) => {
+  if (!text) return '';
+  // Example: Mask email addresses
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  // Example: Mask phone numbers (basic North American format)
+  const phoneRegex = /\b(?:\+?1[ -]?)?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}\b/g;
+  return text
+    .replace(emailRegex, '[EMAIL_REDACTED]')
+    .replace(phoneRegex, '[PHONE_REDACTED]');
+};
 
 /**
  * Calculates the Jaccard similarity coefficient between two arrays of strings.
@@ -153,10 +175,12 @@ const buildRelationshipGraph = async (workspaceId) => {
     // Process top comparison candidates to discover logical prerequisites or hierarchies
     const topCandidates = comparisons.slice(0, 10); // Limit to top 10 for AI processing
     if (topCandidates.length > 0) {
+      // PRIVACY: Filter out PII from summaries before sending them to the AI model.
+      // This is a critical step to prevent sensitive data exposure and comply with privacy regulations.
       const summaryPayload = topCandidates.map(c => ({
         pair: `${c.docA.docId} <-> ${c.docB.docId}`,
-        docA: { title: c.docA.fileName, summary: c.docA.summary, topics: c.docA.topics },
-        docB: { title: c.docB.fileName, summary: c.docB.summary, topics: c.docB.topics }
+        docA: { title: c.docA.fileName, summary: filterPII(c.docA.summary), topics: c.docA.topics },
+        docB: { title: c.docB.fileName, summary: filterPII(c.docB.summary), topics: c.docB.topics }
       }));
 
       const linkagePrompt = `You are a high-level cognitive knowledge graph generator. Analyze these document pairs and detect logical dependencies, prerequisite links, or direct hierarchical cross-references (e.g. Document A is a sub-page, policy sheet, or prerequisite study of Document B).
@@ -176,7 +200,31 @@ Return your output as a clean, structured JSON array following this exact schema
 Ensure your response is raw JSON only, with no markdown block ticks.`;
 
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // Using a more recent model
+        // ENTERPRISE_SDK: Use the Vertex AI SDK for enterprise features like IAM integration and regional endpoints.
+        const model = vertex_ai.getGenerativeModel({
+          model: 'gemini-1.5-flash-001', // Use a specific, versioned model for stability.
+          // SAFETY: Explicitly configure safety settings to block harmful content.
+          // This is a mandatory security control for enterprise applications.
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+          ],
+        });
+
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: linkagePrompt }] }],
           generationConfig: {
@@ -188,7 +236,7 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
         // INTEGRATION: Track AI model usage against the workspace account.
         // This is a critical point for propagating usage details up to administrators
         // for billing, limit enforcement, and monitoring.
-        // Example: await usageService.trackGeminiUsage(workspaceId, result.usageMetadata);
+        // Example: await usageService.trackGeminiUsage(workspaceId, result.response.usageMetadata);
 
         let cleanText = result.response.text().trim();
         if (cleanText.startsWith('```')) {
