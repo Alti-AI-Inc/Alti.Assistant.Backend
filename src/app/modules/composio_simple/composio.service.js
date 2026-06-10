@@ -259,13 +259,12 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
  */
 export const initiateAuth = async (appName, userId) => {
   try {
-    // Optimization: Added .lean() for read-only query.
     // Indexing Recommendation: Consider an index on `{ app: 1 }`
     // for the AuthConfig model to optimize this find operation.
-    let authConfigDoc = await AuthConfig.findOne({ app: appName }).lean(); // Fetch as lean object
-    let authConfig; // This will be the Mongoose document for potential saving
+    // Optimization: Removed .lean() as the document might be modified and saved later.
+    let authConfig = await AuthConfig.findOne({ app: appName }); // Fetch as Mongoose document directly
 
-    if (!authConfigDoc) {
+    if (!authConfig) { // If not found, authConfig will be null
       console.log(`AuthConfig for ${appName} not found in DB. Proactively creating default...`);
       authConfig = new AuthConfig({ // Create new Mongoose document
         app: appName,
@@ -273,10 +272,6 @@ export const initiateAuth = async (appName, userId) => {
         isComposioManaged: true,
       });
       await authConfig.save();
-    } else {
-      // If found, convert the lean object back to a Mongoose document
-      // because it might be modified and saved later in the fallback logic.
-      authConfig = new AuthConfig(authConfigDoc);
     }
 
     let connectionUrl;
@@ -390,7 +385,9 @@ export const disconnectApp = async (userId, appName) => {
   try {
     // Optimization: Added .lean() for read-only query before deletion.
     // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
-    // for the ComposioAuth model to optimize this find operation.
+    // for the ComposioAuth model to optimize this find operation. Additional indexes on
+    // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
+    // is frequently used and highly selective.
     const account = await ComposioAuth.findOne({
       userId,
       $or: [
@@ -456,6 +453,10 @@ async function multiAppWorkflow(query, apps, toolKits, entityId) {
     // BUG FIX: Missing ComposioAuth check. This is a security vulnerability and functional bug.
     // Replicating the logic from executeUserRequest to ensure only connected apps are used.
     const identifiedAppSlugs = appInfo.appList.map(a => a.toLowerCase());
+    // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
+    // for the ComposioAuth model to optimize this query. Additional indexes on
+    // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
+    // is frequently used and highly selective.
     const connectedAuths = await ComposioAuth.find({
         userId: entityId, // Use entityId as userId for the auth check
         status: 'ACTIVE',
