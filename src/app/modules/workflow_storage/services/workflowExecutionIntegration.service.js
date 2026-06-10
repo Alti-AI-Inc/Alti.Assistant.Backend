@@ -362,37 +362,30 @@ class WorkflowExecutionIntegrationService {
       }
 
       // Get execution history from Composio v2
-      // Optimization Recommendation: Avoid in-memory filtering (N+1 related inefficiency).
-      // The 'workflowService.getUserWorkflows' method should be enhanced to accept
-      // 'sourceWorkflowId' as a direct query parameter to filter at the database level.
-      // This would significantly reduce data transfer and processing overhead.
-      // Ensure 'userId' is indexed for 'getUserWorkflows'.
-      // If filtering by 'scheduleConfig.executionMetadata.sourceWorkflowId' is common,
-      // consider indexing this field in the Composio v2 workflow model.
+      // Optimization Recommendation: Ensure workflowService.getUserWorkflows
+      // uses indexes on 'userId' and 'scheduleConfig.executionMetadata.sourceWorkflowId'
+      // for efficient database-level filtering.
+      // The filter object passed to getUserWorkflows should be fully utilized by the service.
       const historyResult = await workflowService.getUserWorkflows(
         userId,
-        null, // This parameter might be for a different filter, consider passing sourceWorkflowId here.
+        null,
         limit,
         offset,
-        // Assuming workflowService can accept a filter object for sourceWorkflowId
         { 'scheduleConfig.executionMetadata.sourceWorkflowId': workflowId }
       );
 
       if (historyResult.success) {
-        // If workflowService.getUserWorkflows cannot filter by sourceWorkflowId directly,
-        // this in-memory filter is necessary but less efficient.
-        const filteredExecutions = historyResult.data.workflows.filter(
-          (execution) =>
-            execution.scheduleConfig?.executionMetadata?.sourceWorkflowId ===
-            workflowId
-        );
+        // Assuming workflowService.getUserWorkflows correctly applies the filter
+        // 'scheduleConfig.executionMetadata.sourceWorkflowId' at the database level,
+        // the in-memory filter is redundant and removed for efficiency.
+        const executions = historyResult.data.workflows;
 
         return {
           success: true,
           data: {
             storedWorkflowId: workflowId,
-            executions: filteredExecutions,
-            totalExecutions: filteredExecutions.length,
+            executions: executions,
+            totalExecutions: historyResult.data.totalWorkflows, // Use total from service if available
           },
         };
       }
@@ -430,8 +423,7 @@ class WorkflowExecutionIntegrationService {
       // Get stored workflow
       // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
       // uses indexes on 'workflowId' and 'userId' for efficient lookup.
-      // Apply .lean() for performance as .toObject() is called immediately after,
-      // making the Mongoose document overhead unnecessary.
+      // Apply .lean() for performance as the object is immediately used as a plain object.
       const storedWorkflowResult =
         await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
 
@@ -445,10 +437,10 @@ class WorkflowExecutionIntegrationService {
       const storedWorkflow = storedWorkflowResult.data;
 
       // Create template workflow data
-      // If .lean() is used above, storedWorkflow is already a plain object.
-      // .toObject() would then be redundant or throw an error if it's not a Mongoose document.
+      // Since .lean() is used above, storedWorkflow is already a plain object.
+      // No need for .toObject() check.
       const templateData = {
-        ...(storedWorkflow.toObject ? storedWorkflow.toObject() : storedWorkflow), // Handle if .lean() makes it plain
+        ...storedWorkflow,
         _id: undefined,
         workflowId: undefined,
         title: templateTitle || `${storedWorkflow.title} (Template)`,
