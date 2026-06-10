@@ -1,5 +1,10 @@
 import express from 'express';
 import { composioController } from './composio.controller.js';
+// Import necessary middleware and a new controller for manager features.
+// These are assumed to exist in the project structure.
+import { authMiddleware, roleMiddleware } from '../auth/auth.middleware.js';
+import { planLimitMiddleware } from '../billing/planLimit.middleware.js';
+import { managerController } from '../manager/manager.controller.js';
 
 const router = express.Router();
 
@@ -10,6 +15,10 @@ const router = express.Router();
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// =================================================================
+// Composio Integration Routes
+// =================================================================
 
 router.get('/all/integrations', asyncHandler(composioController.getAllIntegrations));
 router.get(
@@ -69,5 +78,54 @@ router.post(
   asyncHandler(composioController.getTwitterUserByUsername)
 );
 router.post('/twitter/send-message', asyncHandler(composioController.sendDMByUsername));
+
+// =================================================================
+// Manager Dashboard Routes
+// =================================================================
+// These routes provide functionality for the Manager Dashboard,
+// focusing on team management, invitations, and metrics, while
+// respecting plan limitations and restricting access to sensitive data like billing.
+
+// Create a dedicated router for manager-specific endpoints to apply common middleware.
+const managerRouter = express.Router();
+
+// Apply authentication and role-based access control to all manager routes.
+// This ensures only authenticated users with the 'manager' role can access these features.
+managerRouter.use(authMiddleware, roleMiddleware('manager'));
+
+// --- Team & Invitation Management ---
+
+// Fetches a list of all members within the manager's workspace.
+managerRouter.get('/team/members', asyncHandler(managerController.getTeamMembers));
+
+// Updates the role of a specific team member.
+managerRouter.patch('/team/members/:memberId/role', asyncHandler(managerController.updateMemberRole));
+
+// Removes a member from the workspace.
+managerRouter.delete('/team/members/:memberId', asyncHandler(managerController.removeMember));
+
+// Sends an invitation to a new user to join the workspace.
+// The planLimitMiddleware is crucial for preventing the manager from
+// exceeding the number of allowed members according to the current subscription plan.
+managerRouter.post(
+  '/team/invitations',
+  planLimitMiddleware('members'), // Checks against the 'members' limit in the plan.
+  asyncHandler(managerController.inviteMember)
+);
+
+// Retrieves a list of pending invitations for the workspace.
+managerRouter.get('/team/invitations', asyncHandler(managerController.getPendingInvitations));
+
+// Cancels a previously sent, pending invitation.
+managerRouter.delete('/team/invitations/:invitationId', asyncHandler(managerController.cancelInvitation));
+
+// --- Workspace Metrics ---
+
+// Provides access to workspace-level metrics and analytics for the manager.
+// This endpoint is read-only and does not expose any billing or sensitive user information.
+managerRouter.get('/workspace/metrics', asyncHandler(managerController.getWorkspaceMetrics));
+
+// Mount the manager-specific routes under a '/manager' prefix for clear namespacing.
+router.use('/manager', managerRouter);
 
 export const composioRoutes = router;

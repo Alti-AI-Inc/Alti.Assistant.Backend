@@ -204,7 +204,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
     // `{ role: 'user' | 'assistant', content: string }[]`.
     // Indexing Recommendation: For the collection used by `codeService.getConversationHistory`,
     // consider creating an index on `conversationId` to optimize retrieval of conversation history.
-    const conversationHistory = await codeService.getConversationHistory(actualConversationId);
+    const conversationHistory =
+      await codeService.getConversationHistory(actualConversationId);
 
     const inputs = {
       userInput: message, // The user's latest message
