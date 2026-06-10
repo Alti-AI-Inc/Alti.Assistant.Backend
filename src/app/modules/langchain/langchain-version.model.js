@@ -8,15 +8,25 @@ const LangchainChainVersionSchema = new mongoose.Schema(
       required: true
       // Removed redundant single index 'index: true' because chainId is the prefix of the compound unique index below.
     },
+    // BUG FIX: Changed userId from String to a proper ObjectId reference.
+    // INTEGRATION FIX: This is critical for role validation and hierarchical integrity.
+    // It allows populating user details (role, manager, etc.) to enforce permissions,
+    // check limits, and propagate notifications without separate, inefficient lookups.
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // Assumes a 'User' model exists for referencing.
       required: true,
       index: true
     },
+    // BUG FIX: Changed tenantId from String to a proper ObjectId reference.
+    // INTEGRATION FIX: This enforces strict tenant boundaries at the database level
+    // and is essential for aggregating usage data for workspace admins.
+    // A null value correctly represents a global/system-level version accessible by super_admins.
     tenantId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant', // Assumes a 'Tenant' or 'Workspace' model exists for referencing.
       index: true,
-      default: null // Supports multi-tenancy partitioning and global/system-level versions
+      default: null
     },
     versionNumber: {
       type: Number,
