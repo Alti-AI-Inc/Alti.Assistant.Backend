@@ -10,12 +10,55 @@ import {
   LENGTH_OPTIONS,
 } from '../document.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+/**
+ * @constant {GenerativeModel} model - The generative model instance configured for document drafting.
+ */
 const model = genAI.getGenerativeModel({ model: DOCUMENT_CONFIG.MODEL });
 
 /**
- * Analyze user intent from conversation
+ * Analyzes the user's message and conversation history to determine intent, extract document parameters,
+ * and suggest a response. It uses a Generative AI model to understand the user's needs for document drafting.
+ *
+ * The function constructs a detailed prompt including conversation summary, recent history, and existing parameters
+ * to guide the AI in extracting relevant information such as document type, tone, length, and specific content.
+ * It also determines if the system can proceed with a draft and suggests improvement questions.
+ *
+ * @async
+ * @param {string} userMessage - The current message from the user.
+ * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation.
+ *   Each object should have `role` (e.g., 'user', 'model') and `content` properties.
+ * @param {Object} [existingParams={}] - An object containing parameters already collected or inferred for the document.
+ * @param {string|null} [conversationSummary=null] - A concise summary of the previous conversation, if available.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the AI's analysis:
+ *   - `intent` {string}: The determined intent (e.g., 'draft', 'edit', 'refine').
+ *   - `confidence` {number}: A confidence score (0.0-1.0) for the determined intent.
+ *   - `parameters` {Object}: An object containing extracted document parameters (e.g., `content`, `documentType`, `tone`).
+ *   - `improvementQuestions` {Array<string>}: A list of questions to ask the user to refine the document.
+ *   - `canProceed` {boolean}: Indicates if the system has enough information to proceed with a draft.
+ *   - `suggestedResponse` {string}: A helpful response to the user based on the analysis.
+ * @throws {Error} If the AI response does not contain valid JSON.
+ *
+ * @example
+ * const userMsg = "Write a professional email about a project update.";
+ * const history = [{ role: 'user', content: 'Hi' }, { role: 'model', content: 'How can I help?' }];
+ * const analysis = await analyzeIntent(userMsg, history);
+ * // analysis will be similar to:
+ * // {
+ * //   intent: 'draft',
+ * //   confidence: 0.9,
+ * //   parameters: {
+ * //     content: 'project update',
+ * //     documentType: 'email',
+ * //     tone: 'professional'
+ * //   },
+ * //   improvementQuestions: ['Who is the recipient?', 'What are the key updates?'],
+ * //   canProceed: true,
+ * //   suggestedResponse: "I can draft a professional email about a project update. What are the key points?"
+ * // }
  */
 const analyzeIntent = async (
   userMessage,
@@ -152,7 +195,27 @@ Be smart about inferring intent and parameters from context. If the user asks to
 };
 
 /**
- * Summarize long conversation history
+ * Summarizes a long conversation history related to document drafting.
+ * This function helps in maintaining context for the AI by providing a concise overview
+ * of previous interactions and collected parameters.
+ *
+ * @async
+ * @param {Array<Object>} conversationHistory - An array of previous messages in the conversation.
+ *   Each object should have `role` (e.g., 'user', 'model') and `content` properties.
+ * @param {Object} [collectedParams={}] - An object containing parameters that have been collected
+ *   or inferred during the conversation.
+ * @returns {Promise<string>} A promise that resolves to a concise summary of the conversation.
+ *   Returns a default fallback string if an error occurs during summarization.
+ *
+ * @example
+ * const history = [
+ *   { role: 'user', content: 'I need a formal letter.' },
+ *   { role: 'model', content: 'About what topic?' },
+ *   { role: 'user', content: 'A job application.' }
+ * ];
+ * const params = { documentType: 'letter', tone: 'formal' };
+ * const summary = await summarizeConversation(history, params);
+ * // summary might be: "User wants a formal job application letter. Key requirements: formal tone, job application."
  */
 const summarizeConversation = async (
   conversationHistory,
@@ -196,7 +259,20 @@ Provide a concise summary:`;
 };
 
 /**
- * Calculate estimated token count
+ * Calculates an estimated token count for the given conversation history and parameters.
+ * This is a rough estimate based on character count, assuming approximately 4 characters per token.
+ * Useful for monitoring API usage or staying within token limits.
+ *
+ * @param {Array<Object>} conversationHistory - An array of messages in the conversation.
+ *   Each object should have a `content` property.
+ * @param {Object} [params={}] - An object containing additional parameters that might contribute to token count.
+ * @returns {number} The estimated number of tokens.
+ *
+ * @example
+ * const history = [{ content: 'Hello' }, { content: 'How are you?' }];
+ * const currentParams = { documentType: 'email' };
+ * const tokens = calculateConversationTokens(history, currentParams);
+ * // tokens will be a number like 10-20, depending on string length.
  */
 const calculateConversationTokens = (conversationHistory, params = {}) => {
   const messagesText = conversationHistory.map((msg) => msg.content).join(' ');
@@ -208,8 +284,32 @@ const calculateConversationTokens = (conversationHistory, params = {}) => {
   return estimatedTokens;
 };
 
+/**
+ * @namespace conversationAnalyzer
+ * @description Provides services for analyzing user conversations to determine intent,
+ * extract document parameters, and summarize conversation history using Generative AI.
+ */
 export const conversationAnalyzer = {
+  /**
+   * @function analyzeIntent
+   * @memberof conversationAnalyzer
+   * @description Analyzes the user's message and conversation history to determine intent and extract document parameters.
+   * @see {@link analyzeIntent} for detailed documentation.
+   */
   analyzeIntent,
+  /**
+   * @function summarizeConversation
+   * @memberof conversationAnalyzer
+   * @description Summarizes a long conversation history related to document drafting.
+   * @see {@link summarizeConversation} for detailed documentation.
+   */
   summarizeConversation,
+  /**
+   * @function _calculateConversationTokens
+   * @memberof conversationAnalyzer
+   * @description Calculates an estimated token count for the given conversation history and parameters.
+   *   This is an internal utility function.
+   * @see {@link calculateConversationTokens} for detailed documentation.
+   */
   _calculateConversationTokens: calculateConversationTokens,
 };
