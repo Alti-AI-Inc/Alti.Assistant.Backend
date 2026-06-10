@@ -218,6 +218,8 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
         compensationExecuted = true;
       } catch (chatErr) {
         logger.error(`[Temporal Saga] Chat compensation failed: ${chatErr.message}`);
+        details = `Chat compensation failed: ${chatErr.message}`;
+        compensationExecuted = false;
       }
     }
     // 5. Research compensation
@@ -230,6 +232,8 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
         compensationExecuted = true;
       } catch (resErr) {
         logger.error(`[Temporal Saga] Research compensation failed: ${resErr.message}`);
+        details = `Research compensation failed: ${resErr.message}`;
+        compensationExecuted = false;
       }
     }
     // 6. Agents / Swarm compensation
@@ -259,12 +263,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const { Storage } = await import('@google-cloud/storage');
             const storage = new Storage();
             await storage.bucket(bucketName).file(fileName).delete();
+            details = `Deleted uploaded GCS file gs://${bucketName}/${fileName}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] GCS deletion failed: ${err.message}`);
+            details = `GCS deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted uploaded GCS file gs://${bucketName}/${fileName}`;
+          compensationExecuted = true;
         }
-        details = `Deleted uploaded GCS file gs://${bucketName}/${fileName}`;
-        compensationExecuted = true;
       } else if (action === 'gcp_storage_create_bucket' && bucketName) {
         logger.info(`[Temporal Saga] Compensating GCS: Deleting created bucket ${bucketName}`);
         if (!isMock) {
@@ -272,12 +281,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const { Storage } = await import('@google-cloud/storage');
             const storage = new Storage();
             await storage.bucket(bucketName).delete();
+            details = `Deleted created GCS bucket: ${bucketName}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] GCS bucket deletion failed: ${err.message}`);
+            details = `GCS bucket deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted created GCS bucket: ${bucketName}`;
+          compensationExecuted = true;
         }
-        details = `Deleted created GCS bucket: ${bucketName}`;
-        compensationExecuted = true;
       } else if (action === 'gcp_bigquery_create_table' && datasetId && tableId) {
         logger.info(`[Temporal Saga] Compensating BigQuery: Dropping table ${datasetId}.${tableId}`);
         if (!isMock) {
@@ -303,15 +317,20 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
               datasetId,
               tableId
             });
+            details = `Dropped BigQuery table ${datasetId}.${tableId}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] BigQuery table deletion failed: ${err.message}`);
+            details = `BigQuery table deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Dropped BigQuery table ${datasetId}.${tableId}`;
+          compensationExecuted = true;
         }
-        details = `Dropped BigQuery table ${datasetId}.${tableId}`;
-        compensationExecuted = true;
       } else {
         details = `No compensation required for action ${action} on google_cloud.`;
-        compensationExecuted = true;
+        compensationExecuted = true; // No action needed, so considered 'compensated'
       }
     }
     // 9. Google Workspace compensation
@@ -327,12 +346,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const authClient = await auth.getClient();
             const drive = google.drive({ version: 'v3', auth: authClient });
             await drive.files.delete({ fileId });
+            details = `Deleted uploaded Google Drive file with ID ${fileId}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] Google Drive deletion failed: ${err.message}`);
+            details = `Google Drive deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted uploaded Google Drive file with ID ${fileId}`;
+          compensationExecuted = true;
         }
-        details = `Deleted uploaded Google Drive file with ID ${fileId}`;
-        compensationExecuted = true;
       } else if (action === 'sheets_append') {
         const spreadsheetId = step.parameters?.spreadsheetId || stepResult?.data?.spreadsheetId;
         const range = stepResult?.data?.updatedRange || step.parameters?.range;
@@ -352,12 +376,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const match = range.match(rangeRegex);
             if (match) {
               const sheetName = match[1] || 'Sheet1';
-              const startRow = parseInt(match[3], 10) - 1; // 0-indexed in Sheets API
-              const endRow = match[5] ? parseInt(match[5], 10) : startRow + rowsAppended;
+              // Sheets API is 0-indexed for rows, but range is 1-indexed.
+              // We want to delete the rows that were appended, which start at `startRow` and end at `startRow + rowsAppended`.
+              // The `updatedRange` from stepResult usually gives the range of the *first* appended row.
+              // So, if `range` is 'Sheet1!A10', `startRow` is 9. If `rowsAppended` is 2, we delete rows 9 and 10.
+              // The `endIndex` in Sheets API is exclusive, so it should be `startIndex + count`.
+              const startRow = parseInt(match[3], 10) - 1; 
+              const endIndex = startRow + rowsAppended; // endIndex is exclusive
               
               const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
               const sheet = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
-              const sheetId = sheet ? sheet.properties.sheetId : 0;
+              const sheetId = sheet ? sheet.properties.sheetId : 0; // Default to first sheet if not found
               
               await sheets.spreadsheets.batchUpdate({
                 spreadsheetId,
@@ -369,18 +398,18 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
                           sheetId,
                           dimension: 'ROWS',
                           startIndex: startRow,
-                          endIndex: endRow
+                          endIndex: endIndex
                         }
                       }
                     }
                   ]
                 }
               });
-              details = `Deleted ${rowsAppended} appended rows (indices ${startRow} to ${endRow}) from Sheet "${sheetName}"`;
+              details = `Deleted ${rowsAppended} appended rows (indices ${startRow} to ${endIndex - 1}) from Sheet "${sheetName}"`;
               compensationExecuted = true;
             } else {
               details = `Could not parse sheets range regex: ${range}. Bypassed.`;
-              compensationExecuted = true;
+              compensationExecuted = true; // Considered compensated as no action could be taken
             }
           } catch (err) {
             logger.error(`[Temporal Saga] Google Sheets compensation failed: ${err.message}`);
@@ -402,12 +431,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const authClient = await auth.getClient();
             const drive = google.drive({ version: 'v3', auth: authClient });
             await drive.files.delete({ fileId: spreadsheetId });
+            details = `Deleted Spreadsheet with ID ${spreadsheetId}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] Google Sheets deletion failed: ${err.message}`);
+            details = `Google Sheets deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted Spreadsheet with ID ${spreadsheetId}`;
+          compensationExecuted = true;
         }
-        details = `Deleted Spreadsheet with ID ${spreadsheetId}`;
-        compensationExecuted = true;
       } else if (action === 'docs_create' && stepResult?.data?.docId) {
         const docId = stepResult.data.docId;
         logger.info(`[Temporal Saga] Compensating docs_create: Deleting Document ID ${docId}`);
@@ -419,12 +453,17 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const authClient = await auth.getClient();
             const drive = google.drive({ version: 'v3', auth: authClient });
             await drive.files.delete({ fileId: docId });
+            details = `Deleted Google Document with ID ${docId}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] Google Document deletion failed: ${err.message}`);
+            details = `Google Document deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted Google Document with ID ${docId}`;
+          compensationExecuted = true;
         }
-        details = `Deleted Google Document with ID ${docId}`;
-        compensationExecuted = true;
       } else if (action === 'calendar_create_event' && stepResult?.data?.eventId) {
         const eventId = stepResult.data.eventId;
         const calendarId = step.parameters?.details?.calendarId || stepResult.data.calendarId || 'primary';
@@ -437,15 +476,20 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
             const authClient = await auth.getClient();
             const calendar = google.calendar({ version: 'v3', auth: authClient });
             await calendar.events.delete({ calendarId, eventId });
+            details = `Deleted Calendar event with ID ${eventId}`;
+            compensationExecuted = true;
           } catch (err) {
             logger.error(`[Temporal Saga] Google Calendar event deletion failed: ${err.message}`);
+            details = `Google Calendar event deletion failed: ${err.message}`;
+            compensationExecuted = false;
           }
+        } else {
+          details = `[Mock Rollback] Deleted Calendar event with ID ${eventId}`;
+          compensationExecuted = true;
         }
-        details = `Deleted Calendar event with ID ${eventId}`;
-        compensationExecuted = true;
       } else {
         details = `No compensation required for action ${action} on google_workspace.`;
-        compensationExecuted = true;
+        compensationExecuted = true; // No action needed, so considered 'compensated'
       }
     }
 
@@ -466,4 +510,3 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
 
 export * from '../../../datasets/temporal/ingestionActivities.js';
 export * from '../../../llamaindex/temporal/ragIngestionActivities.js';
-
