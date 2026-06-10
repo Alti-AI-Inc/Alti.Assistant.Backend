@@ -6,6 +6,22 @@ const {
   withTenantFilter,
 } = require('../../helpers/tenantQuery');
 
+/**
+ * Retrieves a paginated list of forums based on search terms, filters, and tenant context.
+ * 
+ * @async
+ * @function getForumService
+ * @param {Object} filters - Filter criteria for the query.
+ * @param {string} [filters.searchTerm] - Search term to match against forum title or category (case-insensitive).
+ * @param {Object} [filters.filtersData] - Additional key-value pairs for exact match filtering.
+ * @param {Object} paginationOptions - Pagination and sorting options.
+ * @param {number} [paginationOptions.page] - Page number.
+ * @param {number} [paginationOptions.limit] - Number of items per page.
+ * @param {string} [paginationOptions.sortBy] - Field to sort by.
+ * @param {string} [paginationOptions.sortOrder] - Sort order ('asc' or 'desc').
+ * @param {import('express').Request|null} [req=null] - Express request object used to extract tenant context for multi-tenant isolation.
+ * @returns {Promise<{meta: {page: number, limit: number, total: number}, data: Array<Object>}>} Paginated forum data and metadata.
+ */
 module.exports.getForumService = async (
   filters,
   paginationOptions,
@@ -81,6 +97,15 @@ module.exports.getForumService = async (
   };
 };
 
+/**
+ * Creates a new forum post, automatically injecting tenant context if available.
+ * 
+ * @async
+ * @function addForumServices
+ * @param {Object} data - The forum creation payload.
+ * @param {import('express').Request|null} [req=null] - Express request object used to inject tenant context.
+ * @returns {Promise<Object>} The newly created forum document.
+ */
 module.exports.addForumServices = async (data, req = null) => {
   // logger.info(data, 'blog dataaa') // Commented out as logger is not defined in this scope
   const result = await Forum.create(req ? withTenantContext(req, data) : data);
@@ -88,6 +113,15 @@ module.exports.addForumServices = async (data, req = null) => {
   return result;
 };
 
+/**
+ * Retrieves a single forum post by its unique ID, scoped to the tenant context.
+ * 
+ * @async
+ * @function getForumServiceById
+ * @param {string} id - The unique ID of the forum post.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Object|null>} The forum document, or null if not found.
+ */
 module.exports.getForumServiceById = async (id, req = null) => {
   const query = { _id: id };
   // Optimization: Added .lean() for read-only query.
@@ -101,6 +135,15 @@ module.exports.getForumServiceById = async (id, req = null) => {
   return result;
 };
 
+/**
+ * Retrieves all forum posts authored by a specific email address, scoped to the tenant context.
+ * 
+ * @async
+ * @function getForumServiceByEmail
+ * @param {string} email - The author's email address.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Array<Object>>} A list of forum documents matching the author's email.
+ */
 module.exports.getForumServiceByEmail = async (email, req = null) => {
   const query = { authorEmail: email };
   // Optimization: Added .lean() for read-only query.
@@ -113,6 +156,16 @@ module.exports.getForumServiceByEmail = async (email, req = null) => {
   return result;
 };
 
+/**
+ * Updates an existing forum post by its ID, scoped to the tenant context.
+ * 
+ * @async
+ * @function updateForumService
+ * @param {string} id - The unique ID of the forum post to update.
+ * @param {Object} data - The update payload.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Object>} The update operation result metadata.
+ */
 module.exports.updateForumService = async (id, data, req = null) => { // Renamed storeId to id for consistency
   const query = { _id: id };
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.
@@ -127,6 +180,15 @@ module.exports.updateForumService = async (id, data, req = null) => { // Renamed
   return result;
 };
 
+/**
+ * Deletes a forum post by its ID, scoped to the tenant context.
+ * 
+ * @async
+ * @function deleteForumService
+ * @param {string} id - The unique ID of the forum post to delete.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Object>} The delete operation result metadata.
+ */
 exports.deleteForumService = async (id, req = null) => {
   const query = { _id: id };
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.
@@ -138,6 +200,15 @@ exports.deleteForumService = async (id, req = null) => {
   return result;
 };
 
+/**
+ * Retrieves up to 3 suggested forum posts matching a specific category, scoped to the tenant context.
+ * 
+ * @async
+ * @function getForumSuggestionService
+ * @param {string} name - The category name to filter suggestions by.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Array<Object>>} A list of up to 3 suggested forum documents.
+ */
 module.exports.getForumSuggestionService = async (name, req = null) => {
   const query = { category: name };
   // Optimization: Added .lean() for read-only query.
@@ -151,6 +222,15 @@ module.exports.getForumSuggestionService = async (name, req = null) => {
   return result;
 };
 
+/**
+ * Creates a user activity record (e.g., comment, like) associated with a forum, scoped to the tenant context.
+ * 
+ * @async
+ * @function addUserForumActivityServices
+ * @param {Object} data - The user activity payload.
+ * @param {import('express').Request|null} [req=null] - Express request object used to inject tenant context.
+ * @returns {Promise<Object>} The newly created user activity document.
+ */
 module.exports.addUserForumActivityServices = async (data, req = null) => {
   // Check if the user already has a store
   // const existingStore = await Blogs.findOne({ email: email });
@@ -168,6 +248,15 @@ module.exports.addUserForumActivityServices = async (data, req = null) => {
   return result;
 };
 
+/**
+ * Retrieves a user activity/comment by its unique ID, scoped to the tenant context.
+ * 
+ * @async
+ * @function getCommentService
+ * @param {string} commentId - The unique ID of the comment/activity.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Array<Object>>} A list containing the matching user activity document(s).
+ */
 module.exports.getCommentService = async (commentId, req = null) => { // Fixed typo: getCommnetService -> getCommentService
   // logger.info(commentId, "commentId") // Commented out as logger is not defined in this scope
   // Fixed: Assuming _id is the primary key for comments
@@ -183,6 +272,15 @@ module.exports.getCommentService = async (commentId, req = null) => { // Fixed t
   return result;
 };
 
+/**
+ * Deletes a user activity/comment by its ID, scoped to the tenant context.
+ * 
+ * @async
+ * @function deleteCommentServices
+ * @param {string} id - The unique ID of the comment/activity to delete.
+ * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
+ * @returns {Promise<Object>} The delete operation result metadata.
+ */
 module.exports.deleteCommentServices = async (id, req = null) => {
   const query = { _id: id };
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.

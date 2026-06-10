@@ -37,6 +37,20 @@ export const PLAN_GENERATOR_CONFIG = {
 };
 
 /**
+ * User-level limits and usage metrics configurations to ensure platform stability,
+ * prevent abuse, and maintain strict user data isolation.
+ * @constant
+ * @type {object}
+ */
+export const USER_LIMITS = {
+  MAX_PLANS_PER_USER: 100,
+  MAX_CONVERSATIONS_PER_USER: 50,
+  DAILY_PROMPT_LIMIT: 200,
+  MAX_PERSONAL_STORAGE_BYTES: 100 * 1024 * 1024, // 100MB personal file storage limit
+  MAX_FILE_UPLOAD_COUNT: 20, // Maximum number of files a user can store
+};
+
+/**
  * Defines the various types of plans that can be generated.
  * @constant
  * @type {object}
@@ -201,6 +215,7 @@ export const DEFAULT_PARAMS = {
 /**
  * Defines system prompts used by the AI for different stages of the plan generation process.
  * These prompts guide the AI's persona and task for each specific stage.
+ * Strict instructions are embedded to ensure user data isolation and privacy.
  * @constant
  * @type {object}
  * @property {string} IDEA_ANALYSIS - Prompt for the AI when analyzing a user's initial idea.
@@ -218,6 +233,7 @@ export const SYSTEM_PROMPTS = {
 5. Ask intelligent, strategic clarifying questions if the idea is vague
 6. Extract key requirements, constraints, and goals
 
+CRITICAL: Maintain strict user data isolation. Never reference, assume, or leak any information outside of the current user's provided context and active session.
 Be professional, insightful, and help users refine their ideas into actionable plans.`,
 
   BRAINSTORMING: `You are a creative brainstorming expert and strategic consultant. Your role is to:
@@ -230,6 +246,7 @@ Be professional, insightful, and help users refine their ideas into actionable p
 7. Suggest success metrics and KPIs
 8. Provide alternative approaches and strategies
 
+CRITICAL: Maintain strict user data isolation. Never reference, assume, or leak any information outside of the current user's provided context and active session.
 Think creatively but remain practical. Consider short-term and long-term implications.`,
 
   PLAN_GENERATION: `You are a professional project planner and strategist. Your role is to:
@@ -242,6 +259,7 @@ Think creatively but remain practical. Consider short-term and long-term implica
 7. Include risk mitigation strategies
 8. Define clear success metrics and KPIs
 
+CRITICAL: Maintain strict user data isolation. Never reference, assume, or leak any information outside of the current user's provided context and active session.
 Format your output as a well-structured, professional plan document. Be specific and actionable.`,
 
   REFINEMENT: `You are a plan optimization expert. Your role is to:
@@ -251,6 +269,7 @@ Format your output as a well-structured, professional plan document. Be specific
 4. Provide alternative approaches when requested
 5. Ensure all changes are practical and feasible
 
+CRITICAL: Maintain strict user data isolation. Never reference, assume, or leak any information outside of the current user's provided context and active session.
 Maintain consistency with the original plan while incorporating improvements. Be responsive to user needs.`,
 
   CONVERSATIONAL: `You are an intelligent planning assistant helping users develop comprehensive plans for their ideas. You can:
@@ -261,6 +280,7 @@ Maintain consistency with the original plan while incorporating improvements. Be
 5. Refine plans based on feedback
 6. Explain specific sections or provide alternatives
 
+CRITICAL: Maintain strict user data isolation. Never reference, assume, or leak any information outside of the current user's provided context and active session.
 Be conversational, helpful, and professional. Guide users through the planning process step by step.`,
 };
 
@@ -276,6 +296,8 @@ Be conversational, helpful, and professional. Guide users through the planning p
  * @property {string} FILE_UPLOADED - Message indicating a file was successfully uploaded and analyzed.
  * @property {string} CONVERSATION_CREATED - Message indicating a new planning conversation has been initiated.
  * @property {string} EXPORT_READY - Message indicating the plan is ready for export.
+ * @property {string} LIMIT_EXCEEDED - Message indicating user-level limits have been exceeded.
+ * @property {string} STORAGE_FULL - Message indicating personal storage limit has been reached.
  */
 export const RESPONSE_MESSAGES = {
   PLAN_GENERATED: 'Plan generated successfully',
@@ -287,6 +309,8 @@ export const RESPONSE_MESSAGES = {
   FILE_UPLOADED: 'File uploaded and analyzed successfully',
   CONVERSATION_CREATED: 'New planning conversation created',
   EXPORT_READY: 'Plan exported successfully',
+  LIMIT_EXCEEDED: 'Usage limit exceeded. Please upgrade your plan or try again later.',
+  STORAGE_FULL: 'Personal file storage limit exceeded. Please delete some files to free up space.',
 };
 
 /**

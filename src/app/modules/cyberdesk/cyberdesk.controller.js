@@ -1,11 +1,61 @@
 import { cyberdeskService } from './cyberdesk.service.js';
 
+/**
+ * Helper to verify if a user has access to a specific desktop based on tenant boundaries and roles.
+ * Enforces strict tenant isolation and role-based access control (RBAC).
+ */
+const verifyDesktopAccess = async (user, desktopId) => {
+  const desktop = await cyberdeskService.getDesktopInfo(desktopId);
+  if (!desktop) {
+    return { valid: false, status: 404, message: 'Desktop not found.' };
+  }
+
+  // Super admin / Platform owner has global access across all tenants
+  if (user.role === 'super_admin') {
+    return { valid: true, desktop };
+  }
+
+  // Enforce tenant context boundary
+  if (desktop.tenantId !== user.tenantId) {
+    return { valid: false, status: 403, message: 'Access denied: Tenant boundary violation.' };
+  }
+
+  // Workspace owners (admin) and managers can access resources within their tenant
+  if (user.role === 'admin' || user.role === 'manager') {
+    return { valid: true, desktop };
+  }
+
+  // Standard users can only access their own assigned desktops
+  if (user.role === 'user' && desktop.userId !== user.id) {
+    return { valid: false, status: 403, message: 'Access denied: You do not own this desktop.' };
+  }
+
+  return { valid: true, desktop };
+};
+
 const launch = async (req, res) => {
   try {
-    const result = await cyberdeskService.launchDesktop();
-    res.status(200).json({ message: 'Desktop launched', data: result });
+    const user = req.user; // Populated by authentication middleware
+    if (!user || !user.role || !user.tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: Missing user context.' });
+    }
+
+    // Validate role hierarchy
+    const allowedRoles = ['super_admin', 'admin', 'manager', 'user'];
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions.' });
+    }
+
+    // Launch desktop with tenant and user context to enforce limits and propagate usage
+    const result = await cyberdeskService.launchDesktop({
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role,
+      managerId: user.managerId // Used for propagating notifications and usage up the hierarchy
+    });
+
+    res.status(200).json({ message: 'Desktop launched successfully', data: result });
   } catch (err) {
-    // Log the detailed error for internal debugging, but send a generic message to the client
     console.error('Error launching desktop:', err);
     res.status(500).json({ error: 'Failed to launch desktop.' });
   }
@@ -13,17 +63,23 @@ const launch = async (req, res) => {
 
 const info = async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
 
-  // Validate input: Ensure 'id' is provided and is a string.
-  // Depending on the expected format of 'id' (e.g., UUID, integer), more specific validation might be needed.
+  if (!user || !user.role || !user.tenantId) {
+    return res.status(401).json({ error: 'Unauthorized: Missing user context.' });
+  }
+
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Desktop ID is required and must be a string.' });
   }
 
   try {
-    const result = await cyberdeskService.getDesktopInfo(id);
-    // Consider returning 404 Not Found if result is null/undefined and indicates no desktop found.
-    res.status(200).json(result);
+    const access = await verifyDesktopAccess(user, id);
+    if (!access.valid) {
+      return res.status(access.status).json({ error: access.message });
+    }
+
+    res.status(200).json(access.desktop);
   } catch (err) {
     console.error(`Error getting info for desktop ID ${id}:`, err);
     res.status(500).json({ error: 'Failed to retrieve desktop information.' });
@@ -33,18 +89,31 @@ const info = async (req, res) => {
 const click = async (req, res) => {
   const { id } = req.params;
   const { x, y } = req.body;
+  const user = req.user;
 
-  // Validate input: Ensure 'id' is provided and is a string.
+  if (!user || !user.role || !user.tenantId) {
+    return res.status(401).json({ error: 'Unauthorized: Missing user context.' });
+  }
+
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Desktop ID is required and must be a string.' });
   }
-  // Validate input: Ensure 'x' and 'y' are provided and are numbers.
+
   if (typeof x !== 'number' || isNaN(x) || typeof y !== 'number' || isNaN(y)) {
     return res.status(400).json({ error: 'Coordinates x and y are required and must be numbers.' });
   }
 
   try {
-    const result = await cyberdeskService.clickMouse(id, x, y);
+    const access = await verifyDesktopAccess(user, id);
+    if (!access.valid) {
+      return res.status(access.status).json({ error: access.message });
+    }
+
+    const result = await cyberdeskService.clickMouse(id, x, y, {
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role
+    });
     res.status(200).json(result);
   } catch (err) {
     console.error(`Error clicking mouse for desktop ID ${id} at (${x}, ${y}):`, err);
@@ -55,24 +124,38 @@ const click = async (req, res) => {
 const bash = async (req, res) => {
   const { id } = req.params;
   const { command } = req.body;
+  const user = req.user;
 
-  // Validate input: Ensure 'id' is provided and is a string.
+  if (!user || !user.role || !user.tenantId) {
+    return res.status(401).json({ error: 'Unauthorized: Missing user context.' });
+  }
+
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Desktop ID is required and must be a string.' });
   }
-  // Validate input: Ensure 'command' is provided and is a string.
+
   if (!command || typeof command !== 'string') {
     return res.status(400).json({ error: 'Command is required and must be a string.' });
   }
 
-  // SECURITY WARNING: Directly executing user-provided bash commands is extremely dangerous.
-  // This endpoint is highly vulnerable to command injection if 'cyberdeskService.executeBash'
-  // does not implement robust sanitization, whitelisting, or use safe execution methods
-  // (e.g., child_process.spawn with arguments) to prevent arbitrary code execution on the server.
-  // It is strongly recommended to restrict this functionality or replace it with a more
-  // controlled set of predefined actions.
+  // Restrict command execution to authorized roles to mitigate command injection risks
+  const allowedBashRoles = ['super_admin', 'admin', 'manager'];
+  if (!allowedBashRoles.includes(user.role)) {
+    return res.status(403).json({ error: 'Forbidden: Insufficient privileges to execute commands.' });
+  }
+
   try {
-    const result = await cyberdeskService.executeBash(id, command);
+    const access = await verifyDesktopAccess(user, id);
+    if (!access.valid) {
+      return res.status(access.status).json({ error: access.message });
+    }
+
+    // Pass user context for auditing, logging, and policy enforcement
+    const result = await cyberdeskService.executeBash(id, command, {
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role
+    });
     res.status(200).json(result);
   } catch (err) {
     console.error(`Error executing bash command for desktop ID ${id}: "${command}"`, err);
@@ -82,14 +165,28 @@ const bash = async (req, res) => {
 
 const terminate = async (req, res) => {
   const { id } = req.params;
+  const user = req.user;
 
-  // Validate input: Ensure 'id' is provided and is a string.
+  if (!user || !user.role || !user.tenantId) {
+    return res.status(401).json({ error: 'Unauthorized: Missing user context.' });
+  }
+
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Desktop ID is required and must be a string.' });
   }
 
   try {
-    const result = await cyberdeskService.terminateDesktop(id);
+    const access = await verifyDesktopAccess(user, id);
+    if (!access.valid) {
+      return res.status(access.status).json({ error: access.message });
+    }
+
+    const result = await cyberdeskService.terminateDesktop(id, {
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role,
+      managerId: user.managerId
+    });
     res.status(200).json(result);
   } catch (err) {
     console.error(`Error terminating desktop ID ${id}:`, err);

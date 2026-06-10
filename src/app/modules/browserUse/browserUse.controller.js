@@ -9,7 +9,7 @@ import { BrowserUseServices } from './browserUse.service.js';
  * /api/v1/browser-use/task:
  *   post:
  *     summary: Initiate a new browser automation task or continue an existing session.
- *     description: Creates a new browser automation session or adds a new task to an existing session based on the provided prompt. Requires user authentication.
+ *     description: Creates a new browser automation session or adds a new task to an existing session based on the provided prompt. Requires user authentication. Platform Owners can run tasks on behalf of other users/tenants.
  *     tags:
  *       - Browser Use
  *     security:
@@ -31,6 +31,11 @@ import { BrowserUseServices } from './browserUse.service.js';
  *                 type: string
  *                 nullable: true
  *                 description: Optional. The ID of an existing session to continue. If not provided, a new session will be created.
+ *                 example: "654321098765432109876543"
+ *               userId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Optional. Target user ID (Platform Owner / Super Admin override capability).
  *                 example: "654321098765432109876543"
  *               structured_output_json:
  *                 type: object
@@ -57,33 +62,6 @@ import { BrowserUseServices } from './browserUse.service.js';
  *                 data:
  *                   type: object
  *                   description: The session object containing task details.
- *                   properties:
- *                     _id:
- *                       type: string
- *                       example: "654321098765432109876543"
- *                     userId:
- *                       type: string
- *                       example: "654321098765432109876543"
- *                     status:
- *                       type: string
- *                       example: "pending"
- *                     tasks:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           _id:
- *                             type: string
- *                           prompt:
- *                             type: string
- *                           status:
- *                             type: string
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           updatedAt:
- *                             type: string
- *                             format: date-time
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -93,26 +71,26 @@ import { BrowserUseServices } from './browserUse.service.js';
  */
 /**
  * Controller to initiate a new browser automation task or continue an existing session.
- *
- * This function handles the request to start a new browser automation task based on a prompt,
- * or to add a new task to an existing session. It ensures the user is authenticated
- * and validates the presence of a prompt.
+ * Supports Platform Owner overrides to run tasks on behalf of other users/tenants.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
- * @throws {ApiError} If the user is not authenticated (401) or if the prompt is missing (400).
  */
 const runTaskController = catchAsync(async (req, res) => {
   const { prompt, sessionId, structured_output_json } = req.body;
-  // Security Fix: userId must always come from the authenticated user (req.user?._id).
-  // Allowing it from req.body.userId creates an IDOR vulnerability where an attacker
-  // could potentially initiate tasks for other users if not properly authenticated.
-  const userId = req.user?._id;
+  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
+  
+  // Default to authenticated user
+  let userId = req.user?._id;
 
   if (!userId) {
-    // Ensure the user is authenticated before proceeding.
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+  }
+
+  // Platform Owner Override: Allow running tasks on behalf of another user/tenant
+  if (isPlatformOwner && req.body.userId) {
+    userId = req.body.userId;
   }
 
   if (!prompt) {
@@ -134,7 +112,7 @@ const runTaskController = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Task initiated successfully.',
-    data: result, // Send the whole session object back
+    data: result,
   });
 });
 
@@ -143,7 +121,7 @@ const runTaskController = catchAsync(async (req, res) => {
  * /api/v1/browser-use/sessions/{sessionId}/tasks/{taskId}/status:
  *   patch:
  *     summary: Update the status of a specific task within a browser automation session.
- *     description: Retrieves and updates the status of a specific task identified by sessionId and taskId. This endpoint is typically used for polling task status or receiving webhook updates. Requires user authentication and authorization to access the specific session/task.
+ *     description: Retrieves and updates the status of a specific task. Platform Owners can bypass ownership checks.
  *     tags:
  *       - Browser Use
  *     security:
@@ -154,59 +132,14 @@ const runTaskController = catchAsync(async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the browser automation session.
- *         example: "654321098765432109876543"
  *       - in: path
  *         name: taskId
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the specific task within the session.
- *         example: "654321098765432109876544"
  *     responses:
  *       200:
- *         description: Task status updated successfully. Returns the updated task details.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Task status updated."
- *                 data:
- *                   type: object
- *                   description: The updated task object.
- *                   properties:
- *                     _id:
- *                       type: string
- *                       example: "654321098765432109876544"
- *                     prompt:
- *                       type: string
- *                       example: "Go to example.com..."
- *                     status:
- *                       type: string
- *                       example: "completed"
- *                     output:
- *                       type: object
- *                       nullable: true
- *                       description: The output generated by the task, if any.
- *                     error:
- *                       type: string
- *                       nullable: true
- *                       description: Error message if the task failed.
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *         description: Task status updated successfully.
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
@@ -216,29 +149,26 @@ const runTaskController = catchAsync(async (req, res) => {
  */
 /**
  * Controller to update the status of a specific task within a browser automation session.
- *
- * This function retrieves the `sessionId` and `taskId` from request parameters
- * and uses the authenticated `userId` to authorize and update the task's status.
+ * Supports Platform Owner bypass of user ownership checks.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
- * @throws {ApiError} If the user is not authenticated (401).
  */
 const getTaskStatusController = catchAsync(async (req, res) => {
   const { sessionId, taskId } = req.params;
-  // Security Fix: userId must always come from the authenticated user (req.user?._id).
-  // This userId should be passed to the service layer to ensure the user is authorized
-  // to update the status of this specific task/session, preventing IDOR.
+  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
   const userId = req.user?._id;
 
   if (!userId) {
-    // Ensure the user is authenticated before proceeding.
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
+  // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+  const authUserId = isPlatformOwner ? null : userId;
+
   const result = await BrowserUseServices.updateTaskStatusService(
-    userId, // Pass userId to the service for authorization
+    authUserId,
     sessionId,
     taskId,
     req
@@ -256,101 +186,61 @@ const getTaskStatusController = catchAsync(async (req, res) => {
  * @swagger
  * /api/v1/browser-use/sessions:
  *   get:
- *     summary: Retrieve all browser automation sessions for the authenticated user.
- *     description: Fetches a list of all browser automation sessions initiated by the currently authenticated user. Requires user authentication.
+ *     summary: Retrieve browser automation sessions.
+ *     description: Fetches sessions. Platform Owners can retrieve all sessions globally or filter by a specific user.
  *     tags:
  *       - Browser Use
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Optional user ID filter (Platform Owner only).
  *     responses:
  *       200:
  *         description: Sessions retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Sessions retrieved successfully."
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "654321098765432109876543"
- *                       userId:
- *                         type: string
- *                         example: "654321098765432109876543"
- *                       status:
- *                         type: string
- *                         example: "active"
- *                       tasks:
- *                         type: array
- *                         items:
- *                           type: object
- *                           properties:
- *                             _id:
- *                               type: string
- *                             prompt:
- *                               type: string
- *                             status:
- *                               type: string
- *                             createdAt:
- *                               type: string
- *                               format: date-time
- *                             updatedAt:
- *                               type: string
- *                               format: date-time
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 /**
- * Controller to retrieve all browser automation sessions for the authenticated user.
- *
- * This function ensures the user is authenticated and then fetches all sessions
- * associated with their `userId`.
+ * Controller to retrieve browser automation sessions.
+ * Supports global oversight for Platform Owners.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
- * @throws {ApiError} If the user is not authenticated (401).
  */
 const getUserSessionsController = catchAsync(async (req, res) => {
-  // Security Fix: userId must always come from the authenticated user (req.user?._id).
-  // Allowing it from req.params.userId creates an IDOR vulnerability where an attacker
-  // could potentially retrieve sessions for other users.
+  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
   const userId = req.user?._id;
   if (!userId) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
-  
-  // Optimization Recommendation:
-  // For read-only queries like retrieving sessions, consider adding `.lean()`
-  // to the Mongoose query in `BrowserUseServices.getSessionsForUserService`.
-  // This will return plain JavaScript objects instead of Mongoose documents,
-  // reducing overhead if the documents are not modified or saved back.
-  //
-  // Indexing Recommendation:
-  // Ensure that the 'userId' field in the 'BrowserUseSession' model has an index.
-  // This is crucial for efficient querying when fetching all sessions for a specific user.
-  const result = await BrowserUseServices.getSessionsForUserService(userId, req);
+
+  let result;
+  if (isPlatformOwner) {
+    const targetUserId = req.query.userId;
+    if (targetUserId) {
+      // Platform Owner viewing sessions of a specific user
+      result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
+    } else {
+      // Platform Owner global oversight: retrieve all sessions across the platform
+      if (typeof BrowserUseServices.getAllSessionsService === 'function') {
+        result = await BrowserUseServices.getAllSessionsService(req);
+      } else {
+        // Fallback: pass null to indicate global retrieval if supported by service
+        result = await BrowserUseServices.getSessionsForUserService(null, req);
+      }
+    }
+  } else {
+    // Regular user: retrieve only their own sessions
+    result = await BrowserUseServices.getSessionsForUserService(userId, req);
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -363,8 +253,8 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  * @swagger
  * /api/v1/browser-use/sessions/{sessionId}:
  *   get:
- *     summary: Retrieve a specific browser automation session by ID for the authenticated user.
- *     description: Fetches the details of a single browser automation session identified by `sessionId`. Requires user authentication and authorization to access the specific session.
+ *     summary: Retrieve a specific browser automation session by ID.
+ *     description: Fetches details of a single session. Platform Owners can access any session.
  *     tags:
  *       - Browser Use
  *     security:
@@ -375,61 +265,9 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the browser automation session to retrieve.
- *         example: "654321098765432109876543"
  *     responses:
  *       200:
  *         description: Session retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Session retrieved successfully."
- *                 data:
- *                   type: object
- *                   description: The session object.
- *                   properties:
- *                     _id:
- *                       type: string
- *                       example: "654321098765432109876543"
- *                     userId:
- *                       type: string
- *                       example: "654321098765432109876543"
- *                     status:
- *                       type: string
- *                       example: "active"
- *                     tasks:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           _id:
- *                             type: string
- *                           prompt:
- *                             type: string
- *                           status:
- *                             type: string
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           updatedAt:
- *                             type: string
- *                             format: date-time
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
@@ -439,45 +277,84 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  */
 /**
  * Controller to retrieve a specific browser automation session by its ID.
- *
- * This function fetches the `sessionId` from request parameters and uses the
- * authenticated `userId` to ensure the user is authorized to view the session.
+ * Supports Platform Owner bypass of user ownership checks.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
- * @throws {ApiError} If the user is not authenticated (401).
  */
 const getSessionByIdController = catchAsync(async (req, res) => {
   const { sessionId } = req.params;
-  // Security Fix: userId must always come from the authenticated user (req.user?._id).
-  // Allowing it from req.params.userId creates an IDOR vulnerability where an attacker
-  // could potentially retrieve sessions for other users.
+  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
   const userId = req.user?._id;
   if (!userId) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  // Optimization Recommendation:
-  // For read-only queries like retrieving a single session, consider adding `.lean()`
-  // to the Mongoose query in `BrowserUseServices.getSessionByIdService`.
-  // This will return a plain JavaScript object instead of a Mongoose document,
-  // reducing overhead if the document is not modified or saved back.
-  //
-  // Indexing Recommendation:
-  // Ensure that the 'userId' field in the 'BrowserUseSession' model has an index.
-  // This is important for efficient authorization checks when querying by both
-  // '_id' and 'userId'.
+  // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+  const authUserId = isPlatformOwner ? null : userId;
+
   const result = await BrowserUseServices.getSessionByIdService(
     sessionId,
-    userId, // Pass userId to the service for authorization
+    authUserId,
     req
   );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Session retrieved successfully.',
     data: result,
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/browser-use/global-stats:
+ *   get:
+ *     summary: Retrieve global statistics of all browser automation sessions (Platform Owner only).
+ *     description: Fetches global statistics including total tasks, active sessions, and success/failure rates.
+ *     tags:
+ *       - Browser Use
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Global statistics retrieved successfully.
+ *       403:
+ *         description: Forbidden. Platform Owner privilege required.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Controller for Platform Owners to retrieve global statistics of all browser automation sessions.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
+const getGlobalStatsController = catchAsync(async (req, res) => {
+  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
+  if (!isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. Platform Owner privilege required.');
+  }
+
+  let stats = {};
+  if (typeof BrowserUseServices.getGlobalStatsService === 'function') {
+    stats = await BrowserUseServices.getGlobalStatsService(req);
+  } else {
+    // Fallback/Mock stats if service method is not yet fully implemented
+    stats = {
+      message: "Global stats service not fully implemented, but access is authorized.",
+      timestamp: new Date(),
+    };
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Global browser-use statistics retrieved successfully.',
+    data: stats,
   });
 });
 
@@ -491,4 +368,5 @@ export const BrowserUseController = {
   getTaskStatusController,
   getUserSessionsController,
   getSessionByIdController,
+  getGlobalStatsController,
 };

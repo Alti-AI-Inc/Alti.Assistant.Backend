@@ -41,14 +41,14 @@ const DocumentMetadataSchema = new mongoose.Schema(
     /**
      * The unique identifier of the user who owns this document.
      * This allows for multi-tenancy and user-specific document management.
+     * Note: Individual index removed here because it is covered by the compound index { userId: 1, docId: 1 }
+     * and { userId: 1, createdAt: -1 } to prevent redundant index overhead.
      * @type {string}
      * @required
-     * @index
      */
     userId: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
     /**
      * The original name of the document file.
@@ -128,11 +128,18 @@ const DocumentMetadataSchema = new mongoose.Schema(
 /**
  * Compound unique index to ensure that each user has only one metadata entry per document.
  * This prevents duplicate metadata records for the same document owned by the same user.
+ * Also serves as an efficient index for queries filtering solely by userId.
  * @property {number} userId - Ascending index on userId.
  * @property {number} docId - Ascending index on docId.
  * @property {boolean} unique - Ensures the combination of userId and docId is unique.
  */
 DocumentMetadataSchema.index({ userId: 1, docId: 1 }, { unique: true });
+
+/**
+ * Compound index to optimize fetching/listing a user's documents sorted by creation date (newest first).
+ * This is highly beneficial for dashboard feeds, document history, and paginated lists.
+ */
+DocumentMetadataSchema.index({ userId: 1, createdAt: -1 });
 
 /**
  * Mongoose Model for Document Metadata.
