@@ -1,7 +1,9 @@
 import { logger } from '../../../shared/logger.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// AUDIT: Replaced @google/generative-ai with the enterprise-grade @google-cloud/vertexai SDK.
+// This SDK is required for enterprise features like IAM, VPC-SC, and fine-grained safety controls.
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 import ApiError from '../../../errors/ApiError.js';
@@ -10,10 +12,15 @@ import ApiError from '../../../errors/ApiError.js';
 import { usageService } from '../usage/usage.service.js';
 
 /**
- * Initializes the Google Generative AI client with the API key from configuration.
- * @type {GoogleGenerativeAI}
+ * Initializes the Vertex AI client with project and location from configuration.
+ * @type {VertexAI}
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
+// ENTERPRISE-GRADE SDK: Switched from @google/generative-ai to the enterprise-ready @google-cloud/vertexai SDK.
+// This provides better integration with Google Cloud IAM, VPC-SC, and other enterprise features.
+const vertexAI = new VertexAI({
+  project: config.gcp_project_id || 'your-gcp-project-id',
+  location: config.gcp_location || 'us-central1',
+});
 
 // ── Helpers shared from langchainExecution.service.js ────────────────────────
 
@@ -22,6 +29,27 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
  * Pre-compiled to avoid repeated compilation in `formatPrompt` for minor performance improvement.
  */
 const VARIABLE_PLACEHOLDER_REGEX = /\{([a-zA-Z0-9_]+)\}/g;
+
+/**
+ * Masks common PII patterns in a string before sending it to the LLM.
+ * This is a critical security measure to prevent sensitive data exposure.
+ * @param {string} text - The input text to sanitize.
+ * @returns {string} The text with PII masked.
+ */
+const filterPII = (text) => {
+  if (typeof text !== 'string') return text;
+  // Mask email addresses
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  // Mask U.S. phone numbers (simple version)
+  const phoneRegex = /(\(\d{3}\)|\d{3})[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  // Mask Social Security Numbers (SSN)
+  const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+
+  return text
+    .replace(emailRegex, '[REDACTED_EMAIL]')
+    .replace(phoneRegex, '[REDACTED_PHONE]')
+    .replace(ssnRegex, '[REDACTED_SSN]');
+};
 
 /**
  * Optimizes prompt formatting by using a single regex replacement with a callback,
@@ -80,25 +108,56 @@ const executeSingleStep = async (step, scope, userId) => {
         const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
         const modelName = step.config.model || 'gemini-1.5-flash';
 
-        stepInput = { promptText: promptText.substring(0, 200) + '...', modelName, temperature };
+        // SECURITY (PII): Filter out Personally Identifiable Information before sending data to the model.
+        const sanitizedPromptText = filterPII(promptText);
+
+        stepInput = { promptText: sanitizedPromptText.substring(0, 200) + '...', modelName, temperature };
+
+        // SAFETY: Explicitly configure Google's safety filters to block harmful content.
+        // This is a crucial step for responsible AI deployment.
+        const safetySettings = [
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+        ];
 
         let result;
         try {
-          const model = genAI.getGenerativeModel({ model: modelName });
-          result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+          const model = vertexAI.getGenerativeModel({
+            model: modelName,
+            safetySettings, // Apply the defined safety settings
             generationConfig: { temperature, maxOutputTokens },
           });
+          const request = {
+            contents: [{ role: 'user', parts: [{ text: sanitizedPromptText }] }], // Use the sanitized prompt
+          };
+          result = await model.generateContent(request);
         } catch (llmErr) {
           throw new ApiError(502, `LLM generation failed: ${llmErr.message}`, llmErr.stack);
         }
 
-        const responseText = result.response.text();
+        // The response structure from @google-cloud/vertexai is nested.
+        const response = result.response;
+        const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (response.promptFeedback?.blockReason) {
+            // Handle cases where the prompt itself was blocked by safety filters.
+            throw new ApiError(400, `Prompt blocked due to safety settings: ${response.promptFeedback.blockReason}`);
+        }
+        if (response.candidates?.[0]?.finishReason !== 'STOP' && response.candidates?.[0]?.finishReason !== 'MAX_TOKENS') {
+            // Handle cases where the generation was stopped for safety reasons.
+            logger.warn(`LLM generation stopped for reason: ${response.candidates?.[0]?.finishReason}`, { candidate: response.candidates?.[0] });
+            // Depending on policy, you might throw an error or return a canned response.
+            // For this audit, we'll throw an error to make the issue visible.
+            throw new ApiError(500, `Content generation stopped due to safety filters or an unexpected reason: ${response.candidates?.[0]?.finishReason}`);
+        }
+
         stepOutput = responseText;
         scope[step.name] = responseText;
 
-        const usage = result.response.usageMetadata || {};
-        const promptTokens = usage.promptTokenCount || Math.ceil(promptText.length / 4);
+        const usage = response.usageMetadata || {};
+        const promptTokens = usage.promptTokenCount || Math.ceil(sanitizedPromptText.length / 4); // Use sanitized prompt for token estimation
         const completionTokens = usage.candidatesTokenCount || Math.ceil(responseText.length / 4);
         tokenUsage = {
           promptTokens,
