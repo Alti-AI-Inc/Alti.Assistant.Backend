@@ -16,18 +16,8 @@ import { logger } from '../../../shared/logger.js';
 //    db.actionauditlogs.createIndex({ userId: 1, createdAt: 1 });
 
 /**
- * Action Audit Service
- *
- * Intercepts and logs every Composio tool execution for compliance,
- * debugging, and analytics. Designed to be non-blocking — audit writes
- * are fire-and-forget so they never slow down the main execution path.
- *
- * Also provides analytics aggregations for per-user and per-app insights,
- * respecting multi-tenancy and role-based access control.
- */
-
-/**
- * @constant {Set<string>} SENSITIVE_KEYS - A set of lowercase strings representing parameter keys
+ * @constant {Set<string>} SENSITIVE_KEYS
+ * @description A set of lowercase strings representing parameter keys
  * that should be redacted from logs to prevent sensitive information leakage.
  */
 const SENSITIVE_KEYS = new Set([
@@ -38,21 +28,31 @@ const SENSITIVE_KEYS = new Set([
   'refreshToken', 'refresh_token',
 ]);
 
+/**
+ * @class ActionAuditService
+ * @description
+ * Intercepts and logs every Composio tool execution for compliance,
+ * debugging, and analytics. Designed to be non-blocking — audit writes
+ * are fire-and-forget so they never slow down the main execution path.
+ *
+ * Also provides analytics aggregations for per-user and per-app insights,
+ * respecting multi-tenancy and role-based access control.
+ */
 class ActionAuditService {
   /**
    * Log the start of an action execution.
    * Returns the audit log entry ID for later update.
    *
    * @async
-   * @param {Object} params - The parameters for the action audit log entry.
+   * @param {object} params - The parameters for the action audit log entry.
    * @param {string} params.userId - The ID of the user who initiated the action.
    * @param {string} params.workspaceId - The ID of the workspace where the action is performed.
    * @param {string} params.app - The name of the application or integration.
    * @param {string} params.action - The specific action performed within the application.
    * @param {string} [params.toolName] - The human-readable name of the tool. Defaults to `${app}_${action}`.
    * @param {string} [params.toolSlug] - A unique slug for the tool.
-   * @param {Object} [params.parameters] - The input parameters provided to the action, will be redacted.
-   * @param {Object} [params.context] - Additional context for the action execution.
+   * @param {object} [params.parameters] - The input parameters provided to the action, will be redacted.
+   * @param {object} [params.context] - Additional context for the action execution.
    * @param {string} [params.context.conversationId] - The ID of the conversation this action belongs to.
    * @param {string} [params.context.executionId] - The ID of the overall execution flow.
    * @param {string} [params.context.workflowType] - The type of workflow (e.g., 'agent', 'manual').
@@ -105,14 +105,14 @@ class ActionAuditService {
    * It includes `userId` and `workspaceId` in the query to prevent IDOR vulnerabilities and enforce tenant boundaries.
    *
    * @async
-   * @param {Object} context - The context for identifying the log entry.
+   * @param {object} context - The context for identifying the log entry.
    * @param {string} context.auditLogId - The ID returned by `logStart`.
    * @param {string} context.userId - The ID of the user who initiated the action.
    * @param {string} context.workspaceId - The ID of the workspace for the action.
    * @param {string} context.app - The name of the application (for usage propagation).
-   * @param {Object} outcome - The outcome details of the action execution.
+   * @param {object} outcome - The outcome details of the action execution.
    * @param {boolean} outcome.success - True if the action completed successfully, false otherwise.
-   * @param {Object} [outcome.result] - The result data from the action execution. Will be summarized and redacted.
+   * @param {object} [outcome.result] - The result data from the action execution. Will be summarized and redacted.
    * @param {Error} [outcome.error] - The error object if the action failed.
    * @param {number} [outcome.durationMs] - The duration of the action execution in milliseconds.
    * @param {number} [outcome.attempts] - The number of attempts made for the action.
@@ -174,7 +174,7 @@ class ActionAuditService {
    * It includes `userId` and `workspaceId` in the query to prevent IDOR vulnerabilities.
    *
    * @async
-   * @param {Object} context - The context for identifying the log entry.
+   * @param {object} context - The context for identifying the log entry.
    * @param {string} context.auditLogId - The ID returned by `logStart`.
    * @param {string} context.userId - The ID of the user who initiated the action.
    * @param {string} context.workspaceId - The ID of the workspace for the action.
@@ -201,20 +201,26 @@ class ActionAuditService {
    * Get paginated audit log entries based on the authenticated user's role and permissions.
    * Enforces tenant boundaries and user hierarchy.
    *
+   * **Permissions:**
+   * - `user`: Can only view their own logs.
+   * - `manager`: Can view their own logs and logs of users they manage within their workspace.
+   * - `admin`: Can view all logs within their workspace.
+   * - `super_admin`: Can view all logs across all workspaces.
+   *
    * @async
-   * @param {Object} authUser - The authenticated user object from the request context.
+   * @param {object} authUser - The authenticated user object from the request context.
    * @param {string} authUser._id - The ID of the authenticated user.
    * @param {string} authUser.workspaceId - The workspace ID of the authenticated user.
    * @param {string} authUser.role - The role of the authenticated user (e.g., 'user', 'manager', 'admin', 'super_admin').
-   * @param {Object} [filters={}] - Optional filters for the audit log query.
+   * @param {object} [filters={}] - Optional filters for the audit log query.
    * @param {string} [filters.userId] - Filter by a specific user ID (subject to permissions).
    * @param {string} [filters.workspaceId] - Filter by a specific workspace ID (super_admin only).
    * @param {string} [filters.app] - Filter logs by a specific application name.
-   * @param {string} [filters.status] - Filter logs by a specific status.
+   * @param {string} [filters.status] - Filter logs by a specific status (e.g., 'success', 'failed').
    * @param {number} [filters.limit=50] - The maximum number of entries to return (capped at 200).
    * @param {number} [filters.offset=0] - The number of entries to skip for pagination.
    * @param {string} [filters.since] - An ISO date string to retrieve logs created on or after this date.
-   * @returns {Promise<Object>} An object containing paginated audit entries and metadata.
+   * @returns {Promise<object>} An object containing paginated audit entries and metadata.
    */
   async getAuditLogs(authUser, filters = {}) {
     try {
@@ -324,16 +330,22 @@ class ActionAuditService {
    * Provides insights into status distribution, per-app breakdown, overall performance, and daily trends.
    * Enforces tenant boundaries and user hierarchy.
    *
+   * **Permissions:**
+   * - `user`: Can only view their own analytics.
+   * - `manager`: Can view their own analytics and analytics for users they manage within their workspace.
+   * - `admin`: Can view analytics for their entire workspace.
+   * - `super_admin`: Can view analytics for any workspace.
+   *
    * @async
-   * @param {Object} authUser - The authenticated user object from the request context.
+   * @param {object} authUser - The authenticated user object from the request context.
    * @param {string} authUser._id - The ID of the authenticated user.
    * @param {string} authUser.workspaceId - The workspace ID of the authenticated user.
    * @param {string} authUser.role - The role of the authenticated user (e.g., 'user', 'manager', 'admin', 'super_admin').
-   * @param {Object} [filters={}] - Optional filters for the analytics query.
+   * @param {object} [filters={}] - Optional filters for the analytics query.
    * @param {string} [filters.userId] - Filter by a specific user ID (subject to permissions).
    * @param {string} [filters.workspaceId] - Filter by a specific workspace ID (super_admin only).
    * @param {string} [filters.window='7d'] - The time window for analytics (e.g., '24h', '7d', '30d').
-   * @returns {Promise<Object>} An object containing various analytics summaries.
+   * @returns {Promise<object>} An object containing various analytics summaries.
    */
   async getAnalytics(authUser, filters = {}) {
     try {
@@ -494,8 +506,8 @@ class ActionAuditService {
    * Recursively redacts sensitive fields from an object based on `SENSITIVE_KEYS`.
    *
    * @private
-   * @param {Object|Array|any} obj - The object or array to redact.
-   * @returns {Object|Array|any} A new object or array with sensitive fields redacted.
+   * @param {object|Array|any} obj - The object or array to redact.
+   * @returns {object|Array|any} A new object or array with sensitive fields redacted.
    */
   _redactSensitive(obj) {
     if (!obj || typeof obj !== 'object') return obj;
@@ -517,8 +529,8 @@ class ActionAuditService {
    * Summarizes a result object to avoid storing massive payloads in the audit log.
    *
    * @private
-   * @param {Object|any} result - The result object to summarize.
-   * @returns {Object|null} A summarized version of the result object.
+   * @param {object|any} result - The result object to summarize.
+   * @returns {object|null} A summarized version of the result object.
    */
   _summarizeResult(result) {
     if (result === null || result === undefined) return null;

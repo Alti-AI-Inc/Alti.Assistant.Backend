@@ -74,6 +74,7 @@ const PLAN_LIMITS = {
 /**
  * Creates a Stripe checkout session for a user to subscribe to a specific plan.
  * This function handles customer creation if necessary and sets up the subscription details.
+ * The operation is performed within the context of the user's tenant.
  *
  * @param {object} user - The user object initiating the subscription.
  * @param {mongoose.Types.ObjectId} user._id - The ID of the user.
