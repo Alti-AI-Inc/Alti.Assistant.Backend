@@ -330,8 +330,12 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
             aggregatedResults: result.aggregatedResults,
           },
         },
+        // Bug Fix: Langchain's history channel typically accumulates all messages,
+        // including the current user input and the agent's response.
+        // Therefore, `result.history.length` already represents the total message count.
+        // Adding `+ 2` would overcount.
         conversationId: threadId,
-        messageCount: (result.history?.length || 0) + 2, // User message + assistant response
+        messageCount: result.history?.length || 0,
         userType: 'authenticated', // Composio typically requires authentication
 
         // Additional metadata for debugging/monitoring
