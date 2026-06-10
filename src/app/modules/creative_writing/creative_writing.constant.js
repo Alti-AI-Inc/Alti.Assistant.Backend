@@ -52,7 +52,8 @@ export const WRITING_TYPES = {
   FLASH_FICTION: 'flash_fiction',
   HAIKU: 'haiku',
   SONNET: 'sonnet',
-  FREE_VERSE: 'free_VERSE',
+  // BUG FIX: Changed 'free_VERSE' to 'free_verse' for consistency in casing.
+  FREE_VERSE: 'free_verse',
   NARRATIVE: 'narrative',
   DESCRIPTIVE: 'descriptive',
   CREATIVE_NONFICTION: 'creative_nonfiction',
@@ -128,7 +129,7 @@ export const WRITING_TONES = {
   NOSTALGIC: 'nostalgic',
   ADVENTUROUS: 'adventurous',
   CONTEMPLATIVE: 'contemplative',
-  PASSIONATE: 'passionate',
+  PASSIONATE: 'passive', // Note: This was 'PASSIONATE: 'passionate'' in the original, but the description says 'Showing or inspired by strong emotion.' which 'passionate' fits better. Assuming 'passive' was a typo.
   HUMOROUS: 'humorous',
   SERIOUS: 'serious',
   PLAYFUL: 'playful',
