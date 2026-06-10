@@ -3,11 +3,21 @@ import crypto from 'crypto';
 
 /**
  * The encryption key used for encrypting sensitive conversation summary data.
- * This key should be a 32-character string for AES-256-CBC.
- * It is loaded from environment variables (CHAT_ENCRYPTION_KEY) or defaults to a placeholder.
+ * This key must be a 32-byte (256-bit) string for AES-256-CBC.
+ * It MUST be loaded from the CHAT_ENCRYPTION_KEY environment variable.
+ * In a production environment like Cloud Run, this should be injected from a secret store (e.g., GCP Secret Manager).
+ * The application will fail to start if this variable is not set or is invalid.
  * @type {string}
  */
-const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012'; // Must be 32 characters
+const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
+
+// Security check: Ensure the encryption key is provided and is the correct length.
+// The application must not start with a missing or insecure key.
+if (!ENCRYPTION_KEY || Buffer.from(ENCRYPTION_KEY).length !== 32) {
+  throw new Error(
+    'FATAL: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long.'
+  );
+}
 
 /**
  * The length of the Initialization Vector (IV) in bytes, required for AES-256-CBC encryption.
