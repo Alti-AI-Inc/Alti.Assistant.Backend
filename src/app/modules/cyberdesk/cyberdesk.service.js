@@ -4,10 +4,11 @@ import ApiError from '../../../errors/ApiError.js';
 import config from '../../../../config/index.js';
 
 /**
- * @typedef {object} PlatformContext
+ * @typedef {object} UserContext
  * @property {string} tenantId - The identifier for the current tenant.
  * @property {string} userId - The identifier for the user making the request.
- * @property {boolean} [isPlatformOwner=false] - Flag indicating if the user is a Platform Owner/Super Admin.
+ * @property {'super_admin' | 'admin' | 'manager' | 'user'} role - The role of the user.
+ * @property {string[]} [managedUserIds] - For managers, a list of user IDs they oversee.
  */
 
 /**
@@ -19,11 +20,19 @@ import config from '../../../../config/index.js';
 // In a real, multi-instance application, this would be backed by a distributed cache (e.g., Redis) or a database.
 const tenantSuspensionState = new Map();
 
+// In-memory store for tenant-specific configurations and limits.
+// In a real application, this would be a 'TenantSettings' table in a database.
+const tenantConfiguration = new Map([
+  ['default', { maxActiveDesktops: 10, allowBashAccess: true }], // Default settings for new tenants
+  // Example: Tenant 'tenant-123' has a lower limit and disabled bash.
+  ['tenant-123', { maxActiveDesktops: 5, allowBashAccess: false }],
+]);
+
 /**
  * Centralized logger for consistent, structured logging.
  * @param {'INFO' | 'WARNING' | 'ERROR'} severity - The log level. Must be a GCP Cloud Logging compatible severity string.
  * @param {string} message - The log message.
- * @param {PlatformContext} context - The context of the request (tenant, user).
+ * @param {UserContext} context - The context of the request (tenant, user, role).
  * @param {object} [details={}] - Additional details to include in the log.
  */
 const log = (severity, message, context, details = {}) => {
@@ -35,7 +44,7 @@ const log = (severity, message, context, details = {}) => {
     context: {
       tenantId: context?.tenantId,
       userId: context?.userId,
-      isPlatformOwner: context?.isPlatformOwner,
+      role: context?.role,
     },
     ...details,
   };
@@ -48,7 +57,7 @@ const log = (severity, message, context, details = {}) => {
  * A singleton getter function for the Cyberdesk API client.
  * This function ensures that the Cyberdesk client is initialized only once
  * and reused across all calls. It lazily initializes the client when first accessed.
- * It also exposes a `reinitialize` method for Platform Owners to update the client configuration live.
+ * It also exposes a `reinitialize` method for Super Admins to update the client configuration live.
  *
  * @returns {CyberdeskClient & { reinitialize: (newApiKey: string) => void }} The initialized Cyberdesk API client instance with an added reinitialize method.
  */
@@ -74,104 +83,164 @@ const getCyberdeskClient = (() => {
 
   /**
    * Re-initializes the singleton client instance. This is a privileged operation
-   * for Platform Owners to update the API key without a service restart.
+   * for Super Admins to update the API key without a service restart.
    * @param {string} newApiKey - The new Cyberdesk API key.
    */
   getInstance.reinitialize = (newApiKey) => {
-    log('WARNING', 'Platform Owner is re-initializing the Cyberdesk client singleton.', { isPlatformOwnerAction: true });
+    log('WARNING', 'Super Admin is re-initializing the Cyberdesk client singleton.', { isSuperAdminAction: true });
     initialize(newApiKey);
   };
 
   return getInstance;
 })();
 
-// --- Platform Owner / Super Admin Functions ---
+// --- Authorization Helpers ---
 
 /**
- * [Platform Owner] Lists all active Cyberdesk desktops across all tenants.
- * Can be filtered, for example, by tenantId.
- * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {object} [filters={}] - Optional filters to apply, e.g., `{ 'metadata.tenantId': 'tenant-123' }`.
- * @returns {Promise<object>} A promise that resolves with the list of desktops.
- * @throws {ApiError} If the user is not a Platform Owner or if the API call fails.
+ * Checks if the user is a Super Admin (Platform Owner).
+ * @param {UserContext} context The user context.
+ * @returns {boolean}
  */
-const listAllDesktops = async (context, filters = {}) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+const _isSuperAdmin = (context) => context?.role === 'super_admin';
+
+/**
+ * Checks if the user is an Admin for their tenant (Workspace Owner).
+ * @param {UserContext} context The user context.
+ * @returns {boolean}
+ */
+const _isTenantAdmin = (context) => context?.role === 'admin';
+
+/**
+ * Checks if the user is a Manager.
+ * @param {UserContext} context The user context.
+ * @returns {boolean}
+ */
+const _isManager = (context) => context?.role === 'manager';
+
+/**
+ * Centralized authorization check for accessing a desktop resource.
+ * @param {UserContext} context - The context of the user making the request.
+ * @param {object} desktop - The full desktop object from the Cyberdesk API.
+ * @throws {ApiError} If the user is not authorized to access the desktop.
+ */
+const _authorizeDesktopAccess = (context, desktop) => {
+  if (!desktop || !desktop.metadata) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Desktop metadata is missing, cannot perform authorization.');
   }
-  log('INFO', 'Platform Owner: Listing all active Cyberdesk desktops', context, { filters });
-  // Assumes the Cyberdesk SDK has a method `listDesktops` that can accept filters.
+
+  const { tenantId, userId, role, managedUserIds = [] } = context;
+  const { tenantId: desktopTenantId, userId: desktopOwnerId } = desktop.metadata;
+
+  // Rule 1: Super Admins can access anything.
+  if (_isSuperAdmin(context)) {
+    return;
+  }
+
+  // Rule 2: Enforce tenant boundary for all other roles.
+  if (desktopTenantId !== tenantId) {
+    log('WARNING', 'Access denied to desktop belonging to another tenant', context, { desktopId: desktop.id, desktopTenantId });
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. You do not have permission to view this resource.');
+  }
+
+  // Rule 3: Tenant Admins can access any desktop within their tenant.
+  if (_isTenantAdmin(context)) {
+    return;
+  }
+
+  // Rule 4: Managers can access their own desktops and those of their managed users.
+  if (_isManager(context)) {
+    if (desktopOwnerId === userId || managedUserIds.includes(desktopOwnerId)) {
+      return;
+    }
+  }
+
+  // Rule 5: Regular users can only access their own desktops.
+  if (desktopOwnerId === userId) {
+    return;
+  }
+
+  // If none of the above rules match, deny access.
+  log('WARNING', 'Authorization failed for desktop access', context, { desktopId: desktop.id, desktopOwnerId });
+  throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. You do not have permission to perform this action on this resource.');
+};
+
+// --- Super Admin Functions ---
+
+/**
+ * [Super Admin] Helper to list all desktops across all tenants.
+ * @private
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
+ * @param {object} [filters={}] - Optional filters to apply.
+ * @returns {Promise<object>} A promise that resolves with the list of desktops.
+ */
+const _listAllPlatformDesktops = async (context, filters = {}) => {
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
+  }
+  log('INFO', 'Super Admin: Listing all active Cyberdesk desktops', context, { filters });
   const result = await getCyberdeskClient().listDesktops({ query: filters });
 
   if ('error' in result) {
-    log('ERROR', 'Platform Owner: Failed to list desktops', context, { error: result.error });
+    log('ERROR', 'Super Admin: Failed to list desktops', context, { error: result.error });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve desktop list');
   }
   return result;
 };
 
 /**
- * [Platform Owner] Lists all tenants known to the system and their suspension status.
- * In this implementation, "known" tenants are those who have an entry in the suspension state map.
- * A more robust implementation would query a dedicated tenant database.
+ * [Super Admin] Lists all tenants known to the system and their suspension status.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
  * @returns {Promise<Array<object>>} A promise that resolves with a list of tenants and their status.
- * @throws {ApiError} If the user is not a Platform Owner.
+ * @throws {ApiError} If the user is not a Super Admin.
  */
 const listTenants = async (context) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
-  log('INFO', 'Platform Owner: Listing all known tenants and their suspension status', context);
+  log('INFO', 'Super Admin: Listing all known tenants and their suspension status', context);
 
   const tenants = [];
   for (const [tenantId, isSuspended] of tenantSuspensionState.entries()) {
     tenants.push({ tenantId, isSuspended });
   }
-
-  // This is a simple implementation. A real one might also list tenants from a database
-  // who don't have an explicit suspension state (and would be considered active).
   return tenants;
 };
 
 /**
- * [Platform Owner] Retrieves global usage statistics for the Cyberdesk platform.
+ * [Super Admin] Retrieves global usage statistics for the Cyberdesk platform.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
  * @returns {Promise<object>} A promise that resolves with global statistics.
- * @throws {ApiError} If the user is not a Platform Owner or if the API call fails.
+ * @throws {ApiError} If the user is not a Super Admin or if the API call fails.
  */
 const getGlobalStats = async (context) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
-  log('INFO', 'Platform Owner: Fetching global Cyberdesk statistics', context);
-  // Assumes the Cyberdesk SDK has a method for retrieving platform-wide stats.
+  log('INFO', 'Super Admin: Fetching global Cyberdesk statistics', context);
   const result = await getCyberdeskClient().getUsageStatistics();
 
   if ('error' in result) {
-    log('ERROR', 'Platform Owner: Failed to fetch global stats', context, { error: result.error });
+    log('ERROR', 'Super Admin: Failed to fetch global stats', context, { error: result.error });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve global statistics');
   }
   return result;
 };
 
 /**
- * [Platform Owner] Retrieves global logs.
- * NOTE: This is a mock implementation. A real system would query a centralized logging service (e.g., Elasticsearch, Datadog).
+ * [Super Admin] Retrieves global logs.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {object} [filters={}] - Optional filters for the log query (e.g., severity, tenantId).
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
+ * @param {object} [filters={}] - Optional filters for the log query.
  * @returns {Promise<object>} A promise that resolves with a list of log entries.
- * @throws {ApiError} If the user is not a Platform Owner.
+ * @throws {ApiError} If the user is not a Super Admin.
  */
 const getGlobalLogs = async (context, filters = {}) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
-  log('INFO', 'Platform Owner: Querying global logs', context, { filters });
+  log('INFO', 'Super Admin: Querying global logs', context, { filters });
   // This is a mock response. In a real system, you would query your logging backend here.
   return {
     success: true,
@@ -180,166 +249,130 @@ const getGlobalLogs = async (context, filters = {}) => {
       {
         timestamp: new Date().toISOString(),
         severity: 'WARNING',
-        message: 'Platform Owner is updating suspension status for tenant tenant-456',
+        message: 'Super Admin is updating suspension status for tenant tenant-456',
         service: 'CyberdeskService',
-        context: { tenantId: context.tenantId, userId: context.userId, isPlatformOwner: true },
+        context: { tenantId: context.tenantId, userId: context.userId, role: 'super_admin' },
         details: { tenantId: 'tenant-456', isSuspended: true },
-      },
-      {
-        timestamp: new Date().toISOString(),
-        severity: 'INFO',
-        message: 'Cyberdesk desktop launched successfully',
-        service: 'CyberdeskService',
-        context: { tenantId: 'tenant-123', userId: 'user-abc', isPlatformOwner: false },
-        details: { result: { id: 'desktop-xyz' } },
       },
     ],
   };
 };
 
 /**
- * [Platform Owner] Retrieves the current, non-sensitive platform configuration.
- * Sensitive values like the API key will be masked.
+ * [Super Admin] Retrieves the current, non-sensitive platform configuration.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
  * @returns {Promise<object>} A promise that resolves with the current configuration.
- * @throws {ApiError} If the user is not a Platform Owner.
+ * @throws {ApiError} If the user is not a Super Admin.
  */
 const getPlatformConfig = async (context) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
-  log('INFO', 'Platform Owner: Fetching platform configuration', context);
-
-  // Helper to mask sensitive strings for security.
+  log('INFO', 'Super Admin: Fetching platform configuration', context);
   const maskString = (str) => (str ? `${str.substring(0, 4)}...${str.slice(-4)}` : 'Not Set');
-
   return {
     cyberdeskApiKey: maskString(config.cyberdesk_api_key),
     defaultDesktopTimeoutMs: config.cyberdesk_default_timeout_ms || 600000,
-    // Add other relevant config values here as the platform grows.
   };
 };
 
 /**
- * [Platform Owner] Updates system-wide Cyberdesk configuration, such as the API key.
- * Includes a verification step to ensure the new key is valid before applying it.
+ * [Super Admin] Updates system-wide Cyberdesk configuration.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {object} newCyberdeskConfig - The new configuration object. e.g., { apiKey: '...', defaultTimeout: 900000 }
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
+ * @param {object} newCyberdeskConfig - The new configuration object.
  * @returns {Promise<object>} A promise that resolves with a success message.
- * @throws {ApiError} If the user is not a Platform Owner or the new config is invalid.
+ * @throws {ApiError} If the user is not a Super Admin or the new config is invalid.
  */
 const updatePlatformConfig = async (context, newCyberdeskConfig) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
-
-  log('WARNING', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
+  log('WARNING', 'Super Admin: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
 
   if (newCyberdeskConfig.apiKey) {
     try {
-      // Create a temporary client to test the new key without disrupting the current singleton.
       const tempClient = createCyberdeskClient({ apiKey: newCyberdeskConfig.apiKey });
-      // Verification step: Make a low-impact call to verify the new key.
       await tempClient.getUsageStatistics();
-      // If successful, re-initialize the singleton for real.
       getCyberdeskClient.reinitialize(newCyberdeskConfig.apiKey);
-      log('INFO', 'Platform Owner: Cyberdesk client re-initialized with new, verified API key.', context);
+      log('INFO', 'Super Admin: Cyberdesk client re-initialized with new, verified API key.', context);
     } catch (error) {
-      log('ERROR', 'Platform Owner: New API key is invalid. Configuration change rejected.', context, { error: error.message });
+      log('ERROR', 'Super Admin: New API key is invalid. Configuration change rejected.', context, { error: error.message });
       throw new ApiError(httpStatus.BAD_REQUEST, 'The provided API key is invalid. Configuration was not updated.');
     }
   }
-
-  // In a real system, other config values would be persisted to a database or config store.
-  // For example: config.cyberdesk_default_timeout_ms = newCyberdeskConfig.defaultTimeout;
-
   return { success: true, message: 'Platform configuration updated successfully.' };
 };
 
 /**
- * [Platform Owner] Sets the suspension status for a tenant.
- * A suspended tenant cannot launch new desktops.
- * If a tenant is being suspended, all their active desktops will be terminated automatically.
+ * [Super Admin] Sets the suspension status for a tenant.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
  * @param {string} tenantId - The ID of the tenant to suspend or unsuspend.
  * @param {boolean} isSuspended - True to suspend, false to unsuspend.
  * @returns {Promise<object>} A promise that resolves with a summary of the actions taken.
- * @throws {ApiError} If the user is not a Platform Owner.
+ * @throws {ApiError} If the user is not a Super Admin.
  */
 const setTenantSuspensionStatus = async (context, tenantId, isSuspended) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
   if (!tenantId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required.');
   }
 
   const action = isSuspended ? 'suspending' : 'unsuspending';
-  log('WARNING', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
+  log('WARNING', `Super Admin is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
   tenantSuspensionState.set(tenantId, isSuspended);
 
   let terminationResult = null;
-  // If suspending, also terminate all running desktops for that tenant as a security and cost-control measure.
   if (isSuspended) {
     log('INFO', `Automatically terminating all desktops for newly suspended tenant ${tenantId}`, context);
     try {
       terminationResult = await terminateAllDesktopsForTenant(context, tenantId);
     } catch (error) {
-      // Log the error but don't fail the entire suspension operation. The tenant is still marked as suspended.
       log('ERROR', `Failed to automatically terminate desktops for suspended tenant ${tenantId}`, context, { error: error.message });
       terminationResult = { success: false, message: `Termination failed: ${error.message}` };
     }
   }
 
   const message = `Tenant ${tenantId} has been ${isSuspended ? 'suspended' : 'unsuspended'}.`;
-  return {
-    success: true,
-    message,
-    terminationDetails: terminationResult, // Provide details of the automatic termination if it occurred.
-  };
+  return { success: true, message, terminationDetails: terminationResult };
 };
 
 /**
- * [Platform Owner] Terminates all running desktops for a specific tenant.
- * This is a critical function for tenant suspension enforcement or other administrative actions.
+ * [Super Admin] Terminates all running desktops for a specific tenant.
  * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {UserContext} context - The request context. Must have `role: 'super_admin'`.
  * @param {string} tenantIdToTerminate - The ID of the tenant whose desktops will be terminated.
  * @returns {Promise<object>} A promise that resolves with a summary of the termination operations.
- * @throws {ApiError} If the user is not a Platform Owner or if the operation fails.
+ * @throws {ApiError} If the user is not a Super Admin or if the operation fails.
  */
 const terminateAllDesktopsForTenant = async (context, tenantIdToTerminate) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  if (!_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Super Admin privileges.');
   }
   if (!tenantIdToTerminate) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required for this operation.');
   }
 
-  log('WARNING', 'Platform Owner: Initiating termination of all desktops for a tenant', context, { tenantIdToTerminate });
+  log('WARNING', 'Super Admin: Initiating termination of all desktops for a tenant', context, { tenantIdToTerminate });
 
-  // Step 1: List all desktops for the specified tenant using metadata filter.
-  const listResult = await listAllDesktops(context, { 'metadata.tenantId': tenantIdToTerminate });
+  const listResult = await _listAllPlatformDesktops(context, { 'metadata.tenantId': tenantIdToTerminate });
   const desktopsToTerminate = listResult.data;
 
   if (!desktopsToTerminate || desktopsToTerminate.length === 0) {
-    log('INFO', `Platform Owner: No active desktops found for tenant ${tenantIdToTerminate}.`, context);
     return { success: true, message: 'No active desktops found for the specified tenant.', terminatedCount: 0 };
   }
 
-  // Step 2: Terminate each desktop in parallel. The inner `terminateDesktop` call is authorized by the Platform Owner context.
-  const terminationPromises = desktopsToTerminate.map(desktop =>
-    terminateDesktop(context, desktop.id)
-  );
+  const terminationPromises = desktopsToTerminate.map(desktop => terminateDesktop(context, desktop.id));
   const results = await Promise.allSettled(terminationPromises);
 
   const successfulTerminations = results.filter(r => r.status === 'fulfilled').length;
   const failedTerminations = results.length - successfulTerminations;
 
-  log('INFO', `Platform Owner: Termination process completed for tenant ${tenantIdToTerminate}.`, context, {
+  log('INFO', `Super Admin: Termination process completed for tenant ${tenantIdToTerminate}.`, context, {
     totalFound: desktopsToTerminate.length,
     successfulTerminations,
     failedTerminations,
@@ -353,42 +386,77 @@ const terminateAllDesktopsForTenant = async (context, tenantIdToTerminate) => {
   };
 };
 
-// --- Core Service Functions (with Platform Owner enhancements) ---
+// --- Tenant Admin Functions ---
 
 /**
- * Launches a new Cyberdesk virtual desktop instance, with context and overrides for Platform Owners.
+ * [Admin] Retrieves usage statistics for the admin's tenant.
  * @async
- * @param {PlatformContext} context - The request context, containing tenant and user info.
- * @param {object} [options={}] - Optional parameters for launching. Platform Owners can use this to override defaults.
+ * @param {UserContext} context - The request context. Must have `role: 'admin'` or `'super_admin'`.
+ * @returns {Promise<object>} A promise that resolves with tenant-specific statistics.
+ * @throws {ApiError} If the user is not a Tenant Admin or if the API call fails.
+ */
+const getTenantStats = async (context) => {
+  if (!_isTenantAdmin(context) && !_isSuperAdmin(context)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Admin privileges.');
+  }
+  const { tenantId } = context;
+  log('INFO', `Admin: Fetching Cyberdesk statistics for tenant ${tenantId}`, context);
+
+  // Assumes the Cyberdesk SDK allows filtering usage statistics by metadata.
+  const result = await getCyberdeskClient().getUsageStatistics({ query: { 'metadata.tenantId': tenantId } });
+
+  if ('error' in result) {
+    log('ERROR', `Admin: Failed to fetch stats for tenant ${tenantId}`, context, { error: result.error });
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve tenant statistics');
+  }
+  return result;
+};
+
+// --- Core Service Functions (Role-Aware) ---
+
+/**
+ * Launches a new Cyberdesk virtual desktop instance, respecting tenant limits and permissions.
+ * @async
+ * @param {UserContext} context - The request context, containing tenant, user, and role info.
+ * @param {object} [options={}] - Optional parameters for launching.
  * @returns {Promise<object>} A promise that resolves with the result of the desktop launch operation.
- * @throws {ApiError} If the Cyberdesk API returns an error or the tenant is suspended.
+ * @throws {ApiError} If the tenant is suspended, limits are exceeded, or the API returns an error.
  */
 const launchDesktop = async (context, options = {}) => {
-  const { tenantId, userId, isPlatformOwner } = context;
+  const { tenantId, userId, role } = context;
 
-  // Ensure tenant exists in the state map for tracking purposes. Default to not suspended.
-  // This populates the list of known tenants for the `listTenants` admin function.
   if (!tenantSuspensionState.has(tenantId)) {
     tenantSuspensionState.set(tenantId, false);
   }
 
-  // A suspended tenant cannot launch new desktops, but a Platform Owner can override this for administrative purposes.
-  if (tenantSuspensionState.get(tenantId) && !isPlatformOwner) {
+  if (tenantSuspensionState.get(tenantId) && !_isSuperAdmin(context)) {
     log('WARNING', 'Blocked launch attempt from suspended tenant', context);
     throw new ApiError(httpStatus.FORBIDDEN, 'This tenant account is suspended. Please contact support.');
   }
 
-  // Platform Owner can override default settings. Regular tenants use configured limits.
+  const tenantConfig = tenantConfiguration.get(tenantId) || tenantConfiguration.get('default');
+  const canBypassLimits = _isSuperAdmin(context) || _isTenantAdmin(context);
+
+  if (tenantConfig.maxActiveDesktops && !canBypassLimits) {
+    const listResult = await getCyberdeskClient().listDesktops({ query: { 'metadata.tenantId': tenantId } });
+    if ('error' in listResult) {
+      log('ERROR', 'Failed to query active desktops for usage limit check', context, { error: listResult.error });
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Could not verify usage limits. Please try again.');
+    }
+    const activeDesktopsCount = listResult.data?.length || 0;
+
+    if (activeDesktopsCount >= tenantConfig.maxActiveDesktops) {
+      log('WARNING', 'Tenant has reached the maximum active desktop limit.', context, { limit: tenantConfig.maxActiveDesktops, current: activeDesktopsCount });
+      // In a real system, this would trigger a notification to the tenant admin/manager.
+      throw new ApiError(httpStatus.FORBIDDEN, `Your organization has reached the maximum limit of ${tenantConfig.maxActiveDesktops} active desktops.`);
+    }
+  }
+
   const defaultTimeout = config.cyberdesk_default_timeout_ms || 600000;
   const body = {
-    timeout_ms: isPlatformOwner && options.timeout_ms ? options.timeout_ms : defaultTimeout,
-    // Pass tenant and user info as metadata for global oversight, filtering, and billing/tracking.
-    metadata: {
-      tenantId,
-      userId,
-    },
-    // Allow platform owner to specify other advanced options not available to tenants.
-    ...(isPlatformOwner && options.advanced ? options.advanced : {}),
+    timeout_ms: _isSuperAdmin(context) && options.timeout_ms ? options.timeout_ms : defaultTimeout,
+    metadata: { tenantId, userId, role },
+    ...(_isSuperAdmin(context) && options.advanced ? options.advanced : {}),
   };
 
   log('INFO', 'Attempting to launch Cyberdesk desktop', context, { body });
@@ -404,10 +472,45 @@ const launchDesktop = async (context, options = {}) => {
 };
 
 /**
- * Retrieves information about a specific Cyberdesk virtual desktop.
- * Enforces tenant isolation but allows Platform Owners to view any desktop.
+ * Lists active Cyberdesk desktops based on user role and permissions.
  * @async
- * @param {PlatformContext} context - The request context for logging and authorization checks.
+ * @param {UserContext} context - The user's context, including role and managed users.
+ * @param {object} [filters={}] - Optional filters to apply. Security filters cannot be overridden by non-admins.
+ * @returns {Promise<object>} A promise that resolves with the list of desktops.
+ */
+const listDesktops = async (context, filters = {}) => {
+  const { tenantId, userId, role, managedUserIds = [] } = context;
+  let securityFilters = {};
+
+  if (_isSuperAdmin(context)) {
+    securityFilters = { ...filters };
+    log('INFO', 'Super Admin: Listing desktops for platform', context, { filters });
+  } else if (_isTenantAdmin(context)) {
+    securityFilters = { ...filters, 'metadata.tenantId': tenantId };
+    log('INFO', 'Admin: Listing desktops for tenant', context, { filters });
+  } else if (_isManager(context)) {
+    const userIdsToQuery = [userId, ...managedUserIds];
+    // This assumes the SDK supports an `$in` operator or similar for querying multiple values.
+    securityFilters = { ...filters, 'metadata.tenantId': tenantId, 'metadata.userId': { $in: userIdsToQuery } };
+    log('INFO', 'Manager: Listing desktops for self and managed users', context, { filters });
+  } else {
+    securityFilters = { ...filters, 'metadata.tenantId': tenantId, 'metadata.userId': userId };
+    log('INFO', 'User: Listing own desktops', context, { filters });
+  }
+
+  const result = await getCyberdeskClient().listDesktops({ query: securityFilters });
+
+  if ('error' in result) {
+    log('ERROR', 'Failed to list desktops', context, { error: result.error, filters: securityFilters });
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve desktop list');
+  }
+  return result;
+};
+
+/**
+ * Retrieves information about a specific Cyberdesk virtual desktop, enforcing role-based access control.
+ * @async
+ * @param {UserContext} context - The request context for logging and authorization checks.
  * @param {string} desktopId - The unique identifier of the desktop.
  * @returns {Promise<object>} A promise that resolves with the desktop's information.
  * @throws {ApiError} If the desktop is not found, an API error occurs, or the user is not authorized.
@@ -421,21 +524,15 @@ const getDesktopInfo = async (context, desktopId) => {
     throw new ApiError(httpStatus.NOT_FOUND, result.error.message || 'Desktop not found');
   }
 
-  // Authorization check: Ensure the desktop belongs to the tenant, unless the user is a Platform Owner.
-  const desktopTenantId = result?.data?.metadata?.tenantId;
-  if (!context.isPlatformOwner && desktopTenantId !== context.tenantId) {
-    log('WARNING', 'Access denied to desktop belonging to another tenant', context, { desktopId, desktopTenantId });
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. You do not have permission to view this desktop.');
-  }
+  _authorizeDesktopAccess(context, result.data);
 
   return result;
 };
 
 /**
  * Performs a mouse click action within a specified Cyberdesk virtual desktop.
- * Platform Owners can perform this action on any desktop.
  * @async
- * @param {PlatformContext} context - The request context for logging and authorization.
+ * @param {UserContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop.
  * @param {number} x - The X-coordinate for the mouse click.
  * @param {number} y - The Y-coordinate for the mouse click.
@@ -443,7 +540,6 @@ const getDesktopInfo = async (context, desktopId) => {
  * @throws {ApiError} If the API returns an error or the user is not authorized.
  */
 const clickMouse = async (context, desktopId, x, y) => {
-  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
   await getDesktopInfo(context, desktopId);
 
   log('INFO', 'Executing mouse click', context, { desktopId, x, y });
@@ -459,18 +555,23 @@ const clickMouse = async (context, desktopId, x, y) => {
 };
 
 /**
- * Executes a bash command within a specified Cyberdesk virtual desktop.
- * Platform Owners can perform this action on any desktop.
+ * Executes a bash command within a specified Cyberdesk virtual desktop, respecting tenant policies.
  * @async
- * @param {PlatformContext} context - The request context for logging and authorization.
+ * @param {UserContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop.
  * @param {string} command - The bash command string to execute.
  * @returns {Promise<object>} A promise that resolves with the command execution result.
- * @throws {ApiError} If the API returns an error or the user is not authorized.
+ * @throws {ApiError} If the API returns an error, the user is not authorized, or bash is disabled for the tenant.
  */
 const executeBash = async (context, desktopId, command) => {
-  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
-  await getDesktopInfo(context, desktopId);
+  const desktopInfoResult = await getDesktopInfo(context, desktopId);
+  const desktop = desktopInfoResult.data;
+
+  const tenantConfig = tenantConfiguration.get(desktop.metadata.tenantId) || tenantConfiguration.get('default');
+  if (!tenantConfig.allowBashAccess && !_isSuperAdmin(context)) {
+    log('WARNING', 'User attempted to execute bash command, but it is disabled for the tenant.', context, { desktopId });
+    throw new ApiError(httpStatus.FORBIDDEN, 'Bash access is disabled for your organization.');
+  }
 
   log('INFO', 'Executing bash command', context, { desktopId, command });
   const result = await getCyberdeskClient().executeBashAction({
@@ -486,15 +587,13 @@ const executeBash = async (context, desktopId, command) => {
 
 /**
  * Terminates a running Cyberdesk virtual desktop instance.
- * Platform Owners can perform this action on any desktop.
  * @async
- * @param {PlatformContext} context - The request context for logging and authorization.
+ * @param {UserContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop to terminate.
  * @returns {Promise<object>} A promise that resolves with the termination operation result.
  * @throws {ApiError} If the API returns an error or the user is not authorized.
  */
 const terminateDesktop = async (context, desktopId) => {
-  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
   await getDesktopInfo(context, desktopId);
 
   log('INFO', 'Terminating Cyberdesk desktop', context, { desktopId });
@@ -506,25 +605,20 @@ const terminateDesktop = async (context, desktopId) => {
   return result;
 };
 
-/**
- * @namespace cyberdeskService
- * @description Provides a collection of functions for interacting with the Cyberdesk API,
- * including standard user operations and enhanced features for Platform Owners.
- */
 export const cyberdeskService = {
-  // Platform Owner Features (Oversight)
-  listAllDesktops,
+  // Super Admin (Platform) Features
   listTenants,
   getGlobalStats,
   getGlobalLogs,
-  // Platform Owner Features (Configuration)
   getPlatformConfig,
   updatePlatformConfig,
-  // Platform Owner Features (Tenant Management)
   setTenantSuspensionStatus,
   terminateAllDesktopsForTenant,
-  // Standard Features (with Platform Owner overrides)
+  // Tenant Admin Features
+  getTenantStats,
+  // Role-Aware Core Features
   launchDesktop,
+  listDesktops,
   getDesktopInfo,
   clickMouse,
   executeBash,

@@ -162,6 +162,10 @@ export const getVectorSearchResults = async (query, topK = 5, apps) => {
   console.log('Vector length:', vector.length);
   console.log(vector.slice(0, 5));
   console.log('Apps filter:', apps);
+
+  // OPTIMIZATION: For this query to be performant, the 'vector_index' in Atlas Search
+  // should be configured to allow filtering on the 'appName' field (e.g., as a 'token' or 'string' type).
+  // This ensures the $in operator can efficiently pre-filter documents before the vector search phase.
   const result = await Tool.aggregate([
     {
       $vectorSearch: {
@@ -375,19 +379,19 @@ const validateToolArgs = (args, schema) => {
 };
 
 // MANAGER PLATFORM IMPROVEMENT: Placeholder for a service that checks user permissions.
-// In a real application, this would query a database or an authentication/authorization service (e.g., Auth0, Okta).
-async function hasPermission(entityId, toolSlug) {
-  // TODO: Implement actual role-based access control (RBAC) logic.
+// In a real application, this would query a database or an authentication/authorization service.
+// OPTIMIZATION: This function is now synchronous and accepts a pre-fetched context
+// to avoid making a separate database call for each permission check within a loop.
+function hasPermission(entityContext, toolSlug) {
+  // TODO: Implement actual role-based access control (RBAC) logic based on the context.
   // This function is critical for ensuring managers can perform actions (like inviting users)
   // that regular members cannot.
-  // Example:
-  // 1. Fetch user/role details from your database using `entityId`.
-  // 2. Check a permissions table to see if the user's role is allowed to use `toolSlug`.
-  console.log(`[RBAC] Checking permission for entity '${entityId}' to use tool '${toolSlug}'.`);
-  // This is a simplified placeholder. A real implementation would be more robust.
-  // For example, a manager's entityId might be prefixed or their role stored in a DB.
-  const isManager = entityId.includes('manager');
-  if (isManager) return true; // Managers can do anything in this example.
+  console.log(`[RBAC] Checking permission for entity '${entityContext.id}' with role '${entityContext.role}' to use tool '${toolSlug}'.`);
+  
+  // A real implementation would be more robust, checking a permissions map against the role.
+  if (entityContext.role === 'manager') {
+    return true; // Managers can do anything in this example.
+  }
 
   // Prevent non-managers from performing sensitive or management-related tasks.
   if (toolSlug.includes('invite') || toolSlug.includes('delete') || toolSlug.includes('update_role')) {
@@ -397,24 +401,48 @@ async function hasPermission(entityId, toolSlug) {
 }
 
 // MANAGER PLATFORM IMPROVEMENT: Placeholder for a service that checks usage against plan limits.
-// In a real application, this would connect to a billing/subscription management system (e.g., Stripe).
-async function checkUsageLimits(entityId, requestedExecutions) {
-    // TODO: Implement actual usage and quota checking logic.
+// In a real application, this would connect to a billing/subscription management system.
+// OPTIMIZATION: This function is now synchronous and accepts a pre-fetched context
+// to avoid a separate database call for each usage check.
+function checkUsageLimits(entityContext, requestedExecutions) {
+    // TODO: Implement actual usage and quota checking logic based on the context.
     // This function ensures that workspaces do not exceed their subscribed plan limits.
-    // Example:
-    // 1. Fetch the workspace's plan and current monthly usage from your database using `entityId`.
-    // 2. Compare `current_usage + requestedExecutions` against the `plan_limit`.
-    console.log(`[Usage] Checking if entity '${entityId}' can execute ${requestedExecutions} more tools.`);
-    // For now, we'll use a simple hardcoded limit for demonstration.
-    const usage = 50; // Example: Fetched from DB
-    const limit = 100; // Example: Fetched from DB based on plan
-    if (usage + requestedExecutions > limit) {
+    console.log(`[Usage] Checking if entity '${entityContext.id}' can execute ${requestedExecutions} more tools.`);
+    
+    const { current, limit } = entityContext.usage;
+    if (current + requestedExecutions > limit) {
         return {
             allowed: false,
-            reason: `Execution limit exceeded. Plan allows ${limit} executions, but this request would bring usage to ${usage + requestedExecutions}.`
+            reason: `Execution limit exceeded. Plan allows ${limit} executions, but this request would bring usage to ${current + requestedExecutions}.`
         };
     }
     return { allowed: true };
+}
+
+// OPTIMIZATION (N+1 Query): This helper function centralizes fetching all necessary
+// data for a given entity (user/tenant) in a single operation. This context object
+// is then passed to other functions to prevent multiple, redundant database queries
+// within a single request, such as inside a loop.
+async function getEntityContext(entityId) {
+    // TODO: Implement actual data fetching from the database.
+    // This function should fetch all necessary user/tenant information in a single query.
+    // Example: Fetch user role, plan details, and current usage stats from User and Tenant collections.
+    console.log(`[Context] Fetching context for entity '${entityId}'...`);
+    
+    // Simulating a database call that returns a comprehensive context object.
+    // In a real scenario, this would be an async DB query:
+    // const user = await User.findOne({ entityId }).select('role planId').lean();
+    // const tenant = await Tenant.findOne({ planId: user.planId }).select('usageLimit currentUsage').lean();
+    const isManager = entityId.includes('manager');
+    return {
+        id: entityId,
+        role: isManager ? 'manager' : 'member',
+        usage: {
+            current: 50, // Example: Fetched from DB
+            limit: 100,  // Example: Fetched from DB based on plan
+        },
+        // Add other relevant details like tenantId, plan type, etc.
+    };
 }
 
 /**
@@ -447,9 +475,13 @@ export async function executeMultipleTools(
     }));
   }
 
+  // OPTIMIZATION (N+1 Query): Fetch user/tenant context once before the loop
+  // to avoid repeated database calls for permissions and usage checks inside the loop.
+  const entityContext = await getEntityContext(entityId);
+
   // MANAGER PLATFORM IMPROVEMENT: Enforce plan limits before execution.
-  // This prevents users from exceeding their subscribed quota for tool executions.
-  const usageCheck = await checkUsageLimits(entityId, functionCalls.length);
+  // This check now uses the pre-fetched context.
+  const usageCheck = checkUsageLimits(entityContext, functionCalls.length);
   if (!usageCheck.allowed) {
     console.error(`[Usage] Entity '${entityId}' exceeded plan limits. Reason: ${usageCheck.reason}`);
     return functionCalls.map((funcCall) => ({
@@ -489,9 +521,8 @@ export async function executeMultipleTools(
     }
 
     // MANAGER PLATFORM IMPROVEMENT: Enforce Role-Based Access Control (RBAC) for each tool.
-    // This ensures that users (e.g., members vs. managers) can only execute tools
-    // they are authorized to use, preventing unauthorized invitations, role changes, etc.
-    const isAuthorized = await hasPermission(entityId, functionCall.name);
+    // This check now uses the pre-fetched context, avoiding a DB call in the loop.
+    const isAuthorized = hasPermission(entityContext, functionCall.name);
     if (!isAuthorized) {
       console.warn(
         `[RBAC] Authorization DENIED for entity '${entityId}' to use tool '${functionCall.name}'. Skipping.`

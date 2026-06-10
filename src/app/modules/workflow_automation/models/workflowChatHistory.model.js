@@ -35,6 +35,7 @@ const ChatMessageSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
+    trim: true, // Trim whitespace from content
   },
   /**
    * The timestamp when the message was created.
@@ -52,21 +53,22 @@ const ChatMessageSchema = new mongoose.Schema({
    */
   metadata: {
     type: Object,
-    default: {},
+    default: () => ({}), // Use a function for the default to prevent sharing the same object reference
   },
 });
 
 /**
  * @typedef {object} WorkflowChatHistoryMetadata
  * @property {string} [userIntent] - The detected intent of the user's initial query.
- * @property {object} [extractedEntities] - Key-value pairs of entities extracted from the conversation.
+ * @property {Map<string, any>} [extractedEntities] - Key-value pairs of entities extracted from the conversation.
  * @property {string[]} [detectedApps] - List of applications detected or involved in the workflow.
  * @property {string} [workflowType] - The type of workflow initiated (e.g., 'task_automation', 'information_retrieval').
- * @property {string} [complexity] - An indicator of the complexity of the workflow (e.g., 'simple', 'medium', 'complex').
+ * @property {'simple'|'medium'|'complex'|'unknown'} [complexity] - An indicator of the complexity of the workflow.
  */
 
 /**
  * @typedef {object} WorkflowChatHistory
+ * @property {mongoose.Types.ObjectId} workspaceId - The ID of the workspace this chat history belongs to.
  * @property {mongoose.Types.ObjectId} userId - The ID of the user who owns this chat history.
  * @property {string} conversationId - A unique identifier for the conversation.
  * @property {string} [title] - A user-friendly title for the conversation.
@@ -81,35 +83,47 @@ const ChatMessageSchema = new mongoose.Schema({
  */
 /**
  * Mongoose Schema for storing the history of a workflow-driven chat conversation.
- * This schema tracks messages, associated workflows, context, and metadata for each conversation.
+ * This schema tracks messages, associated workflows, context, and metadata for each conversation,
+ * and is linked to a workspace for billing and limit management.
  */
 const WorkflowChatHistorySchema = new mongoose.Schema(
   {
+    /**
+     * The ID of the workspace this chat history belongs to.
+     * Essential for multi-tenancy, billing, and applying limits.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @required
+     * @index
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true,
+    },
     /**
      * The ID of the user who owns this chat history.
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref User
      * @required
-     * @index
      */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     /**
      * A unique identifier for the conversation.
      * @type {string}
      * @required
      * @unique
-     * @index
      */
     conversationId: {
       type: String,
       required: true,
       unique: true,
-      index: true,
+      index: true, // A unique index is automatically created, but explicit is fine.
     },
     /**
      * A user-friendly title for the conversation.
@@ -143,7 +157,7 @@ const WorkflowChatHistorySchema = new mongoose.Schema(
      */
     context: {
       type: Object,
-      default: {}, // Store conversation context and state
+      default: () => ({}), // Use a function for the default to prevent sharing the same object reference
     },
     /**
      * The current status of the conversation.
@@ -157,69 +171,66 @@ const WorkflowChatHistorySchema = new mongoose.Schema(
     },
     /**
      * The timestamp of the last activity in the conversation.
+     * This is automatically updated by the `timestamps` option.
      * @type {Date}
-     * @default Date.now
      */
     lastActivity: {
       type: Date,
       default: Date.now,
     },
     /**
-     * Structured metadata about the conversation.
+     * Structured metadata about the conversation for analytics and improved processing.
      * @type {WorkflowChatHistoryMetadata}
      */
     metadata: {
-      /**
-       * The detected intent of the user's initial query.
-       * @type {string}
-       */
-      userIntent: String,
-      /**
-       * Key-value pairs of entities extracted from the conversation.
-       * @type {object}
-       */
-      extractedEntities: Object,
-      /**
-       * List of applications detected or involved in the workflow.
-       * @type {string[]}
-       */
-      detectedApps: [String],
-      /**
-       * The type of workflow initiated (e.g., 'task_automation', 'information_retrieval').
-       * @type {string}
-       */
-      workflowType: String,
-      /**
-       * An indicator of the complexity of the workflow (e.g., 'simple', 'medium', 'complex').
-       * @type {string}
-       */
-      complexity: String,
+      type: {
+        userIntent: { type: String, trim: true },
+        extractedEntities: { type: Map, of: mongoose.Schema.Types.Mixed },
+        detectedApps: [{ type: String, trim: true }],
+        workflowType: { type: String, trim: true },
+        complexity: {
+          type: String,
+          enum: ['simple', 'medium', 'complex', 'unknown'],
+          default: 'unknown',
+        },
+      },
+      default: () => ({}),
     },
   },
   {
     /**
      * Automatically adds `createdAt` and `updatedAt` timestamps to the document.
+     * `updatedAt` can serve as `lastActivity`.
      */
     timestamps: true,
   }
 );
 
-// Indexes for efficient querying
+// Middleware to update `lastActivity` on any save operation.
+// While `timestamps.updatedAt` can be used, an explicit `lastActivity` field
+// can be useful if you want to control its update logic separately in the future.
+WorkflowChatHistorySchema.pre('save', function (next) {
+  if (this.isModified()) {
+    this.lastActivity = new Date();
+  }
+  next();
+});
+
+// Indexes for efficient querying, optimized for a workspace-centric architecture.
 /**
- * Index for querying chat histories by user and sorting by last activity.
+ * Index for querying chat histories within a workspace, sorted by recent activity.
+ * Crucial for displaying conversation lists for a workspace.
  * @index
  */
-WorkflowChatHistorySchema.index({ userId: 1, lastActivity: -1 });
+WorkflowChatHistorySchema.index({ workspaceId: 1, lastActivity: -1 });
+
 /**
- * Index for querying chat histories by conversation ID.
+ * Compound index for filtering conversations by user and status within a workspace.
+ * Supports common filtering operations in the application UI.
  * @index
  */
-WorkflowChatHistorySchema.index({ conversationId: 1 });
-/**
- * Index for querying chat histories by user and status.
- * @index
- */
-WorkflowChatHistorySchema.index({ userId: 1, status: 1 });
+WorkflowChatHistorySchema.index({ workspaceId: 1, userId: 1, status: 1 });
+
 
 /**
  * Represents the Mongoose model for workflow chat history.
