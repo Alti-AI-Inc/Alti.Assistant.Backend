@@ -90,18 +90,22 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/assistant',
+  // Rate limit for the core AI interaction endpoint.
+  // Allows 20 requests per 15 minutes per user/IP.
+  createRateLimiter(20, 15),
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
   checkStorageLimit,
   uploadReportFiles,
   checkRAGFeature,
-  // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(ReportValidation.conversationalRequestSchema),
   reportController.conversationalAssistant
 );
@@ -142,14 +146,18 @@ router.post(
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/generate',
+  // Stricter rate limit for direct, potentially heavy, report generation.
+  // Allows 10 generations per 15 minutes per user/IP.
+  createRateLimiter(10, 15),
   optionalAuth(),
   extractTenantContext,
-  // createRateLimiter(10, 15), // 10 generations per 15 minutes
   validateRequest(ReportValidation.generateReportSchema),
   reportController.generateReport
 );
@@ -204,17 +212,21 @@ router.post(
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/analyze',
+  // Rate limit for file analysis, another resource-intensive operation.
+  // Allows 15 requests per 15 minutes per user/IP.
+  createRateLimiter(15, 15),
   optionalAuth(),
   checkDailyRequestLimit,
   checkStorageLimit,
   uploadReportFiles,
   checkRAGFeature,
-  // createRateLimiter(15, 15), // 15 requests per 15 minutes
   validateRequest(ReportValidation.analyzeFilesSchema),
   reportController.analyzeFiles
 );
@@ -244,10 +256,18 @@ router.post(
  *               format: binary
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/download/:filename', reportController.downloadReport);
+router.get(
+  '/download/:filename',
+  // Protects against bandwidth abuse on the public download endpoint.
+  // Allows 30 downloads per minute per IP.
+  createRateLimiter(30, 1),
+  reportController.downloadReport
+);
 
 /**
  * @swagger
@@ -294,11 +314,16 @@ router.get('/download/:filename', reportController.downloadReport);
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/export',
+  // Rate limit for the authenticated, resource-intensive export feature.
+  // Allows 10 exports per 15 minutes per user.
+  createRateLimiter(10, 15),
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ReportValidation.exportReportSchema),
   reportController.exportReport
@@ -344,11 +369,16 @@ router.post(
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.get(
   '/:reportId',
+  // Standard rate limit for authenticated GET endpoints to prevent API abuse.
+  // Allows 60 requests per minute per user.
+  createRateLimiter(60, 1),
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ReportValidation.getReportSchema),
   reportController.getReport
@@ -421,11 +451,16 @@ router.get(
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.get(
   '/',
+  // Standard rate limit for authenticated list endpoints.
+  // Allows 60 requests per minute per user.
+  createRateLimiter(60, 1),
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ReportValidation.listReportsSchema),
   reportController.listReports
@@ -471,11 +506,16 @@ router.get(
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/modify',
+  // Standard rate limit for authenticated write operations.
+  // Allows 60 requests per minute per user.
+  createRateLimiter(60, 1),
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ReportValidation.modifyReportSchema),
   reportController.modifyReport

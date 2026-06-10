@@ -108,23 +108,21 @@ const fileSchema = new mongoose.Schema(
      * The ID of the knowledge bot this file belongs to.
      * @type {string}
      * @required
-     * @index
      */
     knowledgebotId: {
       type: String,
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index. This field is the first key in a compound index.
     },
     /**
      * The ID of the user who uploaded or owns this file.
      * @type {string}
      * @required
-     * @index
      */
     userId: {
       type: String,
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index. This field is the first key in a compound index.
     },
     /**
      * An optional title for the file, distinct from its file name.
@@ -170,13 +168,12 @@ const fileSchema = new mongoose.Schema(
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Tenant
      * @default null
-     * @index
      */
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       default: null,
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index. This field is the first key in a compound index.
     },
   },
   {
@@ -210,12 +207,14 @@ const fileSchema = new mongoose.Schema(
 
 /**
  * Indexes for faster queries.
- * Optimized compound indexes to support filtering and sorting without in-memory filesort.
+ * Optimized compound indexes to support common filtering and sorting patterns efficiently.
+ * MongoDB can use a prefix of a compound index, so single-field indexes on `knowledgebotId`, `userId`, and `tenantId` are redundant.
  */
 fileSchema.index({ knowledgebotId: 1, isActive: 1, createdAt: -1 });
 fileSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
 fileSchema.index({ userId: 1, knowledgebotId: 1, isActive: 1, createdAt: -1 });
 fileSchema.index({ tenantId: 1, isActive: 1, createdAt: -1 });
+// This index supports queries for the most recent files across the entire collection, without other filters.
 fileSchema.index({ createdAt: -1 });
 
 /**
@@ -237,7 +236,7 @@ fileSchema.virtual('formattedFileSize').get(function () {
  *
  * @param {string} knowledgebotId - The ID of the knowledge bot.
  * @param {boolean} [activeOnly=true] - If true, only returns active files.
- * @returns {Promise<Array<FileSchema>>} A promise that resolves to an array of file documents.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of plain JavaScript objects.
  */
 fileSchema.statics.findByKnowledgebotId = async function (
   knowledgebotId,
@@ -247,7 +246,9 @@ fileSchema.statics.findByKnowledgebotId = async function (
   if (activeOnly) {
     query.isActive = true;
   }
-  return this.find(query).sort({ createdAt: -1 });
+  // OPTIMIZATION: Added .lean() for performance. It returns plain JS objects instead of full Mongoose documents,
+  // which is significantly faster for read-only operations as it avoids the overhead of object hydration.
+  return this.find(query).sort({ createdAt: -1 }).lean();
 };
 
 /**
@@ -255,14 +256,31 @@ fileSchema.statics.findByKnowledgebotId = async function (
  *
  * @param {string} userId - The ID of the user.
  * @param {boolean} [activeOnly=true] - If true, only returns active files.
- * @returns {Promise<Array<FileSchema>>} A promise that resolves to an array of file documents.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of plain JavaScript objects.
  */
 fileSchema.statics.findByUserId = async function (userId, activeOnly = true) {
   const query = { userId };
   if (activeOnly) {
     query.isActive = true;
   }
-  return this.find(query).sort({ createdAt: -1 });
+  // OPTIMIZATION: Added .lean() for performance.
+  return this.find(query).sort({ createdAt: -1 }).lean();
+};
+
+/**
+ * Static method to find files for a specific tenant.
+ *
+ * @param {string|mongoose.Types.ObjectId} tenantId - The ID of the tenant.
+ * @param {boolean} [activeOnly=true] - If true, only returns active files.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of plain JavaScript objects.
+ */
+fileSchema.statics.findByTenantId = async function (tenantId, activeOnly = true) {
+  const query = { tenantId };
+  if (activeOnly) {
+    query.isActive = true;
+  }
+  // OPTIMIZATION: Added .lean() for performance. This method leverages the compound index on {tenantId, isActive, createdAt}.
+  return this.find(query).sort({ createdAt: -1 }).lean();
 };
 
 /**
@@ -271,7 +289,7 @@ fileSchema.statics.findByUserId = async function (userId, activeOnly = true) {
  * @param {string} userId - The ID of the user.
  * @param {string} knowledgebotId - The ID of the knowledge bot.
  * @param {boolean} [activeOnly=true] - If true, only returns active files.
- * @returns {Promise<Array<FileSchema>>} A promise that resolves to an array of file documents.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of plain JavaScript objects.
  */
 fileSchema.statics.findByUserAndKnowledgebot = async function (
   userId,
@@ -282,7 +300,8 @@ fileSchema.statics.findByUserAndKnowledgebot = async function (
   if (activeOnly) {
     query.isActive = true;
   }
-  return this.find(query).sort({ createdAt: -1 });
+  // OPTIMIZATION: Added .lean() for performance.
+  return this.find(query).sort({ createdAt: -1 }).lean();
 };
 
 /**
