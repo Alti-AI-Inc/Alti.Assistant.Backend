@@ -6,12 +6,20 @@
  */
 import express from 'express';
 import { workflowController } from '../controllers/workflow.controller.js';
+import { authenticate } from '../../../../middlewares/auth.middleware.js';
+import { authorizeRoles } from '../../../../middlewares/role.middleware.js';
+import { validateTenant } from '../../../../middlewares/tenant.middleware.js';
+import { trackUsage } from '../../../../middlewares/usage.middleware.js';
 
 /**
  * Express router to handle workflow-related API requests.
  * @type {express.Router}
  */
 const router = express.Router();
+
+// Apply global authentication and tenant validation to all workflow routes
+router.use(authenticate);
+router.use(validateTenant);
 
 // Workflow Management Routes
 
@@ -103,7 +111,12 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized.
  */
-router.post('/', workflowController.createWorkflowController);
+router.post(
+  '/',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  trackUsage('create_workflow'),
+  workflowController.createWorkflowController
+);
 
 /**
  * @swagger
@@ -156,7 +169,11 @@ router.post('/', workflowController.createWorkflowController);
  *       401:
  *         description: Unauthorized.
  */
-router.get('/', workflowController.getUserWorkflowsController);
+router.get(
+  '/',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  workflowController.getUserWorkflowsController
+);
 
 // BUG FIX: Reordered routes to ensure more specific paths are matched before more general ones.
 // The route '/executions/:executionId' and '/:workflowId/executions' are more specific
@@ -211,6 +228,7 @@ router.get('/', workflowController.getUserWorkflowsController);
  */
 router.get(
   '/:workflowId/executions',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
   workflowController.getWorkflowExecutionsController
 );
 
@@ -254,6 +272,7 @@ router.get(
  */
 router.get(
   '/executions/:executionId',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
   workflowController.getExecutionController
 );
 
@@ -295,7 +314,11 @@ router.get(
  *       404:
  *         description: Workflow not found.
  */
-router.get('/:workflowId', workflowController.getWorkflowController);
+router.get(
+  '/:workflowId',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  workflowController.getWorkflowController
+);
 
 /**
  * @swagger
@@ -366,7 +389,12 @@ router.get('/:workflowId', workflowController.getWorkflowController);
  *       404:
  *         description: Workflow not found.
  */
-router.put('/:workflowId', workflowController.updateWorkflowController);
+router.put(
+  '/:workflowId',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  trackUsage('update_workflow'),
+  workflowController.updateWorkflowController
+);
 
 /**
  * @swagger
@@ -388,13 +416,18 @@ router.put('/:workflowId', workflowController.updateWorkflowController);
  *         example: "wf-12345"
  *     responses:
  *       204:
-         description: Workflow deleted successfully.
+ *         description: Workflow deleted successfully.
  *       401:
  *         description: Unauthorized.
  *       404:
  *         description: Workflow not found.
  */
-router.delete('/:workflowId', workflowController.deleteWorkflowController);
+router.delete(
+  '/:workflowId',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  trackUsage('delete_workflow'),
+  workflowController.deleteWorkflowController
+);
 
 // Workflow Execution Routes
 
@@ -437,6 +470,8 @@ router.delete('/:workflowId', workflowController.deleteWorkflowController);
  */
 router.post(
   '/:workflowId/trigger',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  trackUsage('execute_workflow'),
   workflowController.triggerWorkflowController
 );
 
@@ -475,7 +510,11 @@ router.post(
  *       409:
  *         description: Workflow is already paused or cannot be paused.
  */
-router.post('/:workflowId/pause', workflowController.pauseWorkflowController);
+router.post(
+  '/:workflowId/pause',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  workflowController.pauseWorkflowController
+);
 
 /**
  * @swagger
@@ -512,7 +551,11 @@ router.post('/:workflowId/pause', workflowController.pauseWorkflowController);
  *       409:
  *         description: Workflow is not paused or cannot be resumed.
  */
-router.post('/:workflowId/resume', workflowController.resumeWorkflowController);
+router.post(
+  '/:workflowId/resume',
+  authorizeRoles('super_admin', 'admin', 'manager', 'user'),
+  workflowController.resumeWorkflowController
+);
 
 
 /**
