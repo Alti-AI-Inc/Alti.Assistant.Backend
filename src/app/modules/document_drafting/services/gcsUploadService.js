@@ -1,5 +1,4 @@
 import { Storage } from '@google-cloud/storage';
-import fs from 'fs';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
 import { GCS_CONFIG } from '../document.constant.js';
@@ -9,18 +8,16 @@ let storage;
 let bucket;
 
 try {
-  if (GCS_CONFIG.KEY_FILE && fs.existsSync(GCS_CONFIG.KEY_FILE)) {
-    storage = new Storage({
-      keyFilename: GCS_CONFIG.KEY_FILE,
-      projectId: GCS_CONFIG.PROJECT_ID,
-    });
-  } else if (GCS_CONFIG.PROJECT_ID) {
+  // In a stateless container environment, authentication is best handled via
+  // the environment's attached service account. The client library automatically
+  // detects these credentials. We avoid referencing local key files.
+  if (GCS_CONFIG.PROJECT_ID) {
     storage = new Storage({
       projectId: GCS_CONFIG.PROJECT_ID,
     });
   } else {
     logger.warn(
-      'GCS credentials not configured. Document uploads will be stored locally only.'
+      'GCS_PROJECT_ID not configured. GCS services will be unavailable.'
     );
   }
 
@@ -32,31 +29,84 @@ try {
 }
 
 /**
- * Upload document file to Google Cloud Storage
+ * Generates a v4 signed URL for uploading a file directly from the client.
+ * This is the recommended approach for stateless services, as the backend
+ * only brokers the transaction and never handles the file content itself.
+ * @param {string} fileName - The name of the file to be uploaded.
+ * @param {string} contentType - The MIME type of the file (e.g., 'application/pdf').
+ * @param {object} documentMetadata - Metadata like userId, documentType, etc.
+ * @returns {Promise<object>} An object containing the signed URL and the destination path.
  */
-export const uploadDocumentToGCS = async (
-  localFilePath,
+export const generateV4UploadSignedUrl = async (
+  fileName,
+  contentType,
   documentMetadata = {}
 ) => {
+  if (!storage || !bucket) {
+    const errorMsg = 'GCS not configured. Cannot generate signed URL.';
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const destination = `${GCS_CONFIG.FOLDER_PREFIX}${documentMetadata.userId || 'anonymous'}/${Date.now()}-${fileName}`;
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType: contentType,
+    extensionHeaders: {
+      // Custom metadata must be prefixed with 'x-goog-meta-' in the signed URL headers
+      'x-goog-meta-documenttype': documentMetadata.documentType || 'general',
+      'x-goog-meta-uploadedat': new Date().toISOString(),
+      'x-goog-meta-userid': documentMetadata.userId || 'anonymous',
+      'x-goog-meta-title': documentMetadata.title || 'Untitled',
+    },
+  };
+
   try {
+    const [url] = await bucket.file(destination).getSignedUrl(options);
+    logger.info(`Generated v4 signed URL for: ${destination}`);
+    return {
+      success: true,
+      url,
+      gcsPath: `gs://${GCS_CONFIG.BUCKET_NAME}/${destination}`,
+      destination,
+      storageType: 'gcs',
+    };
+  } catch (error) {
+    logger.error('Error generating v4 signed URL:', error);
+    throw new Error('Could not generate upload URL.');
+  }
+};
+
+/**
+ * Uploads a file to GCS from a readable stream (e.g., from memory or another stream).
+ * This avoids writing to the local filesystem, which is critical for stateless containers.
+ * Use this when the backend must process or generate the file content before upload.
+ * @param {ReadableStream} fileStream - The readable stream of the file content.
+ * @param {string} fileName - The desired file name in the bucket.
+ * @param {object} documentMetadata - Metadata like userId, documentType, etc.
+ * @returns {Promise<object>} A promise that resolves with the upload result.
+ */
+export const uploadDocumentStreamToGCS = async (
+  fileStream,
+  fileName,
+  documentMetadata = {}
+) => {
+  return new Promise((resolve, reject) => {
     if (!storage || !bucket) {
-      logger.warn('GCS not configured. Returning local file path.');
-      return {
-        success: true,
-        localPath: localFilePath,
-        fileName: path.basename(localFilePath),
-        storageType: 'local',
-      };
+      logger.warn('GCS not configured. Cannot upload stream.');
+      // In a stream-based workflow, there's no local file to fall back to.
+      // The caller must handle this failure.
+      return reject(new Error('GCS not configured.'));
     }
 
-    const fileName = path.basename(localFilePath);
     const destination = `${GCS_CONFIG.FOLDER_PREFIX}${documentMetadata.userId || 'anonymous'}/${fileName}`;
+    const file = bucket.file(destination);
 
-    logger.info(`Uploading document to GCS: ${destination}`);
-
-    // Upload file
-    await bucket.upload(localFilePath, {
-      destination,
+    const gcsStream = file.createWriteStream({
+      resumable: false, // Use simple upload for streams/buffers
       metadata: {
         contentType: getContentType(fileName),
         metadata: {
@@ -68,38 +118,38 @@ export const uploadDocumentToGCS = async (
       },
     });
 
-    // Make file publicly accessible (optional - configure based on your needs)
-    const file = bucket.file(destination);
-
-    // Generate signed URL (valid for 7 days)
-    const [signedUrl] = await file.getSignedUrl({
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    gcsStream.on('error', (err) => {
+      logger.error(`Error uploading stream to GCS at ${destination}:`, err);
+      reject(err);
     });
 
-    logger.info(`Document uploaded successfully to GCS: ${destination}`);
+    gcsStream.on('finish', async () => {
+      logger.info(`Stream uploaded successfully to GCS: ${destination}`);
+      try {
+        // Generate a signed URL for reading the newly uploaded file
+        const [signedUrl] = await file.getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
 
-    return {
-      success: true,
-      gcsPath: `gs://${GCS_CONFIG.BUCKET_NAME}/${destination}`,
-      publicUrl: signedUrl,
-      fileName,
-      destination,
-      storageType: 'gcs',
-    };
-  } catch (error) {
-    logger.error('Error uploading document to GCS:', error);
+        resolve({
+          success: true,
+          gcsPath: `gs://${GCS_CONFIG.BUCKET_NAME}/${destination}`,
+          publicUrl: signedUrl,
+          fileName,
+          destination,
+          storageType: 'gcs',
+        });
+      } catch (urlError) {
+        logger.error(`Failed to get signed URL for ${destination}:`, urlError);
+        reject(urlError);
+      }
+    });
 
-    // Return local path as fallback
-    return {
-      success: true,
-      localPath: localFilePath,
-      fileName: path.basename(localFilePath),
-      storageType: 'local',
-      error: error.message,
-    };
-  }
+    // Pipe the source stream to the GCS writable stream
+    fileStream.pipe(gcsStream);
+  });
 };
 
 /**
@@ -115,6 +165,11 @@ const getContentType = (fileName) => {
     '.txt': 'text/plain',
     '.html': 'text/html',
     '.md': 'text/markdown',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.mp4': 'video/mp4',
   };
   return contentTypes[ext] || 'application/octet-stream';
 };
