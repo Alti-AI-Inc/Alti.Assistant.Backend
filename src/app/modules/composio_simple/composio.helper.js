@@ -5,22 +5,23 @@ import config from '../../../../config/index.js';
 import { sanitizeToolForGemini } from './utils/toolSanitizer.js';
 import { Composio } from '@composio/core';
 import { GoogleProvider } from '@composio/google';
+import fs from 'fs/promises'; // Use fs.promises for asynchronous file operations
 
 /**
  * The Gemini API client instance initialized with the configured API key.
  * @type {GoogleGenAI}
  */
 const gemini = new GoogleGenAI({ apiKey: config.gemini_secret_key });
-import fs from 'fs/promises'; // Use fs.promises for asynchronous file operations
 
 /**
  * Identifies the most appropriate application(s) from a list of available apps
- * based on the user's query, chat history, and summarized context.
+ * based on the user's query, chat history, and summarized context. This function
+ * uses an LLM to determine which applications are relevant to the user's request.
  *
  * @param {string} query - The current user query or request.
- * @param {Array<{role: string, content: string}>} [chatHistory=[]] - The history of the conversation for context.
+ * @param {Array<{role: string, parts: Array<{text: string}>}>} [chatHistory=[]] - The history of the conversation for context.
  * @param {string} [summarizedContext=''] - A summary of the conversation context.
- * @returns {Promise<{toolKitVersions: Object<string, string>, appList: string[]}>} An object containing the mapped toolkit versions and the list of identified apps.
+ * @returns {Promise<{toolKitVersions: Object<string, string>, appList: string[]}>} An object containing a map of app names to their toolkit versions and the list of identified app names. Returns empty lists on file read/parse errors.
  */
 export async function findAppropriateApp(
   query,
@@ -123,23 +124,23 @@ export async function findAppropriateApp(
  * @returns {Promise<number[]>} A promise that resolves to the embedding vector array.
  */
 async function embedQuery(text) {
-  const res = await gemini.models.embedContent({
-    model: 'gemini-embedding-001',
-    contents: [{ role: 'user', parts: [{ text }] }],
-    config: { outputDimensionality: 1536 },
+  const res = await gemini.embedContent({
+    model: 'embedding-001',
+    content: { role: 'user', parts: [{ text }] },
   });
 
-  return res.embeddings[0].values;
+  return res.embedding.values;
 }
 
 /**
  * Performs a vector search against the database to find relevant tools based on the query embedding.
- * Filters results by the specified applications.
+ * Filters results by the specified applications, effectively scoping the search to tools
+ * relevant to the current context.
  *
  * @param {string} query - The search query.
  * @param {number} [topK=5] - The maximum number of search results to return.
  * @param {string[]} apps - An array of application names to filter the search.
- * @returns {Promise<Array<Object>>} A promise that resolves to the list of matching tool documents.
+ * @returns {Promise<Array<Object>>} A promise that resolves to the list of matching tool documents from the database.
  */
 export const getVectorSearchResults = async (query, topK = 5, apps) => {
   const vector = await embedQuery(query);
@@ -183,13 +184,14 @@ export const getVectorSearchResults = async (query, topK = 5, apps) => {
 
 /**
  * Generates tool calls using Gemini based on the query and available tools,
- * and executes them on behalf of the specified entity.
+ * and then executes them on behalf of the specified entity. This function orchestrates
+ * the AI's decision-making and the execution of the decided actions.
  *
  * @param {string} query - The user query or prompt.
- * @param {Array<Object>} tools - The list of tools available for selection.
+ * @param {Array<Object>} tools - The list of tools (retrieved from vector search) available for selection by the LLM.
  * @param {Object<string, string>} toolkitVersions - Map of application names to their toolkit versions.
- * @param {string} entityId - The unique identifier of the entity (user/tenant) executing the tools.
- * @returns {Promise<{response: Object, results: Array<Object>, error?: string}>} The LLM response and execution results.
+ * @param {string} entityId - The unique identifier of the entity (user/tenant) executing the tools. This is crucial for multi-tenancy.
+ * @returns {Promise<{response: Object, results: Array<Object>, error?: string}>} The LLM response, execution results, and an optional error message if execution fails.
  */
 export async function generateAndExecuteTools(
   query,
@@ -237,12 +239,13 @@ export async function generateAndExecuteTools(
 
 /**
  * Synthesizes a comprehensive, self-contained user request by combining the latest message
- * with the conversation history or summary.
+ * with the conversation history or summary. This helps maintain context for the LLM
+ * in multi-turn conversations.
  *
  * @param {string} userMessage - The latest message from the user.
  * @param {string} [historySummary=''] - A summary of the conversation history.
- * @param {Array<{role: string, content: string}>} [history=[]] - The raw conversation history.
- * @returns {Promise<string>} The synthesized comprehensive user request.
+ * @param {Array<{role: string, parts: Array<{text: string}>}>} [history=[]] - The raw conversation history.
+ * @returns {Promise<string>} The synthesized comprehensive user request. Falls back to the original message on error.
  */
 export async function generateUserMessasgeFromContext(
   userMessage,
@@ -282,10 +285,10 @@ Output only the final comprehensive user request, nothing else:`;
     const response = await generateContent('gemini-2.5-flash', [
       { role: 'user', parts: [{ text: prompt }] },
     ]);
-    
+
     // Add defensive checks for LLM response structure
     const generatedMessage = response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    
+
     if (generatedMessage) {
       console.log('Generated user message response:', generatedMessage);
       return generatedMessage;
@@ -303,10 +306,10 @@ Output only the final comprehensive user request, nothing else:`;
  * Executes multiple tool calls sequentially for a specific entity using the Composio SDK.
  * This function operates within a multi-tenant context, executing actions on behalf of the provided entityId.
  *
- * @param {string} entityId - The unique identifier of the entity (user/tenant) in the multi-tenant context.
- * @param {Array<{name: string, args: Object}>} functionCalls - The list of function calls to execute.
+ * @param {string} entityId - The unique identifier of the entity (user/tenant) in the multi-tenant context. This ensures actions are performed with the correct user's credentials and permissions.
+ * @param {Array<{name: string, args: Object}>} functionCalls - The list of function calls to execute, as determined by the LLM.
  * @param {Object<string, string>} toolkitVersions - Map of application names to their toolkit versions.
- * @returns {Promise<Array<{tool: string, status: 'success' | 'error', result?: any, error?: string}>>} The execution results for each tool.
+ * @returns {Promise<Array<{tool: string, status: 'success' | 'error', result?: any, error?: string}>>} The execution results for each tool. Individual tool failures do not stop the execution of subsequent tools.
  */
 export async function executeMultipleTools(
   entityId,

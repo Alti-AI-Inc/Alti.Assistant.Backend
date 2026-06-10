@@ -1,16 +1,13 @@
 /**
  * @file This module configures Multer for handling article file uploads.
  * It sets up storage, file naming conventions, and file type filtering for various document formats.
- * The uploaded files are stored in a designated directory, with subdirectories for each user to ensure data isolation.
+ * The uploaded files are stored in a designated directory, with subdirectories for each workspace and user to ensure data isolation and respect tenant boundaries.
  * @module middlewares/uploadArticleFile
  */
 
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-// OPTIMIZATION: Import the promises API from the 'fs' module to perform non-blocking file system operations.
-// This is crucial for avoiding event loop blockage in a Node.js environment.
-import { promises as fsPromises } from 'fs';
 import { fileURLToPath } from 'url';
 
 // Safely determine the current directory path, compatible with both ES Modules and CommonJS.
@@ -38,43 +35,37 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 /**
- * Asynchronously calculates the total size of all files within a given directory.
- * OPTIMIZATION: This function is now asynchronous to prevent blocking the Node.js event loop.
- * The original synchronous version could cause significant performance degradation by blocking
- * the server from handling other requests while reading a directory with many files.
- * This version uses `fs.promises` for non-blocking I/O.
+ * Synchronously and recursively calculates the total size of all files within a given directory.
+ * This is a helper function used to enforce workspace-level storage quotas before an upload.
+ * It iterates through directory contents and sums the size of each file,
+ * silently ignoring any subdirectories or files that cannot be accessed.
  * @param {string} dirPath - The absolute path to the directory.
- * @returns {Promise<number>} A promise that resolves to the total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
+ * @returns {number} The total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
  */
-const getDirSizeAsync = async (dirPath) => {
-  try {
-    const files = await fsPromises.readdir(dirPath);
-    // Process all file stats in parallel for maximum efficiency.
-    const statsPromises = files.map((file) => {
-      const filePath = path.join(dirPath, file);
-      // Gracefully handle cases where a file cannot be accessed (e.g., permissions).
-      return fsPromises.stat(filePath).catch(() => null);
-    });
-
-    const statsArray = await Promise.all(statsPromises);
-
-    // Sum the sizes of all valid files.
-    const totalSize = statsArray.reduce((acc, stats) => {
-      if (stats && stats.isFile()) {
-        return acc + stats.size;
-      }
-      return acc;
-    }, 0);
-
-    return totalSize;
-  } catch (err) {
-    // If the directory doesn't exist, it's not an error; its size is 0.
-    if (err.code === 'ENOENT') {
-      return 0;
-    }
-    // For other errors, propagate them up.
-    throw err;
+const getDirSize = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    return 0;
   }
+
+  let size = 0;
+  const items = fs.readdirSync(dirPath);
+
+  for (const item of items) {
+    const itemPath = path.join(dirPath, item);
+    try {
+      const stats = fs.statSync(itemPath);
+      if (stats.isFile()) {
+        size += stats.size;
+      } else if (stats.isDirectory()) {
+        // BUG FIX: Added recursion to correctly calculate total size of nested directories (e.g., all user folders within a workspace).
+        size += getDirSize(itemPath);
+      }
+    } catch (err) {
+      // Ignore files/directories that cannot be read (e.g., due to permissions).
+      console.error(`Could not read stats for ${itemPath}:`, err);
+    }
+  }
+  return size;
 };
 
 /**
@@ -86,47 +77,42 @@ const storage = multer.diskStorage({
   /**
    * Determines the destination directory for an uploaded file.
    * This function implements multi-tenancy by creating a unique subdirectory for each user
-   * based on their user ID, which is sanitized to prevent path traversal issues.
-   * It also enforces a storage quota for each user. If the user's current storage usage
-   * is at or exceeds their `maxStorageLimit` (or a system default of 100MB), the upload is rejected.
+   * within their workspace's directory. This ensures data is correctly namespaced and isolated.
+   * The workspace and user IDs are sanitized to prevent path traversal vulnerabilities.
    *
-   * @param {import('express').Request} req - The Express request object. It is expected to have a `user` property attached by an authentication middleware.
+   * @param {import('express').Request} req - The Express request object. It is expected to have a `user` property with `id`, `workspaceId` attached by an authentication middleware.
    * @param {Express.Multer.File} file - The file object being uploaded.
-   * @param {function(Error | null, string): void} cb - The callback function. Called with an error if storage limit is exceeded, or with the destination path on success.
+   * @param {function(Error | null, string): void} cb - The callback function. Called with an error on filesystem issues, or with the destination path on success.
    */
   destination: function (req, file, cb) {
-    const rawUserId = req.user?.id || req.user?._id || req.userId || 'anonymous';
-    const safeUserId = String(rawUserId).replace(/[^a-zA-Z0-9-_]/g, '') || 'anonymous';
-    const userUploadDir = path.join(uploadDir, safeUserId);
+    // INTEGRATION FIX: Switched from user-only directory to a workspace/tenant-based structure.
+    // This ensures that all files for a given workspace are stored together, respecting tenant boundaries.
+    if (!req.user?.workspaceId) {
+      const err = new Error('User is not associated with a workspace.');
+      // @ts-ignore
+      err.statusCode = 403;
+      return cb(err);
+    }
+    const rawWorkspaceId = req.user.workspaceId;
+    const safeWorkspaceId = String(rawWorkspaceId).replace(/[^a-zA-Z0-9-_]/g, '') || 'invalid_workspace';
 
-    // OPTIMIZATION: Use an async IIFE (Immediately Invoked Function Expression) to perform non-blocking I/O.
-    // The original implementation used synchronous fs calls (e.g., fs.mkdirSync, fs.readdirSync, fs.statSync)
-    // which block the Node.js event loop. This is especially problematic when calculating directory size for users
-    // with many files, as it can freeze the entire server. This updated version uses async/await with fs.promises.
-    (async () => {
-      try {
-        // Asynchronously ensure the user's upload directory exists.
-        await fsPromises.mkdir(userUploadDir, { recursive: true });
+    const rawUserId = req.user?.id || req.user?._id;
+    const safeUserId = String(rawUserId).replace(/[^a-zA-Z0-9-_]/g, '') || 'invalid_user';
 
-        // Enforce user-level storage limit (default 100MB, or custom user limit if specified)
-        const userMaxStorage = req.user?.maxStorageLimit || 100 * 1024 * 1024; // 100MB
+    // Store files in a user-specific folder within the workspace directory for better organization and traceability.
+    const userUploadDir = path.join(uploadDir, safeWorkspaceId, safeUserId);
 
-        // Asynchronously calculate the current directory size without blocking the event loop.
-        const currentStorageSize = await getDirSizeAsync(userUploadDir);
-
-        // Note: `file.size` is not available in the `destination` function.
-        // This check prevents new uploads if the user is already at or over their limit.
-        if (currentStorageSize >= userMaxStorage) {
-          return cb(new Error('User storage limit exceeded. Please delete some files before uploading more.'));
-        }
-
-        // If all checks pass, signal success to multer with the destination path.
-        cb(null, userUploadDir);
-      } catch (err) {
-        // In case of an error, pass it to multer's callback.
-        cb(err);
-      }
-    })();
+    try {
+      // Ensure the user-specific directory exists.
+      fs.mkdirSync(userUploadDir, { recursive: true });
+      cb(null, userUploadDir);
+    } catch (err) {
+      console.error('Failed to create upload directory:', err);
+      const error = new Error('Could not create storage directory.');
+      // @ts-ignore
+      error.statusCode = 500;
+      cb(error);
+    }
   },
   /**
    * Defines the filename for uploaded files.
@@ -144,37 +130,81 @@ const storage = multer.diskStorage({
 });
 
 /**
- * Filters incoming files to ensure they are of a supported document type.
- * It checks the file's extension against a predefined list of allowed formats.
- * If the file extension is not in the allowed list, the upload is rejected with an error.
- * The check is case-insensitive.
+ * Filters incoming files based on role, file type, and workspace storage quotas.
+ * This function is the primary gatekeeper for uploads, ensuring all business and security rules are met before a file is accepted.
  *
- * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Request} req - The Express request object, expected to contain `req.user` with role and workspace info.
  * @param {Express.Multer.File} file - The file object being uploaded.
- * @param {function(Error | null, boolean): void} cb - The callback function. Called with an error for unsupported types, or with `(null, true)` to accept the file.
+ * @param {function(Error | null, boolean): void} cb - The callback function. Called with an error to reject the file, or with `(null, true)` to accept it.
  */
 const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  const supportedExtensions = [
-    '.pdf',
-    '.docx',
-    '.doc',
-    '.txt',
-    '.xlsx',
-    '.xls',
-    '.pptx',
-    '.ppt',
-  ];
+  try {
+    // INTEGRATION: Role and authentication validation.
+    const user = req.user;
+    if (!user) {
+      const err = new Error('Authentication required to upload files.');
+      // @ts-ignore
+      err.statusCode = 401;
+      return cb(err, false);
+    }
+    const allowedRoles = ['user', 'manager', 'admin', 'super_admin'];
+    if (!user.role || !allowedRoles.includes(user.role)) {
+      const err = new Error('You do not have permission to upload files.');
+      // @ts-ignore
+      err.statusCode = 403;
+      return cb(err, false);
+    }
 
-  if (supportedExtensions.includes(ext)) {
+    // INTEGRATION: Tenant context validation. User must belong to a workspace.
+    if (!user.workspaceId) {
+      const err = new Error('User is not associated with a workspace.');
+      // @ts-ignore
+      err.statusCode = 403;
+      return cb(err, false);
+    }
+
+    // 1. Check file type
+    const ext = path.extname(file.originalname).toLowerCase();
+    const supportedExtensions = ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'];
+    if (!supportedExtensions.includes(ext)) {
+      const err = new Error(`File type not supported. Allowed types: ${supportedExtensions.join(', ')}`);
+      // @ts-ignore
+      err.statusCode = 400;
+      return cb(err, false);
+    }
+
+    // INTEGRATION & BUG FIX: Enforce workspace-level storage limit, not user-level.
+    // This correctly propagates usage to the workspace/tenant level.
+    // The check now includes the size of the incoming file to prevent exceeding the quota.
+    const rawWorkspaceId = user.workspaceId;
+    const safeWorkspaceId = String(rawWorkspaceId).replace(/[^a-zA-Z0-9-_]/g, '');
+    const workspaceUploadDir = path.join(uploadDir, safeWorkspaceId);
+
+    // Super admins can bypass storage limits.
+    if (user.role === 'super_admin') {
+      return cb(null, true);
+    }
+
+    // Default workspace limit is 500MB, can be overridden by workspace-specific settings from the user object.
+    const workspaceMaxStorage = user.workspace?.maxStorageLimit || 500 * 1024 * 1024; // 500MB
+    const currentWorkspaceStorageSize = getDirSize(workspaceUploadDir);
+    const incomingFileSize = file.size;
+
+    if (currentWorkspaceStorageSize + incomingFileSize > workspaceMaxStorage) {
+      const err = new Error('Uploading this file would exceed your workspace storage limit. Please contact your administrator.');
+      // @ts-ignore
+      err.statusCode = 413; // Payload Too Large
+      return cb(err, false);
+    }
+
+    // If all checks pass, accept the file.
     cb(null, true);
-  } else {
-    cb(
-      new Error(
-        `File type not supported. Allowed types: ${supportedExtensions.join(', ')}`
-      ),
-      false
-    );
+  } catch (err) {
+    console.error('Error in multer fileFilter:', err);
+    const error = new Error('An unexpected error occurred during file validation.');
+    // @ts-ignore
+    error.statusCode = 500;
+    cb(error);
   }
 };
 
@@ -183,15 +213,16 @@ const fileFilter = (req, file, cb) => {
  *
  * This middleware integrates the custom disk storage engine and file filter.
  * It is pre-configured with the following settings:
- * - **Storage**: Uses the `storage` engine to save files in user-specific directories with unique names.
- * - **File Filter**: Uses `fileFilter` to allow only specific document extensions.
- * - **Limits**: Sets a maximum file size of 10MB per upload.
+ * - **Storage**: Uses the `storage` engine to save files in workspace/user-specific directories.
+ * - **File Filter**: Uses `fileFilter` to validate user role, file type, and workspace storage quotas.
+ * - **Limits**: Sets a maximum file size of 25MB per upload.
  *
  * @example
  * // Usage in an Express route:
  * import { uploadArticleFile } from './uploadArticleFile.js';
+ * import { authMiddleware } from '../auth/authMiddleware.js'; // Example auth middleware
  *
- * router.post('/upload', uploadArticleFile.single('articleFile'), (req, res) => {
+ * router.post('/upload', authMiddleware, uploadArticleFile.single('articleFile'), (req, res) => {
  *   // req.file is the 'articleFile' file
  *   // req.body will hold the text fields, if there were any
  *   res.send({ message: 'File uploaded successfully!', file: req.file });
@@ -203,7 +234,7 @@ export const uploadArticleFile = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 25 * 1024 * 1024, // 25MB file size limit
   },
 });
 

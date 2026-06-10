@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Storage } from '@google-cloud/storage';
+import { GoogleGenerativeAI } from '@google-generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import {
@@ -83,6 +84,12 @@ import {
  * @type {GoogleGenerativeAI}
  */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+
+/**
+ * Initializes the Google Cloud Storage client.
+ * Assumes Application Default Credentials are available in the environment.
+ */
+const storage = new Storage();
 
 /**
  * Generates a comprehensive project plan based on an idea, analysis, brainstorming insights, and optional constraints.
@@ -250,11 +257,31 @@ Only return the JSON object itself.`;
       } catch (repairError) {
         logger.error('JSON repair also failed:', repairError.message);
 
-        // Save the problematic JSON to a file for debugging
-        const fs = await import('fs/promises');
-        const debugPath = `./logs/failed-json-${Date.now()}.txt`;
-        await fs.writeFile(debugPath, jsonString, 'utf-8');
-        logger.error('Problematic JSON saved to:', debugPath);
+        // Save the problematic JSON to Google Cloud Storage for debugging instead of the local filesystem.
+        try {
+          // Ensure a debug bucket is configured before attempting to write.
+          if (config.gcs_debug_bucket_name) {
+            const bucket = storage.bucket(config.gcs_debug_bucket_name);
+            const destination = `plan-generator-failures/failed-json-${Date.now()}.txt`;
+            const file = bucket.file(destination);
+
+            // Create a buffer from the string and upload it.
+            const contents = Buffer.from(jsonString, 'utf-8');
+            await file.save(contents, {
+              contentType: 'text/plain; charset=utf-8',
+            });
+
+            const gcsPath = `gs://${config.gcs_debug_bucket_name}/${destination}`;
+            logger.error('Problematic JSON saved to GCS:', gcsPath);
+          } else {
+            logger.warn(
+              'GCS debug bucket not configured (gcs_debug_bucket_name). Cannot save failed JSON.'
+            );
+          }
+        } catch (gcsError) {
+          // Log the GCS error but do not let it hide the original parsing error.
+          logger.error('Failed to save problematic JSON to GCS:', gcsError);
+        }
 
         throw new Error(
           'Failed to parse JSON from plan: ' + parseError.message
