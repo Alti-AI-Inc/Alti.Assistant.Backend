@@ -31,6 +31,31 @@ const decodeXml = (str) => {
   return decoded;
 };
 
+// Pre-compile regex patterns for parsing RSS items to avoid re-creation in the loop.
+// This is a minor optimization as modern JS engines might optimize this anyway,
+// but it ensures regex objects are created only once, reducing potential overhead.
+const ITEM_TAG_REGEXES = {
+  title: /<title>([\s\S]*?)<\/title>/i,
+  approxTraffic: /<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/i,
+  description: /<description>([\s\S]*?)<\/description>/i,
+  picture: /<ht:picture>([\s\S]*?)<\/ht:picture>/i,
+  newsTitle: /<ht:news_item_title>([\s\S]*?)<\/ht:news_item_title>/i,
+  newsSnippet: /<ht:news_item_snippet>([\s\S]*?)<\/ht:news_item_snippet>/i,
+  newsUrl: /<ht:news_item_url>([\s\S]*?)<\/ht:news_item_url>/i,
+  newsSource: /<ht:news_item_source>([\s\S]*?)<\/ht:news_item_source>/i,
+};
+
+/**
+ * Helper function to extract content from a specific XML tag within a given string.
+ * @param {string} xmlString - The XML string to search within.
+ * @param {RegExp} regex - The pre-compiled regular expression for the tag.
+ * @returns {string} The trimmed content of the tag, or an empty string if not found.
+ */
+const extractTagContent = (xmlString, regex) => {
+  const match = xmlString.match(regex);
+  return match && match[1] ? match[1].trim() : '';
+};
+
 /**
  * Parses the XML content of a Google Trends RSS feed using regular expressions.
  * It extracts trending search items, including their title, approximate traffic, description,
@@ -52,30 +77,30 @@ const decodeXml = (str) => {
  */
 const parseTrendsRss = (xmlText) => {
   const items = [];
-  const itemMatches = xmlText.match(/<item>([\s\S]*?)<\/item>/g) || [];
+  // Use a global regex with exec in a loop for efficient iteration over all <item> blocks.
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let itemMatch;
 
-  for (const itemXml of itemMatches) {
-    const titleMatch = itemXml.match(/<title>([\s\S]*?)<\/title>/i);
-    const approxTrafficMatch = itemXml.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/i);
-    const descriptionMatch = itemXml.match(/<description>([\s\S]*?)<\/description>/i);
-    const pictureMatch = itemXml.match(/<ht:picture>([\s\S]*?)<\/ht:picture>/i);
+  while ((itemMatch = itemRegex.exec(xmlText)) !== null) {
+    const itemXml = itemMatch[1]; // The content inside <item>...</item>
 
-    // Extract news item details
-    const newsTitleMatch = itemXml.match(/<ht:news_item_title>([\s\S]*?)<\/ht:news_item_title>/i);
-    const newsSnippetMatch = itemXml.match(/<ht:news_item_snippet>([\s\S]*?)<\/ht:news_item_snippet>/i);
-    const newsUrlMatch = itemXml.match(/<ht:news_item_url>([\s\S]*?)<\/ht:news_item_url>/i);
-    const newsSourceMatch = itemXml.match(/<ht:news_item_source>([\s\S]*?)<\/ht:news_item_source>/i);
+    // Extract content using the helper function and pre-compiled regexes.
+    // This reduces redundant regex object creation within the loop.
+    const title = decodeXml(extractTagContent(itemXml, ITEM_TAG_REGEXES.title));
+    const approxTraffic = extractTagContent(itemXml, ITEM_TAG_REGEXES.approxTraffic) || '50,000+';
+    const description = decodeXml(extractTagContent(itemXml, ITEM_TAG_REGEXES.description));
+    const picture = extractTagContent(itemXml, ITEM_TAG_REGEXES.picture);
 
-    const title = titleMatch ? decodeXml(titleMatch[1].trim()) : '';
-    const approxTraffic = approxTrafficMatch ? approxTrafficMatch[1].trim() : '50,000+';
-    const description = descriptionMatch ? decodeXml(descriptionMatch[1].trim()) : '';
-    const picture = pictureMatch ? pictureMatch[1].trim() : '';
+    const newsTitle = extractTagContent(itemXml, ITEM_TAG_REGEXES.newsTitle);
+    const newsSnippet = extractTagContent(itemXml, ITEM_TAG_REGEXES.newsSnippet);
+    const newsUrl = extractTagContent(itemXml, ITEM_TAG_REGEXES.newsUrl);
+    const newsSource = extractTagContent(itemXml, ITEM_TAG_REGEXES.newsSource);
 
-    const newsItem = newsTitleMatch ? {
-      title: decodeXml(newsTitleMatch[1].trim()),
-      snippet: newsSnippetMatch ? decodeXml(newsSnippetMatch[1].trim()) : '',
-      url: newsUrlMatch ? newsUrlMatch[1].trim() : '',
-      source: newsSourceMatch ? decodeXml(newsSourceMatch[1].trim()) : ''
+    const newsItem = newsTitle ? {
+      title: decodeXml(newsTitle),
+      snippet: decodeXml(newsSnippet),
+      url: newsUrl,
+      source: decodeXml(newsSource)
     } : null;
 
     if (title) {
