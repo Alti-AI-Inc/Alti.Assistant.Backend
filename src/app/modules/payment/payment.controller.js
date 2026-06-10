@@ -1,4 +1,57 @@
 import mongoose from 'mongoose';
+
+// --- GCP Database Resiliency Configuration ---
+// NOTE: It is a best practice to centralize this connection logic in a dedicated module (e.g., /config/database.js)
+// and import it in your main application entry point (e.g., server.js) to ensure the database is connected once.
+const MONGO_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/altidatabase';
+
+const mongooseOptions = {
+  // --- Connection Pooling for Production ---
+  // Limits the number of concurrent open connections. Adjust based on application load and database tier.
+  // A pool size of 10 is a robust starting point for many applications on GCP.
+  maxPoolSize: 10,
+  // Maintains a minimum number of connections, reducing latency for the first operations after a period of inactivity.
+  minPoolSize: 2,
+
+  // --- Timeout Settings for Network Resiliency ---
+  // How long the driver waits for a connection to be established. Increased to 30s for GCP's network environment.
+  connectTimeoutMS: 30000,
+  // How long a socket can be inactive before closing. Prevents premature closure during long-running queries.
+  socketTimeoutMS: 45000,
+  // How long the driver waits to find a suitable server. Resilient to transient network issues or replica set failovers.
+  serverSelectionTimeoutMS: 30000,
+
+  // --- KeepAlive Settings for GCP Network Infrastructure (VPC Peering, Cloud SQL Auth Proxy) ---
+  // Enables TCP KeepAlive. This is crucial for maintaining long-lived connections through network proxies,
+  // NATs, or firewalls which may otherwise terminate idle sockets.
+  keepAlive: true,
+  // The delay in milliseconds before the first keep-alive probe is sent on an idle socket.
+  // A value of 300000ms (5 minutes) is recommended for GCP environments.
+  keepAliveInitialDelay: 300000,
+};
+
+// Establish the database connection
+mongoose.connect(MONGO_URI, mongooseOptions).catch(err => {
+  console.error('FATAL: Initial MongoDB connection failed.', err);
+  // In a production environment, you should exit the process if the database connection fails on startup.
+  // process.exit(1);
+});
+
+// --- Connection Event Listeners for Observability ---
+mongoose.connection.on('connected', () => {
+  console.log(`Mongoose connected to database.`);
+});
+
+mongoose.connection.on('error', err => {
+  console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose disconnected. The driver will attempt to reconnect.');
+});
+
+// --- End of GCP Database Resiliency Configuration ---
+
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { checkUsageLimits } from '../../middlewares/checkUsageLimits/checkUsageLimits.js';
