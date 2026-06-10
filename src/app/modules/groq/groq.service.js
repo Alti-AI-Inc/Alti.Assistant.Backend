@@ -111,6 +111,7 @@ const GroqAiGetResponseAnonymousService = async (
 
   // Fetch or create chat history document for the anonymous session
   // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
+  // Note: .lean() is not used here because the 'chatHistoryDoc' object is modified and its .save() method is called later.
   let chatHistoryDoc = await ChatHistory.findOne({ sessionId });
 
   if (!chatHistoryDoc) {
@@ -226,7 +227,7 @@ User Query: ${enhancedPrompt}`;
  *                            or an error object if the user/session is not found.
  */
 const getAiResponsesByUserIdService = async (userId) => {
-  // Optimization: Added .lean() for read-only query to improve performance
+  // Optimization: Added .lean() for this read-only query to improve performance by returning a plain JS object instead of a full Mongoose document.
   const sessionData = await UserModel.findOne({
     _id: userId,
   })
@@ -234,7 +235,7 @@ const getAiResponsesByUserIdService = async (userId) => {
     .populate({
       path: 'llamaAiSessions',
     })
-    .lean(); // Added .lean()
+    .lean();
   if (!sessionData) {
     return {
       statusCode: httpStatus.NOT_FOUND,
@@ -255,11 +256,11 @@ const getAiResponsesByUserIdService = async (userId) => {
  * @remarks Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
  */
 const getAiResponsesBySession = async (id) => {
-  // Optimization: Added .lean() for read-only query to improve performance
+  // Optimization: Added .lean() for this read-only query to improve performance.
   // Optimization Recommendation: Ensure an index exists on `sessionId` in the `ChatHistory` model schema for efficient lookups.
   const sessionData = await ChatHistory.findOne({
     sessionId: id,
-  }).lean(); // Added .lean()
+  }).lean();
 
   if (!sessionData) {
     return {
@@ -283,12 +284,12 @@ const getAiResponsesBySession = async (id) => {
  * @throws {ApiError} If the LlamaAiSession is not found, or if deletion/user update fails.
  */
 const deleteOneLlamaAiSession = async (objectId) => {
-  // Optimization: Added .lean() for read-only query to improve performance
+  // Optimization: Added .lean() for this read-only query to fetch user data before deletion.
   // Optimization Recommendation: If `ChatHistory` documents are frequently looked up or linked by a `user` field,
   // ensure an index exists on `ChatHistory.user` for efficient queries.
   const userData = await ChatHistory.findOne({
     _id: objectId,
-  }).lean(); // Added .lean()
+  }).lean();
   if (!userData) {
     // Changed to ApiError for consistency in error handling
     throw new ApiError(httpStatus.NOT_FOUND, 'LlamaAiSession not found');
@@ -340,8 +341,8 @@ const deleteAllAiSessionsService = async (userId) => {
   try {
     await session.startTransaction();
 
-    // Optimization: Added .lean() for read-only query to improve performance
-    const user = await UserModel.findById(userId).session(session).lean(); // Added .lean()
+    // Optimization: Added .lean() for this read-only query to get session IDs.
+    const user = await UserModel.findById(userId).session(session).lean();
     if (
       !user ||
       !user.llamaAiSessions ||
@@ -353,7 +354,7 @@ const deleteAllAiSessionsService = async (userId) => {
 
     const aiSessionIds = user.llamaAiSessions.map((id) => id.toString());
 
-    // Optimization: Replaced N+1 delete operations with a single deleteMany for efficiency
+    // Optimization: Using a single deleteMany operation is highly efficient for bulk deletion, avoiding N+1 query problems.
     const deleteResult = await ChatHistory.deleteMany({ _id: { $in: aiSessionIds } }).session(session);
 
     // Check if all intended sessions were deleted

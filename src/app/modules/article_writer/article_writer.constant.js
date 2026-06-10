@@ -53,26 +53,105 @@ export const ARTICLE_WRITER_CONFIG = {
 };
 
 /**
- * @typedef {object} UserTierLimits
- * @property {{maxFileSize: number, maxOutputTokens: number, maxConcurrentJobs: number}} free
- * @property {{maxFileSize: number, maxOutputTokens: number, maxConcurrentJobs: number}} pro
+ * Defines the user roles within the application hierarchy.
+ * This is critical for authorization and applying role-based access control (RBAC).
+ * @enum {string}
+ */
+export const USER_ROLES = {
+  SUPER_ADMIN: 'super_admin', // Platform owner, highest level of access.
+  ADMIN: 'admin', // Workspace owner, manages users and billing for a workspace.
+  MANAGER: 'manager', // Team lead, can view team usage and manage a subset of users.
+  USER: 'user', // Standard user, creates content.
+};
+
+/**
+ * @typedef {object} LimitConfig
+ * @property {number} maxFileSize Maximum file size in bytes.
+ * @property {number} maxOutputTokens Maximum output tokens for AI generation.
+ * @property {number} maxConcurrentJobs Maximum number of concurrent jobs.
  */
 
 /**
- * Defines example user-level limits based on subscription tiers.
- * The application logic should use these to enforce limits per user, ensuring fair usage and respecting user entitlements.
- * @type {UserTierLimits}
+ * @typedef {object} PlatformLimits
+ * @property {number} maxUsersPerWorkspace Default maximum users per workspace.
+ * @property {number} maxTotalMonthlyTokens Default monthly token pool for a workspace.
  */
-export const USER_TIER_LIMITS = {
-  free: {
+
+/**
+ * @typedef {object} FeatureLimitsConfig
+ * @property {LimitConfig & PlatformLimits} platform_defaults Default limits for the entire platform.
+ * @property {Object<string, LimitConfig>} roles Base limits assigned to each user role.
+ * @property {Object<string, LimitConfig>} tiers Subscription tier-based limits that override role defaults for applicable users.
+ */
+
+/**
+ * Defines hierarchical limits for features based on roles and subscription tiers.
+ * This structure is critical for ensuring that usage correctly maps to user entitlements
+ * and respects the boundaries of their workspace and role.
+ *
+ * The application logic should resolve a user's final limits by:
+ * 1. Starting with the base limits for their role (e.g., `limits.roles.user`).
+ * 2. Overriding with their subscription tier limits if applicable (e.g., `limits.tiers.pro`).
+ * 3. Ensuring their usage contributes to and is constrained by their workspace's aggregate limits
+ *    (e.g., `maxTotalMonthlyTokens`), which are managed by the 'admin' role.
+ * @type {FeatureLimitsConfig}
+ */
+export const FEATURE_LIMITS_CONFIG = {
+  // Platform-level defaults, can be overridden by a super_admin in the platform settings.
+  platform_defaults: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
-    maxOutputTokens: 4096,
-    maxConcurrentJobs: 1,
+    maxOutputTokens: 8192,
+    maxConcurrentJobs: 2,
+    // Workspace-level aggregate limits (example defaults)
+    maxUsersPerWorkspace: 50,
+    maxTotalMonthlyTokens: 1000000,
   },
-  pro: {
-    maxFileSize: 20 * 1024 * 1024, // 20MB
-    maxOutputTokens: 16384,
-    maxConcurrentJobs: 3,
+  // Role-based defaults. These define the base capabilities for each role.
+  roles: {
+    [USER_ROLES.USER]: {
+      maxFileSize: 2 * 1024 * 1024, // 2MB
+      maxOutputTokens: 2048,
+      maxConcurrentJobs: 1,
+    },
+    [USER_ROLES.MANAGER]: {
+      // Managers might have slightly higher personal limits for administrative tasks.
+      // Their primary role is oversight, not necessarily higher generation limits.
+      maxFileSize: 5 * 1024 * 1024, // 5MB
+      maxOutputTokens: 4096,
+      maxConcurrentJobs: 2,
+    },
+    [USER_ROLES.ADMIN]: { // Workspace Owner
+      // Admins have high limits, reflecting their administrative role.
+      // They also manage workspace-wide settings and billing.
+      maxFileSize: 25 * 1024 * 1024, // 25MB
+      maxOutputTokens: 16384,
+      maxConcurrentJobs: 5,
+    },
+    [USER_ROLES.SUPER_ADMIN]: { // Platform Owner
+      // Super admins typically have unrestricted or very high limits for testing and administration.
+      maxFileSize: 100 * 1024 * 1024, // 100MB
+      maxOutputTokens: 32768,
+      maxConcurrentJobs: 10,
+    },
+  },
+  // Subscription tiers that modify the base role limits for 'user' and 'manager' roles.
+  // The application should apply the highest limit available from the user's role and tier.
+  tiers: {
+    free: {
+      maxFileSize: 5 * 1024 * 1024, // 5MB
+      maxOutputTokens: 4096,
+      maxConcurrentJobs: 1,
+    },
+    pro: {
+      maxFileSize: 20 * 1024 * 1024, // 20MB
+      maxOutputTokens: 16384,
+      maxConcurrentJobs: 3,
+    },
+    enterprise: {
+      maxFileSize: 50 * 1024 * 1024, // 50MB
+      maxOutputTokens: 32768,
+      maxConcurrentJobs: 5,
+    },
   },
 };
 
@@ -184,9 +263,10 @@ export const CONVERSATION_MODEL = 'gemini-1.5-flash';
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
-  // SECURITY WARNING: This is a base path. To ensure user data isolation,
-  // the application logic MUST append a unique user-specific identifier (e.g., user ID)
-  // to this path before saving files. Example: `uploads/article_files/${userId}/`.
+  // CRITICAL SECURITY WARNING: This is a base path. To ensure strict tenant data isolation,
+  // the application logic MUST append a unique workspace/tenant identifier, followed by a user-specific
+  // identifier to this path before saving files. Failure to do so will result in data leakage between workspaces.
+  // Correct Example: `uploads/article_files/${workspaceId}/${userId}/`.
   BASE_UPLOAD_PATH: 'uploads/article_files',
 };
 
@@ -258,6 +338,7 @@ Now, generate the complete article in Markdown format.
  * @property {string} FILE_LIMIT_EXCEEDED Message when the uploaded file is too large.
  * @property {string} INVALID_INPUT Message for invalid or missing request parameters.
  * @property {string} RATE_LIMIT_EXCEEDED Message when the user exceeds their allowed usage rate.
+ * @property {string} WORKSPACE_LIMIT_EXCEEDED Message when the workspace has exceeded its aggregate usage limit.
  */
 
 /**
@@ -273,6 +354,7 @@ export const RESPONSE_MESSAGES = {
   FILE_LIMIT_EXCEEDED: 'File size exceeds the maximum allowed limit for your account',
   INVALID_INPUT: 'Invalid parameters provided. Please check the article type, tone, and length.',
   RATE_LIMIT_EXCEEDED: 'You have reached the maximum number of concurrent requests. Please wait for the current job to complete.',
+  WORKSPACE_LIMIT_EXCEEDED: 'This action cannot be completed as the workspace has reached its usage limit.',
 };
 
 /**
