@@ -13,24 +13,22 @@ const { z } = zod;
  * a `conversationId` and a `deepSearch` flag.
  *
  * @type {z.ZodObject<{
- *   body: z.ZodObject<{
- *     message: z.ZodString,
- *     conversationId: z.ZodOptional<z.ZodString>,
- *     deepSearch: z.ZodOptional<z.ZodBoolean>
- *   }>
+ *   message: z.ZodString,
+ *   conversationId: z.ZodOptional<z.ZodString>,
+ *   deepSearch: z.ZodOptional<z.ZodBoolean>
  * }>}
  */
 const searchQuerySchema = z.object({
-  body: z.object({
-    message: z
-      .string({
-        required_error: 'Search query is required',
-      })
-      .min(1, 'Search query cannot be empty')
-      .max(1000, 'Search query too long'),
-    conversationId: z.string().optional(),
-    deepSearch: z.boolean().optional(), // Allow deep search flag
-  }),
+  // The schema directly defines the shape of the request body (e.g., req.body),
+  // not an object containing a 'body' property.
+  message: z
+    .string({
+      required_error: 'Search query is required',
+    })
+    .min(1, 'Search query cannot be empty')
+    .max(1000, 'Search query too long'),
+  conversationId: z.string().optional(),
+  deepSearch: z.boolean().optional(), // Allow deep search flag
 });
 
 /**
@@ -39,19 +37,15 @@ const searchQuerySchema = z.object({
  * It optionally checks for `x-guest-id` and `x-forwarded-for` headers.
  *
  * @type {z.ZodObject<{
- *   headers: z.ZodOptional<z.ZodObject<{
- *     'x-guest-id': z.ZodOptional<z.ZodString>,
- *     'x-forwarded-for': z.ZodOptional<z.ZodString>
- *   }>>
+ *   'x-guest-id': z.ZodOptional<z.ZodString>,
+ *   'x-forwarded-for': z.ZodOptional<z.ZodString>
  * }>}
  */
 const guestRateLimitSchema = z.object({
-  headers: z
-    .object({
-      'x-guest-id': z.string().optional(),
-      'x-forwarded-for': z.string().optional(),
-    })
-    .optional(),
+  // The schema directly defines the shape of the request headers (e.g., req.headers),
+  // not an object containing a 'headers' property.
+  'x-guest-id': z.string().optional(),
+  'x-forwarded-for': z.string().optional(),
 });
 
 /**
