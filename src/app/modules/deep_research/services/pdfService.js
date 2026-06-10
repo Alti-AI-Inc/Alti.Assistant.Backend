@@ -3,7 +3,18 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Draws the Phase 5 high-end strategic Executive Dashboard / Slide Deck Page on Page 1.
+ * Draws the Phase 5 high-end strategic Executive Dashboard / Slide Deck Page on Page 1 of the PDF.
+ * This page provides a high-level overview, key takeaways, research rigor scorecard, and a prominent verified fact.
+ *
+ * @param {PDFDocument} doc - The PDFKit document instance to draw on.
+ * @param {string} query - The original research query or objective.
+ * @param {object} metadata - Metadata about the research, including quality metrics.
+ * @param {object} [metadata.qualityMetrics] - Object containing quality scores (e.g., sourceDiversity, informationDepth).
+ * @param {Array<object>} quantitativeFacts - An array of quantitative facts with details like metric, value, source, and trust level.
+ * @param {string} [quantitativeFacts[].metric] - Description of the quantitative metric.
+ * @param {string} [quantitativeFacts[].value] - The value of the quantitative metric.
+ * @param {string} [quantitativeFacts[].source] - The source of the quantitative fact.
+ * @param {'HIGH'|'MEDIUM'|'LOW'} [quantitativeFacts[].trustLevel] - The trust level of the fact.
  */
 const drawExecutiveDashboardPage = (doc, query, metadata, quantitativeFacts) => {
   // Solid Accent Top Bar
@@ -107,7 +118,17 @@ const drawExecutiveDashboardPage = (doc, query, metadata, quantitativeFacts) => 
 };
 
 /**
- * Helper to draw horizontal progress bar charts for quality metrics on page 2.
+ * Helper function to draw horizontal progress bar charts for research quality metrics on a PDF page.
+ *
+ * @param {PDFDocument} doc - The PDFKit document instance.
+ * @param {number} x - The X-coordinate for the chart's top-left corner.
+ * @param {number} y - The Y-coordinate for the chart's top-left corner.
+ * @param {object} metrics - An object containing various quality metrics.
+ * @param {number} [metrics.sourceDiversity=7.5] - Score for source diversity (0-10).
+ * @param {number} [metrics.informationDepth=8.0] - Score for information depth (0-10).
+ * @param {number} [metrics.topicCoverage=7.0] - Score for topic coverage (0-10).
+ * @param {number} [metrics.credibilityScore=8.5] - Score for credibility (0-10).
+ * @returns {number} The updated Y-coordinate after drawing the chart, allowing for sequential content placement.
  */
 const drawQualityMetricsChart = (doc, x, y, metrics) => {
   const metricsList = [
@@ -127,7 +148,6 @@ const drawQualityMetricsChart = (doc, x, y, metrics) => {
     doc.roundedRect(x + 120, y - 2, 200, 10, 4).fillColor('#e2e8f0').fill();
     
     // Draw fill track based on value (0-10)
-    // Removed incorrect 'fillWidth' function definition. 'calculatedWidth' is correctly used.
     const calculatedWidth = Math.min((m.value / 10) * 200, 200);
     doc.roundedRect(x + 120, y - 2, calculatedWidth, 10, 4).fillColor('#0f766e').fill();
     
@@ -141,11 +161,23 @@ const drawQualityMetricsChart = (doc, x, y, metrics) => {
 };
 
 /**
- * Helper to draw the structured quantitative facts table with premium colored trust pills on page 2.
+ * Helper function to draw a structured table of quantitative facts with premium colored trust pills on a PDF page.
+ * The table handles pagination automatically if the content exceeds the current page height.
+ *
+ * @param {PDFDocument} doc - The PDFKit document instance.
+ * @param {number} x - The X-coordinate for the table's top-left corner.
+ * @param {number} y - The Y-coordinate for the table's top-left corner.
+ * @param {number} width - The total width of the table.
+ * @param {Array<object>} tableData - An array of objects, each representing a row in the table.
+ * @param {string} [tableData[].metric] - The description of the quantitative metric.
+ * @param {string} [tableData[].value] - The value associated with the metric.
+ * @param {string} [tableData[].source] - The source or reference for the fact.
+ * @param {'HIGH'|'MEDIUM'|'LOW'} [tableData[].trustLevel='MEDIUM'] - The trust level of the fact, influencing pill color.
+ * @param {number} [tableData[].verificationScore] - The verification score for the fact (e.g., 70 for 70%).
+ * @returns {number} The updated Y-coordinate after drawing the table, allowing for sequential content placement.
  */
 const drawQuantitativeTable = (doc, x, y, width, tableData) => {
   const data = Array.isArray(tableData) ? tableData : [];
-  // Removed .slice(0, 10) to ensure all quantitative facts are included and paginated.
   if (data.length === 0) return y;
 
   doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e293b').text('Verified Quantitative Fact Matrix', x, y);
@@ -236,7 +268,25 @@ const drawQuantitativeTable = (doc, x, y, width, tableData) => {
 };
 
 /**
- * Main function: Generates a premium A4 PDFKit report for the recursive deep research results.
+ * Generates a premium A4 PDFKit report for the recursive deep research results.
+ * The report includes an executive dashboard, detailed answer, quantitative facts table, and sources bibliography.
+ *
+ * @param {object} reportData - The comprehensive data object containing all information for the report.
+ * @param {string} reportData.title - The main title of the report.
+ * @param {string} reportData.query - The original query that initiated the research.
+ * @param {string} reportData.answer - The detailed, comprehensive answer generated by the AI.
+ * @param {Array<object>} reportData.sources - An array of source objects.
+ * @param {string} [reportData.sources[].id] - Unique identifier for the source.
+ * @param {string} [reportData.sources[].title] - Title of the source.
+ * @param {string} [reportData.sources[].url] - URL of the source.
+ * @param {string} [reportData.sources[].snippet] - A brief snippet from the source.
+ * @param {Array<object>} reportData.quantitativeFacts - An array of quantitative facts.
+ * @param {object} reportData.metadata - Metadata about the report generation.
+ * @param {Date} [reportData.metadata.generatedAt] - Timestamp when the report was generated.
+ * @param {number} [reportData.metadata.processingTime] - Time taken for processing in milliseconds.
+ * @param {object} [reportData.metadata.qualityMetrics] - Object containing quality scores for the research.
+ * @returns {Promise<object>} A promise that resolves with an object containing the PDF buffer, filename, content type, and size.
+ * @throws {Error} If there is an error during PDF generation.
  */
 export const generatePDFReport = async (reportData) => {
   const { title, query, answer, sources, quantitativeFacts, metadata } = reportData;
@@ -435,6 +485,14 @@ export const generatePDFReport = async (reportData) => {
   });
 };
 
+/**
+ * Processes a raw answer string, typically from an AI, to clean up markdown syntax
+ * and make it suitable for plain text rendering in a PDF.
+ * It removes headers, bold/italic formatting, links (keeping text), and code blocks.
+ *
+ * @param {string} answer - The raw answer string, potentially containing markdown.
+ * @returns {string} The processed answer string with markdown cleaned.
+ */
 const processAnswerForPDF = (answer) => {
   if (!answer) return 'No answer available.';
 
@@ -457,6 +515,12 @@ const processAnswerForPDF = (answer) => {
   return processed;
 };
 
+/**
+ * Generates a sanitized and timestamped filename for the PDF report based on the research query.
+ *
+ * @param {string} query - The original research query.
+ * @returns {string} A sanitized filename string (e.g., "research_report_your_query_topic_2023-10-27.pdf").
+ */
 const generateFilename = (query) => {
   const sanitized = query
     .toLowerCase()
@@ -468,6 +532,16 @@ const generateFilename = (query) => {
   return `research_report_${sanitized}_${timestamp}.pdf`;
 };
 
+/**
+ * Saves the generated PDF buffer to a specified file path on the local filesystem.
+ *
+ * @param {object} pdfData - An object containing the PDF buffer and its filename.
+ * @param {Buffer} pdfData.buffer - The Buffer containing the PDF document's binary data.
+ * @param {string} pdfData.filename - The desired filename for the PDF.
+ * @param {string} outputPath - The directory path where the PDF file should be saved.
+ * @returns {Promise<string>} A promise that resolves with the full path to the saved PDF file.
+ * @throws {Error} If there is an error during the file writing process.
+ */
 export const savePDFToFile = async (pdfData, outputPath) => {
   try {
     const fullPath = path.resolve(outputPath, pdfData.filename);
