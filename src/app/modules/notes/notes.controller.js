@@ -235,6 +235,13 @@ module.exports.getAllTask = catchAsync(async (req, res) => {
 
   logger.info(requestedUserId, 'all taskk userId');
   // Pass the authenticated userId to the service to filter notes by ownership.
+  // Optimization Recommendation:
+  // 1. For read operations that return multiple documents, consider adding `.lean()`
+  //    to the Mongoose query in `getAllTaskServiceById` if Mongoose document methods
+  //    are not needed. This returns plain JavaScript objects, improving performance.
+  //    Example: `Note.find({ userId }).lean()` in the service.
+  // 2. Ensure an index exists on the `userId` field in your Note model for faster lookups.
+  //    Example: `noteSchema.index({ userId: 1 });` in your Note model definition.
   const result = await getAllTaskServiceById(authenticatedUserId);
 
   sendResponse(res, {
@@ -336,6 +343,14 @@ module.exports.getTaskById = catchAsync(async (req, res) => {
 
   // IDOR vulnerability fix: Pass userId to the service to ensure ownership check.
   // The service should query for a note with both _id and userId.
+  // Optimization Recommendation:
+  // 1. For read operations that return a single document, consider adding `.lean()`
+  //    to the Mongoose query in `getTaskServiceById` if Mongoose document methods
+  //    are not needed. This returns a plain JavaScript object, improving performance.
+  //    Example: `Note.findOne({ _id: id, userId }).lean()` in the service.
+  // 2. Ensure an index exists on the `userId` field, or a compound index `(userId, _id)`
+  //    in your Note model for faster lookups when filtering by both.
+  //    Example: `noteSchema.index({ userId: 1, _id: 1 });` in your Note model definition.
   const result = await getTaskServiceById(id, userId);
 
   // If the service returns null, it means the note was not found or doesn't belong to the user.
@@ -479,6 +494,10 @@ exports.updateTask = catchAsync(async (req, res) => {
 
   // IDOR vulnerability fix: Pass userId to the service to ensure ownership check.
   // The service should update only if the note matches both _id and userId.
+  // Optimization Recommendation:
+  // Ensure an index exists on the `userId` field, or a compound index `(userId, _id)`
+  // in your Note model for faster lookups when filtering by both for update operations.
+  // Example: `noteSchema.index({ userId: 1, _id: 1 });` in your Note model definition.
   const result = await updateTaskService(id, userId, req.body);
 
   // If the service returns null, it means the note was not found or doesn't belong to the user.
@@ -558,6 +577,10 @@ exports.deleteTask = catchAsync(async (req, res) => {
 
   // IDOR vulnerability fix: Pass userId to the service to ensure ownership check.
   // The service should delete only if the note matches both _id and userId.
+  // Optimization Recommendation:
+  // Ensure an index exists on the `userId` field, or a compound index `(userId, _id)`
+  // in your Note model for faster lookups when filtering by both for delete operations.
+  // Example: `noteSchema.index({ userId: 1, _id: 1 });` in your Note model definition.
   const result = await deleteTaskService(id, userId);
 
   // If result is null/undefined or deletedCount is 0, it means the note was not found
@@ -667,6 +690,10 @@ exports.bulkDeleteTask = catchAsync(async (req, res) => {
 
   // IDOR vulnerability fix: Pass userId to the service.
   // The service must ensure that only notes belonging to this userId are deleted from the provided 'ids' array.
+  // Optimization Recommendation:
+  // For bulk delete operations filtering by `userId` and an array of `_id`s, a compound index
+  // on `(userId, _id)` in your Note model will significantly improve performance.
+  // Example: `noteSchema.index({ userId: 1, _id: 1 });` in your Note model definition.
   const result = await bulkDeleteTaskService(ids, userId);
 
   sendResponse(res, {
