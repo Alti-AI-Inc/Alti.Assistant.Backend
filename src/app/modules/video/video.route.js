@@ -26,7 +26,7 @@ router.post(
   '/operations',
   optionalAuth(),
   extractTenantContext,
-  // createRateLimiter(20, 1), // 20 requests per 1 minute
+  createRateLimiter(20, 1), // 20 requests per 1 minute - uncommented to prevent abuse
   videoController.getOperationStatus
 );
 
@@ -43,6 +43,7 @@ router.get(
   '/conversation/:conversationId',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(10, 1), // Added rate limiter to prevent ID enumeration and brute-force attacks
   validateRequest(VideoValidation.conversationSchema),
   videoController.getVideoConversation
 );
@@ -52,6 +53,7 @@ router.get(
   '/guest/:guestUserId/conversations',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(10, 1), // Added rate limiter to prevent ID enumeration and brute-force attacks
   validateRequest(VideoValidation.guestUserSchema),
   videoController.getGuestConversations
 );
