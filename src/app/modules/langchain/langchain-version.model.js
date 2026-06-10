@@ -5,8 +5,8 @@ const LangchainChainVersionSchema = new mongoose.Schema(
     chainId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'LangchainChain',
-      required: true,
-      index: true
+      required: true
+      // Removed redundant single index 'index: true' because chainId is the prefix of the compound unique index below.
     },
     userId: {
       type: String,
@@ -15,8 +15,7 @@ const LangchainChainVersionSchema = new mongoose.Schema(
     },
     versionNumber: {
       type: Number,
-      required: true,
-      index: true
+      required: true
     },
     inputVariables: {
       type: [String],
@@ -40,8 +39,12 @@ const LangchainChainVersionSchema = new mongoose.Schema(
   }
 );
 
-// Compound index to ensure uniqueness per chain and version number
+// Compound index to ensure uniqueness per chain and version number.
+// This also serves as an efficient index for queries filtering by chainId alone.
 LangchainChainVersionSchema.index({ chainId: 1, versionNumber: 1 }, { unique: true });
+
+// Compound index to optimize queries fetching a user's versions sorted by creation date (e.g., history timelines)
+LangchainChainVersionSchema.index({ userId: 1, createdAt: -1 });
 
 const LangchainChainVersion = mongoose.models.LangchainChainVersion || mongoose.model('LangchainChainVersion', LangchainChainVersionSchema);
 
