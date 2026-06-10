@@ -20,7 +20,7 @@ import { isStripeIp } from '../../../shared/stripeSecurity.js';
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  apiVersion: '2022-11-15',
+  apiVersion: '2024-06-20', // CVE-PATCH-AGENT: Updated Stripe API version to the latest stable release for security, compliance, and feature enhancements.
 });
 
 /**
