@@ -5,10 +5,25 @@ import { logger } from '../../../../shared/logger.js';
 /**
  * A production-grade MongoDB checkpointer for LangGraph JS.
  * Fulfills Phase 1 of our master workflow automation plan.
+ *
+ * This class extends `BaseCheckpointSaver` from `@langchain/langgraph`
+ * to provide persistent storage for LangGraph checkpoints using MongoDB.
+ * It serializes and deserializes checkpoint data and metadata using the
+ * `serde` utility provided by the base class.
  */
 export class MongoDBSaver extends BaseCheckpointSaver {
   /**
-   * Retrieves a checkpoint tuple from the database.
+   * Retrieves a checkpoint tuple from the database based on the provided configuration.
+   * If `checkpoint_id` is specified, it retrieves that specific checkpoint.
+   * If `checkpoint_id` is not specified, it retrieves the latest checkpoint for the given `thread_id`.
+   *
+   * @param {Object} config - The configuration object for the checkpoint retrieval.
+   * @param {Object} config.configurable - Configurable properties for the checkpoint.
+   * @param {string} config.configurable.thread_id - The unique identifier for the thread whose checkpoint is to be retrieved.
+   * @param {string} [config.configurable.checkpoint_id] - The specific ID of the checkpoint to retrieve. If omitted, the latest checkpoint for the thread will be fetched.
+   * @returns {Promise<Object|undefined>} A promise that resolves to the checkpoint tuple (containing config, checkpoint, and metadata)
+   *                                      or `undefined` if no matching checkpoint is found.
+   * @throws {Error} If a database error occurs during the retrieval process.
    */
   async getTuple(config) {
     try {
@@ -56,7 +71,18 @@ export class MongoDBSaver extends BaseCheckpointSaver {
   }
 
   /**
-   * Saves a checkpoint tuple to the database.
+   * Saves a checkpoint tuple (checkpoint and its associated metadata) to the database.
+   * If a checkpoint with the given `threadId` and `checkpointId` already exists, it will be updated.
+   * Otherwise, a new checkpoint document will be created.
+   *
+   * @param {Object} config - The configuration object for the checkpoint.
+   * @param {Object} config.configurable - Configurable properties for the checkpoint.
+   * @param {string} config.configurable.thread_id - The unique identifier for the thread to which the checkpoint belongs.
+   * @param {Object} checkpoint - The checkpoint object to be saved. This object must contain an `id` property.
+   * @param {Object} metadata - The metadata object associated with the checkpoint.
+   * @returns {Promise<Object>} A promise that resolves to the configuration object of the saved checkpoint,
+   *                             including its `thread_id` and `checkpoint_id`.
+   * @throws {Error} If `thread_id` is missing in the config or if a database error occurs during the save operation.
    */
   async put(config, checkpoint, metadata) {
     try {
@@ -93,7 +119,19 @@ export class MongoDBSaver extends BaseCheckpointSaver {
   }
 
   /**
-   * Lists checkpoints matching the criteria.
+   * Lists checkpoints matching the specified criteria, yielding them one by one.
+   * This method supports filtering by `thread_id`, limiting the number of results,
+   * and retrieving checkpoints older than a specific `checkpoint_id`.
+   *
+   * @param {Object} config - The configuration object for filtering checkpoints.
+   * @param {Object} config.configurable - Configurable properties for the checkpoint.
+   * @param {string} config.configurable.thread_id - The unique identifier for the thread whose checkpoints are to be listed.
+   * @param {number} [limit] - The maximum number of checkpoints to return. If not provided, all matching checkpoints will be returned.
+   * @param {Object} [before] - An optional configuration object to list checkpoints older than a specific checkpoint.
+   * @param {Object} [before.configurable] - Configurable properties for the `before` checkpoint.
+   * @param {string} [before.configurable.checkpoint_id] - The checkpoint ID to list checkpoints that are older than this ID.
+   * @yields {Promise<Object>} A promise that yields checkpoint tuples (config, checkpoint, metadata) matching the criteria.
+   * @throws {Error} If a database error occurs during the listing process.
    */
   async *list(config, limit, before) {
     try {
