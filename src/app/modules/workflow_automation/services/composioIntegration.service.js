@@ -1,3 +1,113 @@
+/**
+ * @typedef {Object} AppConnectionInfo
+ * @property {string} app - The name of the application.
+ * @property {string} authConfigId - The unique ID of the authentication configuration for the app.
+ * @property {boolean} isConnected - True if the user has an active connection to this app, false otherwise.
+ * @property {'active'|'pending'|'not_connected'|string} connectionStatus - The status of the user's connection to the app.
+ * @property {string} [connectedAccountId] - The ID of the connected account if `isConnected` is true.
+ * @property {string} [integrationId] - The ID of the integration if `isConnected` is true.
+ */
+
+/**
+ * @typedef {Object} GetUserAvailableAppsResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {AppConnectionInfo[]} apps - All available apps, including connection status.
+ * @property {AppConnectionInfo[]} connectedApps - Apps to which the user is currently connected.
+ * @property {AppConnectionInfo[]} availableForConnection - Apps that are available but not yet connected by the user.
+ */
+
+/**
+ * @typedef {Object} ToolParameter
+ * @property {string} name - The name of the parameter.
+ * @property {string} type - The data type of the parameter (e.g., 'string', 'number', 'boolean').
+ * @property {string} description - A description of the parameter.
+ * @property {boolean} [required] - Indicates if the parameter is required.
+ */
+
+/**
+ * @typedef {Object} ToolInfo
+ * @property {string} name - The name of the tool.
+ * @property {string} description - A description of what the tool does.
+ * @property {string} app - The name of the application this tool belongs to.
+ * @property {Object.<string, ToolParameter>} parameters - An object mapping parameter names to their definitions.
+ * @property {string} slug - A unique slug for the tool.
+ */
+
+/**
+ * @typedef {Object} LocalToolInfo
+ * @property {string} name - The name of the local tool.
+ * @property {string} description - A description of what the local tool does.
+ * @property {string} slug - A unique slug for the local tool.
+ */
+
+/**
+ * @typedef {Object} GetUserAvailableToolsResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {Object.<string, ToolInfo[]>} toolsByApp - An object where keys are app names and values are arrays of tools available for that app.
+ * @property {string[]} connectedApps - An array of names of apps the user is connected to and for which tools were fetched.
+ * @property {LocalToolInfo[]} localTools - An array of tools available from the local database.
+ * @property {number} totalTools - The total number of tools fetched from all sources.
+ */
+
+/**
+ * @typedef {Object} AppConnectionStatus
+ * @property {string} app - The name of the application.
+ * @property {boolean} isConnected - True if the user has an active connection to this app, false otherwise.
+ * @property {'active'|'pending'|'not_connected'|string} status - The status of the user's connection to the app.
+ * @property {string} [authConfigId] - The unique ID of the authentication configuration for the app.
+ * @property {string} [connectedAccountId] - The ID of the connected account if `isConnected` is true.
+ */
+
+/**
+ * @typedef {Object} CheckAppConnectionsResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {boolean} allConnected - True if the user is connected to all `requiredApps`, false otherwise.
+ * @property {AppConnectionStatus[]} connectionStatus - An array detailing the connection status for each requested app.
+ * @property {string[]} missingConnections - An array of app names that are required but not connected.
+ * @property {string[]} connectedApps - An array of app names that are required and connected.
+ */
+
+/**
+ * @typedef {Object} GetAvailableAppsForDetectionResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {string[]} availableApps - A combined, deduplicated list of all apps available for detection (from auth configs, local tools, and platform apps).
+ * @property {string[]} authConfigApps - Apps derived from authentication configurations.
+ * @property {string[]} toolApps - Apps derived from local tool definitions.
+ */
+
+/**
+ * @typedef {Object} ValidateDetectedAppsResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {string[]} validApps - An array of detected app names that are recognized as available.
+ * @property {string[]} invalidApps - An array of detected app names that are not recognized as available.
+ * @property {string[]} availableApps - The full list of all available apps for detection.
+ * @property {CheckAppConnectionsResult|null} connectionStatus - The connection status for `validApps` if `userId` was provided, otherwise null.
+ */
+
+/**
+ * @typedef {Object} ComposioConnectionUrlResponse
+ * @property {string} id - The ID of the connected account.
+ * @property {string} integrationId - The ID of the integration.
+ * @property {string} redirectUrl - The URL to redirect the user to for completing the connection.
+ */
+
+/**
+ * @typedef {Object} GetConnectionUrlResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} [error] - Error message if the operation failed.
+ * @property {boolean} [alreadyConnected] - True if the app is already connected for the user.
+ * @property {string} [message] - A message, typically indicating if already connected.
+ * @property {Object} [connection] - Details of the existing connection if `alreadyConnected` is true.
+ * @property {string} [connectionUrl] - The URL to initiate a new connection if `alreadyConnected` is false.
+ * @property {string} [connectedAccountId] - The ID of the connected account if a new connection was initiated.
+ * @property {Object} [authConfig] - The authentication configuration details for the app.
+ */
+
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
 import ComposioAuth from '../../composio_v2/composio.model.js';
@@ -5,16 +115,29 @@ import AuthConfig from '../../composio_v2/authConfig.model.js';
 import Tool from '../../composio_v2/tools.model.js';
 import { logger } from '../../../../shared/logger.js';
 
+/**
+ * Initializes the Composio SDK with the organization's API key.
+ * @type {Composio}
+ */
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
 
 /**
- * Service for managing Composio apps and tools for workflow automation
+ * Service for managing Composio apps and tools for workflow automation.
+ * Provides functionalities to retrieve user's connected apps, available tools,
+ * check connection statuses, and initiate new app connections.
  */
 class ComposioIntegrationService {
   /**
-   * Get user's connected and available apps
+   * Retrieves a list of all available Composio apps, indicating which ones the user is connected to.
+   * It fetches authentication configurations and user-specific connections to determine the status.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string} userId - The unique identifier of the user.
+   * @returns {Promise<GetUserAvailableAppsResult>} An object containing the success status,
+   *   a list of all available apps with their connection status,
+   *   apps the user is connected to, and apps available for connection.
    */
   async getUserAvailableApps(userId) {
     try {
@@ -78,7 +201,14 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Get available tools for connected apps
+   * Retrieves available tools for the user's connected apps, optionally filtered by specific app names.
+   * It fetches tools from both the Composio platform and a local database.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string} userId - The unique identifier of the user.
+   * @param {string[]} [appNames=null] - An optional array of app names (case-insensitive) to filter the tools by.
+   * @returns {Promise<GetUserAvailableToolsResult>} An object containing the success status,
+   *   tools grouped by app, a list of connected app names, local tools, and the total count of tools.
    */
   async getUserAvailableTools(userId, appNames = null) {
     try {
@@ -170,7 +300,14 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Check if user has specific apps connected
+   * Checks the connection status for a list of specified applications for a given user.
+   * Includes special handling for platform-level "apps" that are always considered connected.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string} userId - The unique identifier of the user.
+   * @param {string[]} requiredApps - An array of app names (case-insensitive) to check for connection status.
+   * @returns {Promise<CheckAppConnectionsResult>} An object indicating overall connection status,
+   *   individual app statuses, a list of missing connections, and a list of connected apps.
    */
   async checkAppConnections(userId, requiredApps) {
     try {
@@ -241,7 +378,13 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Get available apps list (for app detection in LangGraph)
+   * Retrieves a comprehensive list of all applications available for detection,
+   * combining apps from authentication configurations, local tool definitions, and predefined platform apps.
+   * This list is typically used for validating detected app names in contexts like LangGraph.
+   *
+   * @memberof ComposioIntegrationService
+   * @returns {Promise<GetAvailableAppsForDetectionResult>} An object containing the success status,
+   *   a combined list of all available apps, apps from auth configs, and apps from local tools.
    */
   async getAvailableAppsForDetection() {
     try {
@@ -280,7 +423,14 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Validate and filter detected apps against available apps
+   * Validates a list of detected app names against the globally available apps.
+   * Optionally checks the connection status for valid apps for a specific user.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string[]} detectedApps - An array of app names (case-insensitive) that have been detected.
+   * @param {string} [userId=null] - The unique identifier of the user. If provided, connection status for valid apps will be checked.
+   * @returns {Promise<ValidateDetectedAppsResult>} An object containing the success status,
+   *   lists of valid and invalid detected apps, all available apps, and optionally the connection status.
    */
   async validateDetectedApps(detectedApps, userId = null) {
     try {
@@ -333,7 +483,16 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Get connection URL for an app
+   * Generates a connection URL for a specified application, allowing a user to connect their account.
+   * It first checks if the app is already connected for the user. If not, it initiates a new connection
+   * via Composio and saves a pending connection record.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string} userId - The unique identifier of the user initiating the connection.
+   * @param {string} appName - The name of the app (case-insensitive) for which to get the connection URL.
+   * @returns {Promise<GetConnectionUrlResult>} An object containing the success status,
+   *   a flag indicating if already connected, the connection URL (if a new connection is initiated),
+   *   or details of the existing connection.
    */
   async getConnectionUrl(userId, appName) {
     try {
@@ -369,6 +528,7 @@ class ComposioIntegrationService {
       }
 
       // Initiate new connection
+      /** @type {ComposioConnectionUrlResponse} */
       const connectionUrl = await composio.connectedAccounts.initiate(
         userId,
         authConfig.authConfigId
@@ -404,4 +564,9 @@ class ComposioIntegrationService {
   }
 }
 
+/**
+ * Singleton instance of the ComposioIntegrationService.
+ * @type {ComposioIntegrationService}
+ * @exports composioIntegrationService
+ */
 export const composioIntegrationService = new ComposioIntegrationService();
