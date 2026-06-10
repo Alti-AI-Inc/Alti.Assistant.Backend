@@ -33,6 +33,9 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
   // ensure scalability across multiple instances, and handle server restarts.
   // Chat history is now loaded from the database for each request.
   let chatHistoryInstance = new InMemoryChatMessageHistory();
+  // Optimization Recommendation: For faster lookups on ChatHistory, ensure an index exists on the schema.
+  // Example: ChatHistorySchema.index({ user: 1, sessionId: 1 });
+  // Note: .lean() is not used here because `llamaSession` might be modified and saved later.
   let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
 
   if (llamaSession && llamaSession.responses && llamaSession.responses.length > 0) {
@@ -114,10 +117,6 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       // total_time: res1?.usage?.total_time || 0,
     };
 
-    // Optimization Recommendation: For faster lookups on ChatHistory, ensure an index exists on the schema.
-    // Example: ChatHistorySchema.index({ user: 1, sessionId: 1 });
-    // `llamaSession` was already fetched at the beginning of the function.
-
     if (llamaSession) {
       logger.info('Existing Session Found, updating:', llamaSession._id);
       // FIX: Removed redundant optional chaining. Assuming 'responses' is always an array
@@ -133,6 +132,8 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
         responses: [responseData],
       });
       logger.info('New Session Created:', llamaSession._id);
+      // Optimization Recommendation: `_id` is already indexed by default for `UserModel`.
+      // Since the result of `findByIdAndUpdate` is not used, no further `.lean()` optimization is needed here.
       await UserModel.findByIdAndUpdate(userId, {
         $push: { llamaAiSessions: llamaSession._id },
       });
