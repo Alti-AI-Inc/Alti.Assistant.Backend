@@ -8,6 +8,12 @@ const DatasetSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    workspaceId: {
+      type: String,
+      required: true,
+      index: true,
+      // Associates dataset with a workspace for admin management, billing limits, and subscription controls
+    },
     name: {
       type: String,
       required: true,
@@ -63,7 +69,7 @@ const DatasetSchema = new mongoose.Schema(
     },
     sizeBytes: {
       type: Number,
-      default: 0,
+      default: 0, // Used by admins to calculate workspace storage usage against subscription limits
     },
     features: {
       type: mongoose.Schema.Types.Mixed, // Dynamic schema features/columns from HF
@@ -80,6 +86,10 @@ DatasetSchema.index(
   { datasetId: 'text', name: 'text', description: 'text' },
   { weights: { datasetId: 10, name: 5, description: 1 }, name: 'DatasetTextIndex' }
 );
+
+// Compound indexes for fast workspace-specific dataset queries and aggregation of storage limits
+DatasetSchema.index({ workspaceId: 1, status: 1 });
+DatasetSchema.index({ workspaceId: 1, sizeBytes: 1 });
 
 const Dataset = mongoose.models.Dataset || mongoose.model('Dataset', DatasetSchema);
 
