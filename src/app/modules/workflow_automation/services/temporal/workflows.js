@@ -1,13 +1,54 @@
 /**
- * Stateful, durable Temporal Workflow that orchestrates step-by-step automation execution.
- * Fuses concurrent parallel Directed Acyclic Graph (DAG) scheduling, automatic retries,
- * and the transactional Saga pattern for compensating rollbacks.
- * 
- * @param {object} workflow - The full workflow document payload containing steps.
- * @param {string} userId - User identifier.
- * @param {object} context - Starting workflow runtime context.
- * @param {number} startStepIndex - Index of the step to start from (default 0).
- * @returns {Promise<object>} Execution report summary.
+ * @file Defines the core Temporal Workflow for durable, stateful automation execution.
+ * @module app/modules/workflow_automation/services/temporal/workflows
+ */
+
+/**
+ * Represents a single step within a workflow document.
+ * @typedef {object} WorkflowStep
+ * @property {string} stepId - A unique identifier for the step.
+ * @property {number} order - The baseline execution order.
+ * @property {Array<string>} [dependsOn] - An array of `stepId`s that this step depends on. If omitted, sequential dependency is inferred from the `order`.
+ * @property {string} app - The application or service to call (e.g., 'openai', 'google_sheets').
+ * @property {string} action - The action to perform within the app (e.g., 'generateText', 'appendRow').
+ * @property {string} stepType - The type of step (e.g., 'action', 'condition').
+ * @property {boolean} [continueOnError=false] - If true, the workflow continues even if this step fails.
+ * @property {object} [retryPolicy] - Custom retry policy for this step.
+ * @property {number} [retryPolicy.initialIntervalMs] - Initial retry interval in milliseconds.
+ * @property {number} [retryPolicy.backoffCoefficient] - The backoff coefficient for subsequent retries.
+ * @property {number} [retryPolicy.maxDelayMs] - The maximum retry interval in milliseconds.
+ * @property {number} [retryPolicy.maxAttempts] - The maximum number of retry attempts.
+ */
+
+/**
+ * Represents the full workflow document payload.
+ * @typedef {object} WorkflowDocument
+ * @property {Array<WorkflowStep>} steps - An array of step objects to be executed.
+ */
+
+/**
+ * Represents the final execution report of a workflow.
+ * @typedef {object} WorkflowExecutionReport
+ * @property {boolean} success - Indicates if the workflow completed without unhandled errors.
+ * @property {string} status - The final status of the workflow (e.g., 'completed').
+ * @property {string} summary - A human-readable summary of the execution result.
+ * @property {object} context - The final, mutated context object after all steps have run.
+ */
+
+/**
+ * A stateful, durable Temporal Workflow that orchestrates step-by-step automation execution.
+ * This orchestrator fuses several advanced patterns:
+ * 1.  **Directed Acyclic Graph (DAG) Scheduling**: Executes steps with defined dependencies in parallel whenever possible, maximizing throughput. It also auto-infers sequential dependencies if none are provided.
+ * 2.  **Automatic Retries**: Leverages Temporal's built-in retry mechanism with exponential backoff for transient failures, enhancing resilience.
+ * 3.  **Saga Pattern**: Implements a transactional rollback mechanism. If a step fails, it triggers compensating actions for all previously completed steps in reverse order, ensuring data consistency.
+ * 4.  **Dynamic Activity Loading**: Switches between real Temporal proxied activities and local mock implementations based on environment variables, enabling robust offline testing.
+ *
+ * @param {WorkflowDocument} workflow - The full workflow document payload containing the steps to execute.
+ * @param {string} userId - The identifier of the user initiating the workflow. Used for auditing and permissions within activities.
+ * @param {object} [context={}] - The initial runtime context for the workflow. This object is passed to and can be modified by each step.
+ * @param {number} [startStepIndex=0] - The index of the step (based on initial sort order) from which to begin execution. Useful for resuming workflows.
+ * @returns {Promise<WorkflowExecutionReport>} A promise that resolves to an execution report summary upon successful completion.
+ * @throws {Error} If a step fails and `continueOnError` is false, or if a cyclic dependency/deadlock is detected. The error message will contain details about the failure and the Saga compensation results.
  */
 export async function runDurableWorkflow(workflow, userId, context = {}, startStepIndex = 0) {
   const steps = [...workflow.steps];
@@ -275,7 +316,14 @@ export async function runDurableWorkflow(workflow, userId, context = {}, startSt
   }
 }
 
+/**
+ * Re-exports the stateful, durable Temporal Workflow for dataset ingestion.
+ * @see {@link module:app/modules/datasets/temporal/ingestionWorkflow.runDatasetIngestionWorkflow}
+ */
 export { runDatasetIngestionWorkflow } from '../../../datasets/temporal/ingestionWorkflow.js';
+
+/**
+ * Re-exports the stateful, durable Temporal Workflow for resilient RAG (Retrieval-Augmented Generation) ingestion.
+ * @see {@link module:app/modules/llamaindex/temporal/ragIngestionWorkflow.resilientRAGIngestionWorkflow}
+ */
 export { resilientRAGIngestionWorkflow } from '../../../llamaindex/temporal/ragIngestionWorkflow.js';
-
-

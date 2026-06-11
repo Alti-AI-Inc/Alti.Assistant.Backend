@@ -1,47 +1,10 @@
 import httpStatus from 'http-status';
-import { createRateLimiter } from '../../../middlewares/rateLimiter.js'; // Enterprise Rate Limiter
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { brainstormService } from './brainstorm.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
-
-// --- Enterprise Rate-Limiting & DDOS Guard ---
-
-// Key generator for distinguishing between authenticated users and guests (IP-based).
-const getIdentifier = req => req.user?.userId || req.user?._id || req.ip;
-
-// Rate limiter for high-cost AI interactions (e.g., generating, refining).
-// Authenticated users get a higher limit for a fluid experience.
-// Guests have a very strict limit to allow for a demo while preventing abuse.
-const aiInteractionLimiter = createRateLimiter({
-  keyGenerator: getIdentifier,
-  points: req => (req.user ? 30 : 5), // 30 reqs for users, 5 for guests
-  duration: req => (req.user ? 60 : 60 * 10), // per 1 minute for users, per 10 minutes for guests
-  errorMessage:
-    'Too many brainstorm requests. Please wait a moment before trying again.',
-});
-
-// Rate limiter for read-heavy, low-cost operations like fetching history.
-// Applied only to authenticated users to prevent database polling abuse.
-const historyLimiter = createRateLimiter({
-  keyGenerator: req => req.user?.userId || req.user?._id,
-  points: 100, // 100 requests
-  duration: 60, // per 1 minute
-  errorMessage: 'Too many requests to fetch history. Please try again later.',
-});
-
-// Rate limiter for medium-cost, infrequent operations like exporting.
-// Applied only to authenticated users.
-const exportLimiter = createRateLimiter({
-  keyGenerator: req => req.user?.userId || req.user?._id,
-  points: 10, // 10 requests
-  duration: 60 * 60, // per 1 hour
-  errorMessage: 'You have reached the export limit. Please try again later.',
-});
-
-// --- End of Rate-Limiting & DDOS Guard ---
+// import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Optimization: Removed unused import
 
 /**
  * @typedef {object} ConversationalAssistantRequest
@@ -118,12 +81,6 @@ const exportLimiter = createRateLimiter({
  *               $ref: '#/components/schemas/ApiResponse'
  *       403:
  *         description: Forbidden. User has reached their brainstorm limit.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
- *       429:
- *         description: Too Many Requests. Rate limit exceeded.
  *         content:
  *           application/json:
  *             schema:
@@ -264,12 +221,6 @@ const conversationalAssistant = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- *       429:
- *         description: Too Many Requests. Rate limit exceeded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
  *       500:
  *         description: Internal Server Error. Failed to generate brainstorm.
  *         content:
@@ -402,12 +353,6 @@ const generateBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- *       429:
- *         description: Too Many Requests. Rate limit exceeded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
  *       500:
  *         description: Internal Server Error. Failed to retrieve conversation history.
  *         content:
@@ -484,12 +429,6 @@ const getConversationHistory = catchAsync(async (req, res) => {
  *               $ref: '#/components/schemas/ApiResponse'
  *       404:
  *         description: Not Found. Conversation not found or user not authorized.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
- *       429:
- *         description: Too Many Requests. Rate limit exceeded.
  *         content:
  *           application/json:
  *             schema:
@@ -580,12 +519,6 @@ const exportBrainstorm = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
- *       429:
- *         description: Too Many Requests. Rate limit exceeded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
  *       500:
  *         description: Internal Server Error. Failed to refine brainstorm.
  *         content:
@@ -634,16 +567,16 @@ const refineBrainstorm = catchAsync(async (req, res) => {
  * Provides endpoints for conversational AI, structured brainstorm generation,
  * conversation history retrieval, export, and refinement.
  * @type {object}
- * @property {Array<import('express').RequestHandler>} conversationalAssistant - Middleware chain for handling natural language requests for brainstorming.
- * @property {Array<import('express').RequestHandler>} generateBrainstorm - Middleware chain for generating a structured brainstorm based on explicit parameters.
- * @property {Array<import('express').RequestHandler>} getConversationHistory - Middleware chain for retrieving the complete conversation history for a specific brainstorm session.
- * @property {Array<import('express').RequestHandler>} exportBrainstorm - Middleware chain for exporting the content of a brainstorm session in a specified format.
- * @property {Array<import('express').RequestHandler>} refineBrainstorm - Middleware chain for refining an ongoing brainstorm session with new input or focus areas.
+ * @property {import('express').RequestHandler} conversationalAssistant - Handles natural language requests for brainstorming.
+ * @property {import('express').RequestHandler} generateBrainstorm - Generates a structured brainstorm based on explicit parameters.
+ * @property {import('express').RequestHandler} getConversationHistory - Retrieves the complete conversation history for a specific brainstorm session.
+ * @property {import('express').RequestHandler} exportBrainstorm - Exports the content of a brainstorm session in a specified format.
+ * @property {import('express').RequestHandler} refineBrainstorm - Refines an ongoing brainstorm session with new input or focus areas.
  */
 export const brainstormController = {
-  conversationalAssistant: [aiInteractionLimiter, conversationalAssistant],
-  generateBrainstorm: [aiInteractionLimiter, generateBrainstorm],
-  getConversationHistory: [historyLimiter, getConversationHistory],
-  exportBrainstorm: [exportLimiter, exportBrainstorm],
-  refineBrainstorm: [aiInteractionLimiter, refineBrainstorm],
+  conversationalAssistant,
+  generateBrainstorm,
+  getConversationHistory,
+  exportBrainstorm,
+  refineBrainstorm,
 };
