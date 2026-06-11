@@ -13,7 +13,6 @@ const { z } = zod;
  * @typedef {object} ConversationalRequestBody
  * @property {string} message - The user's message for the conversational interaction.
  * @property {string} [conversationId] - Optional ID of an ongoing conversation.
- * @property {string} [userId] - Optional ID of the user, primarily for guest users.
  */
 
 /**
@@ -36,12 +35,17 @@ const conversationalRequestSchema = z.object({
      * Optional ID of an ongoing conversation.
      * @type {string}
      */
-    conversationId: z.string().optional(),
+    conversationId: z
+      .string()
+      .uuid({ message: 'Invalid Conversation ID format' })
+      .optional(),
     /**
-     * Optional ID of the user, primarily for guest users.
-     * @type {string}
+     * INTEGRATION-FIX: Removed `userId` from the request body.
+     * The user's identity must be determined by the server from the authentication token (for authenticated users)
+     * or a server-managed session (for guests). Allowing clients to specify a `userId` is a security
+     * vulnerability (IDOR) that can lead to improper authorization and incorrect usage tracking,
+     * breaking tenancy and hierarchical billing logic.
      */
-    userId: z.string().optional(), // For guest users
   }),
 });
 
@@ -72,12 +76,16 @@ const generatePresentationSchema = z.object({
      * The main content or topic for which the presentation should be generated.
      * @type {string}
      */
-    content: z.string().min(1, 'Content is required'),
+    // BUG-FIX: Added a max length to prevent potential DoS attacks with overly long inputs.
+    content: z
+      .string()
+      .min(1, 'Content is required')
+      .max(10000, 'Content is too long'),
     /**
      * Optional number of slides to generate. Must be between 1 and 50.
      * @type {number}
      */
-    n_slides: z.number().min(1).max(50).optional(),
+    n_slides: z.number().int().min(1).max(50).optional(),
     /**
      * Optional language for the presentation (e.g., 'en', 'es').
      * @type {string}
@@ -156,9 +164,11 @@ const checkStatusSchema = z.object({
      * The ID of the asynchronous task whose status is to be checked.
      * @type {string}
      */
-    taskId: z.string({
-      required_error: 'Task ID is required',
-    }),
+    taskId: z
+      .string({
+        required_error: 'Task ID is required',
+      })
+      .uuid({ message: 'Invalid Task ID format' }),
   }),
   query: z
     .object({
@@ -166,15 +176,31 @@ const checkStatusSchema = z.object({
        * Optional ID of the conversation associated with the task.
        * @type {string}
        */
-      conversationId: z.string().optional(),
+      conversationId: z
+        .string()
+        .uuid({ message: 'Invalid Conversation ID format' })
+        .optional(),
     })
     .optional(),
+});
+
+// SECURITY-FIX: Define a strict schema for slide content to prevent injection attacks.
+// Using z.any() or z.record(z.any()) is dangerous as it bypasses validation,
+// allowing potentially malicious data (e.g., NoSQL injection payloads) to be processed and stored.
+const slideContentSchema = z.object({
+  title: z.string().max(255, 'Title is too long').optional(),
+  text: z.string().max(5000, 'Text is too long').optional(),
+  bulletPoints: z
+    .array(z.string().max(1000, 'Bullet point is too long'))
+    .optional(),
+  imageUrl: z.string().url({ message: 'Invalid image URL' }).optional(),
+  notes: z.string().max(5000, 'Notes are too long').optional(),
 });
 
 /**
  * @typedef {object} SlideEdit
  * @property {number} index - The zero-based index of the slide to be edited.
- * @property {Record<string, any>} content - The new content for the slide. This can be any object structure.
+ * @property {z.infer<typeof slideContentSchema>} content - The new content for the slide.
  */
 
 /**
@@ -194,9 +220,11 @@ const editPresentationSchema = z.object({
      * The ID of the presentation to be edited.
      * @type {string}
      */
-    presentationId: z.string({
-      required_error: 'Presentation ID is required',
-    }),
+    presentationId: z
+      .string({
+        required_error: 'Presentation ID is required',
+      })
+      .uuid({ message: 'Invalid Presentation ID format' }),
     /**
      * An array of slide edits, each specifying an index and new content.
      * At least one slide edit is required.
@@ -209,12 +237,15 @@ const editPresentationSchema = z.object({
            * The zero-based index of the slide to be edited.
            * @type {number}
            */
-          index: z.number().min(0),
+          index: z
+            .number()
+            .int()
+            .min(0, 'Slide index must be a non-negative integer'),
           /**
-           * The new content for the slide. This can be any object structure.
-           * @type {Record<string, any>}
+           * The new content for the slide.
+           * @type {z.infer<typeof slideContentSchema>}
            */
-          content: z.record(z.any()),
+          content: slideContentSchema,
         })
       )
       .min(1, 'At least one slide edit is required'),
@@ -241,9 +272,11 @@ const getPresentationSchema = z.object({
      * The ID of the presentation to retrieve.
      * @type {string}
      */
-    presentationId: z.string({
-      required_error: 'Presentation ID is required',
-    }),
+    presentationId: z
+      .string({
+        required_error: 'Presentation ID is required',
+      })
+      .uuid({ message: 'Invalid Presentation ID format' }),
   }),
 });
 
