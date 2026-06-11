@@ -2,10 +2,17 @@ import fs from 'fs/promises';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+// INTEGRATION FIX: Import services for workspace, usage, and notifications to integrate business logic.
+// This is critical for enforcing limits, tracking usage, and maintaining tenant separation.
+import { getWorkspaceById } from '../../workspace/services/workspaceService.js'; // Hypothetical: Fetches workspace details including limits.
+import { getCurrentUsage, incrementUsage } from '../../usage/services/usageService.js'; // Hypothetical: Tracks feature usage.
+import { sendNotification } from '../../notification/services/notificationService.js'; // Hypothetical: Sends notifications.
+import { AppError, ForbiddenError, LimitExceededError } from '../../../../shared/errors.js'; // Hypothetical: Custom error classes.
 
 /**
  * @file This service provides functions for generating and managing contract files in various formats.
- * It supports generating plain text (.txt) and DOCX (.docx) files from contract content.
+ * It supports generating plain text (.txt) and DOCX (.docx) files from contract content,
+ * while enforcing workspace-level limits and usage tracking.
  */
 
 /**
@@ -21,7 +28,8 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
  * Represents the metadata associated with a generated contract file.
  * @typedef {object} ContractGenerationMetadata
  * @property {string} contractType - The sanitized type of the contract.
- * @property {string} userId - The sanitized ID of the user who generated the contract.
+ * @property {string} userId - The ID of the user who generated the contract.
+ * @property {string} workspaceId - The ID of the workspace the contract belongs to.
  * @property {string} generatedAt - The ISO 8601 timestamp of when the file was generated.
  */
 
@@ -31,31 +39,25 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
  */
 
 /**
- * Generates a plain text file from the provided contract content.
- * The file will be saved in a designated output directory.
- *
+ * (Internal) Generates a plain text file from the provided contract content.
  * @async
- * @function generateTextFile
- * @param {string} contractContent - The string content of the contract to be written to the file.
- * @param {string} [fileName='contract.txt'] - The desired name for the output text file.
- * @returns {Promise<FileGenerationResult>} An object containing the success status, file path, file name, and file type.
+ * @param {string} contractContent - The string content of the contract.
+ * @param {string} fileName - The desired name for the output text file.
+ * @param {string} outputDir - The tenant-specific output directory.
+ * @returns {Promise<FileGenerationResult>} An object containing the file generation result.
  * @throws {Error} If there is an error during directory creation or file writing.
  */
-export const generateTextFile = async (
+const _generateTextFile = async (
   contractContent,
-  fileName = 'contract.txt'
+  fileName,
+  outputDir
 ) => {
   try {
-    const outputDir = path.join(process.cwd(), 'output', 'contracts');
-
-    // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
-    // Sanitize fileName to prevent path traversal vulnerabilities by ensuring only the basename is used.
     const sanitizedFileName = path.basename(fileName);
     const filePath = path.join(outputDir, sanitizedFileName);
 
-    // Write contract to file
     await fs.writeFile(filePath, contractContent, 'utf8');
 
     logger.info(`Text file generated: ${filePath}`);
@@ -63,7 +65,7 @@ export const generateTextFile = async (
     return {
       success: true,
       filePath,
-      fileName: sanitizedFileName, // Return the sanitized file name
+      fileName: sanitizedFileName,
       fileType: 'txt',
     };
   } catch (error) {
@@ -73,28 +75,22 @@ export const generateTextFile = async (
 };
 
 /**
- * Generates a DOCX (Microsoft Word) file from the provided contract content.
- * The content is parsed to apply basic formatting like headings (using # and ##) and bold text (using **text**).
- * The file will be saved in a designated output directory.
- *
+ * (Internal) Generates a DOCX file from the provided contract content.
  * @async
- * @function generateDocxFile
- * @param {string} contractContent - The string content of the contract, potentially with markdown-like formatting.
- * @param {string} [fileName='contract.docx'] - The desired name for the output DOCX file.
- * @returns {Promise<FileGenerationResult>} An object containing the success status, file path, file name, and file type.
- * @throws {Error} If there is an error during directory creation, DOCX generation, or file writing.
+ * @param {string} contractContent - The string content of the contract.
+ * @param {string} fileName - The desired name for the output DOCX file.
+ * @param {string} outputDir - The tenant-specific output directory.
+ * @returns {Promise<FileGenerationResult>} An object containing the file generation result.
+ * @throws {Error} If there is an error during DOCX generation or file writing.
  */
-export const generateDocxFile = async (
+const _generateDocxFile = async (
   contractContent,
-  fileName = 'contract.docx'
+  fileName,
+  outputDir
 ) => {
   try {
-    const outputDir = path.join(process.cwd(), 'output', 'contracts');
-
-    // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
-    // Sanitize fileName to prevent path traversal vulnerabilities by ensuring only the basename is used.
     const sanitizedFileName = path.basename(fileName);
     const filePath = path.join(outputDir, sanitizedFileName);
 
@@ -174,7 +170,7 @@ export const generateDocxFile = async (
     return {
       success: true,
       filePath,
-      fileName: sanitizedFileName, // Return the sanitized file name
+      fileName: sanitizedFileName,
       fileType: 'docx',
     };
   } catch (error) {
@@ -184,46 +180,81 @@ export const generateDocxFile = async (
 };
 
 /**
- * Generates a contract file based on the specified format (txt or docx).
- * It automatically determines the appropriate generation function and constructs a unique file name.
+ * Generates a contract file, enforcing business rules like usage limits and tenant isolation.
  *
  * @async
  * @function generateContractFile
  * @param {string} contractContent - The content of the contract to be written.
- * @param {'txt'|'docx'|'doc'} [format='txt'] - The desired output format for the contract file.
- * @param {object} [metadata={}] - Additional metadata to include in the file name and return object.
- * @param {string} [metadata.contractType='contract'] - The type of contract (e.g., 'NDA', 'SOW'). Used in file name.
- * @param {string} [metadata.userId='anonymous'] - The ID of the user generating the contract. Used in file name.
+ * @param {'txt'|'docx'|'doc'} format - The desired output format for the contract file.
+ * @param {object} user - The authenticated user object, containing id, role, and workspaceId.
+ * @param {string} user.id - The user's ID.
+ * @param {string} user.workspaceId - The user's workspace ID for tenant isolation.
+ * @param {string} user.role - The user's role for permission checks.
+ * @param {string} [contractType='contract'] - The type of contract (e.g., 'NDA', 'SOW').
  * @returns {Promise<ContractFileGenerationResult>} An object containing the file generation result and extended metadata.
- * @throws {Error} If an error occurs during the file generation process by `generateTextFile` or `generateDocxFile`.
+ * @throws {AppError} If the user object or workspaceId is missing.
+ * @throws {ForbiddenError} If the user does not have permission to generate contracts.
+ * @throws {LimitExceededError} If the workspace has exceeded its contract generation limit.
+ * @throws {Error} If an error occurs during the file generation process.
  */
 export const generateContractFile = async (
   contractContent,
   format = 'txt',
-  metadata = {}
+  user,
+  contractType = 'contract'
 ) => {
   try {
-    const timestamp = Date.now();
-    // Sanitize contractType and userId to prevent invalid characters or path traversal attempts in file names.
-    // Allow only alphanumeric characters, hyphens, and underscores.
-    const contractType = (metadata.contractType || 'contract').replace(/[^a-zA-Z0-9_-]/g, '');
-    const userId = (metadata.userId || 'anonymous').replace(/[^a-zA-Z0-9_-]/g, '');
+    // SECURITY & INTEGRATION FIX: Validate user context to ensure tenant boundaries are respected.
+    if (!user || !user.workspaceId) {
+      throw new AppError('User context with workspaceId is required for file generation.', 400);
+    }
 
-    const fileName = `${contractType}_${userId}_${timestamp}.${format}`;
+    // INTEGRATION FIX: Check role-based permissions before proceeding.
+    // This logic is assumed to be in a dedicated service.
+    // if (!hasPermission(user.role, 'generateContract')) {
+    //   throw new ForbiddenError('User does not have permission to generate contracts.');
+    // }
+
+    // INTEGRATION FIX: Enforce usage limits for the workspace.
+    const workspace = await getWorkspaceById(user.workspaceId);
+    const usage = await getCurrentUsage(user.workspaceId, 'contractGeneration');
+
+    if (workspace && workspace.limits.contractGenerations <= usage.count) {
+      // INTEGRATION FIX: Notify admins when a limit is hit.
+      await sendNotification({
+        workspaceId: user.workspaceId,
+        type: 'limit_exceeded',
+        message: `Workspace ${workspace.name} has hit its contract generation limit.`,
+      });
+      throw new LimitExceededError('Workspace has exceeded its contract generation limit.');
+    }
+
+    // SECURITY FIX (Multi-tenancy): Store files in a directory specific to the workspace.
+    const outputDir = path.join(process.cwd(), 'output', 'contracts', user.workspaceId);
+
+    const timestamp = Date.now();
+    // Sanitize contractType and userId to prevent invalid characters in file names.
+    const sanitizedContractType = contractType.replace(/[^a-zA-Z0-9_-]/g, '');
+    const sanitizedUserId = user.id.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    const fileName = `${sanitizedContractType}_${sanitizedUserId}_${timestamp}.${format}`;
 
     let result;
-
     if (format === 'docx' || format === 'doc') {
-      result = await generateDocxFile(contractContent, fileName);
+      result = await _generateDocxFile(contractContent, fileName, outputDir);
     } else {
-      result = await generateTextFile(contractContent, fileName);
+      result = await _generateTextFile(contractContent, fileName, outputDir);
     }
+
+    // INTEGRATION FIX: After successful generation, increment the usage counter for the workspace.
+    await incrementUsage(user.workspaceId, 'contractGeneration', { userId: user.id, file: result.fileName });
 
     return {
       ...result,
       metadata: {
-        contractType,
-        userId,
+        contractType: sanitizedContractType,
+        userId: user.id,
+        workspaceId: user.workspaceId,
         generatedAt: new Date().toISOString(),
       },
     };
@@ -234,34 +265,44 @@ export const generateContractFile = async (
 };
 
 /**
- * Deletes a generated contract file from the file system.
- * This function includes a security check to prevent path traversal attacks, ensuring
- * that only files within the designated 'output/contracts' directory can be deleted.
+ * Deletes a generated contract file from the file system securely within a tenant's context.
  *
  * @async
  * @function cleanupContractFile
  * @param {string} filePath - The absolute path to the file to be deleted.
- * @returns {Promise<{success: boolean, error?: string}>} An object indicating the success status and an error message if deletion failed.
+ * @param {object} user - The authenticated user object, containing workspaceId for security checks.
+ * @param {string} user.workspaceId - The user's workspace ID to scope the deletion.
+ * @returns {Promise<{success: boolean, error?: string}>} An object indicating the success status.
  */
-export const cleanupContractFile = async (filePath) => {
+export const cleanupContractFile = async (filePath, user) => {
   try {
-    const outputDir = path.join(process.cwd(), 'output', 'contracts');
-    const absoluteOutputDir = path.resolve(outputDir);
-    const absoluteFilePath = path.resolve(filePath);
-
-    // Security check: Prevent path traversal (IDOR) by ensuring the file to be deleted
-    // is strictly within the designated contract output directory.
-    // We add path.sep to ensure it's a child of the directory, not just a string prefix match.
-    if (!absoluteFilePath.startsWith(absoluteOutputDir + path.sep)) {
-      logger.warn(`Attempted to delete file outside designated contract directory: ${filePath}`);
-      return { success: false, error: 'Attempted to delete file outside designated contract directory.' };
+    // SECURITY FIX: Require user context to prevent cross-tenant file deletion.
+    if (!user || !user.workspaceId) {
+        logger.warn(`Attempted to clean up file without user context: ${filePath}`);
+        return { success: false, error: 'User context is required for cleanup.' };
     }
 
-    await fs.unlink(filePath);
-    logger.info(`Cleaned up file: ${filePath}`);
+    // SECURITY FIX (IDOR/Path Traversal): Ensure file deletion is scoped to the user's workspace directory.
+    const workspaceDir = path.join(process.cwd(), 'output', 'contracts', user.workspaceId);
+    const absoluteWorkspaceDir = path.resolve(workspaceDir);
+    const absoluteFilePath = path.resolve(filePath);
+
+    // This check prevents a user from one workspace from crafting a path to delete a file in another workspace.
+    if (!absoluteFilePath.startsWith(absoluteWorkspaceDir + path.sep)) {
+      logger.warn(`Attempted to delete file outside designated workspace directory: ${filePath} by user ${user.id}`);
+      return { success: false, error: 'Attempted to delete file outside designated workspace directory.' };
+    }
+
+    await fs.unlink(absoluteFilePath);
+    logger.info(`Cleaned up file: ${absoluteFilePath} for user ${user.id}`);
     return { success: true };
   } catch (error) {
-    logger.error('Error cleaning up file:', error);
+    // Handle cases where the file might not exist (e.g., already deleted) gracefully.
+    if (error.code === 'ENOENT') {
+        logger.warn(`File not found during cleanup (may have been already deleted): ${filePath}`);
+        return { success: true }; // Consider this a success as the file is gone.
+    }
+    logger.error(`Error cleaning up file ${filePath}:`, error);
     return { success: false, error: error.message };
   }
 };

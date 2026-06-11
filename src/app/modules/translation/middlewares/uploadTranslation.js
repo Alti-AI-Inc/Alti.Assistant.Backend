@@ -28,6 +28,7 @@ import {
 // In a real application, these would point to the actual modules.
 // These services are crucial for enforcing business logic and tenant boundaries.
 import WorkspaceService from '../../workspace/workspace.service.js'; // Assumed path and service
+import Workspace from '../../workspace/workspace.model.js'; // OPTIMIZATION: Import model for direct, optimized queries.
 import UsageService from '../../usage/usage.service.js'; // Assumed path and service
 import ApiError from '../../../utils/ApiError.js'; // Assumed path to a custom error class
 
@@ -168,13 +169,25 @@ export const translationUploadMiddleware = async (req, res, next) => {
         return next(new ApiError(400, 'User is not associated with a workspace.'));
       }
 
-      const workspace = await WorkspaceService.findById(req.user.workspaceId);
+      // OPTIMIZATION: Use a direct, lean query to fetch only the necessary data ('plan').
+      // .select('plan') reduces the amount of data transferred from the database.
+      // .lean() returns a plain JavaScript object, which is much faster than a full Mongoose document.
+      const workspace = await Workspace.findById(req.user.workspaceId).select('plan').lean();
+
       if (!workspace || !workspace.plan) {
         return next(new ApiError(404, 'Workspace or subscription plan not found.'));
       }
 
-      // Check usage limits before allowing the upload to start.
-      const { usage, limits } = await UsageService.getWorkspaceUsage(workspace.id);
+      // OPTIMIZATION: Pass the already-fetched workspace plan to the usage service.
+      // This prevents the service from making a redundant second query to the database for the same workspace data,
+      // effectively solving an N+1 query problem.
+      // INDEXING_RECOMMENDATION: The query inside `getWorkspaceUsage` likely filters by workspaceId and a date range.
+      // Ensure a compound index exists on `{ workspaceId: 1, createdAt: -1 }` in the relevant collection (e.g., 'translations') for performance.
+      const { usage, limits } = await UsageService.getWorkspaceUsage(
+        workspace._id.toString(),
+        workspace.plan
+      );
+
       if (usage.monthlyDocuments >= limits.monthlyDocuments) {
         return next(
           new ApiError(429, 'Workspace has exceeded its monthly document upload limit.')
@@ -182,10 +195,10 @@ export const translationUploadMiddleware = async (req, res, next) => {
       }
 
       uploadContext = {
-        destinationDir: path.join(uploadDir, workspace.id),
+        destinationDir: path.join(uploadDir, workspace._id.toString()),
         fileSizeLimit: workspace.plan.maxFileSize,
         bypassUsageCheck: false,
-        workspaceId: workspace.id,
+        workspaceId: workspace._id.toString(),
       };
     }
 
