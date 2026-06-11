@@ -216,6 +216,10 @@ const listReportsSchema = z.object({
     // (e.g., 'admin' or 'manager' of the same workspace/tenant) can use this filter.
     // Regular 'user' roles should not be able to specify an authorId.
     authorId: z.string().uuid('Invalid Author ID format').optional(),
+    // HIERARCHY GAP FIX: Added workspaceId to allow platform-level roles (super_admin) to query reports across different workspaces.
+    // The authorization middleware/controller MUST verify that the user has the necessary permissions to access the specified workspace.
+    // For 'admin', 'manager', and 'user' roles, the query should be automatically scoped to their own workspace, and they should not be allowed to specify a different one.
+    workspaceId: z.string().uuid('Invalid Workspace ID format').optional(),
   }),
 });
 
