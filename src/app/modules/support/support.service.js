@@ -4,13 +4,16 @@ import Support from './support.model.js';
 
 /**
  * Creates a new support request and associates it with a user.
+ * The calling context is responsible for ensuring the provided `userId` matches the
+ * authenticated user to prevent users from creating requests on behalf of others.
  *
  * @param {string} userId - The ID of the user initiating the support request.
  * @param {object} data - The data for the new support request.
  * @param {string} data.title - The title of the support request.
  * @param {string} data.description - The detailed description of the support request.
- * @param {string} [data.status='pending'] - The current status of the support request (e.g., 'pending', 'resolved').
- * @returns {Promise<object>} A promise that resolves to the created support request document.
+ * @param {string} [data.status='pending'] - The initial status of the support request.
+ * @returns {Promise<import('./support.model.js').SupportDocument>} A promise that resolves to the created support request document.
+ * @throws {Error} If the user with the given userId is not found.
  */
 const reqForSupportService = async (userId, data) => {
   // Validate user existence before creating the support request to ensure data integrity.
@@ -37,6 +40,8 @@ const reqForSupportService = async (userId, data) => {
 
 /**
  * Retrieves all support requests, limited to 200 documents.
+ * This service is intended for users with administrative or support roles.
+ * Access control should be implemented in the controller layer.
  * Uses `.lean()` for performance optimization as documents are not modified or saved back.
  *
  * @returns {Promise<Array<object>>} A promise that resolves to an array of support request plain JavaScript objects.
@@ -51,6 +56,8 @@ const getAllSupportService = async () => {
 
 /**
  * Retrieves a single support request by its ID.
+ * Access should be restricted at the controller level to either an admin/support user
+ * or the user who originally created the support request.
  * Uses `.lean()` for performance optimization as the document is not modified or saved back.
  *
  * @param {string} id - The ID of the support request to retrieve.
@@ -65,13 +72,16 @@ const getSupportServiceById = async (id) => {
 
 /**
  * Updates an existing support request by its ID.
+ * Permission to update should be handled by the controller. Typically, an admin or support
+ * user can update any field, while the original user may only be able to update
+ * certain fields like title or description if the request is still pending.
  *
  * @param {string} supportRequestId - The ID of the support request to update.
  * @param {object} data - The update data for the support request.
  * @param {string} [data.title] - The new title for the support request.
  * @param {string} [data.description] - The new description for the support request.
  * @param {string} [data.status] - The new status for the support request.
- * @returns {Promise<object>} A promise that resolves to the Mongoose update result object.
+ * @returns {Promise<import('mongodb').UpdateResult>} A promise that resolves to the Mongoose update result object.
  */
 const updateSupportReqService = async (supportRequestId, data) => {
   const result = await Support.updateOne(
@@ -85,9 +95,11 @@ const updateSupportReqService = async (supportRequestId, data) => {
 
 /**
  * Deletes a support request by its ID.
+ * This is a destructive action and should typically be restricted to admin roles.
+ * Access control must be enforced in the calling controller.
  *
  * @param {string} id - The ID of the support request to delete.
- * @returns {Promise<object>} A promise that resolves to the Mongoose delete result object.
+ * @returns {Promise<import('mongodb').DeleteResult>} A promise that resolves to the Mongoose delete result object.
  */
 const deleteSupportReqService = async (id) => {
   const result = await Support.deleteOne({ _id: id });
@@ -96,9 +108,11 @@ const deleteSupportReqService = async (id) => {
 
 /**
  * Deletes multiple support requests by their IDs.
+ * This is a destructive bulk action and should be strictly restricted to admin roles.
+ * Access control must be enforced in the calling controller.
  *
  * @param {string[]} ids - An array of IDs of the support requests to delete.
- * @returns {Promise<object>} A promise that resolves to the Mongoose deleteMany result object.
+ * @returns {Promise<import('mongodb').DeleteResult>} A promise that resolves to the Mongoose deleteMany result object.
  */
 const bulkDeleteSupportReqService = async (ids) => {
   logger.info(ids, 'idssssssss');
@@ -110,12 +124,12 @@ const bulkDeleteSupportReqService = async (ids) => {
 
 /**
  * @typedef {object} SupportService
- * @property {function(string, object): Promise<object>} reqForSupportService - Function to create a new support request.
+ * @property {function(string, object): Promise<import('./support.model.js').SupportDocument>} reqForSupportService - Function to create a new support request.
  * @property {function(): Promise<Array<object>>} getAllSupportService - Function to retrieve all support requests.
  * @property {function(string): Promise<object|null>} getSupportServiceById - Function to retrieve a support request by ID.
- * @property {function(string, object): Promise<object>} updateSupportReqService - Function to update a support request by ID.
- * @property {function(string): Promise<object>} deleteSupportReqService - Function to delete a support request by ID.
- * @property {function(string[]): Promise<object>} bulkDeleteSupportReqService - Function to delete multiple support requests by IDs.
+ * @property {function(string, object): Promise<import('mongodb').UpdateResult>} updateSupportReqService - Function to update a support request by ID.
+ * @property {function(string): Promise<import('mongodb').DeleteResult>} deleteSupportReqService - Function to delete a support request by ID.
+ * @property {function(string[]): Promise<import('mongodb').DeleteResult>} bulkDeleteSupportReqService - Function to delete multiple support requests by IDs.
  */
 
 /**
