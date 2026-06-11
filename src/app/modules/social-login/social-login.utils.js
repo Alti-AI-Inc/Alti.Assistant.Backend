@@ -5,6 +5,12 @@
  * @module modules/social-login/social-login.utils
  */
 
+// PERFORMANCE RECOMMENDATION: For optimal query performance, ensure the following indexes exist on the 'users' collection in your auth.model.js file:
+// 1. A compound index for social provider lookups:
+//    UserModel.index({ provider: 1, providerId: 1 });
+// 2. A unique index for email lookups:
+//    UserModel.index({ email: 1 }, { unique: true, sparse: true }); // sparse: true allows multiple null emails if not required.
+
 import UserModel from '../auth/auth.model.js';
 // INTEGRATION FIX: Import WorkspaceModel to create a tenant context for new users.
 import WorkspaceModel from '../workspaces/workspace.model.js';
@@ -35,13 +41,17 @@ import WorkspaceModel from '../workspaces/workspace.model.js';
 export async function findOrCreateUserModel(profile, provider) {
   try {
     // --- Step 1: Find the user by their unique provider ID ---
+    // PERFORMANCE: Use .lean() for faster read-only queries. This converts the Mongoose document
+    // to a plain JavaScript object, reducing memory overhead and improving query speed as the user
+    // object is not modified in this branch.
     let user = await UserModel.findOne({
       provider: provider,
       providerId: profile.id,
     })
     // INTEGRATION FIX: Populate workspace details for the returning user.
     // This ensures the user object returned has all necessary context for downstream logic.
-    .populate('workspaces');
+    .populate('workspaces')
+    .lean();
 
     if (user) {
       // The user has logged in with this social account before. Welcome back.
@@ -55,6 +65,7 @@ export async function findOrCreateUserModel(profile, provider) {
       // Explicitly select the password field to check if the user has a password set.
       // This is crucial if the password field is marked as 'select: false' in the Mongoose schema,
       // which is a common and recommended security practice.
+      // NOTE: .lean() is intentionally not used here because the 'user' document is modified and saved below.
       user = await UserModel.findOne({ email: email })
         .select('+password')
         .populate('workspaces');
@@ -134,8 +145,8 @@ export async function findOrCreateUserModel(profile, provider) {
 
         // Assign the created user to the outer scope variable to be returned.
         // We need to manually populate the workspace data for the returned object for consistency.
-        newUser = userToCreate;
-        newUser.workspaces = [newWorkspace];
+        newUser = userToCreate.toObject(); // Use toObject() for a plain object, consistent with .lean()
+        newUser.workspaces = [newWorkspace.toObject()];
       });
     } finally {
       // End the session after the transaction is complete.

@@ -159,4 +159,4 @@ const multerUpload = multer({
  * 2. `multerUpload`: If the rate is acceptable, process the file upload, which
  *    includes authentication checks, user-directory creation, and file validation.
  */
-export const uploadDocumentAnalysis = multerUpload;
+export const uploadDocumentAnalysis = [documentUploadLimiter, multerUpload];
