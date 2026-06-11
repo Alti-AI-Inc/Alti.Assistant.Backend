@@ -12,6 +12,8 @@
  * @property {object[]} safetySettings - Configuration for Google's safety filters (e.g., hate speech, harassment).
  * @property {string[]} tools - An array of tools the agent can utilize to perform its tasks.
  * @property {string[]} keywords - An array of keywords associated with the agent's expertise, useful for search and categorization.
+ * @property {'user' | 'manager' | 'admin' | 'super_admin'} accessLevel - The minimum role required to use this agent. This is critical for role-based access control (RBAC).
+ * @property {'standard' | 'premium' | 'enterprise'} usageTier - The usage tier for billing and limit tracking. This allows usage to be correctly propagated up the management hierarchy.
  */
 
 /**
@@ -28,6 +30,10 @@ Ground your answers entirely in verified Google Cloud Platform open-source bluep
 Include repository URLs, star counts, licenses, and direct clone commands where appropriate.
 Stay concise, exact, and 100% truthful. Avoid conversational fluff.`,
   model: 'gemini-2.5-flash',
+  // BUG FIX: Added accessLevel and usageTier to support role validation and usage tracking.
+  // This addresses a critical integration gap where agent definitions lacked metadata for security and billing propagation.
+  accessLevel: 'user',
+  usageTier: 'standard',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -65,6 +71,8 @@ Generate 100% syntactically correct, secure, and compliant Terraform configurati
 Always implement security best practices (e.g. IAM least privilege, encryption at rest, private network endpoints).
 Present configurations in clean markdown blocks.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'user',
+  usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -101,6 +109,8 @@ export const gcpGkeExpert = {
 Design GKE topologies, workload identity setups, secure network policies, ingress controllers, Helm charts, and custom resource definitions.
 Deliver production-grade, secure, and production-ready YAML or Terraform configs.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'user',
+  usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -137,6 +147,8 @@ export const gcpServerlessExpert = {
 Design microservice topologies utilizing Google Cloud Run, Cloud Functions, Pub/Sub messaging, Eventarc triggers, and API Gateway.
 Stay lightweight, secure, and focus on auto-scaling and minimal cold starts.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'user',
+  usageTier: 'standard',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -173,6 +185,8 @@ export const gcpSecurityExpert = {
 Audit configuration blocks against CIS GCP Benchmarks, secure IAM least privilege policies, KMS customer-managed encryption key setups, and VPC Service Controls.
 Present recommendations in clean, prioritized security scorecards.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'manager',
+  usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -209,6 +223,8 @@ export const gcpDatabaseExpert = {
 Design high-availability cloud database architectures using Google Cloud Spanner, Cloud SQL, AlloyDB, Firestore, or Bigtable.
 Focus on replication schemas, connection pool tuning, global scaling, and secure VPC routing.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'user',
+  usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -245,6 +261,8 @@ export const gcpDataExpert = {
 Design resilient analytics pipelines with BigQuery datasets, Apache Beam jobs on Cloud Dataflow, Dataproc Spark clusters, and Pub/Sub streaming feeds.
 Focus on query optimization, partition/clustering schemes, and high-performance ingestion.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'manager',
+  usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -282,6 +300,8 @@ Design strategies for migrating systems from AWS, Azure, or On-Premise environme
 Provide step-by-step blueprints utilizing GCP Database Migration Service, Velostrata, and Migrate for Compute Engine.
 Focus on zero-downtime cutovers, minimal latency, and network tunnels.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'admin',
+  usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -319,6 +339,8 @@ Analyze GCP architectural blueprints to reduce monthly cloud spend.
 Recommend GCS lifecycle policies, compute Committed Use Discounts (CUDs), serverless scaling behaviors, and cost tracking label strategies.
 Deliver recommendations categorized by immediate and long-term cost impact.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'manager',
+  usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -355,6 +377,8 @@ export const gcpMlopsExpert = {
 Design end-to-end Machine Learning pipelines on Google Cloud, Vertex AI Pipelines, Feature Store topologies, model registries, and API fine-tuning parameters.
 Deliver standard code examples using Google Cloud GenAI and Vertex AI Python SDK.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'manager',
+  usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {
@@ -391,6 +415,8 @@ export const gcpCloudRunArchitect = {
 Design production-grade Google Cloud Run topologies, custom domains, container configuration limits, auto-scaling thresholds, VPC connectors, and cloud security IAM policies.
 Provide fully optimized yaml or terraform resources.`,
   model: 'gemini-2.5-flash',
+  accessLevel: 'user',
+  usageTier: 'standard',
   // Vertex AI safety settings to block harmful content.
   safetySettings: [
     {

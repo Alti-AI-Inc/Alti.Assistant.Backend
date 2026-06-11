@@ -3,9 +3,17 @@ import { LangchainExecutionService } from '../langchain/langchainExecution.servi
 import { workflowExecutionService } from '../workflow_automation/services/workflowExecution.service.js';
 import { logger } from '../../../shared/logger.js';
 
+// Security: Define constants for input validation to prevent magic numbers and ease maintenance.
+const MAX_PAYLOAD_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
+const MAX_MAPPING_KEYS = 100;
+const MAX_STRING_LENGTH = 256;
+const ID_REGEX = /^[a-zA-Z0-9_-]{1,256}$/; // A reasonably strict regex for common ID formats.
+const NAME_REGEX = /^[a-z0-9_.-]{1,100}$/; // A reasonably strict regex for normalized app/event names.
+
 /**
  * Safely extracts a nested value from an object using a dot-notation path string.
  * This helper prevents errors when accessing properties that might not exist at intermediate levels.
+ * It also includes protection against prototype pollution.
  *
  * @example
  * // Returns "Bug"
@@ -21,13 +29,20 @@ import { logger } from '../../../shared/logger.js';
  */
 const getNestedValue = (obj, pathString) => {
   if (!pathString || !obj) return undefined;
-  return pathString.split('.').reduce((acc, part) => acc && acc[part], obj);
+  return pathString.split('.').reduce((acc, part) => {
+    // Security: Prevent prototype pollution. Do not allow access to __proto__, constructor, or prototype.
+    if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+      logger.warn(`EventTrigger: Detected attempt to access prohibited property '${part}' in path.`);
+      return undefined;
+    }
+    return acc && acc[part];
+  }, obj);
 };
 
 /**
  * Registers a new webhook event trigger or updates an existing one.
  * This function ensures that event triggers are consistently stored with normalized (lowercase)
- * application and event names for reliable lookup.
+ * application and event names for reliable lookup. It includes robust input validation.
  *
  * @param {string} userId - The ID of the user registering the trigger.
  * @param {string} appName - The name of the application (e.g., "github", "slack"). Will be normalized to lowercase.
@@ -37,16 +52,53 @@ const getNestedValue = (obj, pathString) => {
  * @param {Object.<string, string>} paramMapping - An object mapping internal input keys to dot-notation paths within the incoming webhook payload.
  *   For example: `{ "issueTitle": "body.issue.title", "repositoryName": "body.repository.name" }`.
  * @returns {Promise<{ success: boolean, trigger?: import('./models/eventTrigger.model.js').EventTriggerDocument }>} A promise that resolves to an object indicating success and the registered trigger document.
- * @throws {Error} If the trigger registration fails due to a database error or other issues.
+ * @throws {Error} If the trigger registration fails due to a database error or invalid input.
  */
 const registerTrigger = async (userId, appName, eventName, dispatchType, targetId, paramMapping) => {
   try {
     // Security Note: Ensure 'userId' is derived from an authenticated session and not directly from client input
     // to prevent IDOR (Insecure Direct Object Reference) vulnerabilities where a user could register triggers for another user.
 
-    // Normalize appName and eventName to lowercase for consistent storage and lookup.
+    // Security: Perform comprehensive input validation to prevent invalid data storage and potential downstream errors.
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Invalid userId provided.');
+    }
+    if (dispatchType !== 'chain' && dispatchType !== 'workflow') {
+      throw new Error('Invalid dispatchType. Must be "chain" or "workflow".');
+    }
+    if (!ID_REGEX.test(targetId)) {
+      throw new Error('Invalid targetId format.');
+    }
+    if (typeof appName !== 'string' || typeof eventName !== 'string') {
+      throw new Error('appName and eventName must be strings.');
+    }
+
     const normalizedAppName = appName.toLowerCase();
     const normalizedEventName = eventName.toLowerCase();
+
+    if (!NAME_REGEX.test(normalizedAppName) || !NAME_REGEX.test(normalizedEventName)) {
+      throw new Error('Invalid appName or eventName format. Use lowercase letters, numbers, and .-_');
+    }
+
+    if (typeof paramMapping !== 'object' || paramMapping === null || Array.isArray(paramMapping)) {
+      throw new Error('paramMapping must be a valid object.');
+    }
+
+    const mappingKeys = Object.keys(paramMapping);
+    if (mappingKeys.length > MAX_MAPPING_KEYS) {
+      throw new Error(`paramMapping cannot exceed ${MAX_MAPPING_KEYS} keys.`);
+    }
+
+    for (const key of mappingKeys) {
+      const value = paramMapping[key];
+      if (key.length > MAX_STRING_LENGTH || typeof value !== 'string' || value.length > MAX_STRING_LENGTH) {
+        throw new Error(`paramMapping keys and values must be strings and not exceed ${MAX_STRING_LENGTH} characters.`);
+      }
+      // Security: Prevent keys from being special object properties.
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        throw new Error(`paramMapping key '${key}' is a reserved name.`);
+      }
+    }
 
     // Optimization: Added .lean() to avoid Mongoose document instantiation overhead for read/write upsert.
     // Optimization: Ensure a compound index exists on { userId: 1, appName: 1, eventName: 1 } for fast upserts.
@@ -73,16 +125,25 @@ const registerTrigger = async (userId, appName, eventName, dispatchType, targetI
  */
 const dispatchTrigger = async (trigger, payload) => {
   try {
-    const resolvedInputs = {};
+    // Security: Create a null-prototype object for resolvedInputs to prevent prototype pollution vulnerabilities downstream.
+    const resolvedInputs = Object.create(null);
     const paramMapping = trigger.paramMapping || {};
     const keys = Object.keys(paramMapping);
-    
+
     // Optimization: Use a fast procedural loop instead of Object.entries to avoid array allocations.
     for (let i = 0; i < keys.length; i++) {
       const inputKey = keys[i];
+      // Security: Although validated on registration, double-check to prevent processing of malicious keys.
+      if (inputKey === '__proto__' || inputKey === 'constructor' || inputKey === 'prototype') {
+        continue;
+      }
       const payloadPath = paramMapping[inputKey];
       const val = getNestedValue(payload, payloadPath);
       if (val !== undefined) {
+        // SECURITY WARNING: The value 'val' is untrusted data originating from the webhook payload.
+        // Downstream services (e.g., LangchainExecutionService, workflowExecutionService) are responsible
+        // for implementing context-specific sanitization and escaping (e.g., HTML escaping for web output,
+        // parameterization for database queries) to prevent XSS, injection, and other vulnerabilities.
         resolvedInputs[inputKey] = val;
       }
     }
@@ -116,26 +177,53 @@ const dispatchTrigger = async (trigger, payload) => {
  */
 const receiveWebhookEvent = async (appName, eventName, payload) => {
   try {
-    logger.info(`EventTrigger: processing incoming webhook for "${appName}:${eventName}"`);
+    // Security: Validate input types before use.
+    if (typeof appName !== 'string' || typeof eventName !== 'string' || !payload || typeof payload !== 'object') {
+      logger.warn('EventTrigger: received webhook with invalid input types.');
+      // Do not throw, as this might cause webhook providers to retry. Return a success-like response.
+      return { success: true, message: 'Invalid input.', dispatchedCount: 0 };
+    }
+
+    // Security: Limit the size of the incoming payload to prevent Denial of Service (DoS) attacks via resource exhaustion.
+    // This is an approximation; a more accurate but slower method would be a deep object traversal.
+    if (JSON.stringify(payload).length > MAX_PAYLOAD_SIZE_BYTES) {
+      logger.warn(`EventTrigger: received webhook payload for "${appName}:${eventName}" exceeded size limit.`);
+      // Return a success-like response to the webhook sender to avoid retries, but do not process.
+      return { success: true, message: 'Payload size exceeds limit.', dispatchedCount: 0 };
+    }
+
+    const normalizedAppName = appName.toLowerCase();
+    const normalizedEventName = eventName.toLowerCase();
+
+    // Security: Validate format of normalized names to prevent unexpected values in queries.
+    if (!NAME_REGEX.test(normalizedAppName) || !NAME_REGEX.test(normalizedEventName)) {
+      logger.warn(`EventTrigger: received webhook with invalid app/event name format: "${appName}:${eventName}"`);
+      return { success: true, message: 'Invalid app/event name format.', dispatchedCount: 0 };
+    }
+
+    logger.info(`EventTrigger: processing incoming webhook for "${normalizedAppName}:${normalizedEventName}"`);
 
     // Find all active triggers matching this app and event
     // Optimization: .lean() is used to return plain JavaScript objects, reducing Mongoose overhead.
     // Optimization: Ensure a compound index exists on { appName: 1, eventName: 1, isActive: 1 } for fast lookups.
     const activeTriggers = await EventTrigger.find({
-      appName: appName.toLowerCase(),
-      eventName: eventName.toLowerCase(),
+      appName: normalizedAppName,
+      eventName: normalizedEventName,
       isActive: true,
     }).lean();
 
     const len = activeTriggers.length;
     if (len === 0) {
-      logger.info(`EventTrigger: no active triggers matched "${appName}:${eventName}"`);
-      return { success: true, executedCount: 0 };
+      logger.info(`EventTrigger: no active triggers matched "${normalizedAppName}:${normalizedEventName}"`);
+      return { success: true, message: 'No active triggers found.', dispatchedCount: 0 };
     }
 
     // Optimization: Use a fast procedural loop and delegate execution to a dedicated helper function.
     // This avoids creating nested closures/IIFEs inside the loop, saving memory and CPU cycles.
     for (let i = 0; i < len; i++) {
+      // Fire-and-forget: dispatch triggers asynchronously and do not wait for their completion.
+      // Errors within dispatchTrigger are logged there and intentionally swallowed here to prevent one failed
+      // trigger from halting others.
       dispatchTrigger(activeTriggers[i], payload).catch(() => {});
     }
 

@@ -27,16 +27,19 @@ const sanitizeOptions = {
 /**
  * Configuration for AES-256-GCM encryption.
  * @type {string}
+ * @constant
  */
 const ALGORITHM = 'aes-256-gcm';
 /**
  * GCM standard IV size is 12 bytes.
  * @type {number}
+ * @constant
  */
 const IV_LENGTH_BYTES = 12; // GCM standard IV size is 12 bytes.
 /**
  * The name of the secret in GCP Secret Manager containing the 64-char hex-encoded key.
  * @type {string}
+ * @constant
  */
 const ENCRYPTION_KEY_SECRET = 'db-encryption-key'; // The name of the secret in GCP Secret Manager containing the 64-char hex-encoded key.
 
