@@ -1,3 +1,12 @@
+/**
+ * @file Defines the routes for the Document Review module.
+ * @module app/modules/document_review/document_review.route
+ * @description This file sets up the Express router for handling document review and conversational AI endpoints.
+ * It includes routes for direct document review, conversational interactions, and retrieving conversation history.
+ * The routes are protected by various middleware for authentication, authorization, rate limiting, validation,
+ * and feature checks. It also integrates a custom middleware for streaming file uploads directly to Google Cloud Storage.
+ */
+
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
@@ -18,14 +27,28 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
 // --- Upload Configuration ---
-// Max file size for document uploads, in megabytes. Sourced from environment variables with a sensible default.
+
+/**
+ * @constant {number} MAX_UPLOAD_SIZE_MB
+ * @description Maximum file size for document uploads, in megabytes.
+ * Sourced from the `MAX_DOCUMENT_UPLOAD_SIZE_MB` environment variable with a default of 25MB.
+ * @default 25
+ */
 const MAX_UPLOAD_SIZE_MB = parseInt(
   process.env.MAX_DOCUMENT_UPLOAD_SIZE_MB || '25',
   10
 );
+
+/**
+ * @constant {number} MAX_UPLOAD_SIZE_BYTES
+ * @description The maximum file size in bytes, derived from `MAX_UPLOAD_SIZE_MB`.
+ */
 const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
-// A whitelist of allowed MIME types to enhance security and prevent processing of unsupported files.
+/**
+ * @constant {Set<string>} ALLOWED_MIMETYPES
+ * @description A whitelist of allowed MIME types to enhance security and prevent processing of unsupported files.
+ */
 const ALLOWED_MIMETYPES = new Set([
   'application/pdf',
   'application/msword', // .doc
@@ -36,12 +59,21 @@ const ALLOWED_MIMETYPES = new Set([
 ]);
 
 // --- GCS Setup ---
-// Instantiate a GCS client.
-// For authentication, ensure the environment is configured with Application Default Credentials.
-// See: https://cloud.google.com/docs/authentication/production
+
+/**
+ * @constant {Storage} storage
+ * @description Google Cloud Storage client instance.
+ * For authentication, the environment must be configured with Application Default Credentials.
+ * @see {@link https://cloud.google.com/docs/authentication/production}
+ */
 const storage = new Storage();
 
-// The GCS bucket name must be provided via an environment variable.
+/**
+ * @constant {string} bucketName
+ * @description The name of the Google Cloud Storage bucket for document uploads.
+ * Must be provided via the `GCS_DOCUMENT_BUCKET` environment variable.
+ * Throws an error on startup in production if the variable is not set.
+ */
 let bucketName = process.env.GCS_DOCUMENT_BUCKET;
 if (!bucketName) {
   if (process.env.NODE_ENV !== 'production') {
@@ -56,6 +88,11 @@ if (!bucketName) {
     );
   }
 }
+
+/**
+ * @constant {import('@google-cloud/storage').Bucket} bucket
+ * @description The Google Cloud Storage bucket object used for file operations.
+ */
 const bucket = storage.bucket(bucketName);
 
 /**
@@ -67,7 +104,7 @@ const bucket = storage.bucket(bucketName);
  * Non-file fields are populated into `req.body`.
  * The uploaded file's metadata (bucket, gcsObjectName, size, etc.) is attached to `req.file` to mimic multer's behavior for downstream controllers.
  * @param {string} fieldName - The name of the form field expected to contain the file.
- * @returns {function} Express middleware function.
+ * @returns {import('express').RequestHandler} Express middleware function.
  */
 const streamUploadToGCS = fieldName => (req, res, next) => {
   let uploadError = null;
@@ -228,8 +265,12 @@ const router = express.Router();
  * /api/v1/document-review/assistant:
  *   post:
  *     summary: Conversational AI Assistant Endpoint
- *     description: Main entry point for the AI assistant, supporting natural language requests and file uploads.
- *                  Accessible by both authenticated and guest users. Handles intelligent responses based on provided documents and messages.
+ *     description: |
+ *       Main entry point for the AI assistant, supporting natural language requests and file uploads.
+ *       Accessible by both authenticated and guest users. Handles intelligent responses based on provided documents and messages.
+ *       **Multi-tenancy:**
+ *       - For authenticated users, uploaded files and conversations are associated with the user's tenant.
+ *       - For guest users, resources may be handled anonymously or with temporary identifiers.
  *     tags:
  *       - Document Review
  *       - Assistant
@@ -329,8 +370,12 @@ router.post(
  * /api/v1/document-review/review:
  *   post:
  *     summary: Direct Document Review Endpoint
- *     description: Provides a non-conversational, programmatic way to review documents by specifying all parameters directly.
- *                  Useful for automated tasks or integrations requiring a direct answer based on a document and a prompt.
+ *     description: |
+ *       Provides a non-conversational, programmatic way to review documents by specifying all parameters directly.
+ *       Useful for automated tasks or integrations requiring a direct answer based on a document and a prompt.
+ *       **Multi-tenancy:**
+ *       - For authenticated users, uploaded files are associated with the user's tenant.
+ *       - For guest users, resources may be handled anonymously or with temporary identifiers.
  *     tags:
  *       - Document Review
  *       - Programmatic
@@ -427,8 +472,12 @@ router.post(
  * /api/v1/document-review/conversation/{conversationId}:
  *   get:
  *     summary: Get Conversation History
- *     description: Fetches the complete history of a specific conversation by its unique identifier.
- *                  Requires user or admin authentication to ensure access control.
+ *     description: |
+ *       Fetches the complete history of a specific conversation by its unique identifier.
+ *       **Permissions:**
+ *       - Requires `USER` or `ADMIN` role.
+ *       - A `USER` can only access conversations belonging to their own tenant.
+ *       - An `ADMIN` can access conversations across tenants (behavior may depend on service implementation).
  *     tags:
  *       - Document Review
  *       - History
@@ -439,9 +488,9 @@ router.post(
  *         name: conversationId
  *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}
+ *           pattern: '^[0-9a-fA-F]{24}$'
  *         required: true
- *         description: The unique identifier of the conversation to retrieve history for.
+ *         description: The unique identifier of the conversation to retrieve.
  *         example: "654321098765432109876543"
  *     responses:
  *       200:
@@ -499,6 +548,8 @@ router.get(
 );
 
 /**
- * @exports {express.Router} documentReviewRoutes - The Express router containing all document review related routes.
+ * @exports documentReviewRoutes
+ * @description The Express router containing all document review related routes.
+ * @type {express.Router}
  */
 export const documentReviewRoutes = router;
