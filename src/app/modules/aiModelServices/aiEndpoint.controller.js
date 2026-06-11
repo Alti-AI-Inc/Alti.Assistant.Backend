@@ -13,6 +13,10 @@ import AiEndpoint from './aiEndpoint.Model.js';
 import aiEndpoints from './aiEndpoint.utils.js';
 // Hypothetical audit logger for Platform Owner actions. Assumes a logger is configured elsewhere.
 import auditLogger from '../../../shared/auditLogger.js';
+// PATCH: Import general system logger for detailed error logging.
+import logger from '../../../shared/logger.js';
+// PATCH: Import ApiError for standardized, user-friendly error responses.
+import ApiError from '../../../core/ApiError.js';
 
 // Optimization Recommendations:
 // For improved query performance, ensure the following indexes are defined in the `AiEndpoint` Mongoose schema (aiEndpoint.Model.js):
@@ -160,6 +164,9 @@ const addAiEndpoint = async (req, res) => {
       data: newEndpoint,
     });
   } catch (error) {
+    // PATCH: Add detailed system-level error logging.
+    logger.error('Failed to add AI endpoint in addAiEndpoint controller:', error);
+
     // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
       severity: 'ERROR',
@@ -174,10 +181,15 @@ const addAiEndpoint = async (req, res) => {
         name: error.name,
       },
     });
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while creating the AI endpoint.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error creating AI endpoint',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -226,6 +238,9 @@ const getAllAiEndpoints = async (req, res) => {
       data: endpoints,
     });
   } catch (error) {
+    // PATCH: Add detailed system-level error logging.
+    logger.error('Failed to fetch all AI endpoints in getAllAiEndpoints controller:', error);
+
     // GCP COMPLIANCE: Added structured error logging.
     auditLogger.error({
       severity: 'ERROR',
@@ -238,10 +253,15 @@ const getAllAiEndpoints = async (req, res) => {
         name: error.name,
       },
     });
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while fetching AI endpoints.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error fetching AI endpoints',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -299,6 +319,9 @@ const getAiEndpointById = async (req, res) => {
       data: endpoint,
     });
   } catch (error) {
+    // PATCH: Add detailed system-level error logging.
+    logger.error(`Failed to fetch AI endpoint by ID ${req.params.id} in getAiEndpointById controller:`, error);
+
     // GCP COMPLIANCE: Added structured error logging.
     auditLogger.error({
       severity: 'ERROR',
@@ -312,10 +335,15 @@ const getAiEndpointById = async (req, res) => {
         name: error.name,
       },
     });
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while fetching the AI endpoint.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error fetching AI endpoint',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -433,6 +461,9 @@ const updateAiEndpoint = async (req, res) => {
       data: updatedEndpoint,
     });
   } catch (error) {
+    // PATCH: Add detailed system-level error logging.
+    logger.error(`Failed to update AI endpoint ${id} in updateAiEndpoint controller:`, error);
+
     // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
       severity: 'ERROR',
@@ -448,10 +479,15 @@ const updateAiEndpoint = async (req, res) => {
         name: error.name,
       },
     });
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while updating the AI endpoint.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error updating AI endpoint',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -557,6 +593,9 @@ const deleteAiEndpoint = async (req, res) => {
       data: null,
     });
   } catch (error) {
+    // PATCH: Add detailed system-level error logging.
+    logger.error(`Failed to delete AI endpoint ${id} in deleteAiEndpoint controller:`, error);
+
     // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
       severity: 'ERROR',
@@ -571,10 +610,15 @@ const deleteAiEndpoint = async (req, res) => {
         name: error.name,
       },
     });
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while deleting the AI endpoint.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error deleting AI endpoint',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -685,10 +729,16 @@ const getWebAiEndpoint = async (req, res) => {
       data: endpoints,
     });
   } catch (error) {
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+    // PATCH: Add detailed system-level error logging.
+    logger.error('Failed to fetch web AI endpoints in getWebAiEndpoint controller:', error);
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while fetching AI endpoints.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error fetching AI endpoints',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -703,10 +753,16 @@ const getAiEndpointForApp = async (req, res) => {
       data: aiEndpoints,
     });
   } catch (error) {
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+    // PATCH: Add detailed system-level error logging.
+    logger.error('Failed to fetch AI endpoints for app in getAiEndpointForApp controller:', error);
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while fetching AI endpoints.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error fetching AI endpoints',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
@@ -745,10 +801,16 @@ const updateWebAiEndpoint = async (req, res) => {
       data: updatedEndpoint,
     });
   } catch (error) {
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+    // PATCH: Add detailed system-level error logging.
+    logger.error(`Failed to update web AI endpoint with title '${title}' in updateWebAiEndpoint controller:`, error);
+    // PATCH: Normalize error response to prevent leaking internal details.
+    const apiError = new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal server error occurred while updating the AI endpoint.'
+    );
+    res.status(apiError.statusCode).json({
       status: 'fail',
-      message: 'Error updating AI endpoint',
-      error: error.message,
+      message: apiError.message,
     });
   }
 };
