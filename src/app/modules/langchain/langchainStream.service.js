@@ -13,6 +13,8 @@ import { usageService } from '../usage/usage.service.js';
 
 /**
  * Initializes the Vertex AI client with project and location from configuration.
+ * This instance is configured to use the enterprise-grade `@google-cloud/vertexai` SDK,
+ * which provides robust integration with Google Cloud IAM, VPC-SC, and other enterprise features.
  * @type {VertexAI}
  */
 // ENTERPRISE-GRADE SDK: Switched from @google/generative-ai to the enterprise-ready @google-cloud/vertexai SDK.
@@ -25,16 +27,19 @@ const vertexAI = new VertexAI({
 // ── Helpers shared from langchainExecution.service.js ────────────────────────
 
 /**
- * Regex for matching variable placeholders in prompt templates, e.g., {variableName}.
- * Pre-compiled to avoid repeated compilation in `formatPrompt` for minor performance improvement.
+ * A pre-compiled regular expression for matching variable placeholders in prompt templates, e.g., `{variableName}`.
+ * Compiling the regex once avoids repeated compilation in `formatPrompt`, offering a minor performance improvement.
+ * @type {RegExp}
  */
 const VARIABLE_PLACEHOLDER_REGEX = /\{([a-zA-Z0-9_]+)\}/g;
 
 /**
- * Masks common PII patterns in a string before sending it to the LLM.
- * This is a critical security measure to prevent sensitive data exposure.
+ * Masks common Personally Identifiable Information (PII) patterns in a string before sending it to an LLM.
+ * This is a critical security measure to prevent sensitive data exposure to third-party models.
+ * Currently masks emails, U.S. phone numbers, and Social Security Numbers.
+ * @private
  * @param {string} text - The input text to sanitize.
- * @returns {string} The text with PII masked.
+ * @returns {string} The text with PII patterns replaced by redaction placeholders.
  */
 const filterPII = (text) => {
   if (typeof text !== 'string') return text;
@@ -52,7 +57,8 @@ const filterPII = (text) => {
 };
 
 /**
- * Optimizes prompt formatting by using a single regex replacement with a callback,
+ * Formats a prompt template by substituting placeholders with values from a scope object.
+ * This function uses a single regex replacement with a callback for efficiency,
  * avoiding repeated regex compilation and improving performance for templates with many variables.
  *
  * @private
@@ -69,17 +75,19 @@ const formatPrompt = (template, scope) => {
 };
 
 /**
- * Executes a single chain step based on its type and configuration, updating the shared scope.
+ * Executes a single step within a Langchain chain, handling different step types like 'llm', 'prompt', 'parser', etc.
+ * It takes the current step's configuration and the shared execution scope, performs the step's action,
+ * and updates the scope with the step's output.
  *
  * @private
  * @param {Object} step - The configuration object for the current step.
- * @param {string} step.name - The unique name of the step.
+ * @param {string} step.name - The unique name of the step, used as the key for its output in the scope.
  * @param {string} step.type - The type of the step (e.g., 'prompt', 'llm', 'parser', 'retriever', 'tool', 'branch').
  * @param {Object} step.config - The specific configuration for the step type.
- * @param {Object.<string, any>} scope - The shared execution scope containing variables and outputs from previous steps.
- * @param {string} userId - The ID of the user performing the execution, used for services like RAG.
+ * @param {Object.<string, any>} scope - The shared execution scope containing variables and outputs from previous steps. This object is mutated by the function.
+ * @param {string} userId - The ID of the user performing the execution, used for services like RAG that require user context.
  * @returns {Promise<Object>} An object containing the step's execution details, including input, output, duration, and token usage.
- * @throws {ApiError} If execution fails or an unsupported chain step type is encountered.
+ * @throws {ApiError} If execution fails due to an invalid configuration, an LLM error, or an unsupported chain step type.
  */
 const executeSingleStep = async (step, scope, userId) => {
   const stepStart = Date.now();
@@ -285,15 +293,30 @@ const executeSingleStep = async (step, scope, userId) => {
 };
 
 /**
- * Executes a Langchain chain step-by-step, emitting Server-Sent Events (SSE) after each step completes.
- * This function handles fetching the chain, initializing an execution record,
- * iterating through steps, executing them, and persisting the final execution state.
+ * Executes a Langchain chain step-by-step, emitting Server-Sent Events (SSE) for real-time progress updates.
+ * This function handles fetching the chain, initializing an execution record, iterating through steps,
+ * executing them, and persisting the final execution state.
  *
- * @param {string} chainId - The ID of the Langchain chain to execute.
- * @param {Object.<string, any>} inputs - Initial input variables for the chain execution.
- * @param {Object} user - The authenticated user object, containing id, workspaceId, and role.
- * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events.
- * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an error occurs.
+ * **Multi-tenancy & Permissions:**
+ * - The chain is fetched ensuring it belongs to the user's `workspaceId`, preventing unauthorized access to other tenants' chains.
+ * - Before execution, it checks the workspace's usage limits via `usageService`.
+ * - All created resources (`LangchainExecution`) are tagged with the `workspaceId` for data segregation.
+ *
+ * **SSE Events Emitted:**
+ * - `start`: When the execution begins.
+ * - `step_start`: Before a step is executed.
+ * - `step_complete`: After a step successfully completes.
+ * - `step_error`: If a step fails.
+ * - `done`: When the entire chain execution is finished (successfully or not).
+ * - `error`: For critical, unrecoverable errors during the process.
+ *
+ * @param {string} chainId - The MongoDB ObjectId of the `LangchainChain` to execute.
+ * @param {Object.<string, any>} inputs - An object containing initial key-value pairs for the execution scope.
+ * @param {Object} user - The authenticated user object.
+ * @param {string} user._id - The user's ID.
+ * @param {string} user.workspaceId - The ID of the user's current workspace, used for tenancy enforcement.
+ * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events to the client.
+ * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an unrecoverable error occurs.
  */
 const streamChainExecution = async (chainId, inputs, user, emit) => { // FIX: Changed userId to the full user object for role and tenancy checks.
   const tStart = Date.now();
@@ -522,7 +545,7 @@ const streamChainExecution = async (chainId, inputs, user, emit) => { // FIX: Ch
 /**
  * Service object for streaming Langchain chain executions.
  * Provides methods to execute chains step-by-step and emit progress via Server-Sent Events.
- * @type {Object}
+ * @namespace langchainStreamService
  */
 export const langchainStreamService = {
   streamChainExecution,

@@ -1,120 +1,195 @@
-import fs from 'fs';
 import path from 'path';
-import { PDFParse } from 'pdf-parse'; // Corrected import for pdf-parse library
+import { Storage } from '@google-cloud/storage';
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
 import { rateLimit } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../../../../shared/config/redis.js'; // Assumes a configured Redis client is exported
+import { redisClient } from '../../../../shared/config/redis.js';
 import { logger } from '../../../../shared/logger.js';
+
+// --- Google Cloud Storage Integration ---
+
+// Initialize Google Cloud Storage.
+// This requires the GOOGLE_APPLICATION_CREDENTIALS environment variable to be set
+// with the path to your service account key file.
+// See: https://cloud.google.com/docs/authentication/getting-started
+const storage = new Storage();
+
+// The GCS bucket name should be configured via an environment variable.
+const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+
+if (!GCS_BUCKET_NAME) {
+  // Log a warning if the bucket name is not set. File archival will be disabled.
+  logger.warn(
+    'GCS_BUCKET_NAME environment variable not set. File archival to Cloud Storage will be skipped.'
+  );
+}
+
+/**
+ * @description Uploads a file buffer to a GCS bucket. This function streams the buffer
+ * directly to GCS without writing to the local filesystem.
+ * @param {object} file - The file object, typically from multer's memory storage.
+ * @param {Buffer} file.buffer - The file content as a buffer.
+ * @param {string} file.originalname - The original name of the file.
+ * @param {string} file.mimetype - The MIME type of the file.
+ * @returns {Promise<string>} A promise that resolves with the GCS URI (gs://...) of the uploaded file.
+ * @throws {Error} If the upload fails or the bucket is not configured.
+ */
+const uploadBufferToGCS = async ({ buffer, originalname, mimetype }) => {
+  if (!GCS_BUCKET_NAME) {
+    throw new Error('GCS bucket name is not configured for upload.');
+  }
+  const bucket = storage.bucket(GCS_BUCKET_NAME);
+  // Create a unique filename using a timestamp to avoid overwrites.
+  const destination = `uploads/${Date.now()}-${path.basename(originalname)}`;
+  const gcsFile = bucket.file(destination);
+
+  return new Promise((resolve, reject) => {
+    // Create a write stream to the GCS file.
+    const stream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: mimetype,
+      },
+      // Use simple upload for smaller files, which is faster than resumable.
+      resumable: false,
+    });
+
+    stream.on('error', (err) => {
+      logger.error(`GCS upload error for ${destination}:`, err);
+      reject(new Error('Failed to upload file to Cloud Storage.'));
+    });
+
+    stream.on('finish', () => {
+      const gcsUri = `gs://${GCS_BUCKET_NAME}/${destination}`;
+      logger.info(`File successfully uploaded to ${gcsUri}`);
+      resolve(gcsUri);
+    });
+
+    // End the stream by writing the buffer to it.
+    stream.end(buffer);
+  });
+};
+
+/**
+ * Generates a signed URL for a file in GCS, allowing temporary, secure read access.
+ * @param {string} gcsUri - The GCS URI of the file (e.g., 'gs://my-bucket/uploads/file.pdf').
+ * @param {number} [durationMinutes=15] - The duration in minutes for which the URL will be valid.
+ * @returns {Promise<string>} A promise that resolves with the signed URL.
+ * @throws {Error} If the GCS URI is invalid or URL generation fails.
+ */
+const getSignedUrlForGcsFile = async (gcsUri, durationMinutes = 15) => {
+  const matches = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
+  if (!matches) {
+    throw new Error(
+      'Invalid GCS URI format. Expected gs://<bucket-name>/<file-path>.'
+    );
+  }
+  const [, bucketName, filePath] = matches;
+
+  const options = {
+    version: 'v4',
+    action: 'read',
+    expires: Date.now() + durationMinutes * 60 * 1000,
+  };
+
+  try {
+    const [url] = await storage
+      .bucket(bucketName)
+      .file(filePath)
+      .getSignedUrl(options);
+    logger.info(`Generated signed URL for ${gcsUri}`);
+    return url;
+  } catch (error) {
+    logger.error(`Failed to generate signed URL for ${gcsUri}:`, error);
+    throw new Error('Could not generate signed URL for the file.');
+  }
+};
+
+// --- Rate Limiting ---
 
 /**
  * @description Rate limiter for file processing endpoints.
  * File parsing is a CPU and memory-intensive operation. A strict rate limit is crucial
- * to prevent DDOS attacks, API abuse, and resource exhaustion that could lead to server
- * instability or excessive costs. This limiter uses Redis for distributed environments.
- *
- * It should be applied as middleware to any Express route that utilizes the `processFile` service.
- *
- * @example
- * // In your router file (e.g., documentAnalysis.routes.js)
- * import { fileProcessingRateLimiter } from './services/fileProcessor';
- * router.post('/analyze-document', upload.single('document'), fileProcessingRateLimiter, analyzeDocumentController);
+ * to prevent DDOS attacks, API abuse, and resource exhaustion.
  */
 export const fileProcessingRateLimiter = rateLimit({
-  // Use Redis as the store to share rate limit state across multiple server instances.
   store: new RedisStore({
-    // The `rate-limit-redis` library expects a function that can send commands to Redis.
-    // This is compatible with both `ioredis` and `node-redis` clients.
     sendCommand: (...args) => redisClient.sendCommand(args),
   }),
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 file processing requests per 15-minute window.
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers.
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+  max: 20, // Limit each IP to 20 file processing requests per window.
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     status: 429,
     error: 'Too many requests',
     message:
       'You have made too many file processing requests. Please try again in 15 minutes.',
   },
-  // A custom key generator can be used to rate limit based on user ID for authenticated users.
-  // For this example, we default to the IP address.
-  // keyGenerator: (req, res) => req.user ? req.user.id : req.ip,
 });
 
-/**
- * Extracts text content from a PDF file.
- * Uses the 'pdf-parse' library to process the file.
- * @param {string} filePath - The absolute path to the PDF file.
- * @returns {Promise<string>} A promise that resolves with the extracted text content.
- * @throws {Error} If the file cannot be read or if text extraction fails.
- */
-const extractTextFromPDF = async (filePath) => {
-  try {
-    // Use asynchronous file reading to prevent blocking the Node.js event loop
-    const dataBuffer = await fs.promises.readFile(filePath);
-    // Correct usage of pdf-parse: it takes a buffer and returns a promise
-    const parsedData = new PDFParse({ data: dataBuffer });
-    const pdfResult = await parsedData.getText();
+// --- Text Extraction Services (Refactored to use Buffers) ---
 
-    // The extracted text is available directly in the 'text' property of the result
+/**
+ * Extracts text content from a PDF file buffer.
+ * @param {Buffer} fileBuffer - The buffer containing the PDF file data.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content.
+ * @throws {Error} If text extraction fails.
+ */
+const extractTextFromPDF = async (fileBuffer) => {
+  try {
+    const parsedData = new PDFParse({ data: fileBuffer });
+    const pdfResult = await parsedData.getText();
     const finalText = pdfResult.text;
-    logger.info('PDF text extraction completed'); // Use logger for consistent logging
+    logger.info('PDF text extraction completed');
     return finalText;
   } catch (error) {
-    logger.error('Error extracting text from PDF:', error);
+    logger.error('Error extracting text from PDF buffer:', error);
     throw new Error('Failed to extract text from PDF file');
   }
 };
 
 /**
- * Extracts raw text content from a DOCX file.
- * Uses the 'mammoth' library to process the file.
- * @param {string} filePath - The absolute path to the DOCX file.
+ * Extracts raw text content from a DOCX file buffer.
+ * @param {Buffer} fileBuffer - The buffer containing the DOCX file data.
  * @returns {Promise<string>} A promise that resolves with the extracted text content.
- * @throws {Error} If the file cannot be read or if text extraction fails.
+ * @throws {Error} If text extraction fails.
  */
-const extractTextFromDOCX = async (filePath) => {
+const extractTextFromDOCX = async (fileBuffer) => {
   try {
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return result.value;
   } catch (error) {
-    logger.error('Error extracting text from DOCX:', error);
+    logger.error('Error extracting text from DOCX buffer:', error);
     throw new Error('Failed to extract text from DOCX file');
   }
 };
 
 /**
- * Reads and returns the content of a plain text (TXT) file.
- * @param {string} filePath - The absolute path to the TXT file.
+ * Reads and returns the content of a plain text (TXT) file buffer.
+ * @param {Buffer} fileBuffer - The buffer containing the TXT file data.
  * @returns {Promise<string>} A promise that resolves with the file's content.
- * @throws {Error} If the file cannot be read.
+ * @throws {Error} If the buffer cannot be converted.
  */
-const extractTextFromTXT = async (filePath) => {
+const extractTextFromTXT = async (fileBuffer) => {
   try {
-    // Use asynchronous file reading to prevent blocking the Node.js event loop
-    return await fs.promises.readFile(filePath, 'utf8');
+    return fileBuffer.toString('utf8');
   } catch (error) {
-    logger.error('Error reading TXT file:', error);
+    logger.error('Error reading TXT buffer:', error);
     throw new Error('Failed to read TXT file');
   }
 };
 
 /**
- * Extracts text content from an Excel file (XLSX or XLS).
- * It reads all sheets in the workbook and concatenates their text content.
- * Uses the 'xlsx' library for processing.
- * @param {string} filePath - The absolute path to the Excel file.
+ * Extracts text content from an Excel file (XLSX or XLS) buffer.
+ * @param {Buffer} fileBuffer - The buffer containing the Excel file data.
  * @returns {Promise<string>} A promise that resolves with the concatenated text from all sheets.
- * @throws {Error} If the file cannot be read or if text extraction fails.
+ * @throws {Error} If text extraction fails.
  */
-const extractTextFromExcel = async (filePath) => {
+const extractTextFromExcel = async (fileBuffer) => {
   try {
-    // Read the file asynchronously first to prevent blocking the event loop
-    const dataBuffer = await fs.promises.readFile(filePath);
-    // Use xlsx.read with the buffer for asynchronous processing
-    const workbook = xlsx.read(dataBuffer, { type: 'buffer' });
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     let text = '';
 
     workbook.SheetNames.forEach((sheetName) => {
@@ -125,88 +200,89 @@ const extractTextFromExcel = async (filePath) => {
 
     return text;
   } catch (error) {
-    logger.error('Error extracting text from Excel:', error);
+    logger.error('Error extracting text from Excel buffer:', error);
     throw new Error('Failed to extract text from Excel file');
   }
 };
 
 /**
- * Attempts to extract raw text content from a PowerPoint (PPTX) file.
- * Uses the 'mammoth' library, which has limited support for PPTX.
- * In case of failure, it returns a user-friendly message instead of throwing an error.
- * @param {string} filePath - The absolute path to the PPTX file.
+ * Extracts raw text content from a PowerPoint (PPTX) file buffer.
+ * @param {Buffer} fileBuffer - The buffer containing the PPTX file data.
  * @returns {Promise<string>} A promise that resolves with the extracted text or a fallback message on failure.
  */
-const extractTextFromPPTX = async (filePath) => {
+const extractTextFromPPTX = async (fileBuffer) => {
   try {
-    // For PPTX, we'll use mammoth which can extract some text
-    // Note: For better PPTX support, consider using a dedicated library
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return (
       result.value ||
       'Unable to extract text from PowerPoint file. Please use PDF export for better results.'
     );
   } catch (error) {
-    logger.error('Error extracting text from PPTX:', error);
-    // Return a message instead of throwing to allow graceful degradation
+    logger.error('Error extracting text from PPTX buffer:', error);
     return 'Unable to extract text from PowerPoint file. Please export as PDF for analysis.';
   }
 };
 
+// --- Main Service Logic ---
+
 /**
- * Processes an uploaded file to extract its text content.
- * It identifies the file type based on its extension and routes it to the appropriate text extraction function.
- * @param {object} fileInfo - An object containing file metadata, typically from a middleware like multer.
- * @param {string} fileInfo.path - The temporary path where the uploaded file is stored.
- * @param {string} [fileInfo.originalName] - The original name of the file.
- * @param {string} [fileInfo.filename] - The name of the file on the server.
- * @returns {Promise<string>} A promise that resolves with the extracted text content, trimmed of whitespace.
+ * Processes an uploaded file from a buffer to extract its text content and archives the original file to GCS.
+ * This function is designed to work with multer's memoryStorage, which provides the file as a buffer in `req.file`.
+ * @param {object} file - The file object from multer, containing the buffer and metadata.
+ * @param {Buffer} file.buffer - The file content.
+ * @param {string} file.originalname - The original name of the file.
+ * @param {string} file.mimetype - The MIME type of the file.
+ * @returns {Promise<{extractedText: string, gcsUri: string|null}>} A promise that resolves with the extracted text and the GCS URI of the archived file (or null if archival is disabled).
  * @throws {Error} If file information is invalid, the file type is unsupported, or an extraction error occurs.
  */
-const processFile = async (fileInfo) => {
-  if (!fileInfo || !fileInfo.path) {
-    throw new Error('Invalid file information');
+const processFile = async (file) => {
+  if (!file || !file.buffer) {
+    throw new Error('Invalid file information: buffer is missing.');
   }
 
-  const ext = path
-    .extname(fileInfo.originalName || fileInfo.filename)
-    .toLowerCase();
-  logger.info(
-    `Processing file: ${fileInfo.originalName || fileInfo.filename} (${ext})`
-  );
+  const ext = path.extname(file.originalname).toLowerCase();
+  logger.info(`Processing file: ${file.originalname} (${ext})`);
 
-  let extractedText = '';
+  let textExtractionPromise;
 
+  switch (ext) {
+    case '.pdf':
+      textExtractionPromise = extractTextFromPDF(file.buffer);
+      break;
+    case '.docx':
+    case '.doc':
+      textExtractionPromise = extractTextFromDOCX(file.buffer);
+      break;
+    case '.txt':
+      textExtractionPromise = extractTextFromTXT(file.buffer);
+      break;
+    case '.xlsx':
+    case '.xls':
+      textExtractionPromise = extractTextFromExcel(file.buffer);
+      break;
+    case '.pptx':
+    case '.ppt':
+      textExtractionPromise = extractTextFromPPTX(file.buffer);
+      break;
+    default:
+      throw new Error(`Unsupported file type: ${ext}`);
+  }
+
+  // Concurrently extract text and upload the original file to GCS for archival.
   try {
-    switch (ext) {
-      case '.pdf':
-        extractedText = await extractTextFromPDF(fileInfo.path);
-        break;
-      case '.docx':
-      case '.doc': // Note: mammoth might not fully support older .doc files, but it's included for completeness.
-        extractedText = await extractTextFromDOCX(fileInfo.path);
-        break;
-      case '.txt':
-        extractedText = await extractTextFromTXT(fileInfo.path);
-        break;
-      case '.xlsx':
-      case '.xls': // Note: xlsx library supports both .xlsx and older .xls formats.
-        extractedText = await extractTextFromExcel(fileInfo.path);
-        break;
-      case '.pptx':
-      case '.ppt': // Note: mammoth might not fully support older .ppt files, but it's included for completeness.
-        extractedText = await extractTextFromPPTX(fileInfo.path);
-        break;
-      default:
-        throw new Error(`Unsupported file type: ${ext}`);
-    }
+    const [extractedText, gcsUri] = await Promise.all([
+      textExtractionPromise,
+      // Only attempt upload if the bucket name is configured
+      GCS_BUCKET_NAME ? uploadBufferToGCS(file) : Promise.resolve(null),
+    ]);
 
     logger.info(
-      `Successfully extracted ${extractedText.length} characters from file`
+      `Successfully extracted ${extractedText.length} characters from file. Archived at: ${gcsUri || 'skipped'}`
     );
-    return extractedText.trim();
+    return { extractedText: extractedText.trim(), gcsUri };
   } catch (error) {
-    logger.error('File processing error:', error);
+    logger.error('File processing or GCS upload error:', error);
+    // Re-throw the original error to be handled by the caller
     throw error;
   }
 };
@@ -216,7 +292,7 @@ const processFile = async (fileInfo) => {
  * @param {object} fileInfo - An object containing file metadata.
  * @param {number} fileInfo.size - The size of the file in bytes.
  * @param {number} maxSize - The maximum allowed file size in bytes.
- * @returns {{valid: boolean, error?: string}} An object indicating if the file is valid. If not, it includes an error message.
+ * @returns {{valid: boolean, error?: string}} An object indicating if the file is valid.
  */
 const validateFile = (fileInfo, maxSize) => {
   if (!fileInfo) {
@@ -240,6 +316,8 @@ const validateFile = (fileInfo, maxSize) => {
 export const fileProcessor = {
   processFile,
   validateFile,
+  uploadBufferToGCS,
+  getSignedUrlForGcsFile,
   extractTextFromPDF,
   extractTextFromDOCX,
   extractTextFromTXT,

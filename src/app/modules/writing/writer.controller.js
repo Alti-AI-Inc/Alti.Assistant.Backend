@@ -1,5 +1,47 @@
+// This file has been updated to be a complete, runnable Express server
+// ready for Google Cloud Run, including health checks and graceful shutdown.
 
+import express from 'express';
 import { writingAssistantApp } from './writing_assistant/workflow.js';
+
+// --- Cloud Run Health & Readiness State ---
+// A flag to indicate if the server is ready to accept new traffic.
+let isReady = true;
+// A flag to indicate the server is in the process of shutting down.
+let isShuttingDown = false;
+
+// --- Express App Setup ---
+const app = express();
+app.use(express.json()); // Middleware to parse JSON bodies
+
+// --- Cloud Run Health Probes ---
+
+/**
+ * Liveness probe endpoint (/healthz).
+ * Cloud Run uses this to check if the container's process is still running.
+ * As long as the Node.js process is alive, this should return 200.
+ */
+app.get('/healthz', (req, res) => {
+  // This endpoint simply returns 200 OK if the server process is running.
+  res.status(200).send('OK');
+});
+
+/**
+ * Readiness probe endpoint (/readyz).
+ * Cloud Run uses this to check if the application is ready to handle new requests.
+ * During shutdown, this will signal that the app is not ready.
+ */
+app.get('/readyz', (req, res) => {
+  // If isReady is false, it means the server is shutting down and should not accept new requests.
+  if (isReady) {
+    res.status(200).send('OK');
+  } else {
+    // Returning 503 tells the load balancer to stop sending traffic to this instance.
+    res.status(503).send('Service Unavailable: Server is shutting down.');
+  }
+});
+
+// --- Application Logic (Original Controller) ---
 
 /**
  * @typedef {object} WritingTaskRequestBody
@@ -22,9 +64,6 @@ import { writingAssistantApp } from './writing_assistant/workflow.js';
  * @typedef {object} ErrorResponse
  * @property {string} error - A descriptive error message.
  */
-
-// A flag to indicate the server is in the process of shutting down.
-let isShuttingDown = false;
 
 /**
  * Handles requests to the writing assistant, processing user messages and managing conversation threads.
@@ -170,4 +209,52 @@ const generateConversationId = () => {
   return `conv-${Date.now()}`;
 };
 
-export default writingTask;
+// Register the application route
+app.post('/api/writing-task', writingTask);
+
+// --- Server Startup & Graceful Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Default to 8080 for local development.
+const PORT = process.env.PORT || 8080;
+
+const server = app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// Graceful shutdown logic
+const shutdown = () => {
+  // Prevent new shutdown attempts
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+  isReady = false; // Mark the server as not ready for new traffic
+  console.log('Shutdown signal received. Closing server gracefully...');
+
+  // Stop accepting new connections. Existing connections will be allowed to finish.
+  server.close(err => {
+    if (err) {
+      console.error('Error during server close:', err);
+      process.exit(1);
+    }
+    console.log('Server closed. All connections finished.');
+    // Close any other resources like database connections here.
+    // e.g., database.close();
+    process.exit(0); // Exit the process cleanly
+  });
+
+  // If connections are taking too long to close, force exit after a timeout.
+  // This ensures the Cloud Run container exits within its allowed shutdown period (default 10s).
+  setTimeout(() => {
+    console.error(
+      'Could not close connections in time, forcefully shutting down'
+    );
+    process.exit(1);
+  }, 9500); // 9.5 seconds, slightly less than the default 10s Cloud Run timeout
+};
+
+// Listen for the SIGTERM signal, which Cloud Run sends to stop a container.
+process.on('SIGTERM', shutdown);
+
+// Also listen for SIGINT for local development (e.g., Ctrl+C).
+process.on('SIGINT', shutdown);
