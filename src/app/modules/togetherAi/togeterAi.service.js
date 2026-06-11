@@ -7,9 +7,11 @@
  */
 
 import winston from 'winston';
+import httpStatus from 'http-status';
 // Use the official Google Cloud Vertex AI SDK for enterprise features and security
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
+import ApiError from '../../../utils/ApiError.js';
 
 // Create a Winston logger configured for GCP Cloud Logging (Stackdriver).
 // When logs are output as JSON to stdout/stderr, GCP Cloud Logging automatically
@@ -89,8 +91,7 @@ const maskPII = (text) => {
  * @returns {Promise<object>} A promise that resolves to an object containing an array of generated image URLs.
  * @returns {Array<object>} return.data - An array where each object contains a `url` property.
  * @returns {string} return.data[].url - The base64 encoded URL of the generated image (e.g., `data:image/png;base64,...`).
- * @throws {Error} If the `prompt` is missing.
- * @throws {Error} If the AI model returns no image data.
+ * @throws {ApiError} If the prompt is missing or if the AI service fails.
  */
 const TogetherAiImgGenerationService = async (data) => {
   const { user, sessionId, prompt } = data;
@@ -112,7 +113,8 @@ const TogetherAiImgGenerationService = async (data) => {
         user,
         sessionId,
       });
-      throw new Error('Prompt is required for image generation.');
+      // PATCH: Throw a structured ApiError for invalid input.
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Prompt is required for image generation.');
     }
 
     // IMPORTANT: Sanitize the prompt to remove PII before sending it to the model.
@@ -138,7 +140,8 @@ const TogetherAiImgGenerationService = async (data) => {
         sessionId,
         apiResponse: response, // Include API response for debugging.
       });
-      throw new Error('Imagen returned no image data.');
+      // PATCH: Throw a structured ApiError for upstream service failures.
+      throw new ApiError(httpStatus.BAD_GATEWAY, 'Imagen returned no image data.');
     }
 
     // Log successful completion of the operation.
@@ -155,24 +158,32 @@ const TogetherAiImgGenerationService = async (data) => {
       }],
     };
   } catch (error) {
-    // Catch and log any unexpected errors that were not handled above.
-    // This check prevents double-logging errors that are explicitly thrown and logged.
-    if (error.message !== 'Prompt is required for image generation.' && error.message !== 'Imagen returned no image data.') {
-      logger.error({
-        message: 'An unexpected error occurred during image generation.',
-        component: 'TogetherAiImgGenerationService',
-        user,
-        sessionId,
-        // Including the error message and stack provides crucial debugging information.
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        },
-      });
+    // PATCH: Centralized error logging and normalization.
+    // This block now catches any error, logs it, and ensures a normalized ApiError is thrown.
+
+    // Log the detailed error for internal debugging, regardless of its type.
+    logger.error({
+      message: 'An error occurred during image generation.',
+      component: 'TogetherAiImgGenerationService',
+      user,
+      sessionId,
+      // Including the error message and stack provides crucial debugging information.
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        isOperational: error.isOperational || false, // Include ApiError specific fields
+      },
+    });
+
+    // If the error is already an ApiError, we've already classified it. Re-throw it.
+    if (error instanceof ApiError) {
+      throw error;
     }
-    // Re-throw the error to allow upstream error handlers to process it.
-    throw error;
+
+    // If it's an unknown error (e.g., from the SDK, network), wrap it in a generic
+    // internal server error. This prevents leaking implementation details to the client.
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred during image generation.');
   }
 };
 
