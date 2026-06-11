@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { translationService } from './translation.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { translationAPIClient } from './services/translationAPIClient.js';
 
 // Dynamically attempt to load the shared Redis client to prevent startup failures if not configured.
 // Falls back gracefully to an in-memory rate limiter to ensure high availability.
@@ -18,7 +19,7 @@ try {
 
 const memoryStore = new Map();
 
-// Periodically clean up expired memory store entries to prevent memory leaks
+// Periodically clean up expired memory store entries to prevent memory leaks.
 setInterval(() => {
   const now = Date.now();
   for (const [key, data] of memoryStore.entries()) {
@@ -26,7 +27,7 @@ setInterval(() => {
       memoryStore.delete(key);
     }
   }
-}, 60000).unref();
+}, 60000).unref(); // .unref() allows the Node.js process to exit even if this interval is running.
 
 /**
  * Core rate-limiting evaluator supporting Redis sliding/fixed window and memory fallback.
@@ -50,10 +51,11 @@ async function checkRateLimit(key, limit, windowSecs) {
         .ttl(redisKey)
         .exec();
 
-      // ioredis returns results as [err, result] pairs
+      // The result parsing handles the [err, result] tuple format returned by ioredis's multi().exec().
       const count = Array.isArray(replies[0]) ? replies[0][1] : replies[0];
       const ttl = Array.isArray(replies[1]) ? replies[1][1] : replies[1];
 
+      // Set expiration on the first request in a window or if the key exists without a TTL.
       if (count === 1 || ttl === -1) {
         await redisClient.expire(redisKey, windowSecs);
       }
@@ -67,10 +69,11 @@ async function checkRateLimit(key, limit, windowSecs) {
       };
     } catch (err) {
       logger.error('Redis rate limiting error, falling back to memory:', err);
+      // Fallthrough to memory-based limiter on Redis failure.
     }
   }
 
-  // Memory fallback implementation
+  // Memory fallback implementation for high availability.
   const record = memoryStore.get(key);
   if (!record || record.resetTime < now) {
     const newRecord = {
@@ -203,26 +206,38 @@ async function checkRateLimit(key, limit, windowSecs) {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest || !req.user;
+  const { message, conversationId } = req.body;
+  const isGuest = !req.user;
   let userId;
 
+  // --- User Identification and Security ---
+  // This logic ensures that authenticated users cannot impersonate others,
+  // while allowing guests to resume sessions.
   if (isGuest) {
-    userId = translationService.generateGuestUserId();
+    // For guests, allow resuming a session via `userId` in the body.
+    // If no userId is provided, generate a new one to start a new session.
+    // The service layer is responsible for validating the provided guest userId.
+    userId = req.body.userId || translationService.generateGuestUserId();
   } else {
-    // Security Fix: Prevent IDOR (Insecure Direct Object Reference) / User ID spoofing.
-    userId = req.user?.userId || req.user?._id;
+    // For authenticated users, ALWAYS use the ID from the token to prevent impersonation.
+    // Any `userId` in the request body is ignored for security reasons.
+    userId = req.user.userId || req.user._id;
   }
 
-  const { message, conversationId } = req.body;
-  if (isGuest && req.body.userId) {
-    userId = req.body.userId;
+  if (!userId) {
+    // This case should be rare but indicates a failure in token processing or guest ID generation.
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Could not establish user identity. Please try again.',
+    });
   }
 
-  // Rate Limiting: Prevent DDOS and high LLM cost runaway.
-  // Guests are limited strictly (e.g., 5 requests/min), authenticated users get higher limits (e.g., 30 requests/min).
+  // --- Rate Limiting ---
+  // Protects the service from abuse and cost overruns. Guests have stricter limits.
   const rateLimitLimit = isGuest ? 5 : 30;
-  const rateLimitWindow = 60;
-  const rateLimitKey = `assistant:${userId || req.ip}`;
+  const rateLimitWindow = 60; // seconds
+  const rateLimitKey = `assistant:${userId || req.ip}`; // Fallback to IP for safety
   const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindow);
 
   res.setHeader('X-RateLimit-Limit', rateLimitLimit);
@@ -233,57 +248,44 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.TOO_MANY_REQUESTS,
       success: false,
-      message: 'Too many requests to the conversational assistant. Please try again later.',
+      message: 'You have made too many requests. Please wait a moment and try again.',
     });
   }
 
-  // Get uploaded file if present
-  const uploadedFile = req.file;
-
-  logger.info(
-    `Translation assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
-    {
-      hasFile: !!uploadedFile,
-      fileName: uploadedFile?.originalname,
-      conversationId,
-    }
-  );
-
-  // Bug Fix: Subscription check should apply to all authenticated users,
-  // regardless of whether a conversationId is present (e.g., for new conversations).
+  // --- Subscription and Usage Limit Check (for authenticated users) ---
   if (!isGuest) {
     try {
-      // Optimization: Added .lean() for read-only query to improve performance.
-      const userSubscription = await SubscriptionModel.findOne({ userId })
-        .sort({
-          createdAt: -1,
-        })
-        .lean(); // Added .lean()
+      // Optimization: Use lean() for faster, read-only queries.
+      const subscription = await SubscriptionModel.findOne({ userId })
+        .sort({ createdAt: -1 })
+        .lean();
 
-      const promptLimit = userSubscription ? userSubscription.usage : 0; // Assuming 'usage' is the monthly limit
+      // Assumption: The 'usage' field on the subscription model defines the monthly prompt LIMIT.
+      // A value of 0 or a non-existent subscription means the user is on a free plan with a zero limit.
+      const promptLimit = subscription?.usage || 0;
 
-      const currentMonthlyUsage = await conversationHelpers.getConversationById(
-        null, // Pass null to signify "get total monthly usage" if helper supports it
+      // The helper function name `getConversationById` is misleading when called with a null ID.
+      // It is being used here to fetch the user's total prompt usage for the current billing cycle.
+      const currentUsage = await conversationHelpers.getConversationById(
+        null, // A null ID signals the helper to calculate total usage.
         userId,
         req
       );
 
-      // Bug Fix: Corrected comparison logic. If current usage is greater than or equal to the limit, block the request.
-      if (currentMonthlyUsage >= promptLimit) {
+      // Block the request if the user has reached or exceeded their monthly limit.
+      if (currentUsage >= promptLimit) {
         return sendResponse(res, {
           statusCode: httpStatus.FORBIDDEN,
           success: false,
-          message:
-            'You have reached your translation limit for this month. Please upgrade your plan to continue.',
+          message: 'You have reached your monthly translation limit. Please upgrade your plan to continue.',
         });
       }
     } catch (error) {
-      // Bug Fix: If subscription check itself fails, it's an internal server error.
-      logger.error('Subscription check failed:', error);
+      logger.error(`Subscription/usage check failed for user ${userId}:`, error);
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        message: 'Failed to verify subscription status. Please try again later.',
+        message: 'Failed to verify your subscription status. Please try again later.',
       });
     }
   }
@@ -292,17 +294,15 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Message is required',
+      message: 'A message is required to start or continue a conversation.',
     });
   }
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Failed to generate user identifier',
-    });
-  }
+  const uploadedFile = req.file;
+  logger.info(
+    `Translation assistant request from ${isGuest ? `guest ${userId}` : `user ${userId}`}`,
+    { hasFile: !!uploadedFile, fileName: uploadedFile?.originalname, conversationId }
+  );
 
   try {
     const result = await translationService.processConversationalRequest(
@@ -314,12 +314,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       req
     );
 
-    logger.info('Translation assistant response:', {
-      conversationId: result.conversationId,
-      success: result.success,
-      needsMoreInfo: result.needsMoreInfo,
-    });
-
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -327,17 +321,17 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    logger.error('Error in conversational assistant:', error);
+    logger.error('Error in conversational assistant:', {
+      error,
+      userId,
+      conversationId,
+    });
 
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message:
-        error.message || 'An error occurred while processing your request',
-      data: {
-        conversationId,
-        error: error.message,
-      },
+      message: error.message || 'An unexpected error occurred while processing your request.',
+      data: { conversationId, error: error.message },
     });
   }
 });
@@ -433,6 +427,7 @@ export const translateText = catchAsync(async (req, res) => {
     textLength: text ? text.length : 0,
     targetLanguage,
     sourceLanguage: sourceLanguage || 'auto',
+    clientId,
   });
 
   try {
@@ -547,6 +542,7 @@ export const detectLanguage = catchAsync(async (req, res) => {
 
   logger.info('Language detection request', {
     textLength: text ? text.length : 0,
+    clientId,
   });
 
   try {
@@ -574,7 +570,7 @@ export const detectLanguage = catchAsync(async (req, res) => {
  * /api/v1/translation/supported-languages:
  *   get:
  *     summary: Get Supported Languages
- *     description: Retrieves a list of languages supported by the translation service.
+ *     description: Retrieves a list of languages supported by the translation service. This endpoint is cached.
  *     tags:
  *       - Translation
  *     responses:
@@ -642,9 +638,7 @@ export const getSupportedLanguages = catchAsync(async (req, res) => {
   logger.info('Get supported languages request');
 
   try {
-    const { translationAPIClient } = await import(
-      './services/translationAPIClient.js'
-    );
+    // The translationAPIClient is imported statically at the top of the file for better performance.
     const result = await translationAPIClient.getSupportedLanguages();
 
     return sendResponse(res, {

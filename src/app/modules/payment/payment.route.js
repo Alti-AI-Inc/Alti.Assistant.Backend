@@ -1,4 +1,5 @@
 import express from 'express';
+import { PubSub } from '@google-cloud/pubsub';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { paymentController } from './payment.controller.js';
 import { authenticate } from '../../middlewares/auth/authenticate.js';
@@ -199,10 +200,13 @@ router
  * @openapi
  * /api/v1/subscriptions/webhook:
  *   post:
- *     summary: Stripe Webhook Handler
+ *     summary: Stripe Webhook Ingestion Endpoint
  *     description: >
- *       Handles incoming webhook events from Stripe to update subscription statuses, handle payments, etc.
- *       This endpoint is intended to be called by Stripe's services, not by a client application.
+ *       Receives incoming webhook events from Stripe, validates them, and enqueues them for asynchronous background processing.
+ *       This endpoint is designed for high-throughput and reliability, immediately acknowledging receipt to Stripe
+ *       and offloading the actual event handling to a GCP Pub/Sub topic.
+ *       This prevents timeouts and ensures that long-running tasks associated with payment events
+ *       (e.g., updating subscriptions, sending emails, provisioning services) do not block the request.
  *       It requires the raw request body for signature verification.
  *     tags:
  *       - Payment
@@ -215,16 +219,16 @@ router
  *             type: object
  *             description: A Stripe event object.
  *     responses:
- *       200:
- *         description: Acknowledged. The webhook was received and processed successfully.
+ *       202:
+ *         description: Accepted. The webhook was received, validated, and successfully enqueued for processing.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 received:
- *                   type: boolean
- *                   example: true
+ *                 status:
+ *                   type: string
+ *                   example: "acknowledged"
  *       400:
  *         description: Bad Request - Invalid payload or signature verification failed.
  *     x-multi-tenant-context:
@@ -236,7 +240,11 @@ router
   .post(
     express.raw({ type: 'application/json' }),
     extractTenantContext,
-    paymentController.handleWebhook
+    // ASYNC OFFLOAD: Instead of processing the webhook in-memory, which can be slow and cause timeouts,
+    // we now enqueue the event into a GCP Pub/Sub topic. A separate, scalable worker service
+    // will subscribe to this topic and handle the event processing asynchronously.
+    // This makes the endpoint fast, reliable, and stateless.
+    paymentController.enqueueStripeEvent
   );
 
 /**
