@@ -31,7 +31,7 @@ const router = express.Router();
  *             $ref: '#/components/schemas/ConversationalBrainstormRequest'
  *           example:
  *             prompt: "I need ideas for a new marketing campaign for a sustainable coffee brand."
- *             conversationId: "optional-existing-conversation-id"
+ *             conversationId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
  *             model: "gpt-4o"
  *     responses:
  *       200:
@@ -78,7 +78,8 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   // Rate limiting should generally come before daily limits to quickly reject high-volume requests.
-  createRateLimiter(30, 15),
+  // Increased limit to better support a conversational, back-and-forth user experience.
+  createRateLimiter(60, 5), // 60 requests per 5 minutes
   checkDailyRequestLimit,
   validateRequest(BrainstormValidation.conversationalBrainstormSchema),
   brainstormController.conversationalAssistant
@@ -149,7 +150,6 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
-  // Added checkDailyRequestLimit for consistency with other generation endpoints.
   // Rate limiting should generally come before daily limits.
   createRateLimiter(20, 15),
   checkDailyRequestLimit,
@@ -226,7 +226,7 @@ router.get(
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
   // Added rate limiter to prevent abuse/scraping of conversation history.
-  createRateLimiter(60, 15), // Example: 60 requests per 15 minutes for retrieval
+  createRateLimiter(60, 15), // 60 requests per 15 minutes for retrieval
   validateRequest(BrainstormValidation.getConversationHistorySchema),
   // IMPORTANT: The controller (brainstormController.getConversationHistory) MUST verify
   // that the requested conversationId belongs to the authenticated user (req.user.id)
@@ -253,7 +253,7 @@ router.get(
  *           schema:
  *             $ref: '#/components/schemas/ExportBrainstormRequest'
  *           example:
- *             brainstormId: "some-brainstorm-id"
+ *             brainstormId: "f1e2d3c4-b5a6-9876-5432-10fedcba9876"
  *             format: "pdf"
  *             options:
  *               includeMetadata: true
@@ -298,8 +298,7 @@ router.post(
   '/export',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
-  // Added checkDailyRequestLimit for consistency with other generation/resource-intensive endpoints.
-  // Rate limiting should generally come before daily limits.
+  // Rate limiting should generally come before daily limits for resource-intensive endpoints.
   createRateLimiter(10, 15),
   checkDailyRequestLimit,
   validateRequest(BrainstormValidation.exportBrainstormSchema),
@@ -328,7 +327,7 @@ router.post(
  *           schema:
  *             $ref: '#/components/schemas/RefineBrainstormRequest'
  *           example:
- *             brainstormId: "some-brainstorm-id"
+ *             brainstormId: "f1e2d3c4-b5a6-9876-5432-10fedcba9876"
  *             refinementPrompt: "Make the ideas more actionable and add a timeline."
  *             model: "gpt-4o"
  *     responses:
@@ -374,7 +373,6 @@ router.post(
   '/refine',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
-  // Added checkDailyRequestLimit for consistency with other generation/modification endpoints.
   // Rate limiting should generally come before daily limits.
   createRateLimiter(20, 15),
   checkDailyRequestLimit,
@@ -395,7 +393,7 @@ router.post(
 /**
  * @typedef {object} StructuredBrainstormRequest
  * @property {string} topic - The main topic for the brainstorm.
- * @property {string} [format] - Optional. Desired output format (e.g., 'bullet_points', 'paragraph', 'outline').
+ * @property {string} [format] - Optional. Desired output format (e.g., 'bullet_points', 'paragraph', 'outline', 'json').
  * @property {string} [tone] - Optional. Desired tone of the output (e.g., 'professional', 'creative', 'casual').
  * @property {string} [audience] - Optional. Target audience for the brainstormed ideas.
  * @property {number} [numIdeas] - Optional. Number of ideas to generate.
@@ -410,7 +408,7 @@ router.post(
 /**
  * @typedef {object} ExportBrainstormRequest
  * @property {string} brainstormId - The ID of the brainstorm session to export.
- * @property {string} format - The desired export format (e.g., 'pdf', 'docx', 'txt', 'json').
+ * @property {string} format - The desired export format (e.g., 'pdf', 'docx', 'txt', 'json', 'markdown').
  * @property {object} [options] - Optional. Additional export options.
  * @property {boolean} [options.includeMetadata] - Optional. Whether to include metadata in the export.
  */
