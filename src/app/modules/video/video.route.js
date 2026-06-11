@@ -153,7 +153,7 @@ router.post(
   '/operations',
   optionalAuth(),
   extractTenantContext,
-  createRateLimiter(20, 1), // 20 requests per 1 minute - uncommented to prevent abuse
+  createRateLimiter(20, 1), // 20 requests per 1 minute - to prevent polling abuse
   videoController.getOperationStatus
 );
 
@@ -196,6 +196,8 @@ router.post(
  *         description: Unauthorized - User is not authenticated.
  *       '403':
  *         description: Forbidden - User does not have the required role.
+ *       '429':
+ *         description: Too Many Requests - Rate limit exceeded.
  * @permission Must be authenticated as `ADMIN` or `USER`.
  * @tenantContext The user's `tenantId` is extracted from the JWT and used to scope the query.
  */
@@ -203,6 +205,7 @@ router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
+  createRateLimiter(30, 1), // 30 requests per minute to prevent abuse
   videoController.getVideoStats
 );
 
@@ -252,7 +255,7 @@ router.get(
   '/conversation/:conversationId',
   optionalAuth(),
   extractTenantContext,
-  createRateLimiter(10, 1), // Added rate limiter to prevent ID enumeration and brute-force attacks
+  createRateLimiter(30, 1), // 30 requests per minute to prevent ID enumeration and brute-force attacks
   validateRequest(VideoValidation.conversationSchema),
   videoController.getVideoConversation
 );
@@ -305,7 +308,7 @@ router.get(
   '/guest/:guestUserId/conversations',
   optionalAuth(),
   extractTenantContext,
-  createRateLimiter(10, 1), // Added rate limiter to prevent ID enumeration and brute-force attacks
+  createRateLimiter(20, 1), // 20 requests per minute to prevent ID enumeration and brute-force attacks
   validateRequest(VideoValidation.guestUserSchema),
   videoController.getGuestConversations
 );

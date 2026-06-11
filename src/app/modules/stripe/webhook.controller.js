@@ -229,7 +229,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
 
   // Webhook Replay Protection Guard
   // Optimization: Add .lean() for faster query as the document is not modified.
-  // IMPORTANT: Ensure 'eventId' in StripeEvent model has a unique index for efficient lookups and robust replay protection.
+  // IMPORTANT: Ensure 'eventId' in the StripeEvent model has a unique index for efficient lookups and robust replay protection.
   // Without a unique index, a race condition could lead to duplicate event processing.
   const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
