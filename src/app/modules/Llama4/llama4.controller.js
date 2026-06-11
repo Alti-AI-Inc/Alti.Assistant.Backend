@@ -3,7 +3,8 @@
  * @module app/modules/Llama4/llama4.controller
  * @description This file contains the controller for handling interactions with the Llama4 AI service.
  * It processes user prompts, orchestrates calls to the underlying AI service, and sends back the generated responses.
- * It ensures that all interactions are authenticated and associated with the correct user.
+ * It also includes endpoints for Platform Owners to manage the service, view global logs, and configure system-wide settings.
+ * It ensures that all interactions are authenticated and correctly permissioned.
  */
 
 import httpStatus from 'http-status';
@@ -11,6 +12,10 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { Llama4AiServices } from './llama4.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
+
+// =================================================================
+// == User-Facing Endpoints
+// =================================================================
 
 /**
  * @openapi
@@ -22,7 +27,7 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
  *       This endpoint requires user authentication, and the conversation history is maintained
  *       on a per-user, per-session basis.
  *     tags:
- *       - "Llama4 AI"
+ *       - "Llama4 AI - User"
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -92,19 +97,9 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
  *   - **Multi-tenancy:** The user's ID (`req.user.id`) is used to scope the AI interaction, ensuring data isolation between users.
  */
 const Llama4AiGetResponse = catchAsync(async (req, res) => {
-  // Security Vulnerability (IDOR - Insecure Direct Object Reference):
-  // The original code extracted `userId` from `validatePromptRequest(req)`,
-  // implying it was taken directly from the client's request (e.g., req.body, req.query).
-  // This is an IDOR vulnerability because a malicious user could potentially
-  // provide any userId and attempt to access or manipulate data belonging to other users.
-  //
-  // Fix:
-  // `userId` should be derived from the authenticated user's session or token,
-  // which is typically populated by an authentication middleware onto `req.user` (or similar object).
-  // This ensures that the AI response is generated for and associated with the
-  // securely authenticated user, preventing unauthorized access to other users' data.
-  //
-  // Assuming `req.user.id` is populated by an authentication middleware:
+  // Security Note: The userId is securely sourced from `req.user.id`, which is populated by
+  // the authentication middleware. This prevents IDOR vulnerabilities where a user could
+  // specify another user's ID in the request body.
   const { prompt, sessionId } = await validatePromptRequest(req);
   const userId = req.user.id; // Securely get userId from the authenticated user's context
 
@@ -122,10 +117,316 @@ const Llama4AiGetResponse = catchAsync(async (req, res) => {
   });
 });
 
+// =================================================================
+// == Platform Owner / Super Admin Endpoints
+// =================================================================
+
+/**
+ * @openapi
+ * /llama4/admin/stats:
+ *   get:
+ *     summary: Get global Llama4 service statistics
+ *     description: >
+ *       Retrieves platform-wide usage statistics for the Llama4 AI service.
+ *       This includes metrics like total prompts processed, tokens used, active tenants, and error rates.
+ *       This endpoint is restricted to Platform Owners for global oversight.
+ *     tags:
+ *       - "Llama4 AI - Platform Owner"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: OK. Global statistics retrieved successfully.
+ *       401:
+ *         description: Unauthorized. User is not authenticated.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       500:
+ *         description: Internal Server Error.
+ */
+/**
+ * Retrieves global usage statistics for the Llama4 service.
+ * @function getGlobalStats
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ * @description
+ *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
+ */
+const getGlobalStats = catchAsync(async (req, res) => {
+  // The service layer will handle the aggregation of data from all tenants.
+  const stats = await Llama4AiServices.getGlobalStatsService();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Global statistics retrieved successfully.',
+    data: stats,
+  });
+});
+
+/**
+ * @openapi
+ * /llama4/admin/logs:
+ *   get:
+ *     summary: Get global Llama4 interaction logs
+ *     description: >
+ *       Retrieves a paginated list of all AI interactions across all tenants and users.
+ *       Allows for filtering by tenant, user, date range, and other criteria.
+ *       This endpoint is restricted to Platform Owners for auditing and monitoring.
+ *     tags:
+ *       - "Llama4 AI - Platform Owner"
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: The number of logs to return per page.
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Filter logs by a specific tenant ID.
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter logs by a specific user ID.
+ *     responses:
+ *       200:
+ *         description: OK. Global logs retrieved successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       500:
+ *         description: Internal Server Error.
+ */
+/**
+ * Retrieves global interaction logs for the Llama4 service.
+ * @function getGlobalLogs
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ * @description
+ *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
+ */
+const getGlobalLogs = catchAsync(async (req, res) => {
+  // The controller extracts pagination and filter options from the query string.
+  const { page, limit, tenantId, userId } = req.query;
+  const options = { page, limit };
+  const filters = { tenantId, userId };
+
+  // The service layer handles the database query with pagination and filtering.
+  const logs = await Llama4AiServices.getGlobalLogsService(options, filters);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Global logs retrieved successfully.',
+    data: logs,
+  });
+});
+
+/**
+ * @openapi
+ * /llama4/admin/tenants/{tenantId}/status:
+ *   put:
+ *     summary: Update a tenant's Llama4 service status
+ *     description: >
+ *       Allows a Platform Owner to suspend or unsuspend a specific tenant's access to the Llama4 AI service.
+ *       This provides a direct control mechanism for managing tenant access based on compliance, payment, or other factors.
+ *     tags:
+ *       - "Llama4 AI - Platform Owner"
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isSuspended
+ *             properties:
+ *               isSuspended:
+ *                 type: boolean
+ *                 description: Set to `true` to suspend the tenant, `false` to unsuspend.
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: OK. Tenant status updated successfully.
+ *       400:
+ *         description: Bad Request. Invalid request body.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       404:
+ *         description: Not Found. The specified tenant does not exist.
+ *       500:
+ *         description: Internal Server Error.
+ */
+/**
+ * Updates the Llama4 service access status for a specific tenant.
+ * @function updateTenantLlama4Status
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ * @description
+ *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
+ */
+const updateTenantLlama4Status = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+  const { isSuspended } = req.body;
+
+  // The service layer will handle the logic to update the tenant's status.
+  await Llama4AiServices.updateTenantLlama4StatusService(tenantId, isSuspended);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Tenant Llama4 access has been successfully ${isSuspended ? 'suspended' : 'unsuspended'}.`,
+    data: null,
+  });
+});
+
+/**
+ * @openapi
+ * /llama4/admin/config:
+ *   get:
+ *     summary: Get system-wide Llama4 configuration
+ *     description: >
+ *       Retrieves the current system-wide configuration for the Llama4 service.
+ *       This can include settings like the active model, global rate limits, feature flags, and API keys (sensitive data should be masked).
+ *       Restricted to Platform Owners.
+ *     tags:
+ *       - "Llama4 AI - Platform Owner"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: OK. System configuration retrieved successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       500:
+ *         description: Internal Server Error.
+ *   put:
+ *     summary: Update system-wide Llama4 configuration
+ *     description: >
+ *       Allows a Platform Owner to update the system-wide configuration for the Llama4 service.
+ *       This enables dynamic management of the platform without requiring a deployment.
+ *       Changes made here affect all tenants. The request body should contain only the keys to be updated.
+ *     tags:
+ *       - "Llama4 AI - Platform Owner"
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               modelName:
+ *                 type: string
+ *                 description: The identifier for the AI model to be used globally.
+ *                 example: "llama4-120b-chat"
+ *               globalRateLimit:
+ *                 type: integer
+ *                 description: The number of requests allowed per minute for the entire platform.
+ *                 example: 10000
+ *               allowTenantOverrides:
+ *                 type: boolean
+ *                 description: Whether individual tenants can override global settings.
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: OK. System configuration updated successfully.
+ *       400:
+ *         description: Bad Request. Invalid configuration values provided.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Platform Owner.
+ *       500:
+ *         description: Internal Server Error.
+ */
+/**
+ * Retrieves the current system-wide configuration for the Llama4 service.
+ * @function getSystemConfig
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ * @description
+ *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
+ */
+const getSystemConfig = catchAsync(async (req, res) => {
+  const config = await Llama4AiServices.getSystemConfigService();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration retrieved successfully.',
+    data: config,
+  });
+});
+
+/**
+ * Updates the system-wide configuration for the Llama4 service.
+ * @function updateSystemConfig
+ * @async
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ * @description
+ *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
+ */
+const updateSystemConfig = catchAsync(async (req, res) => {
+  const configUpdates = req.body;
+  const updatedConfig =
+    await Llama4AiServices.updateSystemConfigService(configUpdates);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration updated successfully.',
+    data: updatedConfig,
+  });
+});
+
 /**
  * @namespace Llama4AiController
  * @description An object containing all the controller functions for the Llama4 AI module.
  */
 export const Llama4AiController = {
+  // User-facing
   Llama4AiGetResponse,
+
+  // Platform Owner
+  getGlobalStats,
+  getGlobalLogs,
+  updateTenantLlama4Status,
+  getSystemConfig,
+  updateSystemConfig,
 };

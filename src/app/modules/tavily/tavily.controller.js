@@ -7,7 +7,10 @@
 
 import { GoogleGenAI } from '@google/genai';
 import httpStatus from 'http-status';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import config from '../../../../config/index.js';
+import redisClient from '../../../../config/redisClient.js'; // Enterprise-grade DDOS/abuse protection requires a distributed store like Redis.
 import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -23,11 +26,40 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 const genAI = new GoogleGenAI(config.gemini_secret_key);
 
 /**
+ * @description Rate limiter for the Gemini AI endpoint.
+ * Limits each authenticated user to 20 requests per minute to prevent abuse,
+ * control costs associated with the AI model, and protect against DDOS attacks.
+ * Uses Redis for a distributed, scalable rate-limiting strategy.
+ */
+const geminiApiLimiter = rateLimit({
+  store: new RedisStore({
+    // @ts-ignore
+    sendCommand: (...args) => redisClient.call(...args),
+  }),
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // Limit each user to 20 requests per minute.
+  keyGenerator: (req, res) => {
+    // Rate limit by the authenticated user's ID for precise, fair-use enforcement.
+    if (!req.user?.id) {
+      // Fallback to IP address if user ID is not available, though auth middleware should prevent this.
+      return req.ip;
+    }
+    return req.user.id;
+  },
+  handler: (req, res, next, options) => {
+    // Integrate with the existing ApiError structure for consistent error responses.
+    throw new ApiError(options.statusCode, 'Too many requests, please try again after a minute.');
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers.
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+});
+
+/**
  * @swagger
  * /api/v1/gemini/get-response:
  *   post:
  *     summary: Get AI-generated response (Gemini with Google Search Grounding)
- *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user, respects user-level limits, and tracks usage.
+ *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user, respects user-level limits, and tracks usage. This endpoint is rate-limited to prevent abuse.
  *     tags:
  *       - AI
  *     requestBody:
@@ -83,6 +115,8 @@ const genAI = new GoogleGenAI(config.gemini_secret_key);
  *         description: Forbidden. User has exceeded their usage limits.
  *       404:
  *         description: User not found.
+ *       429:
+ *         description: Too Many Requests. The user has exceeded the rate limit.
  *       500:
  *         description: Internal Server Error or AI model processing failed.
  */
@@ -206,9 +240,12 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
  * @description Controller for handling AI-related requests, specifically for generating responses using Google Gemini.
  * This object exports various handler functions for AI interactions.
  * @type {object}
- * @property {function(import('express').Request, import('express').Response): Promise<void>} GeminiAiGetResponse - Handles the AI response generation.
+ * @property {Array<Function>} GeminiAiGetResponse - An array containing the rate-limiting middleware and the controller function.
+ *                                                   This should be spread in the router definition (e.g., ...GeminiAiController.GeminiAiGetResponse).
  */
 // NAMING FIX: Renamed controller to reflect the use of Google Gemini, not Tavily.
 export const GeminiAiController = {
-  GeminiAiGetResponse,
+  // SECURITY ENHANCEMENT: Bind the rate limiter directly to the controller export.
+  // This ensures that the endpoint is protected against abuse and DDOS attacks wherever it's used.
+  GeminiAiGetResponse: [geminiApiLimiter, GeminiAiGetResponse],
 };

@@ -5,9 +5,13 @@ import path from 'path';
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
+// PERFORMANCE OPTIMIZATION: For optimal query performance, ensure the following indexes exist on the 'documentmetadatas' collection:
+// 1. A compound index on { userId: 1, docId: 1 } (unique) to speed up findOneAndUpdate and findOne operations.
+// 2. A single-field index on { userId: 1 } to speed up counts and aggregation for platform-wide statistics.
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import * as llama from './llamaindex.indexer.js';
 // PLATFORM OWNER IMPROVEMENT: Import Tenant model to check status and iterate through tenants.
+// PERFORMANCE OPTIMIZATION: For optimal query performance, ensure an index exists on { status: 1 } in the 'tenants' collection.
 import Tenant from '../tenant/tenant.model.js';
 
 /**
@@ -197,19 +201,27 @@ const enrichAllUserDocuments = async (userId, options = { force: false }) => {
     }
 
     let enrichedCount = 0;
+    const docIds = docs.map(doc => doc.id || doc.docId || doc.id_);
+
+    // PERFORMANCE OPTIMIZATION (N+1 Query): Avoid querying the database inside the loop.
+    // Fetch all existing metadata docIds for this user in a single, efficient query.
+    // This is only necessary if we are not forcing a re-enrichment for all documents.
+    let existingDocIds = new Set();
+    if (!options.force) {
+      const existingMetadata = await DocumentMetadata.find({
+        userId,
+        docId: { $in: docIds },
+      }).select('docId').lean(); // Use .select() and .lean() for a highly efficient, read-only query.
+
+      // Use a Set for O(1) lookup time inside the loop.
+      existingDocIds = new Set(existingMetadata.map(meta => meta.docId));
+    }
+
     for (const doc of docs) {
       const docId = doc.id || doc.docId || doc.id_;
-      let shouldEnrich = false;
 
-      // PLATFORM OWNER IMPROVEMENT: Allow forcing re-enrichment of existing documents.
-      if (options.force) {
-        shouldEnrich = true;
-      } else {
-        const existing = await DocumentMetadata.findOne({ userId, docId }).lean();
-        if (!existing) {
-          shouldEnrich = true;
-        }
-      }
+      // If forcing, enrich regardless. Otherwise, enrich only if it's not in our set of existing docIds.
+      const shouldEnrich = options.force || !existingDocIds.has(docId);
 
       if (shouldEnrich) {
         await enrichDocument(null, doc.fileName || doc.name || 'unnamed_doc', docId, userId);
@@ -253,6 +265,7 @@ const enrichAllPlatformDocuments = async (options = { force: false }) => {
 
   try {
     // Fetch all active tenants to process. This ensures suspended tenants are skipped.
+    // PERFORMANCE OPTIMIZATION: .select() and .lean() make this query highly efficient.
     const activeTenants = await Tenant.find({ status: 'active' }).select('_id name').lean();
     logger.info(`PLATFORM_OWNER_TASK: Found ${activeTenants.length} active tenants to process.`);
 
@@ -299,6 +312,7 @@ const getPlatformEnrichmentStatistics = async () => {
     const totalEnriched = await DocumentMetadata.countDocuments();
 
     // Aggregation pipeline to count enriched documents per tenant (userId) and join with tenant info.
+    // PERFORMANCE NOTE: This aggregation benefits from an index on `userId`. The `$lookup` is efficient as it joins on `_id`.
     const perTenantCounts = await DocumentMetadata.aggregate([
       { $group: { _id: '$userId', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
@@ -342,6 +356,7 @@ const getTenantEnrichmentStatistics = async (userId) => {
     if (!userId) {
       throw new Error('User ID (tenant ID) is required.');
     }
+    // PERFORMANCE NOTE: This count operation is highly efficient with an index on `userId`.
     const enrichedCount = await DocumentMetadata.countDocuments({ userId });
     const totalDocsInCorpus = (await llama.listDocuments(userId)).length;
 
