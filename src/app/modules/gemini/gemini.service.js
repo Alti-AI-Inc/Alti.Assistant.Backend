@@ -28,7 +28,7 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Configures the primary Gemini AI model for content generation.
- * PLATFORM OWNER FEATURE: Model name and temperature are sourced from the global config,
+ * PLATFORM OWNER FEATURE: Model name, temperature, and service status are sourced from the global config,
  * allowing system-wide changes without code deployment.
  * @type {import('@google/generative-ai').GenerativeModel}
  */
@@ -71,6 +71,13 @@ const _handleGeminiInteraction = async (
       throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
 
+    // PLATFORM OWNER FEATURE: Global service enable/disable switch (kill switch).
+    // Allows disabling the AI service for all non-super_admin users during maintenance or emergencies.
+    // This is controlled via the 'config.gemini.service_enabled' environment variable.
+    if (config.gemini.service_enabled === false && user.role !== 'super_admin') {
+      throw new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'The AI service is temporarily unavailable. Please try again later.');
+    }
+
     // Validate role hierarchy
     const validRoles = ['super_admin', 'admin', 'manager', 'user'];
     if (!user.role || !validRoles.includes(user.role)) {
@@ -99,6 +106,7 @@ const _handleGeminiInteraction = async (
     if (user.tenantId && user.role !== 'super_admin') {
       // Optimization: Fetch only required fields using .select() and use .lean() for a read-only, faster query.
       // Recommendation: Create a compound index on { tenantId: 1, role: 1 } in the 'users' collection for performance.
+      // Architectural Note: For larger scale, consider a dedicated 'Tenants' collection to store status, avoiding this user-based lookup.
       const tenantAdmin = await UserModel.findOne({
         tenantId: user.tenantId,
         role: 'admin',
@@ -106,7 +114,8 @@ const _handleGeminiInteraction = async (
         .select('tenantStatus')
         .lean();
 
-      // PLATFORM OWNER FEATURE: Enforce tenant suspension. Blocks usage for users of a suspended tenant.
+      // PLATFORM OWNER FEATURE: Enforce tenant suspension. A Platform Owner can suspend a tenant by setting the 'tenantStatus'
+      // of the tenant's admin user to 'suspended'. This check blocks all non-admin users within that tenant.
       if (tenantAdmin && tenantAdmin.tenantStatus === 'suspended') {
         throw new ApiError(httpStatus.FORBIDDEN, 'Workspace/Tenant is suspended. Please contact support.');
       }
@@ -154,7 +163,7 @@ const _handleGeminiInteraction = async (
     // If any limit is exceeded, an error is thrown, and the user does not receive the AI's reply.
     try {
       // Step 1: Atomically increment the user's personal prompt usage, checking their limit.
-      // Super admins bypass this check.
+      // PLATFORM OWNER FEATURE: Super admins have unlimited access and bypass this check.
       if (user.role !== 'super_admin') {
         const userUpdateResult = await UserModel.updateOne(
           {
@@ -192,6 +201,7 @@ const _handleGeminiInteraction = async (
       }
 
       // Propagate to Tenant Admin, atomically checking the tenant-wide limit.
+      // PLATFORM OWNER FEATURE: Super admins bypass tenant limits.
       if (user.tenantId && user.role !== 'super_admin') {
         const tenantUpdateResult = await UserModel.updateMany(
           {
@@ -218,7 +228,7 @@ const _handleGeminiInteraction = async (
         logger.info({ message: 'Usage propagated to Tenant Admins', severity: 'INFO', userId, tenantId: user.tenantId });
       }
 
-      // Propagate to Super Admin for global stats (no limit check)
+      // PLATFORM OWNER FEATURE: Propagate to Super Admin for global platform-wide statistics.
       propagationPromises.push(
         UserModel.updateMany({ role: 'super_admin' }, { $inc: { platformUsageCount: 1 } })
       );
@@ -300,6 +310,20 @@ const _handleGeminiInteraction = async (
         JSON.stringify(payload)
       );
     }
+
+    // PLATFORM OWNER FEATURE: Global Audit Log for all successful interactions.
+    // This provides a consistent, queryable log for every successful request, crucial for oversight,
+    // billing reconciliation, and security monitoring.
+    logger.info({
+      message: 'Gemini interaction successful.',
+      severity: 'INFO',
+      userId,
+      userRole: user.role,
+      tenantId: user.tenantId || 'N/A', // Tenant might not exist for super_admin
+      sessionId,
+      modelUsed: modelToUse.model,
+    });
+
     return payload;
   } catch (err) {
     // GCP-compatible structured logging
