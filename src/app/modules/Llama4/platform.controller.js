@@ -1,4 +1,5 @@
 import httpStatus from 'http-status';
+import logger from '../../../config/logger.js'; // GCP-compatible structured JSON logger
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import Tenant from '../tenant/tenant.model.js';
@@ -40,6 +41,15 @@ const getAllTenants = catchAsync(async (req, res) => {
   // consider implementing pagination (e.g., using query parameters for limit and page)
   // and sorting to avoid sending a massive payload and to make the query more efficient.
   const result = await Tenant.find({}).lean();
+
+  // GCP Logging: Log the administrative action for audit purposes.
+  // The log is an object, which will be serialized into structured JSON by the logger.
+  // The `logger.info` method will automatically assign severity: 'INFO'.
+  logger.info({
+    message: `SuperAdmin retrieved all tenants`,
+    actor: req.user.id, // Assuming user ID is available on the request object
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -93,6 +103,15 @@ const suspendTenant = catchAsync(async (req, res) => {
     { status: 'suspended' },
     { new: true }
   ).lean();
+
+  // GCP Logging: Log the administrative action with WARNING severity due to its impact.
+  // The `logger.warn` method will automatically assign severity: 'WARNING'.
+  logger.warn({
+    message: `SuperAdmin suspended tenant`,
+    actor: req.user.id,
+    tenantId: id,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -146,6 +165,14 @@ const unsuspendTenant = catchAsync(async (req, res) => {
     { status: 'active' },
     { new: true }
   ).lean();
+
+  // GCP Logging: Log the administrative action.
+  logger.info({
+    message: `SuperAdmin unsuspended tenant`,
+    actor: req.user.id,
+    tenantId: id,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -208,6 +235,15 @@ const overrideTenantLimits = catchAsync(async (req, res) => {
     { limits: updateData },
     { new: true }
   ).lean();
+
+  // GCP Logging: Log the administrative action with WARNING severity due to its impact.
+  logger.warn({
+    message: `SuperAdmin overrode tenant limits`,
+    actor: req.user.id,
+    tenantId: id,
+    newLimits: updateData,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -255,6 +291,12 @@ const getSystemConfig = catchAsync(async (req, res) => {
     { $setOnInsert: {} },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   ).lean();
+
+  // GCP Logging: Log the administrative action.
+  logger.info({
+    message: 'SuperAdmin retrieved system configuration',
+    actor: req.user.id,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -307,6 +349,14 @@ const updateSystemConfig = catchAsync(async (req, res) => {
     new: true,
     upsert: true,
   }).lean();
+
+  // GCP Logging: Log the critical administrative action with WARNING severity.
+  logger.warn({
+    message: 'SuperAdmin updated system configuration',
+    actor: req.user.id,
+    newConfig,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -394,6 +444,13 @@ const getGlobalStats = catchAsync(async (req, res) => {
   // as it uses collection metadata rather than performing a full collection scan.
   // The result is an approximation but is perfectly suitable for a high-level statistics dashboard.
   const totalTenants = await Tenant.estimatedDocumentCount();
+
+  // GCP Logging: Log the administrative action.
+  logger.info({
+    message: 'SuperAdmin retrieved global statistics',
+    actor: req.user.id,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

@@ -81,7 +81,8 @@ const forumSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       default: null,
-      index: true,
+      // Optimization: Removed redundant single-field index. The compound indexes below starting with 'tenantId' make this one unnecessary.
+      // MongoDB can use a compound index to satisfy queries on a prefix of that index.
     },
   },
   {
