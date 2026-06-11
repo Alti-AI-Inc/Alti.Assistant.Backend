@@ -1,18 +1,33 @@
 /**
  * @fileoverview Constants and configuration settings for the Code Assistant module.
  * This file defines rate limits, conversation constraints, message types, model configurations,
- * and guest user limitations.
+ * guest user limitations, user roles, and notification thresholds.
  * @module CodeAssistantConstants
  */
+
+// BUG-FIX: The original USER_TYPES was too simplistic and did not account for the application's hierarchical role structure.
+// FIX: Replaced USER_TYPES with a more granular ROLES object to support proper permissioning and feature flagging for super_admin, admin, manager, and user roles.
+const ROLES = {
+  SUPER_ADMIN: 'super_admin', // Platform owner with unrestricted access.
+  ADMIN: 'admin',             // Workspace owner, manages managers and users.
+  MANAGER: 'manager',         // Team lead, manages users.
+  USER: 'user',               // Standard authenticated user.
+  GUEST: 'guest',             // Unauthenticated user with limited access.
+};
 
 /**
  * Configuration constants for the Code Assistant module.
  * @type {Object}
- * @property {Object} RATE_LIMIT Rate limiting configurations for different user types.
- * @property {number} RATE_LIMIT.REQUESTS Number of allowed requests for authenticated users.
- * @property {number} RATE_LIMIT.WINDOW_MINUTES Time window in minutes for authenticated users' rate limit.
- * @property {number} RATE_LIMIT.GUEST_REQUESTS Number of allowed requests for guest users.
- * @property {number} RATE_LIMIT.GUEST_WINDOW_MINUTES Time window in minutes for guest users' rate limit.
+ * @property {Object} ROLES Defines the user roles within the system.
+ * @property {string} ROLES.SUPER_ADMIN Role for platform owners.
+ * @property {string} ROLES.ADMIN Role for workspace owners.
+ * @property {string} ROLES.MANAGER Role for team managers.
+ * @property {string} ROLES.USER Role for standard users.
+ * @property {string} ROLES.GUEST Role for unauthenticated guest users.
+ * @property {Object} RATE_LIMIT Rate limiting configurations for different user roles.
+ * @property {Object.<string, {REQUESTS: number, WINDOW_MINUTES: number}>} RATE_LIMIT Each key corresponds to a role name (e.g., 'super_admin', 'admin').
+ * @property {number} RATE_LIMIT.*.REQUESTS Number of allowed requests. A value of -1 signifies unlimited requests.
+ * @property {number} RATE_LIMIT.*.WINDOW_MINUTES The time window in minutes for the request limit.
  * @property {Object} CONVERSATION Configuration limits for conversations.
  * @property {number} CONVERSATION.MAX_HISTORY_LENGTH Maximum number of messages to retain in conversation history.
  * @property {number} CONVERSATION.TITLE_MAX_LENGTH Maximum character length for conversation titles.
@@ -25,9 +40,9 @@
  * @property {Object} MODEL Configuration for the AI model used.
  * @property {string} MODEL.NAME Name of the code assistant model.
  * @property {string} MODEL.CATEGORY Category classification of the model.
- * @property {Object} USER_TYPES Supported user types.
- * @property {string} USER_TYPES.AUTHENTICATED Identifier for authenticated users.
- * @property {string} USER_TYPES.GUEST Identifier for guest users.
+ * @property {Object} NOTIFICATIONS Configuration for usage-based notifications.
+ * @property {number} NOTIFICATIONS.USAGE_WARNING_THRESHOLD_PERCENT Usage percentage to trigger a warning notification to managers/admins.
+ * @property {number} NOTIFICATIONS.USAGE_LIMIT_REACHED_THRESHOLD_PERCENT Usage percentage to trigger a limit-reached notification.
  * @property {Object} GUEST Configuration and feature flags for guest users.
  * @property {string} GUEST.ID_PREFIX Prefix used for guest user IDs.
  * @property {string} GUEST.CONVERSATION_PREFIX Prefix used for guest conversation IDs.
@@ -37,16 +52,23 @@
  * @property {boolean} GUEST.FEATURES.UNLIMITED_USAGE Whether guests have unlimited usage.
  */
 export const CODE_ASSISTANT_CONSTANTS = {
+  ROLES,
+
+  // HIERARCHY-GAP: The original rate limit was a flat value for all authenticated users, failing to respect the role hierarchy.
+  // FIX: Implemented role-based rate limiting to provide granular control over usage for different user tiers. This is critical for managing tenant resources and preventing abuse.
   RATE_LIMIT: {
-    REQUESTS: 30,
-    WINDOW_MINUTES: 15,
-    GUEST_REQUESTS: 10, // Lower limit for guest users (future enhancement)
-    GUEST_WINDOW_MINUTES: 60,
+    [ROLES.SUPER_ADMIN]: { REQUESTS: -1, WINDOW_MINUTES: 1 }, // -1 signifies unlimited requests
+    [ROLES.ADMIN]: { REQUESTS: 1000, WINDOW_MINUTES: 60 },
+    [ROLES.MANAGER]: { REQUESTS: 500, WINDOW_MINUTES: 60 },
+    [ROLES.USER]: { REQUESTS: 200, WINDOW_MINUTES: 60 },
+    [ROLES.GUEST]: { REQUESTS: 10, WINDOW_MINUTES: 60 },
   },
+
   CONVERSATION: {
     MAX_HISTORY_LENGTH: 10,
     TITLE_MAX_LENGTH: 50,
   },
+
   MESSAGE: {
     MAX_LENGTH: 5000,
     TYPES: {
@@ -55,14 +77,19 @@ export const CODE_ASSISTANT_CONSTANTS = {
       ERROR: 'error',
     },
   },
+
   MODEL: {
     NAME: 'code-assistant',
     CATEGORY: 'code',
   },
-  USER_TYPES: {
-    AUTHENTICATED: 'authenticated',
-    GUEST: 'guest',
+
+  // INTEGRATION-ISSUE: Missing configuration to support propagation of usage information up the management chain.
+  // FIX: Added a NOTIFICATIONS configuration object. This allows the application to trigger alerts to managers and admins when users approach or hit their usage limits, fulfilling a key hierarchical integration requirement.
+  NOTIFICATIONS: {
+    USAGE_WARNING_THRESHOLD_PERCENT: 80,
+    USAGE_LIMIT_REACHED_THRESHOLD_PERCENT: 100,
   },
+
   GUEST: {
     ID_PREFIX: 'guest-',
     CONVERSATION_PREFIX: 'code-guest-',

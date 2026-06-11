@@ -1,4 +1,8 @@
 import httpStatus from 'http-status';
+// --- GCS Integration ---
+// Import Google Cloud Storage client for direct file handling.
+import { Storage } from '@google-cloud/storage';
+// --- End GCS Integration ---
 // --- Rate Limiting & DDOS Protection Imports ---
 // Using 'rate-limiter-flexible' for robust and efficient rate limiting with Redis.
 import { RateLimiterRedis } from 'rate-limiter-flexible';
@@ -7,7 +11,9 @@ import { redisClient } from '../../../../config/redis.js';
 // --- End Rate Limiting Imports ---
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
+// GCS REFACTOR: GoogleAIFileManager is removed as it relies on the local filesystem.
+// We will use GCS for storage and pass file data directly to the Gemini model.
+// import { GoogleAIFileManager } from '@google/generative-ai/server';
 import ApiError from '../../../errors/ApiError.js';
 // --- HIERARCHY & USAGE MANAGEMENT IMPORTS ---
 // BUG FIX & INTEGRATION: Import services for workspace-aware usage tracking, limits, and notifications.
@@ -19,8 +25,9 @@ import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import fs from 'fs/promises';
-import path from 'path';
+// GCS REFACTOR: 'fs/promises' and 'path' are removed to ensure no local filesystem access.
+// import fs from 'fs/promises';
+// import path from 'path';
 import {
   ARTICLE_WRITER_CONFIG,
   ARTICLE_TYPES,
@@ -81,12 +88,19 @@ const guestHistoryLimiter = new RateLimiterRedis({
  * @type {GoogleGenerativeAI}
  */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
-/**
- * Initializes the Google AI File Manager client using the API key from configuration.
- * Used for uploading and managing files with Google Gemini.
- * @type {GoogleAIFileManager}
- */
-const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
+
+// --- GCS Integration ---
+// Initialize the Google Cloud Storage client.
+// This assumes the environment is authenticated (e.g., using service account keys or ADC).
+const storage = new Storage();
+// It's crucial to have the GCS bucket name in the configuration.
+const gcsBucketName = config.gcs.bucket_name;
+if (!gcsBucketName) {
+  logger.error('GCS_BUCKET_NAME is not configured in the environment.');
+  // This would typically cause the application to fail on startup.
+}
+const gcsBucket = gcsBucketName ? storage.bucket(gcsBucketName) : null;
+// --- End GCS Integration ---
 
 /**
  * Generates a unique guest user ID using Mongoose's ObjectId.
@@ -234,46 +248,58 @@ const addMessage = async (
 };
 
 /**
- * Processes an uploaded file by uploading it to Google Gemini's file manager.
- * This makes the file accessible to Gemini models for content generation.
+ * GCS REFACTOR: Uploads a file buffer from memory directly to Google Cloud Storage.
+ * This avoids writing to the local ephemeral filesystem.
  *
- * @param {object} fileInfo - Information about the uploaded file.
- * @param {string} fileInfo.path - The local path to the uploaded file.
- * @param {string} fileInfo.location - Alternative local path to the uploaded file (used if `path` is not present).
+ * @param {object} fileInfo - The file object from multer's memory storage.
+ * @param {Buffer} fileInfo.buffer - The file content as a buffer.
+ * @param {string} fileInfo.originalname - The original name of the file.
  * @param {string} fileInfo.mimetype - The MIME type of the file.
- * @param {string} fileInfo.originalName - The original name of the file.
- * @returns {Promise<{fileUri: string, mimeType: string, displayName: string} | null>} An object containing the Gemini file URI, MIME type, and display name, or null if no fileInfo is provided.
- * @throws {ApiError} If there's an internal server error during file processing or upload.
+ * @param {string} conversationId - The ID of the conversation to associate the file with.
+ * @returns {Promise<string>} The full GCS path of the uploaded file (e.g., 'gs://bucket/path/to/file.txt').
+ * @throws {ApiError} If the GCS bucket is not configured or the upload fails.
  */
-const processUploadedFile = async (fileInfo) => {
-  try {
-    if (!fileInfo) return null;
-
-    const filePath = fileInfo.path || fileInfo.location;
-    const mimeType = fileInfo.mimetype;
-
-    logger.info(`Processing file: ${fileInfo.originalName}, type: ${mimeType}`);
-
-    // Upload file to Gemini
-    const uploadResponse = await fileManager.uploadFile(filePath, {
-      mimeType: mimeType,
-      displayName: fileInfo.originalName,
-    });
-
-    logger.info(`File uploaded to Gemini: ${uploadResponse.file.uri}`);
-
-    return {
-      fileUri: uploadResponse.file.uri,
-      mimeType: uploadResponse.file.mimeType,
-      displayName: fileInfo.originalName,
-    };
-  } catch (error) {
-    logger.error('Error processing file:', error);
+const uploadFileToGcs = async (fileInfo, conversationId) => {
+  if (!gcsBucket) {
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to process uploaded file'
+      'Google Cloud Storage is not configured.'
     );
   }
+
+  // Create a unique, organized path for the file in GCS.
+  const gcsFileName = `article_uploads/${conversationId}/${Date.now()}-${
+    fileInfo.originalname
+  }`;
+  const file = gcsBucket.file(gcsFileName);
+
+  return new Promise((resolve, reject) => {
+    // Create a write stream to GCS and pipe the buffer into it.
+    const stream = file.createWriteStream({
+      metadata: {
+        contentType: fileInfo.mimetype,
+      },
+    });
+
+    stream.on('error', err => {
+      logger.error(`GCS upload failed for ${gcsFileName}:`, err);
+      reject(
+        new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          'Failed to upload file to cloud storage.'
+        )
+      );
+    });
+
+    stream.on('finish', () => {
+      const gcsPath = `gs://${gcsBucketName}/${gcsFileName}`;
+      logger.info(`File successfully uploaded to GCS: ${gcsPath}`);
+      resolve(gcsPath);
+    });
+
+    // End the stream by writing the buffer.
+    stream.end(fileInfo.buffer);
+  });
 };
 
 /**
@@ -284,7 +310,7 @@ const processUploadedFile = async (fileInfo) => {
  * @param {string | null} articleType - The type of article (e.g., 'blog_post', 'news_article'), or null for general.
  * @param {string | null} tone - The desired writing tone (e.g., 'professional', 'casual').
  * @param {string | null} length - The desired length of the article (e.g., 'short', 'medium', 'long', 'comprehensive').
- * @param {object | null} [fileContent=null] - Optional object indicating if file content is provided, used to adjust the prompt.
+ * @param {object | null} [fileInfo=null] - Optional file object from multer. Its presence indicates a file was uploaded.
  * @returns {string} The fully constructed prompt string for the AI model.
  */
 const buildArticlePrompt = (
@@ -292,7 +318,7 @@ const buildArticlePrompt = (
   articleType,
   tone,
   length,
-  fileContent = null
+  fileInfo = null
 ) => {
   const typePrompt =
     articleType && articleType !== ARTICLE_TYPES.GENERAL
@@ -322,7 +348,7 @@ const buildArticlePrompt = (
 - Use clear headings and paragraphs
 - Make it engaging and well-organized\n\n`;
 
-  if (fileContent) {
+  if (fileInfo) {
     prompt += `The user has uploaded a file with content to use as the basis for the article.\n\n`;
   }
 
@@ -335,13 +361,15 @@ const buildArticlePrompt = (
 /**
  * Generates an article using the Google Gemini AI model based on a given prompt.
  * It can optionally include file data as context for generation.
+ * GCS REFACTOR: This function now accepts the raw file info object (with buffer)
+ * and passes it to Gemini using the 'inlineData' method, avoiding filesystem access.
  *
  * @param {string} prompt - The text prompt to guide the AI in generating the article.
- * @param {object | null} [fileData=null] - Optional file data object containing `mimeType` and `fileUri` for context.
+ * @param {object | null} [fileInfo=null] - Optional file object from multer, containing a buffer and mimetype.
  * @returns {Promise<string>} The generated article text.
  * @throws {ApiError} If there's an internal server error during article generation.
  */
-const generateArticle = async (prompt, fileData = null) => {
+const generateArticle = async (prompt, fileInfo = null) => {
   try {
     const model = genAI.getGenerativeModel({
       model: ARTICLE_WRITER_CONFIG.MODEL,
@@ -352,26 +380,25 @@ const generateArticle = async (prompt, fileData = null) => {
       maxOutputTokens: ARTICLE_WRITER_CONFIG.MAX_OUTPUT_TOKENS,
     };
 
-    let result;
+    const parts = [{ text: prompt }];
 
-    if (fileData) {
-      // Generate with file context
-      result = await model.generateContent(
-        [
-          {
-            fileData: {
-              mimeType: fileData.mimeType,
-              fileUri: fileData.fileUri,
-            },
-          },
-          { text: prompt },
-        ],
-        generationConfig
-      );
-    } else {
-      // Generate without file
-      result = await model.generateContent(prompt, generationConfig);
+    // If a file is provided, prepare it as an inlineData part.
+    // This requires the file content to be in a base64-encoded string.
+    if (fileInfo && fileInfo.buffer) {
+      const filePart = {
+        inlineData: {
+          mimeType: fileInfo.mimetype,
+          data: fileInfo.buffer.toString('base64'),
+        },
+      };
+      // The file part should come before the text prompt for better context.
+      parts.unshift(filePart);
     }
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts }],
+      generationConfig,
+    });
 
     const response = result.response;
     const articleText = response.text();
@@ -390,11 +417,13 @@ const generateArticle = async (prompt, fileData = null) => {
  * Orchestrates the entire process of handling a conversational article writing request.
  * This includes managing the conversation, processing uploaded files, building the AI prompt,
  * generating the article, and updating the conversation history.
+ * GCS REFACTOR: File handling now streams uploads directly to GCS for archival and uses
+ * in-memory buffers to pass data to the Gemini API, eliminating local disk writes.
  *
  * @param {object} user - The authenticated user object, containing id, role, workspaceId, etc.
  * @param {string} message - The user's input message for the article.
  * @param {string | null} conversationId - The ID of the current conversation, or null for a new one.
- * @param {object | null} [fileInfo=null] - Optional object containing details of an uploaded file.
+ * @param {object | null} [fileInfo=null] - Optional file object from multer memory storage (contains buffer).
  * @param {string | null} [articleType=null] - The desired type of article (e.g., 'blog_post').
  * @param {string | null} [tone=null] - The desired writing tone.
  * @param {string | null} [length=null] - The desired length of the article.
@@ -471,24 +500,27 @@ const processConversationalRequest = async (
       message,
       {
         hasFile: !!fileInfo,
-        fileName: fileInfo?.originalName,
+        fileName: fileInfo?.originalname,
       },
       req
     );
 
-    // Process file if uploaded
-    let fileData = null;
+    // GCS REFACTOR: Process file if uploaded.
+    // The file is uploaded to GCS for archival and its buffer is used for generation.
     if (fileInfo) {
-      fileData = await processUploadedFile(fileInfo);
+      // Upload to GCS for archival/logging purposes.
+      const gcsPath = await uploadFileToGcs(fileInfo, conversation.conversationId);
 
       // HIERARCHY GAP FIX: Pass the full user object for permission checks during updates.
+      // Store the GCS path in the conversation metadata.
       await conversationService.updateConversationById(
         conversation.conversationId,
         user,
         {
           $push: {
             'metadata.uploadedFiles': {
-              fileName: fileInfo.originalName,
+              fileName: fileInfo.originalname,
+              gcsPath: gcsPath, // Store the GCS path
               uploadedAt: new Date(),
             },
           },
@@ -506,10 +538,11 @@ const processConversationalRequest = async (
       finalArticleType,
       finalTone,
       finalLength,
-      fileData
+      fileInfo // Pass fileInfo to indicate a file was provided
     );
 
-    const articleText = await generateArticle(prompt, fileData);
+    // Pass the entire fileInfo object, which contains the buffer for inline processing.
+    const articleText = await generateArticle(prompt, fileInfo);
 
     // Add AI response to conversation
     await addMessage(
@@ -521,7 +554,7 @@ const processConversationalRequest = async (
         articleType: finalArticleType,
         tone: finalTone,
         length: finalLength,
-        hasFile: !!fileData,
+        hasFile: !!fileInfo,
       },
       req
     );
@@ -543,14 +576,7 @@ const processConversationalRequest = async (
     }
     // --- End Usage Propagation ---
 
-    if (fileInfo && fileInfo.path) {
-      try {
-        await fs.unlink(fileInfo.path);
-        logger.info(`Cleaned up uploaded file: ${fileInfo.path}`);
-      } catch (error) {
-        logger.warn(`Failed to delete uploaded file: ${error.message}`);
-      }
-    }
+    // GCS REFACTOR: The fs.unlink call is no longer needed as no temporary file was created.
 
     return {
       conversationId: conversation.conversationId,
