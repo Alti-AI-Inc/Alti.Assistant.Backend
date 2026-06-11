@@ -1,3 +1,9 @@
+/**
+ * @file Manages interactions with the Google Vertex AI service for generating AI responses.
+ * This controller handles both authenticated (multi-tenant) and anonymous requests,
+ * applying business logic such as usage tracking, PII masking, and content safety filtering.
+ * @module modules/openAi/openAi.controller
+ */
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
 import winston from 'winston';
@@ -10,8 +16,12 @@ import { UsageService } from '../usage/usage.service.js';
 import { WorkspaceService } from '../workspace/workspace.service.js';
 import ApiError from '../../../errors/ApiError.js'; // Assumed path for a custom error class
 
-// Create a Winston logger that is compatible with Google Cloud Logging (Stackdriver)
-// It outputs structured JSON with a 'severity' property, which Cloud Logging automatically recognizes.
+/**
+ * A Winston logger configured for compatibility with Google Cloud Logging (Stackdriver).
+ * It outputs structured JSON with a 'severity' property, which Cloud Logging automatically recognizes,
+ * facilitating better log analysis and monitoring in a cloud environment.
+ * @type {winston.Logger}
+ */
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -28,7 +38,11 @@ const logger = winston.createLogger({
   ],
 });
 
-// Initialize Vertex AI SDK
+/**
+ * Initialized instance of the Vertex AI SDK.
+ * Configured with the Google Cloud project and location from environment variables.
+ * @type {VertexAI}
+ */
 const vertexAI = new VertexAI({
   project: process.env.GCP_PROJECT || 'placeholder-project',
   location: process.env.GCP_LOCATION || 'us-central1',
@@ -36,8 +50,9 @@ const vertexAI = new VertexAI({
 
 /**
  * Masks sensitive Personally Identifiable Information (PII) from the input text.
+ * Replaces emails, phone numbers, SSNs, and credit card numbers with placeholders.
  * @param {string} text - The input text to sanitize.
- * @returns {string} The sanitized text.
+ * @returns {string} The sanitized text with PII masked.
  */
 const maskPII = (text) => {
   if (!text) return '';
@@ -53,7 +68,12 @@ const maskPII = (text) => {
   return sanitized;
 };
 
-// Configure explicit safety settings for Vertex AI
+/**
+ * Defines the content safety settings for Vertex AI generative models.
+ * These settings configure the model to block content with a low or higher probability
+ * of being hate speech, harassment, sexually explicit, or dangerous.
+ * @type {Array<{category: HarmCategory, threshold: HarmBlockThreshold}>}
+ */
 const safetySettings = [
   {
     category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -74,16 +94,19 @@ const safetySettings = [
 ];
 
 /**
- * FIX: Centralized handler for authenticated AI prompt requests.
+ * Centralized handler for authenticated AI prompt requests.
  * This function encapsulates the core logic for:
  * 1. Validating user and workspace context.
  * 2. Checking usage limits against user and workspace/tenant quotas.
- * 3. Calling the AI model.
- * 4. Recording usage data to propagate it up the hierarchy.
+ * 3. Calling the AI model after masking PII.
+ * 4. Recording usage data for the user and their workspace.
  *
- * @param {import('express').Request} req - Express request object.
- * @param {string} modelName - The name of the Vertex AI model to use.
- * @returns {Promise<{text: string, sessionId: string, userId: string}>} The AI response and session data.
+ * @permission Requires an authenticated user with a valid JWT.
+ * @tenant-context The user must belong to an active workspace (`user.workspaceId`). All usage checks and recording are scoped to this workspace.
+ * @param {import('express').Request} req - The Express request object, containing user context and the prompt.
+ * @param {string} modelName - The name of the Vertex AI model to use (e.g., 'gemini-1.5-flash').
+ * @returns {Promise<{text: string, sessionId: string, userId: string}>} A promise that resolves to an object containing the AI's response text, session ID, and user ID.
+ * @throws {ApiError} Throws an ApiError if the workspace is inactive, usage limits are exceeded, or the prompt is blocked by safety filters.
  */
 const handleAuthenticatedPrompt = async (req, modelName) => {
   // 1. Validate request and get user context.
@@ -92,24 +115,12 @@ const handleAuthenticatedPrompt = async (req, modelName) => {
 
   // 2. Authorization & Business Logic Checks
   // Ensure the user's workspace/tenant context is valid and they are allowed to make requests.
-  // OPTIMIZATION: Instead of fetching the entire workspace document with a generic `getById`,
-  // use a more specific service method. This method should be implemented in the WorkspaceService
-  // to fetch only the 'status' field and use .lean() to avoid Mongoose document overhead, reducing query time and memory usage.
-  // Example implementation in WorkspaceService:
-  // const findWorkspaceStatusById = (id) => Workspace.findById(id).select('status').lean().exec();
-  const workspace = await WorkspaceService.findWorkspaceStatusById(user.workspaceId);
+  const workspace = await WorkspaceService.getById(user.workspaceId);
   if (!workspace || workspace.status !== 'ACTIVE') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. The associated workspace is not active.');
   }
 
-  // OPTIMIZATION: The `checkLimits` service method is critical for performance and cost control.
-  // It should be implemented efficiently to avoid multiple database round trips (N+1 problem).
-  // A recommended approach is to use a single Mongoose aggregation pipeline to:
-  // 1. Fetch the workspace's plan and usage limits.
-  // 2. Fetch the current monthly usage for both the user and the entire workspace.
-  // 3. Perform the limit check within the database query itself if possible.
-  // This avoids fetching large documents and performing logic in the Node.js process.
-  // Ensure the 'workspaceId' and 'userId' fields on the usage collection are indexed.
+  // Check if the user and their workspace are within usage limits BEFORE making the expensive API call.
   const canMakeRequest = await UsageService.checkLimits(user.id, user.workspaceId);
   if (!canMakeRequest) {
     // This service should also be responsible for triggering notifications to admins/managers.
@@ -200,6 +211,14 @@ const handleAuthenticatedPrompt = async (req, modelName) => {
 
 
 /**
+ * Express controller to get a response from the Gemini 1.5 Flash model.
+ * This endpoint is an abstraction over the underlying Google Cloud model.
+ * It delegates all business logic, including authentication, authorization, and usage tracking,
+ * to the `handleAuthenticatedPrompt` function.
+ * @permission Requires an authenticated user.
+ * @tenant-context Scoped to the user's active workspace.
+ */
+/**
  * @openapi
  * /openai/gpt4o-mini:
  *   post:
@@ -248,6 +267,14 @@ const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
 });
 
 /**
+ * Express controller to get a response from the Gemini 1.5 Pro model.
+ * This endpoint is an abstraction over the underlying Google Cloud model.
+ * It delegates all business logic, including authentication, authorization, and usage tracking,
+ * to the `handleAuthenticatedPrompt` function.
+ * @permission Requires an authenticated user.
+ * @tenant-context Scoped to the user's active workspace.
+ */
+/**
  * @openapi
  * /openai/gpt4-nano:
  *   post:
@@ -295,6 +322,12 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Express controller to get an AI response anonymously.
+ * This public endpoint does not require authentication and is intended for limited, public-facing use cases.
+ * It is critical to protect this endpoint with strict rate-limiting to prevent abuse and control costs.
+ * @permission Public, no authentication required.
+ */
 /**
  * @openapi
  * /openai/anonymous:
@@ -409,7 +442,8 @@ const OpenAiGetResponseAnonymously = catchAsync(async (req, res) => {
 });
 
 /**
- * Controller object containing handlers for Vertex AI-related endpoints.
+ * An object containing the controller functions for the OpenAI/Vertex AI module.
+ * These functions are designed to be used as route handlers in an Express application.
  * @type {{
  *   Gpt4oMiniGetResponse: import('express').RequestHandler,
  *   Gpt4NanoGetResponse: import('express').RequestHandler,
