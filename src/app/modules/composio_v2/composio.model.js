@@ -121,8 +121,10 @@ const ComposioAuthSchema = new mongoose.Schema({
     id: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      // Note: No 'ref' here as it can refer to different models ('User', 'Workspace').
-      // Population must be handled conditionally in the application logic.
+      // INTEGRATION_FIX: Use refPath to enable Mongoose's polymorphic population.
+      // This allows `populate('owner.id')` to correctly fetch the associated User or Workspace document,
+      // simplifying business logic and reducing the risk of integration errors when checking permissions or limits.
+      refPath: 'owner.type',
     },
     type: {
       type: String,
@@ -262,6 +264,19 @@ ComposioAuthSchema.index({ connectedByUserId: 1, status: 1, 'toolkit.slug': 1 })
  * This is crucial for applying limits and permissions based on ownership.
  */
 ComposioAuthSchema.index({ 'owner.id': 1, 'owner.type': 1, status: 1 });
+
+/**
+ * BUGFIX: Unique partial index to prevent duplicate integrations for the same owner.
+ * This ensures that a user or a workspace cannot have multiple active or pending connections
+ * for the same authentication configuration, improving data integrity.
+ * The partial filter allows for historical records of failed/revoked connections,
+ * enabling a user to re-establish a connection after it was revoked.
+ */
+ComposioAuthSchema.index({ 'owner.id': 1, 'owner.type': 1, authConfigId: 1 }, {
+  unique: true,
+  partialFilterExpression: { status: { $in: ['ACTIVE', 'PENDING'] } }
+});
+
 
 /**
  * Mongoose Model for ComposioAuth.
