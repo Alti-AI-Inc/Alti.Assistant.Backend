@@ -4,6 +4,9 @@
  */
 
 import mongoose from 'mongoose';
+// IMPROVEMENT: Import a custom error class for consistent, structured error handling.
+// This allows for better error management in the service/controller layers.
+import AppError from '../../utils/AppError.js';
 
 /**
  * @typedef {import('mongoose').Document & {
@@ -223,6 +226,54 @@ ComposioRepositorySchema.index({ workspaceId: 1, isPublic: 1, stars: -1, name: 1
 // directly supporting the manager dashboard's metric-viewing requirements.
 ComposioRepositorySchema.index({ workspaceId: 1, isPublic: 1, executionCount: -1 });
 
+// BUSINESS LOGIC: Enforce plan limits for private repositories.
+// This pre-save hook ensures that a manager or user cannot add a new private tool
+// if their workspace's plan limit for custom tools has been reached. This is a critical
+// feature for managing subscription tiers and preventing resource abuse.
+ComposioRepositorySchema.pre('save', async function (next) {
+  // We only check this for new, private repositories being added to a workspace.
+  if (this.isNew && !this.isPublic && this.workspaceId) {
+    try {
+      // Use mongoose.model to avoid circular dependency issues if models import each other.
+      const Workspace = mongoose.model('Workspace');
+      
+      // Find the associated workspace and populate its plan details.
+      // Assumes the Workspace model has a 'plan' ref which contains 'repositoryLimit'.
+      const workspace = await Workspace.findById(this.workspaceId).populate('plan');
+
+      if (!workspace || !workspace.plan) {
+        // If the workspace or plan doesn't exist, block creation to ensure data integrity.
+        return next(new AppError('Cannot add repository to a workspace without a valid plan.', 400));
+      }
+
+      // A limit of -1 or null can signify an unlimited plan.
+      const limit = workspace.plan.repositoryLimit;
+      if (limit !== null && limit >= 0) {
+        // Count existing private repositories for this workspace.
+        const currentCount = await this.constructor.countDocuments({
+          workspaceId: this.workspaceId,
+          isPublic: false
+        });
+
+        if (currentCount >= limit) {
+          // If the limit is reached, prevent the new repository from being saved.
+          return next(new AppError(
+            `Workspace has reached its limit of ${limit} private tools. Please upgrade your plan.`,
+            403 // 403 Forbidden is appropriate for plan limit violations.
+          ));
+        }
+      }
+      
+      next();
+    } catch (error) {
+      // Pass any unexpected errors to the next middleware.
+      next(error);
+    }
+  } else {
+    // If it's not a new private repository, skip the check.
+    next();
+  }
+});
 
 /**
  * The Mongoose model for a Composio Repository.
