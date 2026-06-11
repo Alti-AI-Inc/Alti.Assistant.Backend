@@ -1,6 +1,8 @@
 import httpStatus from 'http-status';
 import express from 'express';
 import mongoose from 'mongoose';
+import { Storage } from '@google-cloud/storage';
+import { v4 as uuidv4 } from 'uuid';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -14,6 +16,21 @@ import SubscriptionModel from '../payment/payment.model.js';
 // import { conversationHelpers } from '../conversations/conversation.helpers.js'; // This import is no longer needed after logic correction.
 import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
+
+// --- Google Cloud Storage Configuration ---
+// The GCS client automatically uses credentials from the environment
+// (GOOGLE_APPLICATION_CREDENTIALS) or the attached service account in a GCP environment.
+const storage = new Storage();
+// CRITICAL: The GCS bucket name must be configured via an environment variable.
+const gcsBucketName = process.env.GCS_DOCUMENT_BUCKET;
+if (!gcsBucketName) {
+  logger.error(
+    'GCS_DOCUMENT_BUCKET environment variable not set. File uploads will fail.'
+  );
+  // In a production environment, you might want to throw an error here
+  // to prevent the server from starting in a misconfigured state.
+  // throw new Error('GCS_DOCUMENT_BUCKET environment variable not set.');
+}
 
 // Enterprise Rate-Limiting Configurations to prevent DDoS, API abuse, and LLM cost runaway.
 // Using RateLimiterMemory as a highly reliable, zero-dependency in-memory fallback.
@@ -37,12 +54,13 @@ const historyLimiter = new RateLimiterMemory({
 
 /**
  * @typedef {object} FileInfo
- * @property {string} filename - The name of the file on the server.
  * @property {string} originalname - The original name of the uploaded file.
  * @property {string} mimetype - The MIME type of the file.
  * @property {number} size - The size of the file in bytes.
- * @property {string} path - The temporary path where the file is stored.
- * @property {string} location - The final storage location (e.g., S3 URL or local path).
+ * @property {string} location - The canonical GCS URI of the uploaded file (e.g., 'gs://my-bucket/uploads/user123/file.pdf').
+ * @property {object} gcs - GCS-specific details for the service layer.
+ * @property {string} gcs.bucket - The GCS bucket name.
+ * @property {string} gcs.path - The path to the object within the bucket.
  */
 
 /**
@@ -58,7 +76,7 @@ const historyLimiter = new RateLimiterMemory({
  * @property {string} conversationId - The ID of the conversation.
  * @property {string} messageId - The ID of the generated message.
  * @property {string} response - The analysis result.
- * @property {string} [fileUrl] - URL of the processed file, if applicable.
+ * @property {string} [fileUrl] - A secure, temporary GCS Signed URL for accessing the processed file, if applicable.
  */
 
 /**
@@ -68,7 +86,7 @@ const historyLimiter = new RateLimiterMemory({
  * @property {string} userId - The ID of the user.
  * @property {string} role - The role of the message sender (e.g., 'user', 'assistant').
  * @property {string} content - The content of the message.
- * @property {string} [fileUrl] - URL of the file associated with the message, if any.
+ * @property {string} [fileUrl] - A secure, temporary GCS Signed URL for accessing the file associated with the message, if any.
  * @property {Date} createdAt - The timestamp when the message was created.
  * @property {Date} updatedAt - The timestamp when the message was last updated.
  */
@@ -85,7 +103,7 @@ const historyLimiter = new RateLimiterMemory({
  * @security Guest Access / Authenticated User
  * @permission Multi-tenant / User-isolated. Authenticated users are restricted by their subscription limits. Guests have auto-generated temporary IDs.
  *
- * @param {import('express').Request & { file?: FileInfo, isGuest?: boolean, user?: { userId: string, _id: string } }} req - The Express request object.
+ * @param {import('express').Request & { file?: Express.Multer.File, isGuest?: boolean, user?: { userId: string, _id: string } }} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
@@ -191,7 +209,11 @@ export const analyzeDocument = catchAsync(async (req, res) => {
   try {
     await limiter.consume(rateLimitKey);
   } catch (rateLimiterRes) {
-    logger.warn(`Rate limit exceeded for ${isGuest ? 'guest' : 'user'} ${rateLimitKey} on analyzeDocument`);
+    logger.warn(
+      `Rate limit exceeded for ${
+        isGuest ? 'guest' : 'user'
+      } ${rateLimitKey} on analyzeDocument`
+    );
     return sendResponse(res, {
       statusCode: httpStatus.TOO_MANY_REQUESTS,
       success: false,
@@ -199,24 +221,74 @@ export const analyzeDocument = catchAsync(async (req, res) => {
     });
   }
 
-  // --- File Handling & Input Validation ---
-  const fileInfo = req.file
-    ? {
-        filename: req.file.filename,
+  // --- GCS File Upload & Input Validation ---
+  // This logic replaces local filesystem writes. It streams the uploaded file
+  // directly to a GCS bucket, ensuring the application remains stateless. This requires
+  // an upstream middleware like Multer to be configured with 'memoryStorage' to
+  // provide the file in `req.file.buffer`.
+  let fileInfo = null;
+  if (req.file) {
+    if (!gcsBucketName) {
+      logger.error(
+        'Cannot process file upload: GCS_DOCUMENT_BUCKET is not configured.'
+      );
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'File upload service is not configured correctly.',
+      });
+    }
+
+    // Sanitize and create a unique GCS path for the file to prevent collisions and path traversal.
+    const safeOriginalName = req.file.originalname.replace(
+      /[^a-zA-Z0-9._-]/g,
+      '_'
+    );
+    const uniqueFileName = `${uuidv4()}-${safeOriginalName}`;
+    const gcsFilePath = `uploads/${userId}/${uniqueFileName}`;
+    const file = storage.bucket(gcsBucketName).file(gcsFilePath);
+
+    try {
+      // Stream the buffer from memory directly to GCS.
+      await file.save(req.file.buffer, {
+        metadata: {
+          contentType: req.file.mimetype,
+        },
+        // For large files (>10MB), consider setting resumable: true
+        resumable: false,
+      });
+
+      const gcsUri = `gs://${gcsBucketName}/${gcsFilePath}`;
+      logger.info(`File successfully uploaded for user ${userId} to ${gcsUri}`);
+
+      // This object is passed to the service layer for further processing.
+      fileInfo = {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        path: req.file.path,
-        location: req.file.location || req.file.path,
-      }
-    : null;
+        location: gcsUri, // The canonical GCS URI.
+        gcs: {
+          bucket: gcsBucketName,
+          path: gcsFilePath,
+        },
+      };
+    } catch (error) {
+      logger.error(`GCS upload failed for user ${userId}:`, error);
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to upload file to cloud storage.',
+      });
+    }
+  }
 
   // A user must provide content to be analyzed, either as text or a file.
   if (!fileInfo && (!message || message.trim() === '')) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Request must include a file or a non-empty message for analysis.',
+      message:
+        'Request must include a file or a non-empty message for analysis.',
     });
   }
 
@@ -228,31 +300,34 @@ export const analyzeDocument = catchAsync(async (req, res) => {
   // --- Subscription & Usage Limit Enforcement for Authenticated Users ---
   if (!isGuest) {
     // Find the user's most recent (and presumably active) subscription plan.
-    const subscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    }).lean();
+    const subscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
 
     // --- Logic Correction: Usage Limit Check ---
     // The previous logic was flawed. This corrected logic properly checks if the user's
     // current usage has met or exceeded their plan's limit.
     // This assumes the SubscriptionModel contains `currentUsage` and `usageLimit` fields.
-    if (!subscription || (subscription.currentUsage >= subscription.usageLimit)) {
-      logger.warn(`Usage limit exceeded for user ${userId}. Current: ${subscription?.currentUsage}, Limit: ${subscription?.usageLimit}`);
+    if (!subscription || subscription.currentUsage >= subscription.usageLimit) {
+      logger.warn(
+        `Usage limit exceeded for user ${userId}. Current: ${subscription?.currentUsage}, Limit: ${subscription?.usageLimit}`
+      );
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
-        message: 'Usage limit exceeded or no active subscription. Please upgrade your plan.',
+        message:
+          'Usage limit exceeded or no active subscription. Please upgrade your plan.',
       });
     }
   }
 
   // --- Service Layer Call ---
-  // The service layer is responsible for the core business logic:
-  // 1. Processing the file/text.
-  // 2. Interacting with the LLM.
-  // 3. Saving conversation messages.
-  // 4. **Atomically** incrementing the user's usage count within a database transaction
-  //    to ensure data consistency (i.e., a prompt is saved if and only if usage is incremented).
+  // The service layer is responsible for the core business logic. It will receive
+  // the `fileInfo` object containing the GCS location. When returning a `fileUrl`
+  // in the response, the service layer should generate a GCS V4 Signed URL for
+  // secure, temporary access to the file.
   const result = await documentAnalysisService.analyzeContent(
     userId,
     message,
@@ -350,7 +425,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   try {
     await historyLimiter.consume(userId || req.ip);
   } catch (rateLimiterRes) {
-    logger.warn(`Rate limit exceeded for user ${userId || req.ip} on getConversationHistory`);
+    logger.warn(
+      `Rate limit exceeded for user ${
+        userId || req.ip
+      } on getConversationHistory`
+    );
     return sendResponse(res, {
       statusCode: httpStatus.TOO_MANY_REQUESTS,
       success: false,
@@ -363,7 +442,8 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   );
 
   // The service layer must ensure that the conversation belongs to the requesting userId
-  // to maintain data isolation and privacy.
+  // to maintain data isolation and privacy. The service layer is also responsible for
+  // generating GCS Signed URLs for any `fileUrl` fields in the response.
   const conversation = await documentAnalysisService.getConversationHistory(
     conversationId,
     userId,
