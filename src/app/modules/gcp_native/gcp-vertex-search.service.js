@@ -1,6 +1,17 @@
 import { GoogleAuth } from 'google-auth-library';
+import { Agent as HttpsAgent } from 'https';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
+
+// RESILIENCY_ENHANCEMENT: Create a reusable HTTPS Agent with keepAlive enabled.
+// This optimizes network performance by reusing TCP connections for multiple API
+// calls to the same host, which is critical for backend services making frequent
+// requests to GCP APIs. It reduces latency from TCP and TLS handshakes.
+const httpsAgent = new HttpsAgent({
+  keepAlive: true,
+  keepAliveMsecs: 60000, // Keep sockets alive for 60 seconds.
+  maxSockets: 150 // Set a reasonable upper limit on concurrent sockets per host.
+});
 
 /**
  * GoogleAuth client instance configured with 'https://www.googleapis.com/auth/cloud-platform' scope.
@@ -133,7 +144,12 @@ const searchDataStore = async (dataStoreId, query, options = {}) => {
     const response = await client.request({
       url: endpoint,
       method: 'POST',
-      data: requestBody
+      data: requestBody,
+      // RESILIENCY_ENHANCEMENT: Specify a request timeout to prevent indefinite hangs.
+      // A 30-second timeout is a safe default for API calls, preventing cascading failures.
+      timeout: 30000,
+      // RESILIENCY_ENHANCEMENT: Use the shared keep-alive agent for this request.
+      agent: httpsAgent
     });
 
     const searchResponse = response.data || {};
