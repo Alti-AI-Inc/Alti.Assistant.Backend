@@ -409,24 +409,35 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
     await VectorStoreIndex.fromDocuments(nodes, { storageContext });
   }
 
-  // Compile secondary memory-based indexes (Summary + Keyword)
+  // Compile secondary memory-based indexes (Summary + Keyword) from the entire corpus.
   try {
-    logger.info('[Event Ingestion] Compiling memory-based secondary indexes...');
-    const summaryIdx = await SummaryIndex.fromDocuments(nodes);
-    let keywordIdx = null;
-    try {
-      keywordIdx = await KeywordTableIndex.fromDocuments(nodes);
-    } catch (kwErr) {
-      logger.warn(`[Event Ingestion] Keyword Index creation skipped (non-fatal): ${kwErr.message}`);
-    }
+    logger.info('[Event Ingestion] Compiling memory-based secondary indexes from the entire corpus...');
 
-    // Cache them in memory for current active user context
-    const existing = userIndexCache.get(userId) || {};
-    userIndexCache.set(userId, {
-      summaryIndex: summaryIdx || existing.summaryIndex,
-      keywordIndex: keywordIdx || existing.keywordIndex,
-    });
-    logger.info('[Event Ingestion] Secondary memory indexes successfully cached.');
+    // BUG FIX: Retrieve all nodes from the document store to build comprehensive secondary indexes.
+    // The original code only used nodes from the newly ingested document, leading to incomplete
+    // indexes that did not represent the user's full corpus.
+    const allNodes = Object.values(storageContext.docStore.docs);
+
+    if (allNodes.length > 0) {
+      // IMPROVEMENT: Use the more semantically correct `fromNodes` method.
+      const summaryIdx = await SummaryIndex.fromNodes(allNodes);
+      let keywordIdx = null;
+      try {
+        keywordIdx = await KeywordTableIndex.fromNodes(allNodes);
+      } catch (kwErr) {
+        logger.warn(`[Event Ingestion] Keyword Index creation skipped (non-fatal): ${kwErr.message}`);
+      }
+
+      // Cache the complete and up-to-date indexes, replacing any stale versions.
+      userIndexCache.set(userId, {
+        summaryIndex: summaryIdx,
+        keywordIndex: keywordIdx, // Will be null if creation failed, correctly clearing any stale cache.
+      });
+      logger.info('[Event Ingestion] Secondary memory indexes successfully cached.');
+    } else {
+      logger.warn(`[Event Ingestion] No nodes found for user ${userId}. Clearing secondary index cache.`);
+      userIndexCache.del(userId);
+    }
   } catch (err) {
     logger.error(`[Event Ingestion] Secondary index compilation failed (non-fatal): ${err.message}`);
   }

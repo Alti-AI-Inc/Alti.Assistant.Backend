@@ -10,6 +10,8 @@ import { cyberdeskService } from './cyberdesk.service.js';
  * Helper to verify if a user has access to a specific desktop based on tenant boundaries and roles.
  * Enforces strict tenant isolation and role-based access control (RBAC).
  * @async
+ * @private
+ * @function verifyDesktopAccess
  * @param {object} user - The authenticated user object, typically from `req.user`.
  * @param {string} user.id - The user's unique identifier.
  * @param {string} user.tenantId - The ID of the tenant the user belongs to.
@@ -186,7 +188,8 @@ const launch = async (req, res) => {
  *
  *       **Permission Scopes:**
  *       - `super_admin`: Can access any desktop.
- *       - `admin`, `manager`: Can access any desktop within their own tenant.
+ *       - `admin`: Can access any desktop within their own tenant.
+ *       - `manager`: Can access desktops of users they manage within their own tenant.
  *       - `user`: Can only access desktops they own.
  *     security:
  *       - bearerAuth: []
@@ -279,7 +282,8 @@ const info = async (req, res) => {
  *
  *       **Permission Scopes:**
  *       - `super_admin`: Can interact with any desktop.
- *       - `admin`, `manager`: Can interact with any desktop within their own tenant.
+ *       - `admin`: Can interact with any desktop within their own tenant.
+ *       - `manager`: Can interact with desktops of users they manage within their own tenant.
  *       - `user`: Can only interact with desktops they own.
  *     security:
  *       - bearerAuth: []
@@ -514,7 +518,8 @@ const bash = async (req, res) => {
  *
  *       **Permission Scopes:**
  *       - `super_admin`: Can terminate any desktop.
- *       - `admin`, `manager`: Can terminate any desktop within their own tenant.
+ *       - `admin`: Can terminate any desktop within their own tenant.
+ *       - `manager`: Can terminate desktops of users they manage within their own tenant.
  *       - `user`: Can only terminate desktops they own.
  *     security:
  *       - bearerAuth: []
