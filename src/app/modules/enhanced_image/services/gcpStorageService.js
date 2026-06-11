@@ -1,6 +1,17 @@
 import { Storage } from '@google-cloud/storage';
 
+/**
+ * @class GCPStorageService
+ * @description A service class for interacting with Google Cloud Storage (GCS).
+ * Provides methods for uploading, downloading, deleting files, and generating signed URLs.
+ * This service is designed to be instantiated once per bucket.
+ */
 export class GCPStorageService {
+  /**
+   * Creates an instance of GCPStorageService.
+   * @param {string} bucketName - The name of the GCS bucket to interact with.
+   * @param {string} keyFilePath - The path to the GCP service account key file (JSON).
+   */
   constructor(bucketName, keyFilePath) {
     this.bucketName = bucketName;
     this.storage = new Storage({
@@ -12,10 +23,12 @@ export class GCPStorageService {
   /**
    * Generate a signed URL for uploading a file directly to GCS.
    * This avoids writing files to the local ephemeral container filesystem.
-   * @param {string} destinationFileName - Destination file name in bucket
-   * @param {string} contentType - MIME type of the file to be uploaded
-   * @param {number} expiresMinutes - Expiration time in minutes (default 15)
-   * @returns {Promise<string>} - Signed URL for PUT request
+   * The caller is responsible for ensuring the destinationFileName is unique and,
+   * in a multi-tenant environment, properly namespaced by tenant ID.
+   * @param {string} destinationFileName - Destination file name in the bucket (e.g., 'tenant-id/images/my-image.png').
+   * @param {string} [contentType='image/png'] - MIME type of the file to be uploaded.
+   * @param {number} [expiresMinutes=15] - Expiration time for the URL in minutes.
+   * @returns {Promise<string>} A promise that resolves to the signed URL for a PUT request.
    */
   async getSignedUrlForUpload(destinationFileName, contentType = 'image/png', expiresMinutes = 15) {
     try {
@@ -35,9 +48,11 @@ export class GCPStorageService {
 
   /**
    * Generate a signed URL for downloading/viewing a file from GCS.
-   * @param {string} fileName - File name in bucket
-   * @param {number} expiresMinutes - Expiration time in minutes (default 15)
-   * @returns {Promise<string>} - Signed URL for GET request
+   * The caller is responsible for ensuring the fileName corresponds to a resource
+   * the user is authorized to access, especially in a multi-tenant context.
+   * @param {string} fileName - The name of the file in the bucket to download (e.g., 'tenant-id/images/my-image.png').
+   * @param {number} [expiresMinutes=15] - Expiration time for the URL in minutes.
+   * @returns {Promise<string>} A promise that resolves to the signed URL for a GET request.
    */
   async getSignedUrlForDownload(fileName, expiresMinutes = 15) {
     try {
@@ -56,10 +71,12 @@ export class GCPStorageService {
 
   /**
    * Get a writable stream to upload data directly to GCS.
-   * This avoids writing files to the local ephemeral container filesystem.
-   * @param {string} destinationFileName - Destination file name in bucket
-   * @param {string} contentType - MIME type of the file
-   * @returns {import('stream').Writable} - Writable stream
+   * This is useful for streaming large files without buffering them in memory or on disk.
+   * The caller is responsible for ensuring the destinationFileName is unique and,
+   * in a multi-tenant environment, properly namespaced by tenant ID.
+   * @param {string} destinationFileName - Destination file name in the bucket (e.g., 'tenant-id/images/my-image.png').
+   * @param {string} [contentType='image/png'] - MIME type of the file.
+   * @returns {import('stream').Writable} A writable stream to the GCS file.
    */
   getUploadStream(destinationFileName, contentType = 'image/png') {
     const file = this.bucket.file(destinationFileName);
@@ -73,10 +90,13 @@ export class GCPStorageService {
   }
 
   /**
-   * Upload a file to GCP bucket (Deprecated: Use getUploadStream or getSignedUrlForUpload to avoid local disk writes)
-   * @param {string} localFilePath - Local file path. WARNING: Ensure this path is not user-controlled to prevent path traversal vulnerabilities.
-   * @param {string} destinationFileName - Destination file name in bucket
-   * @returns {Promise<string>} - Public URL of uploaded file
+   * @deprecated Use getUploadStream or getSignedUrlForUpload to avoid local disk writes in ephemeral environments.
+   * Upload a file from the local filesystem to a GCS bucket.
+   * The caller is responsible for ensuring the destinationFileName is unique and,
+   * in a multi-tenant environment, properly namespaced by tenant ID.
+   * @param {string} localFilePath - The path to the local file. WARNING: Ensure this path is not user-controlled to prevent path traversal vulnerabilities.
+   * @param {string} destinationFileName - Destination file name in the bucket (e.g., 'tenant-id/images/my-image.png').
+   * @returns {Promise<string>} A promise that resolves to the public URL of the uploaded file.
    */
   async uploadFile(localFilePath, destinationFileName) {
     try {
@@ -97,11 +117,14 @@ export class GCPStorageService {
   }
 
   /**
-   * Upload buffer directly to GCP bucket
-   * @param {Buffer} buffer - File buffer
-   * @param {string} destinationFileName - Destination file name in bucket
-   * @param {string} contentType - MIME type (e.g., 'image/png')
-   * @returns {Promise<string>} - Public URL of uploaded file
+   * Uploads a buffer directly to a GCS bucket.
+   * This is efficient for handling file data held in memory.
+   * The caller is responsible for ensuring the destinationFileName is unique and,
+   * in a multi-tenant environment, properly namespaced by tenant ID.
+   * @param {Buffer} buffer - The file buffer to upload.
+   * @param {string} destinationFileName - Destination file name in the bucket (e.g., 'tenant-id/images/my-image.png').
+   * @param {string} [contentType='image/png'] - The MIME type of the file (e.g., 'image/png').
+   * @returns {Promise<string>} A promise that resolves to the public URL of the uploaded file.
    */
   async uploadBuffer(buffer, destinationFileName, contentType = 'image/png') {
     try {
@@ -124,8 +147,9 @@ export class GCPStorageService {
   }
 
   /**
-   * Delete a file from GCP bucket
-   * @param {string} fileName - File name to delete. WARNING: Ensure proper authorization checks are performed by the caller to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
+   * Deletes a file from the GCS bucket.
+   * @param {string} fileName - The name of the file to delete. WARNING: The caller must perform proper authorization checks to prevent unauthorized deletions (Insecure Direct Object Reference). In a multi-tenant environment, ensure the filename is correctly scoped to the tenant.
+   * @returns {Promise<void>} A promise that resolves when the file is deleted.
    */
   async deleteFile(fileName) {
     try {
@@ -138,8 +162,8 @@ export class GCPStorageService {
   }
 
   /**
-   * Check if bucket exists and is accessible
-   * @returns {Promise<boolean>}
+   * Checks if the configured bucket exists and is accessible with the provided credentials.
+   * @returns {Promise<boolean>} A promise that resolves to true if the bucket exists and is accessible, false otherwise.
    */
   async checkBucketAccess() {
     try {
