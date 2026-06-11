@@ -1,10 +1,8 @@
 import express from 'express';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { paymentController } from './payment.controller.js';
-// BUGFIX: Import authentication and authorization middlewares to secure endpoints.
 import { authenticate } from '../../middlewares/auth/authenticate.js';
 import { authorize } from '../../middlewares/auth/authorize.js';
-// BUGFIX: Import roles for clear and consistent role-based access control.
 import { ROLES } from '../../config/roles.js';
 
 /**
@@ -34,8 +32,6 @@ const router = express.Router();
  *                 type: string
  *                 description: The ID of the Stripe Price object for the subscription plan.
  *                 example: "price_1Hh2iJ2eZvKYlo2CqXqXqXqX"
- *               // SECURITY-FIX: Removed userId from the request body to prevent IDOR vulnerabilities.
- *               // The user ID will be derived from the authenticated user's session/token.
  *     responses:
  *       200:
  *         description: Successfully created checkout session.
@@ -60,9 +56,188 @@ const router = express.Router();
  */
 router
   .route('/create-checkout-session')
-  // SECURITY-FIX: Added authentication middleware. The controller must use req.user.id
-  // instead of a userId from the request body to prevent IDOR.
   .post(extractTenantContext, authenticate, paymentController.createCheckoutSession);
+
+/**
+ * @openapi
+ * /api/v1/subscriptions/create-customer-portal-session:
+ *   post:
+ *     summary: Create a Stripe Customer Portal Session
+ *     description: >
+ *       Creates a session for the Stripe Customer Portal, allowing the workspace owner
+ *       to manage their billing details, invoices, and subscription plan.
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully created customer portal session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   description: The URL to redirect the user to for the Stripe Customer Portal.
+ *                   example: "https://billing.stripe.com/p/session/..."
+ *       401:
+ *         description: Unauthorized - User is not authenticated.
+ *       403:
+ *         description: Forbidden - User is not an admin or workspace owner.
+ *       404:
+ *         description: Not Found - The workspace does not have an active subscription or Stripe customer ID.
+ *       500:
+ *         description: Internal Server Error.
+ *     x-role-permissions:
+ *       - required: ['super_admin', 'admin']
+ *         description: Only users with 'super_admin' or 'admin' role can manage billing.
+ *     x-multi-tenant-context:
+ *       - required: true
+ *         description: The tenant context is extracted to create the portal session for the correct workspace.
+ */
+router
+  .route('/create-customer-portal-session')
+  .post(
+    extractTenantContext,
+    authenticate,
+    authorize([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
+    paymentController.createCustomerPortalSession
+  );
+
+/**
+ * @openapi
+ * /api/v1/subscriptions/status:
+ *   get:
+ *     summary: Get current workspace subscription status and limits
+ *     description: >
+ *       Retrieves the active subscription details for the current workspace, including the plan,
+ *       status, and associated usage limits (e.g., max users, features).
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The workspace's subscription and limits details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 subscription:
+ *                   $ref: '#/components/schemas/Subscription'
+ *                 limits:
+ *                   type: object
+ *                   description: Plan-defined limits for the workspace.
+ *                   properties:
+ *                     maxUsers:
+ *                       type: integer
+ *                     maxAssistants:
+ *                       type: integer
+ *                     canUseCustomModels:
+ *                       type: boolean
+ *       401:
+ *         description: Unauthorized - User is not authenticated.
+ *       404:
+ *         description: Not Found - No active subscription found for the workspace.
+ *       500:
+ *         description: Internal Server Error.
+ *     x-multi-tenant-context:
+ *       - required: true
+ *         description: The tenant context is extracted to retrieve the subscription for the correct workspace.
+ */
+router
+  .route('/status')
+  .get(extractTenantContext, authenticate, paymentController.getWorkspaceSubscriptionStatus);
+
+/**
+ * @openapi
+ * /api/v1/subscriptions/cancel:
+ *   patch:
+ *     summary: Cancel the current workspace subscription
+ *     description: >
+ *       Schedules the current active subscription for the workspace to be canceled at the end of the billing period.
+ *       This is an administrative action.
+ *     tags:
+ *       - Payment
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Subscription successfully scheduled for cancellation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Subscription'
+ *       401:
+ *         description: Unauthorized - User is not authenticated.
+ *       403:
+ *         description: Forbidden - User does not have permission to cancel the subscription.
+ *       404:
+ *         description: Not Found - No active subscription found for the workspace.
+ *       500:
+ *         description: Internal Server Error.
+ *     x-role-permissions:
+ *       - required: ['super_admin', 'admin']
+ *         description: Only users with 'super_admin' or 'admin' role can cancel the workspace subscription.
+ *     x-multi-tenant-context:
+ *       - required: true
+ *         description: The tenant context is extracted to identify the correct subscription to cancel.
+ */
+router
+  .route('/cancel')
+  .patch(
+    extractTenantContext,
+    authenticate,
+    authorize([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
+    paymentController.cancelSubscription
+  );
+
+/**
+ * @openapi
+ * /api/v1/subscriptions/webhook:
+ *   post:
+ *     summary: Stripe Webhook Handler
+ *     description: >
+ *       Handles incoming webhook events from Stripe to update subscription statuses, handle payments, etc.
+ *       This endpoint is intended to be called by Stripe's services, not by a client application.
+ *       It requires the raw request body for signature verification.
+ *     tags:
+ *       - Payment
+ *     requestBody:
+ *       description: Raw JSON payload from Stripe. The `Stripe-Signature` header must be present for verification.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: A Stripe event object.
+ *     responses:
+ *       200:
+ *         description: Acknowledged. The webhook was received and processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 received:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Bad Request - Invalid payload or signature verification failed.
+ *     x-multi-tenant-context:
+ *       - required: true
+ *         description: The tenant context is extracted from the webhook metadata to process the event for the correct tenant.
+ */
+router
+  .route('/webhook')
+  .post(
+    express.raw({ type: 'application/json' }),
+    extractTenantContext,
+    paymentController.handleWebhook
+  );
 
 /**
  * @openapi
@@ -98,8 +273,6 @@ router
  */
 router
   .route('/admin/all')
-  // SECURITY-FIX: Added authentication and role-based authorization.
-  // Only super_admins and admins can access all tenant subscriptions.
   .get(
     extractTenantContext,
     authenticate,
@@ -152,58 +325,7 @@ router
  */
 router
   .route('/:userId')
-  // SECURITY-FIX: Added authentication. The controller MUST perform authorization checks
-  // to prevent IDOR. It must verify that the authenticated user (req.user) is either:
-  // 1. The same as the requested userId (req.params.userId).
-  // 2. An admin/super_admin.
-  // 3. A manager responsible for the user specified by req.params.userId.
   .get(extractTenantContext, authenticate, paymentController.getSubscriptionsByUserId);
-
-/**
- * @openapi
- * /api/v1/subscriptions/webhook:
- *   post:
- *     summary: Stripe Webhook Handler
- *     description: >
- *       Handles incoming webhook events from Stripe to update subscription statuses, handle payments, etc.
- *       This endpoint is intended to be called by Stripe's services, not by a client application.
- *       It requires the raw request body for signature verification.
- *     tags:
- *       - Payment
- *     requestBody:
- *       description: Raw JSON payload from Stripe. The `Stripe-Signature` header must be present for verification.
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             description: A Stripe event object.
- *     responses:
- *       200:
- *         description: Acknowledged. The webhook was received and processed successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 received:
- *                   type: boolean
- *                   example: true
- *       400:
- *         description: Bad Request - Invalid payload or signature verification failed.
- *     x-multi-tenant-context:
- *       - required: true
- *         description: The tenant context is extracted from the webhook metadata to process the event for the correct tenant.
- */
-router
-  .route('/webhook')
-  // This endpoint is public facing for Stripe, security is handled by verifying the
-  // Stripe signature in the controller, so no user authentication middleware is needed.
-  .post(
-    express.raw({ type: 'application/json' }),
-    extractTenantContext,
-    paymentController.handleWebhook
-  );
 
 /**
  * The exported Express router for payment and subscription routes.
