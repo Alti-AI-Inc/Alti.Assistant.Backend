@@ -5,6 +5,7 @@
  * @requires forumController - Controller for forum-related operations.
  * @requires middlewares/validateRequest - Middleware for validating request bodies.
  * @requires middlewares/tenantContext - Middleware for extracting tenant context from requests.
+ * @requires middlewares/auth - Middleware for user authentication and authorization.
  */
 
 const express = require('express');
@@ -22,7 +23,12 @@ const {
 const {
   extractTenantContext,
 } = require('../../middlewares/tenant/tenantContext');
-const forumUserActivitiesValidationSchema = require('./forum.validation');
+// VULNERABILITY FIX: Import authentication middleware to protect all endpoints.
+// Unprotected endpoints allow unauthorized access and modification of data,
+// bypassing tenant and role-based security checks.
+const { auth } = require('../../middlewares/auth/auth');
+// REFACTOR: Import the entire validation schema module to access all forum-related schemas.
+const forumValidation = require('./forum.validation');
 // const { authController } = require("../auth/auth.controller");
 
 /**
@@ -30,8 +36,10 @@ const forumUserActivitiesValidationSchema = require('./forum.validation');
  * /api/v1/forums/{id}:
  *   get:
  *     summary: Get a specific forum post by its ID
- *     description: Retrieves a single forum post. This is a multi-tenant endpoint.
+ *     description: Retrieves a single forum post. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -46,12 +54,16 @@ const forumUserActivitiesValidationSchema = require('./forum.validation');
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Forum'
+ *       401:
+ *         description: Unauthorized.
  *       404:
  *         description: Forum post not found.
  *   patch:
  *     summary: Update a forum post
- *     description: Updates an existing forum post. Requires user to be the author or an administrator. This is a multi-tenant endpoint.
+ *     description: Updates an existing forum post. Requires user to be the author or an administrator. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -72,14 +84,18 @@ const forumUserActivitiesValidationSchema = require('./forum.validation');
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Forum'
+ *       401:
+ *         description: Unauthorized.
  *       403:
  *         description: User is not authorized to update this post.
  *       404:
  *         description: Forum post not found.
  *   delete:
  *     summary: Delete a forum post
- *     description: Deletes an existing forum post. Requires user to be the author or an administrator. This is a multi-tenant endpoint.
+ *     description: Deletes an existing forum post. Requires user to be the author or an administrator. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -90,6 +106,8 @@ const forumUserActivitiesValidationSchema = require('./forum.validation');
  *     responses:
  *       204:
  *         description: The forum post was successfully deleted.
+ *       401:
+ *         description: Unauthorized.
  *       403:
  *         description: User is not authorized to delete this post.
  *       404:
@@ -97,17 +115,25 @@ const forumUserActivitiesValidationSchema = require('./forum.validation');
  */
 router
   .route('/:id')
-  .get(extractTenantContext, forumController.getForumById)
-  .patch(extractTenantContext, forumController.updateForum)
-  .delete(extractTenantContext, forumController.deleteForum);
+  .get(extractTenantContext, auth(), forumController.getForumById)
+  .patch(
+    extractTenantContext,
+    auth(),
+    // BUG FIX: Added validation for the update payload to ensure data integrity.
+    validateRequest(forumValidation.updateForumSchema),
+    forumController.updateForum,
+  )
+  .delete(extractTenantContext, auth(), forumController.deleteForum);
 
 /**
  * @openapi
  * /api/v1/forums/comment/{commentId}:
  *   get:
  *     summary: Get a specific comment by its ID
- *     description: Retrieves a single comment from a forum post. This is a multi-tenant endpoint.
+ *     description: Retrieves a single comment from a forum post. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums, Comments]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: commentId
@@ -118,20 +144,24 @@ router
  *     responses:
  *       200:
  *         description: The comment was found and returned.
+ *       401:
+ *         description: Unauthorized.
  *       404:
  *         description: Comment not found.
  */
 router
   .route('/comment/:commentId')
-  .get(extractTenantContext, commentController.getComment);
+  .get(extractTenantContext, auth(), commentController.getComment);
 
 /**
  * @openapi
  * /api/v1/forums/deleteComment/{id}:
  *   delete:
  *     summary: Delete a comment
- *     description: Deletes a specific comment. Requires user to be the author of the comment or an administrator. This is a multi-tenant endpoint.
+ *     description: Deletes a specific comment. Requires user to be the author of the comment or an administrator. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums, Comments]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -142,6 +172,8 @@ router
  *     responses:
  *       204:
  *         description: The comment was successfully deleted.
+ *       401:
+ *         description: Unauthorized.
  *       403:
  *         description: User is not authorized to delete this comment.
  *       404:
@@ -149,15 +181,17 @@ router
  */
 router
   .route('/deleteComment/:id')
-  .delete(extractTenantContext, commentController.deleteComment);
+  .delete(extractTenantContext, auth(), commentController.deleteComment);
 
 /**
  * @openapi
  * /api/v1/forums/getBlogByEmail/{email}:
  *   get:
  *     summary: Get all forum posts by a user's email
- *     description: Retrieves all forum posts created by a specific user, identified by their email. This is a multi-tenant endpoint.
+ *     description: Retrieves all forum posts created by a specific user, identified by their email. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: email
@@ -175,20 +209,24 @@ router
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Forum'
+ *       401:
+ *         description: Unauthorized.
  *       404:
  *         description: No user found with the given email or user has no posts.
  */
 router
   .route('/getBlogByEmail/:email')
-  .get(extractTenantContext, commentController.getForumByEmail);
+  .get(extractTenantContext, auth(), commentController.getForumByEmail);
 
 /**
  * @openapi
  * /api/v1/forums:
  *   get:
  *     summary: Get all forum posts
- *     description: Retrieves a list of all forum posts, potentially with pagination. This is a multi-tenant endpoint.
+ *     description: Retrieves a list of all forum posts, potentially with pagination. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: A list of forum posts.
@@ -198,10 +236,14 @@ router
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Forum'
+ *       401:
+ *         description: Unauthorized.
  *   post:
  *     summary: Create a new forum post
  *     description: Adds a new post to the forum. Requires an authenticated user. This is a multi-tenant endpoint.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -217,22 +259,29 @@ router
  *               $ref: '#/components/schemas/Forum'
  *       400:
  *         description: Invalid request body.
+ *       401:
+ *         description: Unauthorized.
  */
 router
   .route('/')
-  .get(extractTenantContext, forumController.getForum)
-  // BUG FIX: Removed duplicate .get() for forumController.getForumSuggestion.
-  // Express processes routes in order, so the second .get() for the same path would never be reached.
-  // getForumSuggestion already has its own dedicated route '/blog-suggestion/:suggestion'.
-  .post(extractTenantContext, forumController.addForum);
+  .get(extractTenantContext, auth(), forumController.getForum)
+  .post(
+    extractTenantContext,
+    auth(),
+    // BUG FIX: Added validation for the creation payload to ensure data integrity.
+    validateRequest(forumValidation.createForumSchema),
+    forumController.addForum,
+  );
 
 /**
  * @openapi
  * /api/v1/forums/blog-suggestion/{suggestion}:
  *   get:
  *     summary: Get forum post suggestions
- *     description: Retrieves a list of forum posts that match a suggestion or search query. This is a multi-tenant endpoint.
+ *     description: Retrieves a list of forum posts that match a suggestion or search query. This is a multi-tenant endpoint and requires authentication.
  *     tags: [Forums]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: suggestion
@@ -249,10 +298,12 @@ router
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Forum'
+ *       401:
+ *         description: Unauthorized.
  */
 router
   .route('/blog-suggestion/:suggestion')
-  .get(extractTenantContext, forumController.getForumSuggestion);
+  .get(extractTenantContext, auth(), forumController.getForumSuggestion);
 
 /**
  * @openapi
@@ -261,6 +312,8 @@ router
  *     summary: Log user activity on a forum post
  *     description: Records a user's activity, such as a like, view, or comment. Requires an authenticated user. This is a multi-tenant endpoint.
  *     tags: [Forums, User Activity]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -272,9 +325,17 @@ router
  *         description: The activity was successfully logged.
  *       400:
  *         description: Invalid request body.
+ *       401:
+ *         description: Unauthorized.
  */
 router
   .route('/userForumActivity')
-  .post(extractTenantContext, commentController.addUserForumActivity);
+  .post(
+    extractTenantContext,
+    auth(),
+    // BUG FIX: Added validation for the user activity payload to ensure data integrity.
+    validateRequest(forumValidation.forumUserActivitiesValidationSchema),
+    commentController.addUserForumActivity,
+  );
 
 module.exports = router;
