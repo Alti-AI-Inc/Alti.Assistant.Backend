@@ -1,6 +1,97 @@
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { mcpToolboxService } from './mcp_toolbox.service.js';
 import { mcpOrchestratorService } from './mcp_orchestrator.service.js';
 import { mcpCatalog } from './mcp_catalog.js';
+
+// GCP Secret Manager Integration: Initialize client.
+// This will use Application Default Credentials (ADC) to authenticate.
+// Ensure the service account running this code has the "Secret Manager Secret Accessor" role.
+const secretManagerClient = new SecretManagerServiceClient();
+const GcpProjectId = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
+
+/**
+ * GCP Secret Manager Integration: Resolves a value if it's a secret reference.
+ * Supports GCP Secret Manager secrets (e.g., "gcp-secret-manager://my-secret-name")
+ * and environment variables (e.g., "env://MY_ENV_VAR").
+ * If no project is specified in the GCP path, it uses the project from the environment.
+ * @param {string} value The value to resolve.
+ * @returns {Promise<string>} The resolved secret or the original value.
+ */
+const resolveSecret = async (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  // Resolve GCP Secret Manager secrets
+  if (value.startsWith('gcp-secret-manager://')) {
+    let secretPath = value.substring('gcp-secret-manager://'.length);
+    // Automatically prepend project ID if not present
+    if (!secretPath.startsWith('projects/')) {
+        if (!GcpProjectId) {
+            throw new Error('GCP Project ID is not configured. Set GCP_PROJECT or GOOGLE_CLOUD_PROJECT environment variable.');
+        }
+        secretPath = `projects/${GcpProjectId}/secrets/${secretPath}`;
+    }
+    // Append /versions/latest if no version is specified
+    if (!/versions\//.test(secretPath)) {
+        secretPath = `${secretPath}/versions/latest`;
+    }
+
+    try {
+      const [version] = await secretManagerClient.accessSecretVersion({ name: secretPath });
+      return version.payload.data.toString('utf8');
+    } catch (error) {
+      console.error(`Failed to resolve GCP Secret Manager secret: ${secretPath}`, error);
+      throw new Error(`Could not resolve secret: ${value}`);
+    }
+  }
+
+  // Resolve secrets from environment variables
+  if (value.startsWith('env://')) {
+    const envVarName = value.substring('env://'.length);
+    const envVarValue = process.env[envVarName];
+    if (envVarValue === undefined) {
+      throw new Error(`Environment variable not found for secret reference: ${value}`);
+    }
+    return envVarValue;
+  }
+
+  return value;
+};
+
+/**
+ * GCP Secret Manager Integration: Recursively traverses an object or array
+ * and resolves any string values that are secret references.
+ * @param {any} data The object or array to process.
+ * @returns {Promise<void>} A promise that resolves when all secrets are processed.
+ */
+const resolveSecretsInObject = async (data) => {
+    if (data === null || typeof data !== 'object') {
+        return;
+    }
+
+    if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            const item = data[i];
+            if (typeof item === 'string') {
+                data[i] = await resolveSecret(item);
+            } else if (typeof item === 'object') {
+                await resolveSecretsInObject(item);
+            }
+        }
+    } else {
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                if (typeof value === 'string') {
+                    data[key] = await resolveSecret(value);
+                } else if (typeof value === 'object') {
+                    await resolveSecretsInObject(value);
+                }
+            }
+        }
+    }
+};
 
 // SECURITY PATCH: Helper function to sanitize output and prevent reflected XSS.
 // This should be used for any user-provided input that is reflected in responses (e.g., error messages).
@@ -55,6 +146,9 @@ const connectController = async (req, res) => {
         error: 'connectionDetails with type (e.g. postgres, bigquery) is required.',
       });
     }
+
+    // GCP Secret Manager Integration: Resolve any secret references in connectionDetails.
+    await resolveSecretsInObject(connectionDetails);
 
     const result = await mcpToolboxService.startMcpServer(userId, connectionDetails, customTools || []);
     res.status(200).json(result);
@@ -275,6 +369,11 @@ const callToolController = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid serverId or toolName format.' });
     }
 
+    // GCP Secret Manager Integration: Resolve any secret references in tool arguments.
+    if (toolArgs) {
+        await resolveSecretsInObject(toolArgs);
+    }
+
     // SECURITY WARNING: The toolArgs object is passed directly to the service.
     // It should be validated against a schema specific to the tool being called to prevent unexpected behavior or injection.
     const result = await mcpOrchestratorService.callTool(userId, serverId, toolName, toolArgs || {});
@@ -416,6 +515,11 @@ const mcpMessageHandler = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid message payload format.' });
     }
 
+    // GCP Secret Manager Integration: Resolve any secret references in message parameters.
+    if (message.params) {
+        await resolveSecretsInObject(message.params);
+    }
+
     const userServers = await mcpOrchestratorService.getUserServers(userId);
     const server = userServers.get(serverId);
 
@@ -460,6 +564,11 @@ const registerServerController = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid serverId format.' });
     }
 
+    // GCP Secret Manager Integration: Resolve any secret references in the server configuration.
+    if (serverConfig) {
+        await resolveSecretsInObject(serverConfig);
+    }
+
     // SECURITY WARNING: The 'serverConfig' object is written to disk and used to spawn processes.
     // This is a high-risk operation. The config MUST be validated against a strict schema
     // to prevent arbitrary code execution, path traversal, or other exploits.
@@ -486,7 +595,7 @@ const installAppController = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid user identifier format.' });
     }
 
-    const { appId, env, databaseUrl } = req.body;
+    const { appId, env, databaseUrl: rawDatabaseUrl } = req.body;
 
     if (!appId) {
       return res.status(400).json({ success: false, error: 'appId parameter is required.' });
@@ -495,6 +604,14 @@ const installAppController = async (req, res) => {
     // SECURITY PATCH: Validate appId format to prevent injection attacks.
     if (!isValidIdentifier(appId)) {
         return res.status(400).json({ success: false, error: 'Invalid appId format.' });
+    }
+
+    // GCP Secret Manager Integration: Resolve databaseUrl and env vars if they are secret references.
+    const databaseUrl = rawDatabaseUrl ? await resolveSecret(rawDatabaseUrl) : undefined;
+    if (env) {
+        for (const key of Object.keys(env)) {
+            env[key] = await resolveSecret(env[key]);
+        }
     }
 
     const blueprint = mcpCatalog[appId];
@@ -600,6 +717,11 @@ const callUnifiedToolController = async (req, res) => {
     // SECURITY PATCH: Validate toolName format to prevent injection attacks.
     if (!isValidIdentifier(toolName)) {
         return res.status(400).json({ success: false, error: 'Invalid toolName format.' });
+    }
+
+    // GCP Secret Manager Integration: Resolve any secret references in tool arguments.
+    if (toolArgs) {
+        await resolveSecretsInObject(toolArgs);
     }
 
     // SECURITY WARNING: The toolArgs object is passed directly to the service.
