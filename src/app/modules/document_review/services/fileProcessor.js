@@ -528,3 +528,22 @@ export const fileProcessor = {
   deleteDocumentFromGCS,
   getMimeType,
 };
+
+/**
+ * Closes connections managed by this module, specifically the Redis client.
+ * This function is designed to be called during a graceful shutdown process
+ * initiated by the main server file (e.g., on a SIGTERM signal).
+ * @async
+ * @returns {Promise<void>}
+ */
+export const closeFileProcessorConnections = async () => {
+  if (redisClient && redisClient.status === 'ready') {
+    logger.info('Closing Redis client connection for rate limiting...');
+    try {
+      await redisClient.quit();
+      logger.info('Redis client connection for rate limiting closed.');
+    } catch (error) {
+      logger.error('Error closing Redis client connection:', error);
+    }
+  }
+};
