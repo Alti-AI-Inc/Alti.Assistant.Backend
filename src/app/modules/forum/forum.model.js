@@ -5,6 +5,9 @@
 
 const mongoose = require('mongoose');
 const validator = require('validator');
+// Security: Added sanitize-html to prevent Stored Cross-Site Scripting (XSS) attacks.
+// Ensure you have this package installed: npm install sanitize-html
+const sanitizeHtml = require('sanitize-html');
 const { categoryValues } = require('./forum.constant');
 
 /**
@@ -29,13 +32,17 @@ const forumSchema = mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'Please provide a forum title'], // Uncommented and message adjusted for consistency
-      minLength: [3, 'Title must be at least 3 characters'], // Typo fixed: "at list" -> "at least"
-      maxLength: [100, 'Title is too large'], // Typo fixed: "learge" -> "large", and message adjusted for consistency
+      required: [true, 'Please provide a forum title'],
+      // Security: Added trim to remove leading/trailing whitespace, preventing validation bypasses and ensuring data consistency.
+      trim: true,
+      minLength: [3, 'Title must be at least 3 characters'],
+      maxLength: [100, 'Title is too large'],
     },
     img: {
       type: String,
       required: [true, 'Forum image is required'],
+      // Security: Validate that the img field is a proper URL to prevent injection of malicious scripts or malformed data (e.g., javascript:alert(1)).
+      validate: [validator.isURL, 'Please provide a valid image URL'],
     },
     category: {
       type: String,
@@ -47,7 +54,7 @@ const forumSchema = mongoose.Schema(
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Assuming you have a User model for property owners
+      ref: 'User',
       required: true,
     },
     userActivities: [
@@ -58,27 +65,17 @@ const forumSchema = mongoose.Schema(
     ],
     authorEmail: {
       type: String,
-      lowercase: true, // Removed redundant 'lowercase: true'
+      lowercase: true,
       validate: [validator.isEmail, 'Please provide a valid email'],
       trim: true,
     },
-    description: [ // Changed to a flexible array of sub-documents, allowing 0 to N description parts
+    description: [
       {
         title: String,
         content1: String,
         content2: String,
       },
     ],
-    // Removed manual createdAt and updatedAt fields as 'timestamps: true' in schema options handles them automatically
-    // createdAt: {
-    //   type: Date,
-    //   default: Date.now,
-    // },
-    // updatedAt: {
-    //   type: Date,
-    //   default: Date.now,
-    // },
-
     // Multi-tenant support
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -88,9 +85,41 @@ const forumSchema = mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Mongoose will automatically add and manage 'createdAt' and 'updatedAt' fields
+    timestamps: true,
   }
 );
+
+// --- SECURITY MIDDLEWARE: INPUT SANITIZATION ---
+// Security: Mongoose 'pre-save' hook to sanitize user-provided string fields.
+// This mitigates Stored Cross-Site Scripting (XSS) by removing potentially malicious HTML/script tags before data is persisted.
+forumSchema.pre('save', function (next) {
+  const sanitizeOptions = {
+    allowedTags: [],
+    allowedAttributes: {},
+  };
+
+  // Sanitize the main title if it has been modified.
+  if (this.isModified('title') && this.title) {
+    this.title = sanitizeHtml(this.title, sanitizeOptions);
+  }
+
+  // Sanitize the description array if it has been modified.
+  if (this.isModified('description') && this.description) {
+    this.description.forEach(desc => {
+      if (desc.title) {
+        desc.title = sanitizeHtml(desc.title, sanitizeOptions);
+      }
+      if (desc.content1) {
+        desc.content1 = sanitizeHtml(desc.content1, sanitizeOptions);
+      }
+      if (desc.content2) {
+        desc.content2 = sanitizeHtml(desc.content2, sanitizeOptions);
+      }
+    });
+  }
+
+  next();
+});
 
 // --- PERFORMANCE OPTIMIZATIONS: INDEXES ---
 // Compound index for tenant-specific author queries (highly common in multi-tenant dashboards/statistics)
