@@ -6,7 +6,7 @@ const ip = require('ip'); // For more robust IP validation.
 // OPTIMIZATION: Import models directly to perform targeted, lean queries, bypassing generic service methods for performance-critical paths.
 const Tenant = require('../tenant/tenant.model');
 const PlatformConfig = require('../platform/platform.model');
-const logger = require('../../../config/logger'); // Assume a centralized, structured logger is configured.
+const logger = require('../../../shared/logger.js'); // Assume a centralized, structured logger is configured.
 const AppError = require('../../utils/AppError'); // Assume a custom error class for consistent error handling.
 
 /**

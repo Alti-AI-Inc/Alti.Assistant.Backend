@@ -6,7 +6,7 @@
 
 import httpStatus from 'http-status';
 import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
-import logger from '../../../config/logger.js';
+import logger from '../../../shared/logger.js';
 import ApiError from '../../utils/ApiError.js';
 
 /**

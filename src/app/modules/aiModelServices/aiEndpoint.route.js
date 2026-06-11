@@ -3,7 +3,7 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { AiEndpointsController } from './aiEndpoint.controller.js';
-import logger from '../../../config/logger.js'; // AI Agent Patch: Added for robust error logging
+import logger from '../../../shared/logger.js'; // AI Agent Patch: Added for robust error logging
 
 const router = express.Router();
 
