@@ -225,7 +225,10 @@ LangchainRepositorySchema.statics.getPlatformOwnerView = async function (filters
     const skip = (page - 1) * limit;
 
     const countPromise = this.countDocuments(filters).exec();
-    const docsPromise = this.find(filters).sort(sort).skip(skip).limit(limit).exec();
+    // OPTIMIZATION: Use .lean() for read-only queries. This returns plain JavaScript objects
+    // instead of full Mongoose documents, which is significantly faster and uses less memory
+    // as the overhead of change tracking, virtuals, and methods is skipped.
+    const docsPromise = this.find(filters).sort(sort).skip(skip).limit(limit).lean().exec();
 
     const [totalResults, results] = await Promise.all([countPromise, docsPromise]);
     const totalPages = Math.ceil(totalResults / limit);
