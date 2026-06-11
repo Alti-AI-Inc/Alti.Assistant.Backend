@@ -575,6 +575,284 @@ router.get(
 );
 
 /**
+ * @swagger
+ * /api/browser-use/platform/task/run-as:
+ *   post:
+ *     summary: (Super Admin) Run a task as any user, bypassing limits.
+ *     description: Initiates a browser automation task on behalf of a specified user within a specified tenant. This endpoint is for administrative and diagnostic purposes and bypasses all standard usage and concurrency limits.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tenantId
+ *               - userId
+ *               - task
+ *             properties:
+ *               tenantId:
+ *                 type: string
+ *                 description: The ID of the tenant to run the task under.
+ *                 example: "tenant_123"
+ *               userId:
+ *                 type: string
+ *                 description: The ID of the user to impersonate for this task.
+ *                 example: "user_456"
+ *               task:
+ *                 type: object
+ *                 description: The task payload, same as the user-facing /task endpoint.
+ *                 properties:
+ *                   taskType:
+ *                     type: string
+ *                     example: "scrape"
+ *                   url:
+ *                     type: string
+ *                     format: uri
+ *                     example: "https://example.com/debug"
+ *                   instructions:
+ *                     type: string
+ *                     example: "Run diagnostics on this page."
+ *     responses:
+ *       200:
+ *         description: Task initiated successfully under the specified user context.
+ *       400:
+ *         description: Bad request, invalid input, or target user/tenant not found.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ */
+router.post(
+  '/platform/task/run-as',
+  // INTEGRATION: Added endpoint for Super Admins to run tasks on behalf of users, bypassing limits.
+  auth(),
+  requireRole('super_admin'),
+  catchAsync(BrowserUseController.runTaskAsSuperAdmin)
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/config:
+ *   get:
+ *     summary: (Super Admin) Get platform-wide module configuration.
+ *     description: Retrieves the global configuration settings for the Browser Use AI module, such as max concurrent sessions, default timeouts, enabled features, and third-party API keys.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current platform configuration.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ *   put:
+ *     summary: (Super Admin) Update platform-wide module configuration.
+ *     description: Updates the global configuration settings for the Browser Use AI module. Only include the keys that need to be changed.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               maxGlobalConcurrentSessions:
+ *                 type: integer
+ *                 description: The maximum number of browser sessions allowed to run simultaneously across the entire platform.
+ *                 example: 100
+ *               defaultSessionTimeoutSeconds:
+ *                 type: integer
+ *                 description: The default timeout in seconds for an idle session before it's automatically terminated.
+ *                 example: 1800
+ *               allowedTaskTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: A list of task types that are enabled on the platform (e.g., 'scrape', 'interact').
+ *                 example: ["scrape", "interact", "navigate"]
+ *     responses:
+ *       200:
+ *         description: Configuration updated successfully.
+ *       400:
+ *         description: Bad request, invalid configuration values.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ */
+router
+  .route('/platform/config')
+  // INTEGRATION: Added endpoints for Super Admins to get and set global module configuration.
+  .get(
+    auth(),
+    requireRole('super_admin'),
+    catchAsync(BrowserUseController.getPlatformConfig)
+  )
+  .put(
+    auth(),
+    requireRole('super_admin'),
+    catchAsync(BrowserUseController.updatePlatformConfig)
+  );
+
+/**
+ * @swagger
+ * /api/browser-use/platform/tenants/{tenantId}/suspend:
+ *   post:
+ *     summary: (Super Admin) Suspend a tenant's access to this module.
+ *     description: Prevents all users within a specific tenant from initiating new browser automation tasks. Existing running tasks are allowed to complete.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to suspend.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: The reason for the suspension, which will be logged.
+ *                 example: "Violation of terms of service."
+ *     responses:
+ *       200:
+ *         description: Tenant access to the module has been suspended.
+ *       400:
+ *         description: Tenant is already suspended or does not exist.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ */
+router.post(
+  '/platform/tenants/:tenantId/suspend',
+  // INTEGRATION: Added endpoint for Super Admins to suspend a tenant's access to this module.
+  auth(),
+  requireRole('super_admin'),
+  catchAsync(BrowserUseController.suspendTenantModuleAccess)
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/tenants/{tenantId}/unsuspend:
+ *   post:
+ *     summary: (Super Admin) Unsuspend a tenant's access to this module.
+ *     description: Restores a tenant's ability to initiate new browser automation tasks.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to unsuspend.
+ *     responses:
+ *       200:
+ *         description: Tenant access to the module has been restored.
+ *       400:
+ *         description: Tenant is not currently suspended or does not exist.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ */
+router.post(
+  '/platform/tenants/:tenantId/unsuspend',
+  // INTEGRATION: Added endpoint for Super Admins to restore a tenant's access to this module.
+  auth(),
+  requireRole('super_admin'),
+  catchAsync(BrowserUseController.unsuspendTenantModuleAccess)
+);
+
+/**
+ * @swagger
+ * /api/browser-use/platform/logs:
+ *   get:
+ *     summary: (Super Admin) Get global module logs.
+ *     description: Retrieves a paginated list of global operational and audit logs for the Browser Use AI module. Supports filtering by log level, tenant, user, and time range.
+ *     tags:
+ *       - Browser Use AI (Super Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: [info, warn, error, audit]
+ *         description: Filter by log level.
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Filter by a specific tenant ID.
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by a specific user ID.
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start of the time range to query.
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End of the time range to query.
+ *     responses:
+ *       200:
+ *         description: A list of global logs.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a Super Admin.
+ */
+router.get(
+  '/platform/logs',
+  // INTEGRATION: Added endpoint for Super Admins to view global logs for this module.
+  auth(),
+  requireRole('super_admin'),
+  catchAsync(BrowserUseController.getPlatformLogs)
+);
+
+/**
  * @exports {express.Router} browserUseAiRoutes - The Express router configured with browser use AI routes.
  */
 export const browserUseAiRoutes = router;
