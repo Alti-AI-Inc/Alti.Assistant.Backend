@@ -10,7 +10,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
 import UserModel from '../auth/auth.model.js';
-import ChatHistory from '../conversations/chatHistory.model.js'; // Optimization: Consider adding a compound index on { user: 1, sessionId: 1 } in chatHistory.model.js for better query performance.
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import {
   QWEN_QWQ_RESPONSE_SERVICE_POST,
@@ -85,8 +85,14 @@ const _filterPii = text => {
  */
 const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) => {
   try {
-    // Load existing chat history from the database for the current session
-    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId });
+    // OPTIMIZATION: Use .lean() for this read-only query.
+    // This returns a plain JavaScript object instead of a full Mongoose document,
+    // which is significantly faster and uses less memory. This is crucial here
+    // as chat histories can grow large, and we are only reading the data to
+    // populate the conversation memory.
+    // INDEXING: Ensure a compound index exists on { user: 1, sessionId: 1 } in the
+    // ChatHistory collection to make this query highly efficient.
+    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId }).lean();
     const chatHistory = new InMemoryChatMessageHistory();
 
     if (existingChatSession && existingChatSession.responses) {
