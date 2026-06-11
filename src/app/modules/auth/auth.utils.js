@@ -1,3 +1,11 @@
+/**
+ * @file Authentication utility functions for the Alti.Assistant backend.
+ * @module app/modules/auth/auth.utils
+ * @description This file contains helper functions for authentication-related tasks,
+ * including OTP generation, HTML email template creation for various user actions
+ * (registration, password reset, account deletion, team invites), and permission checking.
+ * It also includes a utility for escaping HTML to prevent XSS vulnerabilities in email templates.
+ */
 import crypto from 'crypto';
 import config from '../../../../config/index.js';
 
@@ -83,6 +91,7 @@ export const registrationOtpTemplate = (email, token) => {
  *
  * @param {string} email - The email address of the user to whom the email will be sent.
  * @param {object} user - The user object, expected to contain at least a `username` property.
+ * @param {string} [user.username] - The username of the user.
  * @param {string} OTP - The One-Time Password to be included in the email for password reset.
  * @returns {object} An object containing the email data:
  *   - `userEmail`: The recipient's email address.
@@ -125,8 +134,11 @@ export const forgetPassOtpTemplate = (email, user, OTP) => {
 /**
  * Creates an HTML email template for account deletion OTP verification.
  * This template provides the user with a One-Time Password to confirm their account deletion request.
+ * This function is called within an authenticated context, for the user requesting to delete their own account.
  *
- * @param {object} user - The user object, expected to contain `email` and `username` properties.
+ * @param {object} user - The authenticated user object, expected to contain `email` and `username` properties.
+ * @param {string} user.email - The email address of the user.
+ * @param {string} [user.username] - The username of the user.
  * @param {string} OTP - The One-Time Password to be included in the email for account deletion confirmation.
  * @returns {object} An object containing the email data:
  *   - `userEmail`: The recipient's email address.
@@ -170,13 +182,16 @@ export const deleteUserOtpTemplate = (user, OTP) => {
 
 /**
  * Creates an HTML email template for inviting a new member to a workspace.
- * This is initiated by a workspace manager.
+ * This is initiated by an authenticated user with 'manager' or 'admin' privileges within a workspace.
  *
- * @param {string} inviterName - The name of the manager sending the invitation.
+ * @param {string} inviterName - The name of the user sending the invitation.
  * @param {string} inviteeEmail - The email address of the person being invited.
  * @param {string} workspaceName - The name of the workspace they are invited to.
  * @param {string} invitationToken - The unique token for the invitation link.
- * @returns {object} An object containing the email data.
+ * @returns {object} An object containing the email data:
+ *   - `userEmail`: The recipient's email address.
+ *   - `sub`: The subject of the email.
+ *   - `message`: The HTML content of the email.
  */
 export const teamInvitationTemplate = (
   inviterName,
@@ -219,13 +234,19 @@ export const teamInvitationTemplate = (
 };
 
 /**
- * Creates an HTML email template to notify a user of a role change.
+ * Creates an HTML email template to notify a user of a role change within a workspace.
+ * This action is performed by an authenticated user with 'manager' or 'admin' privileges.
  *
- * @param {object} user - The user object, containing `email` and `username`.
+ * @param {object} user - The user object of the person whose role is being changed.
+ * @param {string} user.email - The email address of the user.
+ * @param {string} [user.username] - The username of the user.
  * @param {string} managerName - The name of the manager who updated the role.
  * @param {string} workspaceName - The name of the workspace where the role was updated.
- * @param {string} newRole - The user's new role.
- * @returns {object} An object containing the email data.
+ * @param {string} newRole - The user's new role (e.g., 'Manager', 'Member').
+ * @returns {object} An object containing the email data:
+ *   - `userEmail`: The recipient's email address.
+ *   - `sub`: The subject of the email.
+ *   - `message`: The HTML content of the email.
  */
 export const roleUpdateNotificationTemplate = (
   user,
@@ -273,11 +294,18 @@ export const roleUpdateNotificationTemplate = (
 };
 
 /**
- * Check if the user has the required permission.
- * Throws an Error if the user is not authorized.
- * 
- * @param {object} userContext - The context of the user, containing role and permissions.
- * @param {string} permission - The permission string to check.
+ * Checks if a user has the required permission to perform an action.
+ * This is a crucial utility for enforcing role-based access control (RBAC) throughout the application.
+ * Super Admins and Admins are granted universal access and bypass specific permission checks.
+ * For other roles, it verifies if the specific permission string is present in the user's permission list.
+ *
+ * @param {object} userContext - The user's context object, typically derived from a JWT.
+ * @param {string} userContext.role - The role of the user (e.g., 'super_admin', 'admin', 'manager', 'member').
+ * @param {string[]} [userContext.permissions] - An array of permission strings assigned to the user.
+ * @param {string} permission - The specific permission string required for the action (e.g., 'manage_billing', 'delete_user').
+ * @throws {Error} Throws an "Authentication required." error if the user context is missing.
+ * @throws {Error} Throws a "Forbidden: Insufficient permissions..." error if the user lacks the required permission.
+ * @returns {void} Does not return a value, but throws an error on failure.
  */
 export const checkPermission = (userContext, permission) => {
   if (!userContext) {

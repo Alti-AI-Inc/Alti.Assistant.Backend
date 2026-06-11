@@ -25,6 +25,14 @@ const router = express.Router();
 
 // AI-Safety-Guard-Agent: Middleware to detect and mask PII in the user's prompt.
 // This prevents sensitive user data from being sent to the generative model.
+/**
+ * Express middleware to detect and mask Personally Identifiable Information (PII) in the request body's 'prompt' field.
+ * This function modifies the `req.body.prompt` in place before passing control to the next middleware.
+ * It is a crucial security measure to prevent sensitive user data from being processed by the AI model.
+ * @param {import('express').Request} req - The Express request object, containing the user's prompt.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The Express next middleware function.
+ */
 const filterPiiFromPrompt = (req, res, next) => {
   if (req.body && req.body.prompt) {
     // The maskPiiInText function should be implemented using a robust PII detection
@@ -39,7 +47,11 @@ const filterPiiFromPrompt = (req, res, next) => {
  * /api/v1/vertex/generate:
  *   post:
  *     summary: Get a response from a Vertex AI model.
- *     description: Sends a prompt to a specified Vertex AI model and retrieves its response. PII is automatically filtered from the prompt before being sent to the model. The backend controller ensures that Google's safety filters (e.g., for hate speech and harassment) are explicitly configured for the model call.
+ *     description: >
+ *       Sends a prompt to a specified Vertex AI model and retrieves its response.
+ *       Requires ADMIN or USER role.
+ *       PII is automatically filtered from the prompt before being sent to the model.
+ *       The backend controller ensures that Google's safety filters (e.g., for hate speech and harassment) are explicitly configured for the model call.
  *     tags: [Vertex AI]
  *     security:
  *       - bearerAuth: []
@@ -112,7 +124,7 @@ router.post(
 );
 
 /**
- * Exports the Vertex AI routes.
- * @type {express.Router}
+ * Exports the Express router for Vertex AI routes.
+ * @constant {express.Router}
  */
 export const vertexAiRoutes = router;
