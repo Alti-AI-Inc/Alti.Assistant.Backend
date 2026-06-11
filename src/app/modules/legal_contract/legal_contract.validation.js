@@ -1,7 +1,11 @@
 import * as zod from 'zod';
 const { z } = zod;
 
-// Enhanced validation for UUIDs to be used across schemas
+/**
+ * A reusable Zod schema for validating UUIDs.
+ * Ensures that the provided string is a valid universally unique identifier.
+ * @type {z.ZodString}
+ */
 const uuidSchema = z.string().uuid({ message: 'Invalid ID format' });
 
 /**
