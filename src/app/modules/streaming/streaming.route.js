@@ -25,10 +25,12 @@ const streamingController = require('./streaming.controller');
  *   get:
  *     summary: Retrieve an authentication token for streaming services.
  *     description: This endpoint is used to obtain a temporary authentication token required to access streaming services.
- *                  The token ensures secure access and authorization for streaming content.
+ *                  The token ensures secure access and authorization for streaming content. This endpoint requires user authentication.
  *     tags:
  *       - Streaming
  *       - Authentication
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved the streaming authentication token.

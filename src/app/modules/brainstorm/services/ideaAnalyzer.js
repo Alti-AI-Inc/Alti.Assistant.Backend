@@ -17,13 +17,24 @@ import http from 'http';
 
 // --- Rate Limiting & DDOS Protection Setup ---
 
-// Create separate Redis stores for rate-limit-redis to persist rate limit counts
-// across multiple processes or servers, satisfying the uniqueness constraint.
+/**
+ * A Redis-backed store for the AI analysis rate limiter.
+ * Using a shared Redis store ensures that rate limit counts are persisted
+ * and shared across multiple server instances or processes, which is crucial
+ * for accurate limiting in a scaled environment.
+ * @type {RedisStore}
+ */
 const rateLimitStoreAnalysis = new RedisStore({
   sendCommand: (...args) => redisClient.sendCommand(args),
   prefix: 'rl:brainstorm:analysis:',
 });
 
+/**
+ * A Redis-backed store for the AI extraction rate limiter.
+ * Using a shared Redis store ensures that rate limit counts are persisted
+ * and shared across multiple server instances or processes.
+ * @type {RedisStore}
+ */
 const rateLimitStoreExtraction = new RedisStore({
   sendCommand: (...args) => redisClient.sendCommand(args),
   prefix: 'rl:brainstorm:extraction:',
@@ -53,8 +64,11 @@ const keyGenerator = (req) => {
  * Rate limiter for core, expensive AI analysis functions (e.g., analyzeIntent, analyzeIdea).
  * This is a crucial defense against cost runaway from API abuse and DDOS attempts.
  * The limits are set to allow a reasonable brainstorming session for a legitimate user
- * while preventing rapid, automated requests.
- * - Limit: 100 requests per 15 minutes per user/IP.
+ * while preventing rapid, automated requests. The limit is applied on a per-user basis
+ * for authenticated users, or per-IP for anonymous users.
+ *
+ * - **Limit**: 100 requests per 15 minutes per user/IP.
+ * @type {import('express-rate-limit').RateLimitRequestHandler}
  */
 export const aiAnalysisLimiter = rateLimit({
   store: rateLimitStoreAnalysis,
@@ -73,7 +87,10 @@ export const aiAnalysisLimiter = rateLimit({
  * A slightly more lenient rate limiter for simpler, faster AI calls (e.g., extractIdea).
  * These calls are less resource-intensive but can still be abused in high volume.
  * This layered approach provides more granular control over resource consumption.
- * - Limit: 75 requests per 5 minutes per user/IP.
+ * The limit is applied on a per-user basis for authenticated users, or per-IP for anonymous users.
+ *
+ * - **Limit**: 75 requests per 5 minutes per user/IP.
+ * @type {import('express-rate-limit').RateLimitRequestHandler}
  */
 export const aiExtractionLimiter = rateLimit({
   store: rateLimitStoreExtraction,
@@ -90,6 +107,11 @@ export const aiExtractionLimiter = rateLimit({
 
 // --- End of Rate Limiting Setup ---
 
+/**
+ * The initialized Google Generative AI client instance.
+ * Configured with the API key from the application's configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
@@ -490,22 +512,39 @@ export const ideaAnalyzer = {
 };
 
 // --- Server Setup & Cloud Run Lifecycle Management ---
+
+/**
+ * The Express application instance.
+ * @type {import('express').Application}
+ */
 const app = express();
+
+/**
+ * A flag to indicate if the server is currently in the process of shutting down.
+ * This is used by the readiness probe to stop accepting new traffic.
+ * @type {boolean}
+ */
 let isShuttingDown = false;
 
 // --- Health & Readiness Probes for Cloud Run ---
 
-// Liveness probe (/healthz): A simple check to see if the server process is running.
-// Cloud Run uses this to determine if the container needs to be restarted.
-// If this endpoint doesn't respond, the container is considered unhealthy.
+/**
+ * Liveness probe endpoint (`/healthz`).
+ * A simple check to see if the server process is running and responsive.
+ * Cloud Run uses this to determine if the container needs to be restarted.
+ * If this endpoint doesn't respond, the container is considered unhealthy.
+ */
 app.get('/healthz', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Readiness probe (/readyz): Checks if the application is ready to accept traffic.
-// Cloud Run uses this to decide whether to send new requests to this instance.
-// It should fail if dependencies (like Redis) are not available or
-// if the server is in the process of shutting down.
+/**
+ * Readiness probe endpoint (`/readyz`).
+ * Checks if the application is ready to accept traffic.
+ * Cloud Run uses this to decide whether to send new requests to this instance.
+ * It will fail if essential dependencies (like Redis) are not available or
+ * if the server is in the process of shutting down (`isShuttingDown` is true).
+ */
 app.get('/readyz', (req, res) => {
   if (isShuttingDown) {
     // If the server is shutting down, it's no longer "ready" to take new requests.
@@ -523,8 +562,17 @@ app.get('/readyz', (req, res) => {
 
 // --- Server Initialization ---
 
-// Cloud Run provides the PORT environment variable that the container should listen on.
+/**
+ * The port number the server will listen on.
+ * Defaults to the `PORT` environment variable provided by Cloud Run or 8080 for local development.
+ * @type {number}
+ */
 const PORT = process.env.PORT || 8080;
+
+/**
+ * The main HTTP server instance.
+ * @type {http.Server}
+ */
 const server = http.createServer(app);
 
 server.listen(PORT, () => {
@@ -533,6 +581,13 @@ server.listen(PORT, () => {
 
 // --- Graceful Shutdown Logic ---
 
+/**
+ * Handles graceful shutdown of the server.
+ * This function is triggered by `SIGTERM` (from Cloud Run) or `SIGINT` (local Ctrl+C).
+ * It stops the server from accepting new requests, waits for existing ones to finish,
+ * closes connections to dependencies (like Redis), and then exits the process.
+ * @param {string} signal - The signal that triggered the shutdown (e.g., 'SIGTERM').
+ */
 const gracefulShutdown = (signal) => {
   logger.warn(`Received ${signal}, starting graceful shutdown...`);
   isShuttingDown = true;
