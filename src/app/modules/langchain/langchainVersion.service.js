@@ -1,4 +1,5 @@
 import { logger } from '../../../shared/logger.js';
+import { ApiError } from '../../../shared/ApiError.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainChainVersion from './langchain-version.model.js';
 
@@ -12,7 +13,7 @@ import LangchainChainVersion from './langchain-version.model.js';
  * @param {string} userId - The unique identifier of the user performing the action.
  * @param {string} [changeSummary='Configuration snapshotted.'] - A brief summary of the changes or reason for the snapshot.
  * @returns {Promise<import('./langchain-version.model').LangchainChainVersionDocument>} A promise that resolves to the newly created LangchainChainVersion document.
- * @throws {Error} If the Langchain chain is not found or if there's an issue saving the snapshot.
+ * @throws {ApiError} If the Langchain chain is not found or if there's an issue saving the snapshot.
  */
 const createSnapshot = async (chainId, userId, changeSummary = 'Configuration snapshotted.') => {
   try {
@@ -23,7 +24,8 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     // Example: LangchainChainSchema.index({ userId: 1 });
     const chain = await LangchainChain.findOne({ _id: chainId, userId }).lean();
     if (!chain) {
-      throw new Error(`LangChain chain not found: ${chainId}`);
+      // Throw a standardized 404 error if the chain is not found for the user.
+      throw new ApiError(404, `LangChain chain not found: ${chainId}`);
     }
 
     // Find highest version number
@@ -76,6 +78,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     });
     return snapshot;
   } catch (err) {
+    // Log the detailed internal error.
     logger.error({
       severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to create snapshot for chain ${chainId}`,
@@ -89,7 +92,12 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
         name: err.name,
       },
     });
-    throw err;
+    // If the error is already an ApiError (e.g., the 404 from above), re-throw it.
+    // Otherwise, wrap the unexpected error in a generic 500 ApiError to prevent leaking implementation details.
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError(500, 'Failed to create chain snapshot.', err);
   }
 };
 
@@ -103,7 +111,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
  * @param {number} versionNumber - The specific version number to restore the chain to.
  * @param {string} userId - The unique identifier of the user performing the action.
  * @returns {Promise<{success: boolean, message: string, chain: import('./langchain-chain.model').LangchainChainDocument}>} A promise that resolves to an object indicating success, a message, and the updated chain document.
- * @throws {Error} If the Langchain chain or the specified version snapshot is not found, or if there's an issue during the rollback.
+ * @throws {ApiError} If the Langchain chain or the specified version snapshot is not found, or if there's an issue during the rollback.
  */
 const rollbackToVersion = async (chainId, versionNumber, userId) => {
   try {
@@ -112,7 +120,8 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     // Note: .lean() is NOT used here because the 'chain' document is modified and saved.
     const chain = await LangchainChain.findOne({ _id: chainId, userId });
     if (!chain) {
-      throw new Error(`LangChain chain not found: ${chainId}`);
+      // Throw a standardized 404 error if the chain is not found for the user.
+      throw new ApiError(404, `LangChain chain not found: ${chainId}`);
     }
 
     // Optimization: Apply .lean() as this document is only read and not modified, reducing Mongoose overhead.
@@ -121,7 +130,8 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     // Example: LangchainChainVersionSchema.index({ chainId: 1, versionNumber: 1 });
     const versionRecord = await LangchainChainVersion.findOne({ chainId, versionNumber }).lean();
     if (!versionRecord) {
-      throw new Error(`Version snapshot v${versionNumber} not found for chain ${chainId}`);
+      // Throw a standardized 404 error if the specific version is not found.
+      throw new ApiError(404, `Version snapshot v${versionNumber} not found for chain ${chainId}`);
     }
 
     // Take a snapshot of the current state before rolling back, in case they want to undo
@@ -149,6 +159,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
       chain,
     };
   } catch (err) {
+    // Log the detailed internal error.
     logger.error({
       severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to rollback chain ${chainId} to v${versionNumber}`,
@@ -163,7 +174,12 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
         name: err.name,
       },
     });
-    throw err;
+    // If the error is already an ApiError (e.g., the 404s from above), re-throw it.
+    // Otherwise, wrap the unexpected error in a generic 500 ApiError.
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError(500, `Failed to rollback chain to version ${versionNumber}.`, err);
   }
 };
 
@@ -175,7 +191,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
  * @param {string} chainId - The unique identifier of the Langchain chain to retrieve history for.
  * @param {string} userId - The unique identifier of the user requesting the history.
  * @returns {Promise<{success: boolean, chainId: string, history: Array<{versionNumber: number, changeSummary: string, createdAt: Date}>}>} A promise that resolves to an object containing success status, the chain ID, and an array of version history records.
- * @throws {Error} If there's an issue retrieving the version history.
+ * @throws {ApiError} If there's an issue retrieving the version history.
  */
 const getVersionHistory = async (chainId, userId) => {
   try {
@@ -193,6 +209,7 @@ const getVersionHistory = async (chainId, userId) => {
       history,
     };
   } catch (err) {
+    // Log the detailed internal error.
     logger.error({
       severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to retrieve version history for chain ${chainId}`,
@@ -206,7 +223,8 @@ const getVersionHistory = async (chainId, userId) => {
         name: err.name,
       },
     });
-    throw err;
+    // Wrap the unexpected error in a generic 500 ApiError to prevent leaking implementation details.
+    throw new ApiError(500, 'Failed to retrieve version history.', err);
   }
 };
 
