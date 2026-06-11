@@ -38,13 +38,12 @@ const WorkflowPatternSchema = new mongoose.Schema(
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Workspace
      * @required true
-     * @index true
      */
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workspace', // Assumes a 'Workspace' model exists
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed single-field index here in favor of a more specific compound index below.
     },
     /**
      * The ID of the user to whom this workflow pattern belongs.
@@ -227,6 +226,15 @@ WorkflowPatternSchema.pre('validate', function (next) {
  * @unique
  */
 WorkflowPatternSchema.index({ userId: 1, sequenceHash: 1 }, { unique: true });
+
+/**
+ * OPTIMIZATION: Added a compound index to support efficient queries for the Manager Dashboard.
+ * This index allows for fast retrieval of patterns within a specific workspace,
+ * filtered by their status (e.g., 'SUGGESTED'), and sorted by the most recently observed.
+ * This avoids costly database-level sorting and index intersection.
+ * @index {workspaceId: 1, status: 1, lastObservedAt: -1}
+ */
+WorkflowPatternSchema.index({ workspaceId: 1, status: 1, lastObservedAt: -1 });
 
 /**
  * TTL (Time-To-Live) index to automatically expire patterns that have not been re-observed

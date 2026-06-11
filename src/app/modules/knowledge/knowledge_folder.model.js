@@ -1,5 +1,18 @@
 import mongoose from 'mongoose';
+import { PubSub } from '@google-cloud/pubsub';
 import { FOLDER_COLORS } from './knowledge.constant.js';
+
+// --- GCP Pub/Sub Integration ---
+// Initialize Pub/Sub client. In a production environment, the client automatically
+// uses the service account credentials from the environment (e.g., Cloud Run, GKE).
+const pubsub = new PubSub();
+
+// Define topic names for background tasks. These should be configured via environment variables.
+// A separate background worker (e.g., a Cloud Function or Cloud Run service) will subscribe to these topics.
+const FOLDER_PATH_UPDATE_TOPIC = process.env.FOLDER_PATH_UPDATE_TOPIC || 'knowledge-folder-path-update';
+const FOLDER_DELETE_TOPIC = process.env.FOLDER_DELETE_TOPIC || 'knowledge-folder-delete';
+const FOLDER_STATS_UPDATE_TOPIC = process.env.FOLDER_STATS_UPDATE_TOPIC || 'knowledge-folder-stats-update';
+// --- End GCP Pub/Sub Integration ---
 
 /**
  * @typedef {object} KnowledgeFolderDocument
@@ -476,7 +489,7 @@ KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (
     {
       // Project the output to match the desired structure: 'folder' and 'ancestors'
       $project: {
-        folder: '$$ROOT', // The original matched document becomes the 'folder'
+        folder: '$ROOT', // The original matched document becomes the 'folder'
         ancestors: '$ancestors',
         _id: 0, // Exclude the aggregation's root _id
       },
@@ -510,8 +523,8 @@ KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (
 
 // Instance methods
 /**
- * Updates the file count and total size statistics for the current folder.
- * Ensures that counts and sizes do not fall below zero.
+ * Updates the file count for the current folder and triggers a background job to propagate size changes to parent folders.
+ * This prevents a single file upload from causing a chain of synchronous database updates up the folder tree.
  * @memberof KnowledgeFolderDocument
  * @instance
  * @async
@@ -523,19 +536,61 @@ KnowledgeFolderSchema.methods.updateStats = async function (
   fileCountDelta = 0,
   sizeDelta = 0
 ) {
+  // Update the stats for the current folder directly.
   this.fileCount = Math.max(0, this.fileCount + fileCountDelta);
   this.totalSize = Math.max(0, this.totalSize + sizeDelta);
+
+  // If the size changed and this folder has a parent, trigger a background job
+  // to recursively update the totalSize of all ancestor folders. This is offloaded
+  // to prevent slow, blocking "N+1" updates up the folder tree during a request.
+  if (sizeDelta !== 0 && this.parentFolderId) {
+    const messagePayload = {
+      // The worker will start the update from this folder's parent.
+      startFolderId: this.parentFolderId.toString(),
+      userId: this.userId,
+      tenantId: this.tenantId ? this.tenantId.toString() : null,
+      sizeDelta: sizeDelta,
+    };
+
+    await pubsub.topic(FOLDER_STATS_UPDATE_TOPIC).publishMessage({
+      json: messagePayload,
+      attributes: {
+        source: 'KnowledgeFolderModel',
+        eventType: 'FolderSizeChanged',
+      },
+    });
+  }
+
   return this.save();
 };
 
 /**
- * Performs a soft delete on the folder by setting `isActive` to `false` and `deletedAt` to the current date.
+ * Performs a soft delete on the folder and triggers a background job to soft-delete all its descendants.
+ * Offloading the cascade delete prevents the API request from timing out if the folder contains many items.
  * @memberof KnowledgeFolderDocument
  * @instance
  * @async
  * @returns {Promise<KnowledgeFolderDocument>} A promise that resolves to the soft-deleted folder document.
  */
 KnowledgeFolderSchema.methods.softDelete = async function () {
+  // Offload the heavy task of recursively soft-deleting all descendant files and folders.
+  // This ensures the API responds quickly, while the cleanup happens asynchronously.
+  const messagePayload = {
+    userId: this.userId,
+    tenantId: this.tenantId ? this.tenantId.toString() : null,
+    deletedFolderPath: this.path, // The worker will delete everything under this path.
+    deletedAt: new Date().toISOString(),
+  };
+
+  await pubsub.topic(FOLDER_DELETE_TOPIC).publishMessage({
+    json: messagePayload,
+    attributes: {
+      source: 'KnowledgeFolderModel',
+      eventType: 'FolderSoftDeleted',
+    },
+  });
+
+  // Soft-delete the current folder immediately.
   this.isActive = false;
   this.deletedAt = new Date();
   return this.save();
@@ -544,41 +599,64 @@ KnowledgeFolderSchema.methods.softDelete = async function () {
 // Pre-save hook to update path
 /**
  * Mongoose pre-save hook to automatically generate or update the `path` field.
- * The path is constructed based on the folder's name and its parent's path.
- * This hook runs before saving a new document or when `parentFolderId` or `name` is modified.
- * Includes error handling for parent folder lookup.
+ * It also triggers a background job to update descendant paths if a folder is renamed or moved.
  * @memberof KnowledgeFolderSchema
  * @function preSaveHook
  * @param {function} next - The next middleware function.
  * @async
  */
 KnowledgeFolderSchema.pre('save', async function (next) {
-  if (
-    this.isNew ||
-    this.isModified('parentFolderId') ||
-    this.isModified('name')
-  ) {
-    try {
-      if (!this.parentFolderId) {
-        this.path = `/${this.name}`;
-      } else {
-        // Use this.constructor to refer to the model itself in a static context.
-        // Select only necessary fields (path, name) for performance.
-        const parent = await this.constructor.findById(this.parentFolderId).select('path name');
-        if (parent) {
-          this.path = `${parent.path}/${this.name}`;
-        } else {
-          // If the parent folder is not found, it indicates a data inconsistency.
-          // Prevent saving the current folder with an invalid parent.
-          return next(new Error('Parent folder not found. Cannot create/update folder.'));
-        }
-      }
-    } catch (error) {
-      // Catch any errors during the database lookup and pass them to Mongoose's error handling.
-      return next(error);
-    }
+  const isPathDirty = this.isNew || this.isModified('parentFolderId') || this.isModified('name');
+
+  if (!isPathDirty) {
+    return next();
   }
-  next();
+
+  try {
+    // Store the old path for comparison later if this is an update.
+    const oldPath = this.isNew ? null : this.path;
+
+    // Calculate the new path.
+    let newPath;
+    if (!this.parentFolderId) {
+      newPath = `/${this.name}`;
+    } else {
+      const parent = await this.constructor.findById(this.parentFolderId).select('path').lean();
+      if (!parent) {
+        return next(new Error('Parent folder not found. Cannot create/update folder.'));
+      }
+      newPath = `${parent.path}/${this.name}`;
+    }
+
+    // Assign the new path to the document.
+    this.path = newPath;
+
+    // If this is an update and the path has changed, offload the task of updating all descendants.
+    // This is a potentially long-running operation (e.g., renaming a folder with 10,000 items).
+    // Offloading it to a background worker via Pub/Sub ensures the API responds quickly
+    // and the system can scale, as the update happens asynchronously.
+    if (!this.isNew && oldPath !== newPath) {
+      const messagePayload = {
+        userId: this.userId,
+        tenantId: this.tenantId ? this.tenantId.toString() : null,
+        oldPathPrefix: oldPath,
+        newPathPrefix: newPath,
+      };
+
+      await pubsub.topic(FOLDER_PATH_UPDATE_TOPIC).publishMessage({
+        json: messagePayload,
+        attributes: {
+          source: 'KnowledgeFolderModel',
+          eventType: 'FolderPathUpdated',
+        },
+      });
+    }
+
+    next();
+  } catch (error) {
+    // Catch any errors during the database lookup and pass them to Mongoose's error handling.
+    next(error);
+  }
 });
 
 /**

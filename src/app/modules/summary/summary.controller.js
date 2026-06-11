@@ -1,8 +1,8 @@
 /* eslint-disable no-case-declarations */
 
 import httpStatus from 'http-status';
-// Fix: Correct import for pdf-parse. It exports a default function, not a named class.
-import { PDFParse } from 'pdf-parse';
+// Fix: Correct import for pdf-parse. It exports a default function.
+import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 // Fix: Correct import path for csv-parse in a Node.js environment.
 import { parse } from 'csv-parse';
@@ -13,8 +13,8 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { summaryService } from './summary.service.js';
 import { summarizerApp } from './summarizer/workflow.js';
-import SubscriptionModel from '../subscription/subscription.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// Optimization: Removed unused import for SubscriptionModel.
+// Optimization: Removed unused import for conversationHelpers.
 
 // --- GCS Configuration ---
 // Initialize the Google Cloud Storage client.
@@ -296,10 +296,9 @@ const summarizeContent = catchAsync(async (req, res) => {
       // which is efficient as the file is already loaded in memory for the GCS upload.
       switch (req.file.mimetype) {
         case 'application/pdf':
-          // Bug Fix: Correct usage of pdf-parse. It's a function that returns a promise,
-          // and the result object contains the 'text' property.
-          const pdfParser = new PDFParse({ data: req.file.buffer });
-          const pdfData = await pdfParser.getText();
+          // Bug Fix: Correct usage of pdf-parse. It's a function that takes a buffer
+          // and returns a promise resolving with the parsed data.
+          const pdfData = await pdf(req.file.buffer);
           contentToSummarize = pdfData.text;
           console.log(
             `Extracted text from PDF: ${contentToSummarize.substring(0, 100)}...`
