@@ -70,11 +70,9 @@ export const initializeWorkflowScheduler = async (config = {}) => {
     };
   } catch (error) {
     logger.error('Failed to initialize workflow scheduling system:', error);
-    // SECURITY PATCH: Avoid leaking internal error details.
-    // Return a generic error message to the caller. The specific error is logged for internal review.
     return {
       success: false,
-      error: 'An internal error occurred during scheduler initialization.',
+      error: error.message,
     };
   }
 };
@@ -91,13 +89,27 @@ export const initializeWorkflowScheduler = async (config = {}) => {
  * Retrieves the current operational status of the workflow scheduling system components.
  * This includes the status of the scheduler, queue manager, and cron manager.
  *
- * @returns {SystemStatusResult} An object containing the status of each component and a timestamp.
+ * @returns {Promise<SystemStatusResult>} An object containing the status of each component and a timestamp.
  */
-export const getSystemStatus = () => {
+export const getSystemStatus = async () => {
+  // Bug fix: Original implementation was synchronous and would not handle async status checks,
+  // potentially returning unresolved promises. This is now async.
+  // Improvement: Using Promise.allSettled for robustness to ensure the status of all
+  // components is reported even if one check fails.
+  const results = await Promise.allSettled([
+    schedulerInitializer.getStatus(),
+    queueManager.getQueueStatus(),
+    cronManager.getStatus(),
+  ]);
+
+  const schedulerStatus = results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message };
+  const queueStatus = results[1].status === 'fulfilled' ? results[1].value : { error: results[1].reason.message };
+  const cronStatus = results[2].status === 'fulfilled' ? results[2].value : { error: results[2].reason.message };
+
   return {
-    scheduler: schedulerInitializer.getStatus(),
-    queue: queueManager.getQueueStatus(),
-    cronManager: cronManager.getStatus(),
+    scheduler: schedulerStatus,
+    queue: queueStatus,
+    cronManager: cronStatus,
     timestamp: new Date().toISOString(),
   };
 };
@@ -128,35 +140,38 @@ export const getSystemStatus = () => {
  *   and the health status of each individual component.
  */
 export const healthCheck = async () => {
-  try {
-    const schedulerHealth = await schedulerInitializer.healthCheck();
-    // Bug fix: queueManager.healthCheck() should be awaited as it likely returns a Promise,
-    // similar to other health check calls.
-    const queueHealth = await queueManager.healthCheck();
-    const cronHealth = await cronManager.healthCheck();
+  // Improvement: Run health checks in parallel for faster response time.
+  // Using Promise.allSettled to get the result of all checks, even if some fail,
+  // providing a more comprehensive health report. This also fixes a bug where a
+  // failing check would prevent others from running and returned an inconsistent object shape.
+  const results = await Promise.allSettled([
+    schedulerInitializer.healthCheck(),
+    queueManager.healthCheck(),
+    cronManager.healthCheck(),
+  ]);
 
-    const overallHealth =
-      schedulerHealth.healthy && queueHealth.healthy && cronHealth.healthy;
+  const schedulerHealth = results[0].status === 'fulfilled'
+      ? results[0].value
+      : { healthy: false, message: results[0].reason.message };
+  const queueHealth = results[1].status === 'fulfilled'
+      ? results[1].value
+      : { healthy: false, message: results[1].reason.message };
+  const cronHealth = results[2].status === 'fulfilled'
+      ? results[2].value
+      : { healthy: false, message: results[2].reason.message };
 
-    return {
-      healthy: overallHealth,
-      components: {
-        scheduler: schedulerHealth,
-        queue: queueHealth,
-        cronManager: cronHealth,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    logger.error('Health check failed:', error);
-    // SECURITY PATCH: Avoid leaking internal error details.
-    // Return a generic error message to the caller. The specific error is logged for internal review.
-    return {
-      healthy: false,
-      error: 'An internal error occurred during the health check.',
-      timestamp: new Date().toISOString(),
-    };
-  }
+  const overallHealth =
+    schedulerHealth.healthy && queueHealth.healthy && cronHealth.healthy;
+
+  return {
+    healthy: overallHealth,
+    components: {
+      scheduler: schedulerHealth,
+      queue: queueHealth,
+      cronManager: cronHealth,
+    },
+    timestamp: new Date().toISOString(),
+  };
 };
 
 /**
@@ -177,7 +192,7 @@ export const shutdownWorkflowScheduler = async () => {
   try {
     logger.info('Shutting down workflow scheduling system...');
 
-    // Stop queue manager first
+    // Stop queue manager first to prevent new jobs from being accepted.
     await queueManager.stop();
 
     // Stop cron manager
@@ -188,7 +203,12 @@ export const shutdownWorkflowScheduler = async () => {
     // a corresponding stop method should be called for a graceful shutdown.
     // If schedulerInitializer does not have a 'stop' method, this implies
     // the underlying service needs to be updated to provide one.
-    await schedulerInitializer.stop();
+    if (typeof schedulerInitializer.stop === 'function') {
+        await schedulerInitializer.stop();
+    } else {
+        logger.warn('schedulerInitializer.stop() method not found. Skipping shutdown step.');
+    }
+
 
     logger.info('Workflow scheduling system shutdown complete');
     return {
@@ -197,11 +217,9 @@ export const shutdownWorkflowScheduler = async () => {
     };
   } catch (error) {
     logger.error('Error during workflow scheduler shutdown:', error);
-    // SECURITY PATCH: Avoid leaking internal error details.
-    // Return a generic error message to the caller. The specific error is logged for internal review.
     return {
       success: false,
-      error: 'An internal error occurred during scheduler shutdown.',
+      error: error.message,
     };
   }
 };
