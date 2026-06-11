@@ -1,14 +1,61 @@
 import { logger } from '../../../shared/logger.js';
 
 /**
+ * @typedef {object} AguiValidationResult
+ * @property {boolean} success - Indicates if parsing and validation succeeded.
+ * @property {boolean} containsUi - Indicates if an AGUI payload was detected.
+ * @property {string} [message] - Optional message indicating status.
+ * @property {string[]} [errors] - Array of validation error messages, if any.
+ * @property {object|null} payload - The parsed and validated AGUI payload, or null.
+ */
+
+/**
+ * @typedef {object} StreamPartText
+ * @property {'text'} type - The type of the stream part.
+ * @property {string} content - The text content.
+ */
+
+/**
+ * @typedef {object} StreamPartAguiPartial
+ * @property {'agui_partial'} type - The type of the stream part.
+ * @property {number} bufferedLength - The length of the currently buffered AGUI content.
+ */
+
+/**
+ * @typedef {object} StreamPartAguiComplete
+ * @property {'agui_complete'} type - The type of the stream part.
+ * @property {boolean} success - Indicates if the AGUI payload was successfully parsed.
+ * @property {object} [payload] - The parsed JSON payload if successful.
+ * @property {string} [error] - The error message if parsing failed.
+ * @property {string} [rawPayload] - The raw, unparsed JSON string if parsing failed.
+ */
+
+/**
+ * @typedef {StreamPartText | StreamPartAguiPartial | StreamPartAguiComplete} StreamPart - A union type representing a part of a parsed stream.
+ */
+
+/**
+ * @typedef {object} AguiParserState
+ * @property {string} buffer - The accumulated buffer from previous chunks.
+ * @property {boolean} insideTag - A flag indicating if the parser is currently inside an `<agui-json>` tag.
+ */
+
+/**
+ * @typedef {object} AguiStreamChunkResult
+ * @property {StreamPart[]} parts - The array of parsed parts from the current chunk.
+ * @property {AguiParserState} newState - The updated parser state to be used for the next chunk.
+ */
+
+/**
  * The pre-approved Google AGUI standard graphical layout schemas.
  * Defines JSON schema structures for metric cards, charts, dashboard grids, and timeline panels.
- * 
- * @type {Object}
- * @property {Object} metricCard - Schema for metric card components.
- * @property {Object} chart - Schema for chart components.
- * @property {Object} dashboardGrid - Schema for dashboard grid components.
- * @property {Object} timelinePanel - Schema for timeline panel components.
+ *
+ * @const
+ * @type {Object<string, object>}
+ * @property {object} metricCard - Schema for metric card components.
+ * @property {object} chart - Schema for chart components.
+ * @property {object} dashboardGrid - Schema for dashboard grid components.
+ * @property {object} timelinePanel - Schema for timeline panel components.
  */
 const AGUI_BASIC_CATALOG = {
   metricCard: {
@@ -85,10 +132,10 @@ const AGUI_BASIC_CATALOG = {
  */
 const generateAguiSystemPrompt = (allowedComponents = null, includeExamples = true) => {
   logger.info('GCP AGUI: Compiling system prompt specifications for Google Agent Graphical User Interface...');
-  
+
   const targetCatalog = {};
   const activeKeys = allowedComponents || Object.keys(AGUI_BASIC_CATALOG);
-  
+
   for (const key of activeKeys) {
     if (AGUI_BASIC_CATALOG[key]) {
       targetCatalog[key] = AGUI_BASIC_CATALOG[key];
@@ -151,12 +198,7 @@ ${JSON.stringify(targetCatalog, null, 2)}
  * Extracts, sanitizes, and runs comprehensive validation checks on raw AGUI text.
  *
  * @param {string} rawText - The raw conversational response stream text containing potential AGUI tags.
- * @returns {Object} Validation result object.
- * @returns {boolean} returns.success - Indicates if parsing and validation succeeded.
- * @returns {boolean} returns.containsUi - Indicates if an AGUI payload was detected.
- * @returns {string} [returns.message] - Optional message indicating status.
- * @returns {string[]} [returns.errors] - Array of validation error messages, if any.
- * @returns {Object|null} returns.payload - The parsed and validated AGUI payload, or null.
+ * @returns {AguiValidationResult} The validation result object.
  */
 const parseAndValidateAgui = (rawText) => {
   try {
@@ -302,7 +344,7 @@ const parseAndValidateAgui = (rawText) => {
 const fixAguiPayload = (rawJson) => {
   if (!rawJson) return '';
   logger.info('GCP AGUI PayloadFixer: Attempting programmatic syntax correction on JSON string...');
-  
+
   let fixed = rawJson.trim();
 
   // Repair unescaped newlines inside string literals
@@ -364,7 +406,7 @@ const fixAguiPayload = (rawJson) => {
 class AguiStreamParser {
   /**
    * Creates an instance of AguiStreamParser.
-   * 
+   *
    * @param {Object|null} [catalog=null] - Optional component catalog schema to use for validation.
    */
   constructor(catalog = null) {
@@ -375,20 +417,20 @@ class AguiStreamParser {
 
   /**
    * Processes a single text chunk, updating the internal buffer and extracting complete or partial AGUI blocks.
-   * 
+   *
    * @param {string} chunk - The incoming text chunk from the stream.
-   * @returns {Array<Object>} Array of parsed stream parts (text, partial AGUI, or complete AGUI).
+   * @returns {StreamPart[]} Array of parsed stream parts.
    */
   processChunk(chunk) {
     if (!chunk) return [];
-    
+
     this.buffer += chunk;
     const parts = [];
 
     while (this.buffer.length > 0) {
       if (!this.insideTag) {
         const tagIndex = this.buffer.toLowerCase().indexOf('<agui-json>');
-        
+
         if (tagIndex === -1) {
           parts.push({
             type: 'text',
@@ -450,14 +492,8 @@ class AguiStreamParser {
  * Stateless wrapper parsing a single stream chunk, returning response parts and a new state map.
  *
  * @param {string} chunk - The incoming text chunk from the stream.
- * @param {Object} [state={ buffer: '', insideTag: false }] - The current parser state.
- * @param {string} state.buffer - The accumulated buffer.
- * @param {boolean} state.insideTag - Whether the parser is currently inside an AGUI tag.
- * @returns {Object} The parsing result containing parts and the updated state.
- * @returns {Array<Object>} returns.parts - The parsed stream parts.
- * @returns {Object} returns.newState - The updated parser state.
- * @returns {string} returns.newState.buffer - The updated buffer.
- * @returns {boolean} returns.newState.insideTag - The updated insideTag flag.
+ * @param {AguiParserState} [state={ buffer: '', insideTag: false }] - The current parser state.
+ * @returns {AguiStreamChunkResult} The parsing result containing parts and the updated state.
  */
 const parseAguiStreamChunk = (chunk, state = { buffer: '', insideTag: false }) => {
   const parser = new AguiStreamParser();
@@ -477,8 +513,8 @@ const parseAguiStreamChunk = (chunk, state = { buffer: '', insideTag: false }) =
 
 /**
  * Service object exporting GCP AGUI utility functions and classes.
- * 
- * @type {Object}
+ *
+ * @type {object}
  * @property {Function} generateAguiSystemPrompt - Generates system instructions for AGUI.
  * @property {Function} parseAndValidateAgui - Parses and validates AGUI payloads.
  * @property {Function} fixAguiPayload - Corrects typical LLM JSON syntax errors.

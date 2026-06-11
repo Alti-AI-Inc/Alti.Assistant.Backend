@@ -6,12 +6,21 @@ import { BrowserUseServices } from './browserUse.service.js';
 // Assuming a pre-configured Winston logger is available for GCP structured logging.
 import { logger } from '../../../shared/logger.js';
 
+// Define roles for consistent use and clarity
+const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  PLATFORM_OWNER: 'platform_owner',
+  ADMIN: 'admin',
+  MANAGER: 'manager',
+  USER: 'user',
+};
+
 /**
  * @swagger
  * /api/v1/browser-use/task:
  *   post:
  *     summary: Initiate a new browser automation task or continue an existing session.
- *     description: Creates a new browser automation session or adds a new task to an existing session based on the provided prompt. Requires user authentication. Platform Owners can run tasks on behalf of other users/tenants.
+ *     description: Creates a new browser automation session or adds a new task to an existing session. Requires user authentication. Platform Owners can run tasks on behalf of any user. Admins and Managers can run tasks on behalf of users within their scope (workspace/managed users).
  *     tags:
  *       - Browser Use
  *     security:
@@ -37,7 +46,7 @@ import { logger } from '../../../shared/logger.js';
  *               userId:
  *                 type: string
  *                 nullable: true
- *                 description: Optional. Target user ID (Platform Owner / Super Admin override capability).
+ *                 description: "Optional. Target user ID. `super_admin`/`platform_owner` can target any user. `admin`/`manager` can target users within their scope. Ignored for `user` role."
  *                 example: "654321098765432109876543"
  *               structured_output_json:
  *                 type: object
@@ -68,52 +77,64 @@ import { logger } from '../../../shared/logger.js';
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 /**
  * Controller to initiate a new browser automation task or continue an existing session.
- * Supports Platform Owner overrides to run tasks on behalf of other users/tenants.
+ * Supports hierarchical overrides for privileged roles.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const runTaskController = catchAsync(async (req, res) => {
-  const { prompt, sessionId, structured_output_json } = req.body;
-  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
+  const { prompt, sessionId, structured_output_json, userId: targetUserId } = req.body;
+  const actor = req.user;
 
-  // Default to authenticated user
-  let userId = req.user?._id;
-
-  if (!userId) {
+  if (!actor?._id) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  // Platform Owner Override: Allow running tasks on behalf of another user/tenant
-  if (isPlatformOwner && req.body.userId) {
-    const originalUserId = req.user?._id;
-    userId = req.body.userId;
-    // Security-sensitive actions like impersonation should be logged with higher severity.
-    // A properly configured Winston logger will map 'warn' to the 'WARNING' severity level in GCP.
+  let effectiveUserId = actor._id;
+
+  // Determine the effective user ID based on the actor's role and if a target user is specified.
+  if (targetUserId && targetUserId.toString() !== actor._id.toString()) {
+    const { role } = actor;
+
+    if (
+      role === ROLES.SUPER_ADMIN ||
+      role === ROLES.PLATFORM_OWNER
+    ) {
+      // Platform owners can target any user.
+      effectiveUserId = targetUserId;
+    } else if (role === ROLES.ADMIN || role === ROLES.MANAGER) {
+      // Admins/Managers can target users within their scope.
+      // CRITICAL: The service layer MUST validate this relationship (e.g., same workspace, or direct report) using the actor's context from `req.user`.
+      effectiveUserId = targetUserId;
+    } else {
+      // Regular users cannot run tasks on behalf of others.
+      throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to perform this action on behalf of another user.');
+    }
+
     logger.warn({
-      message: 'Platform Owner override: Running task on behalf of another user.',
-      actor: { id: originalUserId, role: req.user?.role },
-      target: { userId: userId },
+      message: `${role} override: Running task on behalf of another user.`,
+      actor: { id: actor._id, role: actor.role },
+      target: { userId: effectiveUserId },
       sessionId: sessionId || 'new_session',
-      httpRequest: { // This structure helps Cloud Logging associate the log with the request
+      httpRequest: {
         requestMethod: req.method,
         requestUrl: req.originalUrl,
         remoteIp: req.ip,
       },
     });
   } else {
-    // Standard operational log.
-    // A properly configured Winston logger will map 'info' to the 'INFO' severity level in GCP.
     logger.info({
       message: 'Initiating browser use task.',
       context: {
-        userId: userId,
+        userId: actor._id,
         sessionId: sessionId || 'new_session',
       },
       httpRequest: {
@@ -125,19 +146,16 @@ const runTaskController = catchAsync(async (req, res) => {
   }
 
   if (!prompt) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Missing required field: prompt'
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Missing required field: prompt');
   }
 
   try {
     const result = await BrowserUseServices.initiateTaskInSessionService(
-      userId,
+      effectiveUserId,
       sessionId, // This will be null/undefined for a new session
       prompt,
       structured_output_json,
-      req
+      req // Pass the full request so the service layer can use actor context for validation
     );
 
     sendResponse(res, {
@@ -147,7 +165,6 @@ const runTaskController = catchAsync(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    // Log the detailed error for internal analysis, ensuring it's structured for GCP.
     logger.error({
       message: `Failed to initiate browser task: ${error.message}`,
       error: {
@@ -157,9 +174,9 @@ const runTaskController = catchAsync(async (req, res) => {
         ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
       },
       context: {
-        userId: userId,
+        actorId: actor._id,
+        effectiveUserId: effectiveUserId,
         sessionId: sessionId || 'new_session',
-        isPlatformOwner,
       },
       httpRequest: {
         requestMethod: req.method,
@@ -167,9 +184,6 @@ const runTaskController = catchAsync(async (req, res) => {
         remoteIp: req.ip,
       },
     });
-
-    // Re-throw the error to be handled by the global error handler (via catchAsync)
-    // which will normalize it and send the appropriate HTTP response.
     throw error;
   }
 });
@@ -179,7 +193,7 @@ const runTaskController = catchAsync(async (req, res) => {
  * /api/v1/browser-use/sessions/{sessionId}/tasks/{taskId}/status:
  *   patch:
  *     summary: Update the status of a specific task within a browser automation session.
- *     description: Retrieves and updates the status of a specific task. Platform Owners can bypass ownership checks.
+ *     description: Retrieves and updates the status of a specific task. Access is hierarchical: Platform Owners can access any task, Admins can access tasks within their workspace, Managers for their managed users, and Users for their own tasks.
  *     tags:
  *       - Browser Use
  *     security:
@@ -200,6 +214,8 @@ const runTaskController = catchAsync(async (req, res) => {
  *         description: Task status updated successfully.
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -207,7 +223,7 @@ const runTaskController = catchAsync(async (req, res) => {
  */
 /**
  * Controller to update the status of a specific task within a browser automation session.
- * Supports Platform Owner bypass of user ownership checks.
+ * Supports hierarchical access controls.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
@@ -215,21 +231,22 @@ const runTaskController = catchAsync(async (req, res) => {
  */
 const getTaskStatusController = catchAsync(async (req, res) => {
   const { sessionId, taskId } = req.params;
-  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
-  const userId = req.user?._id;
+  const actor = req.user;
 
-  if (!userId) {
+  if (!actor?._id) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  // GCP-compatible structured log. The severity 'INFO' is added by the logger configuration.
+  const { role, _id: userId } = actor;
+  const isPlatformOwner = role === ROLES.SUPER_ADMIN || role === ROLES.PLATFORM_OWNER;
+
   logger.info({
     message: 'Fetching browser task status.',
     context: {
-      authenticatedUserId: userId,
+      actorId: userId,
+      actorRole: role,
       sessionId: sessionId,
       taskId: taskId,
-      isPlatformOwnerBypass: isPlatformOwner,
     },
     httpRequest: {
       requestMethod: req.method,
@@ -239,7 +256,12 @@ const getTaskStatusController = catchAsync(async (req, res) => {
   });
 
   try {
-    // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+    // For a platform owner, passing null signals a bypass of ownership checks.
+    // For all other roles (admin, manager, user), we pass their own ID.
+    // CRITICAL: The service layer is responsible for using the full actor context from `req.user`
+    // to determine if an admin or manager has rights to view the resource based on
+    // workspace (for admins) or management hierarchy (for managers). A simple `resource.userId === authUserId`
+    // check is INSUFFICIENT for these roles and will lead to an authorization failure.
     const authUserId = isPlatformOwner ? null : userId;
 
     const result = await BrowserUseServices.updateTaskStatusService(
@@ -256,7 +278,6 @@ const getTaskStatusController = catchAsync(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    // Log the detailed error for internal analysis.
     logger.error({
       message: `Failed to get task status: ${error.message}`,
       error: {
@@ -266,10 +287,10 @@ const getTaskStatusController = catchAsync(async (req, res) => {
         ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
       },
       context: {
-        authenticatedUserId: userId,
+        actorId: userId,
+        actorRole: role,
         sessionId,
         taskId,
-        isPlatformOwner,
       },
       httpRequest: {
         requestMethod: req.method,
@@ -277,8 +298,6 @@ const getTaskStatusController = catchAsync(async (req, res) => {
         remoteIp: req.ip,
       },
     });
-
-    // Allow the global error handler to format the final response.
     throw error;
   }
 });
@@ -288,7 +307,7 @@ const getTaskStatusController = catchAsync(async (req, res) => {
  * /api/v1/browser-use/sessions:
  *   get:
  *     summary: Retrieve browser automation sessions.
- *     description: Fetches sessions. Platform Owners can retrieve all sessions globally or filter by a specific user.
+ *     description: Fetches sessions based on user role. Platform Owners can retrieve all sessions or filter by user. Admins can retrieve sessions for their workspace. Managers for their managed users. Users can only retrieve their own sessions.
  *     tags:
  *       - Browser Use
  *     security:
@@ -298,74 +317,79 @@ const getTaskStatusController = catchAsync(async (req, res) => {
  *         name: userId
  *         schema:
  *           type: string
- *         description: Optional user ID filter (Platform Owner only).
+ *         description: "Optional user ID filter. `super_admin`/`platform_owner` can target any user. `admin`/`manager` can target users within their scope. Ignored for `user` role."
  *     responses:
  *       200:
  *         description: Sessions retrieved successfully.
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 /**
- * Controller to retrieve browser automation sessions.
- * Supports global oversight for Platform Owners.
+ * Controller to retrieve browser automation sessions with role-based access control.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getUserSessionsController = catchAsync(async (req, res) => {
-  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
-  const userId = req.user?._id;
-  if (!userId) {
+  const actor = req.user;
+  const targetUserId = req.query.userId;
+
+  if (!actor?._id) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
+  const { role, _id: actorId, workspaceId } = actor;
+
   try {
     let result;
-    if (isPlatformOwner) {
-      const targetUserId = req.query.userId;
-      // GCP-compatible structured log for privileged access.
-      logger.info({
-        message: 'Platform Owner retrieving user sessions.',
-        context: {
-          actorId: userId,
-          targetUserId: targetUserId || 'ALL_USERS', // Log if fetching for a specific user or all
-        },
-        httpRequest: {
-          requestMethod: req.method,
-          requestUrl: req.originalUrl,
-          remoteIp: req.ip,
-        },
-      });
+    let logContext = { actorId, actorRole: role };
+
+    if (role === ROLES.SUPER_ADMIN || role === ROLES.PLATFORM_OWNER) {
+      logContext.targetUserId = targetUserId || 'ALL_USERS';
+      logger.info({ message: 'Platform Owner retrieving user sessions.', context: logContext, httpRequest: { requestMethod: req.method, requestUrl: req.originalUrl, remoteIp: req.ip } });
       if (targetUserId) {
-        // Platform Owner viewing sessions of a specific user
         result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
       } else {
-        // Platform Owner global oversight: retrieve all sessions across the platform
-        if (typeof BrowserUseServices.getAllSessionsService === 'function') {
-          result = await BrowserUseServices.getAllSessionsService(req);
-        } else {
-          // Fallback: pass null to indicate global retrieval if supported by service
-          result = await BrowserUseServices.getSessionsForUserService(null, req);
+        if (typeof BrowserUseServices.getAllSessionsService !== 'function') {
+          throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Fetching all platform sessions is not supported.');
         }
+        result = await BrowserUseServices.getAllSessionsService(req);
       }
-    } else {
-      // GCP-compatible structured log for standard access.
-      logger.info({
-        message: 'User retrieving their sessions.',
-        context: {
-          userId: userId,
-        },
-        httpRequest: {
-          requestMethod: req.method,
-          requestUrl: req.originalUrl,
-          remoteIp: req.ip,
-        },
-      });
-      // Regular user: retrieve only their own sessions
-      result = await BrowserUseServices.getSessionsForUserService(userId, req);
+    } else if (role === ROLES.ADMIN) {
+      logContext.targetUserId = targetUserId || `ALL_WORKSPACE_USERS (workspaceId: ${workspaceId})`;
+      logger.info({ message: 'Admin retrieving workspace sessions.', context: logContext, httpRequest: { requestMethod: req.method, requestUrl: req.originalUrl, remoteIp: req.ip } });
+      // CRITICAL: The service layer MUST validate that targetUserId (if provided) is in the admin's workspace.
+      if (targetUserId) {
+        result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
+      } else {
+        if (typeof BrowserUseServices.getSessionsForWorkspaceService !== 'function') {
+          throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Fetching all workspace sessions is not supported.');
+        }
+        result = await BrowserUseServices.getSessionsForWorkspaceService(workspaceId, req);
+      }
+    } else if (role === ROLES.MANAGER) {
+      logContext.targetUserId = targetUserId || 'ALL_MANAGED_USERS';
+      logger.info({ message: 'Manager retrieving managed users sessions.', context: logContext, httpRequest: { requestMethod: req.method, requestUrl: req.originalUrl, remoteIp: req.ip } });
+      // CRITICAL: The service layer MUST validate the manager-reportee relationship for the targetUserId.
+      if (targetUserId) {
+        result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
+      } else {
+        if (typeof BrowserUseServices.getSessionsForManagedUsersService !== 'function') {
+          throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Fetching sessions for all managed users is not supported.');
+        }
+        result = await BrowserUseServices.getSessionsForManagedUsersService(actorId, req);
+      }
+    } else { // 'user' role
+      logger.info({ message: 'User retrieving their sessions.', context: logContext, httpRequest: { requestMethod: req.method, requestUrl: req.originalUrl, remoteIp: req.ip } });
+      if (targetUserId && targetUserId.toString() !== actorId.toString()) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to view sessions for another user.');
+      }
+      result = await BrowserUseServices.getSessionsForUserService(actorId, req);
     }
 
     sendResponse(res, {
@@ -375,7 +399,6 @@ const getUserSessionsController = catchAsync(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    // Log the detailed error for internal analysis.
     logger.error({
       message: `Failed to retrieve user sessions: ${error.message}`,
       error: {
@@ -384,19 +407,9 @@ const getUserSessionsController = catchAsync(async (req, res) => {
         name: error.name,
         ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
       },
-      context: {
-        authenticatedUserId: userId,
-        targetUserId: req.query.userId,
-        isPlatformOwner,
-      },
-      httpRequest: {
-        requestMethod: req.method,
-        requestUrl: req.originalUrl,
-        remoteIp: req.ip,
-      },
+      context: { actorId, actorRole: role, targetUserId },
+      httpRequest: { requestMethod: req.method, requestUrl: req.originalUrl, remoteIp: req.ip },
     });
-
-    // Allow the global error handler to format the final response.
     throw error;
   }
 });
@@ -406,7 +419,7 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  * /api/v1/browser-use/sessions/{sessionId}:
  *   get:
  *     summary: Retrieve a specific browser automation session by ID.
- *     description: Fetches details of a single session. Platform Owners can access any session.
+ *     description: Fetches details of a single session. Access is hierarchical: Platform Owners can access any session, Admins can access sessions within their workspace, Managers for their managed users, and Users for their own sessions.
  *     tags:
  *       - Browser Use
  *     security:
@@ -422,6 +435,8 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  *         description: Session retrieved successfully.
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       500:
@@ -429,7 +444,7 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  */
 /**
  * Controller to retrieve a specific browser automation session by its ID.
- * Supports Platform Owner bypass of user ownership checks.
+ * Supports hierarchical access controls.
  *
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
@@ -437,19 +452,21 @@ const getUserSessionsController = catchAsync(async (req, res) => {
  */
 const getSessionByIdController = catchAsync(async (req, res) => {
   const { sessionId } = req.params;
-  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
-  const userId = req.user?._id;
-  if (!userId) {
+  const actor = req.user;
+
+  if (!actor?._id) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  // GCP-compatible structured log.
+  const { role, _id: userId } = actor;
+  const isPlatformOwner = role === ROLES.SUPER_ADMIN || role === ROLES.PLATFORM_OWNER;
+
   logger.info({
     message: 'Fetching browser session by ID.',
     context: {
-      authenticatedUserId: userId,
+      actorId: userId,
+      actorRole: role,
       sessionId: sessionId,
-      isPlatformOwnerBypass: isPlatformOwner,
     },
     httpRequest: {
       requestMethod: req.method,
@@ -459,7 +476,12 @@ const getSessionByIdController = catchAsync(async (req, res) => {
   });
 
   try {
-    // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+    // For a platform owner, passing null signals a bypass of ownership checks.
+    // For all other roles (admin, manager, user), we pass their own ID.
+    // CRITICAL: The service layer is responsible for using the full actor context from `req.user`
+    // to determine if an admin or manager has rights to view the resource based on
+    // workspace (for admins) or management hierarchy (for managers). A simple `resource.userId === authUserId`
+    // check is INSUFFICIENT for these roles and will lead to an authorization failure.
     const authUserId = isPlatformOwner ? null : userId;
 
     const result = await BrowserUseServices.getSessionByIdService(
@@ -475,7 +497,6 @@ const getSessionByIdController = catchAsync(async (req, res) => {
       data: result,
     });
   } catch (error) {
-    // Log the detailed error for internal analysis.
     logger.error({
       message: `Failed to retrieve session by ID: ${error.message}`,
       error: {
@@ -485,9 +506,9 @@ const getSessionByIdController = catchAsync(async (req, res) => {
         ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
       },
       context: {
-        authenticatedUserId: userId,
+        actorId: userId,
+        actorRole: role,
         sessionId,
-        isPlatformOwner,
       },
       httpRequest: {
         requestMethod: req.method,
@@ -495,8 +516,6 @@ const getSessionByIdController = catchAsync(async (req, res) => {
         remoteIp: req.ip,
       },
     });
-
-    // Allow the global error handler to format the final response.
     throw error;
   }
 });
@@ -506,7 +525,7 @@ const getSessionByIdController = catchAsync(async (req, res) => {
  * /api/v1/browser-use/global-stats:
  *   get:
  *     summary: Retrieve global statistics of all browser automation sessions (Platform Owner only).
- *     description: Fetches global statistics including total tasks, active sessions, and success/failure rates.
+ *     description: Fetches global statistics including total tasks, active sessions, and success/failure rates. Requires `super_admin` or `platform_owner` role.
  *     tags:
  *       - Browser Use
  *     security:
@@ -527,17 +546,18 @@ const getSessionByIdController = catchAsync(async (req, res) => {
  * @returns {Promise<void>}
  */
 const getGlobalStatsController = catchAsync(async (req, res) => {
-  const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
+  const { role, _id: actorId } = req.user || {};
+  const isPlatformOwner = role === ROLES.SUPER_ADMIN || role === ROLES.PLATFORM_OWNER;
+
   if (!isPlatformOwner) {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. Platform Owner privilege required.');
   }
 
-  // GCP-compatible structured log for privileged endpoint access.
   logger.info({
     message: 'Platform Owner retrieving global browser-use statistics.',
     context: {
-      actorId: req.user?._id,
-      actorRole: req.user?.role,
+      actorId: actorId,
+      actorRole: role,
     },
     httpRequest: {
       requestMethod: req.method,
@@ -551,9 +571,8 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
     if (typeof BrowserUseServices.getGlobalStatsService === 'function') {
       stats = await BrowserUseServices.getGlobalStatsService(req);
     } else {
-      // Fallback/Mock stats if service method is not yet fully implemented
       stats = {
-        message: "Global stats service not fully implemented, but access is authorized.",
+        message: "Global stats service not implemented, but access is authorized.",
         timestamp: new Date(),
       };
     }
@@ -565,7 +584,6 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    // Log the detailed error for internal analysis.
     logger.error({
       message: `Failed to retrieve global stats: ${error.message}`,
       error: {
@@ -575,8 +593,8 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
         ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
       },
       context: {
-        actorId: req.user?._id,
-        actorRole: req.user?.role,
+        actorId: actorId,
+        actorRole: role,
       },
       httpRequest: {
         requestMethod: req.method,
@@ -584,8 +602,6 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
         remoteIp: req.ip,
       },
     });
-
-    // Allow the global error handler to format the final response.
     throw error;
   }
 });
@@ -593,7 +609,7 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
 /**
  * @namespace BrowserUseController
  * @description Provides controller functions for managing browser automation tasks and sessions.
- * These functions handle initiating tasks, retrieving task statuses, and managing user sessions.
+ * These functions handle initiating tasks, retrieving task statuses, and managing user sessions with hierarchical role-based access control.
  */
 export const BrowserUseController = {
   runTaskController,
