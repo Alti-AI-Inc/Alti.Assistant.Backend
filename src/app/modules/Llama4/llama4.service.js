@@ -112,14 +112,17 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
         messages.push(new AIMessage(response.reply));
       }
       await chatHistoryInstance.addMessages(messages);
-      // PLATFORM_OWNER_LOGGING: Enhanced logging with user and session context for global oversight.
-      logger.info(
-        `Loaded existing chat history from DB for user: ${userId}, sessionId: ${sessionId}`
-      );
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('Loaded existing chat history from DB.', {
+        userId,
+        sessionId,
+      });
     } else {
-      logger.info(
-        `No existing chat history found for user: ${userId}, sessionId: ${sessionId}. Starting new memory.`
-      );
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('No existing chat history found. Starting new memory.', {
+        userId,
+        sessionId,
+      });
     }
 
     const memory = new BufferMemory({
@@ -181,11 +184,12 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
           throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
         }
       } catch (error) {
-        // PLATFORM_OWNER_LOGGING: Enhanced error logging with user context.
-        logger.error(
-          `Error in incrementPromptsUsed for userId: ${userId}`,
-          error
-        );
+        // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+        logger.error('Error in incrementPromptsUsed.', {
+          userId,
+          errorMessage: error.message,
+          errorStack: error.stack,
+        });
         if (error instanceof ApiError) {
           throw error;
         }
@@ -195,10 +199,11 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
         );
       }
     } else {
-      // PLATFORM_OWNER_LOGGING: Log when an admin action bypasses the quota system for audit purposes.
-      logger.info(
-        `Quota check bypassed for super_admin user: ${userId} in session: ${sessionId}`
-      );
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('Quota check bypassed for super_admin user.', {
+        userId,
+        sessionId,
+      });
     }
 
     const responseData = {
@@ -208,27 +213,35 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     };
 
     if (llamaSession) {
-      // PLATFORM_OWNER_LOGGING: Add user context to logs for better global oversight.
-      logger.info(
-        `Existing Session Found, updating for user: ${userId}, session: ${sessionId}`
-      );
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('Existing session found, updating.', {
+        userId,
+        sessionId,
+      });
       // OPTIMIZATION: Use atomic `updateOne` with `$push` to avoid concurrency issues.
       await ChatHistory.updateOne(
         { _id: llamaSession._id },
         { $push: { responses: responseData } }
       );
-      logger.info(`Updated Session: ${llamaSession._id}`);
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('Updated chat history session.', {
+        chatHistoryId: llamaSession._id,
+      });
     } else {
-      // PLATFORM_OWNER_LOGGING: Add user context to logs.
-      logger.info(
-        `Creating New Session for user: ${userId}, session: ${sessionId}`
-      );
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('Creating new chat history session.', {
+        userId,
+        sessionId,
+      });
       const newSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
-      logger.info(`New Session Created: ${newSession._id}`);
+      // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+      logger.info('New chat history session created.', {
+        chatHistoryId: newSession._id,
+      });
 
       // OPTIMIZATION: Use `updateOne` instead of `findByIdAndUpdate` as the returned document is not needed.
       await UserModel.updateOne(
@@ -240,11 +253,13 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     const payload = { prompt, sessionId, reply };
     return payload;
   } catch (error) {
-    // PLATFORM_OWNER_LOGGING: Ensure all major errors are logged with user and session context.
-    logger.error(
-      `Error in Llama4AiGetResponseService for user: ${userId}, session: ${sessionId}`,
-      error
-    );
+    // GCP_LOGGING_AUDIT: Switched to structured JSON logging for better parsing and filtering in Cloud Logging.
+    logger.error('Error in Llama4AiGetResponseService.', {
+      userId,
+      sessionId,
+      errorMessage: error.message,
+      errorStack: error.stack,
+    });
     if (error instanceof ApiError) {
       throw error; // Re-throw controlled, client-safe errors.
     }
