@@ -4,6 +4,8 @@
  * @module video/controller
  */
 import httpStatus from 'http-status';
+import express from 'express'; // Added for server and probes
+import http from 'http'; // Added for graceful shutdown
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
@@ -13,6 +15,10 @@ import { videoHelpers } from './video.helper.js';
 // BUG FIX: Missing import for conversationHelpers.
 // Assuming conversationHelpers is a shared utility, adjust path if necessary.
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// PLACEHOLDER: Import your database connection management module.
+// This is needed for graceful shutdown to close the connection properly.
+// The `db` object should expose methods like `isConnected()` and `disconnect()`.
+import { db } from '../../../config/db.js'; // Adjust path as needed
 
 /**
  * @openapi
@@ -208,6 +214,7 @@ export const generateVideo = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
+
       message: 'Video generation completed successfully',
       data: {
         ...videoHelpers.formatVideoResponse(
@@ -596,3 +603,109 @@ export const videoController = {
   getOperationStatus,
   getGuestConversations,
 };
+
+// --- GCP Cloud Run Lifecycle & Health Check Implementation ---
+// NOTE: Server startup and shutdown logic is typically placed in a main
+// entry file (e.g., index.js, server.js), not in a controller file.
+// It is included here to demonstrate the required implementation for Cloud Run.
+// You should move this logic to your application's main entry point.
+
+const app = express();
+
+// --- Application Routes & Middleware ---
+// This is a placeholder. You should mount your actual application routers and
+// middleware here. For example:
+// import { videoRoutes } from './video.routes.js'; // Assuming you have a routes file
+// app.use(express.json());
+// app.use('/api/v1/video', videoRoutes); // Mount the routes that use the controllers above
+
+// --- Health & Readiness Probes ---
+
+// A global flag to indicate if the server is ready to accept traffic.
+// This is used by the readiness probe and the graceful shutdown process.
+let isServerReady = true;
+
+/**
+ * Liveness Probe (/healthz)
+ * Cloud Run uses this to check if the container's main process is running.
+ * If this endpoint fails, Cloud Run will restart the container.
+ * A simple 200 OK response is sufficient.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
+/**
+ * Readiness Probe (/readyz)
+ * Cloud Run uses this to check if the application is ready to serve traffic.
+ * This should check dependencies like database connections.
+ * If this fails, Cloud Run will stop sending new requests to this container.
+ */
+app.get('/readyz', (req, res) => {
+  // The probe should fail if the server is shutting down OR if a critical
+  // dependency (like the database) is unhealthy.
+  // The `db.isConnected()` is a placeholder for your actual DB health check.
+  if (isServerReady && db.isConnected()) {
+    res.status(200).send('ok');
+  } else {
+    // Return 503 Service Unavailable to signal that the instance is not ready.
+    res.status(503).send('not ready');
+  }
+});
+
+// --- Server Startup & Shutdown ---
+
+// Cloud Run provides the PORT environment variable. Fallback to 8080 for local dev.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app);
+
+// In a real application, you would connect to your database *before*
+// starting the server. This logic should be in your main entry file.
+// e.g., db.connect().then(() => { server.listen(...) });
+server.listen(PORT, () => {
+  logger.info(`Server listening on port ${PORT}`);
+});
+
+/**
+ * Handles graceful shutdown when a SIGTERM signal is received.
+ * Cloud Run sends SIGTERM to signal that the container is being shut down.
+ * The application has a limited time (default 10s) to clean up and exit.
+ */
+const gracefulShutdown = () => {
+  logger.info('Received SIGTERM signal. Starting graceful shutdown.');
+
+  // 1. Signal that the server is no longer ready to accept traffic.
+  // The readiness probe (/readyz) will now start failing.
+  // Cloud Run will see this and stop sending new requests to this instance.
+  isServerReady = false;
+
+  // 2. Close the HTTP server.
+  // This stops the server from accepting new connections.
+  // It waits for existing, in-flight requests to complete before calling the callback.
+  server.close(async () => {
+    logger.info('HTTP server closed. All active requests have been served.');
+
+    // 3. Close critical connections (e.g., database, message queues).
+    try {
+      // Replace `db.disconnect()` with your actual database disconnection logic.
+      await db.disconnect();
+      logger.info('Database connection closed successfully.');
+    } catch (err) {
+      logger.error('Error during database disconnection:', err);
+    }
+
+    // 4. Exit the process cleanly.
+    logger.info('Graceful shutdown complete. Exiting process.');
+    process.exit(0);
+  });
+
+  // 5. Set a timeout to force exit if shutdown takes too long.
+  // This ensures the container exits within Cloud Run's allowed timeframe.
+  setTimeout(() => {
+    logger.error('Graceful shutdown timed out after 9.5 seconds. Forcing exit.');
+    process.exit(1);
+  }, 9500); // Slightly less than the default 10s Cloud Run timeout.
+};
+
+// Listen for the SIGTERM signal sent by Cloud Run during scaling down or updates.
+process.on('SIGTERM', gracefulShutdown);
