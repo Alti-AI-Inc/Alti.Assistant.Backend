@@ -2,6 +2,10 @@
  * @file Defines the agent configurations for cognitive logic and deep reasoning specialists.
  * These agents are designed to handle complex analytical, mathematical, architectural, and strategic tasks.
  * Each agent has a specific system instruction, model, and set of keywords to specialize its function.
+ *
+ * @important PII (Personally Identifiable Information) must be filtered or masked from user prompts
+ * *before* they are passed to the model generation service that uses these configurations.
+ *
  * @module modules/swarm/agents/intelligence.agents
  */
 
@@ -12,6 +16,7 @@
  * @property {string} description - A brief summary of the agent's capabilities.
  * @property {string} systemInstruction - The detailed system prompt that defines the agent's behavior, rules, and personality.
  * @property {string} model - The specific AI model used by the agent (e.g., 'gemini-2.5-pro').
+ * @property {Array<object>} safetySettings - Configuration for Google's safety filters.
  * @property {Array<object>} tools - A list of tools the agent is equipped with.
  * @property {Array<string>} keywords - A list of keywords that help in routing user prompts to this agent.
  */
@@ -37,6 +42,26 @@ CRITICAL LAWS:
 4. ALGEBRAIC & LOGICAL ACCURACY: Maintain absolute structural precision across mathematical equations, algorithm designs, and logic proofs.
 5. NO FLUFF: Deliver high-density, authoritative, and direct cognitive insights without generic conversational preambles.`,
   model: 'gemini-2.5-pro', // Using the advanced Pro model for high-scale cognitive reasoning
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
     'think', 'reason', 'solve complex', 'logic proof', 'strategic plan', 'algorithm breakdown',
@@ -58,6 +83,26 @@ export const manusStrategicPlanner = {
 Take highly ambitious or multi-part user goals and break them down into an exact, step-by-step modular blueprint.
 Categorize steps by immediate action items, sub-tasks, dependencies, required tools, and exit criteria.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['build me a project', 'how to make a startup', 'step by step plan', 'planning', 'strategic roadmap', 'complex task', 'workflow plan']
 };
@@ -76,6 +121,26 @@ export const mathTutor = {
 Deconstruct complex mathematical problems, physics equations, data structures proofs, and statistical models step-by-step.
 Use clear formatting, explain the underlying axioms, and show intermediate stages with absolute algebraic accuracy.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['solve math', 'calculus', 'physics equation', 'proof', 'algebra', 'statistics problem', 'geometry']
 };
@@ -94,6 +159,26 @@ export const leetcodeCoach = {
 Decompose complex software algorithms and data structures (trees, graphs, dynamic programming, sliding window) into optimal time/space complexity solutions (Big O notation).
 Walk through edge cases and dry-run execution steps.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['leetcode', 'dsa', 'data structures', 'algorithms', 'big o', 'complexity', 'dynamic programming', 'sliding window', 'binary search', 'graph']
 };
@@ -112,6 +197,26 @@ export const systemDesignExpert = {
 Design highly available, horizontally scalable distributed system architectures featuring Apache Kafka event streams, Redis cache layers, reverse proxy load balancers, rate limiters, and CDN caches.
 Draw high-level Mermaid layout flows.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['system design', 'distributed systems', 'kafka', 'redis', 'load balancer', 'cdn', 'rate limiter', 'message queue', 'scale', 'high availability']
 };
@@ -130,6 +235,26 @@ export const pentestAuditor = {
 Audit codebases and API routes against OWASP Top 10 security bugs (SQLi, XSS, CSRF, insecure direct object references).
 Propose explicit fixes, CSP security headers, and sanitization wrappers.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: ['owasp', 'penetration testing', 'pentest', 'xss', 'csrf', 'sql injection', 'vulnerability', 'sanitization', 'security headers', 'csp']
 };
@@ -154,6 +279,26 @@ CRITICAL LAWS:
 4. CRITICAL ANALYSIS: Always provide a dedicated "Trade-Offs & Architecture Critique" section detailing potential single points of failure, cold starts, and cost factors.
 5. NO FLUFF: Start your response directly with the architectural flow or layout blueprint.`,
   model: 'gemini-2.5-pro', // Using the advanced Pro model for rigorous architectural planning
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
     'multi region design', 'latency budget', 'fault tolerance plan', 'ha design', 'cloud architecture',
@@ -181,6 +326,26 @@ CRITICAL LAWS:
 4. THEOREM VERIFICATION: Cross-examine your own mathematical proofs for boundary conditions, division by zero, floating point overflows, and inductive base failures.
 5. NO FLUFF: Deliver direct mathematical insights, proofs, and equations without conversational preambles.`,
   model: 'gemini-2.5-pro', // Using the advanced Pro model for algebraic and symbolic reasoning
+  // Vertex AI Safety Settings: Configure content filters to block harmful content
+  // with a medium-or-higher threshold. This is a critical enterprise safety feature.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   tools: [],
   keywords: [
     'logic proof', 'formal logic', 'symbolic proof', 'theorem proving', 'time complexity proof',
