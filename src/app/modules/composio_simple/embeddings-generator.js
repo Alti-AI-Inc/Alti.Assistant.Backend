@@ -4,19 +4,21 @@
  *
  * Usage: node embeddings-generator.js
  *
- * NOTE: This script requires authentication with GCP. Ensure you have the correct
- * permissions (e.g., 'Secret Manager Secret Accessor' role) and have authenticated
- * via `gcloud auth application-default login`.
- * It expects secrets named 'GEMINI_SECRET_KEY' and 'DATABASE_URL' in GCP Secret Manager,
- * or as environment variables.
+ * NOTE: This script relies on Application Default Credentials (ADC) for GCP authentication.
+ * Ensure the environment where this script runs has the necessary IAM permissions:
+ * - 'Secret Manager Secret Accessor' to read secrets.
+ * - 'Vertex AI User' to generate embeddings.
+ * Authenticate locally via `gcloud auth application-default login`.
+ * It expects a secret named 'DATABASE_URL' in GCP Secret Manager or as an environment variable.
+ * It also requires GCP_PROJECT and GCP_LOCATION (e.g., 'us-central1') environment variables.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import mongoose from 'mongoose';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import Tool from '../composio_v2/tools.model.js';
 
-// GCP Secret Manager client and in-memory cache for performance.
+// GCP Secret Manager client, initialized using Application Default Credentials.
 const secretManagerClient = new SecretManagerServiceClient();
 const secretCache = new Map();
 
@@ -63,13 +65,13 @@ async function getSecret(secretName) {
 }
 
 /**
- * @type {GoogleGenerativeAI} genAI - An instance of GoogleGenerativeAI.
- * It will be initialized dynamically within generateEmbeddingsForTools after fetching the API key.
+ * @type {import('@google-cloud/vertexai').GenerativeModel} generativeModel - An instance of a Vertex AI Generative Model.
+ * It will be initialized dynamically within generateEmbeddingsForTools using Application Default Credentials.
  */
-let genAI;
+let generativeModel;
 
 /**
- * Generates a vector embedding for a given text string using the Gemini `text-embedding-004` model.
+ * Generates a vector embedding for a given text string using the Vertex AI `text-embedding-004` model.
  *
  * @async
  * @param {string} text - The input text for which to generate an embedding.
@@ -78,9 +80,13 @@ let genAI;
  */
 async function generateEmbedding(text) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-    const result = await model.embedContent(text);
-    return result.embedding.values;
+    // The request format for the Vertex AI SDK requires a requests array.
+    const request = {
+      requests: [{ content: text }],
+    };
+    const result = await generativeModel.embedContent(request);
+    // The embedding values are nested within the first prediction.
+    return result.response.predictions[0].embedding.values;
   } catch (error) {
     console.error('Error generating embedding:', error);
     return null;
@@ -103,10 +109,24 @@ async function generateEmbeddingsForTools() {
   try {
     // Dynamically resolve secrets from environment variables or GCP Secret Manager.
     const databaseUrl = await getSecret('DATABASE_URL');
-    const geminiSecretKey = await getSecret('GEMINI_SECRET_KEY');
 
-    // Initialize AI client with the resolved secret key.
-    genAI = new GoogleGenerativeAI(geminiSecretKey);
+    // Initialize Vertex AI client using Application Default Credentials.
+    // This requires GCP_PROJECT and GCP_LOCATION environment variables to be set.
+    const projectId = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
+    const location = process.env.GCP_LOCATION || 'us-central1'; // Default location
+
+    if (!projectId) {
+      throw new Error(
+        'GCP_PROJECT or GOOGLE_CLOUD_PROJECT environment variable must be set for Vertex AI.'
+      );
+    }
+
+    const vertexAI = new VertexAI({ project: projectId, location: location });
+
+    // Instantiate the model to be used for embedding generation.
+    generativeModel = vertexAI.getGenerativeModel({
+      model: 'text-embedding-004',
+    });
 
     console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(databaseUrl);
