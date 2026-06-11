@@ -39,7 +39,8 @@ const IV_LENGTH = 16;
  *
  * @param {string} text - The plain text string to encrypt.
  * @returns {string} The IV and encrypted text concatenated with a colon (e.g., "hexIV:hexEncryptedText"),
- *                   or the original text if encryption fails, the input is not a string, or it appears to be already encrypted.
+ *                   or the original text if the input is not a string or it appears to be already encrypted.
+ * @throws {Error} If encryption fails, to prevent sensitive data from being stored in plaintext.
  */
 function encryptText(text) {
   if (!text || typeof text !== 'string') return text;
@@ -54,9 +55,10 @@ function encryptText(text) {
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return iv.toString('hex') + ':' + encrypted.toString('hex');
   } catch (err) {
-    // In a production environment, consider logging the error.
-    console.error('Encryption failed:', err);
-    return text; // Fallback to original text if encryption fails
+    // BUG FIX: Prevent saving sensitive data in plaintext if encryption fails.
+    // Throwing an error will abort the Mongoose save operation, which is the correct and secure behavior.
+    console.error('Fatal: Encryption failed. Aborting operation.', err);
+    throw new Error('Failed to encrypt sensitive data.');
   }
 }
 
@@ -66,14 +68,17 @@ function encryptText(text) {
  * The decryption key is derived from `ENCRYPTION_KEY`.
  *
  * @param {string} text - The encrypted text string (e.g., "hexIV:hexEncryptedText") to decrypt.
- * @returns {string} The decrypted plain text string, or the original text if decryption fails,
- *                   the input is not a string, or it's not in the expected encrypted format.
+ * @returns {string | null} The decrypted plain text string, the original text if it's not in the expected encrypted format,
+ *                          or null if decryption fails.
  */
 function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
+  
+  const textParts = text.split(':');
+  // If not in expected encrypted format, return as is. This could be legacy unencrypted data.
+  if (textParts.length !== 2 || textParts[0].length !== 32) return text; 
+
   try {
-    const textParts = text.split(':');
-    if (textParts.length !== 2 || textParts[0].length !== 32) return text; // Not in expected encrypted format
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
@@ -81,9 +86,11 @@ function decryptText(text) {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (err) {
-    // In a production environment, consider logging the error.
+    // BUG FIX: Return null on decryption failure to prevent propagating corrupted/unreadable data.
+    // The original behavior of returning the encrypted blob can hide critical errors (e.g., wrong key)
+    // and cause unexpected behavior in the frontend. Null is a clearer signal of data unavailability.
     console.error('Decryption failed:', err);
-    return text; // Fallback to original text if decryption fails
+    return null;
   }
 }
 
@@ -263,16 +270,16 @@ const conversationSummarySchema = new Schema(
 );
 
 /**
- * Compound index for efficient queries by conversation and user.
+ * Compound index for efficient queries by conversation and user within a workspace.
  * @index
  */
-conversationSummarySchema.index({ conversationId: 1, userId: 1 });
+conversationSummarySchema.index({ workspaceId: 1, conversationId: 1, userId: 1 });
 
 /**
- * Compound index for efficient queries by conversation and status.
+ * Compound index for efficient queries by conversation and status within a workspace.
  * @index
  */
-conversationSummarySchema.index({ conversationId: 1, status: 1 });
+conversationSummarySchema.index({ workspaceId: 1, conversationId: 1, status: 1 });
 
 /**
  * Compound index for efficient workspace-level metric queries, crucial for manager dashboards.
@@ -282,18 +289,22 @@ conversationSummarySchema.index({ workspaceId: 1, createdAt: -1 });
 
 
 /**
- * Static method to find the most recent active conversation summary for a given conversation and user.
+ * Static method to find the most recent active conversation summary for a given conversation and user within a specific workspace.
  *
+ * @param {string} workspaceId - The ID of the workspace to scope the search.
  * @param {string} conversationId - The ID of the conversation.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @returns {import('mongoose').Query<ConversationSummaryDocument | null, ConversationSummaryDocument>}
  *          A Mongoose query that resolves to the most recent active conversation summary, or null if not found.
  */
 conversationSummarySchema.statics.findActiveForConversation = function (
+  workspaceId,
   conversationId,
   userId
 ) {
+  // VULNERABILITY FIX: All data access must be scoped by workspaceId to prevent IDOR vulnerabilities and data leakage between tenants.
   return this.findOne({
+    workspaceId,
     conversationId,
     userId,
     status: 'active',
@@ -301,19 +312,23 @@ conversationSummarySchema.statics.findActiveForConversation = function (
 };
 
 /**
- * Static method to retrieve all conversation summaries for a specific conversation and user.
+ * Static method to retrieve all conversation summaries for a specific conversation and user within a specific workspace.
  * Summaries are sorted by their message range start index in ascending order.
  *
+ * @param {string} workspaceId - The ID of the workspace to scope the search.
  * @param {string} conversationId - The ID of the conversation.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @returns {import('mongoose').Query<ConversationSummaryDocument[], ConversationSummaryDocument>}
  *          A Mongoose query that resolves to an array of all conversation summaries for the given conversation and user.
  */
 conversationSummarySchema.statics.getAllForConversation = function (
+  workspaceId,
   conversationId,
   userId
 ) {
+  // VULNERABILITY FIX: All data access must be scoped by workspaceId to prevent data leakage between tenants.
   return this.find({
+    workspaceId,
     conversationId,
     userId,
   }).sort({ 'messageRange.startIndex': 1 });
@@ -372,8 +387,8 @@ conversationSummarySchema.statics.getWorkspaceUsageMetrics = function (
 
 /**
  * @typedef {import('mongoose').Model<ConversationSummaryDocument, {}, {
- *   findActiveForConversation(conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument | null, ConversationSummaryDocument>;
- *   getAllForConversation(conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument[], ConversationSummaryDocument>;
+ *   findActiveForConversation(workspaceId: string, conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument | null, ConversationSummaryDocument>;
+ *   getAllForConversation(workspaceId: string, conversationId: string, userId: string): import('mongoose').Query<ConversationSummaryDocument[], ConversationSummaryDocument>;
  *   getWorkspaceUsageMetrics(workspaceId: string, startDate?: Date, endDate?: Date): Promise<[{totalSummaries: number, totalTokenCount: number}] | []>;
  * }>} ConversationSummaryModel
  */
