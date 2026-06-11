@@ -1,3 +1,5 @@
+import { Storage } from '@google-cloud/storage';
+import { v4 as uuidv4 } from 'uuid';
 import { generateImageUsingVertexAI } from '../googleService.js';
 import {
   generateClarifyingQuestions,
@@ -207,15 +209,16 @@ export const compileFinalPromptNode = async (state) => {
 };
 
 /**
- * Node: Calls the image generation service.
- * This node sends the `finalPrompt` to the `generateImageUsingVertexAI` service
- * and handles the response, including potential errors and the generated image URL.
+ * Node: Calls the image generation service and uploads the result to GCS.
+ * This node sends the `finalPrompt` to the `generateImageUsingVertexAI` service,
+ * receives the image data as a buffer, streams it directly to a GCS bucket,
+ * and generates a signed URL for temporary access.
  *
  * @param {ImageAssistantState} state - The current state of the conversation.
  * @param {string} state.finalPrompt - The final compiled prompt for image generation.
  * @param {ConversationHistoryEntry[]} state.conversationHistory - The current conversation history.
  * @returns {Promise<ImageAssistantState>} An object containing the updated state.
- * @returns {string|null} returns.imageUrl - The URL of the generated image, or `null` if generation failed.
+ * @returns {string|null} returns.imageUrl - The GCS signed URL of the generated image, or `null` if generation failed.
  * @returns {string} returns.responseMessage - A message indicating the success or failure of image generation.
  * @returns {ConversationHistoryEntry[]} returns.conversationHistory - The updated conversation history.
  */
@@ -225,17 +228,61 @@ export const generateImageNode = async (state) => {
   let imageUrl = null;
   let responseMessage;
 
-  try {
-    imageUrl = await generateImageUsingVertexAI(finalPrompt);
+  // GCS configuration - ensure GCS_IMAGE_BUCKET is set in your environment
+  const bucketName = process.env.GCS_IMAGE_BUCKET;
+  if (!bucketName) {
+    console.error('GCS_IMAGE_BUCKET environment variable not set.');
+    responseMessage = 'Sorry, the image storage is not configured correctly. Please contact support.';
+    const newHistoryEntry = { type: 'ai', message: responseMessage };
+    return {
+      imageUrl: null,
+      responseMessage,
+      conversationHistory: [...conversationHistory, newHistoryEntry],
+    };
+  }
 
-    if (!imageUrl) {
-      responseMessage = 'Sorry, I encountered an error while generating the image. Please try again.';
+  const storage = new Storage();
+  const bucket = storage.bucket(bucketName);
+
+  try {
+    // Step 1: Generate the image. Assume this function now returns the image data as a Buffer.
+    const imageBuffer = await generateImageUsingVertexAI(finalPrompt);
+
+    if (!imageBuffer || imageBuffer.length === 0) {
+      responseMessage = 'Sorry, I received no data from the image generation service. Please try again.';
     } else {
+      // Step 2: Stream the image buffer directly to Google Cloud Storage.
+      // This avoids saving the file to the local ephemeral filesystem.
+      const fileName = `generated-images/${uuidv4()}.png`; // Create a unique filename
+      const file = bucket.file(fileName);
+
+      await new Promise((resolve, reject) => {
+        const stream = file.createWriteStream({
+          resumable: false,
+          contentType: 'image/png', // Set the appropriate MIME type for the image
+        });
+        stream.on('error', (err) => {
+          console.error('GCS Stream Error:', err);
+          reject(err);
+        });
+        stream.on('finish', () => {
+          resolve();
+        });
+        stream.end(imageBuffer);
+      });
+
+      // Step 3: Generate a signed URL for temporary, secure access to the uploaded image.
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 15 * 60 * 1000, // URL is valid for 15 minutes
+      });
+      
+      imageUrl = signedUrl;
       responseMessage = "Here is your generated image! Let me know if you'd like to create another one.";
     }
   } catch (error) {
     console.error('Error in generateImageNode:', error);
-    responseMessage = 'Sorry, I encountered an unexpected error while generating the image. Please try again.';
+    responseMessage = 'Sorry, I encountered an unexpected error while generating or saving the image. Please try again.';
   }
 
   const newHistoryEntry = { type: 'ai', message: responseMessage };
