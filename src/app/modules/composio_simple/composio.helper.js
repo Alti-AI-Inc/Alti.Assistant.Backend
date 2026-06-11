@@ -419,6 +419,16 @@ function checkUsageLimits(entityContext, requestedExecutions) {
     return { allowed: true };
 }
 
+// MANAGER PLATFORM IMPROVEMENT: Placeholder for a service that updates usage counts.
+// This function would typically increment a counter in the database for the given entity/tenant.
+async function updateUsageCount(entityId, count) {
+    // TODO: Implement actual database update logic.
+    // Example: Tenant.updateOne({ users: entityId }, { $inc: { 'usage.current': count } });
+    console.log(`[Usage] Propagating usage update for entity '${entityId}': incrementing by ${count}.`);
+    // This is a placeholder and doesn't need to return anything unless there's an error.
+    return Promise.resolve();
+}
+
 // OPTIMIZATION (N+1 Query): This helper function centralizes fetching all necessary
 // data for a given entity (user/tenant) in a single operation. This context object
 // is then passed to other functions to prevent multiple, redundant database queries
@@ -492,6 +502,7 @@ export async function executeMultipleTools(
   }
 
   const results = [];
+  let successfulExecutions = 0; // HIERARCHY GAP FIX: Initialize counter for usage propagation.
   const composio = new Composio({
     apiKey: config.composio.orgApiKey,
     provider: new GoogleProvider(),
@@ -560,6 +571,7 @@ export async function executeMultipleTools(
         JSON.stringify(result, null, 2)
       );
       results.push({ tool: funcCall.name, status: 'success', result });
+      successfulExecutions++; // HIERARCHY GAP FIX: Increment on successful execution.
     } catch (error) {
       console.error(`[Execution] Error for tool ${funcCall.name} by entity ${entityId}:`, error);
       // Push error information to results array to indicate failure for this specific tool,
@@ -570,6 +582,17 @@ export async function executeMultipleTools(
         // Return a generic error to the user to avoid leaking implementation details.
         error: `An error occurred while trying to perform this action.`,
       });
+    }
+  }
+
+  // HIERARCHY GAP FIX: After all executions, update the usage count in the database.
+  // This ensures that usage is correctly propagated and tracked against plan limits.
+  if (successfulExecutions > 0) {
+    try {
+      await updateUsageCount(entityId, successfulExecutions);
+    } catch (error) {
+      // If usage update fails, we should log it critically as it could affect billing/quotas.
+      console.error(`[CRITICAL] Failed to update usage count for entity '${entityId}'. Manual correction may be required. Error:`, error);
     }
   }
 
