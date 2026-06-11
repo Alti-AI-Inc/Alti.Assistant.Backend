@@ -1,4 +1,4 @@
-// Enterprise Dependency Agent: The 'axios' package is used. To mitigate security vulnerabilities (e.g., CVE-2023-45857), ensure the version is updated to 1.6.8 or later in your package.json.
+// Enterprise Dependency Agent: The 'axios' package is used. To mitigate security vulnerabilities (e.g., CVE-2023-45857), ensure the version is updated to 1.7.2 or later in your package.json.
 import axios from 'axios';
 import { logger } from '../../../shared/logger.js';
 
