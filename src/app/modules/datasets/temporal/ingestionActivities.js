@@ -34,7 +34,6 @@ import { DatasetsCrawlerService } from '../datasetsCrawler.service.js';
 import { DatasetsService } from '../datasets.service.js';
 import Dataset from '../datasets.model.js';
 import DatasetQueue from '../datasetQueue.model.js';
-// --- IMPROVEMENT: Import Workspace model to enforce subscription and usage limits ---
 import Workspace from '../../workspaces/workspace.model.js';
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
@@ -83,6 +82,7 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
     throw new Error('FATAL: Workspace ID is required to perform dataset ingestion.');
   }
 
+  // --- PERFORMANCE: This query is complex and fetches the whole object. Ensure indexes exist on subscription.status for faster checks if needed. ---
   const workspace = await Workspace.findById(workspaceId);
   if (!workspace) {
     throw new Error(`Workspace with ID ${workspaceId} not found.`);
@@ -93,10 +93,6 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
     throw new Error(`Workspace ${workspaceId} does not have an active subscription. Ingestion denied.`);
   }
 
-  // --- BUG FIX: The original code checked the dataset count limit here, which was flawed.
-  // It created a race condition (TOCTOU) and incorrectly checked the limit even for re-ingestions.
-  // The check is now moved to happen only if the dataset is determined to be new.
-
   try {
     const info = await DatasetsService.getHFDatasetInfo(datasetId);
     // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
@@ -104,8 +100,8 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
     const isNewDataset = !dataset; // Determine if this is a new ingestion.
 
     if (isNewDataset) {
-      // --- FIX: For new datasets, check the count limit BEFORE proceeding to prevent TOCTOU race conditions. ---
-      // --- PERFORMANCE: Ensure an index exists on { 'workspace': 1 } in the 'datasets' collection for this query.
+      // --- BUG FIX: For new datasets, check the count limit BEFORE proceeding to prevent TOCTOU race conditions. ---
+      // --- PERFORMANCE: Ensure an index exists on { 'workspace': 1 } in the 'datasets' collection for this query. ---
       const currentDatasetCount = await Dataset.countDocuments({ workspace: workspaceId });
       const maxDatasets = workspace.plan?.limits?.maxDatasets ?? 5;
       if (currentDatasetCount >= maxDatasets) {
@@ -123,7 +119,7 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
         configs: info.configs,
         splits: info.splits,
         status: 'pending',
-        workspace: workspaceId, // Associate dataset with the workspace
+        workspace: workspaceId,
       });
     } else {
       // Reset status for re-ingestion attempts
@@ -140,13 +136,13 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
     dataset.status = 'archived';
     await dataset.save();
 
-    // --- BUG FIX & IMPROVEMENT: Atomically update workspace usage statistics. ---
-    // The original implementation used a non-atomic read-modify-write pattern (workspace.save()),
+    // --- BUG FIX & PERFORMANCE: Atomically update workspace usage statistics. ---
+    // The original implementation used a non-atomic read-modify-write pattern,
     // which is vulnerable to race conditions and could lead to incorrect usage stats.
-    // This also fixes a bug where the dataset count was incremented even on re-ingestion.
     const storageBytesToAdd = dataset.sizeBytes ?? 0;
     
-    // Fetch a fresh copy of the workspace to get the most up-to-date usage for the storage limit check.
+    // Fetch a fresh copy of the workspace to get the most up-to-date usage for the storage limit check, preventing race conditions.
+    // --- PERFORMANCE: Use .lean() for this read-only query to improve speed. ---
     const freshWorkspace = await Workspace.findById(workspaceId, 'usage plan').lean();
     const currentStorageBytes = freshWorkspace.usage?.storageBytes ?? 0;
     const maxStorageBytes = freshWorkspace.plan?.limits?.maxStorageBytes ?? 10737418240; // 10GB default
@@ -201,7 +197,6 @@ export async function downloadAndArchiveActivity(datasetId, workspaceId) {
 export async function indexRAGActivity(datasetId, workspaceId) {
   logger.info(`[Temporal Activity] Indexing dataset into pgvector RAG: ${datasetId} for Workspace: ${workspaceId}`);
   try {
-    // --- IMPROVEMENT: Query dataset with workspaceId to ensure data tenancy ---
     // --- PERFORMANCE: Ensure a compound index exists on { 'workspace': 1, 'datasetId': 1 } in the 'datasets' collection. ---
     const dataset = await Dataset.findOne({ datasetId, workspace: workspaceId });
     if (!dataset) {
@@ -209,7 +204,7 @@ export async function indexRAGActivity(datasetId, workspaceId) {
     }
     
     // --- PERFORMANCE: Use .lean() for read-only queries to bypass Mongoose document hydration, improving speed. ---
-    // A lightweight check to ensure the workspace is still active before compute-intensive indexing
+    // A lightweight check to ensure the workspace is still active before compute-intensive indexing.
     const workspace = await Workspace.findById(workspaceId, 'subscription.status').lean();
     if (workspace?.subscription?.status !== 'active') {
         throw new Error(`Workspace ${workspaceId} subscription is no longer active. Indexing aborted.`);
@@ -302,17 +297,16 @@ export async function purgeCorruptDatasetActivity(datasetId, workspaceId) {
       dataset.sizeBytes = 0;
       await dataset.save();
 
-      // --- IMPROVEMENT & PERFORMANCE: Roll back workspace usage stats to maintain accurate limits/billing. ---
-      // The findById check is removed as updateOne is atomic and will safely do nothing if the workspace doesn't exist, saving a DB query.
+      // --- BUG FIX & PERFORMANCE: Roll back workspace usage stats to maintain accurate limits/billing. ---
       if (workspaceId && wasSuccessfullyArchived) {
-        logger.info(`[Temporal Saga] Attempting to roll back usage stats for workspace ${workspaceId}.`);
-        // Use $inc to prevent race conditions. This is an atomic operation.
-        // Note: We only decrement datasetCount if it was a new dataset. However, the logic to determine
-        // 'newness' is in the 'download' activity. The simplest robust approach is to decrement if stats were added.
-        // The current logic correctly decrements both storage and count.
+        logger.info(`[Temporal Saga] Rolling back usage stats for workspace ${workspaceId}.`);
+        // Use atomic $inc to prevent race conditions.
+        // A failed ingestion still results in a 'failed' dataset entry, which consumes a dataset slot.
+        // Therefore, we only roll back the storage bytes. The user must explicitly delete the
+        // failed dataset record to free up the slot and decrement the dataset count.
+        // This fixes a bug where the count was incorrectly decremented on failed re-ingestions.
         await Workspace.updateOne({ _id: workspaceId }, {
           $inc: {
-            'usage.datasetCount': -1,
             'usage.storageBytes': -storageBytesToReclaim
           }
         });
