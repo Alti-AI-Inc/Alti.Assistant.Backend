@@ -4,11 +4,38 @@
  * and document analysis.
  *
  * @module modules/swarm/agents/data.agents
+ *
+ * @important PII & Data Privacy: The logic that uses these agent configurations
+ * MUST implement robust PII detection and masking (e.g., using the DLP API or custom logic)
+ * on all user-generated content BEFORE it is sent to the Vertex AI models.
+ * Do not send raw user data containing names, emails, addresses, or other sensitive information.
  */
 
 /**
  * High-Performance Data Processing and Database Specialists
  */
+
+// Default safety settings for all Vertex AI model requests.
+// These settings block content with a medium or higher probability of being harmful.
+// Categories include Hate Speech, Harassment, Sexually Explicit, and Dangerous Content.
+const defaultSafetySettings = [
+  {
+    category: 'HARM_CATEGORY_HATE_SPEECH',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_HARASSMENT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+  {
+    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+];
 
 /**
  * Represents the configuration for a specialized AI agent.
@@ -17,8 +44,9 @@
  * @property {string} name - The display name of the agent.
  * @property {string} description - A brief summary of the agent's capabilities.
  * @property {string} systemInstruction - The detailed system prompt defining the agent's persona, rules, and objectives.
- * @property {string} model - The identifier for the underlying AI model (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The identifier for the underlying AI model (e.g., 'gemini-1.5-flash-001').
  * @property {Array<object>} tools - A list of tools the agent is equipped with.
+ * @property {Array<object>} safetySettings - Configuration for content safety filtering.
  * @property {Array<string>} keywords - Keywords used for agent discovery, routing, and suggestion.
  */
 
@@ -40,8 +68,9 @@ CRITICAL LAWS:
 3. CONVERSION FLUIDITY: Convert seamlessly between formats (e.g. JSON to CSV, XML to JSON) while validating schema bounds.
 4. METRIC PRESERVATION: Retain all precision keys, timestamp offsets, and database identifiers exactly as they appear in the source payload.
 5. NO FLUFF: Start your response directly with the restructured data block or analytics summary.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: [
     'process data', 'parse json', 'csv converter', 'data schema', 'format data',
     'database table', 'json to csv', 'csv to json', 'xml parser', 'nested data'
@@ -60,8 +89,9 @@ export const dataEtlSynthesizer = {
   systemInstruction: `You are a Master Data ETL & Formatting Engineer. 
 Convert complex, nested JSON data to flat CSV arrays, align structural database tables, validate syntax schemas, and construct clean, parsing-compliant output profiles.
 Always output valid, clean data structures.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: ['json parser', 'csv converter', 'data conversion', 'etl', 'format data', 'schema validation', 'parse json', 'flat array']
 };
 
@@ -77,8 +107,9 @@ export const dbOptimizer = {
   systemInstruction: `You are an Elite Database Performance Specialist. 
 Optimize query performance, design indexing strategies (B-Tree, GIN, Hash), rewrite slow SQL joins, analyze query EXPLAIN logs, and design high-scale PostgreSQL/MySQL/MongoDB schemas.
 Provide clear explanation of indexing and write optimizations.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: ['explain analyze', 'indexing', 'query optimization', 'sql tuning', 'postgres tuning', 'database index', 'slow query', 'nosql schema']
 };
 
@@ -94,8 +125,9 @@ export const postgresDba = {
   systemInstruction: `You are a Senior PostgreSQL DBA. 
 Provide advanced configurations for high-availability database clustering (Patroni, repmgr), logical and physical replication protocols, autovacuum maintenance tuning, and PgBouncer connection pool setups.
 Focus on enterprise-grade failover and reliability.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: ['postgres dba', 'repmgr', 'patroni', 'pgbouncer', 'autovacuum', 'replication', 'failover', 'clustering', 'db tuning']
 };
 
@@ -111,8 +143,9 @@ export const pdfIngestionAnalyst = {
   systemInstruction: `You are an elite Document Ingestion and Data Parsing Specialist. 
 Analyze uploaded document contents, extract key structured clauses, map table schemas into clean markdown tables, and identify hidden document metadata.
 Highlight crucial legal, financial, or architectural data points with zero omission.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: ['read pdf', 'parse document', 'extract from file', 'pdf tables', 'document metadata', 'analyze report']
 };
 
@@ -128,8 +161,9 @@ export const realEstateAdvisor = {
   systemInstruction: `You are a Commercial Real Estate Broker & Investment Analyst. 
 Analyze and compare property deals, compute cap rates, cash-on-cash ROI metrics, and audit commercial/residential lease agreements for potential tenant risk clauses.
 Provide structured calculations and warnings.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: ['real estate', 'cap rate calculation', 'lease agreement review', 'property analysis', 'roi calculation property', 'mortgage advisor']
 };
 
@@ -152,8 +186,9 @@ CRITICAL LAWS:
 3. EXPLAIN ANALYZE DRY-RUN: Proactively analyze theoretical execution plans and recommend compound indexing, clustering, or partitioning splits.
 4. SYNTAX COMPLIANCE: Present DDL configurations (PostgreSQL, MySQL, Spanner, or BigQuery dialects) in clean, syntactically correct markdown blocks.
 5. NO FLUFF: Start your response directly with the entity-relationship outline or DDL script.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: [
     'ddl generation', 'schema design', 'entity relationship', 'table schema', 'foreign key constraint',
     'database modeling', 'sql schema', 'database partition', 'index strategy', 'erd diagram'
@@ -179,8 +214,9 @@ CRITICAL LAWS:
 3. TYPE SANITIZATION: Coerce stringified numbers, parse UTC ISO strings into clean database-ready formats, and normalize booleans.
 4. COPING WITH BAD SYNTAX: If the payload is incomplete, reconstruct the structural hierarchy logically using markdown annotations to flag reconstructed nodes.
 5. NO FLUFF: Start your response directly with the cleaned data structure or mapping matrix.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: [
     'clean data', 'sanitize payload', 'flatten json', 'parse csv record', 'null handling',
     'type coercion', 'normalize datetime', 'data scrubber', 'bad json fix', 'xml to csv'
@@ -208,8 +244,9 @@ CRITICAL LAWS:
 3. SYSTEM CONFIGURATION: You manage global environment variables, system-wide feature flags, and global LLM routing rules.
 4. GLOBAL LOGS & AUDITING: You analyze system-wide logs, audit trails, and performance metrics across all tenants to detect anomalies or abuse.
 5. SECURITY FIRST: Ensure all administrative actions are securely logged and comply with platform-level security policies.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-1.5-flash-001',
   tools: [],
+  safetySettings: defaultSafetySettings,
   keywords: [
     'platform owner', 'super admin', 'tenant suspension', 'unsuspend tenant', 'override limits',
     'global logs', 'system configuration', 'global statistics', 'manage tenants', 'system audit'

@@ -55,9 +55,10 @@ try {
  * The file is stored in a workspace- and user-specific folder within GCS to enforce multi-tenancy.
  *
  * @param {string} localFilePath - The local path to the file to be uploaded.
- * @param {object} userContext - The authenticated user's context, required for security and tenancy.
- * @param {string} userContext.userId - The ID of the user uploading the contract.
- * @param {string} userContext.workspaceId - The ID of the user's workspace to ensure tenant isolation.
+ * @param {object} actorContext - The authenticated user's context, required for security and tenancy.
+ * @param {string} actorContext.userId - The ID of the user uploading the contract.
+ * @param {string} actorContext.workspaceId - The ID of the user's workspace to ensure tenant isolation.
+ * @param {string} actorContext.role - The role of the user (for context, though not used for authorization here).
  * @param {object} [contractMetadata={}] - Optional metadata about the contract.
  * @param {string} [contractMetadata.contractType] - The type of the contract (e.g., 'NDA', 'MSA').
  * @param {string} [contractMetadata.conversationId] - The ID of the conversation associated with this upload.
@@ -67,14 +68,14 @@ try {
  */
 export const uploadContractToGCS = async (
   localFilePath,
-  userContext,
+  actorContext,
   contractMetadata = {}
 ) => {
-  // BUGFIX: Enforce user context for security and multi-tenancy.
-  // The userContext object, containing workspaceId and userId, must be provided from a trusted source (e.g., authenticated session).
+  // BUGFIX: Enforce actor context for security and multi-tenancy.
+  // The actorContext object, containing workspaceId and userId, must be provided from a trusted source (e.g., authenticated session).
   // This prevents IDOR vulnerabilities where a user could potentially specify another user's ID to upload files to their directory.
-  if (!userContext || !userContext.userId || !userContext.workspaceId) {
-    logger.error('uploadContractToGCS called without a valid userContext.');
+  if (!actorContext || !actorContext.userId || !actorContext.workspaceId) {
+    logger.error('uploadContractToGCS called without a valid actorContext.');
     // Throw an error instead of proceeding, as this is a critical security and integration failure.
     throw new Error('User context (userId, workspaceId) is required for file uploads.');
   }
@@ -92,8 +93,8 @@ export const uploadContractToGCS = async (
 
     // SECURITY: Use path.basename to prevent path traversal attacks from the local file path.
     const fileName = path.basename(localFilePath);
-    // HIERARCHY_GAP_FIX: Construct a multi-tenant destination path using both workspaceId and userId to ensure strict data isolation.
-    const destination = `${GCS_CONFIG.FOLDER_PREFIX}${userContext.workspaceId}/${userContext.userId}/${fileName}`;
+    // HIERARCHY_INTEGRATION: Construct a multi-tenant destination path using both workspaceId and userId to ensure strict data isolation.
+    const destination = `${GCS_CONFIG.FOLDER_PREFIX}${actorContext.workspaceId}/${actorContext.userId}/${fileName}`;
 
     logger.info(`Uploading contract to GCS: ${destination}`);
 
@@ -105,9 +106,9 @@ export const uploadContractToGCS = async (
         metadata: {
           contractType: contractMetadata.contractType || 'general',
           uploadedAt: new Date().toISOString(),
-          // Use the trusted userId and workspaceId from the userContext.
-          userId: userContext.userId,
-          workspaceId: userContext.workspaceId,
+          // Use the trusted userId and workspaceId from the actorContext.
+          userId: actorContext.userId,
+          workspaceId: actorContext.workspaceId,
           conversationId: contractMetadata.conversationId || '',
         },
       },
@@ -119,6 +120,8 @@ export const uploadContractToGCS = async (
 
     logger.info(`Contract uploaded successfully to GCS: ${destination}`);
 
+    // INTEGRATION_NOTE: The calling service is responsible for tracking usage, checking limits, and sending notifications
+    // based on the successful result of this function. This service only handles the file storage operation.
     return {
       success: true,
       gcsPath: `gs://${GCS_CONFIG.BUCKET_NAME}/${destination}`,
@@ -161,25 +164,41 @@ const getContentType = (fileName) => {
 
 /**
  * Deletes a contract file from Google Cloud Storage.
- * This function constructs the file path from trusted user context to prevent IDOR vulnerabilities.
+ * This function performs authorization checks based on user roles to support hierarchical management.
+ * A user can delete their own file. An 'admin', 'manager', or 'super_admin' can delete any file within their workspace.
  *
- * @param {object} userContext - The authenticated user's context, required for security and tenancy.
- * @param {string} userContext.userId - The ID of the user who owns the file.
- * @param {string} userContext.workspaceId - The ID of the user's workspace.
+ * @param {object} actorContext - The authenticated user's context, required for security and authorization.
+ * @param {string} actorContext.userId - The ID of the user performing the action.
+ * @param {string} actorContext.workspaceId - The ID of the user's workspace.
+ * @param {string} actorContext.role - The role of the user (e.g., 'user', 'manager', 'admin', 'super_admin').
  * @param {string} fileName - The name of the file to delete (e.g., 'contract.pdf').
+ * @param {string|null} [targetUserId=null] - The ID of the user who owns the file. If not provided, it's assumed the actor is deleting their own file.
  * @returns {Promise<{success: boolean, message: string}>} A promise that resolves to an object indicating the result of the deletion.
  */
-export const deleteContractFromGCS = async (userContext, fileName) => {
-  // BUGFIX: Enforce user context and require a fileName instead of a full GCS path.
-  // This prevents IDOR vulnerabilities where a user could craft a request to delete arbitrary files
-  // by providing a path to a file outside of their own directory.
-  if (!userContext || !userContext.userId || !userContext.workspaceId) {
-    logger.error('deleteContractFromGCS called without a valid userContext.');
-    return { success: false, message: 'User context (userId, workspaceId) is required for file deletion.' };
+export const deleteContractFromGCS = async (actorContext, fileName, targetUserId = null) => {
+  // INTEGRATION_FIX: Enforce actorContext, including role, for all delete operations.
+  // This prevents IDOR and ensures that only authorized users can perform deletion.
+  if (!actorContext || !actorContext.userId || !actorContext.workspaceId || !actorContext.role) {
+    logger.error('deleteContractFromGCS called without a valid actorContext.');
+    return { success: false, message: 'User context (userId, workspaceId, role) is required for file deletion.' };
   }
   if (!fileName) {
     logger.error('deleteContractFromGCS called without a fileName.');
     return { success: false, message: 'File name is required for deletion.' };
+  }
+
+  const fileOwnerId = targetUserId || actorContext.userId;
+
+  // HIERARCHY_GAP_FIX: Implement role-based authorization for deletion.
+  // A user can only delete their own files. Admins, managers, and super_admins can delete files owned by other users in their workspace.
+  if (fileOwnerId !== actorContext.userId) {
+    if (!['admin', 'manager', 'super_admin'].includes(actorContext.role)) {
+      logger.warn(`Authorization Denied: User ${actorContext.userId} (role: ${actorContext.role}) attempted to delete file '${fileName}' for user ${fileOwnerId}.`);
+      return { success: false, message: 'You do not have permission to delete files for other users.' };
+    }
+    // A higher-level service should have already verified that targetUserId belongs to the actor's workspace.
+    // This service enforces the check at the storage access layer.
+    logger.info(`Privileged Deletion: User ${actorContext.userId} (role: ${actorContext.role}) is deleting file '${fileName}' for user ${fileOwnerId}.`);
   }
 
   try {
@@ -188,11 +207,11 @@ export const deleteContractFromGCS = async (userContext, fileName) => {
       return { success: false, message: 'GCS not configured' };
     }
 
-    // HIERARCHY_GAP_FIX: Construct the full, tenant-isolated path from trusted context.
-    // This ensures a user can only attempt to delete files within their own designated folder.
+    // Construct the full, tenant-isolated path using the file owner's ID and the actor's workspace.
+    // This ensures an admin from workspace A cannot delete a file in workspace B.
     // Use path.basename on the incoming fileName as an extra precaution against path traversal.
     const safeFileName = path.basename(fileName);
-    const filePath = `${GCS_CONFIG.FOLDER_PREFIX}${userContext.workspaceId}/${userContext.userId}/${safeFileName}`;
+    const filePath = `${GCS_CONFIG.FOLDER_PREFIX}${actorContext.workspaceId}/${fileOwnerId}/${safeFileName}`;
 
     await bucket.file(filePath).delete();
 
@@ -202,7 +221,7 @@ export const deleteContractFromGCS = async (userContext, fileName) => {
   } catch (error) {
     // GCS throws an error if the file doesn't exist, which might not be a critical failure.
     // For simplicity and to report other potential errors (like permissions), we'll report failure.
-    logger.error(`Error deleting contract from GCS (${userContext.workspaceId}/${userContext.userId}/${fileName}):`, error);
+    logger.error(`Error deleting contract from GCS (${actorContext.workspaceId}/${fileOwnerId}/${fileName}):`, error);
     return { success: false, message: `Failed to delete file from storage: ${error.message}` };
   }
 };

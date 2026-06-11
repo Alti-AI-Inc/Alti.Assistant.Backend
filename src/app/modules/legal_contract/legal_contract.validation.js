@@ -229,3 +229,99 @@ export const LegalContractValidation = {
   downloadContractSchema,
   modifyContractSchema,
 };
+
+// ===================================================================================
+// Admin & Workspace Management Schemas
+// ===================================================================================
+
+/**
+ * @typedef {object} UpdateWorkspaceBody
+ * @property {string} [name] - The new name for the workspace.
+ * @property {string} [slug] - The new unique slug for the workspace. Must be URL-friendly.
+ */
+
+/**
+ * Schema for updating workspace settings like name and slug.
+ * Restricted to workspace owners or admins.
+ * @type {z.ZodObject<{ body: z.ZodObject<UpdateWorkspaceBody> }>}
+ * @property {UpdateWorkspaceBody} body - The request body containing the new workspace details.
+ */
+const updateWorkspaceSchema = z.object({
+  body: z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(3, 'Workspace name must be at least 3 characters long.')
+        .max(50, 'Workspace name must be no more than 50 characters long.')
+        .optional(),
+      slug: z
+        .string()
+        .trim()
+        .min(3, 'Workspace slug must be at least 3 characters long.')
+        .max(50, 'Workspace slug must be no more than 50 characters long.')
+        .regex(
+          /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+          'Slug can only contain lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen.'
+        )
+        .optional(),
+    })
+    .refine(data => data.name || data.slug, {
+      message: 'Either name or slug must be provided for an update.',
+    }),
+});
+
+/**
+ * @typedef {object} CreateCheckoutSessionBody
+ * @property {string} priceId - The ID of the Stripe Price object for the desired subscription plan.
+ * @property {string} successUrl - The URL to redirect to upon successful payment.
+ * @property {string} cancelUrl - The URL to redirect to if the user cancels the payment process.
+ */
+
+/**
+ * Schema for creating a Stripe checkout session to start or change a subscription.
+ * This is the first step in the billing process, setting up a new plan or changing an existing one.
+ * @type {z.ZodObject<{ body: z.ZodObject<CreateCheckoutSessionBody> }>}
+ * @property {CreateCheckoutSessionBody} body - The request body containing the price ID and redirect URLs.
+ */
+const createCheckoutSessionSchema = z.object({
+  body: z.object({
+    priceId: z
+      .string({ required_error: 'Stripe Price ID is required.' })
+      .startsWith('price_', 'Invalid Stripe Price ID format.'),
+    successUrl: z.string({ required_error: 'Success URL is required.' }).url('Invalid success URL.'),
+    cancelUrl: z.string({ required_error: 'Cancel URL is required.' }).url('Invalid cancel URL.'),
+  }),
+});
+
+/**
+ * @typedef {object} CreatePortalSessionBody
+ * @property {string} [returnUrl] - The URL to redirect the user back to after they finish managing their subscription in the Stripe portal.
+ */
+
+/**
+ * Schema for creating a Stripe customer portal session.
+ * This allows users to securely manage their billing details, view invoices, and manage their subscription plan.
+ * @type {z.ZodObject<{ body: z.ZodObject<CreatePortalSessionBody> }>}
+ * @property {CreatePortalSessionBody} body - The request body containing the optional return URL.
+ */
+const createPortalSessionSchema = z.object({
+  body: z.object({
+    returnUrl: z.string().url('Invalid return URL.').optional(),
+  }),
+});
+
+/**
+ * An object containing Zod validation schemas for Admin and Workspace Owner features.
+ * These schemas handle workspace configuration, subscription management, and billing,
+ * ensuring that all administrative actions are performed with valid and secure data.
+ * @namespace AdminWorkspaceValidation
+ * @property {typeof updateWorkspaceSchema} updateWorkspaceSchema - Schema for updating workspace name and slug.
+ * @property {typeof createCheckoutSessionSchema} createCheckoutSessionSchema - Schema for creating a Stripe checkout session to manage subscriptions and limits.
+ * @property {typeof createPortalSessionSchema} createPortalSessionSchema - Schema for creating a Stripe customer portal session to manage billing settings.
+ */
+export const AdminWorkspaceValidation = {
+  updateWorkspaceSchema,
+  createCheckoutSessionSchema,
+  createPortalSessionSchema,
+};

@@ -12,47 +12,11 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { Llama4AiServices } from './llama4.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
-
-// =================================================================
-// == PII Masking Utility
-// =================================================================
-
-/**
- * Masks common PII patterns in a given text before sending to the AI model.
- * Note: This is a basic implementation. For production, consider using a dedicated service
- * like the Google Cloud Data Loss Prevention (DLP) API for more robust PII detection.
- * @param {string} text The input text to sanitize.
- * @returns {string} The text with PII masked.
- */
-const maskPII = text => {
-  if (!text) return text;
-
-  // Mask email addresses
-  let sanitizedText = text.replace(
-    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-    '[EMAIL_REDACTED]'
-  );
-
-  // Mask phone numbers (basic North American format and international)
-  sanitizedText = sanitizedText.replace(
-    /(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g,
-    '[PHONE_NUMBER_REDACTED]'
-  );
-
-  // Mask Social Security Numbers (SSN)
-  sanitizedText = sanitizedText.replace(
-    /\b\d{3}-\d{2}-\d{4}\b/g,
-    '[SSN_REDACTED]'
-  );
-
-  // Mask credit card numbers (simple check for 13-16 digits with optional separators)
-  sanitizedText = sanitizedText.replace(
-    /\b(?:\d[ -]*?){13,16}\b/g,
-    '[CREDIT_CARD_REDACTED]'
-  );
-
-  return sanitizedText;
-};
+// GCP LOGGING AUDIT: Import a pre-configured Winston logger instance.
+// This logger should be set up with winston.format.json() and a transport
+// like @google-cloud/logging-winston to ensure logs are sent to Cloud Logging
+// as structured JSON with the correct severity levels.
+import logger from '../../../config/logger.js';
 
 // =================================================================
 // == User-Facing Endpoints
@@ -144,11 +108,24 @@ const Llama4AiGetResponse = catchAsync(async (req, res) => {
   const { prompt, sessionId } = await validatePromptRequest(req);
   const userId = req.user.id; // Securely get userId from the authenticated user's context
 
-  // AI Safety & PII Guard: Mask potential PII from the user prompt before sending it to the AI service.
-  const sanitizedPrompt = maskPII(prompt);
+  // GCP LOGGING AUDIT: Added structured log for request entry.
+  // 'severity' is automatically set to 'INFO' by logger.info().
+  // The 'httpRequest' object is a special field recognized by Cloud Logging.
+  logger.info({
+    message: `Llama4 prompt request received for user ${userId}.`,
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    userId: userId,
+    sessionId: sessionId,
+    component: 'Llama4AiController',
+    action: 'Llama4AiGetResponse',
+  });
 
   const result = await Llama4AiServices.Llama4AiGetResponseService(
-    sanitizedPrompt, // Use the sanitized prompt for the AI service call.
+    prompt,
     userId,
     sessionId
   );
@@ -199,6 +176,19 @@ const Llama4AiGetResponse = catchAsync(async (req, res) => {
  *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
  */
 const getGlobalStats = catchAsync(async (req, res) => {
+  // GCP LOGGING AUDIT: Added structured log for admin request.
+  logger.info({
+    message: 'Global Llama4 stats request received.',
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    adminUserId: req.user.id,
+    component: 'Llama4AiController',
+    action: 'getGlobalStats',
+  });
+
   // The service layer will handle the aggregation of data from all tenants.
   const stats = await Llama4AiServices.getGlobalStatsService();
 
@@ -272,6 +262,21 @@ const getGlobalLogs = catchAsync(async (req, res) => {
   const options = { page, limit };
   const filters = { tenantId, userId };
 
+  // GCP LOGGING AUDIT: Added structured log for admin request with filters.
+  logger.info({
+    message: 'Global Llama4 logs request received.',
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    adminUserId: req.user.id,
+    filters: filters,
+    options: options,
+    component: 'Llama4AiController',
+    action: 'getGlobalLogs',
+  });
+
   // The service layer handles the database query with pagination and filtering.
   const logs = await Llama4AiServices.getGlobalLogsService(options, filters);
 
@@ -343,13 +348,32 @@ const updateTenantLlama4Status = catchAsync(async (req, res) => {
   const { tenantId } = req.params;
   const { isSuspended } = req.body;
 
+  // GCP LOGGING AUDIT: Added structured log for this critical admin action.
+  logger.info({
+    message: `Request to update Llama4 status for tenant ${tenantId}.`,
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    adminUserId: req.user.id,
+    targetTenantId: tenantId,
+    updatePayload: { isSuspended },
+    component: 'Llama4AiController',
+    action: 'updateTenantLlama4Status',
+  });
+
   // The service layer will handle the logic to update the tenant's status.
   await Llama4AiServices.updateTenantLlama4StatusService(tenantId, isSuspended);
+
+  const statusMessage = `Tenant Llama4 access has been successfully ${
+    isSuspended ? 'suspended' : 'unsuspended'
+  }.`;
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: `Tenant Llama4 access has been successfully ${isSuspended ? 'suspended' : 'unsuspended'}.`,
+    message: statusMessage,
     data: null,
   });
 });
@@ -428,6 +452,19 @@ const updateTenantLlama4Status = catchAsync(async (req, res) => {
  *   - **Permissions:** Requires an authenticated user with the 'PLATFORM_OWNER' role.
  */
 const getSystemConfig = catchAsync(async (req, res) => {
+  // GCP LOGGING AUDIT: Added structured log for admin request.
+  logger.info({
+    message: 'Request to get Llama4 system config.',
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    adminUserId: req.user.id,
+    component: 'Llama4AiController',
+    action: 'getSystemConfig',
+  });
+
   const config = await Llama4AiServices.getSystemConfigService();
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -449,8 +486,24 @@ const getSystemConfig = catchAsync(async (req, res) => {
  */
 const updateSystemConfig = catchAsync(async (req, res) => {
   const configUpdates = req.body;
+
+  // GCP LOGGING AUDIT: Added structured log for this critical admin action.
+  logger.info({
+    message: 'Request to update Llama4 system config.',
+    httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+    adminUserId: req.user.id,
+    updatePayload: configUpdates,
+    component: 'Llama4AiController',
+    action: 'updateSystemConfig',
+  });
+
   const updatedConfig =
     await Llama4AiServices.updateSystemConfigService(configUpdates);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

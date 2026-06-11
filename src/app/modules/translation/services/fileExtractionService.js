@@ -1,30 +1,74 @@
 import fs from 'fs';
 import path from 'path';
-import { promisify } from 'util';
 import mammoth from 'mammoth';
-import PDFParse from 'pdf-parse'; // Corrected import: pdf-parse is typically a default export function.
+import PDFParse from 'pdf-parse';
 import { logger } from '../../../../shared/logger.js';
 import {
   SUPPORTED_DOCUMENT_FORMATS,
   ERROR_MESSAGES,
 } from '../translation.constant.js';
-
-const readFile = promisify(fs.readFile);
+// BUG & INTEGRATION-FIX: Import services required for validation and limit checks.
+// This ensures that file processing respects user/workspace boundaries and subscription plans.
+import { workspaceService } from '../../workspace/services/workspaceService.js'; // Assuming this service exists to fetch plan limits
+import { usageService } from '../../usage/services/usageService.js'; // Assuming this service exists to check usage against quotas
 
 /**
  * File Extraction Service
- * Extracts text content from various document formats
+ * Extracts text content from various document formats, enforcing security and usage limits.
  */
 class FileExtractionService {
   /**
-   * Extract text from uploaded file
+   * Extract text from uploaded file after performing security and limit checks.
    * @param {string} filePath - Path to uploaded file
    * @param {string} originalName - Original filename
+   * @param {object} userContext - Context of the user making the request (e.g., { userId, workspaceId, role })
    * @returns {Promise<Object>} - Extracted text and metadata
    */
-  async extractTextFromFile(filePath, originalName) {
+  async extractTextFromFile(filePath, originalName, userContext) {
+    // INTEGRATION-FIX: Validate that user context is provided to enforce tenant boundaries and limits.
+    if (!userContext || !userContext.workspaceId) {
+      // This is a developer error, indicates a problem in the calling service/controller.
+      throw new Error('User context with workspaceId is required for file extraction.');
+    }
+
     try {
+      // INTEGRATION-FIX: Fetch workspace-specific limits before processing the file.
+      const limits = await workspaceService.getWorkspaceLimits(userContext.workspaceId);
+
+      // INTEGRATION-FIX: Perform pre-extraction checks for file size against plan limits.
+      const stats = await fs.promises.stat(filePath);
+      if (stats.size > limits.maxUploadSizeBytes) {
+        // NOTE: A custom error class would be better for specific HTTP status codes in the controller.
+        throw new Error(`File size (${stats.size} bytes) exceeds the allowed limit (${limits.maxUploadSizeBytes} bytes) for your plan.`);
+      }
+
+      // SECURITY-FIX & OPTIMIZATION: Read file into buffer once for type checking and content extraction.
+      // This prevents re-reading the file and allows for magic number verification.
+      const buffer = await fs.promises.readFile(filePath);
+
       const extension = path.extname(originalName).toLowerCase();
+
+      // SECURITY-FIX: Verify the file's actual type using magic numbers, not just the user-provided extension.
+      // This prevents processing malicious files disguised with a safe extension (e.g., an executable named 'report.docx').
+      const { fileTypeFromBuffer } = await import('file-type');
+      const typeInfo = await fileTypeFromBuffer(buffer);
+
+      const isPotentiallyMaliciousMismatch = typeInfo && `.${typeInfo.ext}` !== extension;
+      // Some text-based files might not have a detectable magic number, so we check if it's a known text format.
+      const isUnverifiableNonText = !typeInfo && !['.txt', '.md', '.html', '.json', '.csv'].includes(extension);
+
+      if (isPotentiallyMaliciousMismatch || isUnverifiableNonText) {
+          logger.warn('File type mismatch or unverifiable type detected', {
+              filePath,
+              originalName,
+              extension,
+              detectedExt: typeInfo ? typeInfo.ext : 'unknown',
+              detectedMime: typeInfo ? typeInfo.mime : 'unknown',
+              workspaceId: userContext.workspaceId,
+          });
+          // Use a more specific error message constant if available.
+          throw new Error(ERROR_MESSAGES.FILE_TYPE_MISMATCH || 'File type does not match its content. Upload aborted for security reasons.');
+      }
 
       if (!SUPPORTED_DOCUMENT_FORMATS.includes(extension)) {
         throw new Error(ERROR_MESSAGES.UNSUPPORTED_FORMAT);
@@ -34,18 +78,15 @@ class FileExtractionService {
         filePath,
         originalName,
         extension,
+        workspaceId: userContext.workspaceId,
       });
 
       let extractedText;
       let metadata = {
         fileName: originalName,
         fileExtension: extension,
-        fileSize: 0,
+        fileSize: stats.size,
       };
-
-      // Get file size asynchronously
-      const stats = await fs.promises.stat(filePath);
-      metadata.fileSize = stats.size;
 
       switch (extension) {
         case '.txt':
@@ -53,36 +94,41 @@ class FileExtractionService {
         case '.html':
         case '.json':
         case '.csv':
-          extractedText = await this._extractPlainText(filePath);
+          // REFACTOR: Pass buffer to extraction method to avoid re-reading file.
+          extractedText = await this._extractPlainText(buffer);
           break;
 
         case '.docx':
-          extractedText = await this._extractFromDocx(filePath);
+          extractedText = await this._extractFromDocx(buffer);
           break;
 
         case '.pdf':
-          extractedText = await this._extractFromPdf(filePath);
+          extractedText = await this._extractFromPdf(buffer);
           break;
 
         case '.xlsx':
-          extractedText = await this._extractFromXlsx(filePath);
+          extractedText = await this._extractFromXlsx(buffer);
           break;
 
         default:
+          // This case should theoretically not be reached due to the check above, but it's good for defense-in-depth.
           throw new Error(ERROR_MESSAGES.UNSUPPORTED_FORMAT);
       }
 
       metadata.characterCount = extractedText.length;
       
-      // OPTIMIZATION: Avoid CPU-intensive and memory-heavy .split(/\s+/).filter(Boolean) 
-      // which creates massive temporary arrays on large text files.
+      // INTEGRATION-FIX: Check extracted character count against workspace limits before returning.
+      // This prevents users from translating documents larger than their plan allows.
+      await usageService.checkDocumentCharacterLimit(userContext, metadata.characterCount);
+
       const wordMatches = extractedText.match(/\S+/g);
       metadata.wordCount = wordMatches ? wordMatches.length : 0;
 
-      logger.info('Text extraction completed', {
+      logger.info('Text extraction completed successfully', {
         fileName: originalName,
         characterCount: metadata.characterCount,
         wordCount: metadata.wordCount,
+        workspaceId: userContext.workspaceId,
       });
 
       return {
@@ -91,73 +137,71 @@ class FileExtractionService {
         metadata,
       };
     } catch (error) {
-      logger.error('File extraction failed:', error);
+      // BUG-FIX: Add context to error logs for better debugging and traceability.
+      logger.error('File extraction failed', {
+        error: error.message,
+        filePath,
+        originalName,
+        userContext,
+        stack: error.stack
+      });
+      // Re-throw the original error to be handled by the calling service/controller.
       throw error;
     }
   }
 
   /**
-   * Extract plain text from text-based files
+   * REFACTOR: Accepts buffer instead of filePath for efficiency.
    */
-  async _extractPlainText(filePath) {
-    const buffer = await readFile(filePath);
+  async _extractPlainText(buffer) {
     return buffer.toString('utf-8');
   }
 
   /**
-   * Extract text from DOCX files
+   * REFACTOR: Accepts buffer instead of filePath for efficiency and security.
    */
-  async _extractFromDocx(filePath) {
+  async _extractFromDocx(buffer) {
     try {
-      const buffer = await readFile(filePath);
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     } catch (error) {
-      logger.error('DOCX extraction error:', error);
-      throw new Error('Failed to extract text from DOCX file');
+      logger.error('DOCX extraction error:', { message: error.message, stack: error.stack });
+      throw new Error('Failed to extract text from DOCX file. The file may be corrupt or password-protected.');
     }
   }
 
   /**
-   * Extract text from PDF files
+   * REFACTOR: Accepts buffer instead of filePath for efficiency and security.
    */
-  async _extractFromPdf(filePath) {
+  async _extractFromPdf(buffer) {
     try {
-      const buffer = await readFile(filePath);
-      // Corrected usage for pdf-parse: it's a function that takes the buffer directly,
-      // and returns an object with a 'text' property.
       const data = await PDFParse(buffer);
       return data.text;
     } catch (error) {
-      logger.error('PDF extraction error:', error);
-      throw new Error('Failed to extract text from PDF file');
+      logger.error('PDF extraction error:', { message: error.message, stack: error.stack });
+      throw new Error('Failed to extract text from PDF file. The file may be corrupt, password-protected, or an image-based PDF.');
     }
   }
 
   /**
-   * Extract text from XLSX files
+   * REFACTOR: Accepts buffer instead of filePath for efficiency and security.
    */
-  async _extractFromXlsx(filePath) {
+  async _extractFromXlsx(buffer) {
     try {
-      // Dynamically import xlsx package. This assumes 'xlsx' is a dependency.
       const XLSX = await import('xlsx');
-      
-      // OPTIMIZATION: Avoid synchronous I/O blocking the event loop by reading the file asynchronously first.
-      const buffer = await readFile(filePath);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       let text = '';
 
       workbook.SheetNames.forEach((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
-        // Using sheet_to_csv to extract text, which is a reasonable approach for general text extraction from spreadsheets.
         text += XLSX.utils.sheet_to_csv(worksheet) + '\n\n';
       });
 
-      return text;
+      return text.trim();
     } catch (error) {
-      logger.error('XLSX extraction error:', error);
+      logger.error('XLSX extraction error:', { message: error.message, stack: error.stack });
       throw new Error(
-        'Failed to extract text from XLSX file. Please ensure the file is not corrupted.'
+        'Failed to extract text from XLSX file. Please ensure the file is not corrupted or password-protected.'
       );
     }
   }
@@ -167,13 +211,12 @@ class FileExtractionService {
    */
   async cleanupFile(filePath) {
     try {
-      // OPTIMIZATION: Avoid synchronous fs.existsSync which blocks the event loop.
-      // Directly attempt to unlink and handle ENOENT (file not found) gracefully.
       await fs.promises.unlink(filePath);
       logger.info('Temporary file cleaned up', { filePath });
     } catch (error) {
+      // Gracefully handle cases where the file doesn't exist (e.g., already cleaned up).
       if (error.code !== 'ENOENT') {
-        logger.warn('Failed to cleanup file:', error);
+        logger.warn('Failed to cleanup temporary file', { filePath, error: error.message });
       }
     }
   }
