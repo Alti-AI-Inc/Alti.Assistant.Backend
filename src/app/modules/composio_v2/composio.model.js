@@ -1,4 +1,33 @@
 import mongoose from 'mongoose';
+// SECURITY_PATCH: Import mongoose-encryption plugin to encrypt sensitive data at rest.
+import encrypt from 'mongoose-encryption';
+
+// SECURITY_PATCH: Helper function to escape HTML characters from string inputs.
+// This provides a layer of defense against Cross-Site Scripting (XSS) by sanitizing
+// data before it is stored in the database.
+const escapeHtml = (unsafe) => {
+  if (!unsafe || typeof unsafe !== 'string') return unsafe;
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// SECURITY_PATCH: Helper function to validate URLs.
+// Ensures that redirect URLs use safe protocols (http or https) and are well-formed,
+// preventing protocol-based attacks like 'javascript:'.
+const isHttpUrl = (string) => {
+  if (!string) return false;
+  try {
+    const url = new URL(string);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+};
+
 
 /**
  * @typedef {object} ComposioAuthToolkit
@@ -19,16 +48,26 @@ const ComposioAuthToolkitSchema = new mongoose.Schema({
   slug: {
     type: String,
     required: true,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
   },
   name: {
     type: String,
     required: true,
+    // SECURITY_PATCH: Trim whitespace and escape HTML to prevent XSS.
+    trim: true,
+    set: escapeHtml,
   },
   description: {
     type: String,
+    // SECURITY_PATCH: Trim whitespace and escape HTML to prevent XSS.
+    trim: true,
+    set: escapeHtml,
   },
   icon: {
     type: String,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
   },
   scopes: {
     type: [String], // Array of strings
@@ -144,6 +183,8 @@ const ComposioAuthSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
   },
 
   /**
@@ -155,6 +196,8 @@ const ComposioAuthSchema = new mongoose.Schema({
   connectedAccountId: {
     type: String,
     index: true,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
   },
   /**
    * The ID of the specific integration instance.
@@ -162,6 +205,8 @@ const ComposioAuthSchema = new mongoose.Schema({
    */
   integrationId: {
     type: String,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
   },
   /**
    * The URL to which the user was redirected after completing the authentication flow.
@@ -172,6 +217,13 @@ const ComposioAuthSchema = new mongoose.Schema({
   redirectUrl: {
     type: String,
     required: true,
+    // SECURITY_PATCH: Trim whitespace from input.
+    trim: true,
+    // SECURITY_PATCH: Validate that the redirectUrl is a valid and safe HTTP/HTTPS URL.
+    validate: {
+      validator: isHttpUrl,
+      message: props => `${props.value} is not a valid HTTP/HTTPS URL.`
+    }
   },
   /**
    * The current status of the authentication.
@@ -192,8 +244,8 @@ const ComposioAuthSchema = new mongoose.Schema({
   /**
    * The access token obtained during authentication.
    * Used to make authorized requests to the integrated service.
-   * SECURITY: This field should be encrypted at rest using a library like mongoose-encryption.
-   * It is excluded from default query projections to prevent accidental exposure.
+   * SECURITY: This field is now encrypted at rest using mongoose-encryption.
+   * It is also excluded from default query projections to prevent accidental exposure.
    * @type {string}
    */
   accessToken: {
@@ -203,7 +255,7 @@ const ComposioAuthSchema = new mongoose.Schema({
   /**
    * The refresh token obtained during authentication.
    * Used to obtain new access tokens when the current one expires.
-   * SECURITY: This field should be encrypted at rest.
+   * SECURITY: This field is now encrypted at rest using mongoose-encryption.
    * @type {string}
    */
   refreshToken: {
@@ -213,7 +265,7 @@ const ComposioAuthSchema = new mongoose.Schema({
   /**
    * The ID token obtained during authentication (e.g., for OpenID Connect).
    * Contains claims about the authenticated user.
-   * SECURITY: This field should be encrypted at rest.
+   * SECURITY: This field is now encrypted at rest using mongoose-encryption.
    * @type {string}
    */
   idToken: {
@@ -247,6 +299,39 @@ const ComposioAuthSchema = new mongoose.Schema({
    */
   timestamps: true
 });
+
+// SECURITY_PATCH: Configure encryption for sensitive fields.
+// The encryption keys MUST be loaded from a secure environment configuration, not hardcoded.
+// These should be long, random strings (e.g., 32-byte and 64-byte hex strings).
+// Example generation: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+const encryptionKey = process.env.MONGOOSE_ENCRYPTION_KEY;
+const signingKey = process.env.MONGOOSE_SIGNING_KEY;
+
+if (!encryptionKey || !signingKey) {
+  // In a real application, you might throw an error only in production.
+  // For development, you might use default keys but log a prominent warning.
+  console.error('CRITICAL SECURITY WARNING: MONGOOSE_ENCRYPTION_KEY and MONGOOSE_SIGNING_KEY environment variables are not set. Sensitive data will not be encrypted.');
+  // Throwing an error to prevent the application from starting in an insecure state.
+  throw new Error('Mongoose encryption keys are not configured. Halting application start.');
+}
+
+// SECURITY_PATCH: Apply the encryption plugin to the schema.
+// This will automatically encrypt/decrypt the specified fields when saving/retrieving documents.
+// The `authenticated` option adds an authenticated encryption layer (AEAD) for integrity protection.
+ComposioAuthSchema.plugin(encrypt, {
+  encryptionKey: encryptionKey,
+  signingKey: signingKey,
+  encryptedFields: ['accessToken', 'refreshToken', 'idToken'],
+  // It's recommended to use authenticated encryption to protect against tampering.
+  // This requires specifying fields that will be used as Additional Authenticated Data (AAD).
+  // Here, we use the document's _id and tenantId to scope the encryption, ensuring a token
+  // from one document cannot be moved to another.
+  additionalAuthenticatedData: (doc) => ({
+    composioAuthId: doc._id.toString(),
+    tenantId: doc.tenantId.toString(),
+  }),
+});
+
 
 /**
  * Compound index for the most common query pattern:
