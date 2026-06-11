@@ -215,6 +215,7 @@ const optimizeChain = async (chainId, userContext) => {
       // If no document was found and updated, it means the limit was already reached or exceeded.
       if (!updatedTenant) {
         // Notify administrators about limit exhaustion
+        // OPTIMIZATION: Recommend a compound index on { tenantId: 1, role: 1 } in the User model to speed up fetching tenant administrators.
         const admins = await User.find({ tenantId, role: 'admin' }).select('_id').lean();
         if (admins.length > 0) {
           const notifications = admins.map(admin => ({

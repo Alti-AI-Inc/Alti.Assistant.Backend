@@ -41,11 +41,20 @@ async function getBrowserLaunchOptions(userContext) {
             ...platformConfig.puppeteerOptions, // e.g., { executablePath: '/usr/bin/google-chrome', slowMo: 50 }
         };
 
-        logger.debug('Puppeteer launch options configured.', { userContext, options: mergedOptions });
+        // GCP AUDIT: Structured log with severity 'DEBUG'. The message is a string literal, and the
+        // second argument is a structured metadata object. This is compatible with GCP Cloud Logging.
+        logger.debug('Puppeteer launch options configured.', {
+            severity: 'DEBUG', // Explicitly setting severity for clarity, though Winston level implies it.
+            userContext,
+            options: mergedOptions
+        });
 
         return mergedOptions;
     } catch (error) {
+        // GCP AUDIT: Structured log with severity 'ERROR'. The error stack is included in the message,
+        // which is a best practice for automatic parsing by GCP Error Reporting.
         logger.error(`Failed to retrieve platform configuration for Puppeteer. Stack: ${error.stack}`, {
+            severity: 'ERROR',
             userContext,
             errorMessage: error.message,
         });
@@ -69,7 +78,10 @@ async function launchBrowser(userContext) {
         return browser;
     } catch (error) {
         // This will catch errors from both getBrowserLaunchOptions and puppeteer.launch.
+        // GCP AUDIT: Structured log with severity 'ERROR'. The error stack is included in the message
+        // for GCP Error Reporting compatibility.
         logger.error(`Failed to launch Puppeteer browser instance. Stack: ${error.stack}`, {
+            severity: 'ERROR',
             userContext,
             errorMessage: error.message,
         });
@@ -103,7 +115,12 @@ function validateUrl(url, userContext) {
 
     // Platform Owners are exempt from private network restrictions for administrative tasks.
     if (userContext.role === 'PlatformOwner') {
-        logger.warn(`Platform Owner accessing potentially restricted URL: ${url}`, { userContext });
+        // GCP AUDIT: Structured log with severity 'WARNING'. This correctly flags a notable event
+        // that is not an error but requires visibility for security and auditing.
+        logger.warn(`Platform Owner accessing potentially restricted URL: ${url}`, {
+            severity: 'WARNING',
+            userContext
+        });
         return; // Bypass further checks for Platform Owner.
     }
 
@@ -150,7 +167,13 @@ async function takeScreenshot(userContext, url, options = {}) {
     let browser; // Define browser at the top level to be accessible in the finally block.
 
     // Platform Owner Feature: Global oversight through detailed logging for a complete audit trail.
-    logger.info(`Screenshot requested for URL: ${url}`, { userContext, url, options });
+    // GCP AUDIT: Structured log with severity 'INFO'. This provides a clear, queryable audit trail of actions.
+    logger.info(`Screenshot requested for URL: ${url}`, {
+        severity: 'INFO',
+        userContext,
+        url,
+        options
+    });
 
     try {
         // Platform Owner Feature: URL validation that distinguishes between tenants and admins.
@@ -173,7 +196,11 @@ async function takeScreenshot(userContext, url, options = {}) {
 
             // Platform Owner Feature: Enforce tenant suspension, preventing usage from suspended accounts.
             if (!tenant.isActive) {
-                logger.warn(`Action denied for suspended tenant: ${tenantId}`, { userContext });
+                // GCP AUDIT: Structured log with severity 'WARNING'. Correctly flags denied access for a suspended tenant.
+                logger.warn(`Action denied for suspended tenant: ${tenantId}`, {
+                    severity: 'WARNING',
+                    userContext
+                });
                 throw new AppError('Tenant is suspended. Please contact support.', 403);
             }
 
@@ -183,7 +210,15 @@ async function takeScreenshot(userContext, url, options = {}) {
                 const usage = tenant.usage?.screenshots || 0;
                 const limit = tenant.limits?.maxScreenshots || 100; // Use a sensible default limit if not set.
                 if (usage >= limit) {
-                    logger.error(`Screenshot limit reached for tenant: ${tenantId}`, { userContext, usage, limit });
+                    // GCP AUDIT: Changed severity from ERROR to WARNING. A user hitting a configured limit is an expected
+                    // operational event (a client error, 429), not a server-side error. Using WARNING prevents
+                    // false positives in error monitoring and alerting for non-exceptional, business-logic events.
+                    logger.warn(`Screenshot limit reached for tenant: ${tenantId}`, {
+                        severity: 'WARNING',
+                        userContext,
+                        usage,
+                        limit
+                    });
                     throw new AppError(`Screenshot limit of ${limit} reached for this tenant.`, 429); // Use 429 Too Many Requests
                 }
             }
@@ -210,13 +245,18 @@ async function takeScreenshot(userContext, url, options = {}) {
         // In a real application, increment the tenant's usage count in the database here.
         // e.g., await incrementTenantUsage(tenantId, 'screenshots');
 
-        logger.info(`Successfully captured screenshot for URL: ${url}`, { userContext });
+        // GCP AUDIT: Structured log with severity 'INFO' for successful completion.
+        logger.info(`Successfully captured screenshot for URL: ${url}`, {
+            severity: 'INFO',
+            userContext
+        });
         return screenshot;
     } catch (error) {
         // Platform Owner Feature: Detailed error logging for global troubleshooting.
         // GCP AUDIT: For GCP Error Reporting compatibility, the full error stack is included directly in the message.
         // This allows GCP to automatically parse, group, and alert on exceptions.
         logger.error(`Failed to take screenshot for URL: ${url}. Stack: ${error.stack}`, {
+            severity: 'ERROR',
             userContext,
             url,
             errorMessage: error.message, // Provide the clean error message as separate metadata for easier querying.
@@ -235,7 +275,9 @@ async function takeScreenshot(userContext, url, options = {}) {
                 await browser.close();
             } catch (closeError) {
                 // Log the closing error but do not re-throw, as the original error is more important to the caller.
+                // GCP AUDIT: Structured log with severity 'ERROR' for a failure during cleanup.
                 logger.error(`Error closing Puppeteer browser instance. Stack: ${closeError.stack}`, {
+                    severity: 'ERROR',
                     userContext,
                     errorMessage: closeError.message,
                 });
