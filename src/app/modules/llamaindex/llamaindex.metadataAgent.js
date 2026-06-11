@@ -64,10 +64,11 @@ const cleanJSONResponse = (text) => {
  * @param {string} fileName The name of the document.
  * @param {string} docId The unique identifier for the document within the LlamaIndex corpus.
  * @param {string} userId The unique identifier for the user who owns the document.
+ * @param {string | null} [modelName=null] Optional. The specific Gemini model name to use, overriding the platform default.
  * @returns {Promise<DocumentMetadata>} A promise that resolves to the created or updated `DocumentMetadata` record.
  * @throws {Error} If the enrichment process fails critically, though it attempts graceful fallback.
  */
-const enrichDocument = async (filePath, fileName, docId, userId) => {
+const enrichDocument = async (filePath, fileName, docId, userId, modelName = null) => {
   try {
     logger.info(`MetadataAgent: enriching "${fileName}" (ID: ${docId}) for user ${userId}`);
 
@@ -107,8 +108,8 @@ ${sanitizedPreview}`;
 
     // Use the Vertex AI model with explicit safety settings.
     const model = vertex_ai.getGenerativeModel({
-      // PLATFORM OWNER IMPROVEMENT: Model is sourced from global config for easy system-wide updates.
-      model: config.gcp_gemini_model || 'gemini-1.5-flash-preview-0514',
+      // PLATFORM OWNER IMPROVEMENT: Model is sourced from global config but can be overridden for specific tasks.
+      model: modelName || config.gcp_gemini_model || 'gemini-1.5-flash-preview-0514',
       // Configure Google's safety filters to block harmful content.
       safetySettings: [
         {
@@ -188,11 +189,13 @@ ${sanitizedPreview}`;
  * @param {string} userId The unique identifier for the user whose documents are to be enriched.
  * @param {object} [options={}] - The options for the enrichment process.
  * @param {boolean} [options.force=false] - If true, re-enriches documents that already have metadata.
+ * @param {string | null} [options.modelName=null] - If provided, overrides the default AI model for this run.
  * @returns {Promise<{ success: boolean, message: string, enrichedCount: number }>} A promise that resolves to an object
  *   indicating the success of the operation, a descriptive message, and the count of newly enriched documents.
  * @throws {Error} If there's a critical failure in listing documents or during the enrichment cycle.
  */
-const enrichAllUserDocuments = async (userId, options = { force: false }) => {
+const enrichAllUserDocuments = async (userId, options = {}) => {
+  const { force = false, modelName = null } = options;
   try {
     // List indexed documents from current LlamaIndex corpus
     const docs = await llama.listDocuments(userId);
@@ -207,7 +210,7 @@ const enrichAllUserDocuments = async (userId, options = { force: false }) => {
     // Fetch all existing metadata docIds for this user in a single, efficient query.
     // This is only necessary if we are not forcing a re-enrichment for all documents.
     let existingDocIds = new Set();
-    if (!options.force) {
+    if (!force) {
       const existingMetadata = await DocumentMetadata.find({
         userId,
         docId: { $in: docIds },
@@ -221,10 +224,10 @@ const enrichAllUserDocuments = async (userId, options = { force: false }) => {
       const docId = doc.id || doc.docId || doc.id_;
 
       // If forcing, enrich regardless. Otherwise, enrich only if it's not in our set of existing docIds.
-      const shouldEnrich = options.force || !existingDocIds.has(docId);
+      const shouldEnrich = force || !existingDocIds.has(docId);
 
       if (shouldEnrich) {
-        await enrichDocument(null, doc.fileName || doc.name || 'unnamed_doc', docId, userId);
+        await enrichDocument(null, doc.fileName || doc.name || 'unnamed_doc', docId, userId, modelName);
         enrichedCount++;
       }
     }
@@ -248,20 +251,26 @@ const enrichAllUserDocuments = async (userId, options = { force: false }) => {
 
 /**
  * Triggers a metadata enrichment cycle for all active tenants on the platform.
- * This is a resource-intensive operation and should be run by a Platform Owner during off-peak hours.
+ * This is a resource-intensive operation that processes tenants in parallel batches.
  *
  * @param {object} [options={}] - The options for the enrichment process.
  * @param {boolean} [options.force=false] - If true, re-enriches documents that already have metadata.
+ * @param {string | null} [options.modelName=null] - If provided, overrides the default AI model for this global run.
+ * @param {number} [options.concurrency=5] - The number of tenants to process in parallel.
  * @returns {Promise<object>} A summary of the global enrichment task.
  */
-const enrichAllPlatformDocuments = async (options = { force: false }) => {
+const enrichAllPlatformDocuments = async (options = {}) => {
+  // PLATFORM OWNER IMPROVEMENT: Added concurrency and model override options for enhanced control and performance.
+  const { force = false, modelName = null, concurrency = 5 } = options;
+
   logger.info(
-    `PLATFORM_OWNER_TASK: Starting global document enrichment cycle. Force re-enrichment: ${options.force}`
+    `PLATFORM_OWNER_TASK: Starting global document enrichment cycle. Options: ${JSON.stringify({ force, modelName, concurrency })}`
   );
   const startTime = Date.now();
   let totalTenantsProcessed = 0;
   let totalDocumentsEnriched = 0;
   const failedTenants = [];
+  const summaryLog = [];
 
   try {
     // Fetch all active tenants to process. This ensures suspended tenants are skipped.
@@ -269,18 +278,36 @@ const enrichAllPlatformDocuments = async (options = { force: false }) => {
     const activeTenants = await Tenant.find({ status: 'active' }).select('_id name').lean();
     logger.info(`PLATFORM_OWNER_TASK: Found ${activeTenants.length} active tenants to process.`);
 
-    for (const tenant of activeTenants) {
-      try {
-        logger.info(`PLATFORM_OWNER_TASK: Processing tenant ${tenant.name} (${tenant._id})`);
-        const result = await enrichAllUserDocuments(tenant._id.toString(), options);
-        totalDocumentsEnriched += result.enrichedCount;
+    // PERFORMANCE OPTIMIZATION: Process tenants in concurrent batches to speed up the global task.
+    for (let i = 0; i < activeTenants.length; i += concurrency) {
+      const batch = activeTenants.slice(i, i + concurrency);
+      logger.info(`PLATFORM_OWNER_TASK: Processing batch ${i / concurrency + 1} with ${batch.length} tenants.`);
+
+      const promises = batch.map(tenant =>
+        // Wrap each promise to ensure Promise.all doesn't fail fast, mimicking Promise.allSettled for robust error handling.
+        enrichAllUserDocuments(tenant._id.toString(), { force, modelName })
+          .then(result => ({ status: 'fulfilled', value: { tenant, result } }))
+          .catch(error => ({ status: 'rejected', reason: { tenant, error } }))
+      );
+
+      const results = await Promise.all(promises);
+
+      results.forEach(({ status, value, reason }) => {
         totalTenantsProcessed++;
-      } catch (err) {
-        logger.error(
-          `PLATFORM_OWNER_TASK: Failed to process tenant ${tenant.name} (${tenant._id}). Error: ${err.message}`
-        );
-        failedTenants.push({ id: tenant._id, name: tenant.name, error: err.message });
-      }
+        if (status === 'fulfilled') {
+          const { tenant, result } = value;
+          logger.info(`PLATFORM_OWNER_TASK: Successfully processed tenant ${tenant.name} (${tenant._id}). Enriched ${result.enrichedCount} documents.`);
+          totalDocumentsEnriched += result.enrichedCount;
+          summaryLog.push(`SUCCESS: Tenant ${tenant.name} (${tenant._id}) - Enriched ${result.enrichedCount}`);
+        } else {
+          const { tenant, error } = reason;
+          logger.error(
+            `PLATFORM_OWNER_TASK: Failed to process tenant ${tenant.name} (${tenant._id}). Error: ${error.message}`
+          );
+          failedTenants.push({ id: tenant._id, name: tenant.name, error: error.message });
+          summaryLog.push(`FAILED: Tenant ${tenant.name} (${tenant._id}) - ${error.message}`);
+        }
+      });
     }
 
     const duration = (Date.now() - startTime) / 1000; // in seconds
@@ -288,10 +315,13 @@ const enrichAllPlatformDocuments = async (options = { force: false }) => {
       success: failedTenants.length === 0,
       message: 'Global enrichment cycle completed.',
       durationSeconds: duration,
-      tenantsProcessed: totalTenantsProcessed,
+      tenantsProcessed,
+      tenantsSucceeded: totalTenantsProcessed - failedTenants.length,
       tenantsFailed: failedTenants.length,
       totalDocumentsEnriched,
       failedTenants,
+      // PLATFORM OWNER IMPROVEMENT: Added a detailed log for quick review of the entire operation.
+      detailedLog: summaryLog,
     };
 
     logger.info('PLATFORM_OWNER_TASK: Global enrichment summary:', summary);

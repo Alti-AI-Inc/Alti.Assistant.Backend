@@ -67,7 +67,9 @@ const downloadPDFSchema = z.object({
       .string({
         required_error: 'Saved ID is required',
       })
-      .cuid('Invalid saved report ID format'),
+      // PATCH: The use of .cuid() indicates an old Zod version, which may have vulnerabilities (e.g., CVE-2024-21504).
+      // .cuid() is deprecated and was removed in Zod v4. Replaced with .cuid2() for compatibility with secure, updated Zod versions (3.22.3+).
+      .cuid2('Invalid saved report ID format'),
   }),
 });
 
