@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import crypto from 'crypto';
+import xss from 'xss'; // --- SECURITY PATCH: Import XSS sanitization library ---
 
 // --- SECURITY FIX: Ensure encryption key is provided and valid ---
 
@@ -230,7 +231,14 @@ const userMemorySchema = new Schema(
       type: String,
       required: true,
       get: decryptText,
-      set: encryptText,
+      // --- SECURITY PATCH: Sanitize string input to prevent XSS before encryption ---
+      // This provides defense-in-depth by cleaning potential malicious scripts
+      // before they are stored. If data is ever displayed without proper output
+      // encoding on a client, this measure mitigates the risk at the source.
+      set: (v) => {
+        const valueToEncrypt = typeof v === 'string' ? xss(v) : v;
+        return encryptText(valueToEncrypt);
+      },
     },
     category: {
       type: String,
