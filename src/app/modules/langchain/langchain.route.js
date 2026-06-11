@@ -1,11 +1,13 @@
 import express from 'express';
 import { LangchainController } from './langchain.controller.js';
+import asyncHandler from '../../utils/asyncHandler.js';
 
 /**
  * @fileoverview Express router defining endpoints for Langchain integration, repository management, and LCEL (LangChain Expression Language) custom chain execution.
  * @module langchain/routes
  * @requires express
  * @requires LangchainController
+ * @requires asyncHandler
  */
 
 const router = express.Router();
@@ -27,7 +29,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error.
  */
-router.get('/repositories', LangchainController.getRepositories);
+router.get('/repositories', asyncHandler(LangchainController.getRepositories));
 
 /**
  * @openapi
@@ -46,7 +48,7 @@ router.get('/repositories', LangchainController.getRepositories);
  *       500:
  *         description: Internal server error.
  */
-router.get('/stats', LangchainController.getStats);
+router.get('/stats', asyncHandler(LangchainController.getStats));
 
 /**
  * @openapi
@@ -81,7 +83,7 @@ router.get('/stats', LangchainController.getStats);
  *       500:
  *         description: Internal server error.
  */
-router.post('/import', LangchainController.importSubmodule);
+router.post('/import', asyncHandler(LangchainController.importSubmodule));
 
 // ── LCEL Custom Chain Registry & Execution Endpoints ────────────────────────
 
@@ -120,7 +122,7 @@ router.post('/import', LangchainController.importSubmodule);
  *       500:
  *         description: Internal server error.
  */
-router.post('/chains', LangchainController.createChain);
+router.post('/chains', asyncHandler(LangchainController.createChain));
 
 /**
  * @openapi
@@ -139,7 +141,7 @@ router.post('/chains', LangchainController.createChain);
  *       500:
  *         description: Internal server error.
  */
-router.get('/chains', LangchainController.listChains);
+router.get('/chains', asyncHandler(LangchainController.listChains));
 
 /**
  * @openapi
@@ -177,7 +179,7 @@ router.get('/chains', LangchainController.listChains);
  *       500:
  *         description: Internal server error.
  */
-router.post('/chains/:chainId/run', LangchainController.runChain);
+router.post('/chains/:chainId/run', asyncHandler(LangchainController.runChain));
 
 /**
  * @openapi
@@ -205,7 +207,7 @@ router.post('/chains/:chainId/run', LangchainController.runChain);
  *       500:
  *         description: Internal server error.
  */
-router.get('/chains/:chainId/executions', LangchainController.getExecutions);
+router.get('/chains/:chainId/executions', asyncHandler(LangchainController.getExecutions));
 
 /**
  * @openapi
@@ -233,7 +235,7 @@ router.get('/chains/:chainId/executions', LangchainController.getExecutions);
  *       500:
  *         description: Internal server error.
  */
-router.get('/chains/:chainId/optimize', LangchainController.optimizeChain);
+router.get('/chains/:chainId/optimize', asyncHandler(LangchainController.optimizeChain));
 
 /**
  * @openapi
@@ -275,7 +277,7 @@ router.get('/chains/:chainId/optimize', LangchainController.optimizeChain);
  *       500:
  *         description: Internal server error.
  */
-router.post('/chains/:chainId/rollback', LangchainController.rollbackChain);
+router.post('/chains/:chainId/rollback', asyncHandler(LangchainController.rollbackChain));
 
 /**
  * @openapi
@@ -303,7 +305,7 @@ router.post('/chains/:chainId/rollback', LangchainController.rollbackChain);
  *       500:
  *         description: Internal server error.
  */
-router.get('/chains/:chainId/versions', LangchainController.getChainVersions);
+router.get('/chains/:chainId/versions', asyncHandler(LangchainController.getChainVersions));
 
 /**
  * @openapi
@@ -331,7 +333,7 @@ router.get('/chains/:chainId/versions', LangchainController.getChainVersions);
  *       500:
  *         description: Internal server error.
  */
-router.post('/chains/:chainId/benchmark', LangchainController.benchmarkChain);
+router.post('/chains/:chainId/benchmark', asyncHandler(LangchainController.benchmarkChain));
 
 /**
  * @openapi
@@ -369,7 +371,7 @@ router.post('/chains/:chainId/benchmark', LangchainController.benchmarkChain);
  *       500:
  *         description: Internal server error.
  */
-router.post('/chains/:chainId/stream', LangchainController.streamChain);
+router.post('/chains/:chainId/stream', asyncHandler(LangchainController.streamChain));
 
 // ─── Platform Owner / Super Admin Endpoints ───────────────────────────────────
 // These endpoints are designed for platform-level administration and oversight.
@@ -394,7 +396,7 @@ router.post('/chains/:chainId/stream', LangchainController.streamChain);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/langchain/stats', LangchainController.getGlobalStats);
+router.get('/platform/langchain/stats', asyncHandler(LangchainController.getGlobalStats));
 
 /**
  * @openapi
@@ -432,7 +434,7 @@ router.get('/platform/langchain/stats', LangchainController.getGlobalStats);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/langchain/logs', LangchainController.getGlobalLogs);
+router.get('/platform/langchain/logs', asyncHandler(LangchainController.getGlobalLogs));
 
 /**
  * @openapi
@@ -453,7 +455,7 @@ router.get('/platform/langchain/logs', LangchainController.getGlobalLogs);
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/langchain/config', LangchainController.getGlobalConfig);
+router.get('/platform/langchain/config', asyncHandler(LangchainController.getGlobalConfig));
 
 /**
  * @openapi
@@ -492,7 +494,7 @@ router.get('/platform/langchain/config', LangchainController.getGlobalConfig);
  *       500:
  *         description: Internal server error.
  */
-router.put('/platform/langchain/config', LangchainController.updateGlobalConfig);
+router.put('/platform/langchain/config', asyncHandler(LangchainController.updateGlobalConfig));
 
 /**
  * @openapi
@@ -522,7 +524,7 @@ router.put('/platform/langchain/config', LangchainController.updateGlobalConfig)
  *       500:
  *         description: Internal server error.
  */
-router.get('/platform/langchain/tenants/:tenantId/chains', LangchainController.getTenantChains);
+router.get('/platform/langchain/tenants/:tenantId/chains', asyncHandler(LangchainController.getTenantChains));
 
 /**
  * @openapi
@@ -566,7 +568,7 @@ router.get('/platform/langchain/tenants/:tenantId/chains', LangchainController.g
  *       500:
  *         description: Internal server error.
  */
-router.patch('/platform/langchain/tenants/:tenantId/status', LangchainController.updateTenantLangchainStatus);
+router.patch('/platform/langchain/tenants/:tenantId/status', asyncHandler(LangchainController.updateTenantLangchainStatus));
 
 /**
  * @openapi
@@ -616,6 +618,9 @@ router.patch('/platform/langchain/tenants/:tenantId/status', LangchainController
  *       500:
  *         description: Internal server error.
  */
-router.patch('/platform/langchain/tenants/:tenantId/chains/:chainId/toggle', LangchainController.toggleTenantChain);
+router.patch(
+  '/platform/langchain/tenants/:tenantId/chains/:chainId/toggle',
+  asyncHandler(LangchainController.toggleTenantChain)
+);
 
 export const langchainRoutes = router;
