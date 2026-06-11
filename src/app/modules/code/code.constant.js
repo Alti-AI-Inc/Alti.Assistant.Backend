@@ -43,6 +43,10 @@ const ROLES = {
  * @property {Object} NOTIFICATIONS Configuration for usage-based notifications.
  * @property {number} NOTIFICATIONS.USAGE_WARNING_THRESHOLD_PERCENT Usage percentage to trigger a warning notification to managers/admins.
  * @property {number} NOTIFICATIONS.USAGE_LIMIT_REACHED_THRESHOLD_PERCENT Usage percentage to trigger a limit-reached notification.
+ * @property {Object} GCP_PUBSUB Configuration for Google Cloud Pub/Sub topics.
+ * @property {Object} GCP_PUBSUB.TOPICS Defines the topic names for asynchronous tasks.
+ * @property {string} GCP_PUBSUB.TOPICS.USER_USAGE_WARNING Topic for user usage warning notifications.
+ * @property {string} GCP_PUBSUB.TOPICS.USER_USAGE_LIMIT_REACHED Topic for user usage limit reached notifications.
  * @property {Object} GUEST Configuration and feature flags for guest users.
  * @property {string} GUEST.ID_PREFIX Prefix used for guest user IDs.
  * @property {string} GUEST.CONVERSATION_PREFIX Prefix used for guest conversation IDs.
@@ -88,6 +92,16 @@ export const CODE_ASSISTANT_CONSTANTS = {
   NOTIFICATIONS: {
     USAGE_WARNING_THRESHOLD_PERCENT: 80,
     USAGE_LIMIT_REACHED_THRESHOLD_PERCENT: 100,
+  },
+
+  // GCP-INTEGRATION: Added Pub/Sub topic configurations to support asynchronous, scalable offloading of background tasks.
+  // This ensures that notification delivery and other long-running processes do not block the main application thread,
+  // making the system more resilient and container-friendly.
+  GCP_PUBSUB: {
+    TOPICS: {
+      USER_USAGE_WARNING: 'code-assistant-user-usage-warning',
+      USER_USAGE_LIMIT_REACHED: 'code-assistant-user-usage-limit-reached',
+    },
   },
 
   GUEST: {

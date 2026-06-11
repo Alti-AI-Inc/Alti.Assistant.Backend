@@ -302,10 +302,25 @@ class ActionAuditService {
           return { success: false, error: 'Forbidden', entries: [], total: 0 };
       }
 
-      if (filters.app) query.app = filters.app;
-      if (filters.status) query.status = filters.status;
-      if (filters.since) {
-        query.createdAt = { $gte: new Date(filters.since) };
+      // FIX: Sanitize string-based filters to prevent NoSQL injection by ensuring they are strings.
+      if (filters.app && typeof filters.app === 'string') {
+        query.app = filters.app;
+      }
+
+      // FIX: Sanitize and validate the status filter against a known list of allowed values to prevent NoSQL injection.
+      if (filters.status && typeof filters.status === 'string') {
+        const allowedStatuses = ['executing', 'success', 'failed', 'retried', 'rolled_back'];
+        if (allowedStatuses.includes(filters.status)) {
+          query.status = filters.status;
+        }
+      }
+
+      // FIX: Validate that the provided 'since' date is a valid date to prevent query errors from malformed input.
+      if (filters.since && typeof filters.since === 'string') {
+        const sinceDate = new Date(filters.since);
+        if (!isNaN(sinceDate.getTime())) {
+          query.createdAt = { $gte: sinceDate };
+        }
       }
 
       // OPTIMIZATION: Run find and count queries in parallel.
