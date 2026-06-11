@@ -4,33 +4,33 @@ import crypto from 'crypto';
 // --- SECURITY FIX: Ensure encryption key is provided and valid ---
 
 /**
- * @const {string} ENCRYPTION_KEY
- * @description The secret key for encrypting and decrypting user memory data.
+ * The secret key for encrypting and decrypting user memory data.
  * It is critical that this is a 32-byte (256-bit) key and is kept secret.
  * Loaded from the CHAT_ENCRYPTION_KEY environment variable.
- * The application will exit if this key is not set or is invalid.
+ * The application will exit if this key is not set or is invalid in production.
+ * @const {string} ENCRYPTION_KEY
  * @private
  */
 let ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
 
 /**
+ * The length of the Initialization Vector (IV) for the legacy AES-256-CBC encryption algorithm (16 bytes).
  * @const {number} CBC_IV_LENGTH
- * @description The length of the Initialization Vector (IV) for the legacy AES-256-CBC encryption algorithm (16 bytes).
  * @private
  */
 const CBC_IV_LENGTH = 16; // For legacy AES-256-CBC
 
 /**
+ * The length of the Initialization Vector (IV) for the modern AES-256-GCM encryption algorithm (12 bytes).
  * @const {number} GCM_IV_LENGTH
- * @description The length of the Initialization Vector (IV) for the modern AES-256-GCM encryption algorithm (12 bytes).
  * @private
  */
 const GCM_IV_LENGTH = 12; // For modern AES-256-GCM
 
 /**
- * @const {number} GCM_TAG_LENGTH
- * @description The length of the Authentication Tag for the AES-256-GCM encryption algorithm (16 bytes).
+ * The length of the Authentication Tag for the AES-256-GCM encryption algorithm (16 bytes).
  * This tag ensures the integrity and authenticity of the encrypted data.
+ * @const {number} GCM_TAG_LENGTH
  * @private
  */
 const GCM_TAG_LENGTH = 16;
@@ -46,8 +46,8 @@ if (!ENCRYPTION_KEY) {
 }
 
 /**
+ * The encryption key pre-buffered for performance and to ensure a consistent type.
  * @const {Buffer} ENCRYPTION_KEY_BUFFER
- * @description The encryption key pre-buffered for performance and to ensure a consistent type.
  * @private
  */
 let ENCRYPTION_KEY_BUFFER = Buffer.from(ENCRYPTION_KEY, 'utf-8');
@@ -257,12 +257,22 @@ userMemorySchema.index({ userId: 1, key: 1 }, { unique: true });
 /**
  * Mongoose model for interacting with the 'user_memories' collection.
  * Provides an interface for creating, reading, updating, and deleting user memory documents.
- * @type {import('mongoose').Model<UserMemory & import('mongoose').Document>}
+ * The `value` field is automatically encrypted and decrypted.
+ * @typedef {import('mongoose').Document & {
+ *   userId: string;
+ *   key: string;
+ *   value: string;
+ *   category: 'facts' | 'preferences' | 'settings';
+ *   confidence: number;
+ *   createdAt: Date;
+ *   updatedAt: Date;
+ * }} UserMemoryDocument
+ * @type {import('mongoose').Model<UserMemoryDocument>}
  */
 const UserMemory = model('UserMemory', userMemorySchema);
 
 /**
+ * The Mongoose model for User Memories.
  * @exports UserMemory
- * @description The default export is the Mongoose model for User Memories.
  */
 export default UserMemory;
