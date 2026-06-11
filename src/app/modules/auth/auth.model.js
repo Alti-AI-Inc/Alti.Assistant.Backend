@@ -1,7 +1,7 @@
 /**
  * @file This file defines the Mongoose schema and model for the User entity.
- * It includes user authentication details, subscription information, usage tracking,
- * and multi-tenancy fields.
+ * It includes user authentication details, usage tracking, and a robust multi-workspace
+ * (multi-tenant) structure for team management.
  * @module User
  */
 
@@ -35,17 +35,23 @@ import bcrypt from 'bcryptjs'; // Security: Import bcrypt for password hashing.
  */
 
 /**
+ * @typedef {Object} WorkspaceMember
+ * @property {mongoose.Types.ObjectId} workspaceId - Reference to the Tenant/Workspace model.
+ * @property {'admin'|'manager'|'member'} role - The user's role within that specific workspace.
+ */
+
+/**
  * @typedef {Object} User
  * @property {string} [provider] - Authentication provider (e.g., 'google', 'github').
  * @property {string} [providerId] - ID from the authentication provider.
  * @property {string} [avatar] - URL to the user's avatar image.
  * @property {string} email - Unique email address of the user.
  * @property {string} [password] - Hashed password of the user (selected: false).
- * @property {boolean} [isSubscribed=false] - Indicates if the user has an active subscription.
- * @property {SubscriptionDetails} [subscription] - Details of the legacy subscription system.
- * @property {FreePlanUsage} [freePlanUsage] - Tracks usage for the free plan.
+ * @property {boolean} [isSubscribed=false] - DEPRECATED: Indicates if the user has an active subscription.
+ * @property {SubscriptionDetails} [subscription] - DEPRECATED: Details of the legacy subscription system.
+ * @property {FreePlanUsage} [freePlanUsage] - Tracks usage for the free plan (for users not in a workspace).
  * @property {DailyRequestLimit} [dailyRequestLimit] - Tracks daily request limits.
- * @property {'user'|'buyer'|'admin'|'super_admin'|'unauthorized'} [role='unauthorized'] - User's role within the application.
+ * @property {'user'|'buyer'|'admin'|'super_admin'|'unauthorized'} [role='unauthorized'] - User's global role within the application.
  * @property {mongoose.Types.ObjectId[]} [llamaAiSessions] - References to Llama AI chat history sessions.
  * @property {mongoose.Types.ObjectId[]} [browserSessions] - References to browser sessions.
  * @property {mongoose.Types.ObjectId[]} [notifications] - References to user notifications.
@@ -55,13 +61,9 @@ import bcrypt from 'bcryptjs'; // Security: Import bcrypt for password hashing.
  * @property {Date} [resetPasswordExpires] - Expiration date for the password reset OTP.
  * @property {string} [deleteAccountOTP] - Hashed One-Time Password for account deletion.
  * @property {Date} [deleteAccountExpires] - Expiration date for the account deletion OTP.
- * @property {string} [stripeAccountId] - Stripe account ID for the user.
- * @property {mongoose.Types.ObjectId} [subscriptionId=null] - Reference to the new Subscription model.
- * @property {'free'|'explore'|'execute'|'command'} [currentPlan='free'] - The user's current subscription plan.
- * @property {mongoose.Types.ObjectId} [tenantId=null] - DEPRECATED: Reference to the Tenant model for multi-tenancy.
- * @property {'admin'|'manager'|'user'} [tenantRole=null] - DEPRECATED: User's role within a specific tenant.
- * @property {string[]} [tenantPermissions=[]] - DEPRECATED: Permissions within a specific tenant.
- * @property {mongoose.Types.ObjectId} [activeTenantId=null] - The currently active tenant for users belonging to multiple tenants.
+ * @property {string} [stripeAccountId] - Stripe account ID for the user (typically the workspace admin/owner).
+ * @property {WorkspaceMember[]} [workspaces=[]] - A list of workspaces the user is a member of.
+ * @property {mongoose.Types.ObjectId} [activeWorkspaceId=null] - The currently active workspace for the user.
  * @property {Date} createdAt - Timestamp when the user was created.
  * @property {Date} updatedAt - Timestamp when the user was last updated.
  */
@@ -126,7 +128,8 @@ const UserSchema = new mongoose.Schema(
       select: false, // Security: Do not return password field in queries by default.
     },
     /**
-     * Indicates if the user has an active subscription.
+     * DEPRECATED: Indicates if the user has an active subscription.
+     * Subscription status is now managed at the workspace (Tenant) level.
      * @type {boolean}
      * @default false
      */
@@ -135,7 +138,8 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
     /**
-     * Details about the user's subscription (legacy system).
+     * DEPRECATED: Details about the user's subscription (legacy system).
+     * Subscriptions are now managed at the workspace (Tenant) level.
      * @type {SubscriptionDetails}
      */
     subscription: {
@@ -182,7 +186,7 @@ const UserSchema = new mongoose.Schema(
     },
 
     /**
-     * Tracks usage for the free plan.
+     * Tracks usage for the free plan, applicable to users not part of a paid workspace.
      * @type {FreePlanUsage}
      */
     freePlanUsage: {
@@ -230,7 +234,7 @@ const UserSchema = new mongoose.Schema(
       lastResetAt: { type: Date, default: Date.now }, // Track when the daily limit was last reset
     },
     /**
-     * The user's role within the application.
+     * The user's global role within the application, distinct from their role within a workspace.
      * @type {'user'|'buyer'|'admin'|'super_admin'|'unauthorized'}
      * @default 'unauthorized'
      */
@@ -305,85 +309,49 @@ const UserSchema = new mongoose.Schema(
      */
     deleteAccountExpires: Date,
     /**
-     * The user's Stripe account ID.
+     * The user's Stripe account ID. Typically used by workspace admins/owners for billing.
      * @type {string}
      */
     stripeAccountId: { type: String, trim: true, index: true, sparse: true }, // Performance: Sparse index for fast webhook lookups, as not all users have a stripe account.
 
     /**
-     * Reference to the new Subscription model.
-     * @type {mongoose.Types.ObjectId}
-     * @ref Subscription
-     * @default null
+     * An array of workspaces the user is a member of, including their role in each.
+     * This is the primary mechanism for multi-tenancy and team management.
+     * @type {WorkspaceMember[]}
      */
-    subscriptionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Subscription',
-      default: null,
-      index: true,
-    },
-    /**
-     * The user's current subscription plan.
-     * @type {'free'|'explore'|'execute'|'command'}
-     * @default 'free'
-     */
-    currentPlan: {
-      type: String,
-      enum: ['free', 'explore', 'execute', 'command'],
-      default: 'free',
-      index: true,
+    workspaces: {
+      type: [
+        new mongoose.Schema(
+          {
+            workspaceId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Tenant', // Note: 'Tenant' is used for consistency with existing refs.
+              required: true,
+            },
+            role: {
+              type: String,
+              enum: ['admin', 'manager', 'member'], // Defines roles within a workspace.
+              required: true,
+            },
+          },
+          { _id: false }
+        ), // Optimization: _id is not needed for subdocuments in this array.
+      ],
+      default: [],
     },
 
     /**
-     * DEPRECATED: Reference to the Tenant model for multi-tenant support.
-     * Use TenantMember collection for multi-tenant support.
+     * The ID of the currently active workspace for a user who belongs to multiple workspaces.
+     * This determines the context for their actions and data visibility.
      * @type {mongoose.Types.ObjectId}
      * @ref Tenant
      * @default null
      */
-    tenantId: {
+    activeWorkspaceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Tenant',
+      ref: 'Tenant', // Note: 'Tenant' is used for consistency with existing refs.
       default: null,
       index: true,
-      // DEPRECATED: Use TenantMember collection for multi-tenant support
-      // Kept for backward compatibility
-    },
-    /**
-     * DEPRECATED: User's role within a specific tenant.
-     * Use TenantMember collection for role management.
-     * @type {'admin'|'manager'|'user'}
-     * @default null
-     */
-    tenantRole: {
-      type: String,
-      enum: ['admin', 'manager', 'user'],
-      default: null,
-      // DEPRECATED: Use TenantMember collection for role management
-    },
-    /**
-     * DEPRECATED: Permissions within a specific tenant.
-     * Use TenantMember collection for permissions.
-     * @type {string[]}
-     * @default []
-     */
-    tenantPermissions: {
-      type: [String],
-      default: [],
-      // DEPRECATED: Use TenantMember collection for permissions
-    },
-    /**
-     * The currently active tenant for users who belong to multiple tenants.
-     * @type {mongoose.Types.ObjectId}
-     * @ref Tenant
-     * @default null
-     */
-    activeTenantId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Tenant',
-      default: null,
-      index: true,
-      // Current working tenant for users with multiple tenants
     },
   },
   {
@@ -398,6 +366,9 @@ const UserSchema = new mongoose.Schema(
 // Performance: Add a compound index for OAuth providers to speed up login.
 // A sparse index is used because these fields are only present for OAuth users.
 UserSchema.index({ provider: 1, providerId: 1 }, { sparse: true });
+
+// Performance: Index the workspaces array for faster lookups of users within a specific workspace.
+UserSchema.index({ 'workspaces.workspaceId': 1 });
 
 /**
  * Security: Mongoose 'pre-save' hook to hash the password before saving it to the database.
@@ -441,7 +412,10 @@ UserSchema.methods.generateConfirmationToken = function () {
 
   // Security: Hash the token before storing it in the database to prevent token theft from a DB breach.
   // The user receives the raw token, and we compare it against this stored hash.
-  this.confirmationToken = crypto.createHash('sha256').update(token).digest('hex');
+  this.confirmationToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
 
   // Security: Set a reasonable expiration time for the token (24 hours).
   this.confirmationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
