@@ -14,18 +14,74 @@ dotenv.config();
 
 // DDOS GUARD/COST CONTROL: Define rate limits for the expensive image generation API.
 // These limits are applied on a per-user basis to prevent abuse from a single authenticated user.
+
+/**
+ * @constant {number} RATE_LIMIT_PER_MINUTE
+ * @description The maximum number of image generation requests a single user can make per minute.
+ * This helps prevent abuse and controls costs associated with the generation API.
+ */
 const RATE_LIMIT_PER_MINUTE = 5; // Max 5 image generations per user per minute.
+
+/**
+ * @constant {number} RATE_LIMIT_PER_HOUR
+ * @description The maximum number of image generation requests a single user can make per hour.
+ * This provides a longer-term throttle on user activity.
+ */
 const RATE_LIMIT_PER_HOUR = 50; // Max 50 image generations per user per hour.
+
+/**
+ * @constant {number} RATE_LIMIT_WINDOW_MINUTE_SECONDS
+ * @description The time-to-live in seconds for the per-minute rate limit key in Redis.
+ */
 const RATE_LIMIT_WINDOW_MINUTE_SECONDS = 60;
+
+/**
+ * @constant {number} RATE_LIMIT_WINDOW_HOUR_SECONDS
+ * @description The time-to-live in seconds for the per-hour rate limit key in Redis.
+ */
 const RATE_LIMIT_WINDOW_HOUR_SECONDS = 3600;
 
 // CONFIGURATION: Centralize configurable values for easier management and environment-specific settings.
-const MODEL_NAME = config.google.gemini_image_model || 'gemini-1.5-flash-001';
-const GCP_BUCKET_NAME = config.gcp.storage_bucket_name || 'alti_assistant_generated_photo';
-const GCP_KEY_PATH = config.gcp.key_file_path || path.join(process.cwd(), 'alti_gcp.json');
-const MAX_REFERENCE_IMAGES = 5; // USER LIMITS: Enforce a reasonable limit on reference images to prevent abuse and manage costs.
-const SAFE_UPLOADS_DIR = path.resolve(process.cwd(), 'temp_uploads'); // SECURITY: Define a sandboxed directory for user-provided files.
 
+/**
+ * @constant {string} MODEL_NAME
+ * @description The specific Google Gemini model to be used for image generation.
+ * Pulled from application configuration.
+ */
+const MODEL_NAME = config.google.gemini_image_model || 'gemini-1.5-flash-001';
+
+/**
+ * @constant {string} GCP_BUCKET_NAME
+ * @description The name of the Google Cloud Storage bucket where generated images will be stored.
+ * Pulled from application configuration.
+ */
+const GCP_BUCKET_NAME = config.gcp.storage_bucket_name || 'alti_assistant_generated_photo';
+
+/**
+ * @constant {string} GCP_KEY_PATH
+ * @description The local file system path to the GCP service account key file for authentication.
+ * Pulled from application configuration.
+ */
+const GCP_KEY_PATH = config.gcp.key_file_path || path.join(process.cwd(), 'alti_gcp.json');
+
+/**
+ * @constant {number} MAX_REFERENCE_IMAGES
+ * @description USER LIMITS: The maximum number of reference images a user can provide in a single request.
+ * This helps prevent abuse and manage API costs.
+ */
+const MAX_REFERENCE_IMAGES = 5;
+
+/**
+ * @constant {string} SAFE_UPLOADS_DIR
+ * @description SECURITY: The absolute path to a sandboxed directory for temporarily storing user-provided files.
+ * This is used to prevent path traversal attacks.
+ */
+const SAFE_UPLOADS_DIR = path.resolve(process.cwd(), 'temp_uploads');
+
+/**
+ * @type {GoogleGenAI}
+ * @description An instance of the Google Generative AI client, configured for Vertex AI.
+ */
 const ai = new GoogleGenAI({
   vertexAI: {
     project: config.google.gcp_project_id,
@@ -33,10 +89,17 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Initialize GCP Storage
+/**
+ * @type {GCPStorageService}
+ * @description An instance of the GCP Storage service client for file uploads.
+ */
 const gcpStorage = new GCPStorageService(GCP_BUCKET_NAME, GCP_KEY_PATH);
 
-// ROBUSTNESS: A map for MIME types to file extensions ensures correct file naming.
+/**
+ * @constant {Object<string, string>}
+ * @description ROBUSTNESS: A map to convert MIME types from the AI model's response to the correct file extensions.
+ * This ensures generated files are saved with the appropriate extension.
+ */
 const mimeTypeToExtension = {
   'image/png': '.png',
   'image/jpeg': '.jpeg',
@@ -47,16 +110,37 @@ const mimeTypeToExtension = {
 
 /**
  * Generates an image based on a user prompt and optional reference images.
- * This function ensures user data isolation, enforces limits, and handles file operations securely.
+ * This function orchestrates the entire image generation process, including:
+ * - Per-user rate limiting to prevent abuse.
+ * - Workspace-level usage limit checks to enforce subscription plans.
+ * - Secure handling of user-provided reference images.
+ * - Interaction with the Google Vertex AI image generation model.
+ * - Uploading the final image to Google Cloud Storage.
+ * - Recording the generation event for usage tracking.
+ *
+ * @multi-tenant This service is multi-tenant aware. It uses the `workspaceId` from the
+ * `userContext` to enforce usage limits and to store generated images in a tenant-specific
+ * path within the cloud storage bucket, ensuring data isolation.
+ *
+ * @permission Role-based access control is applied. While all authenticated users can
+ * access this function, `super_admin` users are exempt from workspace-level usage limits,
+ * allowing them to perform administrative or testing tasks without restriction.
  *
  * @param {object} userContext - The context of the user making the request.
  * @param {string} userContext.id - The unique identifier for the user.
  * @param {string} userContext.workspaceId - The identifier for the user's workspace to enforce tenant boundaries and limits.
  * @param {string} userContext.role - The user's role (e.g., 'user', 'admin', 'super_admin') for applying role-based logic.
  * @param {string} prompt - The text prompt for image generation.
- * @param {Array<{path: string, mimeType: string}>} [referenceImages] - An array of objects, each with a path to a temporary reference image and its MIME type.
- * @returns {Promise<string|null>} The public URL of the generated and uploaded image, or null if no image was generated.
- * @throws {Error} Throws an error for invalid input, security violations, or failures in the generation/upload process.
+ * @param {Array<{path: string, mimeType: string}>} [referenceImages=[]] - An array of objects, each with a path to a temporary reference image and its MIME type.
+ * @returns {Promise<string|null>} A promise that resolves to the public URL of the generated and uploaded image, or null if the AI model did not return an image.
+ * @throws {Error} Throws an error for various failure conditions:
+ * - If the `userContext` is invalid.
+ * - If the `prompt` is empty.
+ * - If the number of `referenceImages` exceeds the configured maximum.
+ * - If the user exceeds their per-minute or per-hour rate limit (with `status: 429`).
+ * - If the workspace has reached its image generation limit (with `status: 402`).
+ * - If a reference image path is outside the secure temporary directory.
+ * - If the AI model or cloud storage service fails during processing.
  */
 export async function imagen3(userContext, prompt, referenceImages = []) {
   // USER EXPERIENCE/ROBUSTNESS: Validate inputs at the beginning of the function to fail fast with clear errors.
