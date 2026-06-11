@@ -9,7 +9,7 @@
  * @param {string} tool.name - The original name of the tool.
  * @param {string} tool.slug - The unique slug/identifier for the tool, which will be used as the Gemini function name.
  * @param {string} tool.description - A description of the tool's functionality.
- * @param {object} tool.parameters - The original tool parameters object (may contain additional fields).
+ * @param {object} tool.parameters - The original tool parameters object (may contain additional fields like 'required').
  * @param {object} tool.input_parameters - Contains the schema for the tool's input parameters.
  * @param {object} tool.input_parameters.properties - The JSON schema properties defining the input parameters for the tool.
  * @returns {object|null} A new object formatted for the Gemini API, containing `name`, `description`, and `parameters`, or null if input is falsy.
@@ -67,13 +67,13 @@ export function sanitizeToolForGemini(tool) {
 
   /**
    * Sanitizes a string to be a valid Gemini function name.
-   * Rules: Must start with a letter or underscore, contain only a-z, A-Z, 0-9, _, or -, and be max 64 chars.
+   * Per Gemini specs, the name must match the regex `[a-zA-Z0-9_]{1,64}`.
    * @param {string} name - The proposed name.
    * @returns {string} A valid function name.
    */
   function sanitizeFunctionName(name) {
-    // Replace any character that is not a letter, number, underscore, or dash with an underscore.
-    let sanitized = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Replace any character that is not a letter, number, or underscore with an underscore.
+    let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
 
     // Ensure the name starts with a letter or an underscore.
     if (!/^[a-zA-Z_]/.test(sanitized)) {
@@ -88,7 +88,7 @@ export function sanitizeToolForGemini(tool) {
     name: sanitizeFunctionName(tool.slug),
     description: tool.description,
     parameters: {
-      ...tool.parameters, // Preserve any other top-level parameter fields if they exist and are supported
+      ...tool.parameters, // Preserve any other top-level parameter fields (e.g., 'required' array)
       type: 'object', // Gemini expects parameters to be an object
       properties: cleanProperties(tool.input_parameters?.properties),
     },

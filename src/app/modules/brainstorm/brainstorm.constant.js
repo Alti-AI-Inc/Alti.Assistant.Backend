@@ -20,7 +20,8 @@
  * @type {BrainstormConfig}
  */
 export const BRAINSTORM_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  // Updated to a valid and current model name to prevent execution errors.
+  MODEL: 'gemini-1.5-flash-latest',
   TEMPERATURE: 0.8,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_IDEA_LENGTH: 5000,
@@ -199,7 +200,7 @@ export const CONVERSATION_CATEGORY = 'brainstorm';
  * The AI model to be used for general conversation within the brainstorming module.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-1.5-flash-latest';
 
 /**
  * @typedef {object} DefaultParameters
@@ -235,7 +236,7 @@ export const DEFAULT_PARAMS = {
  * @typedef {object} SystemPrompts
  * @property {string} MAIN_ASSISTANT - The core system prompt defining the AI's role and capabilities as a brainstorming assistant.
  * @property {string} INTENT_ANALYZER - System prompt for analyzing user intent in brainstorming requests.
- * @property {function(string, string, string, string[]): string} IDEA_GENERATOR - A function that generates a system prompt for idea generation based on specified parameters.
+ * @property {function(string, string, string, string[], number, string[], string): string} IDEA_GENERATOR - A function that generates a system prompt for idea generation based on specified parameters.
  * @property {string} IDEA_ANALYZER - System prompt for comprehensively analyzing a given idea.
  * @property {string} IDEA_REFINER - System prompt for refining and improving an existing idea.
  */
@@ -274,30 +275,65 @@ Be conversational and helpful. If intent is unclear, ask clarifying questions.`,
 
   /**
    * Generates a system prompt for the AI to create brainstorm ideas.
+   * This prompt is highly structured to ensure consistent and high-quality output.
    * @param {string} type - The type of brainstorming (e.g., 'product_idea').
    * @param {string} depth - The depth level of the brainstorm (e.g., 'standard').
    * @param {string} technique - The brainstorming technique to use (e.g., 'free_association').
    * @param {string[]} perspectives - An array of perspectives to analyze from (e.g., ['business', 'user_centric']).
+   * @param {number} ideaCount - The specific number of ideas to generate.
+   * @param {string[]} [focusAreas=[]] - Optional array of specific areas to focus on.
+   * @param {string} [constraints=''] - Optional string describing any user-provided constraints.
    * @returns {string} The formatted system prompt for idea generation.
    */
   IDEA_GENERATOR: (
     type,
     depth,
     technique,
-    perspectives
-  ) => `Generate creative brainstorm ideas for a ${type} using ${technique} technique.
+    perspectives,
+    ideaCount,
+    focusAreas = [],
+    constraints = ''
+  ) => {
+    // Dynamically include technique description for better AI context.
+    const techniqueInfo = TECHNIQUE_DESCRIPTIONS[technique] || {
+      name: technique,
+      description: 'A standard brainstorming method.',
+    };
+    const focusAreaText =
+      focusAreas.length > 0
+        ? `\n- **Primary Focus Areas:** ${focusAreas.join(', ')}.`
+        : '';
+    const constraintsText = constraints
+      ? `\n- **User-defined Constraints:** ${constraints}.`
+      : '';
 
-Analyze from these perspectives: ${perspectives.join(', ')}
-Depth level: ${depth}
+    // The prompt is optimized for clarity, structure, and to provide the AI with all necessary context.
+    return `You are an expert brainstorming assistant. Your task is to generate creative and actionable ideas.
 
-Structure your response with:
-1. Main ideas (numbered and detailed)
-2. Supporting variations
-3. Key opportunities
-4. Potential challenges
-5. Next steps to explore
+**Brainstorming Goal:** Generate ideas for a new "${type}".
 
-Be specific, actionable, and innovative.`,
+**Core Parameters:**
+- **Technique to Apply:** ${techniqueInfo.name}.
+  - **Description:** ${techniqueInfo.description}.
+- **Number of Ideas to Generate:** Approximately ${ideaCount} ideas.
+- **Depth Level:** ${depth}. This means the ideas should have a corresponding level of detail and exploration.
+- **Analysis Perspectives:** ${perspectives.join(', ')}.
+${focusAreaText}
+${constraintsText}
+
+**Output Requirements:**
+- **Format:** Use clear Markdown formatting. Use headings (e.g., ##) for each major section.
+- **Idea Structure:** Each idea must be detailed, actionable, and between ${
+      BRAINSTORM_CONFIG.MIN_IDEA_LENGTH
+    } and ${BRAINSTORM_CONFIG.MAX_IDEA_LENGTH} characters long.
+- **Content Structure:** For your entire response, follow this structure precisely:
+  1.  **Main Ideas:** A numbered list of the ${ideaCount} core ideas. For each idea, provide a title and a detailed description.
+  2.  **Key Opportunities:** A summary of the most promising opportunities discovered.
+  3.  **Potential Challenges:** A list of potential risks or challenges to consider.
+  4.  **Next Steps:** A few actionable next steps the user could take to explore these ideas further.
+
+Begin generating the ideas now.`;
+  },
 
   IDEA_ANALYZER: `Analyze the provided idea comprehensively. Evaluate:
 - Uniqueness and innovation
@@ -445,54 +481,62 @@ export const TECHNIQUE_DESCRIPTIONS = {
   [TECHNIQUES.SCAMPER]: {
     name: 'SCAMPER',
     description:
-      'Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse',
-    useCase: 'Best for improving existing ideas or products',
+      'A method using a set of seven directed questions (Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, and Reverse) to find new ideas.',
+    useCase: 'Best for improving existing ideas or products.',
   },
   [TECHNIQUES.MIND_MAP]: {
     name: 'Mind Mapping',
-    description: 'Hierarchical exploration of related concepts',
-    useCase: 'Best for visual thinkers and exploring connections',
+    description:
+      'A visual thinking tool that helps structure information, helping you to better analyze, comprehend, synthesize, recall, and generate new ideas.',
+    useCase: 'Best for visual thinkers and exploring connections between concepts.',
   },
   [TECHNIQUES.SIX_THINKING_HATS]: {
     name: 'Six Thinking Hats',
     description:
-      'Analyze from six different thinking modes (facts, emotions, caution, benefits, creativity, process)',
-    useCase: 'Best for comprehensive analysis from multiple viewpoints',
+      'A method for group discussion and individual thinking involving six colored hats that represent different thinking modes (facts, emotions, caution, benefits, creativity, process).',
+    useCase: 'Best for comprehensive analysis from multiple viewpoints.',
   },
   [TECHNIQUES.SWOT_ANALYSIS]: {
     name: 'SWOT Analysis',
-    description: 'Strengths, Weaknesses, Opportunities, Threats',
-    useCase: 'Best for strategic planning and evaluation',
+    description:
+      'A strategic planning technique used to identify and analyze the Strengths, Weaknesses, Opportunities, and Threats related to a project or business venture.',
+    useCase: 'Best for strategic planning and competitive evaluation.',
   },
   [TECHNIQUES.FIVE_WHYS]: {
     name: 'Five Whys',
-    description: 'Dig deeper by asking "why" repeatedly to find root causes',
-    useCase: 'Best for problem-solving and understanding core issues',
+    description:
+      'An iterative interrogative technique used to explore the cause-and-effect relationships underlying a particular problem by repeatedly asking "Why?".',
+    useCase: 'Best for problem-solving and understanding core issues.',
   },
   [TECHNIQUES.REVERSE_BRAINSTORM]: {
     name: 'Reverse Brainstorming',
-    description: 'Think about how to cause the problem, then reverse it',
-    useCase: 'Best for problem-solving and finding unconventional solutions',
+    description:
+      'A technique that focuses on identifying potential problems or failures first, and then brainstorming solutions to prevent them.',
+    useCase: 'Best for proactive problem-solving and finding unconventional solutions.',
   },
   [TECHNIQUES.BRAINWRITING]: {
     name: 'Brainwriting',
-    description: 'Written idea generation with building on previous ideas',
-    useCase: 'Best for structured, iterative idea development',
+    description:
+      'A non-verbal brainstorming technique where participants write down their ideas and then pass them on to others to build upon.',
+    useCase: 'Best for structured, iterative idea development and inclusive participation.',
   },
   [TECHNIQUES.FREE_ASSOCIATION]: {
     name: 'Free Association',
-    description: 'Generate ideas freely without constraints',
-    useCase: 'Best for creative exploration and generating many options',
+    description:
+      'A spontaneous and non-linear method of generating ideas where one thought leads to another without any constraints or judgment.',
+    useCase: 'Best for creative exploration and generating a large quantity of diverse options.',
   },
   [TECHNIQUES.STARBURSTING]: {
     name: 'Starbursting',
-    description: 'Ask who, what, where, when, why, and how questions',
-    useCase: 'Best for thorough exploration of all aspects',
+    description:
+      'A brainstorming technique that focuses on generating questions rather than answers, using a six-pointed star to explore who, what, where, when, why, and how.',
+    useCase: 'Best for thorough exploration of a topic before generating ideas.',
   },
   [TECHNIQUES.ROLE_STORMING]: {
     name: 'Role Storming',
-    description: "Think from different personas or stakeholders' perspectives",
-    useCase: 'Best for understanding different viewpoints',
+    description:
+      "A technique where participants assume the identity of another person (e.g., a customer, a competitor) to generate ideas from a different perspective.",
+    useCase: 'Best for understanding different viewpoints and user-centric design.',
   },
 };
 
