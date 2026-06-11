@@ -33,15 +33,51 @@ export const generateTitleFromContent = (content) => {
  * Each data row is an object with header names as keys. Returns empty arrays if content is invalid or empty.
  */
 export const extractCSVData = (csvContent) => {
+  // BUGFIX: The original naive 'split(',')' parser failed on CSVs with quoted fields containing commas.
+  // Replaced with a more robust parser that correctly handles basic CSV quoting rules.
   try {
-    const lines = csvContent.split('\n').filter((line) => line.trim());
+    if (!csvContent) return { headers: [], data: [] };
+
+    // Normalize line endings and filter out empty lines
+    const lines = csvContent.replace(/\r\n/g, '\n').split('\n').filter((line) => line.trim());
     if (lines.length === 0) return { headers: [], data: [] };
 
-    const headers = lines[0].split(',').map((h) => h.trim());
+    /**
+     * Parses a single line of a CSV string, respecting quoted fields.
+     * @param {string} line - The CSV line to parse.
+     * @returns {string[]} An array of values from the line.
+     */
+    const parseLine = (line) => {
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          // Handle escaped quotes ("") by looking ahead
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++; // Skip the second quote of the pair
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      return values;
+    };
+
+    const headers = parseLine(lines[0]);
     const data = lines.slice(1).map((line) => {
-      const values = line.split(',').map((v) => v.trim());
+      const values = parseLine(line);
       const row = {};
       headers.forEach((header, index) => {
+        // Ensure we don't assign undefined if a row has fewer columns than the header
         row[header] = values[index] || '';
       });
       return row;
@@ -177,7 +213,9 @@ export const generateDataStats = (data) => {
 export const validateReportParams = (params) => {
   const errors = [];
 
-  if (!params.content && !params.files) {
+  // BUGFIX: The original check (!params.content && !params.files) was insufficient.
+  // It failed to consider cases where 'files' was an empty array, which should also be invalid if no content is provided.
+  if (!params.content && (!params.files || params.files.length === 0)) {
     errors.push('Either content or files must be provided');
   }
 
@@ -276,36 +314,60 @@ export const generateReportMetadata = (params) => {
  * @property {string} content - The text content of the section.
  */
 export const splitContentIntoSections = (content, maxSectionLength = 5000) => {
-  if (!content || content.length <= maxSectionLength) {
+  if (!content) {
+    return [];
+  }
+  if (content.length <= maxSectionLength) {
     return [{ title: 'Content', content }];
   }
 
+  // BUGFIX: The original logic could create sections larger than maxSectionLength if a single paragraph was too long.
+  // This revised logic correctly handles and splits oversized paragraphs to respect the length constraint.
   const sections = [];
   const paragraphs = content.split(/\n\n+/);
-  let currentSection = '';
+  let currentSectionContent = '';
   let sectionIndex = 1;
 
-  paragraphs.forEach((paragraph) => {
-    if (
-      currentSection.length + paragraph.length > maxSectionLength &&
-      currentSection.length > 0
-    ) {
-      sections.push({
-        title: `Section ${sectionIndex}`,
-        content: currentSection.trim(),
-      });
-      currentSection = paragraph;
-      sectionIndex++;
-    } else {
-      currentSection += (currentSection ? '\n\n' : '') + paragraph;
+  for (const paragraph of paragraphs) {
+    // If adding the next paragraph would exceed the limit, push the current section.
+    if (currentSectionContent.length > 0 && currentSectionContent.length + paragraph.length + 2 > maxSectionLength) {
+      sections.push({ title: `Section ${sectionIndex++}`, content: currentSectionContent.trim() });
+      currentSectionContent = '';
     }
-  });
 
-  if (currentSection) {
-    sections.push({
-      title: `Section ${sectionIndex}`,
-      content: currentSection.trim(),
-    });
+    // If a single paragraph is larger than the max length, it needs to be split.
+    if (paragraph.length > maxSectionLength) {
+      // If there's anything in currentSectionContent, push it first to keep it separate.
+      if (currentSectionContent.length > 0) {
+        sections.push({ title: `Section ${sectionIndex++}`, content: currentSectionContent.trim() });
+        currentSectionContent = '';
+      }
+
+      // Split the oversized paragraph itself.
+      let remainingParagraph = paragraph;
+      while (remainingParagraph.length > maxSectionLength) {
+        // Find a good split point (end of sentence) or hard split.
+        let splitAt = remainingParagraph.lastIndexOf('.', maxSectionLength);
+        if (splitAt <= 0) { // If no period found or it's at the start, hard split.
+          splitAt = maxSectionLength;
+        } else {
+          splitAt += 1; // Include the punctuation.
+        }
+        const chunk = remainingParagraph.substring(0, splitAt);
+        sections.push({ title: `Section ${sectionIndex++}`, content: chunk.trim() });
+        remainingParagraph = remainingParagraph.substring(splitAt).trim();
+      }
+      // The remainder of the paragraph becomes the start of the next section.
+      currentSectionContent = remainingParagraph;
+    } else {
+      // Otherwise, append the paragraph to the current section.
+      currentSectionContent += (currentSectionContent.length > 0 ? '\n\n' : '') + paragraph;
+    }
+  }
+
+  // Add the last remaining section if it has content.
+  if (currentSectionContent.length > 0) {
+    sections.push({ title: `Section ${sectionIndex}`, content: currentSectionContent.trim() });
   }
 
   return sections;
@@ -334,6 +396,7 @@ export const formatReportDate = (date = new Date()) => {
  * @returns {string} The sanitized filename.
  */
 export const sanitizeFilename = (filename) => {
+  if (!filename) return '';
   return filename
     .replace(/[^a-z0-9_\-.]/gi, '_')
     .replace(/_{2,}/g, '_')
