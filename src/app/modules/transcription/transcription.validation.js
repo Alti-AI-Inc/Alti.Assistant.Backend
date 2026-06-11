@@ -1,5 +1,99 @@
 import * as zod from 'zod';
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+// Enterprise-grade rate limiting requires a centralized store like Redis
+// to ensure limits are applied consistently across all application instances.
+// This assumes a pre-configured Redis client is available for import.
+import redisClient from '../../../config/redis';
+
 const { z } = zod;
+
+// --- Rate Limiting Middleware ---
+
+// Create a Redis store for rate-limit-redis.
+// Using a single store instance is more efficient.
+const redisStore = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis types and ioredis/node-redis v4.
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+// A robust key generator for guest/unauthenticated users.
+// It prioritizes a specific guest ID header, then the client's IP from X-Forwarded-For,
+// and finally falls back to the direct request IP. This is crucial for accuracy when behind a proxy.
+const guestKeyGenerator = (req) => {
+  if (req.headers['x-guest-id']) {
+    return `guest:${req.headers['x-guest-id']}`;
+  }
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string') {
+    return `ip:${forwardedFor.split(',')[0].trim()}`;
+  }
+  return `ip:${req.ip}`;
+};
+
+// A key generator for authenticated users.
+// It relies on user information attached to the request object by a preceding authentication middleware.
+const authenticatedKeyGenerator = (req) => {
+  // Assumes an authentication middleware has populated req.user with the user's unique ID.
+  if (req.user && req.user.id) {
+    return `user:${req.user.id}`;
+  }
+  // As a fallback, use the IP. This should be monitored, as it might indicate an issue
+  // with the authentication middleware chain on protected routes.
+  console.warn(
+    `Rate limiter for authenticated route could not find req.user.id. Falling back to IP key for ${req.originalUrl}.`
+  );
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string') {
+    return `ip:${forwardedFor.split(',')[0].trim()}`;
+  }
+  return `ip:${req.ip}`;
+};
+
+// Rate limiter for guest users. This is the most restrictive limit to protect
+// public-facing endpoints from simple DDOS attacks and anonymous abuse.
+const guestLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each guest/IP to 30 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: guestKeyGenerator,
+  message: {
+    error: 'Too many requests from this guest ID or IP, please try again after 15 minutes.',
+  },
+});
+
+// Standard rate limiter for authenticated users for most API endpoints.
+// This provides a generous limit for normal application usage while still
+// protecting against a compromised account or a buggy client.
+const standardApiLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each authenticated user to 500 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: authenticatedKeyGenerator,
+  message: {
+    error: 'You have exceeded the request limit, please try again after 15 minutes.',
+  },
+});
+
+// A stricter rate limiter for authenticated users on computationally expensive
+// or high-cost endpoints (e.g., AI processing, batch jobs, inline audio transcription).
+// This is a critical defense against cost runaway and resource exhaustion attacks.
+const heavyApiLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // Limit each user to 60 expensive operations per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: authenticatedKeyGenerator,
+  message: {
+    error:
+      'You have exceeded the limit for this resource-intensive operation. Please try again after 15 minutes.',
+  },
+});
 
 // Regex for MM:SS format, ensuring minutes and seconds are between 00 and 59.
 const mmSsRegex = /^(?:[0-5]\d):(?:[0-5]\d)$/;
@@ -239,10 +333,16 @@ const guestRateLimitSchema = z.object({
 });
 
 export const TranscriptionValidation = {
+  // Validation Schemas
   smartAssistantSchema,
   transcribeAudioSchema,
   transcribeInlineAudioSchema,
   batchTranscribeSchema,
   analyzeSegmentSchema,
   guestRateLimitSchema,
+
+  // Rate Limiting Middleware
+  guestLimiter,
+  standardApiLimiter,
+  heavyApiLimiter,
 };
