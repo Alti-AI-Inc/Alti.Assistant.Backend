@@ -7,13 +7,16 @@ import mongoose from 'mongoose';
 
 /**
  * @typedef {object} ToolSchemaDefinition
- * @property {string} slug - A unique identifier for the tool. Required.
+ * @property {string} slug - A unique identifier for the tool within its scope (global, tenant, or workspace). Required.
  * @property {string} name - The display name of the tool. Required.
  * @property {string} [description] - A brief description of what the tool does. Optional.
  * @property {string} [appName] - The name of the application this tool belongs to (e.g., 'Gmail', 'Slack'). Optional.
  * @property {number[]} [embedding] - A vector embedding of the tool's description/name for semantic search. Optional.
- * @property {mongoose.Schema.Types.ObjectId} [tenantId] - The ID of the tenant this tool belongs to. Used for multi-tenancy.
- *                                                         Defaults to null for global tools. Indexed for efficient lookup.
+ * @property {mongoose.Schema.Types.ObjectId} [tenantId] - The ID of the tenant this tool belongs to. Null for global tools.
+ * @property {mongoose.Schema.Types.ObjectId} [workspaceId] - The ID of the workspace this tool belongs to. Null for tenant-wide or global tools.
+ * @property {mongoose.Schema.Types.ObjectId} [createdBy] - The ID of the user who created this tool. Null for system-provided tools.
+ * @property {Date} createdAt - Timestamp of when the document was created.
+ * @property {Date} updatedAt - Timestamp of when the document was last updated.
  */
 
 /**
@@ -26,6 +29,7 @@ const ToolSchema = mongoose.Schema(
   {
     /**
      * A unique, URL-friendly identifier for the tool.
+     * @fix [Bug] Uniqueness is now enforced via a compound index to prevent collisions at the correct scope.
      * @type {string}
      * @required
      */
@@ -85,6 +89,36 @@ const ToolSchema = mongoose.Schema(
       default: null,
       index: true,
     },
+
+    /**
+     * @fix [Integration] Added to support workspace-level tool management and respect role boundaries (e.g., workspace owner).
+     * If null, the tool is tenant-wide (if tenantId is set) or global (if tenantId is also null).
+     * This field is crucial for scoping tools and permissions correctly within the platform hierarchy.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @default null
+     * @index true
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
+
+    /**
+     * @fix [Integration] Added to track tool ownership, enabling role-based access control (e.g., only admins or the creator can modify a tool).
+     * This is crucial for propagating actions and maintaining a clear audit trail up the management chain.
+     * If null, the tool is considered a system-provided or global default tool.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
+     * @default null
+     */
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     /**
@@ -93,8 +127,19 @@ const ToolSchema = mongoose.Schema(
      * @type {boolean}
      */
     strict: false, // Allow additional fields that might come from Composio
+    /**
+     * @fix [Bug] Added timestamps to track creation and updates, which is essential for auditing, cache invalidation, and debugging integration issues.
+     */
+    timestamps: true,
   }
 );
+
+/**
+ * @fix [Bug] Added a compound unique index to prevent slug collisions within the correct scope.
+ * A tool's slug must be unique within its workspace, or if not in a workspace, within its tenant,
+ * or if not in a tenant, globally. This enforces data integrity and prevents ambiguity when referencing tools.
+ */
+ToolSchema.index({ workspaceId: 1, tenantId: 1, slug: 1 }, { unique: true });
 
 /**
  * Mongoose model for a Tool.
