@@ -5,6 +5,16 @@
 
 import { z } from 'zod';
 
+// SECURITY: A utility to sanitize strings by encoding HTML special characters.
+// This prevents XSS by ensuring user input is treated as literal text rather than executable code/HTML.
+const sanitizeString = (str) =>
+  str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
 // =================================================================
 // Composio Integration Validations
 // =================================================================
@@ -28,13 +38,15 @@ const emailToolsValidation = z.object({
   subject: z
     .string()
     .min(1, 'Subject is required')
-    // SECURITY: Sanitize subject by stripping HTML tags to prevent Stored XSS vulnerabilities.
-    .transform((val) => val.replace(/<[^>]*>?/gm, '')),
+    // SECURITY: Sanitize subject by encoding HTML special characters to prevent Stored XSS vulnerabilities.
+    .transform(sanitizeString),
   body: z
     .string()
     .min(1, 'Body is required')
-    // SECURITY: Sanitize body by stripping HTML tags to prevent Stored XSS vulnerabilities.
-    .transform((val) => val.replace(/<[^>]*>?/gm, '')),
+    // SECURITY: Sanitize body by encoding HTML special characters to prevent Stored XSS vulnerabilities.
+    // This treats the entire body as plain text. If rich text is a feature requirement, a dedicated
+    // HTML sanitization library (e.g., sanitize-html) with a strict allow-list should be used instead.
+    .transform(sanitizeString),
 });
 
 /**
@@ -53,8 +65,8 @@ export const linkedinPostSchema = z.object({
   content: z
     .string()
     .min(1, 'Content is required')
-    // SECURITY: Sanitize content by stripping HTML tags to prevent Stored XSS vulnerabilities.
-    .transform((val) => val.replace(/<[^>]*>?/gm, '')),
+    // SECURITY: Sanitize content by encoding HTML special characters to prevent Stored XSS vulnerabilities.
+    .transform(sanitizeString),
 });
 
 /**
