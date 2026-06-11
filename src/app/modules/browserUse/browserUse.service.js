@@ -76,11 +76,11 @@ const validateUserAndTenantContext = async (userId, req) => {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in validateUserAndTenantContext', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      actorId: req?.user?._id,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in validateUserAndTenantContext',
+      error: { message: error.message, stack: error.stack },
+      context: { userId, actorId: req?.user?._id },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred during user validation.');
   }
@@ -137,9 +137,15 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
       _id: { $ne: userId } // Don't notify self
     }).lean(); // OPTIMIZATION: Added .lean() to fetch plain JS objects, reducing memory overhead.
 
-    logger.info(
-      `[Usage Propagation] User ${userId} (${user.role}) initiated a browser session. Current count: ${sessionCount + 1}/${limit}.`
-    );
+    // GCP-compatible structured logging
+    logger.info({
+      message: 'User initiated a browser session',
+      component: 'UsagePropagation',
+      userId: userId,
+      userRole: user.role,
+      sessionCount: sessionCount + 1,
+      limit: limit,
+    });
 
     // OPTIMIZATION: N+1 query problem fixed.
     // The original code executed one update query per supervisor inside a loop.
@@ -150,9 +156,14 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
     if (supervisorIds.length > 0) {
       // Log notifications before the bulk update
       managersAndAdmins.forEach(supervisor => {
-        logger.info(
-          `[Notification] Sent to ${supervisor.role} (ID: ${supervisor._id}): User ${userId} has consumed 1 browser session unit.`
-        );
+        // GCP-compatible structured logging
+        logger.info({
+          message: 'Supervisor notification sent for managed usage update',
+          component: 'UsagePropagation',
+          recipientId: supervisor._id,
+          recipientRole: supervisor.role,
+          targetUserId: userId,
+        });
       });
 
       // Perform a single bulk update for all supervisors who track managed usage
@@ -167,20 +178,24 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
       // OPTIMIZATION: Added .lean() for a small performance boost on read-only operations.
       const directManager = await User.findById(user.managerId).lean();
       if (directManager) {
-        logger.info(
-          `[Notification] Direct Manager (ID: ${directManager._id}) notified of user ${userId} activity.`
-        );
+        // GCP-compatible structured logging
+        logger.info({
+          message: 'Direct manager notification sent',
+          component: 'UsagePropagation',
+          recipientId: directManager._id,
+          targetUserId: userId,
+        });
       }
     }
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in propagateUsageAndCheckLimits', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      tenantId,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in propagateUsageAndCheckLimits',
+      error: { message: error.message, stack: error.stack },
+      context: { userId, tenantId },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An internal error occurred while checking usage limits.');
   }
@@ -287,7 +302,13 @@ const initiateTaskInSessionService = async (
     if (!response.candidates || response.candidates.length === 0) {
       // Handle cases where the model response was blocked by safety settings or other reasons.
       const blockReason = response.promptFeedback?.blockReason;
-      logger.error(`Vertex AI call blocked. Reason: ${blockReason}`, { response });
+      // GCP-compatible structured logging
+      logger.error({
+        message: 'Vertex AI call blocked by safety filters',
+        reason: blockReason,
+        component: 'VertexAI',
+        context: { response },
+      });
       throw new ApiError(httpStatus.BAD_REQUEST, `Request blocked by safety filters: ${blockReason}`);
     }
 
@@ -338,12 +359,11 @@ const initiateTaskInSessionService = async (
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in initiateTaskInSessionService', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      sessionId,
-      tenantId,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in initiateTaskInSessionService',
+      error: { message: error.message, stack: error.stack },
+      context: { userId, sessionId, tenantId },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to initiate browser task.');
   }
@@ -382,17 +402,22 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
 
     // No-op: The external polling mechanism is no longer valid after switching to the direct Vertex AI SDK.
     // Returning the session as-is.
-    logger.warn(`[Deprecated] updateTaskStatusService was called for taskId: ${taskId}. No action is taken.`);
+    // GCP-compatible structured logging
+    logger.warn({
+      message: 'Deprecated service was called. No action is taken.',
+      service: 'updateTaskStatusService',
+      context: { taskId },
+    });
     return session;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in updateTaskStatusService', {
-      error: error.message,
-      stack: error.stack,
-      sessionId,
-      taskId,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in updateTaskStatusService',
+      error: { message: error.message, stack: error.stack },
+      context: { sessionId, taskId },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update task status.');
   }
@@ -441,11 +466,11 @@ const getSessionsForUserService = async (userId, req = null) => {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in getSessionsForUserService', {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      actorId: req?.user?._id,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in getSessionsForUserService',
+      error: { message: error.message, stack: error.stack },
+      context: { userId, actorId: req?.user?._id },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve user sessions.');
   }
@@ -483,12 +508,11 @@ const getSessionByIdService = async (sessionId, userId, req = null) => {
     if (error instanceof ApiError) {
       throw error;
     }
-    logger.error('Error in getSessionByIdService', {
-      error: error.message,
-      stack: error.stack,
-      sessionId,
-      userId,
-      actorId: req?.user?._id,
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'Error in getSessionByIdService',
+      error: { message: error.message, stack: error.stack },
+      context: { sessionId, userId, actorId: req?.user?._id },
     });
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve session.');
   }
