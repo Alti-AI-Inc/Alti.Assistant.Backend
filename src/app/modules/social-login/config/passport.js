@@ -2,6 +2,13 @@
 // don't crash the server at startup. Strategies with real credentials are registered
 // normally; strategies with placeholder values are silently skipped.
 
+/**
+ * Checks if a set of values are "real" and not empty, undefined, or placeholder strings
+ * like 'your_...'. This is used to conditionally register OAuth strategies only when
+ * valid credentials are provided in environment variables.
+ * @param {...(string|undefined)} values - The configuration values to check.
+ * @returns {boolean} True if all values are considered real, false otherwise.
+ */
 const isReal = (...values) =>
   values.every(
     (v) => v && !v.startsWith('your_') && v !== '' && v !== 'undefined'
@@ -50,6 +57,13 @@ if (isReal(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_CLIENT_SECRET)) {
 
 import UserModel from '../../auth/auth.model.js';
 
+/**
+ * Configures and initializes Passport.js with various OAuth strategies and session management.
+ * It dynamically registers strategies only if their corresponding credentials are provided
+ * in the environment variables. It also sets up user serialization and deserialization
+ * for session persistence.
+ * @param {import('passport').PassportStatic} passport - The Passport.js instance to configure.
+ */
 export default (passport) => {
   if (GoogleStrategy)    passport.use(GoogleStrategy);
   if (FacebookStrategy)  passport.use(FacebookStrategy);
@@ -59,7 +73,21 @@ export default (passport) => {
   if (AppleStrategy)     passport.use(AppleStrategy);
   if (DiscordStrategy)   passport.use(DiscordStrategy);
 
+  /**
+   * Serializes the user object to the session.
+   * Stores only the user's unique ID in the session to keep the session data small.
+   * @param {object} user - The user object from the database.
+   * @param {Function} done - The callback to complete serialization.
+   */
   passport.serializeUser((user, done) => done(null, user.id || user._id));
+
+  /**
+   * Deserializes the user from the session.
+   * Retrieves the full user object from the database using the ID stored in the session.
+   * This user object is then attached to `req.user` for all subsequent requests.
+   * @param {string} id - The user ID stored in the session.
+   * @param {Function} done - The callback to complete deserialization.
+   */
   passport.deserializeUser(async (id, done) => {
     try {
       // OPTIMIZATION: Added .lean() to prevent Mongoose document hydration overhead on every single request.

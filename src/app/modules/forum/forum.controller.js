@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const sanitizeHtml = require('sanitize-html');
 const pick = require('../../middlewares/other/pick');
 const ApiError = require('../../utils/ApiError'); // Assuming a custom error class for structured HTTP errors
 const catchAsync = require('../../utils/catchAsync'); // Assuming a utility to wrap async route handlers
@@ -21,6 +22,37 @@ const { checkUsageAndLimits, recordUsage } = require('../usage/usage.service');
 
 // SECURITY: All endpoints now require authentication and are scoped to the user's workspace/tenant.
 // Authorization logic (e.g., checking roles like 'admin', 'manager') is delegated to the service layer.
+
+// SECURITY (XSS Protection): Define strict sanitizer options for plain text fields to prevent any HTML injection.
+const plainTextSanitizerOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+};
+
+// SECURITY (XSS Protection): Define sanitizer options for rich content, allowing a safe subset of HTML for formatting.
+// This prevents stored XSS attacks while preserving user-intended formatting like paragraphs, lists, and links.
+const richContentSanitizerOptions = {
+  allowedTags: [
+    'p',
+    'b',
+    'i',
+    'em',
+    'strong',
+    'a',
+    'ul',
+    'ol',
+    'li',
+    'blockquote',
+    'code',
+    'pre',
+    'br',
+    'hr',
+  ],
+  allowedAttributes: {
+    a: ['href', 'target', 'rel'], // Add rel="noopener noreferrer" on the frontend for safety
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+};
 
 /**
  * @openapi
@@ -102,9 +134,21 @@ module.exports.addForum = catchAsync(async (req, res) => {
   // CRITICAL INTEGRATION: Check if user or workspace has reached the limit for forum posts before creation.
   await checkUsageAndLimits(user, 'forum_post');
 
+  // SECURITY (XSS Protection): Sanitize all user-provided input before processing to prevent stored XSS.
+  const sanitizedTitle = data.title ? sanitizeHtml(data.title, plainTextSanitizerOptions) : '';
+  const sanitizedContent = data.content ? sanitizeHtml(data.content, richContentSanitizerOptions) : '';
+  const sanitizedCategory = data.category ? sanitizeHtml(data.category, plainTextSanitizerOptions) : undefined;
+  const sanitizedTags =
+    data.tags && Array.isArray(data.tags)
+      ? data.tags.map((tag) => sanitizeHtml(tag, plainTextSanitizerOptions))
+      : [];
+
   // SECURITY (Tenant Isolation): Associate the new forum post with the authenticated user and their workspace.
   const forumData = {
-    ...data,
+    title: sanitizedTitle,
+    content: sanitizedContent,
+    category: sanitizedCategory,
+    tags: sanitizedTags,
     author: user.id,
     workspace: user.workspaceId,
   };
@@ -407,10 +451,25 @@ exports.updateForum = catchAsync(async (req, res) => {
   const { id } = req.params;
   const updateBody = req.body;
 
+  // SECURITY (XSS Protection): Sanitize all user-provided input before processing to prevent stored XSS.
+  const sanitizedUpdateBody = {};
+  if (updateBody.title) {
+    sanitizedUpdateBody.title = sanitizeHtml(updateBody.title, plainTextSanitizerOptions);
+  }
+  if (updateBody.content) {
+    sanitizedUpdateBody.content = sanitizeHtml(updateBody.content, richContentSanitizerOptions);
+  }
+  if (updateBody.category) {
+    sanitizedUpdateBody.category = sanitizeHtml(updateBody.category, plainTextSanitizerOptions);
+  }
+  if (updateBody.tags && Array.isArray(updateBody.tags)) {
+    sanitizedUpdateBody.tags = updateBody.tags.map((tag) => sanitizeHtml(tag, plainTextSanitizerOptions));
+  }
+
   // SECURITY (IDOR & Authorization): Pass the user object to the service layer.
   // The service layer MUST verify that the user is either the author of the post
   // or has a role (e.g., 'manager', 'admin', 'super_admin') that permits editing, AND that the post is in their workspace.
-  const result = await updateForumService(id, updateBody, user);
+  const result = await updateForumService(id, sanitizedUpdateBody, user);
 
   res.status(httpStatus.OK).json({
     status: 'success',
@@ -594,9 +653,17 @@ module.exports.addUserForumActivity = catchAsync(async (req, res) => {
   // CRITICAL INTEGRATION: Check usage limits for comments/activities.
   await checkUsageAndLimits(user, 'forum_activity');
 
+  // SECURITY (XSS Protection): Sanitize comment content before processing to prevent stored XSS.
+  const sanitizedComment = activityData.comment ? sanitizeHtml(activityData.comment, richContentSanitizerOptions) : '';
+
+  const sanitizedActivityData = {
+    ...activityData,
+    comment: sanitizedComment,
+  };
+
   // SECURITY: Associate activity with the user and pass the user object for validation in the service.
   // The service MUST verify that the target forum (activityData.forumId) exists within the user's workspace.
-  const result = await addUserForumActivityServices(activityData, user);
+  const result = await addUserForumActivityServices(sanitizedActivityData, user);
 
   // CRITICAL INTEGRATION: Record the usage.
   await recordUsage(user, 'forum_activity', { forumId: activityData.forumId, activityId: result.id });
