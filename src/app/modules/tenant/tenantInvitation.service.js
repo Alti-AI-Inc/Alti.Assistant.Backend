@@ -200,9 +200,7 @@ const acceptInvitation = async (token, userId) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  // Removed console.log statements
-  // console.log('User email:', user.email);
-  // console.log('Invitation email:', invitation.email);
+
   // Check if user email matches invitation
   if (user.email.toLowerCase() !== invitation.email) {
     throw new ApiError(
@@ -211,13 +209,17 @@ const acceptInvitation = async (token, userId) => {
     );
   }
 
-  // Check if seat limit is reached (available seats = total - used)
-  // Assuming subscriptionService.getTenantSubscription returns a lean object or plain JS object
+  // OPTIMIZATION: Fetch subscription details once and reuse to avoid a second database call.
   const subscription = await subscriptionService.getTenantSubscription(
     invitation.tenantId
   );
+
+  // Check if seat limit is reached
   if (subscription) {
-    if (!subscription.limits.unlimitedSeats && subscription.seats.used >= subscription.seats.total) {
+    if (
+      !subscription.limits.unlimitedSeats &&
+      subscription.seats.used >= subscription.seats.total
+    ) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
         'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
@@ -265,10 +267,6 @@ const acceptInvitation = async (token, userId) => {
 
   // Add seat to subscription if paid plan
   try {
-    // Assuming subscriptionService.getTenantSubscription returns a lean object or plain JS object
-    const subscription = await subscriptionService.getTenantSubscription(
-      invitation.tenantId
-    );
     if (
       subscription &&
       subscription.plan !== 'free' &&
