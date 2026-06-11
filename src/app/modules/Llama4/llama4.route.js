@@ -237,6 +237,86 @@ router.put(
   catchAsync(PlatformController.overrideTenantLimits)
 );
 
+/**
+ * @swagger
+ * /api/v1/llama4/platform/tenants/{id}:
+ *   delete:
+ *     summary: Delete a tenant account (Platform Owner)
+ *     description: Permanently deletes a tenant and all associated data. This is an irreversible action and should be used with extreme caution. Restricted to Platform Owners.
+ *     tags:
+ *       - Platform Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant to delete.
+ *     responses:
+ *       204:
+ *         description: Tenant deleted successfully.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ *       404:
+ *         description: Tenant not found.
+ */
+router.delete(
+  '/platform/tenants/:id',
+  auth(ENUM_USER_ROLE.PLATFORM_OWNER),
+  catchAsync(PlatformController.deleteTenant)
+);
+
+/**
+ * @swagger
+ * /api/v1/llama4/platform/tenants/{tenantId}/users/{userId}/impersonate:
+ *   post:
+ *     summary: Impersonate a user within a tenant (Platform Owner)
+ *     description: Generates a short-lived authentication token for a specific user, allowing the Platform Owner to log in as that user for debugging and support purposes. This action should be heavily audited. Restricted to Platform Owners.
+ *     tags:
+ *       - Platform Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the tenant.
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the user to impersonate.
+ *     responses:
+ *       200:
+ *         description: Impersonation token generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   description: A temporary JWT token to be used for impersonation.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ *       404:
+ *         description: Tenant or User not found.
+ */
+router.post(
+  '/platform/tenants/:tenantId/users/:userId/impersonate',
+  auth(ENUM_USER_ROLE.PLATFORM_OWNER),
+  catchAsync(PlatformController.impersonateUser)
+);
+
 // --- System-wide Configuration ---
 
 /**
@@ -307,6 +387,58 @@ router.put(
   catchAsync(PlatformController.updateSystemConfig)
 );
 
+// --- Platform Communication ---
+
+/**
+ * @swagger
+ * /api/v1/llama4/platform/broadcast:
+ *   post:
+ *     summary: Send a system-wide broadcast message (Platform Owner)
+ *     description: Sends a message to all active tenants or users. Useful for maintenance announcements, new feature alerts, or other important communications. Restricted to Platform Owners.
+ *     tags:
+ *       - Platform Management
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *               - level
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The content of the broadcast message.
+ *                 example: "The platform will be down for scheduled maintenance on Sunday at 2 AM UTC for approximately 30 minutes."
+ *               level:
+ *                 type: string
+ *                 enum: [info, warning, critical]
+ *                 description: The severity level of the message.
+ *                 example: "warning"
+ *               target:
+ *                 type: string
+ *                 enum: [all_tenants, all_users]
+ *                 description: The target audience for the broadcast. Defaults to 'all_tenants'.
+ *                 example: "all_tenants"
+ *     responses:
+ *       200:
+ *         description: Broadcast message sent successfully.
+ *       400:
+ *         description: Bad Request - Invalid message format.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden.
+ */
+router.post(
+  '/platform/broadcast',
+  auth(ENUM_USER_ROLE.PLATFORM_OWNER),
+  catchAsync(PlatformController.broadcastMessage)
+);
+
 // --- Global Oversight & Logs ---
 
 /**
@@ -314,7 +446,7 @@ router.put(
  * /api/v1/llama4/platform/logs:
  *   get:
  *     summary: View global system logs (Platform Owner)
- *     description: Provides access to a paginated list of system-wide logs for auditing and debugging purposes. Can be filtered by log level. Restricted to Platform Owners.
+ *     description: Provides access to a paginated list of system-wide logs for auditing and debugging purposes. Can be filtered by log level, tenant, user, and time range. Restricted to Platform Owners.
  *     tags:
  *       - Platform Management
  *     security:
@@ -338,6 +470,28 @@ router.put(
  *           type: string
  *           enum: [info, warn, error, debug]
  *         description: Filter logs by severity level.
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *         description: Filter logs by a specific tenant ID.
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter logs by a specific user ID.
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: The start of the time range to filter logs (ISO 8601 format).
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: The end of the time range to filter logs (ISO 8601 format).
  *     responses:
  *       200:
  *         description: A paginated list of global log entries.

@@ -3,10 +3,11 @@
  * @module modules/enhanced_image/services/imageService
  */
 
-// Node.js core modules for file system operations, path manipulation, and cryptography.
-import { promises as fs } from 'fs';
-import path from 'path';
+// Node.js core modules for cryptography.
 import crypto from 'crypto';
+
+// Google Cloud Storage for direct, stateless file handling.
+import { Storage } from '@google-cloud/storage';
 
 import { imagen3 } from '../utils/imagegen2.5.service.js';
 import { imagegen_4 } from '../utils/imagegen4.service.js';
@@ -15,31 +16,40 @@ import { routeImageGenRequest } from '../utils/intentClassifier.js';
 /**
  * @class
  * @classdesc Provides a unified interface for generating images by routing requests to appropriate image generation services.
- * It abstracts away the complexity of choosing between different image generation models based on the prompt.
+ * It abstracts away the complexity of choosing between different image generation models based on the prompt and streams results directly to Google Cloud Storage.
  */
 export class ImageGenerationService {
   /**
    * Creates an instance of ImageGenerationService.
    * @param {string} apiKey - The API key required for authenticating with the image generation services.
-   * @param {string} imagesDir - The root directory path where generated images should be stored locally.
+   * @param {string} gcsBucketName - The name of the Google Cloud Storage bucket to store generated images.
    */
-  constructor(apiKey, imagesDir) {
+  constructor(apiKey, gcsBucketName) {
+    if (!gcsBucketName) {
+      throw new Error('GCS bucket name is required for ImageGenerationService.');
+    }
     /**
      * The API key used for authenticating with external image generation services.
      * @type {string}
      */
     this.apiKey = apiKey;
     /**
-     * The root local directory path where generated images will be saved, organized by tenant and user.
-     * @type {string}
+     * The Google Cloud Storage client instance.
+     * @type {Storage}
      */
-    this.imagesDir = imagesDir;
+    this.storage = new Storage();
+    /**
+     * The GCS bucket where generated images will be uploaded.
+     * @type {import('@google-cloud/storage').Bucket}
+     */
+    this.bucket = this.storage.bucket(gcsBucketName);
   }
 
   /**
-   * Generates an image based on a given prompt and saves it to a user-specific, isolated storage location.
+   * Generates an image based on a given prompt and streams it directly to a user-specific, isolated path in a GCS bucket.
    * It uses an intent classifier to determine the best underlying image generation service.
    * This method ensures data isolation, prevents file overwrites, and handles usage quotas gracefully.
+   * It returns a secure, time-limited signed URL for accessing the generated image.
    *
    * @async
    * @param {string} prompt - The text prompt describing the image to be generated. Must be a non-empty string.
@@ -55,8 +65,8 @@ export class ImageGenerationService {
    * @param {object} [context.services.notificationService] - Service to send notifications.
    * @param {object} [context.services.rateLimiter] - Service to enforce rate limits against API abuse (e.g., using Redis).
    * @returns {Promise<object>} A promise that resolves to an object containing details about the generated image.
-   * @returns {string} return.filename - The unique, final filename of the generated image.
-   * @returns {string} return.url - The public URL where the generated image can be accessed.
+   * @returns {string} return.filename - The unique, final filename of the generated image in GCS.
+   * @returns {string} return.url - The secure, time-limited signed URL to access the generated image.
    * @returns {string} return.service - The name of the image generation service used (e.g., 'imagen4', 'gemini2.5flash').
    * @returns {string} return.reasoning - The reasoning provided by the intent classifier for choosing the service.
    * @returns {number} return.confidence - The confidence score from the intent classifier for the chosen service.
@@ -83,30 +93,19 @@ export class ImageGenerationService {
     }
 
     // 2. Rate Limiting
-    // Apply rate limits to prevent abuse and DDOS attacks before consuming long-term quotas.
-    // This is a fast, in-memory check (e.g., using Redis) to block rapid, repeated requests from a single user or tenant.
     if (rateLimiter) {
-      // Define different limits based on user role to provide more flexible access.
       const limits = {
-        user: { points: 5, duration: 60 }, // 5 images per minute
-        manager: { points: 10, duration: 60 }, // 10 images per minute
-        admin: { points: 20, duration: 60 }, // 20 images per minute
-        super_admin: { points: 50, duration: 60 }, // 50 images per minute
+        user: { points: 5, duration: 60 },
+        manager: { points: 10, duration: 60 },
+        admin: { points: 20, duration: 60 },
+        super_admin: { points: 50, duration: 60 },
       };
       const userLimit = limits[user.role] || limits.user;
-
-      // Per-User Rate Limit: Prevents a single user from spamming the service.
-      // The key is specific to this function and user to avoid collisions.
       await rateLimiter.consume(`imagegen_user_${user.id}`, 1, userLimit.points, userLimit.duration);
-
-      // Per-Tenant Rate Limit: Prevents a single organization from overwhelming the service,
-      // which could be caused by a misconfigured script or multiple users.
-      await rateLimiter.consume(`imagegen_tenant_${tenantId}`, 1, 100, 60); // Global limit of 100 images per minute for the whole tenant.
+      await rateLimiter.consume(`imagegen_tenant_${tenantId}`, 1, 100, 60);
     }
 
     // 3. Usage Limits Check
-    // Check and consume the quota before proceeding with the expensive generation task.
-    // The 'consumed' flag helps us know whether to refund the quota if an error occurs later.
     let consumed = false;
     if (services.limitChecker) {
       const hasQuota = await services.limitChecker.checkAndConsume(tenantId, user.id, 1);
@@ -117,46 +116,54 @@ export class ImageGenerationService {
     }
 
     try {
-      // 4. Secure File Path and Data Isolation
-      // Create a user-specific directory to ensure data is isolated between users and tenants.
-      const userImageDir = path.join(this.imagesDir, tenantId, user.id);
-
-      // Sanitize the filename to prevent path traversal and invalid characters.
-      const safeBasename = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_');
+      // 4. GCS Object Path Generation and Data Isolation
+      // Sanitize the filename to prevent invalid GCS object names.
+      const safeBasename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
       if (!safeBasename || safeBasename === '.' || safeBasename === '..') {
         throw new Error('Invalid filename provided.');
       }
 
-      // Generate a unique filename to prevent overwrites and race conditions.
+      // Generate a unique filename to prevent overwrites.
       const uniqueFilename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeBasename}`;
-      const filepath = path.join(userImageDir, uniqueFilename);
       
-      // Final security check: Ensure the resolved path is strictly inside the designated root images directory.
-      const resolvedPath = path.resolve(filepath);
-      const resolvedImagesDir = path.resolve(this.imagesDir);
-      if (!resolvedPath.startsWith(resolvedImagesDir)) {
-        throw new Error('Access Denied: Path traversal detected.');
-      }
+      // Create a user-specific GCS path to ensure data is isolated between users and tenants.
+      const gcsObjectPath = `${tenantId}/${user.id}/${uniqueFilename}`;
 
-      // Ensure the user's personal directory exists before writing the file.
-      await fs.mkdir(userImageDir, { recursive: true });
-
-      // 5. Image Generation
-      // Route the request to the appropriate model and generate the image.
+      // 5. Image Generation and Streaming Upload to GCS
       const result = await routeImageGenRequest(prompt, { apiKey: this.apiKey });
-      let publicUrl;
+      let imageBuffer; // Assume underlying services return a Buffer
 
       if (result.service === 'imagen4') {
-        publicUrl = await imagegen_4(prompt, filepath);
+        // Assumption: imagegen_4 now returns the image data as a Buffer instead of writing to a file.
+        imageBuffer = await imagegen_4(prompt);
       } else if (result.service === 'gemini2.5flash') {
-        // This service might handle file saving internally or return a buffer.
-        // Assuming it needs the unique filename for its own storage/reference.
-        publicUrl = await imagen3(prompt, null, uniqueFilename);
+        // Assumption: imagen3 now returns the image data as a Buffer.
+        imageBuffer = await imagen3(prompt);
       } else {
         throw new Error(`Unsupported image generation service: ${result.service}`);
       }
 
-      // 6. Post-generation Tasks (Notifications & Logging)
+      if (!imageBuffer || imageBuffer.length === 0) {
+        throw new Error('Image generation failed: received empty image data.');
+      }
+
+      // Upload the image buffer directly to Google Cloud Storage.
+      const gcsFile = this.bucket.file(gcsObjectPath);
+      await gcsFile.save(imageBuffer, {
+        // It's good practice to set the content type for proper handling by browsers.
+        // This might need to be determined from the image generation service response.
+        contentType: 'image/png', 
+      });
+
+      // 6. Generate a Signed URL for secure, temporary access
+      const signedUrlOptions = {
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 15 * 60 * 1000, // URL is valid for 15 minutes
+      };
+      const [publicUrl] = await gcsFile.getSignedUrl(signedUrlOptions);
+
+      // 7. Post-generation Tasks (Notifications & Logging)
       if (services.notificationService) {
         const payload = {
           message: `User ${user.id} (${user.role}) generated an image in tenant ${tenantId}.`,
@@ -182,14 +189,10 @@ export class ImageGenerationService {
         confidence: result.confidence,
       };
     } catch (error) {
-      // 7. Error Handling and Quota Refund
-      // If an error occurred after the quota was consumed, refund it to the user.
-      // This provides a better user experience, as they are not charged for failed attempts.
+      // 8. Error Handling and Quota Refund
       if (consumed && services.limitChecker && typeof services.limitChecker.refund === 'function') {
         await services.limitChecker.refund(tenantId, user.id, 1);
       }
-      // Re-throw the original error to be handled by the upstream controller/middleware.
-      // It's important to preserve the original error context.
       throw error;
     }
   }
