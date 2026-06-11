@@ -40,6 +40,10 @@ export const PLAN_GENERATOR_CONFIG = {
  * Platform roles for access control and hierarchy validation.
  * @constant
  * @type {object}
+ * @property {string} SUPER_ADMIN - The highest-level role, typically for platform owners with unrestricted access.
+ * @property {string} ADMIN - A high-level role for workspace owners, managing users and settings within their workspace.
+ * @property {string} MANAGER - A mid-level role for team leaders, managing a group of users and their projects.
+ * @property {string} USER - The standard role for end-users with basic access to the platform's features.
  */
 export const ROLES = {
   SUPER_ADMIN: 'super_admin', // Platform Owner
@@ -53,6 +57,10 @@ export const ROLES = {
  * Higher roles inherit permissions of lower roles.
  * @constant
  * @type {object}
+ * @property {string[]} super_admin - Roles that a Super Admin can manage.
+ * @property {string[]} admin - Roles that an Admin can manage.
+ * @property {string[]} manager - Roles that a Manager can manage.
+ * @property {string[]} user - Roles that a User can manage (none).
  */
 export const ROLE_HIERARCHY = {
   [ROLES.SUPER_ADMIN]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
@@ -65,6 +73,9 @@ export const ROLE_HIERARCHY = {
  * Tenant and Workspace context configuration to enforce strict data isolation.
  * @constant
  * @type {object}
+ * @property {string} TENANT_ID_HEADER - The HTTP header key for the tenant ID.
+ * @property {string} WORKSPACE_ID_HEADER - The HTTP header key for the workspace ID.
+ * @property {boolean} ENFORCE_STRICT_ISOLATION - Flag to enable or disable strict data isolation checks.
  */
 export const TENANT_CONTEXT_CONFIG = {
   TENANT_ID_HEADER: 'x-tenant-id',
@@ -77,6 +88,15 @@ export const TENANT_CONTEXT_CONFIG = {
  * up the management and administrative hierarchy.
  * @constant
  * @type {object}
+ * @property {boolean} PROPAGATE_TO_MANAGER - Whether to send usage notifications to managers.
+ * @property {boolean} PROPAGATE_TO_ADMIN - Whether to send usage notifications to admins.
+ * @property {boolean} PROPAGATE_TO_SUPER_ADMIN - Whether to send usage notifications to super admins.
+ * @property {object} NOTIFICATION_TRIGGERS - Defines specific events that trigger notifications.
+ * @property {string} NOTIFICATION_TRIGGERS.LIMIT_REACHED - Trigger when a usage limit is fully reached.
+ * @property {string} NOTIFICATION_TRIGGERS.LIMIT_WARNING - Trigger when usage approaches a limit (e.g., 80%).
+ * @property {string} NOTIFICATION_TRIGGERS.UNAUTHORIZED_ACCESS - Trigger on an unauthorized access attempt.
+ * @property {string} NOTIFICATION_TRIGGERS.TENANT_CROSS_ACCESS_ATTEMPT - Trigger on a cross-tenant access attempt.
+ * @property {number} WARNING_THRESHOLD_PERCENTAGE - The usage percentage that triggers a warning notification.
  */
 export const USAGE_PROPAGATION_CONFIG = {
   PROPAGATE_TO_MANAGER: true,
@@ -93,9 +113,14 @@ export const USAGE_PROPAGATION_CONFIG = {
 
 /**
  * Role-based limits and usage metrics configurations to ensure platform stability,
- * prevent abuse, and maintain strict user data isolation.
+ * prevent abuse, and maintain strict user data isolation. Each role property contains an
+ * object defining specific limits.
  * @constant
  * @type {object}
+ * @property {object} super_admin - Usage limits for the Super Admin role.
+ * @property {object} admin - Usage limits for the Admin role.
+ * @property {object} manager - Usage limits for the Manager role.
+ * @property {object} user - Usage limits for the User role.
  */
 export const ROLE_BASED_LIMITS = {
   [ROLES.SUPER_ADMIN]: {
@@ -130,6 +155,7 @@ export const ROLE_BASED_LIMITS = {
 
 /**
  * Legacy user-level limits (maintained for backward compatibility).
+ * This is an alias for the 'user' limits defined in {@link ROLE_BASED_LIMITS}.
  * @constant
  * @type {object}
  */
