@@ -5,8 +5,7 @@
  * conversation history retrieval, brainstorm export, and brainstorm refinement
  * adheres to predefined structures and constraints.
  */
-import * as zod from 'zod';
-const { z } = zod;
+import { z } from 'zod';
 
 /**
  * @constant {z.ZodObject} conversationalBrainstormSchema
@@ -24,7 +23,7 @@ const conversationalBrainstormSchema = z.object({
         required_error: 'Message is required',
       })
       .min(10, 'Message must be at least 10 characters')
-      .max(5000, 'Message too long'),
+      .max(5000, 'Message cannot exceed 5000 characters'),
     conversationId: z.string().cuid('Invalid Conversation ID format').optional(),
     workspaceId: z.string().cuid('Invalid Workspace ID format').optional(),
     // SECURITY FIX: Removed `userId` field. Client-provided user identifiers are a severe security risk (IDOR/impersonation).
@@ -67,7 +66,7 @@ const structuredBrainstormSchema = z.object({
         required_error: 'Idea is required',
       })
       .min(10, 'Idea must be at least 10 characters')
-      .max(2000, 'Idea description too long'),
+      .max(2000, 'Idea description cannot exceed 2000 characters'),
     brainstormType: z
       .enum([
         'product_idea',
@@ -93,7 +92,11 @@ const structuredBrainstormSchema = z.object({
           'competitive',
         ])
       )
-      .optional(),
+      // OPTIMIZATION: Added limits to prevent abuse (e.g., sending an array with thousands of items) and improve UX.
+      .min(1, 'At least one perspective is required if the field is provided')
+      .max(5, 'You can select a maximum of 5 perspectives')
+      .optional()
+      .describe('Specific perspectives to guide the brainstorm'),
     technique: z
       .enum([
         'scamper',
@@ -109,7 +112,8 @@ const structuredBrainstormSchema = z.object({
       ])
       .optional(),
     depth: z.enum(['quick', 'standard', 'deep', 'comprehensive']).optional(),
-    iterations: z.number().min(1).max(5).optional(),
+    // OPTIMIZATION: Added .int() to ensure whole numbers, preventing invalid inputs like 2.5 iterations.
+    iterations: z.number().int().min(1).max(5).optional(),
     focusAreas: z
       .array(
         z.enum([
@@ -123,18 +127,34 @@ const structuredBrainstormSchema = z.object({
           'sustainability',
         ])
       )
-      .optional(),
+      // OPTIMIZATION: Added limits to prevent abuse and improve UX.
+      .min(1, 'At least one focus area is required if the field is provided')
+      .max(5, 'You can select a maximum of 5 focus areas')
+      .optional()
+      .describe('Key areas to concentrate the brainstorming effort on'),
     constraints: z
       .object({
-        budget: z.string().optional(),
-        timeline: z.string().optional(),
-        technology: z.array(z.string()).optional(),
-        targetAudience: z.string().optional(),
-        industry: z.string().optional(),
-        competitors: z.array(z.string()).optional(),
+        // OPTIMIZATION: Added length constraints to free-text fields to prevent overly long inputs.
+        budget: z.string().min(3).max(250).optional(),
+        timeline: z.string().min(3).max(250).optional(),
+        technology: z
+          .array(z.string().min(1).max(100))
+          .min(1)
+          .max(10)
+          .optional(),
+        targetAudience: z.string().min(3).max(500).optional(),
+        industry: z.string().min(3).max(250).optional(),
+        competitors: z
+          .array(z.string().min(1).max(100))
+          .min(1)
+          .max(10)
+          .optional(),
       })
       .optional(),
-    additionalInstructions: z.string().max(1000).optional(),
+    additionalInstructions: z
+      .string()
+      .max(1000, 'Additional instructions cannot exceed 1000 characters')
+      .optional(),
   }),
 });
 
@@ -213,9 +233,21 @@ const refineBrainstormSchema = z.object({
         required_error: 'Conversation ID is required',
       })
       .cuid('Invalid Conversation ID format'),
-    message: z.string().min(10).max(2000),
+    // OPTIMIZATION: Added consistent required_error message and more specific max length message.
+    message: z
+      .string({ required_error: 'Refinement message is required' })
+      .min(10, 'Message must be at least 10 characters')
+      .max(2000, 'Message cannot exceed 2000 characters'),
     focusOn: z
-      .array(z.string())
+      // OPTIMIZATION: Added limits to array size and string length to prevent abuse.
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(250, 'Each focus item cannot exceed 250 characters')
+      )
+      .min(1, 'At least one focus item is required if the field is provided')
+      .max(10, 'You can provide a maximum of 10 focus items')
       .optional()
       .describe('Specific ideas or aspects to focus on'),
   }),
