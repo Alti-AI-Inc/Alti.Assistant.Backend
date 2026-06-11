@@ -36,6 +36,9 @@ import PlatformConfig from '../platform/platformConfig.model.js';
  *         $ref: '#/components/responses/Forbidden'
  */
 const getAllTenants = catchAsync(async (req, res) => {
+  // NOTE: This query is already optimized with .lean(). For very large tenant counts,
+  // consider implementing pagination (e.g., using query parameters for limit and page)
+  // and sorting to avoid sending a massive payload and to make the query more efficient.
   const result = await Tenant.find({}).lean();
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -243,10 +246,16 @@ const overrideTenantLimits = catchAsync(async (req, res) => {
  *         $ref: '#/components/responses/Forbidden'
  */
 const getSystemConfig = catchAsync(async (req, res) => {
-  let result = await PlatformConfig.findOne({}).lean();
-  if (!result) {
-    result = await PlatformConfig.create({});
-  }
+  // OPTIMIZATION: Use a single atomic `findOneAndUpdate` with `upsert` and `$setOnInsert`.
+  // This avoids a potential second database call if the config doesn't exist
+  // and is more robust than a separate find and create.
+  // `setDefaultsOnInsert: true` ensures schema defaults are applied on creation.
+  const result = await PlatformConfig.findOneAndUpdate(
+    {},
+    { $setOnInsert: {} },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  ).lean();
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -294,11 +303,10 @@ const getSystemConfig = catchAsync(async (req, res) => {
  */
 const updateSystemConfig = catchAsync(async (req, res) => {
   const newConfig = req.body;
-  const result = await PlatformConfig.findOneAndUpdate(
-    {},
-    newConfig,
-    { new: true, upsert: true }
-  ).lean();
+  const result = await PlatformConfig.findOneAndUpdate({}, newConfig, {
+    new: true,
+    upsert: true,
+  }).lean();
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -381,7 +389,11 @@ const getGlobalLogs = catchAsync(async (req, res) => {
  *         $ref: '#/components/responses/Forbidden'
  */
 const getGlobalStats = catchAsync(async (req, res) => {
-  const totalTenants = await Tenant.countDocuments();
+  // OPTIMIZATION: Use `estimatedDocumentCount` instead of `countDocuments`.
+  // For counting all documents in a collection, `estimatedDocumentCount` is significantly faster
+  // as it uses collection metadata rather than performing a full collection scan.
+  // The result is an approximation but is perfectly suitable for a high-level statistics dashboard.
+  const totalTenants = await Tenant.estimatedDocumentCount();
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

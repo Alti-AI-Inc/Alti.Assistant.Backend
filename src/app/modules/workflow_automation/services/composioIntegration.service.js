@@ -119,6 +119,8 @@ import { logger } from '../../../../shared/logger.js';
 
 /**
  * Initializes the Composio SDK with the organization's API key.
+ * This instance is used to interact with the Composio platform for operations like
+ * fetching tools and initiating app connections.
  * @type {Composio}
  */
 const composio = new Composio({
@@ -126,24 +128,38 @@ const composio = new Composio({
 });
 
 // GCP: Initialize the Pub/Sub client.
+/**
+ * Google Cloud Pub/Sub client instance for publishing messages to topics.
+ * Used for offloading long-running tasks like tool synchronization to background workers.
+ * @type {PubSub}
+ */
 const pubSubClient = new PubSub();
 // GCP: Define the Pub/Sub topic name for tool synchronization tasks.
 // It's recommended to manage this via environment variables or a config file.
+/**
+ * The name of the Google Cloud Pub/Sub topic used for dispatching tool synchronization tasks.
+ * This allows the API to respond quickly while a background process handles fetching and updating tool data.
+ * @type {string}
+ */
 const toolsSyncTopicName =
   config.gcp?.pubsub?.topics?.toolsSync || 'composio-tools-sync';
 
 /**
  * Service for managing Composio apps and tools for workflow automation.
  * Provides functionalities to retrieve user's connected apps, available tools,
- * check connection statuses, and initiate new app connections.
+ * check connection statuses, and initiate new app connections. This service acts as a bridge
+ * between the application's backend and the Composio platform, handling data retrieval,
+ * caching strategies, and background processing triggers.
+ * @class ComposioIntegrationService
  */
 class ComposioIntegrationService {
   /**
    * Retrieves a list of all available Composio apps, indicating which ones the user is connected to.
-   * It fetches authentication configurations and user-specific connections to determine the status.
+   * It fetches all globally available authentication configurations and cross-references them with the
+   * user-specific connections stored in the local database to determine the connection status for each app.
    *
    * @memberof ComposioIntegrationService
-   * @param {string} userId - The unique identifier of the user.
+   * @param {string} userId - The unique identifier of the user. This is a multi-tenant context parameter.
    * @returns {Promise<GetUserAvailableAppsResult>} An object containing the success status,
    *   a list of all available apps with their connection status,
    *   apps the user is connected to, and apps available for connection.
@@ -210,15 +226,17 @@ class ComposioIntegrationService {
   }
 
   /**
-   * [REWRITTEN] Retrieves available tools for the user's connected apps from the local database.
+   * Retrieves available tools for the user's connected apps from the local database.
    * This function provides a fast response using cached/previously synced data and triggers
    * an asynchronous background job via Pub/Sub to refresh the tool data from the Composio platform.
+   * This ensures a responsive user experience while keeping the tool data eventually consistent.
    *
    * @memberof ComposioIntegrationService
-   * @param {string} userId - The unique identifier of the user.
-   * @param {string[]} [appNames=null] - An optional array of app names (case-insensitive) to filter the tools by.
+   * @param {string} userId - The unique identifier of the user. This is a multi-tenant context parameter.
+   * @param {string[]} [appNames=null] - An optional array of app names (case-insensitive) to filter the tools by. If null, tools for all connected apps are returned.
    * @returns {Promise<GetUserAvailableToolsResult>} An object containing the success status,
-   *   tools grouped by app from the local cache, a list of connected app names, local tools, and the total count of tools.
+   *   tools grouped by app from the local cache, a list of connected app names for which tools were fetched,
+   *   generic local tools, and the total count of tools.
    */
   async getUserAvailableTools(userId, appNames = null) {
     try {
@@ -313,15 +331,16 @@ class ComposioIntegrationService {
   }
 
   /**
-   * [NEW] Handles the background processing for a tool sync message from Pub/Sub.
-   * This function would be called by a subscriber (e.g., a Cloud Function or a dedicated service).
-   * It fetches tools from the Composio API and updates the local database.
+   * Handles the background processing for a tool sync message received from a Pub/Sub subscription.
+   * This function is designed to be executed by a background worker (e.g., a Cloud Function or a dedicated service).
+   * It fetches the latest tool definitions from the Composio API for the specified user and apps,
+   * and then performs a bulk upsert operation to update the local database, ensuring the local cache is up-to-date.
    *
    * @memberof ComposioIntegrationService
-   * @param {Object} message - The message payload from the Pub/Sub topic.
+   * @param {object} message - The message payload from the Pub/Sub topic.
    * @param {string} message.userId - The user ID for whom to sync tools.
    * @param {string[]} message.appNames - The list of app names to sync.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A promise that resolves when the synchronization process is complete or rejects on error.
    */
   async handleToolsSyncEvent({ userId, appNames }) {
     logger.info(`Handling tools sync event for user ${userId}`, { appNames });
@@ -404,13 +423,15 @@ class ComposioIntegrationService {
 
   /**
    * Checks the connection status for a list of specified applications for a given user.
-   * Includes special handling for platform-level "apps" that are always considered connected.
+   * It determines if the user has an active connection to each required app.
+   * Includes special handling for internal or platform-level "apps" (e.g., 'chat', 'research')
+   * that are always considered connected and do not require external authentication.
    *
    * @memberof ComposioIntegrationService
-   * @param {string} userId - The unique identifier of the user.
+   * @param {string} userId - The unique identifier of the user. This is a multi-tenant context parameter.
    * @param {string[]} requiredApps - An array of app names (case-insensitive) to check for connection status.
-   * @returns {Promise<CheckAppConnectionsResult>} An object indicating overall connection status,
-   *   individual app statuses, a list of missing connections, and a list of connected apps.
+   * @returns {Promise<CheckAppConnectionsResult>} An object indicating the overall connection status (`allConnected`),
+   *   a detailed status for each app, a list of missing connections, and a list of connected apps.
    */
   async checkAppConnections(userId, requiredApps) {
     try {
@@ -491,13 +512,17 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Retrieves a comprehensive list of all applications available for detection,
-   * combining apps from authentication configurations, local tool definitions, and predefined platform apps.
-   * This list is typically used for validating detected app names in contexts like LangGraph.
+   * Retrieves a comprehensive list of all applications available for detection.
+   * This list is aggregated from three sources:
+   * 1. Apps defined in `AuthConfig` (configurable integrations).
+   * 2. Apps associated with locally defined `Tool`s.
+   * 3. A predefined list of internal platform "apps".
+   * The resulting list is deduplicated and is typically used for validating app names detected in user prompts.
+   * This operation is not user-specific.
    *
    * @memberof ComposioIntegrationService
    * @returns {Promise<GetAvailableAppsForDetectionResult>} An object containing the success status,
-   *   a combined list of all available apps, apps from auth configs, and apps from local tools.
+   *   a combined list of all available apps, and the lists from the individual sources.
    */
   async getAvailableAppsForDetection() {
     try {
@@ -546,14 +571,16 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Validates a list of detected app names against the globally available apps.
-   * Optionally checks the connection status for valid apps for a specific user.
+   * Validates a list of detected app names against the globally available apps list.
+   * If a `userId` is provided, it also checks the user's connection status for the apps that are deemed valid.
+   * This is useful for determining which detected tools a user can actually execute.
    *
    * @memberof ComposioIntegrationService
    * @param {string[]} detectedApps - An array of app names (case-insensitive) that have been detected.
    * @param {string} [userId=null] - The unique identifier of the user. If provided, connection status for valid apps will be checked.
    * @returns {Promise<ValidateDetectedAppsResult>} An object containing the success status,
-   *   lists of valid and invalid detected apps, all available apps, and optionally the connection status.
+   *   lists of valid and invalid detected apps, the full list of all available apps for reference,
+   *   and (if `userId` was provided) the connection status for the valid apps.
    */
   async validateDetectedApps(detectedApps, userId = null) {
     try {
@@ -609,11 +636,12 @@ class ComposioIntegrationService {
 
   /**
    * Generates a connection URL for a specified application, allowing a user to connect their account.
-   * It first checks if the app is already connected for the user. If not, it initiates a new connection
-   * via Composio and saves a pending connection record.
+   * It first checks if the user already has an active connection to the app. If so, it returns the existing
+   * connection details. If not, it initiates a new connection flow via the Composio SDK, saves a 'PENDING'
+   * connection record in the local database, and returns the redirect URL for the user to complete the authentication.
    *
    * @memberof ComposioIntegrationService
-   * @param {string} userId - The unique identifier of the user initiating the connection.
+   * @param {string} userId - The unique identifier of the user initiating the connection. This is a multi-tenant context parameter.
    * @param {string} appName - The name of the app (case-insensitive) for which to get the connection URL.
    * @returns {Promise<GetConnectionUrlResult>} An object containing the success status,
    *   a flag indicating if already connected, the connection URL (if a new connection is initiated),
@@ -627,7 +655,7 @@ class ComposioIntegrationService {
       // For better performance, consider using a case-insensitive collation on the index or storing a
       // normalized (e.g., lowercase) version of the `app` field to query against with an exact match.
       const authConfig = await AuthConfig.findOne({
-        app: { $regex: new RegExp(`^${appName}$`, 'i') }, // Anchored regex is more performant
+        app: { $regex: new RegExp(`^${appName}`, 'i') }, // Anchored regex is more performant
       }).lean();
 
       if (!authConfig) {
@@ -690,13 +718,15 @@ class ComposioIntegrationService {
   }
 
   /**
-   * GCP: Triggers a background job to sync tools from Composio for a user's connected apps.
-   * This is a fire-and-forget operation that publishes a message to Pub/Sub.
+   * Triggers a background job to sync tools from Composio for a user's connected apps.
+   * This is a fire-and-forget operation that publishes a message to a Google Cloud Pub/Sub topic.
+   * A separate background worker will consume this message to perform the actual data synchronization,
+   * preventing the main API request from being blocked by a potentially long-running process.
    *
    * @memberof ComposioIntegrationService
    * @param {string} userId - The unique identifier of the user.
    * @param {string[]} appNames - An array of app names to sync tools for.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A promise that resolves once the message is published, or rejects on a publishing error.
    * @private
    */
   async _triggerToolsSync(userId, appNames) {
@@ -735,7 +765,9 @@ class ComposioIntegrationService {
 }
 
 /**
- * Singleton instance of the ComposioIntegrationService.
+ * A singleton instance of the ComposioIntegrationService.
+ * This instance is exported for use throughout the application, ensuring that
+ * only one instance of the service is created and used.
  * @type {ComposioIntegrationService}
  * @exports composioIntegrationService
  */

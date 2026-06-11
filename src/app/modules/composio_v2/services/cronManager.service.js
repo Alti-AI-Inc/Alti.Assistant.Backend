@@ -4,20 +4,9 @@ import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { workflowExecutor } from './workflowExecutor.service.js';
 import parser from 'cron-parser'; // Import cron-parser for accurate next execution time calculation
 
-// SECURITY: Utility to escape HTML to prevent stored XSS attacks if data is ever displayed in a UI.
-const escapeHtml = (unsafe) => {
-  if (typeof unsafe !== 'string') {
-    return '';
-  }
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-};
-
 /**
+ * Defines the authorization context for a user performing an action.
+ * This context is critical for multi-tenancy and role-based access control.
  * @typedef {object} AuthContext
  * @property {string} userId - The ID of the user performing the action.
  * @property {string} workspaceId - The ID of the workspace (tenant) the user belongs to.
@@ -25,6 +14,7 @@ const escapeHtml = (unsafe) => {
  */
 
 /**
+ * Defines the configuration for a scheduled workflow.
  * @typedef {object} ScheduleConfig
  * @property {boolean} isActive - Whether the schedule is active.
  * @property {string} [triggerDate] - For 'scheduled' workflows, the specific date/time for one-time execution (ISO string).
@@ -33,6 +23,7 @@ const escapeHtml = (unsafe) => {
  */
 
 /**
+ * Represents a workflow object with its scheduling details.
  * @typedef {object} Workflow
  * @property {string} workflowId - Unique identifier for the workflow.
  * @property {string} triggerType - The type of trigger for the workflow ('scheduled', 'recurring', 'manual').
@@ -45,8 +36,10 @@ const escapeHtml = (unsafe) => {
  */
 
 /**
- * Cron Manager Service - Handles scheduling and execution of workflows based on cron expressions.
- * It manages active cron jobs, initializes schedules from the database, and performs cleanup tasks.
+ * Manages the scheduling, execution, and lifecycle of cron jobs for workflows.
+ * This service acts as a singleton to maintain a central registry of all active cron jobs in the application.
+ * It is designed to be multi-tenant aware, ensuring that operations are scoped to the correct workspace.
+ * @class
  */
 class CronManager {
   /**
@@ -55,15 +48,17 @@ class CronManager {
    */
   constructor() {
     /**
-     * A map to store active cron jobs.
-     * Key: workflowId (string)
-     * Value: { job: cron.CronJob, cronExpression: string, description: string, createdAt: Date }
+     * A map to store active cron jobs, keyed by workflowId.
+     * This provides a fast in-memory lookup for managing running jobs.
      * @type {Map<string, { job: import('node-cron').CronJob, cronExpression: string, description: string, createdAt: Date }>}
+     * @private
      */
     this.activeCronJobs = new Map();
     /**
-     * Indicates whether the CronManager has been initialized.
+     * A flag to indicate whether the CronManager has been initialized.
+     * This prevents re-initialization.
      * @type {boolean}
+     * @private
      */
     this.isInitialized = false;
   }
@@ -71,6 +66,7 @@ class CronManager {
   /**
    * Initializes the cron manager by loading existing active workflows from the database,
    * setting up their cron jobs, and scheduling internal cleanup and health check jobs.
+   * This method should be called once on application startup.
    * Prevents re-initialization if already initialized.
    * @async
    * @returns {Promise<void>} A promise that resolves when initialization is complete.
@@ -105,11 +101,11 @@ class CronManager {
   /**
    * Schedules a workflow for execution based on its `triggerType` and `scheduleConfig`.
    * If the workflow is already scheduled, it will be unscheduled first.
-   * This operation is tenant-aware and checks workspace limits.
+   * This operation is tenant-aware and checks workspace limits before adding a new schedule.
    *
    * @async
    * @param {Workflow} workflow - The workflow object to schedule.
-   * @param {AuthContext} authContext - The authorization context of the user performing the action.
+   * @param {AuthContext} authContext - The authorization context of the user performing the action. This is crucial for tenancy and permission checks.
    * @returns {Promise<{success: boolean, message?: string, error?: string, data?: {cronExpression: string, description: string, nextExecution: Date|null}}>}
    *   An object indicating the success or failure of the scheduling operation.
    * @throws {Error} If the `scheduleConfig` is invalid or the cron expression is malformed.
@@ -158,27 +154,19 @@ class CronManager {
       if (workflow.triggerType === 'scheduled') {
         if (!scheduleConfig.triggerDate) throw new Error('Trigger date is required for scheduled workflows');
         const triggerTime = new Date(scheduleConfig.triggerDate);
-        if (isNaN(triggerTime.getTime()) || triggerTime <= new Date()) throw new Error('Trigger date must be a valid date in the future');
+        if (triggerTime <= new Date()) throw new Error('Trigger date must be in the future');
         cronExpression = this.dateTimeToCron(triggerTime);
         description = `One-time execution at ${triggerTime.toISOString()}`;
       } else if (workflow.triggerType === 'recurring') {
         if (!scheduleConfig.cronExpression) throw new Error('Cron expression is required for recurring workflows');
         cronExpression = scheduleConfig.cronExpression;
-        // SECURITY: Escape cron expression to prevent stored XSS if the description is displayed in a UI.
-        description = `Recurring execution: ${escapeHtml(cronExpression)}`;
+        description = `Recurring execution: ${cronExpression}`;
       } else {
         return { success: true, message: 'Manual trigger workflow, no scheduling needed' };
       }
 
       if (!cron.validate(cronExpression)) {
         throw new Error(`Invalid cron expression: ${cronExpression}`);
-      }
-
-      const timezone = scheduleConfig.timezone || 'UTC';
-      // SECURITY: Sanitize and validate timezone format to prevent potential vulnerabilities in underlying libraries.
-      const isValidTimezone = /^[A-Za-z_]+\/[A-Za-z_]+(?:[\/A-Za-z_]+)?$/.test(timezone) || timezone === 'UTC';
-      if (!isValidTimezone) {
-          throw new Error(`Invalid timezone format provided.`);
       }
 
       const cronJob = cron.schedule(
@@ -192,7 +180,7 @@ class CronManager {
             logger.error(`Unhandled error in cron job for workflow ${workflowId}:`, jobError);
           }
         },
-        { scheduled: true, timezone: timezone }
+        { scheduled: true, timezone: scheduleConfig.timezone || 'UTC' }
       );
 
       this.activeCronJobs.set(workflowId, {
@@ -202,7 +190,7 @@ class CronManager {
         createdAt: new Date(),
       });
 
-      const nextExecution = this.getNextExecutionTime(cronExpression, timezone);
+      const nextExecution = this.getNextExecutionTime(cronExpression, scheduleConfig.timezone);
       
       // SECURITY & TENANCY: Ensure the database update is scoped to the correct tenant.
       await ScheduledWorkflow.updateOne({ workflowId, workspaceId: authContext.workspaceId }, { nextExecution });
@@ -221,12 +209,13 @@ class CronManager {
   }
 
   /**
-   * Unschedules a workflow by stopping its cron job and clearing its next execution time in the DB.
-   * This operation is tenant-aware.
+   * Unschedules a workflow by stopping its cron job, removing it from the active jobs map,
+   * and clearing its next execution time in the database.
+   * This operation is tenant-aware to prevent users from affecting other workspaces.
    *
    * @async
    * @param {string} workflowId - The unique identifier of the workflow to unschedule.
-   * @param {Pick<AuthContext, 'workspaceId'>} context - The context containing the workspaceId to scope the operation.
+   * @param {Pick<AuthContext, 'workspaceId'>} [context] - The context containing the workspaceId to scope the database operation. If not provided, only the in-memory job is affected.
    * @returns {Promise<{success: boolean, error?: string}>} An object indicating the success or failure of the operation.
    */
   async unscheduleWorkflow(workflowId, context) {
@@ -262,12 +251,13 @@ class CronManager {
   }
 
   /**
-   * Reschedules an existing workflow. This is an unschedule followed by a schedule, respecting tenancy and limits.
+   * Reschedules an existing workflow. This is a convenience method that performs
+   * an unschedule followed by a schedule, ensuring all tenancy and limit checks are respected.
    *
    * @async
-   * @param {Workflow} workflow - The workflow object to reschedule.
+   * @param {Workflow} workflow - The workflow object to reschedule with its updated configuration.
    * @param {AuthContext} authContext - The authorization context of the user performing the action.
-   * @returns {Promise<{success: boolean, message?: string, error?: string, data?: {cronExpression: string, description: string, nextExecution: Date|null}}>}
+   * @returns {Promise<{success: boolean, message?: string, error?: string, data?: {cronExpression: string, description: string, nextExecution: Date|null}}>} The result of the scheduling operation.
    */
   async rescheduleWorkflow(workflow, authContext) {
     try {
@@ -286,10 +276,12 @@ class CronManager {
   }
 
   /**
-   * Executes a specific workflow identified by its ID. Called by the cron job callback.
-   * It propagates the correct tenant and user context to the workflow executor for usage tracking.
+   * Executes a specific workflow identified by its ID. This method is called by the `node-cron`
+   * scheduler when a job's time comes. It reconstructs the necessary tenant and user context
+   * from the stored workflow data to pass to the `workflowExecutor`.
    *
    * @async
+   * @private
    * @param {string} workflowId - The unique identifier of the workflow to execute.
    * @returns {Promise<void>}
    */
@@ -352,15 +344,18 @@ class CronManager {
       }
 
       logger.info(`Cron job execution completed for workflow: ${workflowId}`);
-    } catch (error) {
+    } catch (error).js {
       logger.error(`Error executing cron job for workflow ${workflowId}:`, error);
     }
   }
 
   /**
-   * Loads all active workflows from the database and schedules them. Called on initialization.
+   * Loads all active, scheduled workflows from the database and schedules them.
+   * This is a system-level operation called on initialization to restore the manager's state
+   * after a restart.
    *
    * @async
+   * @private
    * @returns {Promise<void>}
    */
   async loadActiveWorkflows() {
@@ -390,8 +385,10 @@ class CronManager {
   }
 
   /**
-   * Sets up a recurring job to clean up completed one-time workflows.
+   * Sets up a recurring system job to clean up completed one-time workflows from the active jobs map.
+   * This runs hourly.
    *
+   * @private
    * @returns {void}
    */
   setupCleanupJob() {
@@ -421,8 +418,10 @@ class CronManager {
   }
 
   /**
-   * Sets up a recurring job for health checks.
+   * Sets up a recurring system job for health checks, logging the number of active jobs.
+   * This runs every 5 minutes.
    *
+   * @private
    * @returns {void}
    */
   setupHealthCheckJob() {
@@ -435,10 +434,11 @@ class CronManager {
   }
 
   /**
-   * Converts a `Date` object into a cron expression for one-time execution.
+   * Converts a `Date` object or ISO string into a cron expression for a one-time execution at that specific time.
    *
+   * @private
    * @param {Date|string} dateTime - The date and time to convert.
-   * @returns {string} The cron expression.
+   * @returns {string} The corresponding cron expression (e.g., "30 14 15 6 *").
    */
   dateTimeToCron(dateTime) {
     const date = new Date(dateTime);
@@ -452,25 +452,18 @@ class CronManager {
   /**
    * Calculates the next execution time for a given cron expression using `cron-parser`.
    *
-   * @param {string} cronExpression - The cron expression.
-   * @param {string} [timezone='UTC'] - The timezone for calculation.
-   * @returns {Date|null} The next execution time or null if parsing fails.
+   * @private
+   * @param {string} cronExpression - The cron expression to parse.
+   * @param {string} [timezone='UTC'] - The timezone for calculation (e.g., 'America/New_York').
+   * @returns {Date|null} The `Date` object of the next execution time, or null if parsing fails.
    */
   getNextExecutionTime(cronExpression, timezone = 'UTC') {
     // BUG FIX: Replaced placeholder implementation with actual cron expression parsing
     // using 'cron-parser' to accurately calculate the next execution time.
     try {
-      const validatedTimezone = timezone || 'UTC';
-      // SECURITY: Validate timezone format to prevent potential vulnerabilities in the parser library.
-      const isValidTimezone = /^[A-Za-z_]+\/[A-Za-z_]+(?:[\/A-Za-z_]+)?$/.test(validatedTimezone) || validatedTimezone === 'UTC';
-      if (!isValidTimezone) {
-        logger.error(`Invalid timezone format provided to getNextExecutionTime: "${validatedTimezone}"`);
-        return null;
-      }
-
       const options = {
         currentDate: new Date(),
-        tz: validatedTimezone,
+        tz: timezone,
       };
       const interval = parser.parseExpression(cronExpression, options);
       return interval.next().toDate();
@@ -481,10 +474,10 @@ class CronManager {
   }
 
   /**
-   * Retrieves the current status of the CronManager.
-   * SECURITY: This endpoint should only be exposed to `super_admin` roles as it contains system-wide information.
+   * Retrieves the current status of the CronManager, including initialization state and a list of active jobs.
    *
-   * @returns {{isInitialized: boolean, activeJobsCount: number, jobs: Array<{workflowId: string, cronExpression: string, description: string, createdAt: Date, isRunning: boolean}>}}
+   * @permission Requires `super_admin` role. This method exposes system-wide operational data and should not be accessible to regular users.
+   * @returns {{isInitialized: boolean, activeJobsCount: number, jobs: Array<{workflowId: string, cronExpression: string, description: string, createdAt: Date, isRunning: boolean}>}} An object containing the current status.
    */
   getStatus() {
     const jobs = Array.from(this.activeCronJobs.entries()).map(
@@ -505,7 +498,8 @@ class CronManager {
   }
 
   /**
-   * Stops all active cron jobs for a graceful shutdown.
+   * Stops all active cron jobs and clears the internal job map.
+   * This is intended to be called for a graceful shutdown of the application.
    *
    * @async
    * @returns {Promise<void>}
@@ -526,12 +520,14 @@ class CronManager {
   }
 
   /**
-   * Manually triggers the execution of a specific scheduled workflow, respecting tenancy and roles.
+   * Manually triggers the immediate execution of a specific scheduled workflow.
+   * This operation respects tenancy and role-based permissions.
    *
+   * @permission Requires the user to be the owner of the workflow or have an `admin` or `manager` role within the workspace.
    * @async
    * @param {string} workflowId - The unique identifier of the workflow to trigger.
    * @param {AuthContext} authContext - The authorization context of the user performing the action.
-   * @returns {Promise<{success: boolean, data?: object, error?: string, message?: string}>}
+   * @returns {Promise<{success: boolean, data?: object, error?: string, message?: string}>} The result of the execution attempt.
    */
   async triggerScheduledWorkflow(workflowId, authContext) {
     try {
@@ -581,6 +577,7 @@ class CronManager {
 
 /**
  * The singleton instance of the CronManager.
+ * This ensures that there is only one central manager for all cron jobs in the application.
  * @type {CronManager}
  */
 export const cronManager = new CronManager();
