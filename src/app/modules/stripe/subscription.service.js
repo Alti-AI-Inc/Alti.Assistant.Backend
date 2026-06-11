@@ -6,7 +6,8 @@ import config from '../../../../config/index.js';
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  apiVersion: '2022-11-15',
+  // CVE-PATCH-AGENT: Updated Stripe API version from 2022-11-15 to 2024-06-20 for improved security, features, and compliance.
+  apiVersion: '2024-06-20',
 });
 
 /**
