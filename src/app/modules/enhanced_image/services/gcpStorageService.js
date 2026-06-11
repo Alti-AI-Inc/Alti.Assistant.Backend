@@ -90,33 +90,6 @@ export class GCPStorageService {
   }
 
   /**
-   * @deprecated Use getUploadStream or getSignedUrlForUpload to avoid local disk writes in ephemeral environments.
-   * Upload a file from the local filesystem to a GCS bucket.
-   * The caller is responsible for ensuring the destinationFileName is unique and,
-   * in a multi-tenant environment, properly namespaced by tenant ID.
-   * @param {string} localFilePath - The path to the local file. WARNING: Ensure this path is not user-controlled to prevent path traversal vulnerabilities.
-   * @param {string} destinationFileName - Destination file name in the bucket (e.g., 'tenant-id/images/my-image.png').
-   * @returns {Promise<string>} A promise that resolves to the public URL of the uploaded file.
-   */
-  async uploadFile(localFilePath, destinationFileName) {
-    try {
-      await this.bucket.upload(localFilePath, {
-        destination: destinationFileName,
-        metadata: {
-          cacheControl: 'public, max-age=31536000',
-        },
-      });
-
-      // Return public URL (bucket is already public via uniform bucket-level access)
-      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${destinationFileName}`;
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading to GCP:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Uploads a buffer directly to a GCS bucket.
    * This is efficient for handling file data held in memory.
    * The caller is responsible for ensuring the destinationFileName is unique and,

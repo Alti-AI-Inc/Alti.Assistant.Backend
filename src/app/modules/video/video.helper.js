@@ -2,12 +2,12 @@ import { logger } from '../../../shared/logger.js';
 import { VIDEO_ASSISTANT_CONSTANTS } from './video.constant.js';
 
 /**
- * Format video generation response for client
- * @param {string} response
- * @param {string|Object} videoData
- * @param {string} conversationId
- * @param {number} messageCount
- * @returns {Object}
+ * Format video generation response for client.
+ * @param {string} response - The text response to send to the user.
+ * @param {string|Object} videoData - The URL or data for the generated video.
+ * @param {string} conversationId - The ID of the current conversation.
+ * @param {number} messageCount - The current message count in the conversation.
+ * @returns {Object} - The formatted response object for the client.
  */
 export const formatVideoResponse = (
   response,
@@ -15,88 +15,70 @@ export const formatVideoResponse = (
   conversationId,
   messageCount
 ) => {
-  try {
-    return {
-      responseMessage: {
-        text: response,
-        video: videoData || null,
-        type: 'generation',
-      },
-      conversationId,
-      messageCount,
-    };
-  } catch (error) {
-    logger.warn('Failed to format video response:', error);
-    return {
-      responseMessage: {
-        text: response,
-        video: null,
-        type: 'generation',
-      },
-      conversationId,
-      messageCount,
-    };
-  }
+  // Removed unnecessary try-catch block as simple object creation is not expected to fail.
+  // This simplifies the code and improves readability.
+  return {
+    responseMessage: {
+      text: response,
+      video: videoData || null,
+      type: 'generation',
+    },
+    conversationId,
+    messageCount,
+  };
 };
 
 /**
- * Format video analysis response for client
- * @param {string} response
- * @param {string} conversationId
- * @param {number} messageCount
- * @returns {Object}
+ * Format video analysis response for client.
+ * @param {string} response - The text response from the analysis.
+ * @param {string} conversationId - The ID of the current conversation.
+ * @param {number} messageCount - The current message count in the conversation.
+ * @returns {Object} - The formatted response object for the client.
  */
 export const formatAnalysisResponse = (
   response,
   conversationId,
   messageCount
 ) => {
-  try {
-    return {
-      responseMessage: {
-        text: response,
-        type: 'analysis',
-      },
-      conversationId,
-      messageCount,
-    };
-  } catch (error) {
-    logger.warn('Failed to format analysis response:', error);
-    return {
-      responseMessage: {
-        text: response,
-        type: 'analysis',
-      },
-      conversationId,
-      messageCount,
-    };
-  }
+  // Removed unnecessary try-catch block for simplicity and clarity.
+  return {
+    responseMessage: {
+      text: response,
+      type: 'analysis',
+    },
+    conversationId,
+    messageCount,
+  };
 };
 
 /**
- * Validate video query length and content
- * @param {string} message
- * @returns {Object}
+ * Validate video query length and content.
+ * This ensures prompts meet the system's constraints, preventing errors and resource waste.
+ * @param {string} message - The user's input prompt.
+ * @returns {Object} - An object containing a boolean 'isValid' and an optional 'error' message.
  */
 export const validateVideoQuery = (message) => {
-  if (!message || typeof message !== 'string') {
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return {
       isValid: false,
-      error: 'Video query must be a non-empty string',
+      // Provide a clear error message for better UX.
+      error: 'Video query must be a non-empty string.',
     };
   }
 
-  if (message.length > VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MAX_LENGTH) {
+  const trimmedMessage = message.trim();
+
+  if (trimmedMessage.length > VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MAX_LENGTH) {
     return {
       isValid: false,
-      error: `Video query too long. Maximum ${VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MAX_LENGTH} characters allowed`,
+      error: `Video query is too long. Please limit your prompt to ${VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MAX_LENGTH} characters.`,
     };
   }
 
-  if (message.length < VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MIN_LENGTH) {
+  if (trimmedMessage.length < VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MIN_LENGTH) {
     return {
       isValid: false,
-      error: `Video query too short. Minimum ${VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MIN_LENGTH} characters required`,
+      error: `Video query is too short. Please provide at least ${VIDEO_ASSISTANT_CONSTANTS.MESSAGE.MIN_LENGTH} characters.`,
     };
   }
 
@@ -106,45 +88,50 @@ export const validateVideoQuery = (message) => {
 };
 
 /**
- * Format error message for user consumption
- * @param {Error} error
- * @param {string} originalQuery
- * @returns {string}
+ * Format a generic error message for user consumption, hiding internal details.
+ * @param {Error} error - The error object caught by the system.
+ * @returns {string} - A user-friendly error message.
  */
-export const formatErrorMessage = (error, originalQuery) => {
+export const formatErrorMessage = (error) => {
+  // Log the actual error for debugging purposes, helping developers improve error handling.
+  logger.warn(
+    'Formatting a generic error for the user. Consider creating a specific error type.',
+    {
+      errorMessage: error.message,
+    }
+  );
+
   const baseMessage =
     'I apologize, but I encountered an error while processing your video request.';
 
-  // Don't expose internal error details to users
-  if (
-    error.message?.includes('rate limit') ||
-    error.message?.includes('quota')
-  ) {
+  // Use optional chaining and convert to lower case for robust, case-insensitive matching.
+  const errorMessage = error.message?.toLowerCase() || '';
+
+  if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
     return `${baseMessage} It seems we've reached our service limits. Please try again in a few minutes.`;
   }
 
-  if (error.message?.includes('invalid') || error.message?.includes('format')) {
+  if (errorMessage.includes('invalid') || errorMessage.includes('format')) {
     return `${baseMessage} Please check your video format or prompt and try again.`;
   }
 
-  if (
-    error.message?.includes('network') ||
-    error.message?.includes('timeout')
-  ) {
+  if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
     return `${baseMessage} There seems to be a connectivity issue. Please try again.`;
   }
 
+  // A polite and actionable default message for unhandled errors.
   return `${baseMessage} Please try rephrasing your request or try again later.`;
 };
 
 /**
- * Extract video specifications from user query
- * @param {string} query
- * @returns {Object}
+ * Extract video specifications from a natural language user query.
+ * @param {string} query - The user's input prompt.
+ * @returns {Object} - An object containing extracted video specifications.
  */
 export const extractVideoSpecs = (query) => {
   const specs = {
-    duration: 10,
+    // Default values provide a consistent baseline for video generation.
+    duration: 10, // Default duration in seconds
     style: 'realistic',
     resolution: '1080p',
     aspectRatio: '16:9',
@@ -152,22 +139,29 @@ export const extractVideoSpecs = (query) => {
 
   const lowerQuery = query.toLowerCase();
 
-  // Extract duration preferences
-  if (
-    lowerQuery.includes('short') ||
-    lowerQuery.includes('quick') ||
-    lowerQuery.includes('5 second')
-  ) {
+  // Improved duration extraction using regex to capture specific numbers (e.g., "15 seconds").
+  // This is more flexible and user-friendly than hardcoded string checks.
+  const durationMatch = lowerQuery.match(/(\d+)\s*(?:second|sec)s?/);
+  if (durationMatch && durationMatch[1]) {
+    const requestedDuration = parseInt(durationMatch[1], 10);
+    // Clamp the duration to a valid range to prevent abuse or errors from upstream services.
+    specs.duration = Math.max(
+      VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.MIN_DURATION,
+      Math.min(
+        VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.MAX_DURATION,
+        requestedDuration
+      )
+    );
+  } else if (lowerQuery.includes('short') || lowerQuery.includes('quick')) {
     specs.duration = 5;
   } else if (
     lowerQuery.includes('long') ||
-    lowerQuery.includes('30 second') ||
     lowerQuery.includes('half minute')
   ) {
     specs.duration = 30;
   }
 
-  // Extract style preferences
+  // Extract style preferences using simple keyword matching.
   if (
     lowerQuery.includes('cartoon') ||
     lowerQuery.includes('animated') ||
@@ -187,7 +181,7 @@ export const extractVideoSpecs = (query) => {
     specs.style = 'abstract';
   }
 
-  // Extract resolution preferences
+  // Extract resolution preferences.
   if (
     lowerQuery.includes('4k') ||
     lowerQuery.includes('ultra hd') ||
@@ -198,7 +192,7 @@ export const extractVideoSpecs = (query) => {
     specs.resolution = '720p';
   }
 
-  // Extract aspect ratio preferences
+  // Extract aspect ratio preferences.
   if (lowerQuery.includes('square') || lowerQuery.includes('1:1')) {
     specs.aspectRatio = '1:1';
   } else if (
@@ -219,32 +213,44 @@ export const extractVideoSpecs = (query) => {
 };
 
 /**
- * Validate video specifications
- * @param {Object} specs
- * @returns {Object}
+ * Validate video specifications against allowed values.
+ * This prevents invalid parameters from being sent to the video generation service.
+ * @param {Object} specs - The video specifications object.
+ * @returns {Object} - An object containing a boolean 'isValid' and an array of 'errors'.
  */
 export const validateVideoSpecs = (specs) => {
   const errors = [];
+  const { VIDEO_SPECS } = VIDEO_ASSISTANT_CONSTANTS;
 
-  // Validate duration
-  if (specs.duration && (specs.duration < 1 || specs.duration > 60)) {
-    errors.push('Duration must be between 1 and 60 seconds');
+  // Validate duration against min/max constants.
+  if (
+    specs.duration &&
+    (specs.duration < VIDEO_SPECS.MIN_DURATION ||
+      specs.duration > VIDEO_SPECS.MAX_DURATION)
+  ) {
+    errors.push(
+      `Duration must be between ${VIDEO_SPECS.MIN_DURATION} and ${VIDEO_SPECS.MAX_DURATION} seconds.`
+    );
   }
 
-  // Validate style
-  const validStyles = Object.values(
-    VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.STYLES
-  );
+  // Validate style against a predefined list of supported styles.
+  const validStyles = Object.values(VIDEO_SPECS.STYLES);
   if (specs.style && !validStyles.includes(specs.style)) {
-    errors.push(`Style must be one of: ${validStyles.join(', ')}`);
+    errors.push(`Style must be one of: ${validStyles.join(', ')}.`);
   }
 
-  // Validate resolution
-  const validResolutions = Object.values(
-    VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.RESOLUTIONS
-  );
+  // Validate resolution against a predefined list.
+  const validResolutions = Object.values(VIDEO_SPECS.RESOLUTIONS);
   if (specs.resolution && !validResolutions.includes(specs.resolution)) {
-    errors.push(`Resolution must be one of: ${validResolutions.join(', ')}`);
+    errors.push(`Resolution must be one of: ${validResolutions.join(', ')}.`);
+  }
+
+  // Added validation for aspect ratio for consistency and robustness.
+  const validAspectRatios = Object.values(VIDEO_SPECS.ASPECT_RATIOS);
+  if (specs.aspectRatio && !validAspectRatios.includes(specs.aspectRatio)) {
+    errors.push(
+      `Aspect ratio must be one of: ${validAspectRatios.join(', ')}.`
+    );
   }
 
   return {
@@ -254,11 +260,12 @@ export const validateVideoSpecs = (specs) => {
 };
 
 /**
- * Format video response for different response types
- * @param {Object} result
- * @param {string} conversationId
- * @param {number} messageCount
- * @returns {Object}
+ * Format the final assistant response based on the type of result.
+ * This acts as a router to ensure the client receives a consistently structured object.
+ * @param {Object} result - The result from the video service.
+ * @param {string} conversationId - The ID of the current conversation.
+ * @param {number} messageCount - The current message count in the conversation.
+ * @returns {Object} - The final formatted response object.
  */
 export const formatAssistantResponse = (
   result,
@@ -279,6 +286,7 @@ export const formatAssistantResponse = (
       messageCount
     );
   } else {
+    // Provide a helpful default message if the result is ambiguous.
     return formatAnalysisResponse(
       "I'm processing your video request. Could you provide more details?",
       conversationId,
@@ -288,9 +296,10 @@ export const formatAssistantResponse = (
 };
 
 /**
- * Get user-friendly error message based on error type
- * @param {string} errorType
- * @returns {string}
+ * Get a user-friendly error message based on a specific, categorized error type.
+ * This structured approach is preferred over parsing raw error strings.
+ * @param {string} errorType - A key representing the type of error.
+ * @returns {string} - The corresponding user-friendly error message.
  */
 export const getUserErrorMessage = (errorType) => {
   const errorMap = {
@@ -304,6 +313,7 @@ export const getUserErrorMessage = (errorType) => {
   return errorMap[errorType] || VIDEO_ASSISTANT_CONSTANTS.MESSAGE.DEFAULT_ERROR;
 };
 
+// Export all helpers in a single object for easy importing and usage.
 export const videoHelpers = {
   formatVideoResponse,
   formatAnalysisResponse,

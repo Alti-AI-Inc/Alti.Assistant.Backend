@@ -71,8 +71,9 @@ const calculateJaccard = (arr1, arr2) => {
  *     dependencies, prerequisite links, or hierarchical cross-references.
  *
  * Relationship edges are stored in the `DocumentRelationship` collection.
- * This is a workspace-level operation and should be triggered by a system process or a user with
- * administrative privileges over the workspace (e.g., Workspace Admin, Manager). The calling controller
+ *
+ * @permission This is a workspace-level operation and should be triggered by a system process or a user with
+ * administrative privileges over the workspace (e.g., 'Workspace Admin', 'Manager'). The calling controller
  * is responsible for performing this role-based access control (RBAC) check.
  *
  * @param {string} workspaceId - The ID of the workspace for which to build the relationship graph. This ensures tenant data isolation.
