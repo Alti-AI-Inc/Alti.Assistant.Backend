@@ -701,6 +701,64 @@ const updateTeamMemberRole = catchAsync(async (req, res) => {
 });
 
 /**
+ * @swagger
+ * /api/v1/manager/team/{memberId}:
+ *   delete:
+ *     summary: Remove a team member from the workspace
+ *     description: Removes a member from the workspace. This action is irreversible. Restricted to 'manager' or 'admin' roles. A manager cannot remove the workspace owner (admin) or themselves.
+ *     tags:
+ *       - Manager Dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the team member to remove.
+ *     responses:
+ *       200:
+ *         description: Member removed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Member removed successfully
+ *                 data:
+ *                   type: 'null'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (e.g., trying to remove owner or self, not a manager).
+ *       404:
+ *         description: Not Found (member not in workspace).
+ */
+const removeTeamMember = catchAsync(async (req, res) => {
+  const { memberId } = req.params;
+  // The service layer will handle all authorization logic:
+  // 1. Is the requester a manager/admin?
+  // 2. Is the target member in the same workspace?
+  // 3. Is the requester trying to remove the workspace owner or themselves?
+  await chatbotService.removeTeamMember(req.user, memberId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Member removed successfully',
+    data: null, // No data to return on successful deletion
+  });
+});
+
+/**
  * @typedef {object} ChatbotController
  * @property {function(import('express').Request, import('express').Response): Promise<void>} createChatbot - Controller function to create a new chatbot.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} getChatbots - Controller function to retrieve all chatbots for the authenticated user.
@@ -711,6 +769,7 @@ const updateTeamMemberRole = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} getTeamMembers - Controller for managers to view their team.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} inviteTeamMember - Controller for managers to invite new members.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} updateTeamMemberRole - Controller for managers to update member roles.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} removeTeamMember - Controller for managers to remove members from the workspace.
  */
 
 /**
@@ -728,4 +787,5 @@ export const chatbotController = {
   getTeamMembers,
   inviteTeamMember,
   updateTeamMemberRole,
+  removeTeamMember,
 };

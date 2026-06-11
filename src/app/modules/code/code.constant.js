@@ -1,7 +1,7 @@
 /**
  * @fileoverview Constants and configuration settings for the Code Assistant module.
- * This file defines rate limits, conversation constraints, message types, model configurations,
- * guest user limitations, user roles, and notification thresholds.
+ * This file defines roles, subscription plans, workspace settings, Stripe configurations,
+ * rate limits, conversation constraints, and other core application settings.
  * @module CodeAssistantConstants
  */
 
@@ -9,57 +9,118 @@
 // FIX: Replaced USER_TYPES with a more granular ROLES object to support proper permissioning and feature flagging for super_admin, admin, manager, and user roles.
 const ROLES = {
   SUPER_ADMIN: 'super_admin', // Platform owner with unrestricted access.
-  ADMIN: 'admin',             // Workspace owner, manages managers and users.
-  MANAGER: 'manager',         // Team lead, manages users.
-  USER: 'user',               // Standard authenticated user.
+  ADMIN: 'admin',             // Workspace owner, manages billing, managers, and users.
+  MANAGER: 'manager',         // Team lead, manages users within a workspace.
+  USER: 'user',               // Standard authenticated user within a workspace.
   GUEST: 'guest',             // Unauthenticated user with limited access.
+};
+
+// ADMIN-FEATURE: Added constants for workspace configuration to centralize validation rules for name and slug updates.
+// This ensures consistency and security when admins manage their workspace settings.
+const WORKSPACE = {
+  NAME_MIN_LENGTH: 3,
+  NAME_MAX_LENGTH: 50,
+  SLUG_MIN_LENGTH: 3,
+  SLUG_MAX_LENGTH: 50,
+  // Enforces URL-safe slugs (lowercase, alphanumeric, single hyphens).
+  SLUG_REGEX: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+};
+
+// BILLING-FEATURE: Added Stripe constants to support secure subscription and billing management.
+// This includes a whitelist of webhook events to process and standardized subscription statuses.
+const STRIPE = {
+  // A whitelist of Stripe webhook events to process. This is a security best practice to ignore unexpected or malicious events.
+  WEBHOOK_EVENTS: {
+    INVOICE_PAYMENT_SUCCEEDED: 'invoice.payment_succeeded',
+    INVOICE_PAYMENT_FAILED: 'invoice.payment_failed',
+    CUSTOMER_SUBSCRIPTION_UPDATED: 'customer.subscription.updated',
+    CUSTOMER_SUBSCRIPTION_DELETED: 'customer.subscription.deleted',
+    CHECKOUT_SESSION_COMPLETED: 'checkout.session.completed',
+  },
+  // Subscription statuses mirrored from Stripe for consistent internal state management.
+  SUBSCRIPTION_STATUS: {
+    ACTIVE: 'active',
+    TRIALING: 'trialing',
+    PAST_DUE: 'past_due',
+    CANCELED: 'canceled',
+    INCOMPLETE: 'incomplete',
+    INCOMPLETE_EXPIRED: 'incomplete_expired',
+  },
+};
+
+// BILLING-OPTIMIZATION: Introduced a structured subscription plan configuration.
+// This allows admins to manage different tiers (Free, Pro, Enterprise) and ties workspace limits (users, requests)
+// directly to the billing model, making the platform scalable and commercially viable.
+const SUBSCRIPTION_PLANS = {
+  FREE: {
+    planId: 'free',
+    name: 'Free',
+    // The name of the environment variable holding the Stripe Price ID. Null for non-billable plans.
+    stripePriceIdEnvVar: null,
+    limits: {
+      maxUsers: 5,
+      monthlyRequestLimit: 10000,
+      maxHistoryLength: 10,
+    },
+    features: {
+      customBranding: false,
+      prioritySupport: false,
+    },
+  },
+  PRO: {
+    planId: 'pro',
+    name: 'Pro',
+    stripePriceIdEnvVar: 'STRIPE_PRO_PLAN_PRICE_ID',
+    limits: {
+      maxUsers: 50,
+      monthlyRequestLimit: 100000,
+      maxHistoryLength: 50,
+    },
+    features: {
+      customBranding: true,
+      prioritySupport: true,
+    },
+  },
+  ENTERPRISE: {
+    planId: 'enterprise',
+    name: 'Enterprise',
+    stripePriceIdEnvVar: 'STRIPE_ENTERPRISE_PLAN_PRICE_ID',
+    limits: {
+      maxUsers: -1, // -1 signifies unlimited
+      monthlyRequestLimit: -1, // -1 signifies unlimited
+      maxHistoryLength: 100,
+    },
+    features: {
+      customBranding: true,
+      prioritySupport: true,
+    },
+  },
 };
 
 /**
  * Configuration constants for the Code Assistant module.
  * @type {Object}
  * @property {Object} ROLES Defines the user roles within the system.
- * @property {string} ROLES.SUPER_ADMIN Role for platform owners.
- * @property {string} ROLES.ADMIN Role for workspace owners.
- * @property {string} ROLES.MANAGER Role for team managers.
- * @property {string} ROLES.USER Role for standard users.
- * @property {string} ROLES.GUEST Role for unauthenticated guest users.
- * @property {Object} RATE_LIMIT Rate limiting configurations for different user roles.
- * @property {Object.<string, {REQUESTS: number, WINDOW_MINUTES: number}>} RATE_LIMIT Each key corresponds to a role name (e.g., 'super_admin', 'admin').
- * @property {number} RATE_LIMIT.*.REQUESTS Number of allowed requests. A value of -1 signifies unlimited requests.
- * @property {number} RATE_LIMIT.*.WINDOW_MINUTES The time window in minutes for the request limit.
+ * @property {Object} WORKSPACE Defines validation and configuration for workspaces.
+ * @property {Object} STRIPE Defines constants for Stripe integration, including webhook events and statuses.
+ * @property {Object} SUBSCRIPTION_PLANS Defines the available subscription tiers and their associated limits and features.
+ * @property {Object} RATE_LIMIT Per-user rate limiting configurations to prevent short-term abuse.
  * @property {Object} CONVERSATION Configuration limits for conversations.
- * @property {number} CONVERSATION.MAX_HISTORY_LENGTH Maximum number of messages to retain in conversation history.
- * @property {number} CONVERSATION.TITLE_MAX_LENGTH Maximum character length for conversation titles.
  * @property {Object} MESSAGE Configuration limits and types for messages.
- * @property {number} MESSAGE.MAX_LENGTH Maximum character length for a single message.
- * @property {Object} MESSAGE.TYPES Message type identifiers.
- * @property {string} MESSAGE.TYPES.QUERY Identifier for a code query message.
- * @property {string} MESSAGE.TYPES.RESULT Identifier for a code result message.
- * @property {string} MESSAGE.TYPES.ERROR Identifier for an error message.
  * @property {Object} MODEL Configuration for the AI model used.
- * @property {string} MODEL.NAME Name of the code assistant model.
- * @property {string} MODEL.CATEGORY Category classification of the model.
  * @property {Object} NOTIFICATIONS Configuration for usage-based notifications.
- * @property {number} NOTIFICATIONS.USAGE_WARNING_THRESHOLD_PERCENT Usage percentage to trigger a warning notification to managers/admins.
- * @property {number} NOTIFICATIONS.USAGE_LIMIT_REACHED_THRESHOLD_PERCENT Usage percentage to trigger a limit-reached notification.
  * @property {Object} GCP_PUBSUB Configuration for Google Cloud Pub/Sub topics.
- * @property {Object} GCP_PUBSUB.TOPICS Defines the topic names for asynchronous tasks.
- * @property {string} GCP_PUBSUB.TOPICS.USER_USAGE_WARNING Topic for user usage warning notifications.
- * @property {string} GCP_PUBSUB.TOPICS.USER_USAGE_LIMIT_REACHED Topic for user usage limit reached notifications.
  * @property {Object} GUEST Configuration and feature flags for guest users.
- * @property {string} GUEST.ID_PREFIX Prefix used for guest user IDs.
- * @property {string} GUEST.CONVERSATION_PREFIX Prefix used for guest conversation IDs.
- * @property {Object} GUEST.FEATURES Feature flags indicating what guests can access.
- * @property {boolean} GUEST.FEATURES.CONVERSATION_HISTORY Whether guests have persistent conversation history.
- * @property {boolean} GUEST.FEATURES.STATISTICS Whether guests have access to statistics.
- * @property {boolean} GUEST.FEATURES.UNLIMITED_USAGE Whether guests have unlimited usage.
  */
 export const CODE_ASSISTANT_CONSTANTS = {
   ROLES,
+  WORKSPACE,
+  STRIPE,
+  SUBSCRIPTION_PLANS,
 
   // HIERARCHY-GAP: The original rate limit was a flat value for all authenticated users, failing to respect the role hierarchy.
   // FIX: Implemented role-based rate limiting to provide granular control over usage for different user tiers. This is critical for managing tenant resources and preventing abuse.
+  // NOTE: This is short-term, per-user rate limiting, distinct from the workspace's overall monthly quota defined in SUBSCRIPTION_PLANS.
   RATE_LIMIT: {
     [ROLES.SUPER_ADMIN]: { REQUESTS: -1, WINDOW_MINUTES: 1 }, // -1 signifies unlimited requests
     [ROLES.ADMIN]: { REQUESTS: 1000, WINDOW_MINUTES: 60 },
@@ -69,7 +130,7 @@ export const CODE_ASSISTANT_CONSTANTS = {
   },
 
   CONVERSATION: {
-    MAX_HISTORY_LENGTH: 10,
+    // OPTIMIZATION: MAX_HISTORY_LENGTH is now defined per subscription plan to offer tiered benefits.
     TITLE_MAX_LENGTH: 50,
   },
 
@@ -101,6 +162,8 @@ export const CODE_ASSISTANT_CONSTANTS = {
     TOPICS: {
       USER_USAGE_WARNING: 'code-assistant-user-usage-warning',
       USER_USAGE_LIMIT_REACHED: 'code-assistant-user-usage-limit-reached',
+      // BILLING-FEATURE: Added topic for handling Stripe webhooks asynchronously.
+      STRIPE_WEBHOOKS: 'stripe-webhooks',
     },
   },
 
