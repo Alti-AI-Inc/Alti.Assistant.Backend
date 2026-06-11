@@ -5,13 +5,17 @@ import mongoose from 'mongoose';
  * This schema is designed for a multi-tenant environment, capturing detailed information
  * about the execution's inputs, outputs, steps, status, performance, and token usage.
  * It includes fields crucial for platform owner oversight, such as tenant isolation,
- * correlation IDs for tracing, and metadata for auditing.
- * @property {String} tenantId - The identifier for the tenant under which the execution occurred. Essential for data isolation and management in a multi-tenant system.
+ * correlation IDs for tracing, and metadata for auditing. It also includes fields to
+ * map executions to the organizational hierarchy (user, manager, admin) for usage
+ * tracking and limit enforcement.
+ * @property {String} tenantId - The identifier for the tenant (workspace) under which the execution occurred. Essential for data isolation and management in a multi-tenant system.
  * @property {mongoose.Schema.Types.ObjectId} chainId - A reference to the 'LangchainChain' document that was executed.
  * @property {String} userId - The identifier of the user who initiated the execution.
+ * @property {String} [teamId] - The identifier for the team the user belonged to at the time of execution. Critical for attributing usage to managers.
+ * @property {String} [managerId] - The identifier of the user's manager at the time of execution. Enables direct notifications and limit checks for managers.
  * @property {String} [correlationId] - An optional ID to link this execution with a broader workflow or request for end-to-end tracing.
  * @property {String} environment - The deployment environment (e.g., 'development', 'production') where the execution took place.
- * @property {mongoose.Schema.Types.Mixed} inputs - The initial input data provided to the chain.
+ * @property {mongoose.Schema.Types.Mixed} inputs - The initial input data provided to the chain. WARNING: Must be sanitized before use to prevent NoSQL injection.
  * @property {mongoose.Schema.Types.Mixed} outputs - The final output data produced by the chain.
  * @property {Array<Object>} stepsExecution - An ordered array detailing the execution of each step within the chain.
  * @property {String} stepsExecution.stepName - The name of the individual step.
@@ -37,8 +41,8 @@ import mongoose from 'mongoose';
 const LangchainExecutionSchema = new mongoose.Schema(
   {
     // Platform Owner Oversight: tenantId is crucial for a multi-tenant architecture.
-    // It enables filtering, aggregation, and management of resources on a per-tenant basis,
-    // providing the foundation for global oversight and tenant-specific administration.
+    // It represents the workspace boundary, enabling filtering and management on a per-tenant basis,
+    // providing the foundation for global oversight and tenant-specific administration (by workspace owners/admins).
     tenantId: {
       type: String, // Can be mongoose.Schema.Types.ObjectId if tenants are a separate collection
       required: true,
@@ -50,10 +54,27 @@ const LangchainExecutionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Hierarchy Integration: userId identifies the end-user. This, combined with teamId and managerId,
+    // allows for correct propagation of usage data and enforcement of limits across the user -> manager -> admin hierarchy.
     userId: {
       type: String,
       required: true,
       index: true
+    },
+    // BUG FIX: Added teamId to bridge the hierarchy gap. Storing the teamId at the time of execution is critical for
+    // correctly attributing costs and usage to the correct team and its manager, even if the user later changes teams.
+    // This enables proper usage propagation and limit enforcement at the manager level.
+    teamId: {
+      type: String, // Can be mongoose.Schema.Types.ObjectId if teams are a separate collection
+      index: true,
+      default: null
+    },
+    // BUG FIX: Added managerId to provide a direct link for notifications and approvals.
+    // This ensures usage is visible to the correct supervisor and supports manager-specific dashboards and controls.
+    managerId: {
+      type: String, // Can be mongoose.Schema.Types.ObjectId if users are a separate collection
+      index: true,
+      default: null
     },
     // Platform Owner Oversight: A correlation ID links this specific execution to a broader
     // request or workflow, enabling end-to-end tracing for debugging and auditing across the platform.
@@ -70,6 +91,8 @@ const LangchainExecutionSchema = new mongoose.Schema(
       index: true
     },
     inputs: {
+      // SECURITY: Storing arbitrary objects can be risky. Ensure any user-provided data within this object
+      // is properly sanitized and validated before being used in database queries to prevent NoSQL injection attacks.
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
@@ -113,8 +136,9 @@ const LangchainExecutionSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
-    // Global Statistics: Token usage is a key metric for the Platform Owner to monitor
-    // platform-wide costs, generate billing reports, and enforce tenant-specific limits.
+    // Global Statistics & Hierarchy Integration: Token usage is a key metric for the Platform Owner to monitor
+    // platform-wide costs. It is also the primary data point that must be aggregated up the
+    // user -> team -> workspace hierarchy for limit enforcement and reporting.
     tokenUsage: {
       promptTokens: { type: Number, default: 0 },
       completionTokens: { type: Number, default: 0 },
@@ -148,6 +172,10 @@ LangchainExecutionSchema.index({ tenantId: 1, createdAt: -1 });
 // Platform Owner Optimization: This index improves performance when querying for all
 // executions by a specific user within a given tenant.
 LangchainExecutionSchema.index({ tenantId: 1, userId: 1 });
+
+// Hierarchy Integration Optimization: This index is crucial for efficiently querying
+// executions for a specific team within a tenant, enabling fast reporting for managers.
+LangchainExecutionSchema.index({ tenantId: 1, teamId: 1, createdAt: -1 });
 
 /**
  * @description Mongoose model for Langchain chain executions.

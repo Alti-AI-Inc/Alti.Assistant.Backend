@@ -4,14 +4,11 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { codeService } from './code.service.js';
-// The AI workflow is no longer invoked directly in the controller.
-// It will be handled by a separate background worker.
-// import { codeAssistantApp } from './code_assistant/workflow.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import ConversationModel from '../conversations/conversation.model.js'; // For validating conversation ownership
 import ApiError from '../../../errors/ApiError.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import { codeHelpers } from './code.helper.js';
+import { USER_ROLES } from '../../../constants/roles.js'; // OPTIMIZATION: Use role constants for maintainability.
+import { notificationService } from '../notifications/notification.service.js'; // For admin notifications.
 
 // Initialize the Google Cloud Pub/Sub client.
 // This should be a singleton instance in a real application.
@@ -123,10 +120,10 @@ export const performCodeTask = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   const { message, conversationId } = req.body;
 
-  // CRITICAL FIX: Establish user and workspace context early. Guests don't have a workspace.
+  // Establish user and workspace context early. Guests don't have a workspace.
   const userId = isGuest ? codeService.generateGuestUserId() : req.user?.userId;
   const workspaceId = isGuest ? null : req.user?.workspaceId;
-  const userRole = isGuest ? 'guest' : req.user?.role;
+  const userRole = isGuest ? USER_ROLES.GUEST : req.user?.role;
 
   if (!message) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'A code query is required');
@@ -140,14 +137,16 @@ export const performCodeTask = catchAsync(async (req, res) => {
     );
   }
 
-  // CRITICAL FIX: Hierarchical Subscription and Limit Check (for authenticated users)
+  // Hierarchical Subscription and Limit Check (for authenticated users)
   if (!isGuest) {
-    // The subscription is tied to the workspace/tenant, not the individual user.
-    const workspaceSubscription = await SubscriptionModel.findOne({ workspaceId })
-      .sort({ createdAt: -1 })
-      .lean();
+    // SECURE_SUBSCRIPTION_CHECK: Only consider 'active' subscriptions.
+    // This prevents users on canceled or past-due plans from using paid features.
+    const workspaceSubscription = await SubscriptionModel.findOne({
+      workspaceId,
+      status: 'active', // Ensure the subscription is currently active.
+    }).lean();
 
-    // The limit is defined by the workspace's plan.
+    // The limit is defined by the workspace's plan or the default free tier.
     const monthlyLimit = workspaceSubscription
       ? workspaceSubscription.usageLimit // Assumes the field is named usageLimit
       : codeService.getDefaultFreeTierLimit();
@@ -157,9 +156,20 @@ export const performCodeTask = catchAsync(async (req, res) => {
       await codeService.getMonthlyMessageCountForWorkspace(workspaceId);
 
     if (currentMonthlyUsage >= monthlyLimit) {
-      // INTEGRATION TASK: Propagate notification to admins.
-      // This could be another Pub/Sub message or a direct service call.
-      // e.g., notificationService.notifyAdmins(workspaceId, 'Code Assistant Limit Reached');
+      // ENHANCED_ADMIN_VISIBILITY: Log a warning and notify admins when a workspace hits its limit.
+      logger.warn(
+        `Workspace ${workspaceId} has reached its code assistance limit of ${monthlyLimit} requests.`
+      );
+      // This call notifies workspace administrators, allowing them to take action (e.g., upgrade the plan).
+      // The implementation of this service would handle the actual notification logic (email, in-app message, etc.).
+      // The call is fire-and-forget; its failure should not block the user's error response.
+      notificationService.notifyAdminsOfLimitReached(workspaceId).catch(err => {
+        logger.error(
+          `Failed to send limit notification for workspace ${workspaceId}:`,
+          err
+        );
+      });
+
       throw new ApiError(
         httpStatus.FORBIDDEN,
         'Your workspace has reached its code assistance limit for this month. Please contact your administrator to upgrade the plan.'
@@ -167,7 +177,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
     }
   }
 
-  // CRITICAL FIX (IDOR Prevention): Validate Conversation Ownership
+  // IDOR_PREVENTION: Validate Conversation Ownership for authenticated users.
   if (conversationId && !isGuest) {
     // Ensure the user is not trying to access a conversation outside their workspace.
     const existingConversation = await ConversationModel.findOne({
@@ -192,8 +202,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
     workspaceId, // Pass workspaceId
     conversationId,
     message,
-    isGuest,
-    req
+    isGuest
   );
   actualConversationId = conversation.conversationId || thread_id;
 
@@ -203,8 +212,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
     userId,
     workspaceId, // Pass workspaceId
     message,
-    isGuest,
-    req
+    isGuest
   );
 
   // Offload to Worker with Full Context
@@ -323,16 +331,15 @@ const getCodeStats = catchAsync(async (req, res) => {
   }
 
   let stats;
-  // CRITICAL FIX: Implement role-based access to statistics.
+  // ROLE_BASED_ACCESS: Implement role-based access to statistics.
   // Admins and super_admins can view stats for the entire workspace.
-  // Managers and users can only view their own stats.
-  if (role === 'admin' || role === 'super_admin') {
-    // The service method needs to support fetching stats by workspace.
-    stats = await codeService.getWorkspaceCodeStats(workspaceId, req);
-  } else if (role === 'manager' || role === 'user') {
-    // Existing behavior for standard users, but using a more explicitly named service method.
-    stats = await codeService.getUserCodeStats(userId, req);
+  if ([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)) {
+    stats = await codeService.getWorkspaceCodeStats(workspaceId);
+  } else if ([USER_ROLES.USER, USER_ROLES.MANAGER].includes(role)) {
+    // Managers and users can only view their own stats.
+    stats = await codeService.getUserCodeStats(userId);
   } else {
+    // This case handles any other potential roles that shouldn't have access.
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'You do not have the required role to access statistics.'

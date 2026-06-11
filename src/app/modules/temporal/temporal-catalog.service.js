@@ -1,3 +1,12 @@
+/**
+ * @file Manages the Temporal repository catalog by interacting with a MongoDB database.
+ * @module modules/temporal/temporal-catalog.service
+ * @description This service provides functionalities to synchronize, search, and retrieve statistics
+ * for a catalog of "Temporal" repositories. It is designed with multi-tenancy in mind,
+ * ensuring that data access is properly scoped to a user's workspace. It also includes
+ * a resilient and optimized MongoDB connection setup suitable for cloud environments.
+ */
+
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
@@ -9,8 +18,19 @@ import TemporalRepository from './temporal-repository.model.js';
 // NOTE: This connection logic is typically centralized in a single file (e.g., 'src/config/database.js' or 'app.js')
 // and executed once when the application starts. It is included here for demonstration and completeness.
 
+/**
+ * The MongoDB connection URI.
+ * Reads from the `MONGODB_URI` environment variable, falling back to a local default.
+ * @type {string}
+ */
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/altidb';
 
+/**
+ * Mongoose connection options optimized for resilient, high-performance connections,
+ * especially in cloud environments like GCP.
+ * @see {@link https://mongoosejs.com/docs/connections.html#options} for more details on options.
+ * @type {import('mongoose').ConnectOptions}
+ */
 const connectionOptions = {
   // --- Connection Pooling ---
   // maxPoolSize: Controls the maximum number of concurrent connections in the pool.
@@ -47,7 +67,15 @@ const connectionOptions = {
   retryWrites: true,
 };
 
-// Asynchronous function to connect to the database
+/**
+ * Asynchronously connects to the MongoDB database using the configured URI and options.
+ * This function is designed to be called once at application startup.
+ * It includes error handling to gracefully shut down the process on a fatal connection error,
+ * allowing container orchestration systems (like Kubernetes) to handle restarts.
+ * @async
+ * @function connectDB
+ * @returns {Promise<void>} A promise that resolves when the connection is established, or rejects if a fatal error occurs.
+ */
 const connectDB = async () => {
   try {
     // The Mongoose driver handles automatic reconnects by default. The options above fine-tune this behavior.
@@ -86,7 +114,7 @@ connectDB();
 // --- Indexing Recommendations for TemporalRepository Model ---
 // To optimize database performance, consider adding the following indexes to your TemporalRepository schema:
 // 1. For efficient upserts and lookups by 'name' (used in syncCatalog and searchCatalog):
-//    TemporalRepositorySchema.index({ name: 1 }, { unique: true });
+//    TemporalRepositorySchema.index({ name: 1, workspaceId: 1 }, { unique: true }); // Composite unique key for multi-tenancy
 // 2. For filtering by 'status' (used in searchCatalog and getStats):
 //    TemporalRepositorySchema.index({ status: 1 });
 // 3. For filtering and aggregation by 'license' (used in searchCatalog and getStats):
@@ -209,6 +237,8 @@ const syncCatalog = async () => {
 /**
  * Queries the MongoDB TemporalRepository collection respecting tenant boundaries.
  * It uses strict filters, input sanitation, whitelisted sorting fields, and bounded pagination.
+ * Any authenticated user can perform a search, but the results are scoped to their workspace
+ * and global templates. A `super_admin` can view templates across all workspaces.
  *
  * @async
  * @param {object} user - The authenticated user object, containing role and workspaceId for authorization.
@@ -323,6 +353,8 @@ const searchCatalog = async (user, query = '', options = {}) => {
 
 /**
  * Calculates aggregated statistics about the Temporal catalog, respecting tenant boundaries.
+ * Any authenticated user can retrieve stats, but the data is scoped to their workspace
+ * and global templates. A `super_admin` can view stats for the entire catalog.
  *
  * @async
  * @param {object} user - The authenticated user object, containing role and workspaceId for authorization.
