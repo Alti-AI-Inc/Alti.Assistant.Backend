@@ -1,5 +1,5 @@
 /**
- * @file Middleware for handling translation file uploads using Multer.
+ * @file Middleware for handling translation file uploads using Multer and applying rate limits.
  * @module app/modules/translation/middlewares/uploadTranslation
  * @author Your Name/Organization
  */
@@ -7,11 +7,79 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { rateLimit } from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import redisClient from '../../../config/redis.js'; // Assumes a shared Redis client instance is exported from this path
 import {
   FILE_SIZE_LIMITS,
   STORAGE_CONFIG,
   SUPPORTED_DOCUMENT_FORMATS,
 } from '../translation.constant.js';
+
+// --- Rate Limiting Configuration ---
+
+// Create a new Redis store for the rate limiters to share state across multiple processes/servers.
+const store = new RedisStore({
+  // @ts-ignore
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+/**
+ * Rate limiter for authenticated users uploading translation files.
+ * Limits each user to 20 uploads per 15 minutes.
+ * This helps prevent abuse from a single compromised account and controls costs.
+ * It should be applied in the route chain *before* the multer middleware.
+ *
+ * @constant {function}
+ * @example
+ * // Usage in a route:
+ * // router.post('/upload', authMiddleware, uploadLimiterAuthenticated, uploadTranslation.single('file'), controller);
+ */
+export const uploadLimiterAuthenticated = rateLimit({
+  store,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each authenticated user to 20 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    // Use the user ID from the request object (set by an auth middleware) as the key.
+    // Fallback to IP if user ID is not available, though `skip` should prevent this.
+    return req.user?.id || req.ip;
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json({
+      message: 'Too many file upload attempts. Please try again in 15 minutes.',
+    });
+  },
+  skip: (req) => !req.user, // Only apply this limiter if the user is authenticated.
+});
+
+/**
+ * Rate limiter for public (unauthenticated) users uploading translation files.
+ * Limits each IP address to 5 uploads per 15 minutes.
+ * This is a crucial first line of defense against DDOS and anonymous API abuse.
+ * It should be applied in the route chain *before* the multer middleware.
+ *
+ * @constant {function}
+ * @example
+ * // Usage in a route:
+ * // router.post('/public/upload', uploadLimiterPublic, uploadTranslation.single('file'), controller);
+ */
+export const uploadLimiterPublic = rateLimit({
+  store,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json({
+      message: 'Too many file upload attempts from this IP. Please try again in 15 minutes.',
+    });
+  },
+  skip: (req) => !!req.user, // Skip this limiter if the user is authenticated (the other limiter will apply).
+});
+
+// --- Multer File Upload Configuration ---
 
 /**
  * The directory where uploaded files will be temporarily stored.
