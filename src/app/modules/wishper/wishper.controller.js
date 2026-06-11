@@ -1,6 +1,9 @@
 import fs from 'fs';
-import { whisperTranscribeService } from './wishper.service.js';
 import httpStatus from 'http-status';
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import redisClient from '../../config/redis.js'; // Assumes a configured ioredis client is exported from here
+import { whisperTranscribeService } from './wishper.service.js';
 
 // const WishperAiGetResponse = catchAsync(async (req, res) => {
 //   const userId = req.body?.user;
@@ -132,6 +135,41 @@ import httpStatus from 'http-status';
 //     await tmpFile.cleanup();
 //   }
 // });
+
+// Enterprise-grade rate limiter for the Whisper AI transcription endpoint.
+// This is a critical defense against API abuse, DDOS attacks, and cost overruns
+// from the underlying paid AI service. It uses a Redis store for scalability
+// across multiple application instances.
+const transcribeAudioLimiter = rateLimit({
+  // Use Redis for distributed rate limiting.
+  store: new RedisStore({
+    // @ts-expect-error - ioredis types can be incompatible with express-rate-limit
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
+  windowMs: 1 * 60 * 1000, // 1 minute window.
+  limit: 15, // Limit each user (or IP if unauthenticated) to 15 requests per minute.
+  standardHeaders: 'draft-7', // Send standard `RateLimit-*` headers.
+  legacyHeaders: false, // Disable legacy `X-RateLimit-*` headers.
+  keyGenerator: (req /*, res*/) => {
+    // Prioritize the authenticated user's ID for rate limiting.
+    // Fall back to the request IP address for unauthenticated requests.
+    // This ensures fair usage per user and provides a baseline protection for public access.
+    return req.user?.id || req.ip;
+  },
+  handler: (req, res, _next, options) => {
+    // Log the event for security monitoring and threat analysis.
+    console.warn(
+      `Rate limit exceeded for Whisper transcription: user=${req.user?.id || 'unauthenticated'}, ip=${req.ip}`
+    );
+    // Send a JSON response consistent with the API's error format.
+    res.status(options.statusCode).json({
+      success: false,
+      message: `Too many transcription requests. ${options.message}`,
+    });
+  },
+  message: 'Please try again in a minute.',
+});
+
 const transcribeAudioToTextController = async (req, res) => {
   const audioFilePath = req.file?.path;
 
@@ -190,5 +228,11 @@ const transcribeAudioToTextController = async (req, res) => {
 
 export const WishperAiController = {
   // WishperAiGetResponse,
-  transcribeAudioToTextController,
+  // The controller is now exported as an array containing the rate-limiting middleware
+  // and the controller function. This ensures the rate limiter is always applied.
+  // The router should apply this using the spread operator: router.post('/', ...WishperAiController.transcribeAudioToTextController);
+  transcribeAudioToTextController: [
+    transcribeAudioLimiter,
+    transcribeAudioToTextController,
+  ],
 };
