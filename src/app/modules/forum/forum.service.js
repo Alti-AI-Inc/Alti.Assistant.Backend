@@ -33,9 +33,6 @@ module.exports.getForumService = async (
   const forumSearchableFields = ['title', 'category'];
   const andConditions = [];
 
-  // Removed redundant condition: if no other conditions, an empty $and array is equivalent to {}
-  // and will return all documents, which is the desired behavior when no filters are applied.
-
   if (searchTerm) {
     andConditions.push({
       $or: forumSearchableFields.map((field) => ({
@@ -44,7 +41,6 @@ module.exports.getForumService = async (
     });
   }
 
-  // Uncommented and enabled filtering by other fields
   if (Object.keys(filtersData).length) {
       andConditions.push({
           $and: Object.entries(filtersData).map(([field, value]) => ({
@@ -61,31 +57,32 @@ module.exports.getForumService = async (
     sortConditions[sortBy] = sortOrder;
   }
 
-  // Construct the base query for both finding documents and counting them
   const baseQuery = andConditions.length > 0 ? { $and: andConditions } : {};
   const finalQuery = req ? withTenantFilter(req, baseQuery) : baseQuery;
 
   // Optimization: Added .lean() for read-only queries to return plain JavaScript objects,
   // improving performance by skipping Mongoose document instantiation.
   // Indexing Recommendation:
-  // - For 'searchTerm' on 'title' and 'category': Consider creating indexes on 'title' and 'category'
-  //   or a text index if full-text search capabilities are desired.
-  //   Example: `db.forums.createIndex({ title: 1, category: 1 })`
+  // - For 'searchTerm' on 'title' and 'category': Consider creating a text index for better performance.
+  //   Example: `db.forums.createIndex({ title: "text", category: "text" })`
   // - For 'filtersData' fields: Ensure fields used in filtersData (e.g., 'authorId', 'status') are indexed.
   //   Example: `db.forums.createIndex({ authorId: 1 })`
-  // - For 'sortBy' field: Ensure the field used for sorting (e.g., 'createdAt', 'updatedAt') is indexed.
+  // - For 'sortBy' field: Ensure the field used for sorting (e.g., 'createdAt') is indexed.
   //   Example: `db.forums.createIndex({ createdAt: -1 })`
   // - If 'withTenantFilter' adds a 'tenantId' field, ensure it's indexed, potentially as a compound index
   //   with other frequently queried fields (e.g., `db.forums.createIndex({ tenantId: 1, category: 1 })`).
+  // N+1 / Heavy Populate Fix: Removed .populate('userActivities') from the list query.
+  // Populating a potentially large array of activities for every forum in a list is inefficient
+  // and can lead to large payloads and high memory usage. This data should be fetched in the
+  // detail view (getForumServiceById) or activity counts should be denormalized onto the Forum model.
+  // Optimization: Added .select() to the author population to only fetch necessary fields.
   const forumData = await Forum.find(finalQuery)
-    .populate('author')
-    .populate('userActivities')
+    .populate({ path: 'author', select: 'name email' }) // Only fetch essential author fields
     .sort(sortConditions)
     .skip(skip)
     .limit(limit)
-    .lean(); // Added .lean()
+    .lean();
 
-  // Fixed: total count should reflect the applied filters and search term
   const total = await Forum.countDocuments(finalQuery);
   return {
     meta: {
@@ -107,20 +104,19 @@ module.exports.getForumService = async (
  * @returns {Promise<Object>} The newly created forum document.
  */
 module.exports.addForumServices = async (data, req = null) => {
-  // logger.info(data, 'blog dataaa') // Commented out as logger is not defined in this scope
   const result = await Forum.create(req ? withTenantContext(req, data) : data);
-  // logger.info(result, "dataasss") // Commented out as logger is not defined in this scope
   return result;
 };
 
 /**
  * Retrieves a single forum post by its unique ID, scoped to the tenant context.
+ * Also populates author and user activity details.
  * 
  * @async
  * @function getForumServiceById
  * @param {string} id - The unique ID of the forum post.
  * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
- * @returns {Promise<Object|null>} The forum document, or null if not found.
+ * @returns {Promise<Object|null>} The forum document with populated fields, or null if not found.
  */
 module.exports.getForumServiceById = async (id, req = null) => {
   const query = { _id: id };
@@ -128,10 +124,13 @@ module.exports.getForumServiceById = async (id, req = null) => {
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.
   // If 'withTenantFilter' adds a 'tenantId' field, ensure it's indexed,
   // e.g., `db.forums.createIndex({ tenantId: 1, _id: 1 })`.
+  // Optimization: Populate related data for the detail view, which is more efficient than doing it in the list view.
   const result = await Forum.findOne(
     req ? withTenantFilter(req, query) : query
-  ).lean(); // Added .lean()
-  // logger.info(result, 'resultt blog details') // Commented out as logger is not defined in this scope
+  )
+    .populate('author')
+    .populate('userActivities')
+    .lean();
   return result;
 };
 
@@ -151,8 +150,9 @@ module.exports.getForumServiceByEmail = async (email, req = null) => {
   // Example: `db.forums.createIndex({ authorEmail: 1 })`
   // If 'withTenantFilter' adds a 'tenantId' field, ensure it's indexed,
   // e.g., `db.forums.createIndex({ tenantId: 1, authorEmail: 1 })`.
-  const result = await Forum.find(req ? withTenantFilter(req, query) : query).lean(); // Added .lean()
-  // logger.info(result, 'resultt blog details') // Commented out as logger is not defined in this scope
+  const result = await Forum.find(
+    req ? withTenantFilter(req, query) : query
+  ).lean();
   return result;
 };
 
@@ -166,7 +166,7 @@ module.exports.getForumServiceByEmail = async (email, req = null) => {
  * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
  * @returns {Promise<Object>} The update operation result metadata.
  */
-module.exports.updateForumService = async (id, data, req = null) => { // Renamed storeId to id for consistency
+module.exports.updateForumService = async (id, data, req = null) => {
   const query = { _id: id };
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.
   // If 'withTenantFilter' adds a 'tenantId' field, ensure it's indexed,
@@ -218,7 +218,9 @@ module.exports.getForumSuggestionService = async (name, req = null) => {
   // e.g., `db.forums.createIndex({ tenantId: 1, category: 1 })`.
   const result = await Forum.find(
     req ? withTenantFilter(req, query) : query
-  ).limit(3).lean(); // Added .lean()
+  )
+    .limit(3)
+    .lean();
   return result;
 };
 
@@ -232,19 +234,9 @@ module.exports.getForumSuggestionService = async (name, req = null) => {
  * @returns {Promise<Object>} The newly created user activity document.
  */
 module.exports.addUserForumActivityServices = async (data, req = null) => {
-  // Check if the user already has a store
-  // const existingStore = await Blogs.findOne({ email: email });
-
-  // if (existingStore) {
-  //     return { error: 'One user can add one comment' };
-  // }
-  // Removed logger.info as logger is not defined in this scope.
-  // logger.info(data, 'dataaaaa');
-
   const result = await UserForumActivities.create(
     req ? withTenantContext(req, data) : data
   );
-  // logger.info(result, "resulttttt comment") // Commented out as logger is not defined in this scope
   return result;
 };
 
@@ -255,20 +247,18 @@ module.exports.addUserForumActivityServices = async (data, req = null) => {
  * @function getCommentService
  * @param {string} commentId - The unique ID of the comment/activity.
  * @param {import('express').Request|null} [req=null] - Express request object used for tenant isolation.
- * @returns {Promise<Array<Object>>} A list containing the matching user activity document(s).
+ * @returns {Promise<Object|null>} The matching user activity document, or null if not found.
  */
-module.exports.getCommentService = async (commentId, req = null) => { // Fixed typo: getCommnetService -> getCommentService
-  // logger.info(commentId, "commentId") // Commented out as logger is not defined in this scope
-  // Fixed: Assuming _id is the primary key for comments
+module.exports.getCommentService = async (commentId, req = null) => {
   const query = { _id: commentId };
   // Optimization: Added .lean() for read-only query.
+  // Optimization: Switched from .find() to .findOne() for fetching a single document by its unique ID.
   // Indexing Recommendation: '_id' is automatically indexed by MongoDB.
   // If 'withTenantFilter' adds a 'tenantId' field, ensure it's indexed,
   // e.g., `db.userforumactivities.createIndex({ tenantId: 1, _id: 1 })`.
-  const result = await UserForumActivities.find(
+  const result = await UserForumActivities.findOne(
     req ? withTenantFilter(req, query) : query
-  ).lean(); // Added .lean()
-  // logger.info(result, "commentssssssss") // Commented out as logger is not defined in this scope
+  ).lean();
   return result;
 };
 

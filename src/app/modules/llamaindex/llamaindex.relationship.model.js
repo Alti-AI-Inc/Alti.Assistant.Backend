@@ -5,6 +5,9 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
+import logger from '../../../core/utils/logger.js';
+import ApiError from '../../../core/utils/ApiError.js';
+import httpStatus from 'http-status';
 
 /**
  * @typedef {object} DocumentRelationship
@@ -248,24 +251,26 @@ DocumentRelationshipSchema.post('save', async function (doc, next) {
     try {
       // Use mongoose.model() to avoid potential circular dependency issues with direct imports.
       const Workspace = mongoose.model('Workspace');
-      await Workspace.findByIdAndUpdate(doc.workspaceId, {
+      const updatedWorkspace = await Workspace.findByIdAndUpdate(doc.workspaceId, {
         // Assuming the Workspace model has a 'usage' object with a 'documentRelationships' counter.
         $inc: { 'usage.documentRelationships': 1 },
-      });
+      }, { new: true });
+
+      if (!updatedWorkspace) {
+        // Throw a normalized error if the workspace is not found, which is an unexpected state.
+        throw new ApiError(httpStatus.NOT_FOUND, `Workspace not found during usage update for workspaceId: ${doc.workspaceId}`);
+      }
     } catch (error) {
       // A separate monitoring or reconciliation process should handle these failures.
-      // Log the error in a GCP-compatible structured JSON format.
-      console.error(JSON.stringify({
-        severity: 'ERROR',
-        message: `HIERARCHY_GAP: Failed to increment documentRelationship usage for workspace ${doc.workspaceId}.`,
+      // Log the error using the centralized Winston logger for proper telemetry.
+      logger.error(`HIERARCHY_GAP: Failed to increment documentRelationship usage for workspace ${doc.workspaceId}.`, {
+        error, // Winston will serialize the full error object, including stack.
         workspaceId: doc.workspaceId,
-        component: 'llamaindex.relationship.model',
-        error: {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        }
-      }));
+        documentRelationshipId: doc._id,
+        component: 'llamaindex.relationship.model'
+      });
+      // Note: We are not calling next(error) to prevent the entire save operation from failing
+      // if only the ancillary usage update fails. This is a business logic decision.
     }
   }
   next();
@@ -275,22 +280,28 @@ DocumentRelationshipSchema.post('save', async function (doc, next) {
 DocumentRelationshipSchema.post('deleteOne', { document: true, query: false }, async function (doc, next) {
     try {
       const Workspace = mongoose.model('Workspace');
-      await Workspace.findByIdAndUpdate(doc.workspaceId, {
+      const updatedWorkspace = await Workspace.findByIdAndUpdate(doc.workspaceId, {
         $inc: { 'usage.documentRelationships': -1 },
-      });
+      }, { new: true });
+
+      if (!updatedWorkspace) {
+        // Log a warning if the workspace is not found, as the relationship is already deleted.
+        logger.warn(`Workspace not found during usage decrement for a deleted relationship.`, {
+            workspaceId: doc.workspaceId,
+            deletedDocumentRelationshipId: doc._id,
+            component: 'llamaindex.relationship.model'
+        });
+      }
     } catch (error) {
-      // Log the error in a GCP-compatible structured JSON format.
-      console.error(JSON.stringify({
-        severity: 'ERROR',
-        message: `HIERARCHY_GAP: Failed to decrement documentRelationship usage for workspace ${doc.workspaceId}.`,
+      // Log the error using the centralized Winston logger for proper telemetry.
+      logger.error(`HIERARCHY_GAP: Failed to decrement documentRelationship usage for workspace ${doc.workspaceId}.`, {
+        error,
         workspaceId: doc.workspaceId,
-        component: 'llamaindex.relationship.model',
-        error: {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        }
-      }));
+        deletedDocumentRelationshipId: doc._id,
+        component: 'llamaindex.relationship.model'
+      });
+      // Note: We are not calling next(error) to prevent the delete operation from appearing to fail
+      // if only the ancillary usage update fails. This is a business logic decision.
     }
     next();
 });
