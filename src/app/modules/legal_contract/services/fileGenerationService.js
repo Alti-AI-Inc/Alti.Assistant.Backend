@@ -9,6 +9,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
  */
 
 /**
+ * Represents the result of a successful file generation operation.
  * @typedef {object} FileGenerationResult
  * @property {boolean} success - Indicates if the file generation was successful.
  * @property {string} filePath - The absolute path to the generated file.
@@ -17,10 +18,24 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
  */
 
 /**
+ * Represents the metadata associated with a generated contract file.
+ * @typedef {object} ContractGenerationMetadata
+ * @property {string} contractType - The sanitized type of the contract.
+ * @property {string} userId - The sanitized ID of the user who generated the contract.
+ * @property {string} generatedAt - The ISO 8601 timestamp of when the file was generated.
+ */
+
+/**
+ * Represents the complete result of a contract file generation, including file details and metadata.
+ * @typedef {FileGenerationResult & { metadata: ContractGenerationMetadata }} ContractFileGenerationResult
+ */
+
+/**
  * Generates a plain text file from the provided contract content.
  * The file will be saved in a designated output directory.
  *
  * @async
+ * @function generateTextFile
  * @param {string} contractContent - The string content of the contract to be written to the file.
  * @param {string} [fileName='contract.txt'] - The desired name for the output text file.
  * @returns {Promise<FileGenerationResult>} An object containing the success status, file path, file name, and file type.
@@ -63,6 +78,7 @@ export const generateTextFile = async (
  * The file will be saved in a designated output directory.
  *
  * @async
+ * @function generateDocxFile
  * @param {string} contractContent - The string content of the contract, potentially with markdown-like formatting.
  * @param {string} [fileName='contract.docx'] - The desired name for the output DOCX file.
  * @returns {Promise<FileGenerationResult>} An object containing the success status, file path, file name, and file type.
@@ -172,12 +188,13 @@ export const generateDocxFile = async (
  * It automatically determines the appropriate generation function and constructs a unique file name.
  *
  * @async
+ * @function generateContractFile
  * @param {string} contractContent - The content of the contract to be written.
  * @param {'txt'|'docx'|'doc'} [format='txt'] - The desired output format for the contract file.
  * @param {object} [metadata={}] - Additional metadata to include in the file name and return object.
  * @param {string} [metadata.contractType='contract'] - The type of contract (e.g., 'NDA', 'SOW'). Used in file name.
  * @param {string} [metadata.userId='anonymous'] - The ID of the user generating the contract. Used in file name.
- * @returns {Promise<FileGenerationResult & { metadata: object }>} An object containing the file generation result and extended metadata.
+ * @returns {Promise<ContractFileGenerationResult>} An object containing the file generation result and extended metadata.
  * @throws {Error} If an error occurs during the file generation process by `generateTextFile` or `generateDocxFile`.
  */
 export const generateContractFile = async (
@@ -218,8 +235,11 @@ export const generateContractFile = async (
 
 /**
  * Deletes a generated contract file from the file system.
+ * This function includes a security check to prevent path traversal attacks, ensuring
+ * that only files within the designated 'output/contracts' directory can be deleted.
  *
  * @async
+ * @function cleanupContractFile
  * @param {string} filePath - The absolute path to the file to be deleted.
  * @returns {Promise<{success: boolean, error?: string}>} An object indicating the success status and an error message if deletion failed.
  */
