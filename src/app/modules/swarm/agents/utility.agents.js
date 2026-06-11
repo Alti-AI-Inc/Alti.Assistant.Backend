@@ -1,6 +1,8 @@
 // Added import for Vertex AI safety settings enums.
 import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import winston from 'winston';
+import httpStatus from 'http-status';
+import ApiError from '../../../core/ApiError.js';
 
 /**
  * A Winston logger configured for GCP Cloud Logging.
@@ -80,83 +82,114 @@ export const globalAgentOverrides = {
  * Updates the global agent overrides configuration.
  * This function provides a safe, deep-merge update mechanism to prevent accidental data loss.
  * It is a highly sensitive operation and should be restricted to Platform Owner / Super Admin roles.
+ * It includes robust error handling to prevent malformed input from crashing the application.
  * @param {object} newOverrides - The new overrides configuration. Can be a partial object.
  *        Passing `null` for a specific agent or tenant override will remove it.
+ * @throws {ApiError} Throws a normalized ApiError if the update process fails due to invalid input.
  */
 export function updateGlobalAgentOverrides(newOverrides) {
-  // PLATFORM_OWNER_AUDIT_LOG: Log the entire newOverrides object and the admin user who initiated the change for security and compliance.
-  logger.info({
-    message: 'Global agent overrides configuration updated.',
-    component: 'AgentOverrides',
-    event: 'UPDATE_GLOBAL_OVERRIDES',
-    // For a complete audit trail, the ID of the admin user performing this action
-    // should be captured from the request context and included here.
-    // e.g., adminUserId: req.user.id,
-    updatedConfig: newOverrides, // Log the new configuration for auditing.
-  });
+  try {
+    // PLATFORM_OWNER_AUDIT_LOG: Log the entire newOverrides object and the admin user who initiated the change for security and compliance.
+    logger.info({
+      message: 'Attempting to update global agent overrides configuration.',
+      component: 'AgentOverrides',
+      event: 'UPDATE_GLOBAL_OVERRIDES_ATTEMPT',
+      // For a complete audit trail, the ID of the admin user performing this action
+      // should be captured from the request context and included here.
+      // e.g., adminUserId: req.user.id,
+      updatedConfig: newOverrides, // Log the new configuration for auditing.
+    });
 
-  if (newOverrides.enabled !== undefined) {
-    globalAgentOverrides.enabled = newOverrides.enabled;
-  }
-  if (newOverrides.globalModelOverride !== undefined) {
-    globalAgentOverrides.globalModelOverride = newOverrides.globalModelOverride;
-  }
-  if (newOverrides.globalSafetySettingsOverride !== undefined) {
-    globalAgentOverrides.globalSafetySettingsOverride = newOverrides.globalSafetySettingsOverride;
-  }
-  if (newOverrides.suspendedTenants) {
-    globalAgentOverrides.suspendedTenants = new Set(newOverrides.suspendedTenants);
-  }
-  if (newOverrides.disabledAgents) {
-    globalAgentOverrides.disabledAgents = new Set(newOverrides.disabledAgents);
-  }
-
-  // Deep merge for agent-specific overrides to prevent data loss.
-  if (newOverrides.overrides) {
-    for (const [agentId, agentOverride] of Object.entries(newOverrides.overrides)) {
-      if (agentOverride === null) {
-        delete globalAgentOverrides.overrides[agentId]; // Allow removing an override by passing null.
-      } else {
-        globalAgentOverrides.overrides[agentId] = {
-          ...(globalAgentOverrides.overrides[agentId] || {}),
-          ...agentOverride,
-        };
-      }
+    if (newOverrides.enabled !== undefined) {
+      globalAgentOverrides.enabled = newOverrides.enabled;
     }
-  }
+    if (newOverrides.globalModelOverride !== undefined) {
+      globalAgentOverrides.globalModelOverride = newOverrides.globalModelOverride;
+    }
+    if (newOverrides.globalSafetySettingsOverride !== undefined) {
+      globalAgentOverrides.globalSafetySettingsOverride = newOverrides.globalSafetySettingsOverride;
+    }
+    if (newOverrides.suspendedTenants) {
+      globalAgentOverrides.suspendedTenants = new Set(newOverrides.suspendedTenants);
+    }
+    if (newOverrides.disabledAgents) {
+      globalAgentOverrides.disabledAgents = new Set(newOverrides.disabledAgents);
+    }
 
-  // Deep merge for tenant-specific overrides.
-  if (newOverrides.tenantOverrides) {
-    for (const [tenantId, agentOverrides] of Object.entries(newOverrides.tenantOverrides)) {
-      if (agentOverrides === null) {
-        delete globalAgentOverrides.tenantOverrides[tenantId]; // Allow removing all overrides for a tenant.
-        continue;
-      }
-      if (!globalAgentOverrides.tenantOverrides[tenantId]) {
-        globalAgentOverrides.tenantOverrides[tenantId] = {};
-      }
-      for (const [agentId, agentOverride] of Object.entries(agentOverrides)) {
+    // Deep merge for agent-specific overrides to prevent data loss.
+    if (newOverrides.overrides) {
+      for (const [agentId, agentOverride] of Object.entries(newOverrides.overrides)) {
         if (agentOverride === null) {
-          delete globalAgentOverrides.tenantOverrides[tenantId][agentId]; // Allow removing a specific tenant-agent override.
+          delete globalAgentOverrides.overrides[agentId]; // Allow removing an override by passing null.
         } else {
-          globalAgentOverrides.tenantOverrides[tenantId][agentId] = {
-            ...(globalAgentOverrides.tenantOverrides[tenantId][agentId] || {}),
+          globalAgentOverrides.overrides[agentId] = {
+            ...(globalAgentOverrides.overrides[agentId] || {}),
             ...agentOverride,
           };
         }
       }
     }
-  }
 
-  // Rebuild tenant-disabled sets.
-  if (newOverrides.tenantDisabledAgents) {
-    for (const [tId, disabledList] of Object.entries(newOverrides.tenantDisabledAgents)) {
-      if (disabledList === null || disabledList.length === 0) {
-        delete globalAgentOverrides.tenantDisabledAgents[tId]; // Allow clearing disabled agents for a tenant.
-      } else {
-        globalAgentOverrides.tenantDisabledAgents[tId] = new Set(disabledList);
+    // Deep merge for tenant-specific overrides.
+    if (newOverrides.tenantOverrides) {
+      for (const [tenantId, agentOverrides] of Object.entries(newOverrides.tenantOverrides)) {
+        if (agentOverrides === null) {
+          delete globalAgentOverrides.tenantOverrides[tenantId]; // Allow removing all overrides for a tenant.
+          continue;
+        }
+        if (!globalAgentOverrides.tenantOverrides[tenantId]) {
+          globalAgentOverrides.tenantOverrides[tenantId] = {};
+        }
+        for (const [agentId, agentOverride] of Object.entries(agentOverrides)) {
+          if (agentOverride === null) {
+            delete globalAgentOverrides.tenantOverrides[tenantId][agentId]; // Allow removing a specific tenant-agent override.
+          } else {
+            globalAgentOverrides.tenantOverrides[tenantId][agentId] = {
+              ...(globalAgentOverrides.tenantOverrides[tenantId][agentId] || {}),
+              ...agentOverride,
+            };
+          }
+        }
       }
     }
+
+    // Rebuild tenant-disabled sets.
+    if (newOverrides.tenantDisabledAgents) {
+      for (const [tId, disabledList] of Object.entries(newOverrides.tenantDisabledAgents)) {
+        if (disabledList === null || disabledList.length === 0) {
+          delete globalAgentOverrides.tenantDisabledAgents[tId]; // Allow clearing disabled agents for a tenant.
+        } else {
+          globalAgentOverrides.tenantDisabledAgents[tId] = new Set(disabledList);
+        }
+      }
+    }
+
+    logger.info({
+      message: 'Global agent overrides configuration updated successfully.',
+      component: 'AgentOverrides',
+      event: 'UPDATE_GLOBAL_OVERRIDES_SUCCESS',
+    });
+  } catch (error) {
+    // Log the detailed internal error for debugging. This could happen if `newOverrides` has an invalid structure
+    // (e.g., passing a non-iterable value to `new Set()`).
+    logger.error({
+      message: 'Failed to update global agent overrides configuration due to an internal error.',
+      component: 'AgentOverrides',
+      event: 'UPDATE_GLOBAL_OVERRIDES_FAILURE',
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+      invalidConfig: newOverrides, // Log the configuration that caused the failure for easier debugging.
+    });
+
+    // Throw a normalized API error to be handled by the global error handler.
+    // This prevents leaking internal stack traces to the client.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred while updating agent configuration. Please check the validity of the provided configuration data.'
+    );
   }
 }
 
