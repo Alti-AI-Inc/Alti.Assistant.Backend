@@ -133,6 +133,9 @@ const handleImageConversation = async (
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
+        // OPTIMIZATION: Avoid passing the entire 'req' object. Instead, extract only the necessary properties
+        // (e.g., req.user, req.ip) and pass them explicitly. This prevents potential memory leaks and
+        // tight coupling between layers.
         conversation = await conversationService.createConversation(
           {
             userId,
@@ -147,10 +150,13 @@ const handleImageConversation = async (
             is_image_assistant: true,
           },
           finalConversationId, // Use the determined ID for creation
-          req
+          req // <-- Consider refactoring to pass only needed data, not the whole object.
         );
       } else {
         // For authenticated users, use the full conversation service
+        // OPTIMIZATION: Avoid passing the entire 'req' object. Instead, extract only the necessary properties
+        // (e.g., req.user, req.ip) and pass them explicitly. This prevents potential memory leaks and
+        // tight coupling between layers.
         conversation = await conversationService.createConversation(
           {
             userId,
@@ -164,7 +170,7 @@ const handleImageConversation = async (
             is_image_assistant: true,
           },
           finalConversationId, // Use the determined ID for creation
-          req
+          req // <-- Consider refactoring to pass only needed data, not the whole object.
         );
       }
 
@@ -205,6 +211,9 @@ const addImageQueryMessage = async (
     );
 
     // Store the message in the conversation for both guest and authenticated users
+    // OPTIMIZATION: Avoid passing the entire 'req' object. Instead, extract only the necessary properties
+    // (e.g., req.user for tenancy checks) and pass them explicitly. This prevents potential memory leaks
+    // and makes service dependencies clear.
     const message = await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -216,7 +225,7 @@ const addImageQueryMessage = async (
           timestamp: new Date().toISOString(),
         },
       },
-      req
+      req // <-- Consider refactoring to pass only needed data, not the whole object.
     );
 
     logger.info(
@@ -254,6 +263,9 @@ const addImageResultMessage = async (
 ) => {
   try {
     // Store the result in the conversation for both guest and authenticated users
+    // OPTIMIZATION: Avoid passing the entire 'req' object. Instead, extract only the necessary properties
+    // (e.g., req.user for tenancy checks) and pass them explicitly. This prevents potential memory leaks
+    // and makes service dependencies clear.
     const message = await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -270,7 +282,7 @@ const addImageResultMessage = async (
           ...metadata,
         },
       },
-      req
+      req // <-- Consider refactoring to pass only needed data, not the whole object.
     );
 
     logger.info(
@@ -308,6 +320,9 @@ const addErrorMessage = async (
 ) => {
   try {
     // Store the error in the conversation for both guest and authenticated users
+    // OPTIMIZATION: Avoid passing the entire 'req' object. Instead, extract only the necessary properties
+    // (e.g., req.user for tenancy checks) and pass them explicitly. This prevents potential memory leaks
+    // and makes service dependencies clear.
     const message = await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -324,7 +339,7 @@ const addErrorMessage = async (
           },
         },
       },
-      req
+      req // <-- Consider refactoring to pass only needed data, not the whole object.
     );
 
     logger.info(
