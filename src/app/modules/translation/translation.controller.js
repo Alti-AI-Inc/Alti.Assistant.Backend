@@ -254,39 +254,81 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // --- Subscription and Usage Limit Check (for authenticated users) ---
   if (!isGuest) {
-    try {
-      // Optimization: Use lean() for faster, read-only queries.
-      const subscription = await SubscriptionModel.findOne({ userId })
-        .sort({ createdAt: -1 })
-        .lean();
+    // BUG FIX & INTEGRATION: Implement role-based, multi-tenant subscription and usage checks.
+    // The original logic only checked for user-specific subscriptions, which is incorrect
+    // for users (e.g., 'user', 'manager') who are part of a workspace/team and share a subscription.
+    const { role, workspaceId } = req.user;
 
-      // Assumption: The 'usage' field on the subscription model defines the monthly prompt LIMIT.
-      // A value of 0 or a non-existent subscription means the user is on a free plan with a zero limit.
-      const promptLimit = subscription?.usage || 0;
+    // Super admins can bypass usage limits for administrative purposes.
+    if (role === 'super_admin') {
+      logger.info(`Super admin ${userId} bypassing usage checks.`);
+    } else {
+      try {
+        let subscription = null;
+        let limitExceededMessage = '';
 
-      // The helper function name `getConversationById` is misleading when called with a null ID.
-      // It is being used here to fetch the user's total prompt usage for the current billing cycle.
-      const currentUsage = await conversationHelpers.getConversationById(
-        null, // A null ID signals the helper to calculate total usage.
-        userId,
-        req
-      );
+        // Users part of a workspace draw from the workspace's subscription pool.
+        // The subscription is keyed by `workspaceId`.
+        if (workspaceId) {
+          subscription = await SubscriptionModel.findOne({ workspaceId })
+            .sort({ createdAt: -1 })
+            .lean();
+          limitExceededMessage =
+            'Your workspace has reached its monthly translation limit. Please contact your administrator to upgrade the plan.';
+        } else {
+          // Users not in a workspace are on individual plans. The subscription is keyed by `userId`.
+          subscription = await SubscriptionModel.findOne({ userId })
+            .sort({ createdAt: -1 })
+            .lean();
+          limitExceededMessage =
+            'You have reached your monthly translation limit. Please upgrade your plan to continue.';
+        }
 
-      // Block the request if the user has reached or exceeded their monthly limit.
-      if (currentUsage >= promptLimit) {
+        const promptLimit = subscription?.usage || 0;
+
+        // If no active subscription is found for the user or their workspace, block the request.
+        if (promptLimit <= 0) {
+          return sendResponse(res, {
+            statusCode: httpStatus.FORBIDDEN,
+            success: false,
+            message:
+              'No active subscription found. Please subscribe or contact your administrator.',
+          });
+        }
+
+        // The conversation helper must be aware of the context (workspace or user)
+        // to calculate usage correctly. We pass the full `req` object, which contains
+        // `req.user.workspaceId`, allowing the helper to sum usage for the entire workspace if applicable.
+        const currentUsage = await conversationHelpers.getConversationById(
+          null, // Signals the helper to calculate total usage for the billing cycle.
+          userId, // The user performing the action.
+          req, // The full request, containing role and workspaceId for context.
+        );
+
+        if (currentUsage >= promptLimit) {
+          // INTEGRATION: In a full implementation, this is where a notification would be
+          // triggered to the workspace admin/manager.
+          // e.g., notificationService.notifyLimitReached(workspaceId || userId);
+          return sendResponse(res, {
+            statusCode: httpStatus.FORBIDDEN,
+            success: false,
+            message: limitExceededMessage,
+          });
+        }
+      } catch (error) {
+        logger.error(
+          `Subscription/usage check failed for user ${userId} in workspace ${
+            workspaceId || 'N/A'
+          }:`,
+          error,
+        );
         return sendResponse(res, {
-          statusCode: httpStatus.FORBIDDEN,
+          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
           success: false,
-          message: 'You have reached your monthly translation limit. Please upgrade your plan to continue.',
+          message:
+            'Failed to verify your subscription status. Please try again later.',
         });
       }
-    } catch (error) {
-      logger.error(`Subscription/usage check failed for user ${userId}:`, error);
-      return sendResponse(res, {
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        success: false,
-        message: 'Failed to verify your subscription status. Please try again later.',
-      });
     }
   }
 
