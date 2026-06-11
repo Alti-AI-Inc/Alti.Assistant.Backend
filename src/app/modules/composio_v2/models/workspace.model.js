@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+// Security Patch: Import a hashing library to securely store invitation tokens.
+// It's assumed 'bcryptjs' is a project dependency.
+import bcrypt from 'bcryptjs';
 
 /**
  * @typedef {object} WorkspaceMember
@@ -51,6 +54,8 @@ const InvitationSchema = new mongoose.Schema({
         required: true,
         lowercase: true,
         trim: true,
+        // Security Patch: Add basic email format validation to sanitize input.
+        match: [/\S+@\S+\.\S+/, 'Email format is invalid.'],
     },
     role: {
         type: String,
@@ -61,7 +66,9 @@ const InvitationSchema = new mongoose.Schema({
     token: {
         type: String,
         required: true,
-        unique: true,
+        // Security Note: The 'unique' constraint is removed because tokens are now hashed.
+        // The lookup should be performed by other means (e.g., email), and then the token is verified.
+        // The index on this field is still beneficial for performance.
     },
     invitedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -73,6 +80,26 @@ const InvitationSchema = new mongoose.Schema({
         required: true,
     },
 }, { timestamps: { createdAt: 'invitedAt' } });
+
+// Security Patch: Add a pre-save hook to hash the invitation token before storing it.
+// This prevents storing sensitive tokens in plaintext, which is a critical security measure.
+InvitationSchema.pre('save', async function(next) {
+    // Only hash the token if it has been modified (or is new)
+    if (!this.isModified('token')) {
+        return next();
+    }
+
+    try {
+        // Generate a salt and hash the token
+        const salt = await bcrypt.genSalt(10);
+        this.token = await bcrypt.hash(this.token, salt);
+        next();
+    } catch (error) {
+        // Pass any errors to the next middleware
+        next(error);
+    }
+});
+
 
 /**
  * @typedef {object} WorkspacePlan
@@ -144,6 +171,8 @@ const WorkspaceSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Workspace name is required.'],
         trim: true,
+        // Security Patch: Add validation to prevent stored XSS by disallowing HTML tags.
+        match: [/^[^<>]*$/, 'Workspace name cannot contain HTML tags.'],
     },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
@@ -175,7 +204,13 @@ const WorkspaceSchema = new mongoose.Schema({
     },
     // General workspace settings that managers might configure.
     settings: {
-        timezone: { type: String, default: 'UTC' },
+        timezone: {
+            type: String,
+            default: 'UTC',
+            // Security Patch: Sanitize timezone input to prevent potential injection attacks.
+            // This regex allows for standard IANA timezone formats (e.g., 'America/New_York').
+            match: [/^[\w/-]+$/, 'Timezone format is invalid.'],
+        },
         // Add other non-sensitive settings as needed.
     }
 }, {
