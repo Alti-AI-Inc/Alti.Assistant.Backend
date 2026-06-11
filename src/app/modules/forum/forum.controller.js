@@ -253,6 +253,12 @@ module.exports.getForum = catchAsync(async (req, res) => {
   filters.workspace = user.workspaceId;
 
   const paginationOptions = pick(req.query, paginationFields);
+
+  // PERFORMANCE: The `getForumService` should use `.lean()` to return plain JavaScript objects instead of Mongoose documents,
+  // which is significantly faster for read-only operations.
+  // PERFORMANCE: For efficient filtering and searching, ensure the 'forums' collection has the following indexes:
+  // 1. A compound index for filtering: `{ workspaceId: 1, category: 1, createdAt: -1 }` (adjust sort field as needed).
+  // 2. A text index for `searchTerm`: `{ title: 'text', content: 'text' }`.
   const result = await getForumService(filters, paginationOptions);
 
   res.status(httpStatus.OK).json({
@@ -312,6 +318,9 @@ module.exports.getForumById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   // SECURITY (Tenant Isolation): Pass workspaceId to the service to ensure the fetched forum belongs to the user's workspace.
+  // PERFORMANCE: The `getForumServiceById` should use `.lean()` for faster read performance,
+  // as the retrieved data is not modified before being sent in the response.
+  // The query should also filter by `workspaceId` directly, e.g., `Forum.findOne({ _id: id, workspaceId }).lean()`.
   const result = await getForumServiceById(id, user.workspaceId);
 
   // BUG FIX: Handle case where forum is not found or is outside the user's tenant context.
@@ -366,6 +375,9 @@ module.exports.getMyForums = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
 
   // The service will fetch all forums where author matches user.id
+  // PERFORMANCE: The `getForumsByAuthorId` service should use `.lean()` to improve query speed for this read-only operation.
+  // PERFORMANCE: Ensure an index exists on `{ workspaceId: 1, author: 1 }` in the 'forums' collection
+  // to make this user-specific query highly efficient.
   const result = await getForumsByAuthorId(user.id, user.workspaceId);
 
   res.status(httpStatus.OK).json({
@@ -574,6 +586,10 @@ module.exports.getForumSuggestion = catchAsync(async (req, res) => {
   const { suggestion } = req.params;
 
   // SECURITY (Tenant Isolation): Scope suggestions to the user's workspace to prevent data leakage across tenants.
+  // PERFORMANCE: The `getForumSuggestionService` should use `.lean()` for faster query execution.
+  // PERFORMANCE: For efficient text-based suggestions, the 'forums' collection should have a text index
+  // on the fields being searched, e.g., `{ title: 'text', content: 'text' }`.
+  // The service should also filter by `workspaceId`.
   const result = await getForumSuggestionService(suggestion, user.workspaceId);
 
   res.status(httpStatus.OK).json({
@@ -726,6 +742,15 @@ module.exports.getComment = catchAsync(async (req, res) => {
 
   // SECURITY (Tenant Isolation): Pass workspaceId to the service.
   // The service MUST verify the comment belongs to a forum within the user's workspace.
+  // PERFORMANCE: The `getCommnetService` should use `.lean()` for faster read performance.
+  // PERFORMANCE (N+1 Risk): To verify the comment belongs to the user's workspace, avoid separate queries for the comment and its parent forum.
+  // Instead, use a single, efficient query, possibly with an aggregation pipeline, to join the 'forumactivities' and 'forums' collections
+  // and filter by `commentId` and `workspaceId` simultaneously.
+  // Example Aggregation Logic:
+  // 1. $match: { _id: commentId }
+  // 2. $lookup: { from: 'forums', localField: 'forum', foreignField: '_id', as: 'forumDoc' }
+  // 3. $unwind: '$forumDoc'
+  // 4. $match: { 'forumDoc.workspace': workspaceId }
   const result = await getCommnetService(commentId, user.workspaceId);
 
   if (!result) {

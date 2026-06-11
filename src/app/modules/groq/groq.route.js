@@ -586,6 +586,144 @@ router.delete(
   GroqAiController.deleteUserAiSessionsForSuperAdmin
 );
 
+// PLATFORM OWNER FEATURE: Added endpoints for global statistics and system-wide configuration.
+/**
+ * @swagger
+ * /api/v1/groq/admin/stats:
+ *   get:
+ *     summary: '[Super Admin] Get global AI usage statistics'
+ *     description: Retrieves platform-wide statistics such as total sessions, total messages, and active users. This provides a high-level overview of platform health and usage.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     responses:
+ *       200:
+ *         description: Global statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalSessions:
+ *                       type: integer
+ *                     totalMessages:
+ *                       type: integer
+ *                     activeUsers:
+ *                       type: integer
+ *               example:
+ *                 success: true
+ *                 statusCode: 200
+ *                 message: "Global AI statistics retrieved successfully"
+ *                 data:
+ *                   totalSessions: 1520
+ *                   totalMessages: 12840
+ *                   activeUsers: 350
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/stats',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.getGlobalAiStats
+);
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/config:
+ *   get:
+ *     summary: '[Super Admin] Get system-wide Groq AI configuration'
+ *     description: Retrieves the current global configuration for the Groq AI module, such as the default model and rate limits.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     responses:
+ *       200:
+ *         description: Configuration retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/GroqConfig'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/admin/config',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.getGroqConfig
+);
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/config:
+ *   put:
+ *     summary: '[Super Admin] Update system-wide Groq AI configuration'
+ *     description: Updates the global configuration for the Groq AI module. Allows the Platform Owner to change settings like the default model, enable/disable features, and set platform-wide limits.
+ *     tags: [Platform Owner - Groq AI Management]
+ *     security:
+ *       - BearerAuth: [super_admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GroqConfig'
+ *     responses:
+ *       200:
+ *         description: Configuration updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 statusCode:
+ *                   type: number
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/GroqConfig'
+ *       400:
+ *         description: Bad Request - Invalid configuration data provided.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.put(
+  '/admin/config',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  GroqAiController.updateGroqConfig
+);
+
 /**
  * @swagger
  * components:
@@ -624,6 +762,34 @@ router.delete(
  *           type: string
  *           format: date-time
  *           description: The timestamp when the session was last updated.
+ *     GroqConfig:
+ *       type: object
+ *       description: Schema for the global Groq AI configuration.
+ *       properties:
+ *         defaultModel:
+ *           type: string
+ *           description: The default Groq model to be used for new sessions.
+ *           example: "llama3-70b-8192"
+ *         anonymousAccessEnabled:
+ *           type: boolean
+ *           description: Whether the anonymous access endpoint is enabled globally.
+ *           example: true
+ *         globalRateLimit:
+ *           type: object
+ *           properties:
+ *             windowMs:
+ *               type: integer
+ *               description: The time window in milliseconds for the rate limit.
+ *               example: 900000
+ *             maxRequests:
+ *               type: integer
+ *               description: The maximum number of requests allowed per window per user.
+ *               example: 100
+ *           description: The default rate limit applied to all authenticated users.
+ *         systemPrompt:
+ *           type: string
+ *           description: A system-level prompt to prepend to all conversations to set context or rules.
+ *           example: "You are a helpful assistant for the Alti.Assistant platform."
  *   securitySchemes:
  *     BearerAuth:
  *       type: http
