@@ -1,11 +1,27 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
+import { PubSub } from '@google-cloud/pubsub';
 import catchAsync from '../../../../shared/catchAsync.js';
 import sendResponse from '../../../../shared/sendResponse.js';
 import { logger } from '../../../../shared/logger.js';
 import { workflowCreationService } from '../services/workflowCreation.service.js';
 // Assumed service for checking subscription-based limits. This integrates billing/subscription context.
 import { limitService } from '../../billing/services/limit.service.js';
+
+// --- GCP Pub/Sub Integration ---
+// Instantiate the Pub/Sub client.
+// In a production environment, this should be initialized once as a singleton and shared across the application.
+const pubSubClient = new PubSub();
+
+// Define topic names for different background tasks.
+// These topics must be created in your GCP project.
+const WORKFLOW_PROMPT_TOPIC =
+  process.env.WORKFLOW_PROMPT_TOPIC || 'workflow-creation-prompt-topic';
+const WORKFLOW_CONFIRM_TOPIC =
+  process.env.WORKFLOW_CONFIRM_TOPIC || 'workflow-creation-confirm-topic';
+const CONVERSATION_CONTINUE_TOPIC =
+  process.env.CONVERSATION_CONTINUE_TOPIC || 'conversation-continue-topic';
+// --- End GCP Pub/Sub Integration ---
 
 /**
  * @swagger
@@ -37,8 +53,8 @@ import { limitService } from '../../billing/services/limit.service.js';
  *                 description: Optional. An existing conversation ID to continue a previous interaction.
  *                 example: "conv-1678886400000-abc123def"
  *     responses:
- *       200:
- *         description: Workflow plan created, awaiting confirmation, or workflow created successfully.
+ *       202:
+ *         description: Request accepted for processing. The workflow creation will be handled asynchronously.
  *         content:
  *           application/json:
  *             schema:
@@ -83,23 +99,49 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await workflowCreationService.createWorkflowFromPrompt(
-    userId,
+  // --- REWRITTEN FOR ASYNC PROCESSING ---
+  // Instead of processing in-memory, publish a message to Pub/Sub for a background worker to handle.
+  // This prevents the HTTP request from timing out during long-running AI/LLM operations.
+  const messageData = {
+    userId: userId.toString(), // Ensure IDs are strings for JSON compatibility
+    workspaceId: workspaceId.toString(),
     prompt,
-    conversationId
-  );
+    conversationId,
+  };
 
-  logger.info(
-    `Workflow creation initiated for user ${userId} in workspace ${workspaceId}`
-  );
+  const dataBuffer = Buffer.from(JSON.stringify(messageData));
 
+  try {
+    const messageId = await pubSubClient
+      .topic(WORKFLOW_PROMPT_TOPIC)
+      .publishMessage({ data: dataBuffer });
+    logger.info(
+      `Workflow creation task for user ${userId} queued with messageId: ${messageId}`
+    );
+  } catch (error) {
+    logger.error(
+      `Failed to publish workflow creation message to Pub/Sub for user ${userId}:`,
+      error
+    );
+    // If queuing fails, we must inform the user.
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to queue workflow creation task. Please try again later.',
+    });
+  }
+
+  // Respond immediately with 202 Accepted, indicating the request is being processed asynchronously.
   return sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: httpStatus.ACCEPTED,
     success: true,
-    message: result.needsConfirmation
-      ? 'Workflow plan created, awaiting confirmation'
-      : 'Workflow created successfully',
-    data: result,
+    message:
+      'Your request has been received and is being processed. We will notify you upon completion.',
+    // Optionally, you can return the conversationId or a new task ID for status tracking.
+    data: {
+      status: 'processing',
+      conversationId,
+    },
   });
 });
 
@@ -137,8 +179,8 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
  *                 description: Optional. A natural language description of requested modifications if `approved` is `false`.
  *                 example: "Please change the report frequency to weekly instead of daily."
  *     responses:
- *       200:
- *         description: Workflow confirmation processed successfully.
+ *       202:
+ *         description: Confirmation accepted. The workflow finalization will be handled asynchronously.
  *         content:
  *           application/json:
  *             schema:
@@ -167,22 +209,47 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
   // The limit check is performed at the initiation step.
   // Confirming a workflow doesn't typically count as a new metered event.
 
-  const result = await workflowCreationService.confirmWorkflowCreation(
-    userId,
+  // --- REWRITTEN FOR ASYNC PROCESSING ---
+  // Offload the confirmation and potential re-generation of the workflow to a background worker.
+  const messageData = {
+    userId: userId.toString(),
+    workspaceId: workspaceId.toString(),
     conversationId,
     approved,
-    modifications
-  );
+    modifications,
+  };
 
-  logger.info(
-    `Workflow confirmation processed for conversation ${conversationId} in workspace ${workspaceId}`
-  );
+  const dataBuffer = Buffer.from(JSON.stringify(messageData));
 
+  try {
+    const messageId = await pubSubClient
+      .topic(WORKFLOW_CONFIRM_TOPIC)
+      .publishMessage({ data: dataBuffer });
+    logger.info(
+      `Workflow confirmation task for conversation ${conversationId} queued with messageId: ${messageId}`
+    );
+  } catch (error) {
+    logger.error(
+      `Failed to publish workflow confirmation message to Pub/Sub for conversation ${conversationId}:`,
+      error
+    );
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to queue workflow confirmation task. Please try again later.',
+    });
+  }
+
+  // Respond immediately with 202 Accepted.
   return sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: httpStatus.ACCEPTED,
     success: true,
-    message: result.message,
-    data: result,
+    message:
+      'Confirmation received. Your workflow is being finalized in the background.',
+    data: {
+      status: 'processing',
+      conversationId,
+    },
   });
 });
 
@@ -216,8 +283,8 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
  *                 description: The new message from the user.
  *                 example: "Can you also include the number of active users?"
  *     responses:
- *       200:
- *         description: Conversation continued successfully.
+ *       202:
+ *         description: Message accepted for processing. The conversation will be continued asynchronously.
  *         content:
  *           application/json:
  *             schema:
@@ -266,21 +333,45 @@ const continueConversationController = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await workflowCreationService.continueConversation(
-    userId,
+  // --- REWRITTEN FOR ASYNC PROCESSING ---
+  // Offload the conversation processing to a background worker via Pub/Sub.
+  const messageData = {
+    userId: userId.toString(),
+    workspaceId: workspaceId.toString(),
     conversationId,
-    message
-  );
+    message,
+  };
 
-  logger.info(
-    `Conversation ${conversationId} continued in workspace ${workspaceId}`
-  );
+  const dataBuffer = Buffer.from(JSON.stringify(messageData));
 
+  try {
+    const messageId = await pubSubClient
+      .topic(CONVERSATION_CONTINUE_TOPIC)
+      .publishMessage({ data: dataBuffer });
+    logger.info(
+      `Conversation continuation task for ${conversationId} queued with messageId: ${messageId}`
+    );
+  } catch (error) {
+    logger.error(
+      `Failed to publish conversation continuation message to Pub/Sub for ${conversationId}:`,
+      error
+    );
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to queue your message. Please try again later.',
+    });
+  }
+
+  // Respond immediately with 202 Accepted.
   return sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: httpStatus.ACCEPTED,
     success: true,
-    message: 'Conversation continued successfully',
-    data: result,
+    message: 'Your message is being processed.',
+    data: {
+      status: 'processing',
+      conversationId,
+    },
   });
 });
 

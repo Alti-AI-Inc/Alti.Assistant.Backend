@@ -14,6 +14,42 @@ import { execFile } from 'child_process'; // Changed from 'exec' to 'execFile' f
 import { fileURLToPath } from 'url';
 import LangchainRepository from './langchain-repository.model.js';
 
+// --- GCP Cloud Logging (Stackdriver) Compliant Logger ---
+// A simple structured logger to ensure all log outputs are in a JSON format
+// that Google Cloud Logging can automatically parse. It includes the 'severity'
+// key, which is crucial for proper log level categorization in the GCP console.
+const logger = {
+  log: (severity, message, context = {}) => {
+    const logEntry = {
+      severity,
+      message,
+      // Add a component key for easier filtering in Cloud Logging.
+      component: 'LangchainService',
+      ...context,
+    };
+    // GCP automatically captures stdout and stderr. We direct logs based on severity.
+    if (severity === 'ERROR' || severity === 'WARNING') {
+      console.error(JSON.stringify(logEntry));
+    } else {
+      console.log(JSON.stringify(logEntry));
+    }
+  },
+  info: (message, context) => logger.log('INFO', message, context),
+  warn: (message, context) => logger.log('WARNING', message, context),
+  error: (message, context) => {
+    // Special handling for error objects to ensure they are serialized correctly.
+    const errorContext = { ...context };
+    if (context && context.error instanceof Error) {
+      errorContext.error = {
+        message: context.error.message,
+        stack: context.error.stack,
+        name: context.error.name,
+      };
+    }
+    logger.log('ERROR', message, errorContext);
+  },
+};
+
 /**
  * The current file's path.
  * @type {string}
@@ -81,11 +117,11 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
     await LangchainRepository.collection.createIndex({ stars: -1 }, { name: 'stars_-1' });                        // Index for sorting by stars
     await LangchainRepository.collection.createIndex({ name: 1 }, { name: 'name_1' });                           // Index for regex search on name
     await LangchainRepository.collection.createIndex({ description: 1 }, { name: 'description_1' });             // Index for regex search on description
-    // console.log('LangchainRepository indexes ensured.'); // Optional: for logging
+    logger.info('LangchainRepository indexes ensured.');
   } catch (error) {
     // Log the error if index creation fails for reasons other than the index already existing.
     // MongoDB's createIndex is idempotent, so it won't error if an identical index already exists.
-    console.error('Failed to ensure LangchainRepository indexes:', error);
+    logger.error('Failed to ensure LangchainRepository indexes.', { error });
   }
 })();
 
@@ -97,7 +133,7 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  * @returns {string} The escaped string.
  */
 const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\{FILE_CONTENT}'); // {FILE_CONTENT} means the whole matched string
 };
 
 /**
@@ -296,7 +332,10 @@ const importLangchainSubmodule = async (repoName) => {
       fs.mkdirSync(localLangchainPath, { recursive: true });
     }
 
-    console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
+    logger.info('Executing git submodule add command.', {
+      clone_url: match.clone_url,
+      path: submodulePath
+    });
     // Using execFile instead of exec for safer command execution.
     // Arguments are passed as an array, preventing shell interpretation and command injection.
     execFile(
@@ -305,12 +344,23 @@ const importLangchainSubmodule = async (repoName) => {
       { cwd: ROOT_DIR },
       (error, stdout, stderr) => {
         if (error) {
+          logger.error('Git submodule add command failed.', {
+            error: { message: error.message, stderr: stderr },
+            clone_url: match.clone_url,
+            path: submodulePath
+          });
           resolve({
             success: false,
             message: `Git command failed: ${error.message}`,
             details: stderr
           });
         } else {
+          logger.info('Successfully imported git submodule.', {
+            repository: match.name,
+            path: submodulePath,
+            clone_url: match.clone_url,
+            output: stdout
+          });
           resolve({
             success: true,
             message: `Successfully imported LangChain repository "${match.name}" as a submodule!`,
