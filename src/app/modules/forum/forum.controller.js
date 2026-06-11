@@ -23,14 +23,23 @@ const { checkUsageAndLimits, recordUsage } = require('../usage/usage.service');
 // SECURITY: All endpoints now require authentication and are scoped to the user's workspace/tenant.
 // Authorization logic (e.g., checking roles like 'admin', 'manager') is delegated to the service layer.
 
-// SECURITY (XSS Protection): Define strict sanitizer options for plain text fields to prevent any HTML injection.
+/**
+ * @constant {object}
+ * @description Strict sanitizer options for plain text fields to prevent any HTML injection.
+ * Disallows all HTML tags and attributes.
+ * @type {import('sanitize-html').IOptions}
+ */
 const plainTextSanitizerOptions = {
   allowedTags: [],
   allowedAttributes: {},
 };
 
-// SECURITY (XSS Protection): Define sanitizer options for rich content, allowing a safe subset of HTML for formatting.
-// This prevents stored XSS attacks while preserving user-intended formatting like paragraphs, lists, and links.
+/**
+ * @constant {object}
+ * @description Sanitizer options for rich content, allowing a safe subset of HTML for formatting.
+ * This prevents stored XSS attacks while preserving user-intended formatting like paragraphs, lists, and links.
+ * @type {import('sanitize-html').IOptions}
+ */
 const richContentSanitizerOptions = {
   allowedTags: [
     'p',
@@ -126,6 +135,13 @@ const richContentSanitizerOptions = {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ */
+/**
+ * @summary Create a new forum post.
+ * @description Handles the request to create a new forum post. It performs usage limit checks, sanitizes user input to prevent XSS, associates the post with the authenticated user's workspace for tenant isolation, and records the usage upon successful creation.
+ * @param {import('express').Request} req - The Express request object, containing the authenticated user in `req.user` and post data in `req.body`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
  */
 module.exports.addForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user from request object (populated by auth middleware)
@@ -245,6 +261,13 @@ module.exports.addForum = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Retrieves a paginated list of forum posts.
+ * @description Fetches forum posts based on query filters and pagination options. All queries are scoped to the authenticated user's workspace to ensure tenant isolation.
+ * @param {import('express').Request} req - The Express request object, containing the authenticated user and query parameters for filtering/pagination.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 module.exports.getForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const filters = pick(req.query, ['searchTerm', 'title', 'category']);
@@ -313,6 +336,13 @@ module.exports.getForum = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Retrieves a single forum post by its ID.
+ * @description Fetches a specific forum post, ensuring it belongs to the authenticated user's workspace. Throws a 404 error if the post is not found or not within the user's tenant context.
+ * @param {import('express').Request} req - The Express request object, containing the post ID in `req.params` and the user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 module.exports.getForumById = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -368,6 +398,13 @@ module.exports.getForumById = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ */
+/**
+ * @summary Retrieves all forum posts created by the authenticated user.
+ * @description Fetches a list of forum posts where the author is the currently authenticated user, scoped to their workspace.
+ * @param {import('express').Request} req - The Express request object, containing the authenticated user.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
  */
 // SECURITY: Replaced insecure `getForumByEmail` with `getMyForums` to prevent user information leakage.
 // This endpoint now fetches forums for the currently authenticated user only.
@@ -458,6 +495,13 @@ module.exports.getMyForums = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Updates an existing forum post.
+ * @description Handles updates to a forum post. It sanitizes input and delegates authorization to the service layer, which must verify that the user is the post's author or has an administrative role (e.g., 'manager', 'admin'). The operation is scoped to the user's workspace.
+ * @param {import('express').Request} req - The Express request object, containing the post ID in `req.params`, update data in `req.body`, and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 exports.updateForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -528,6 +572,13 @@ exports.updateForum = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Deletes a forum post.
+ * @description Handles the deletion of a forum post. Authorization is delegated to the service layer, which must verify ownership or administrative privileges (e.g., 'manager', 'admin') before proceeding.
+ * @param {import('express').Request} req - The Express request object, containing the post ID in `req.params` and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 exports.deleteForum = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { id } = req.params;
@@ -580,6 +631,13 @@ exports.deleteForum = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ */
+/**
+ * @summary Gets forum post suggestions based on a search term.
+ * @description Retrieves a list of forum posts that match a given suggestion term, scoped to the user's workspace to prevent data leakage.
+ * @param {import('express').Request} req - The Express request object, containing the suggestion term in `req.params` and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
  */
 module.exports.getForumSuggestion = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
@@ -662,6 +720,13 @@ module.exports.getForumSuggestion = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Adds a new activity (e.g., a comment) to a forum post.
+ * @description Handles the creation of a forum activity. It checks usage limits, sanitizes the comment content, and ensures the target forum post exists within the user's workspace.
+ * @param {import('express').Request} req - The Express request object, containing the activity data in `req.body` and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 module.exports.addUserForumActivity = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const activityData = req.body; // e.g., { forumId: '...', comment: '...' }
@@ -736,6 +801,13 @@ module.exports.addUserForumActivity = catchAsync(async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @summary Retrieves a single comment by its ID.
+ * @description Fetches a specific comment, ensuring it belongs to a forum within the authenticated user's workspace.
+ * @param {import('express').Request} req - The Express request object, containing the comment ID in `req.params` and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
+ */
 module.exports.getComment = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
   const { commentId } = req.params;
@@ -801,6 +873,13 @@ module.exports.getComment = catchAsync(async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ */
+/**
+ * @summary Deletes a comment.
+ * @description Handles the deletion of a comment. Authorization is delegated to the service layer, which must verify that the user is the comment's author, the parent forum's author, or has administrative privileges (e.g., 'manager', 'admin').
+ * @param {import('express').Request} req - The Express request object, containing the comment ID in `req.params` and the authenticated user in `req.user`.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>}
  */
 exports.deleteComment = catchAsync(async (req, res) => {
   const { user } = req; // AUTH: Get authenticated user
