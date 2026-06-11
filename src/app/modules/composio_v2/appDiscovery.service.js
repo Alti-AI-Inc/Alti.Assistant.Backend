@@ -26,12 +26,15 @@ const getRecommendations = async (userContext) => {
 
   try {
     // INTEGRATION: Fetch user preferences to exclude dismissed recommendations.
+    // PERFORMANCE: Ensure a unique index exists on { userId: 1 } in the UserPreference model for fast lookups.
     const userPreferences = await UserPreference.findOne({ userId }).lean();
     const dismissedAppNames = new Set(userPreferences?.dismissedRecommendations || []);
 
     // 1. Fetch currently ACTIVE connected accounts for the specific user within their workspace.
     // SECURITY FIX: Query is now scoped by both userId and workspaceId to enforce tenant boundaries.
     // This assumes the ComposioAuth model has a `workspaceId` field.
+    // PERFORMANCE: Ensure a compound index exists on { workspaceId: 1, userId: 1, status: 1 }
+    // in the ComposioAuth model to optimize queries for a user within a workspace.
     const connections = await ComposioAuth.find({ userId, workspaceId, status: 'ACTIVE' }).lean();
     const connectedAppNames = new Set(
       connections.map((c) => {
@@ -41,6 +44,8 @@ const getRecommendations = async (userContext) => {
     );
 
     // INTEGRATION: Fetch apps connected by other users in the same workspace for synergy calculation.
+    // PERFORMANCE: The compound index on { workspaceId: 1, userId: 1, status: 1 }
+    // will also efficiently serve this query by filtering on workspaceId first.
     const workspaceConnections = await ComposioAuth.find({
       workspaceId,
       userId: { $ne: userId },
@@ -54,6 +59,8 @@ const getRecommendations = async (userContext) => {
     );
 
     // 2. Load all available apps from the Tool model
+    // PERFORMANCE: This fetches all tools. For a large number of tools, consider caching this result
+    // in-memory (e.g., with a TTL) to avoid frequent full collection scans.
     const allTools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1, category: 1 }).lean();
 
     const appMetadataMap = {};
@@ -185,6 +192,7 @@ const dismissRecommendation = async (appName, userContext) => {
   try {
     // BUG FIX: Persist the dismissal in the database instead of just logging.
     // This uses an atomic $addToSet operation to prevent duplicates.
+    // PERFORMANCE: Ensure a unique index exists on { userId: 1 } in the UserPreference model for this query.
     await UserPreference.findOneAndUpdate(
       { userId },
       { $addToSet: { dismissedRecommendations: appName } },
