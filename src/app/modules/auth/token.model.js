@@ -4,23 +4,27 @@ import bcrypt from 'bcryptjs';
 
 /**
  * @typedef {object} TokenSchemaDefinition
- * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user associated with this token.
+ * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user associated with this token (e.g., the user for password reset, or the manager sending an invitation).
  * @property {string} token - The actual token string.
  * @property {Date} expiresAt - The date and time when this token expires.
- * @property {'emailVerification'|'passwordReset'|'deleteAccount'} type - The type or purpose of the token.
+ * @property {'emailVerification'|'passwordReset'|'deleteAccount'|'workspaceInvitation'} type - The type or purpose of the token.
+ * @property {mongoose.Schema.Types.ObjectId} [workspaceId] - The ID of the workspace for an invitation token.
+ * @property {string} [invitedUserEmail] - The email of the user being invited for an invitation token.
+ * @property {'manager'|'member'} [role] - The role assigned to the user upon accepting an invitation.
  */
 
 /**
  * Mongoose Schema for the Token model.
- * Defines the structure and validation rules for tokens used in various authentication flows
- * such as email verification, password reset, and account deletion.
+ * Defines the structure and validation rules for tokens used in various authentication and management flows
+ * such as email verification, password reset, account deletion, and workspace invitations.
  *
  * @type {mongoose.Schema<TokenSchemaDefinition>}
  */
 const TokenSchema = new mongoose.Schema(
   {
     /**
-     * The ID of the user associated with this token.
+     * The ID of the user associated with this token. For standard auth flows, this is the target user.
+     * For workspace invitations, this is the ID of the manager who sent the invitation.
      * References the 'User' model.
      * @type {mongoose.Schema.Types.ObjectId}
      * @required
@@ -50,14 +54,54 @@ const TokenSchema = new mongoose.Schema(
     },
     /**
      * The type or purpose of the token.
-     * Can be 'emailVerification', 'passwordReset', or 'deleteAccount'.
-     * @type {'emailVerification'|'passwordReset'|'deleteAccount'}
+     * 'workspaceInvitation' is used for inviting new members to a workspace.
+     * @type {'emailVerification'|'passwordReset'|'deleteAccount'|'workspaceInvitation'}
      * @required
      */
     type: {
       type: String,
-      enum: ['emailVerification', 'passwordReset', 'deleteAccount'],
+      enum: ['emailVerification', 'passwordReset', 'deleteAccount', 'workspaceInvitation'],
       required: true,
+    },
+
+    // --- Improvement: Add fields specific to 'workspaceInvitation' to support Manager dashboard features ---
+
+    /**
+     * The ID of the workspace to which a user is being invited.
+     * This field is required only when the token type is 'workspaceInvitation'.
+     * @type {mongoose.Schema.Types.ObjectId}
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: function () {
+        return this.type === 'workspaceInvitation';
+      },
+    },
+    /**
+     * The email address of the person being invited.
+     * This field is required only when the token type is 'workspaceInvitation'.
+     * @type {string}
+     */
+    invitedUserEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      required: function () {
+        return this.type === 'workspaceInvitation';
+      },
+    },
+    /**
+     * The role to be assigned to the invited user upon acceptance (e.g., 'manager', 'member').
+     * This field is required only when the token type is 'workspaceInvitation'.
+     * @type {string}
+     */
+    role: {
+      type: String,
+      enum: ['manager', 'member'], // Define the possible roles for team members.
+      required: function () {
+        return this.type === 'workspaceInvitation';
+      },
     },
   },
   {
@@ -68,11 +112,6 @@ const TokenSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-// Bug Fix: Add a TTL index to automatically delete tokens after they expire.
-// This is a crucial maintenance and security feature to prevent the collection
-// from growing indefinitely with stale data and to ensure expired tokens are reliably removed from the system.
-TokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Security Patch: Add a pre-save hook to hash the token before storing it.
 // Storing tokens in plaintext is a security risk. If the database is compromised,
@@ -107,7 +146,10 @@ TokenSchema.methods.compareToken = async function (candidateToken) {
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user associated with this token.
  * @property {string} token - The hashed token string.
  * @property {Date} expiresAt - The date and time when this token expires.
- * @property {'emailVerification'|'passwordReset'|'deleteAccount'} type - The type or purpose of the token.
+ * @property {'emailVerification'|'passwordReset'|'deleteAccount'|'workspaceInvitation'} type - The type or purpose of the token.
+ * @property {mongoose.Schema.Types.ObjectId} [workspaceId] - The ID of the workspace for an invitation token.
+ * @property {string} [invitedUserEmail] - The email of the user being invited for an invitation token.
+ * @property {'manager'|'member'} [role] - The role assigned to the user upon accepting an invitation.
  * @property {Date} createdAt - The date and time when the token was created.
  * @property {Date} updatedAt - The date and time when the token was last updated.
  * @property {function(string): Promise<boolean>} compareToken - Method to compare a candidate token with the stored hash.

@@ -177,8 +177,9 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in conversational assistant:', error);
+    // Improvement: Respect custom status codes from service layer errors for more specific client feedback.
     sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: error.message || 'Failed to process brainstorm request',
     });
@@ -298,8 +299,9 @@ const generateBrainstorm = catchAsync(async (req, res) => {
     });
   } catch (error) {
     logger.error('Error generating structured brainstorm:', error);
+    // Improvement: Respect custom status codes from service layer errors for more specific client feedback.
     sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: error.message || 'Failed to generate brainstorm',
     });
