@@ -15,11 +15,14 @@ import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 /**
  * @typedef {import('@google/genai').GoogleGenerativeAI} GoogleGenerativeAI
+ * @typedef {import('@google/genai').GenerateContentResult} GenerateContentResult
+ * @typedef {import('@google/genai').GroundingMetadata} GroundingMetadata
+ * @typedef {import('@google/genai').Content} Content
  */
 
 /**
  * Initializes the standard modern GoogleGenAI client with the API key from configuration.
- * @type {GoogleGenerativeAI}
+ * @type {GoogleGenAI}
  */
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
@@ -39,6 +42,7 @@ const CLEANUP_INTERVAL_MINUTES = 10; // Check for expired sessions every 10 minu
 /**
  * Cleans up expired sessions from the groundedMemoryStore.
  * Sessions are considered expired if they haven't been accessed for SESSION_TTL_MINUTES.
+ * This function is executed periodically by a `setInterval` timer.
  */
 const cleanupMemoryStore = () => {
   const now = Date.now();
@@ -63,11 +67,13 @@ setInterval(cleanupMemoryStore, CLEANUP_INTERVAL_MINUTES * 60 * 1000);
  * Executes a Gemini model query with active Google Search Grounding using the modern GenAI SDK.
  * It enhances the prompt, manages chat history, increments user prompt usage,
  * saves the conversation to the database, and publishes the response to Redis.
+ * This service requires a valid user context (`userId`) to track usage and save history.
+ * Access is implicitly controlled by the payment/subscription status checked via `paymentController`.
  *
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt for the Gemini model.
- * @param {string} userId - The ID of the user making the request.
- * @returns {Promise<object>} A promise that resolves to an object containing the prompt,
+ * @param {string} userId - The ID of the user making the request. This is a multi-tenant context parameter.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string, groundingMetadata: object}>} A promise that resolves to an object containing the prompt,
  *   session ID, the AI's reply, and grounding metadata.
  * @throws {ApiError} If an error occurs during prompt enhancement, Gemini API call,
  *   prompt usage increment, or database operations.
@@ -100,6 +106,7 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     // Call modern Gemini AI with active search grounding and gemini-2.5-pro reasoning engine
     logger.info(`Sending prompt with live Google Search Grounding using gemini-2.5-pro: "${prompt.slice(0, 50)}..."`);
     
+    /** @type {GenerateContentResult} */
     const result = await ai.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: enhancedPrompt,
@@ -203,12 +210,14 @@ export const GcpVertexGroundingService = {
   /**
    * Handles a user prompt by sending it to the Gemini model with active Google Search Grounding.
    * It manages session memory, enhances prompts, tracks usage, and stores conversation history.
+   * This service requires a valid user context (`userId`) to track usage and save history.
+   * Access is implicitly controlled by the payment/subscription status checked via `paymentController`.
    * @function
    * @memberof GcpVertexGroundingService
    * @param {string} sessionId - The unique identifier for the current chat session.
    * @param {string} prompt - The user's input prompt.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<object>} The AI's response including grounding metadata.
+   * @param {string} userId - The ID of the user. This is a multi-tenant context parameter.
+   * @returns {Promise<{prompt: string, sessionId: string, reply: string, groundingMetadata: object}>} The AI's response including the original prompt, session ID, reply, and grounding metadata.
    * @throws {ApiError} If the grounding service encounters an error.
    */
   groundedPromptResponse,
