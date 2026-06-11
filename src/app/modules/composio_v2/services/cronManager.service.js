@@ -4,6 +4,22 @@ import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { workflowExecutor } from './workflowExecutor.service.js';
 import parser from 'cron-parser'; // Import cron-parser for accurate next execution time calculation
 
+// PERFORMANCE OPTIMIZATION: For optimal query performance on the 'scheduledworkflows' collection,
+// ensure the following indexes are created in your MongoDB database.
+//
+// 1. For tenant-scoped lookups and limit checks in `scheduleWorkflow`:
+//    db.scheduledworkflows.createIndex({ workspaceId: 1, 'scheduleConfig.isActive': 1, triggerType: 1 });
+//
+// 2. For fast, unique workflow lookups (critical for most operations):
+//    db.scheduledworkflows.createIndex({ workflowId: 1 }, { unique: true });
+//
+// 3. To speed up application startup by quickly finding all active workflows in `loadActiveWorkflows`:
+//    db.scheduledworkflows.createIndex({ status: 1, 'scheduleConfig.isActive': 1 });
+//
+// 4. To make the hourly cleanup job efficient in `setupCleanupJob`:
+//    db.scheduledworkflows.createIndex({ status: 1, triggerType: 1, updatedAt: 1 });
+
+
 /**
  * Defines the authorization context for a user performing an action.
  * This context is critical for multi-tenancy and role-based access control.
@@ -128,6 +144,7 @@ class CronManager {
       // This is a critical integration point for managing tenant resources.
       // In a real application, this limit would come from a subscription plan associated with the workspace.
       const scheduleLimit = 50; // Example limit
+      // PERFORMANCE OPTIMIZATION: This query is supported by an index on { workspaceId: 1, 'scheduleConfig.isActive': 1, triggerType: 1 }
       const activeScheduleCount = await ScheduledWorkflow.countDocuments({
           workspaceId: authContext.workspaceId,
           'scheduleConfig.isActive': true,
@@ -169,38 +186,14 @@ class CronManager {
         throw new Error(`Invalid cron expression: ${cronExpression}`);
       }
 
-      const cronJob = cron.schedule(
-        cronExpression,
-        async () => {
-          // BUG FIX: Added try-catch block to handle potential unhandled promise rejections
-          // within the cron job callback, ensuring robustness.
-          try {
-            await this.executeCronJob(workflowId);
-          } catch (jobError) {
-            logger.error(`Unhandled error in cron job for workflow ${workflowId}:`, jobError);
-          }
-        },
-        { scheduled: true, timezone: scheduleConfig.timezone || 'UTC' }
-      );
-
-      this.activeCronJobs.set(workflowId, {
-        job: cronJob,
-        cronExpression,
-        description,
-        createdAt: new Date(),
-      });
-
-      const nextExecution = this.getNextExecutionTime(cronExpression, scheduleConfig.timezone);
-      
-      // SECURITY & TENANCY: Ensure the database update is scoped to the correct tenant.
-      await ScheduledWorkflow.updateOne({ workflowId, workspaceId: authContext.workspaceId }, { nextExecution });
-
-      logger.info(`Workflow ${workflowId} scheduled for workspace ${authContext.workspaceId}: ${description}`);
+      // PERFORMANCE OPTIMIZATION: Refactored core scheduling logic into a private method
+      // to be reused by the system startup process without re-running limit checks.
+      const scheduleData = await this._createAndStoreCronJob(workflow, cronExpression, description);
 
       return {
         success: true,
         message: 'Workflow scheduled successfully',
-        data: { cronExpression, description, nextExecution },
+        data: scheduleData,
       };
     } catch (error) {
       logger.error(`Failed to schedule workflow ${workflow.workflowId}:`, error);
@@ -241,6 +234,7 @@ class CronManager {
       }
 
       // This operation is now tenant-aware if context is supplied.
+      // PERFORMANCE OPTIMIZATION: This query is supported by a unique index on { workflowId: 1 }
       await ScheduledWorkflow.updateOne(query, { $set: { nextExecution: null } });
 
       return { success: true };
@@ -289,6 +283,7 @@ class CronManager {
     try {
       logger.info(`Executing cron job for workflow: ${workflowId}`);
 
+      // PERFORMANCE OPTIMIZATION: Query uses .lean() and is supported by a unique index on { workflowId: 1 }
       const workflow = await ScheduledWorkflow.findOne({ workflowId }).lean();
 
       if (!workflow) {
@@ -344,7 +339,7 @@ class CronManager {
       }
 
       logger.info(`Cron job execution completed for workflow: ${workflowId}`);
-    } catch (error).js {
+    } catch (error) {
       logger.error(`Error executing cron job for workflow ${workflowId}:`, error);
     }
   }
@@ -360,7 +355,8 @@ class CronManager {
    */
   async loadActiveWorkflows() {
     try {
-      // This is a system-level operation, so it queries across all tenants.
+      // PERFORMANCE OPTIMIZATION: This query is now supported by an index on
+      // { status: 1, 'scheduleConfig.isActive': 1 } for faster startup.
       const activeWorkflows = await ScheduledWorkflow.find({
         status: 'active',
         'scheduleConfig.isActive': true,
@@ -369,16 +365,41 @@ class CronManager {
 
       logger.info(`Loading ${activeWorkflows.length} active workflows`);
 
+      // PERFORMANCE OPTIMIZATION (N+1): Instead of calling the full scheduleWorkflow method
+      // for each workflow (which would trigger N database calls for limit checks), we now
+      // loop and schedule them directly using an internal method. This is safe because it's
+      // a system startup process, not a user-initiated action that needs limit enforcement.
       for (const workflow of activeWorkflows) {
-        // Construct a basic context from the workflow data for scheduling.
-        const context = { workspaceId: workflow.workspaceId, userId: workflow.createdBy, role: 'system' };
-        // Use a simplified schedule call that bypasses user-facing limit checks on startup.
-        // For simplicity here, we call the main scheduler but in a real-world scenario,
-        // a separate internal scheduler might be used.
-        await this.scheduleWorkflow(workflow, context);
+        try {
+          let cronExpression;
+          let description;
+
+          if (workflow.triggerType === 'scheduled') {
+            const triggerTime = new Date(workflow.scheduleConfig.triggerDate);
+            // Don't schedule past events on startup
+            if (triggerTime <= new Date()) {
+              logger.warn(`Skipping past scheduled workflow ${workflow.workflowId} on startup.`);
+              continue;
+            }
+            cronExpression = this.dateTimeToCron(triggerTime);
+            description = `One-time execution at ${triggerTime.toISOString()}`;
+          } else { // 'recurring'
+            cronExpression = workflow.scheduleConfig.cronExpression;
+            description = `Recurring execution: ${cronExpression}`;
+          }
+
+          if (cronExpression && cron.validate(cronExpression)) {
+            await this._createAndStoreCronJob(workflow, cronExpression, description);
+          } else {
+            logger.error(`Invalid cron expression for workflow ${workflow.workflowId} during startup load. Skipping.`);
+          }
+        } catch (error) {
+          // Log error for a single workflow but continue with the rest
+          logger.error(`Failed to schedule workflow ${workflow.workflowId} during startup:`, error);
+        }
       }
 
-      logger.info(`Loaded and scheduled ${activeWorkflows.length} workflows`);
+      logger.info(`Loaded and scheduled ${this.activeCronJobs.size} workflows`);
     } catch (error) {
       logger.error('Failed to load active workflows:', error);
     }
@@ -397,18 +418,40 @@ class CronManager {
         logger.info('Running workflow cleanup job');
         const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+        // PERFORMANCE OPTIMIZATION: This query is supported by an index on { status: 1, triggerType: 1, updatedAt: 1 }
+        // We also use .select() to only fetch the data we need.
         const completedWorkflows = await ScheduledWorkflow.find({
-          triggerType: 'scheduled',
           status: 'completed',
+          triggerType: 'scheduled',
           updatedAt: { $lt: cutoffDate },
-        }).lean();
+        }).lean().select('workflowId');
 
-        for (const workflow of completedWorkflows) {
-          // SECURITY & TENANCY: Pass context to the unschedule method to ensure tenant-safe operations.
-          await this.unscheduleWorkflow(workflow.workflowId, { workspaceId: workflow.workspaceId });
+        if (completedWorkflows.length === 0) {
+          logger.info('Cleanup job found no workflows to process.');
+          return;
         }
 
-        logger.info(`Cleanup completed: processed ${completedWorkflows.length} completed workflows`);
+        const workflowIdsToClean = completedWorkflows.map(w => w.workflowId);
+
+        // PERFORMANCE OPTIMIZATION (N+1): Instead of N `updateOne` calls inside a loop, we perform bulk operations.
+        // First, remove any lingering jobs from the in-memory map.
+        for (const workflowId of workflowIdsToClean) {
+          const cronJobData = this.activeCronJobs.get(workflowId);
+          if (cronJobData) {
+            cronJobData.job.stop();
+            cronJobData.job.destroy();
+            this.activeCronJobs.delete(workflowId);
+          }
+        }
+
+        // Second, perform a single bulk update on the database to clear the nextExecution field.
+        // Note: This operation is not tenant-scoped as it's a system-level cleanup of completed items.
+        await ScheduledWorkflow.updateMany(
+          { workflowId: { $in: workflowIdsToClean } },
+          { $set: { nextExecution: null } }
+        );
+
+        logger.info(`Cleanup completed: processed ${workflowIdsToClean.length} completed workflows`);
       } catch (error) {
         logger.error('Error in cleanup job:', error);
       }
@@ -537,6 +580,7 @@ class CronManager {
       }
 
       // SECURITY & TENANCY: Find the workflow ONLY within the user's workspace to prevent IDOR.
+      // PERFORMANCE OPTIMIZATION: This query is supported by the unique index on { workflowId: 1 }
       const workflow = await ScheduledWorkflow.findOne({
         workflowId,
         workspaceId: authContext.workspaceId,
@@ -572,6 +616,50 @@ class CronManager {
       logger.error(`Error triggering scheduled workflow ${workflowId}:`, error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * @private
+   * Internal method to create the cron job, store it in memory, and update the DB.
+   * This is separated to allow scheduling without user-facing limit checks (e.g., on startup),
+   * preventing an N+1 query problem in `loadActiveWorkflows`.
+   * @param {Workflow} workflow - The workflow object.
+   * @param {string} cronExpression - The calculated cron expression.
+   * @param {string} description - A description for logging.
+   * @returns {Promise<{cronExpression: string, description: string, nextExecution: Date|null}>}
+   */
+  async _createAndStoreCronJob(workflow, cronExpression, description) {
+    const { workflowId, scheduleConfig, workspaceId } = workflow;
+
+    const cronJob = cron.schedule(
+      cronExpression,
+      async () => {
+        // BUG FIX: Added try-catch block to handle potential unhandled promise rejections
+        // within the cron job callback, ensuring robustness.
+        try {
+          await this.executeCronJob(workflowId);
+        } catch (jobError) {
+          logger.error(`Unhandled error in cron job for workflow ${workflowId}:`, jobError);
+        }
+      },
+      { scheduled: true, timezone: scheduleConfig.timezone || 'UTC' }
+    );
+
+    this.activeCronJobs.set(workflowId, {
+      job: cronJob,
+      cronExpression,
+      description,
+      createdAt: new Date(),
+    });
+
+    const nextExecution = this.getNextExecutionTime(cronExpression, scheduleConfig.timezone);
+    
+    // SECURITY & TENANCY: This update is tenant-aware via the workflow object's workspaceId.
+    // PERFORMANCE OPTIMIZATION: This query is supported by a unique index on { workflowId: 1 }
+    await ScheduledWorkflow.updateOne({ workflowId, workspaceId }, { $set: { nextExecution } });
+
+    logger.info(`Workflow ${workflowId} scheduled for workspace ${workspaceId}: ${description}`);
+    return { cronExpression, description, nextExecution };
   }
 }
 

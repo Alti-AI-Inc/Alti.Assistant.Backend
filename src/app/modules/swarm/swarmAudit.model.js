@@ -54,13 +54,11 @@ const SwarmAuditSchema = new mongoose.Schema(
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Organization
      * @required
-     * @index
      */
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: true,
-      index: true,
     },
     /**
      * BUG FIX: Added workspaceId to enforce workspace-level tenant boundaries (admin/manager).
@@ -69,13 +67,11 @@ const SwarmAuditSchema = new mongoose.Schema(
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Workspace
      * @required
-     * @index
      */
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workspace',
       required: true,
-      index: true,
     },
     /**
      * BUG FIX: Changed type from String to ObjectId and added a ref to the User model.
@@ -84,25 +80,21 @@ const SwarmAuditSchema = new mongoose.Schema(
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref User
      * @required
-     * @index
      */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     /**
      * INTEGRATION: Added optional conversationId to link tool executions to a specific session.
      * This provides better context for debugging and tracing the full sequence of events initiated by a user.
      * @type {mongoose.Schema.Types.ObjectId}
      * @ref Conversation
-     * @index
      */
     conversationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Conversation',
-      index: true,
       required: false,
     },
 
@@ -112,12 +104,10 @@ const SwarmAuditSchema = new mongoose.Schema(
      * The name of the tool that was executed.
      * @type {string}
      * @required
-     * @index
      */
     toolName: {
       type: String,
       required: true,
-      index: true,
     },
     /**
      * The type of tool being audited.
@@ -126,13 +116,11 @@ const SwarmAuditSchema = new mongoose.Schema(
      * - 'reflection-self-healing': An internal reflection or self-healing mechanism.
      * @type {'dynamic-skill' | 'standard-tool' | 'reflection-self-healing'}
      * @default 'dynamic-skill'
-     * @index
      */
     type: {
       type: String,
       enum: ['dynamic-skill', 'standard-tool', 'reflection-self-healing'],
       default: 'dynamic-skill',
-      index: true,
     },
     /**
      * An array of detailed records for each execution attempt.
@@ -157,13 +145,11 @@ const SwarmAuditSchema = new mongoose.Schema(
      * - 'resource-aborted': The tool execution was aborted due to resource constraints or timeouts.
      * @type {'success' | 'failed' | 'security-blocked' | 'resource-aborted'}
      * @required
-     * @index
      */
     status: {
       type: String,
       enum: ['success', 'failed', 'security-blocked', 'resource-aborted'],
       required: true,
-      index: true,
     },
     /**
      * The final result or output from the successful tool execution.
@@ -192,8 +178,33 @@ const SwarmAuditSchema = new mongoose.Schema(
   }
 );
 
-// PERFORMANCE: Add a compound index for common query patterns, such as fetching a user's audit history within their workspace.
+// --- PERFORMANCE OPTIMIZATION: INDEXING STRATEGY ---
+// A comprehensive indexing strategy is crucial for the performance of a high-volume audit log collection.
+// The following compound indexes are designed to optimize the most common query patterns, such as
+// tenancy-based lookups, user history, and analytics/monitoring queries.
+// Individual `index: true` flags have been removed from the schema in favor of this explicit, more powerful strategy.
+
+// 1. Primary query index for fetching a user's audit history within a workspace, sorted by most recent.
+//    This is the most common lookup. It also efficiently supports queries for a workspace's entire history
+//    because `workspaceId` is the first key in the index.
 SwarmAuditSchema.index({ workspaceId: 1, userId: 1, createdAt: -1 });
+
+// 2. Index for organization-level queries, allowing platform admins to view audit data across an entire organization,
+//    sorted by time. This is critical for super-admin dashboards and platform-wide analytics.
+SwarmAuditSchema.index({ organizationId: 1, createdAt: -1 });
+
+// 3. Index for analytics and monitoring, to efficiently find all audits with a specific status (e.g., 'failed')
+//    within a workspace. This helps in quickly identifying and debugging issues.
+SwarmAuditSchema.index({ workspaceId: 1, status: 1, createdAt: -1 });
+
+// 4. Index for tool-specific analytics, allowing efficient lookup of a specific tool's usage history
+//    within a workspace. Useful for understanding which tools are most used or most prone to failure.
+SwarmAuditSchema.index({ workspaceId: 1, toolName: 1, createdAt: -1 });
+
+// 5. Index to quickly find all audit entries related to a single conversation session.
+//    This is essential for tracing and debugging the full lifecycle of a user interaction.
+SwarmAuditSchema.index({ conversationId: 1 });
+
 
 /**
  * SwarmAudit Mongoose Model.

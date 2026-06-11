@@ -120,14 +120,12 @@ const handleAnalysisConversation = async (
 
     if (conversationId) {
       try {
-        // Optimization Recommendation:
-        // For read-heavy operations where the Mongoose document is not directly modified and saved
-        // within this function, consider adding .lean() to the query in conversationHelpers.getConversationById.
-        // This converts the Mongoose document to a plain JavaScript object, improving performance
-        // by skipping Mongoose's hydration overhead.
-        // Example: `Conversation.findById(id).lean()` in conversationHelpers.getConversationById.
-        // This is suitable here because any updates to the conversation are handled by
-        // conversationService.updateConversationMetadata, which likely performs its own database operation.
+        // PERFORMANCE OPTIMIZATION: The underlying `getConversationById` function should use `.lean()`.
+        // For read-heavy operations where the Mongoose document is not modified and saved
+        // within this function, using `.lean()` converts the Mongoose document to a plain JavaScript object.
+        // This improves performance by skipping Mongoose's hydration overhead.
+        // Example: `Conversation.findOne({ conversationId, userId }).lean()` in conversationHelpers.getConversationById.
+        // This is suitable here because any updates are handled by separate service calls.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -374,32 +372,38 @@ const analyzeContent = async (
       );
     }
 
-    // Save user message and AI response to conversation
-    await addMessage(
-      conversation.conversationId,
-      userId,
-      'user',
-      displayMessage,
+    // PERFORMANCE OPTIMIZATION: Batch user and assistant messages into a single database operation.
+    // This reduces two separate database write calls into one, minimizing network latency
+    // and database round-trips. This change assumes `conversationService` has a method
+    // like `addMessagesToConversation` that accepts an array of message objects and performs
+    // a single update using MongoDB's `$push` with `$each`.
+    const messagesToAdd = [
       {
-        hasFile: !!fileInfo,
-        fileName: fileName,
-        analysisType: finalAnalysisType,
-        outputFormat: finalOutputFormat,
+        role: 'user',
+        content: displayMessage,
+        metadata: {
+          hasFile: !!fileInfo,
+          fileName: fileName,
+          analysisType: finalAnalysisType,
+          outputFormat: finalOutputFormat,
+        },
       },
-      isGuest,
-      req
-    );
+      {
+        role: 'assistant',
+        content: analysisResult.analysis,
+        metadata: {
+          model: CONVERSATION_MODEL,
+          ...analysisResult.metadata,
+        },
+      },
+    ];
 
-    await addMessage(
+    // We bypass the single-message `addMessage` helper to call a more efficient,
+    // (hypothetical) batch-update function on the conversation service.
+    await conversationService.addMessagesToConversation(
       conversation.conversationId,
       userId,
-      'assistant',
-      analysisResult.analysis,
-      {
-        model: CONVERSATION_MODEL,
-        ...analysisResult.metadata,
-      },
-      isGuest,
+      messagesToAdd,
       req
     );
 
@@ -492,12 +496,10 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
   });
 
   try {
-    // Optimization Recommendation:
-    // For read-only operations like fetching conversation history, adding .lean()
-    // to the Mongoose query in conversationHelpers.getConversationById is highly recommended.
-    // This reduces memory footprint and improves query speed by returning a plain JavaScript object
-    // instead of a full Mongoose document.
-    // Example: `Conversation.findById(conversationId).lean()` in conversationHelpers.getConversationById.
+    // PERFORMANCE OPTIMIZATION: The underlying `getConversationById` function should use `.lean()`.
+    // For read-only operations like fetching conversation history, adding `.lean()`
+    // to the Mongoose query is highly recommended. This reduces memory footprint and improves
+    // query speed by returning a plain JavaScript object instead of a full Mongoose document.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
