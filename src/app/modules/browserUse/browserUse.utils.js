@@ -15,33 +15,43 @@ const AppError = require('../../utils/AppError'); // Assume a custom error class
  * allowing the Platform Owner to control browser behavior globally (e.g., proxies, user agents, executable paths).
  * @param {object} userContext - The context of the user making the request, containing tenant and user information.
  * @returns {Promise<import('puppeteer').LaunchOptions>} A promise that resolves to the Puppeteer launch options object.
+ * @throws {AppError} If there's an issue retrieving platform configuration.
  */
 async function getBrowserLaunchOptions(userContext) {
-    // OPTIMIZATION: Directly query for the platform configuration, selecting only the 'puppeteerOptions' field.
-    // Using .lean() makes the query faster and less memory-intensive for this read-only operation.
-    // This configuration is an ideal candidate for caching (e.g., in-memory or Redis) to avoid frequent DB calls.
-    // The query assumes a single document for platform-wide configuration.
-    const platformConfig = await PlatformConfig.findOne({}, 'puppeteerOptions').lean() || {};
+    try {
+        // OPTIMIZATION: Directly query for the platform configuration, selecting only the 'puppeteerOptions' field.
+        // Using .lean() makes the query faster and less memory-intensive for this read-only operation.
+        // This configuration is an ideal candidate for caching (e.g., in-memory or Redis) to avoid frequent DB calls.
+        // The query assumes a single document for platform-wide configuration.
+        const platformConfig = (await PlatformConfig.findOne({}, 'puppeteerOptions').lean()) || {};
 
-    const defaultOptions = {
-        headless: 'new', // Use the new headless mode for better compatibility and features.
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Recommended for running in containerized environments like Docker.
-            '--disable-gpu', // Often helps prevent issues in server environments without a dedicated GPU.
-        ],
-    };
+        const defaultOptions = {
+            headless: 'new', // Use the new headless mode for better compatibility and features.
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage', // Recommended for running in containerized environments like Docker.
+                '--disable-gpu', // Often helps prevent issues in server environments without a dedicated GPU.
+            ],
+        };
 
-    // Platform Owner can specify a custom executable path, proxy server, etc., in the platform config.
-    const mergedOptions = {
-        ...defaultOptions,
-        ...platformConfig.puppeteerOptions, // e.g., { executablePath: '/usr/bin/google-chrome', slowMo: 50 }
-    };
+        // Platform Owner can specify a custom executable path, proxy server, etc., in the platform config.
+        const mergedOptions = {
+            ...defaultOptions,
+            ...platformConfig.puppeteerOptions, // e.g., { executablePath: '/usr/bin/google-chrome', slowMo: 50 }
+        };
 
-    logger.debug('Puppeteer launch options configured.', { userContext, options: mergedOptions });
+        logger.debug('Puppeteer launch options configured.', { userContext, options: mergedOptions });
 
-    return mergedOptions;
+        return mergedOptions;
+    } catch (error) {
+        logger.error(`Failed to retrieve platform configuration for Puppeteer. Stack: ${error.stack}`, {
+            userContext,
+            errorMessage: error.message,
+        });
+        // Throw a normalized error to prevent leaking database-specific error details.
+        throw new AppError('Internal server error while configuring browser session.', 500);
+    }
 }
 
 /**
@@ -50,11 +60,26 @@ async function getBrowserLaunchOptions(userContext) {
  * adhere to the centrally managed platform settings.
  * @param {object} userContext - The context of the user making the request ({ tenantId, userId, role }).
  * @returns {Promise<import('puppeteer').Browser>} A promise that resolves to a Puppeteer Browser instance.
+ * @throws {AppError} If browser launch fails for any reason.
  */
 async function launchBrowser(userContext) {
-    const launchOptions = await getBrowserLaunchOptions(userContext);
-    const browser = await puppeteer.launch(launchOptions);
-    return browser;
+    try {
+        const launchOptions = await getBrowserLaunchOptions(userContext);
+        const browser = await puppeteer.launch(launchOptions);
+        return browser;
+    } catch (error) {
+        // This will catch errors from both getBrowserLaunchOptions and puppeteer.launch.
+        logger.error(`Failed to launch Puppeteer browser instance. Stack: ${error.stack}`, {
+            userContext,
+            errorMessage: error.message,
+        });
+        // If the error is already a normalized AppError (from getBrowserLaunchOptions), re-throw it.
+        if (error instanceof AppError) {
+            throw error;
+        }
+        // Otherwise, wrap the raw error (e.g., from puppeteer.launch) in a normalized AppError.
+        throw new AppError('Failed to initialize browser session. Please contact support.', 500);
+    }
 }
 
 /**
@@ -72,6 +97,7 @@ function validateUrl(url, userContext) {
     try {
         parsedUrl = new URL(url);
     } catch (error) {
+        // The original error is a TypeError, which is not user-friendly. Wrap it.
         throw new AppError('Invalid URL provided.', 400);
     }
 
@@ -121,51 +147,51 @@ function validateUrl(url, userContext) {
  */
 async function takeScreenshot(userContext, url, options = {}) {
     const { tenantId, role } = userContext;
+    let browser; // Define browser at the top level to be accessible in the finally block.
 
     // Platform Owner Feature: Global oversight through detailed logging for a complete audit trail.
     logger.info(`Screenshot requested for URL: ${url}`, { userContext, url, options });
 
-    // Platform Owner Feature: URL validation that distinguishes between tenants and admins.
-    validateUrl(url, userContext);
-
-    // Platform Owner can operate without a tenant context or on behalf of any tenant.
-    // Regular users must belong to an active, non-suspended tenant.
-    if (tenantId) {
-        // OPTIMIZATION: Bypass the generic service to perform a highly optimized, specific query.
-        // .select() fetches only the fields required for this operation, reducing data transfer from DB.
-        // .lean() returns a plain JS object, which is much faster and uses less memory than a full Mongoose document.
-        // This query uses findById, which is efficient as it leverages the default index on the `_id` field.
-        const tenant = await Tenant.findById(tenantId)
-            .select('isActive usage.screenshots limits.maxScreenshots')
-            .lean();
-
-        if (!tenant) {
-            throw new AppError('Tenant not found.', 404);
-        }
-
-        // Platform Owner Feature: Enforce tenant suspension, preventing usage from suspended accounts.
-        if (!tenant.isActive) {
-            logger.warn(`Action denied for suspended tenant: ${tenantId}`, { userContext });
-            throw new AppError('Tenant is suspended. Please contact support.', 403);
-        }
-
-        // Platform Owner Feature: Ability to override tenant-specific limits for administrative purposes.
-        // The Platform Owner role bypasses this check entirely.
-        if (role !== 'PlatformOwner') {
-            const usage = tenant.usage?.screenshots || 0;
-            const limit = tenant.limits?.maxScreenshots || 100; // Use a sensible default limit if not set.
-            if (usage >= limit) {
-                logger.error(`Screenshot limit reached for tenant: ${tenantId}`, { userContext, usage, limit });
-                throw new AppError(`Screenshot limit of ${limit} reached for this tenant.`, 429); // Use 429 Too Many Requests
-            }
-        }
-    } else if (role !== 'PlatformOwner') {
-        // Ensure non-admins are always associated with a tenant.
-        throw new AppError('A valid tenant context is required for this operation.', 400);
-    }
-
-    let browser;
     try {
+        // Platform Owner Feature: URL validation that distinguishes between tenants and admins.
+        validateUrl(url, userContext); // This can throw an AppError, which will be caught below.
+
+        // Platform Owner can operate without a tenant context or on behalf of any tenant.
+        // Regular users must belong to an active, non-suspended tenant.
+        if (tenantId) {
+            // OPTIMIZATION: Bypass the generic service to perform a highly optimized, specific query.
+            // .select() fetches only the fields required for this operation, reducing data transfer from DB.
+            // .lean() returns a plain JS object, which is much faster and uses less memory than a full Mongoose document.
+            // This query uses findById, which is efficient as it leverages the default index on the `_id` field.
+            const tenant = await Tenant.findById(tenantId)
+                .select('isActive usage.screenshots limits.maxScreenshots')
+                .lean();
+
+            if (!tenant) {
+                throw new AppError('Tenant not found.', 404);
+            }
+
+            // Platform Owner Feature: Enforce tenant suspension, preventing usage from suspended accounts.
+            if (!tenant.isActive) {
+                logger.warn(`Action denied for suspended tenant: ${tenantId}`, { userContext });
+                throw new AppError('Tenant is suspended. Please contact support.', 403);
+            }
+
+            // Platform Owner Feature: Ability to override tenant-specific limits for administrative purposes.
+            // The Platform Owner role bypasses this check entirely.
+            if (role !== 'PlatformOwner') {
+                const usage = tenant.usage?.screenshots || 0;
+                const limit = tenant.limits?.maxScreenshots || 100; // Use a sensible default limit if not set.
+                if (usage >= limit) {
+                    logger.error(`Screenshot limit reached for tenant: ${tenantId}`, { userContext, usage, limit });
+                    throw new AppError(`Screenshot limit of ${limit} reached for this tenant.`, 429); // Use 429 Too Many Requests
+                }
+            }
+        } else if (role !== 'PlatformOwner') {
+            // Ensure non-admins are always associated with a tenant.
+            throw new AppError('A valid tenant context is required for this operation.', 400);
+        }
+
         browser = await launchBrowser(userContext);
         const page = await browser.newPage();
 
@@ -195,12 +221,25 @@ async function takeScreenshot(userContext, url, options = {}) {
             url,
             errorMessage: error.message, // Provide the clean error message as separate metadata for easier querying.
         });
-        // Re-throw a user-friendly error to the client.
+
+        // If the error is already a user-facing AppError (e.g., from tenant checks), re-throw it to preserve status code and message.
+        if (error instanceof AppError) {
+            throw error;
+        }
+        // Otherwise, wrap unexpected system errors in a generic, user-friendly AppError.
         throw new AppError(`Could not process the page at the specified URL. Please ensure the URL is correct and publicly accessible.`, 500);
     } finally {
-        // Ensure browser resources are always released.
+        // Ensure browser resources are always released, even if an error occurred.
         if (browser) {
-            await browser.close();
+            try {
+                await browser.close();
+            } catch (closeError) {
+                // Log the closing error but do not re-throw, as the original error is more important to the caller.
+                logger.error(`Error closing Puppeteer browser instance. Stack: ${closeError.stack}`, {
+                    userContext,
+                    errorMessage: closeError.message,
+                });
+            }
         }
     }
 }

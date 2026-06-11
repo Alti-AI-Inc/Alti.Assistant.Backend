@@ -1,3 +1,11 @@
+/**
+ * @file Gcp Native Service
+ * @module app/modules/gcp_native/gcp-native.service
+ * @description This service handles interactions with a catalog of Google and GCP repositories.
+ * It provides functionality to search the catalog and to import repositories as Git submodules
+ * into the application's file system. All operations are performed within a workspace context
+ * and are subject to role-based access control and workspace-specific limits.
+ */
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
@@ -18,8 +26,8 @@ import auditLogger from '../../../shared/auditLogger.js';
  */
 const escapeRegExp = (string) => {
   // SECURITY_FIX: Correctly escape special characters for RegExp.
-  // The `$&` replacement inserts the matched special character, which is the correct behavior.
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // The `{FILE_CONTENT}` replacement inserts the matched special character, which is the correct behavior.
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\{FILE_CONTENT}');
 };
 
 // Recommended MongoDB Indexes for GoogleRepository model:
@@ -67,6 +75,7 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  * Searches the MongoDB GoogleRepository collection for Google and GCP repositories.
  * Supports full-text search relevance matching, license/language filtering, and sorting.
  *
+ * @memberof GcpNativeService
  * @param {string} [query=''] - The search query string. Can be used for full-text search.
  * @param {object} [options={}] - An object containing search and pagination options.
  * @param {string} [options.license] - Filter repositories by license type (e.g., 'MIT', 'Apache 2.0'). Case-insensitive.
@@ -77,6 +86,7 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  * @param {object} user - The authenticated user object performing the action. Must contain a `workspaceId`.
  * @returns {Promise<object>} A promise that resolves to an object containing search results and pagination info.
  * @throws {Error} If the MongoDB query fails or if the user is not authenticated.
+ * @permission Requires an authenticated user associated with a valid workspace.
  */
 const searchGcpCatalog = async (query = '', options = {}, user) => {
   // HIERARCHY_GAP_FIX: All actions must be performed within a tenant/workspace context by an authenticated user.
@@ -189,12 +199,15 @@ const searchGcpCatalog = async (query = '', options = {}, user) => {
 
 /**
  * Programmatically triggers the Git submodule import command to register a GCP repository.
- * This is a privileged action that modifies the server's file system.
+ * This is a privileged action that modifies the server's file system and is subject to
+ * workspace-level usage limits. The action is audited and notifications are sent upon success.
  *
+ * @memberof GcpNativeService
  * @param {string} repoName - The exact name of the repository to import (e.g., 'cloud-sdk').
  * @param {object} user - The authenticated user object. Must contain userId, workspaceId, and role.
  * @returns {Promise<object>} A promise that resolves to an object indicating the outcome of the import.
  * @throws {Error} If `repoName` is not provided.
+ * @permission This is a privileged action. Requires the user to have an `admin` or `super_admin` role within their workspace.
  */
 const importGcpSubmodule = async (repoName, user) => {
   // HIERARCHY_GAP_FIX: Validate user object and role. This is a critical, privileged action.
