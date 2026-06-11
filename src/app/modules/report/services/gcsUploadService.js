@@ -7,8 +7,97 @@
  */
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
 import config from '../../../../../config/index.js';
+import { redisClient } from '../../../../config/redis.js'; // Assumes a configured Redis client is exported
 import { logger } from '../../../../shared/logger.js';
+
+// --- Rate Limiting & DDOS Protection Setup ---
+
+/**
+ * Custom error class for rate limit rejections.
+ * This allows upstream error handlers to specifically catch and handle 429 Too Many Requests responses.
+ */
+class RateLimitError extends Error {
+  constructor(message = 'Too many requests. Please try again later.') {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
+/**
+ * Centralized Redis-based rate limiters to protect GCS operations from abuse and excessive cost.
+ * These are applied at the service layer, keyed by userId, to ensure consistent
+ * protection regardless of how the service function is called.
+ */
+
+// Limiter for generating signed URLs (read/write).
+// Allows a burst of requests but prevents sustained abuse from a single user.
+const signedUrlLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_gcs_signed_url',
+  points: 30, // 30 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
+});
+
+// Stricter limiter for destructive operations like deletion.
+const deleteLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_gcs_delete',
+  points: 10, // 10 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 10, // Block for 10 minutes
+});
+
+// Limiter for file uploads, which are resource-intensive.
+const uploadLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_gcs_upload',
+  points: 20, // 20 uploads
+  duration: 60 * 5, // per 5 minutes
+  blockDuration: 60 * 15, // Block for 15 minutes
+});
+
+// Limiter for metadata operations like checking file existence.
+const metadataLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit_gcs_metadata',
+  points: 60, // 60 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 1, // Block for 1 minute
+});
+
+/**
+ * Consumes a point from a given rate limiter for a specific key.
+ * Throws a RateLimitError if the consumption is rejected.
+ * @param {import('rate-limiter-flexible').RateLimiterRedis} limiter - The rate limiter instance.
+ * @param {string} key - The key to rate limit against (e.g., userId).
+ * @throws {RateLimitError} If the rate limit is exceeded.
+ */
+const handleRateLimit = async (limiter, key) => {
+  try {
+    await limiter.consume(key);
+  } catch (rejRes) {
+    logger.warn(
+      `Rate limit exceeded for key "${key}" on limiter "${limiter.keyPrefix}"`
+    );
+    throw new RateLimitError();
+  }
+};
+
+/**
+ * Extracts the userId from a GCS path string (e.g., "userId/conversationId/file.pdf").
+ * @param {string} gcsPath - The GCS file path.
+ * @returns {string|null} The extracted userId or null if the path is invalid.
+ */
+const getUserIdFromGCSPath = (gcsPath) => {
+  if (!gcsPath || typeof gcsPath !== 'string') return null;
+  const parts = gcsPath.split('/');
+  return parts.length > 0 ? parts[0] : null;
+};
+
+// --- End of Rate Limiting Setup ---
 
 /**
  * Google Cloud Storage client instance.
@@ -61,7 +150,7 @@ const getContentType = (filePath) => {
  * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
  * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
  * @returns {Promise<Object>} - An object containing the upload result with GCS path information.
- * @throws {Error} If the file buffer is empty or if the upload fails.
+ * @throws {Error|RateLimitError} If the file buffer is empty, if the upload fails, or if the rate limit is exceeded.
  */
 export const uploadReportToGCS = async (
   fileBuffer,
@@ -69,6 +158,9 @@ export const uploadReportToGCS = async (
   userId,
   conversationId
 ) => {
+  // Apply rate limit before proceeding.
+  await handleRateLimit(uploadLimiter, userId);
+
   try {
     logger.info(`Uploading report to GCS from buffer: ${fileName}`);
     if (!fileBuffer || fileBuffer.length === 0) {
@@ -104,6 +196,8 @@ export const uploadReportToGCS = async (
       size: fileBuffer.length,
     };
   } catch (error) {
+    // RateLimitError is thrown by handleRateLimit and will propagate up.
+    // This block handles GCS-specific errors.
     logger.error('Error uploading report to GCS:', error);
     throw new Error(`Failed to upload report to GCS: ${error.message}`);
   }
@@ -118,9 +212,17 @@ export const uploadReportToGCS = async (
  * @param {string} fileName - Name for the file in GCS.
  * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
  * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
- * @returns {{stream: import('stream').Writable, gcsPath: string}} - An object containing the GCS Writable stream and the file's GCS path.
+ * @returns {Promise<{stream: import('stream').Writable, gcsPath: string}>} - An object containing the GCS Writable stream and the file's GCS path.
+ * @throws {RateLimitError} If the rate limit is exceeded.
  */
-export const getGCSReportUploadStream = (fileName, userId, conversationId) => {
+export const getGCSReportUploadStream = async (
+  fileName,
+  userId,
+  conversationId
+) => {
+  // Apply rate limit before creating the stream.
+  await handleRateLimit(uploadLimiter, userId);
+
   const contentType = getContentType(fileName);
   const gcsPath = `${userId}/${conversationId}/${fileName}`;
 
@@ -155,7 +257,7 @@ export const getGCSReportUploadStream = (fileName, userId, conversationId) => {
  * @param {string} userId - User ID for organizing files, creating a tenant-specific path.
  * @param {string} conversationId - Conversation ID for organizing files within a user's scope.
  * @returns {Promise<{url: string, gcsPath: string}>} - The signed URL for PUT requests and the GCS path.
- * @throws {Error} If URL generation fails.
+ * @throws {Error|RateLimitError} If URL generation fails or rate limit is exceeded.
  */
 export const generateV4UploadSignedUrl = async (
   fileName,
@@ -163,6 +265,9 @@ export const generateV4UploadSignedUrl = async (
   userId,
   conversationId
 ) => {
+  // Apply rate limit before generating the URL.
+  await handleRateLimit(signedUrlLimiter, userId);
+
   try {
     const gcsPath = `${userId}/${conversationId}/${fileName}`;
 
@@ -193,9 +298,16 @@ export const generateV4UploadSignedUrl = async (
  * before invoking this function.
  * @param {string} gcsPath - Path of the file in GCS (e.g., 'userId/conversationId/fileName.pdf').
  * @returns {Promise<string>} - The signed URL for GET requests.
- * @throws {Error} If URL generation fails.
+ * @throws {Error|RateLimitError} If URL generation fails, path is invalid, or rate limit is exceeded.
  */
 export const getGCSReportSignedUrl = async (gcsPath) => {
+  const userId = getUserIdFromGCSPath(gcsPath);
+  if (!userId) {
+    throw new Error('Invalid GCS path format; cannot determine user for rate limiting.');
+  }
+  // Apply rate limit before generating the URL.
+  await handleRateLimit(signedUrlLimiter, userId);
+
   try {
     const options = {
       version: 'v4',
@@ -221,8 +333,16 @@ export const getGCSReportSignedUrl = async (gcsPath) => {
  * Access control should be handled by the calling service.
  * @param {string} gcsPath - Path of the file in GCS to be deleted.
  * @returns {Promise<boolean>} - True if deletion was successful, false otherwise.
+ * @throws {Error|RateLimitError} If path is invalid or rate limit is exceeded.
  */
 export const deleteReportFromGCS = async (gcsPath) => {
+  const userId = getUserIdFromGCSPath(gcsPath);
+  if (!userId) {
+    throw new Error('Invalid GCS path format; cannot determine user for rate limiting.');
+  }
+  // Apply a stricter rate limit for destructive actions.
+  await handleRateLimit(deleteLimiter, userId);
+
   try {
     const bucket = storage.bucket(REPORT_BUCKET);
     const file = bucket.file(gcsPath);
@@ -239,8 +359,16 @@ export const deleteReportFromGCS = async (gcsPath) => {
  * Checks if a file exists in GCS at the specified path.
  * @param {string} gcsPath - Path of the file in GCS.
  * @returns {Promise<boolean>} - True if the file exists, false otherwise.
+ * @throws {Error|RateLimitError} If path is invalid or rate limit is exceeded.
  */
 export const checkReportExistsInGCS = async (gcsPath) => {
+  const userId = getUserIdFromGCSPath(gcsPath);
+  if (!userId) {
+    throw new Error('Invalid GCS path format; cannot determine user for rate limiting.');
+  }
+  // Apply rate limit for metadata operations.
+  await handleRateLimit(metadataLimiter, userId);
+
   try {
     const bucket = storage.bucket(REPORT_BUCKET);
     const file = bucket.file(gcsPath);
@@ -251,5 +379,3 @@ export const checkReportExistsInGCS = async (gcsPath) => {
     return false;
   }
 };
-
-/
