@@ -130,23 +130,41 @@ export const TRANSCRIPTION_MESSAGE_TYPES = {
 };
 
 /**
- * Defines rate limiting configurations for different types of transcription-related requests.
+ * Defines request-based rate limiting configurations for different types of transcription-related requests.
+ * This helps prevent API abuse from rapid, repeated requests.
  * @constant
  * @type {object}
- * @property {object} TRANSCRIPTION_REQUESTS - Rate limit for general transcription requests.
- * @property {number} TRANSCRIPTION_REQUESTS.requests - Number of allowed requests.
- * @property {number} TRANSCRIPTION_REQUESTS.window - Time window in minutes for the limit.
- * @property {object} STATS_REQUESTS - Rate limit for requests related to usage statistics.
- * @property {number} STATS_REQUESTS.requests - Number of allowed requests.
- * @property {number} STATS_REQUESTS.window - Time window in minutes for the limit.
- * @property {object} GUEST_REQUESTS - Rate limit specifically for guest user requests.
- * @property {number} GUEST_REQUESTS.requests - Number of allowed requests.
- * @property {number} GUEST_REQUESTS.window - Time window in minutes for the limit.
+ * @property {object} AUTHENTICATED_USER - Rate limit for general transcription requests by authenticated users.
+ * @property {number} AUTHENTICATED_USER.requests - Number of allowed requests.
+ * @property {number} AUTHENTICATED_USER.window - Time window in minutes for the limit.
+ * @property {object} GUEST_USER - Rate limit specifically for guest user requests.
+ * @property {number} GUEST_USER.requests - Number of allowed requests.
+ * @property {number} GUEST_USER.window - Time window in minutes for the limit.
+ * @property {object} STATS - Rate limit for requests related to usage statistics.
+ * @property {number} STATS.requests - Number of allowed requests.
+ * @property {number} STATS.window - Time window in minutes for the limit.
  */
 export const TRANSCRIPTION_RATE_LIMITS = {
-  TRANSCRIPTION_REQUESTS: { requests: 20, window: 15 }, // 20 per 15 minutes
-  STATS_REQUESTS: { requests: 10, window: 15 }, // 10 per 15 minutes
-  GUEST_REQUESTS: { requests: 5, window: 60 }, // Lower limit for guests
+  AUTHENTICATED_USER: { requests: 50, window: 10 }, // 50 requests per 10 minutes for logged-in users
+  GUEST_USER: { requests: 5, window: 60 }, // 5 requests per hour for guests
+  STATS: { requests: 20, window: 5 }, // 20 requests per 5 minutes for stats endpoints
+};
+
+/**
+ * Defines usage-based limiting configurations based on cumulative audio duration.
+ * This is a critical defense against cost-runaway abuse, where a user submits many long audio files.
+ * @constant
+ * @type {object}
+ * @property {object} AUTHENTICATED_USER - Usage limits for authenticated users.
+ * @property {number} AUTHENTICATED_USER.duration - Maximum cumulative audio duration in seconds.
+ * @property {number} AUTHENTICATED_USER.window - Time window in minutes for the limit.
+ * @property {object} GUEST_USER - Usage limits for guest users.
+ * @property {number} GUEST_USER.duration - Maximum cumulative audio duration in seconds.
+ * @property {number} GUEST_USER.window - Time window in minutes for the limit.
+ */
+export const TRANSCRIPTION_USAGE_LIMITS = {
+  AUTHENTICATED_USER: { duration: 2 * 60 * 60, window: 60 }, // 2 hours of audio processing per hour
+  GUEST_USER: { duration: 15 * 60, window: 60 }, // 15 minutes of audio processing per hour
 };
 
 /**
