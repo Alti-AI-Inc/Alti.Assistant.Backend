@@ -18,6 +18,9 @@ import PlatformConfig from '../platform/platformConfig.model.js';
  * @returns {Promise<{totalTenants: number, systemHealth: string}>} An object containing platform-wide statistics.
  */
 const getGlobalStatistics = async () => {
+  // OPTIMIZATION: countDocuments is generally efficient. For extremely large collections,
+  // estimatedDocumentCount() can be faster as it uses collection metadata, but it's less precise.
+  // countDocuments is appropriate here for accuracy.
   const totalTenants = await Tenant.countDocuments();
   return {
     totalTenants,
@@ -39,6 +42,12 @@ const getGlobalStatistics = async () => {
  * @returns {Promise<Array<Tenant>>} A promise that resolves to an array of tenant documents (as plain objects).
  */
 const getAllTenants = async (options = {}) => {
+  // OPTIMIZATION: To improve query performance for filtering and sorting,
+  // ensure that the 'Tenant' schema has indexes on commonly queried fields.
+  // For this function, consider adding indexes for 'status' and any common 'sortBy' fields like 'createdAt'.
+  // Example in tenant.model.js:
+  // TenantSchema.index({ status: 1 });
+  // TenantSchema.index({ createdAt: -1 });
   const filter = {};
   if (options.status) {
     filter.status = options.status;
@@ -50,6 +59,8 @@ const getAllTenants = async (options = {}) => {
   const page = parseInt(options.page, 10) || 1;
   const limit = parseInt(options.limit, 10) || 20;
   query.skip((page - 1) * limit).limit(limit);
+  // .lean() is correctly used here to return plain JavaScript objects instead of full Mongoose documents,
+  // which is faster and uses less memory.
   return query.lean();
 };
 
@@ -67,6 +78,7 @@ const getAllTenants = async (options = {}) => {
  * @returns {Promise<Tenant|null>} A promise that resolves to the updated tenant document (as a plain object), or null if not found.
  */
 const updateTenantStatus = async (tenantId, status, reason, adminId) => {
+  // findByIdAndUpdate queries on `_id` which is indexed by default. .lean() is correctly used. No issues here.
   return Tenant.findByIdAndUpdate(
     tenantId,
     { status, suspensionReason: reason, statusUpdatedBy: adminId },
@@ -87,6 +99,7 @@ const updateTenantStatus = async (tenantId, status, reason, adminId) => {
  * @returns {Promise<Tenant|null>} A promise that resolves to the updated tenant document (as a plain object), or null if not found.
  */
 const overrideTenantLimits = async (tenantId, newLimits, adminId) => {
+  // findByIdAndUpdate queries on `_id` which is indexed by default. .lean() is correctly used. No issues here.
   return Tenant.findByIdAndUpdate(
     tenantId,
     { limits: newLimits, limitsUpdatedBy: adminId },
@@ -104,10 +117,17 @@ const overrideTenantLimits = async (tenantId, newLimits, adminId) => {
  * @returns {Promise<PlatformConfig>} A promise that resolves to the system configuration document (as a plain object).
  */
 const getSystemConfiguration = async () => {
-  let config = await PlatformConfig.findOne({}).lean();
-  if (!config) {
-    config = await PlatformConfig.create({});
-  }
+  // OPTIMIZATION: Use findOneAndUpdate with upsert to atomically find or create the config.
+  // This prevents a race condition where two parallel requests might both find no config
+  // and then both attempt to create it, leading to an error.
+  // It also ensures a consistent return type (a plain object due to .lean()).
+  // The $setOnInsert operator with setDefaultsOnInsert ensures that we only set default values
+  // (as defined in the schema) when the document is first created.
+  const config = await PlatformConfig.findOneAndUpdate(
+    {},
+    { $setOnInsert: {} },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  ).lean();
   return config;
 };
 
@@ -123,6 +143,7 @@ const getSystemConfiguration = async () => {
  * @returns {Promise<PlatformConfig>} A promise that resolves to the updated system configuration document (as a plain object).
  */
 const updateSystemConfiguration = async (configUpdates, adminId) => {
+  // This is already an efficient, atomic operation using findOneAndUpdate with upsert. .lean() is correctly used.
   return PlatformConfig.findOneAndUpdate(
     {},
     { ...configUpdates, configUpdatedBy: adminId },
