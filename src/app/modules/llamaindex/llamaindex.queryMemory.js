@@ -1,9 +1,10 @@
 import { logger } from '../../../shared/logger.js';
 import QueryMemory from './llamaindex.queryMemory.model.js';
-// INTEGRATION FIX: Import necessary models/services for authorization and usage tracking.
-// In a real application, these would be imported from their respective modules.
-// import User from '../../user/user.model.js'; // Hypothetical user model for role checks
+// PLATFORM OWNER FIX: Import necessary models for platform-wide operations.
+import Workspace from '../../workspace/workspace.model.js'; // Hypothetical workspace model for status checks
+import User from '../../user/user.model.js'; // Hypothetical user model for role checks
 // import { usageService } from '../../usage/usage.service.js'; // Hypothetical usage tracking service
+// import { configService } from '../../../config/config.service.js'; // Hypothetical central config service
 
 // --- DATABASE & PERFORMANCE OPTIMIZATION ---
 // Mongoose Schema & Indexing Recommendation for the 'QueryMemory' model:
@@ -13,16 +14,26 @@ import QueryMemory from './llamaindex.queryMemory.model.js';
 // db.querymemories.createIndex({ workspaceId: 1, userId: 1, createdAt: -1 })
 //
 // WHY THIS INDEX IS CRITICAL:
-// 1. `recordQuery` & `getRelevantHistory`: Both functions now query by `workspaceId` and `userId`, then sort by `createdAt`.
+// 1. `recordQuery` & `getRelevantHistory`: Both functions query by `workspaceId` and `userId`, then sort by `createdAt`.
 //    This index allows MongoDB to efficiently find records for a specific user within a specific workspace
 //    and read them in the correct sorted order without scanning the collection or performing a costly in-memory sort.
-// 2. `getMemorySummary`: The aggregation's initial $match on `workspaceId` and `userId` is fully covered, making the
-//    pipeline highly efficient from the start.
+// 2. `getMemorySummary` & Platform Owner aggregations: The initial $match on `workspaceId` and/or `userId` is fully
+//    covered, making the pipelines highly efficient from the start.
 //
-// INTEGRATION FIX: The schema for 'QueryMemory' must include a `workspaceId` field to enforce tenant data isolation.
+// PLATFORM OWNER FIX: The schema for 'QueryMemory' must include a `workspaceId` field to enforce tenant data isolation.
 // Example Mongoose Schema addition:
 // workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true }
 // --- END OPTIMIZATION ---
+
+// PLATFORM OWNER FIX: Centralize configuration to allow for system-wide adjustments.
+// In a real application, these values would be loaded from a database or a config service.
+const MEMORY_CONFIG = {
+  DEDUPE_SIMILARITY_THRESHOLD: 0.85, // Jaccard similarity to consider a query a duplicate.
+  MAX_ANSWER_LENGTH: 2000,           // Max characters of an answer to store.
+  HISTORY_DEFAULT_LIMIT: 3,          // Default number of history items to return.
+  HISTORY_MIN_SIMILARITY: 0.2,       // Minimum Jaccard similarity for a history item to be relevant.
+  HISTORY_CANDIDATE_LIMIT: 100,      // Number of recent entries to scan for relevant history.
+};
 
 /**
  * A set of common English stopwords used to filter out noise words during tokenization.
@@ -44,9 +55,6 @@ const STOPWORDS = new Set([
 
 /**
  * Tokenizes a string for Jaccard similarity comparison.
- * Converts text to lowercase, removes non-alphanumeric characters, splits by whitespace,
- * and filters out short words (length <= 2) and common stopwords.
- *
  * @function tokenize
  * @param {string} text - The input text to tokenize.
  * @returns {string[]} An array of filtered tokens.
@@ -62,8 +70,6 @@ const tokenize = (text) => {
 
 /**
  * Computes the Jaccard similarity coefficient between two token arrays.
- * Jaccard similarity is calculated as the size of the intersection divided by the size of the union.
- *
  * @function jaccardSimilarity
  * @param {string[]} tokensA - The first array of tokens.
  * @param {string[]} tokensB - The second array of tokens.
@@ -83,13 +89,11 @@ const jaccardSimilarity = (tokensA, tokensB) => {
 
 /**
  * Records a successful query-answer pair into cross-session memory.
- * Deduplicates queries by checking Jaccard similarity against recent entries.
- * Strictly scopes records by `workspaceId` and `userId` to ensure multi-tenant data isolation.
- * Checks usage limits before recording and propagates usage counts upwards.
+ * Checks for tenant suspension, usage limits, and deduplicates queries.
  *
  * @async
  * @function recordQuery
- * @param {{userId: string, workspaceId: string, role: string}} authContext - The authenticated user's context, providing ID, workspace, and role for authorization and scoping.
+ * @param {{userId: string, workspaceId: string, role: string}} authContext - The authenticated user's context.
  * @param {string} query - The user's query.
  * @param {string} answer - The generated answer.
  * @param {string} [engine='vector'] - The engine that produced the answer.
@@ -97,7 +101,6 @@ const jaccardSimilarity = (tokensA, tokensB) => {
  * @returns {Promise<void>} Resolves when the query is recorded or skipped.
  */
 const recordQuery = async (authContext, query, answer, engine = 'vector', confidence = 0.0) => {
-  // INTEGRATION FIX: Validate authorization context to ensure all operations are properly scoped.
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
     logger.error({
         message: 'QueryMemory.recordQuery called with invalid authContext. Skipping memory record.',
@@ -106,28 +109,31 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
     });
     return;
   }
-  const { userId, workspaceId } = authContext;
+  const { userId, workspaceId, role } = authContext;
 
   try {
-    // INTEGRATION FIX: Usage Limit Check. Before recording, check if the workspace/user is within their allowed limits.
-    // This call should be implemented in a dedicated usage/billing service.
-    // const canRecord = await usageService.canRecordMemory(workspaceId);
-    // if (!canRecord) {
-    //   logger.info({
-    //     message: 'Workspace has reached its query memory limit. Skipping record.',
-    //     component: 'QueryMemory',
-    //     details: { userId, workspaceId }
-    //   });
-    //   return; // Stop execution if limit is reached.
-    // }
+    // PLATFORM OWNER FIX: Check for tenant suspension before allowing writes.
+    // A Platform Owner might have a special role that bypasses this check for maintenance.
+    if (role !== 'platform_owner') {
+        const workspace = await Workspace.findById(workspaceId).select('status').lean();
+        if (workspace?.status === 'suspended') {
+            logger.warn({
+                message: 'Attempted to record query for a suspended workspace. Operation blocked.',
+                component: 'QueryMemory',
+                details: { userId, workspaceId }
+            });
+            return;
+        }
+    }
 
-    // Skip trivially short or failed answers
+    // INTEGRATION FIX: Usage Limit Check.
+    // const canRecord = await usageService.canRecordMemory(workspaceId, { bypass: role === 'platform_owner' });
+    // if (!canRecord) { ... }
+
     if (!answer || answer.length < 30) return;
 
     const queryTokens = tokenize(query);
 
-    // Deduplicate: don't record nearly identical queries (Jaccard > 0.85)
-    // INTEGRATION FIX: Query is now scoped by both userId and workspaceId for strict tenant isolation.
     const recentEntries = await QueryMemory.find({ userId, workspaceId })
       .sort({ createdAt: -1 })
       .limit(20)
@@ -136,7 +142,7 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
 
     for (const entry of recentEntries) {
       const similarity = jaccardSimilarity(queryTokens, entry.queryTokens || []);
-      if (similarity > 0.85) {
+      if (similarity > MEMORY_CONFIG.DEDUPE_SIMILARITY_THRESHOLD) {
         logger.debug({
           message: 'QueryMemory: skipping duplicate record',
           component: 'QueryMemory',
@@ -148,22 +154,16 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
 
     await QueryMemory.create({
       userId,
-      workspaceId, // INTEGRATION FIX: Persist workspaceId for tenant isolation.
+      workspaceId,
       query,
-      answer: answer.substring(0, 2000), // Cap stored answer at 2000 chars
+      answer: answer.substring(0, MEMORY_CONFIG.MAX_ANSWER_LENGTH),
       engine,
       queryTokens,
       confidence,
     });
 
-    // INTEGRATION FIX: Propagate Usage. After successfully recording, increment the usage counter for the workspace.
-    // This should be a non-blocking async call.
-    // usageService.incrementMemoryCount(workspaceId).catch(err => logger.error({
-    //   message: 'Failed to increment usage count for query memory',
-    //   component: 'QueryMemory',
-    //   error: { message: err.message, stack: err.stack },
-    //   details: { workspaceId }
-    // }));
+    // INTEGRATION FIX: Propagate Usage.
+    // usageService.incrementMemoryCount(workspaceId).catch(...)
 
     logger.debug({
       message: 'QueryMemory: recorded query',
@@ -181,42 +181,37 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
 };
 
 /**
- * Retrieves the top-N semantically relevant prior query-answer pairs for a new query.
- * Uses Jaccard similarity to rank and filter candidates from the user's history.
- * Strictly scopes queries by `workspaceId` and `userId` to ensure multi-tenant data isolation.
+ * Retrieves relevant prior query-answer pairs for a new query.
+ * Platform Owners can impersonate users for debugging by providing target IDs in authContext.
  *
  * @async
  * @function getRelevantHistory
- * @param {{userId: string, workspaceId: string}} authContext - The authenticated user's context for scoping the query.
+ * @param {{userId: string, workspaceId: string, role?: string, targetUserId?: string, targetWorkspaceId?: string}} authContext - User context. Platform Owners can use target* fields.
  * @param {string} currentQuery - The current user query to match against.
- * @param {number} [limit=3] - Maximum number of results to return.
- * @param {number} [minSimilarity=0.2] - Minimum Jaccard similarity threshold.
- * @returns {Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>} Ranked prior Q&A pairs.
+ * @param {number} [limit=MEMORY_CONFIG.HISTORY_DEFAULT_LIMIT] - Maximum number of results.
+ * @param {number} [minSimilarity=MEMORY_CONFIG.HISTORY_MIN_SIMILARITY] - Minimum similarity threshold.
+ * @returns {Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>} Ranked Q&A pairs.
  */
-const getRelevantHistory = async (authContext, currentQuery, limit = 3, minSimilarity = 0.2) => {
-  // INTEGRATION FIX: Validate authorization context.
+const getRelevantHistory = async (authContext, currentQuery, limit = MEMORY_CONFIG.HISTORY_DEFAULT_LIMIT, minSimilarity = MEMORY_CONFIG.HISTORY_MIN_SIMILARITY) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
-    logger.error({
-        message: 'QueryMemory.getRelevantHistory called with invalid authContext.',
-        component: 'QueryMemory',
-        details: { authContext }
-    });
+    logger.error({ message: 'QueryMemory.getRelevantHistory called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
     return [];
   }
-  const { userId, workspaceId } = authContext;
+
+  // PLATFORM OWNER FIX: Allow impersonation for debugging and support.
+  // If the requester is a platform_owner and provides target IDs, use them. Otherwise, use the requester's own IDs.
+  const isPlatformOwner = authContext.role === 'platform_owner';
+  const effectiveUserId = isPlatformOwner && authContext.targetUserId ? authContext.targetUserId : authContext.userId;
+  const effectiveWorkspaceId = isPlatformOwner && authContext.targetWorkspaceId ? authContext.targetWorkspaceId : authContext.workspaceId;
 
   try {
     const currentTokens = tokenize(currentQuery);
     if (currentTokens.length === 0) return [];
 
-    // INTEGRATION FIX: Query is now scoped by both userId and workspaceId for strict tenant isolation.
-    // --- PERFORMANCE OPTIMIZATION ---
-    // Added .select() to fetch only the fields required for the similarity calculation and response.
-    // This reduces the amount of data transferred from MongoDB to the application, improving query performance.
-    const candidates = await QueryMemory.find({ userId, workspaceId })
+    const candidates = await QueryMemory.find({ userId: effectiveUserId, workspaceId: effectiveWorkspaceId })
       .sort({ createdAt: -1 })
-      .limit(100)
-      .select('query answer engine createdAt queryTokens') // Fetch only necessary fields.
+      .limit(MEMORY_CONFIG.HISTORY_CANDIDATE_LIMIT)
+      .select('query answer engine createdAt queryTokens')
       .lean();
 
     if (candidates.length === 0) return [];
@@ -239,7 +234,7 @@ const getRelevantHistory = async (authContext, currentQuery, limit = 3, minSimil
       message: 'QueryMemory.getRelevantHistory failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
-      details: { userId, workspaceId },
+      details: { userId: effectiveUserId, workspaceId: effectiveWorkspaceId },
     });
     return [];
   }
@@ -247,30 +242,22 @@ const getRelevantHistory = async (authContext, currentQuery, limit = 3, minSimil
 
 /**
  * Builds a context injection block from relevant history entries.
- * Prepends prior Q&A pairs to the current query to provide the LLM with persistent memory context.
- * Strictly scopes history retrieval by `workspaceId` and `userId`.
  *
  * @async
  * @function buildMemoryEnrichedQuery
- * @param {{userId: string, workspaceId: string}} authContext - The authenticated user's context for scoping the query.
+ * @param {{userId: string, workspaceId: string, role?: string, targetUserId?: string, targetWorkspaceId?: string}} authContext - User context, passed to getRelevantHistory.
  * @param {string} currentQuery - The current user query.
- * @returns {Promise<string>} The enriched query with prior context prepended, or the original query if no relevant history is found.
+ * @returns {Promise<string>} The enriched query, or the original query if no history is found.
  */
 const buildMemoryEnrichedQuery = async (authContext, currentQuery) => {
-  // INTEGRATION FIX: Validate authorization context before proceeding.
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
-    logger.error({
-        message: 'QueryMemory.buildMemoryEnrichedQuery called with invalid authContext.',
-        component: 'QueryMemory',
-        details: { authContext }
-    });
-    return currentQuery; // Return original query on auth failure.
+    logger.error({ message: 'QueryMemory.buildMemoryEnrichedQuery called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
+    return currentQuery;
   }
-  const { userId, workspaceId } = authContext;
 
   try {
-    // INTEGRATION FIX: Pass the full authContext to the underlying history retrieval function.
-    const history = await getRelevantHistory(authContext, currentQuery, 3, 0.2);
+    // Pass the full authContext to allow for Platform Owner impersonation.
+    const history = await getRelevantHistory(authContext, currentQuery, MEMORY_CONFIG.HISTORY_DEFAULT_LIMIT, MEMORY_CONFIG.HISTORY_MIN_SIMILARITY);
 
     if (history.length === 0) return currentQuery;
 
@@ -291,7 +278,7 @@ ${currentQuery}`;
     logger.info({
       message: 'QueryMemory: enriched query with prior memory entries',
       component: 'QueryMemory',
-      details: { userId, workspaceId, historyCount: history.length },
+      details: { userId: authContext.userId, workspaceId: authContext.workspaceId, historyCount: history.length },
     });
     return enriched;
   } catch (err) {
@@ -299,87 +286,62 @@ ${currentQuery}`;
       message: 'QueryMemory.buildMemoryEnrichedQuery failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
-      details: { userId, workspaceId },
+      details: { userId: authContext.userId, workspaceId: authContext.workspaceId },
     });
     return currentQuery;
   }
 };
 
 /**
- * Retrieves a summary of stored memory for a user, useful for debugging and analytics.
- * Enforces role-based access control: users can only see their own summary, while admins/managers
- * can view summaries for any user within their workspace.
+ * Retrieves a summary of stored memory. Enforces role-based access.
+ * Platform Owners can retrieve summaries for any user in any workspace.
  *
  * @async
  * @function getMemorySummary
- * @param {{userId: string, workspaceId: string, role: string}} authContext - The authenticated user's context for authorization.
- * @param {string} [targetUserId] - The ID of the user whose summary is being requested. Defaults to the authenticated user.
- * @returns {Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>} Summary object.
+ * @param {{userId: string, workspaceId: string, role: string}} authContext - The authenticated user's context.
+ * @param {string} [targetUserId] - The ID of the user whose summary is requested.
+ * @param {string} [targetWorkspaceId] - The ID of the workspace to scope the summary to. (For Platform Owners)
+ * @returns {Promise<Object>} Summary object.
  */
-const getMemorySummary = async (authContext, targetUserId) => {
-  // INTEGRATION FIX: Comprehensive authorization and scoping logic based on roles.
+const getMemorySummary = async (authContext, targetUserId, targetWorkspaceId) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId || !authContext.role) {
     logger.error({ message: 'getMemorySummary called with invalid authContext', component: 'QueryMemory' });
     return { success: false, error: 'Authorization context is missing.' };
   }
 
-  const effectiveUserId = targetUserId || authContext.userId;
-  const { workspaceId, role, userId: requesterId } = authContext;
+  const { role, userId: requesterId, workspaceId: requesterWorkspaceId } = authContext;
+  const isPlatformOwner = role === 'platform_owner';
 
-  // A regular 'user' can only access their own memory summary.
-  if (role === 'user' && requesterId !== effectiveUserId) {
-    logger.warn({
-      message: 'Permission denied for getMemorySummary',
-      component: 'QueryMemory',
-      details: { requesterId, targetId: effectiveUserId, role, reason: 'User role cannot access others data' },
-    });
-    return { success: false, error: 'Permission denied. You can only view your own memory summary.' };
-  }
+  let effectiveUserId = targetUserId || requesterId;
+  let effectiveWorkspaceId = isPlatformOwner ? (targetWorkspaceId || requesterWorkspaceId) : requesterWorkspaceId;
 
-  // An 'admin' or 'manager' can view summaries for other users, but we must verify the target user is in their workspace.
-  if ((role === 'admin' || role === 'manager') && requesterId !== effectiveUserId) {
-    // In a real app, this check prevents an admin from one workspace from viewing data in another.
-    // const targetUser = await User.findOne({ _id: effectiveUserId, workspaceId: workspaceId }).lean();
-    // if (!targetUser) {
-    //   logger.warn({
-    //     message: 'Permission denied for getMemorySummary',
-    //     component: 'QueryMemory',
-    //     details: { requesterId, targetId: effectiveUserId, workspaceId, role, reason: 'Target user not in workspace' },
-    //   });
-    //   return { success: false, error: `Permission denied or user with ID ${effectiveUserId} not found in your workspace.` };
-    // }
-  } else if (requesterId !== effectiveUserId) {
-      // Deny any other roles trying to access other users' data.
-      logger.warn({
-        message: 'Permission denied for getMemorySummary',
-        component: 'QueryMemory',
-        details: { requesterId, targetId: effectiveUserId, role, reason: 'Role does not have permission' },
-      });
-      return { success: false, error: 'Permission denied.' };
+  // --- Authorization Logic ---
+  if (!isPlatformOwner) {
+    // Regular users can only access their own summary.
+    if (role === 'user' && requesterId !== effectiveUserId) {
+      return { success: false, error: 'Permission denied. You can only view your own memory summary.' };
+    }
+    // Admins/Managers can access others in their own workspace.
+    if ((role === 'admin' || role === 'manager') && requesterId !== effectiveUserId) {
+      const targetUser = await User.findOne({ _id: effectiveUserId, workspaceId: requesterWorkspaceId }).lean();
+      if (!targetUser) {
+        return { success: false, error: `Permission denied or user with ID ${effectiveUserId} not found in your workspace.` };
+      }
+    }
+    // Ensure the query is always scoped to the requester's workspace for non-owners.
+    effectiveWorkspaceId = requesterWorkspaceId;
   }
+  // Platform Owners have full access, validated by the `isPlatformOwner` flag.
 
   try {
-    // INTEGRATION FIX: Aggregation is now scoped by both userId and workspaceId.
     const summaryResult = await QueryMemory.aggregate([
-      { $match: { userId: effectiveUserId, workspaceId: workspaceId } },
+      { $match: { userId: effectiveUserId, workspaceId: effectiveWorkspaceId } },
       {
         $facet: {
           totalEntries: [{ $count: 'count' }],
-          byEngine: [
-            { $group: { _id: '$engine', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $project: { _id: 0, engine: '$_id', count: '$count' } },
-          ],
-          oldestEntry: [
-            { $sort: { createdAt: 1 } },
-            { $limit: 1 },
-            { $project: { _id: 0, createdAt: 1, query: 1 } },
-          ],
-          newestEntry: [
-            { $sort: { createdAt: -1 } },
-            { $limit: 1 },
-            { $project: { _id: 0, createdAt: 1, query: 1 } },
-          ],
+          byEngine: [ { $group: { _id: '$engine', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $project: { _id: 0, engine: '$_id', count: '$count' } } ],
+          oldestEntry: [ { $sort: { createdAt: 1 } }, { $limit: 1 }, { $project: { _id: 0, createdAt: 1, query: 1 } } ],
+          newestEntry: [ { $sort: { createdAt: -1 } }, { $limit: 1 }, { $project: { _id: 0, createdAt: 1, query: 1 } } ],
         },
       },
     ]);
@@ -389,43 +351,126 @@ const getMemorySummary = async (authContext, targetUserId) => {
     }
 
     const data = summaryResult[0];
-    const total = data.totalEntries[0]?.count || 0;
-    const byEngine = data.byEngine || [];
-    const oldest = data.oldestEntry[0] || null;
-    const newest = data.newestEntry[0] || null;
-
     return {
       success: true,
-      totalEntries: total,
-      byEngine: byEngine,
-      oldestEntry: oldest ? { createdAt: oldest.createdAt, queryPreview: oldest.query.substring(0, 80) } : null,
-      newestEntry: newest ? { createdAt: newest.createdAt, queryPreview: newest.query.substring(0, 80) } : null,
+      totalEntries: data.totalEntries[0]?.count || 0,
+      byEngine: data.byEngine || [],
+      oldestEntry: data.oldestEntry[0] ? { createdAt: data.oldestEntry[0].createdAt, queryPreview: data.oldestEntry[0].query.substring(0, 80) } : null,
+      newestEntry: data.newestEntry[0] ? { createdAt: data.newestEntry[0].createdAt, queryPreview: data.newestEntry[0].query.substring(0, 80) } : null,
     };
   } catch (err) {
     logger.error({
       message: 'QueryMemory.getMemorySummary failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
-      details: { userId: effectiveUserId, workspaceId },
+      details: { userId: effectiveUserId, workspaceId: effectiveWorkspaceId },
     });
     return { success: false, error: err.message };
   }
 };
 
+
+// ===================================================================================
+// PLATFORM OWNER FEATURES
+// ===================================================================================
+
+/**
+ * [Platform Owner] Retrieves global statistics about query memory usage across all tenants.
+ * Access is restricted to users with the 'platform_owner' role.
+ *
+ * @async
+ * @function getGlobalMemoryStats
+ * @param {{role: string}} authContext - The authenticated user's context.
+ * @returns {Promise<Object>} An object containing global memory statistics.
+ */
+const getGlobalMemoryStats = async (authContext) => {
+    if (authContext?.role !== 'platform_owner') {
+        logger.warn({ message: 'Unauthorized attempt to access getGlobalMemoryStats', component: 'QueryMemory', details: { userId: authContext?.userId } });
+        return { success: false, error: 'Permission denied.' };
+    }
+
+    try {
+        const stats = await QueryMemory.aggregate([
+            {
+                $facet: {
+                    totalEntries: [{ $count: 'count' }],
+                    entriesByWorkspace: [
+                        { $group: { _id: '$workspaceId', count: { $sum: 1 } } },
+                        { $sort: { count: -1 } },
+                        { $limit: 50 }, // Top 50 workspaces by memory usage
+                        { $project: { _id: 0, workspaceId: '$_id', count: '$count' } }
+                    ],
+                    entriesByEngine: [
+                        { $group: { _id: '$engine', count: { $sum: 1 } } },
+                        { $sort: { count: -1 } },
+                        { $project: { _id: 0, engine: '$_id', count: '$count' } }
+                    ]
+                }
+            }
+        ]);
+
+        if (!stats || stats.length === 0) {
+            return { success: true, totalEntries: 0, topWorkspaces: [], byEngine: [] };
+        }
+
+        const data = stats[0];
+        return {
+            success: true,
+            totalEntries: data.totalEntries[0]?.count || 0,
+            topWorkspaces: data.entriesByWorkspace || [],
+            byEngine: data.entriesByEngine || [],
+        };
+    } catch (err) {
+        logger.error({ message: 'QueryMemory.getGlobalMemoryStats failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack } });
+        return { success: false, error: 'An internal error occurred while fetching global stats.' };
+    }
+};
+
+/**
+ * [Platform Owner] Deletes a specific query memory entry from the database.
+ * This is a moderation tool for removing incorrect, sensitive, or inappropriate content.
+ *
+ * @async
+ * @function deleteMemoryEntry
+ * @param {{role: string}} authContext - The authenticated user's context.
+ * @param {string} entryId - The MongoDB ObjectId of the query memory entry to delete.
+ * @returns {Promise<{success: boolean, deletedCount?: number, error?: string}>} Result of the deletion operation.
+ */
+const deleteMemoryEntry = async (authContext, entryId) => {
+    if (authContext?.role !== 'platform_owner') {
+        logger.warn({ message: 'Unauthorized attempt to access deleteMemoryEntry', component: 'QueryMemory', details: { userId: authContext?.userId, entryId } });
+        return { success: false, error: 'Permission denied.' };
+    }
+
+    if (!entryId) {
+        return { success: false, error: 'Entry ID is required.' };
+    }
+
+    try {
+        const result = await QueryMemory.deleteOne({ _id: entryId });
+        if (result.deletedCount === 0) {
+            logger.warn({ message: 'deleteMemoryEntry: Entry not found', component: 'QueryMemory', details: { entryId } });
+            return { success: false, error: 'Entry not found.' };
+        }
+        logger.info({ message: 'Platform Owner deleted a memory entry', component: 'QueryMemory', details: { adminId: authContext.userId, deletedEntryId: entryId } });
+        return { success: true, deletedCount: result.deletedCount };
+    } catch (err) {
+        logger.error({ message: 'QueryMemory.deleteMemoryEntry failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack }, details: { entryId } });
+        return { success: false, error: 'An internal error occurred during deletion.' };
+    }
+};
+
+
 /**
  * Service object containing methods for managing and querying cross-session query memory.
- * All operations are scoped by workspaceId and userId and enforce role-based access control.
- *
- * @type {{
- *   recordQuery: (authContext: {userId: string, workspaceId: string, role: string}, query: string, answer: string, engine?: string, confidence?: number) => Promise<void>,
- *   getRelevantHistory: (authContext: {userId: string, workspaceId: string}, currentQuery: string, limit?: number, minSimilarity?: number) => Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>,
- *   buildMemoryEnrichedQuery: (authContext: {userId: string, workspaceId: string}, currentQuery: string) => Promise<string>,
- *   getMemorySummary: (authContext: {userId: string, workspaceId: string, role: string}, targetUserId?: string) => Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>
- * }}
  */
 export const queryMemoryService = {
+  // Tenant-facing features
   recordQuery,
   getRelevantHistory,
   buildMemoryEnrichedQuery,
   getMemorySummary,
+  // Platform Owner features
+  getGlobalMemoryStats,
+  deleteMemoryEntry,
 };
