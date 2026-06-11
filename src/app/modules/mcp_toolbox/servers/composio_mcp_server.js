@@ -1,3 +1,14 @@
+/**
+ * @file Implements a self-hosted Model Context Protocol (MCP) server for Composio tools.
+ * This script acts as a standalone server that communicates over stdio using the JSON-RPC 2.0 protocol.
+ * It dynamically fetches specified toolkits from the Composio API, maps them into a standard
+ * MCP tool schema, and exposes them for execution. The server handles multi-tenancy, role-based
+ * access control, and usage limit enforcement.
+ *
+ * @module composio_mcp_server
+ * @requires readline
+ * @requires @composio/core
+ */
 import readline from 'readline';
 import { Composio } from '@composio/core';
 
@@ -6,18 +17,21 @@ import { Composio } from '@composio/core';
 // ==========================================
 
 /**
- * @constant {string} apiKey - The API key for authenticating with the Composio API.
+ * The API key for authenticating with the Composio API.
  * This environment variable (COMPOSIO_API_KEY) is required for the server to function.
+ * @constant {string}
  */
 const apiKey = process.env.COMPOSIO_API_KEY;
 /**
- * @constant {string} tenantId - The identifier for the tenant or user on whose behalf actions are executed.
+ * The identifier for the tenant or user on whose behalf actions are executed.
  * Defaults to 'default_user' if not provided via the TENANT_ID environment variable.
+ * @constant {string}
  */
 const tenantId = process.env.TENANT_ID || 'default_user';
 /**
- * @constant {string} toolkitsString - A comma-separated string of Composio toolkit slugs
+ * A comma-separated string of Composio toolkit slugs
  * to be loaded and exposed by this server. Fetched from the COMPOSIO_TOOLKITS environment variable.
+ * @constant {string}
  */
 const toolkitsString = process.env.COMPOSIO_TOOLKITS || '';
 
@@ -27,8 +41,9 @@ if (!apiKey) {
 }
 
 /**
- * @constant {string[]} toolkits - An array of cleaned and lowercased toolkit slugs,
+ * An array of cleaned and lowercased toolkit slugs,
  * parsed from the `toolkitsString`. Used to specify which toolkits to load from Composio.
+ * @constant {string[]}
  */
 const toolkits = toolkitsString
   .split(',')
@@ -36,8 +51,9 @@ const toolkits = toolkitsString
   .filter(Boolean);
 
 /**
- * @constant {Composio} composio - An instance of the Composio core client,
+ * An instance of the Composio core client,
  * initialized with the provided API key. Used to interact with the Composio API.
+ * @constant {Composio}
  */
 const composio = new Composio({ apiKey });
 
@@ -62,9 +78,9 @@ const composio = new Composio({ apiKey });
  */
 
 /**
- * @type {McpTool[]} cachedMcpTools - A cache of parsed dynamic tools,
- * mapped into the Model Context Protocol (MCP) tool schema format.
+ * A cache of parsed dynamic tools, mapped into the Model Context Protocol (MCP) tool schema format.
  * This array is populated by the `loadAndMapTools` function.
+ * @type {McpTool[]}
  */
 let cachedMcpTools = [];
 
@@ -76,12 +92,14 @@ let cachedMcpTools = [];
  * Asynchronously loads toolkits from the Composio API, maps them to the
  * Model Context Protocol (MCP) tool schema, and caches the results in `cachedMcpTools`.
  *
- * Handles a special 'test_mock_key' for offline testing, exposing static mock tools.
- * If no toolkits are specified, an empty list of tools is exposed.
+ * This function handles a special 'test_mock_key' for offline testing, exposing static mock tools.
+ * If no toolkits are specified in the environment variables, an empty list of tools is exposed.
  *
  * @async
+ * @function loadAndMapTools
  * @returns {Promise<void>} A promise that resolves when tools are loaded and mapped, or rejects on error.
- * The function updates `cachedMcpTools` directly.
+ * The function updates the global `cachedMcpTools` array directly as a side effect.
+ * @throws {Error} Throws an error if the Composio API call fails, which is then caught and handled by the JSON-RPC handler.
  */
 async function loadAndMapTools() {
   try {
@@ -163,10 +181,21 @@ async function loadAndMapTools() {
 
 /**
  * Validates the user context, roles, and tenant boundaries.
- * Ensures that limits are respected.
+ * This function is a critical security and multi-tenancy gate. It ensures that the user has a valid role,
+ * is operating within their designated tenant, and has not exceeded their usage limits.
  *
- * @param {object} context - The user context containing tenant, role, and limits.
- * @returns {object} The validated and normalized context.
+ * @function validateContextAndRoles
+ * @param {object} [context] - The user context object, typically provided in the `tools/call` request.
+ * @param {string} [context.tenantId] - The ID of the tenant the user belongs to.
+ * @param {string} [context.userId] - The unique ID of the user.
+ * @param {string} [context.role] - The user's role (e.g., 'super_admin', 'admin', 'manager', 'user').
+ * @param {string} [context.workspaceId] - The ID of the user's workspace.
+ * @param {string} [context.managerId] - The ID of the user's manager.
+ * @param {object} [context.limits] - Usage limits for the user.
+ * @param {number} [context.limits.maxCalls] - The maximum number of tool calls allowed.
+ * @param {number} [context.limits.currentCalls] - The current number of tool calls made.
+ * @returns {object} The validated and normalized context. If no context is provided, a default context is constructed from environment variables.
+ * @throws {Error} Throws an error if the role is invalid, a tenant boundary is violated, or usage limits are exceeded.
  */
 function validateContextAndRoles(context) {
   // If no context is provided, construct a default context based on environment variables
@@ -207,10 +236,14 @@ function validateContextAndRoles(context) {
 
 /**
  * Propagates usage details, limits, and notifications up to managers and administrators.
+ * This function logs structured information about each tool execution to stderr, which can be
+ * consumed by a parent process for monitoring, auditing, and alerting purposes.
  *
- * @param {object} context - The validated user context.
- * @param {string} toolName - The name of the executed tool.
- * @param {boolean} success - Whether the execution was successful.
+ * @function propagateUsageAndNotifications
+ * @param {object} context - The validated user context from `validateContextAndRoles`.
+ * @param {string} toolName - The name of the tool that was executed.
+ * @param {boolean} success - A flag indicating whether the tool execution was successful.
+ * @returns {void}
  */
 function propagateUsageAndNotifications(context, toolName, success) {
   const { userId, role, tenantId, managerId, workspaceId, limits } = context;
@@ -253,9 +286,10 @@ function propagateUsageAndNotifications(context, toolName, success) {
 // ==========================================
 
 /**
- * @constant {readline.Interface} rl - A readline interface instance configured to read from
+ * A readline interface instance configured to read from
  * `process.stdin` and write to `process.stdout`. It operates in non-terminal mode.
  * This interface is used to receive and send JSON-RPC 2.0 messages.
+ * @constant {readline.Interface}
  */
 const rl = readline.createInterface({
   input: process.stdin,
@@ -264,10 +298,13 @@ const rl = readline.createInterface({
 });
 
 /**
- * Helper function to send a JSON-RPC 2.0 error response.
- * @param {string|number|null} id - The ID of the request, or null for parse errors.
- * @param {number} code - The error code.
- * @param {string} message - The error message.
+ * Sends a formatted JSON-RPC 2.0 error response to `process.stdout`.
+ *
+ * @function sendErrorResponse
+ * @param {string|number|null} id - The ID from the original request. Should be `null` for parse errors.
+ * @param {number} code - A number that indicates the error type that occurred.
+ * @param {string} message - A string providing a short description of the error.
+ * @returns {void}
  */
 function sendErrorResponse(id, code, message) {
   const errorResponse = {
@@ -279,21 +316,25 @@ function sendErrorResponse(id, code, message) {
 }
 
 /**
- * Event listener for incoming lines from stdin.
- * This function parses each line as a JSON-RPC 2.0 request and dispatches it
+ * Event listener for the 'line' event on the readline interface. This is the main loop of the server.
+ * It parses each incoming line from `process.stdin` as a JSON-RPC 2.0 request and dispatches it
  * to the appropriate handler based on the `method` field.
  *
- * Supported methods:
- * - `initialize`: Performs a handshake, loads tools, and returns server capabilities.
- * - `tools/list`: Returns the list of dynamically mapped Composio tools.
- * - `tools/call`: Executes a specified Composio tool with provided arguments.
+ * @listens readline.Interface#line
  *
- * Errors during parsing or execution are reported to `process.stderr` and
- * sent back as JSON-RPC error responses.
+ * @description
+ * **Supported JSON-RPC Methods:**
+ * - `initialize`: Performs a handshake, loads tools from Composio, and returns server capabilities.
+ *   This must be the first call made by a client.
+ * - `tools/list`: Returns the list of dynamically mapped Composio tools that are available for execution.
+ * - `tools/call`: Executes a specified Composio tool with provided arguments. It performs security
+ *   checks using the provided context before execution.
  *
- * @async
+ * Errors during JSON parsing, method handling, or tool execution are reported to `process.stderr` and
+ * sent back to the client as JSON-RPC error responses.
+ *
  * @param {string} line - The raw string line read from `process.stdin`.
- * @returns {Promise<void>} A promise that resolves after processing the line and sending a response.
+ * @returns {Promise<void>} A promise that resolves after the line has been processed and a response (if required) has been sent.
  */
 rl.on('line', async (line) => {
   const trimmed = line.trim();
