@@ -1,3 +1,47 @@
+// --- GCP DATABASE RESILIENCY AUDIT ---
+// This file is a controller and correctly delegates database operations to a service layer (`TemporalCatalogService`).
+// The database connection itself should be established in the main application entry point (e.g., `app.js` or a dedicated `config/database.js` module).
+//
+// For optimal resiliency on Google Cloud Platform when connecting to a database like MongoDB (inferred from Mongoose recommendations),
+// ensure the connection logic includes the following Mongoose options. These settings are critical for stability
+// in environments with network proxies, such as the Cloud SQL Auth Proxy or VPC firewalls.
+//
+// const mongooseOptions = {
+//   // --- Connection Pooling ---
+//   // Adjust poolSize based on expected concurrent requests. A good starting point for a serverless
+//   // environment like Cloud Run is to align it with the max concurrency setting.
+//   poolSize: 50, // DEPRECATED: Use `maxPoolSize` instead.
+//   maxPoolSize: 50, // Maintain up to 50 socket connections.
+//   minPoolSize: 5,  // Maintain a minimum of 5 open sockets to handle sudden traffic bursts.
+//
+//   // --- Timeouts & Keep-Alive for GCP Networking ---
+//   // These settings prevent connections from being silently dropped by intermediate network devices (firewalls, NATs).
+//   // The Cloud SQL Auth Proxy, for instance, can time out idle connections.
+//   connectTimeoutMS: 10000, // Give up initial connection after 10 seconds.
+//   socketTimeoutMS: 45000,  // Close sockets if no activity for 45 seconds. This should be higher than the typical operation time.
+//   keepAlive: true,         // Enable TCP Keep-Alive on the socket.
+//   keepAliveInitialDelay: 30000, // Send first keep-alive probe after 30 seconds of inactivity.
+//
+//   // --- Reconnect & Server Selection Logic ---
+//   // The modern MongoDB Node.js driver (used by Mongoose) handles automatic reconnection by default.
+//   // These settings fine-tune its behavior for robustness.
+//   serverSelectionTimeoutMS: 5000, // Timeout for server selection. If it can't find a suitable server in 5s, it will error.
+//                                  // Crucial for fast-failing during deployments or network partitions.
+//   heartbeatFrequencyMS: 10000,    // Check server status every 10 seconds.
+// };
+//
+// // Example usage in your main application file (e.g., index.js or app.js):
+// // import mongoose from 'mongoose';
+// //
+// // mongoose.connect(process.env.DATABASE_URL, mongooseOptions)
+// //   .then(() => console.log('Database connected successfully with resiliency settings.'))
+// //   .catch(err => {
+// //     console.error('Initial database connection error:', err);
+// //     process.exit(1); // Exit if the initial connection fails.
+// //   });
+//
+// --- END AUDIT ---
+
 // File: temporal.controller.js
 // Scope Analysis for Admin Platform Agent AI:
 // This module manages the "Temporal Catalog," a feature likely accessible to admins or workspace owners.

@@ -24,6 +24,26 @@ import config from '../../../../../config/index.js';
 
 // #region Platform Owner / Super Admin Features
 
+/**
+ * @typedef {object} InvokerContext
+ * @property {string} userId - The unique identifier of the user initiating the action.
+ * @property {'platform_owner' | 'admin' | 'manager' | 'user'} role - The role of the user, used for permission checks.
+ */
+
+/**
+ * @typedef {object} TenantConfig
+ * @property {number} [maxDocSizeMb] - The maximum allowed document size in megabytes for this tenant.
+ * @property {number} [storageQuotaMb] - The total storage quota in megabytes for this tenant.
+ */
+
+/**
+ * @typedef {object} UserConfig
+ * @property {string} role - The role of the user within the tenant.
+ * @property {object} limits - User-specific resource limits.
+ * @property {number} [limits.storageQuotaMb] - User's portion of the tenant storage quota.
+ * @property {number} [limits.maxDocSizeMb] - User's specific file size limit.
+ */
+
 // Platform Owner Feature: Centralized Tenant Management Service (Mock)
 // In a real system, this would connect to a database or a dedicated microservice.
 // It provides tenant status (active/suspended) and configuration overrides.
@@ -48,24 +68,43 @@ const tenantManagementService = {
     ])]
   ]),
 
+  /**
+   * Retrieves the current status of a tenant.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {Promise<'active' | 'suspended' | 'unknown'>} The tenant's status.
+   */
   async getTenantStatus(tenantId) {
     const tenant = this._tenants.get(tenantId);
     return tenant ? tenant.status : 'unknown'; // Default to 'unknown' for non-existent tenants
   },
 
+  /**
+   * Retrieves the configuration for a specific tenant.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {Promise<TenantConfig>} The tenant's configuration object.
+   */
   async getTenantConfig(tenantId) {
     const tenant = this._tenants.get(tenantId);
     return tenant ? tenant.config : {};
   },
 
-  // HIERARCHY GAP FIX: Get user-specific configuration from the mock service.
+  /**
+   * Retrieves the configuration for a specific user within a tenant.
+   * @param {string} tenantId - The ID of the tenant.
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<UserConfig|null>} The user's configuration or null if not found.
+   */
   async getUserConfig(tenantId, userId) {
     const tenantUsers = this._users.get(tenantId);
     if (!tenantUsers) return null;
     return tenantUsers.get(userId) || null;
   },
 
-  // Platform Owner Feature: Allows a super admin to suspend a tenant.
+  /**
+   * Suspends a tenant. This is a Platform Owner privileged action.
+   * @param {string} tenantId - The ID of the tenant to suspend.
+   * @returns {Promise<boolean>} True if the tenant was successfully suspended, false otherwise.
+   */
   async suspendTenant(tenantId) {
     if (this._tenants.has(tenantId)) {
       this._tenants.get(tenantId).status = 'suspended';
@@ -75,7 +114,11 @@ const tenantManagementService = {
     return false;
   },
 
-  // Platform Owner Feature: Allows a super admin to unsuspend a tenant.
+  /**
+   * Unsuspends a tenant, making it active again. This is a Platform Owner privileged action.
+   * @param {string} tenantId - The ID of the tenant to unsuspend.
+   * @returns {Promise<boolean>} True if the tenant was successfully unsuspended, false otherwise.
+   */
   async unsuspendTenant(tenantId) {
     if (this._tenants.has(tenantId)) {
       this._tenants.get(tenantId).status = 'active';
@@ -86,9 +129,14 @@ const tenantManagementService = {
   }
 };
 
-// HIERARCHY GAP FIX: Enhanced Hierarchical Configuration Resolver
-// Merges platform-wide defaults, tenant-specific settings, and user-specific overrides.
-// This ensures that limits are applied based on the invoker's role and identity.
+/**
+ * Resolves the effective configuration by merging settings from platform defaults,
+ * tenant-specific configurations, and user-specific overrides. This creates a
+ * hierarchical configuration system.
+ * @param {string} tenantId - The ID of the tenant for which to resolve the config.
+ * @param {InvokerContext} invoker - The context of the user performing the action.
+ * @returns {Promise<{maxDocSizeMb: number, storageQuotaMb: number}>} The resolved configuration object.
+ */
 async function getResolvedConfig(tenantId, invoker) {
   const platformDefaults = {
     maxDocSizeMb: config.platform?.limits?.maxDocSizeMb ?? 10,
@@ -128,8 +176,10 @@ async function getResolvedConfig(tenantId, invoker) {
 
 /**
  * Platform Owner Feature: Centralized and secure tenant data path resolution.
- * Ensures strict data siloing and prevents path traversal attacks.
+ * Ensures strict data siloing by creating a sanitized, tenant-specific directory path.
+ * This prevents path traversal attacks and enforces multi-tenancy at the file system level.
  * @param {string} tenantId - The unique identifier for the tenant.
+ * @throws {Error} If tenantId is missing, invalid, or a path traversal is detected.
  * @returns {string} The resolved, secure path to the tenant's storage directory.
  */
 function getSafePersistDir(tenantId) {
@@ -154,8 +204,18 @@ function getSafePersistDir(tenantId) {
 // #endregion
 
 /**
- * Resilient Temporal Activity validating and loading document buffer.
- * Enforces tenant status and file size limits based on user and tenant hierarchy.
+ * A Temporal Activity to validate and load a document from a file path.
+ * It enforces multi-tenant policies such as tenant status (active/suspended) and
+ * hierarchical file size limits (platform -> tenant -> user).
+ *
+ * @permission A `platform_owner` role in the `invoker` context can override tenant suspension and file size limits.
+ * @param {string} filePath - The local path to the uploaded file to be processed.
+ * @param {string} originalName - The original filename of the document.
+ * @param {string} docId - A unique identifier for the document.
+ * @param {string} tenantId - The identifier of the tenant owning this document.
+ * @param {InvokerContext} invoker - The context of the user initiating the ingestion.
+ * @throws {Error} If the tenant is suspended, not recognized, or if the file exceeds the configured size limit for the invoker.
+ * @returns {Promise<{success: boolean, sizeBytes: number, filePath: string, originalName: string}>} An object indicating success and returning key file metadata.
  */
 export async function downloadAndLoadFileActivity(filePath, originalName, docId, tenantId, invoker) {
   const activityName = 'downloadAndLoadFileActivity';
@@ -205,9 +265,16 @@ export async function downloadAndLoadFileActivity(filePath, originalName, docId,
 }
 
 /**
- * Resilient Temporal Activity running high-fidelity HTML-to-Markdown conversions for technical structured data
- * BUG FIX: This activity now returns the parsed documents directly. The calling workflow must pass this
- * result to the next activity in the chain.
+ * A Temporal Activity that parses a file into structured `Document` objects.
+ * It specializes in high-fidelity conversion of HTML to Markdown to preserve semantic structure.
+ *
+ * @param {string} filePath - The local path to the file to be parsed.
+ * @param {string} originalName - The original filename of the document.
+ * @param {string} docId - A unique identifier for the document.
+ * @param {string} tenantId - The identifier of the tenant owning this document.
+ * @param {InvokerContext} invoker - The context of the user initiating the ingestion.
+ * @throws {Error} If parsing fails or produces no documents.
+ * @returns {Promise<{success: boolean, documents: import('llamaindex').Document[], documentCount: number, isMarkdown: boolean}>} An object containing the parsed documents.
  */
 export async function parseToMarkdownActivity(filePath, originalName, docId, tenantId, invoker) {
   const activityName = 'parseToMarkdownActivity';
@@ -232,9 +299,17 @@ export async function parseToMarkdownActivity(filePath, originalName, docId, ten
 }
 
 /**
- * Resilient Temporal Activity chunking document, enriching it with Gemini metadata, and generating text-embedding-004 vectors
- * BUG FIX: This activity now accepts 'documents' as an argument and returns the generated 'nodes'.
- * The calling workflow must be updated to pass the arguments and handle the return value.
+ * A Temporal Activity that processes `Document` objects through an ingestion pipeline.
+ * The pipeline chunks the documents, enriches them with LLM-extracted metadata (titles, keywords),
+ * and generates vector embeddings for each chunk using Google's text-embedding-004 model.
+ *
+ * @param {import('llamaindex').Document[]} documents - An array of `Document` objects from the previous parsing activity.
+ * @param {string} originalName - The original filename of the document.
+ * @param {string} docId - A unique identifier for the document.
+ * @param {string} tenantId - The identifier of the tenant owning this document.
+ * @param {InvokerContext} invoker - The context of the user initiating the ingestion.
+ * @throws {Error} If the input documents are missing or if the ingestion pipeline fails.
+ * @returns {Promise<{success: boolean, nodes: import('llamaindex').BaseNode[], nodeCount: number}>} An object containing the generated vector nodes.
  */
 export async function chunkAndEmbedActivity(documents, originalName, docId, tenantId, invoker) {
   const activityName = 'chunkAndEmbedActivity';
@@ -289,9 +364,18 @@ export async function chunkAndEmbedActivity(documents, originalName, docId, tena
 }
 
 /**
- * Resilient Temporal Activity committing vector nodes and aligning local document manifest registers.
- * Enforces tenant storage quotas based on user and tenant hierarchy.
- * BUG FIX: This activity now accepts 'nodes' as an argument.
+ * A Temporal Activity that commits generated vector nodes to a tenant-specific vector store.
+ * It performs an atomic update of the vector store file and the document manifest.
+ * This activity also enforces the tenant's storage quota.
+ *
+ * @permission A `platform_owner` role in the `invoker` context can override the storage quota limit.
+ * @param {import('llamaindex').BaseNode[]} nodes - An array of vector nodes from the previous embedding activity.
+ * @param {string} originalName - The original filename of the document.
+ * @param {string} docId - A unique identifier for the document.
+ * @param {string} tenantId - The identifier of the tenant owning this document.
+ * @param {InvokerContext} invoker - The context of the user initiating the ingestion.
+ * @throws {Error} If input nodes are missing, if the commit exceeds the storage quota, or if file operations fail.
+ * @returns {Promise<{success: boolean, vectorStorePath: string, docId: string}>} An object indicating success and providing the path to the updated vector store.
  */
 export async function commitToVectorStoreActivity(nodes, originalName, docId, tenantId, invoker) {
   const activityName = 'commitToVectorStoreActivity';
@@ -412,7 +496,15 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
 }
 
 /**
- * Saga Compensating Rollback Activity to safely purge corrupt vector segments and revert state registers
+ * A Temporal Saga/Compensating Activity designed to roll back a failed ingestion.
+ * It safely purges vector segments associated with the failed document from the tenant's
+ * vector store and updates the document manifest to reflect the failed state.
+ *
+ * @param {string} originalName - The original filename of the document to be cleaned up.
+ * @param {string} docId - The unique identifier of the document to be cleaned up.
+ * @param {string} tenantId - The identifier of the tenant owning this document.
+ * @param {InvokerContext} invoker - The context of the user whose ingestion is being reverted.
+ * @returns {Promise<{success: boolean, docId: string, reverted: boolean}>} An object indicating the result of the cleanup operation.
  */
 export async function cleanupFailedIngestionActivity(originalName, docId, tenantId, invoker) {
   const activityName = 'cleanupFailedIngestionActivity';

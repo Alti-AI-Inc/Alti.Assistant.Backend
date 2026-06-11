@@ -28,8 +28,14 @@ const messageSchema = z.object({
     .string({
       required_error: 'Message content is required',
     })
-    .min(1, 'Message content cannot be empty'),
-  metadata: z.record(z.any()).optional(),
+    .min(1, 'Message content cannot be empty')
+    // SECURITY PATCH: Add a maximum length to prevent DoS attacks with overly large payloads.
+    .max(50000, 'Message content must be less than 50,000 characters'),
+  // SECURITY PATCH: Restrict metadata values to primitives to prevent NoSQL injection vulnerabilities
+  // where operators (e.g., { "$ne": null }) could be passed in the `any()` type.
+  metadata: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
 });
 
 /**
@@ -67,12 +73,16 @@ const createConversationSchema = z.object({
     initialMessage: messageSchema.optional(),
     metadata: z
       .object({
-        model: z.string().optional(),
+        // SECURITY PATCH: Add max length to prevent overly long input.
+        model: z.string().max(100, 'Model name must be less than 100 characters').optional(),
         temperature: z.number().min(0).max(2).optional(),
         maxTokens: z.number().positive().optional(),
-        tags: z.array(z.string()).optional(),
-        category: z.string().optional(),
-        customData: z.record(z.any()).optional(),
+        // SECURITY PATCH: Add constraints to tags to prevent overly long values or too many tags.
+        tags: z.array(z.string().min(1).max(50, 'Tag must be 50 characters or less')).max(20, 'A maximum of 20 tags are allowed').optional(),
+        // SECURITY PATCH: Add max length to category string.
+        category: z.string().max(100, 'Category must be 100 characters or less').optional(),
+        // SECURITY PATCH: Restrict customData values to primitives to prevent NoSQL injection.
+        customData: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
       })
       .optional(),
     is_deep_search: z.boolean().optional(),
@@ -91,9 +101,11 @@ const createConversationSchema = z.object({
 const addMessageSchema = z.object({
   body: messageSchema,
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID to prevent injection attacks
+    // and ensure a consistent, expected format.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -120,9 +132,10 @@ const updateTitleSchema = z.object({
       .max(255, 'Title must be less than 255 characters'),
   }),
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -148,18 +161,23 @@ const updateTitleSchema = z.object({
 const updateMetadataSchema = z.object({
   body: z.object({
     metadata: z.object({
-      model: z.string().optional(),
+      // SECURITY PATCH: Add max length to prevent overly long input.
+      model: z.string().max(100, 'Model name must be less than 100 characters').optional(),
       temperature: z.number().min(0).max(2).optional(),
       maxTokens: z.number().positive().optional(),
-      tags: z.array(z.string()).optional(),
-      category: z.string().optional(),
-      customData: z.record(z.any()).optional(),
+      // SECURITY PATCH: Add constraints to tags to prevent overly long values or too many tags.
+      tags: z.array(z.string().min(1).max(50, 'Tag must be 50 characters or less')).max(20, 'A maximum of 20 tags are allowed').optional(),
+      // SECURITY PATCH: Add max length to category string.
+      category: z.string().max(100, 'Category must be 100 characters or less').optional(),
+      // SECURITY PATCH: Restrict customData values to primitives to prevent NoSQL injection.
+      customData: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
     }),
   }),
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -174,9 +192,10 @@ const updateMetadataSchema = z.object({
  */
 const conversationParamsSchema = z.object({
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -203,13 +222,19 @@ const getUserConversationsSchema = z.object({
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().optional(),
     status: z.enum(['active', 'archived', 'deleted']).optional(),
-    sortBy: z.string().optional(),
+    // SECURITY PATCH: Whitelist allowed `sortBy` fields to prevent NoSQL/SQL injection
+    // where an attacker could control the sort key in a database query.
+    sortBy: z.enum(['createdAt', 'updatedAt', 'title'], {
+      invalid_type_error: 'Invalid sort field. Must be one of: createdAt, updatedAt, title',
+    }).optional(),
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
     sortOrder: z
       .coerce.number().int().refine(val => val === 1 || val === -1, 'Sort order must be 1 or -1')
       .optional(),
-    search: z.string().optional(),
-    category: z.string().optional(),
+    // SECURITY PATCH: Add a maximum length to search queries to prevent resource exhaustion.
+    search: z.string().max(200, 'Search query must be 200 characters or less').optional(),
+    // SECURITY PATCH: Add a maximum length to category filter.
+    category: z.string().max(100, 'Category must be 100 characters or less').optional(),
     // BUG FIX: Coerce string query parameters to booleans for proper type handling downstream.
     is_deep_search: z.coerce.boolean().optional(),
   }),
@@ -233,9 +258,10 @@ const getUserConversationsSchema = z.object({
  */
 const getConversationMessagesSchema = z.object({
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
@@ -263,10 +289,13 @@ const searchConversationsSchema = z.object({
       .string({
         required_error: 'Search term is required',
       })
-      .min(1, 'Search term cannot be empty'),
+      .min(1, 'Search term cannot be empty')
+      // SECURITY PATCH: Add a maximum length to search queries to prevent resource exhaustion.
+      .max(200, 'Search term must be 200 characters or less'),
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
     limit: z.coerce.number().int().positive().optional(),
-    category: z.string().optional(),
+    // SECURITY PATCH: Add a maximum length to category filter.
+    category: z.string().max(100, 'Category must be 100 characters or less').optional(),
   }),
 });
 
@@ -283,11 +312,14 @@ const bulkOperationSchema = z.object({
   body: z.object({
     conversationIds: z
       .array(
+        // SECURITY PATCH: Validate each ID as a UUID.
         z.string({
           required_error: 'Conversation ID is required',
-        })
+        }).uuid('Invalid conversation ID format')
       )
-      .min(1, 'At least one conversation ID is required'),
+      .min(1, 'At least one conversation ID is required')
+      // SECURITY PATCH: Limit the number of IDs in a bulk operation to prevent DoS attacks.
+      .max(100, 'Cannot process more than 100 conversations at once'),
   }),
 });
 
@@ -306,14 +338,17 @@ const bulkOperationSchema = z.object({
  */
 const addTagsSchema = z.object({
   body: z.object({
+    // SECURITY PATCH: Add constraints to tags to prevent overly long values or too many tags.
     tags: z
-      .array(z.string().min(1, 'Tag cannot be empty'))
-      .min(1, 'At least one tag is required'),
+      .array(z.string().min(1, 'Tag cannot be empty').max(50, 'Tag must be 50 characters or less'))
+      .min(1, 'At least one tag is required')
+      .max(20, 'A maximum of 20 tags can be added at once'),
   }),
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -335,14 +370,18 @@ const addTagsSchema = z.object({
  */
 const getCategoryConversationsSchema = z.object({
   params: z.object({
+    // SECURITY PATCH: Add length constraints to category parameter.
     category: z.string({
       required_error: 'Category is required',
-    }),
+    }).min(1).max(100, 'Category must be 100 characters or less'),
   }),
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
     limit: z.coerce.number().int().positive().optional(),
-    sortBy: z.string().optional(),
+    // SECURITY PATCH: Whitelist allowed `sortBy` fields to prevent injection.
+    sortBy: z.enum(['createdAt', 'updatedAt', 'title'], {
+      invalid_type_error: 'Invalid sort field. Must be one of: createdAt, updatedAt, title',
+    }).optional(),
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
     sortOrder: z
       .coerce.number().int().refine(val => val === 1 || val === -1, 'Sort order must be 1 or -1')
@@ -395,9 +434,10 @@ const shareChatSchema = z.object({
     allowComments: z.boolean().default(false),
   }),
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -429,9 +469,10 @@ const updateShareSettingsSchema = z.object({
       message: 'At least one field must be provided',
     }),
   params: z.object({
+    // SECURITY PATCH: Validate conversationId as a UUID.
     conversationId: z.string({
       required_error: 'Conversation ID is required',
-    }),
+    }).uuid('Invalid conversation ID format'),
   }),
 });
 
@@ -446,9 +487,10 @@ const updateShareSettingsSchema = z.object({
  */
 const getSharedChatSchema = z.object({
   params: z.object({
+    // SECURITY PATCH: Validate shareId as a UUID.
     shareId: z.string({
       required_error: 'Share ID is required',
-    }),
+    }).uuid('Invalid share ID format'),
   }),
 });
 
