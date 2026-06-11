@@ -40,7 +40,7 @@ const WorkflowExecutionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workflow',
       required: true,
-      index: true,
+      index: true, // Index retained for admin-level queries across all workspaces for a specific workflow.
     },
     // HIERARCHY & SECURITY FIX: Added workspaceId to enforce tenant boundaries.
     // Every execution must be associated with a workspace to prevent data leakage
@@ -49,13 +49,15 @@ const WorkflowExecutionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workspace',
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index. This field is the leading key
+      // in several compound indexes below, which are sufficient for efficient querying.
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
+      // OPTIMIZATION: Removed single-field index to enforce secure, tenant-scoped queries.
+      // The compound index { workspaceId: 1, userId: 1, ... } should be used instead.
     },
     executionId: {
       type: String,
@@ -66,7 +68,8 @@ const WorkflowExecutionSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused', 'awaiting_approval'],
       default: 'pending',
-      index: true,
+      // OPTIMIZATION: Removed redundant single-field index. This field is already part of
+      // multiple compound indexes which cover all common query patterns efficiently.
     },
     currentStepIndex: {
       type: Number,
