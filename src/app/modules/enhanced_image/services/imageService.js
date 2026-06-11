@@ -53,6 +53,7 @@ export class ImageGenerationService {
    * @param {object} [context.services] - Optional injected services for limits, notifications, etc.
    * @param {object} [context.services.limitChecker] - Service to check, consume, and refund usage quotas.
    * @param {object} [context.services.notificationService] - Service to send notifications.
+   * @param {object} [context.services.rateLimiter] - Service to enforce rate limits against API abuse (e.g., using Redis).
    * @returns {Promise<object>} A promise that resolves to an object containing details about the generated image.
    * @returns {string} return.filename - The unique, final filename of the generated image.
    * @returns {string} return.url - The public URL where the generated image can be accessed.
@@ -63,6 +64,7 @@ export class ImageGenerationService {
    */
   async generateImage(prompt, filename, context = {}) {
     const { user, tenantId, services = {} } = context;
+    const { limitChecker, notificationService, rateLimiter } = services;
 
     // 1. Input and Context Validation
     if (!tenantId || !user || !user.id || !user.role) {
@@ -80,7 +82,29 @@ export class ImageGenerationService {
       throw new Error(`Access Denied: Invalid role '${user.role}'.`);
     }
 
-    // 2. Usage Limits Check
+    // 2. Rate Limiting
+    // Apply rate limits to prevent abuse and DDOS attacks before consuming long-term quotas.
+    // This is a fast, in-memory check (e.g., using Redis) to block rapid, repeated requests from a single user or tenant.
+    if (rateLimiter) {
+      // Define different limits based on user role to provide more flexible access.
+      const limits = {
+        user: { points: 5, duration: 60 }, // 5 images per minute
+        manager: { points: 10, duration: 60 }, // 10 images per minute
+        admin: { points: 20, duration: 60 }, // 20 images per minute
+        super_admin: { points: 50, duration: 60 }, // 50 images per minute
+      };
+      const userLimit = limits[user.role] || limits.user;
+
+      // Per-User Rate Limit: Prevents a single user from spamming the service.
+      // The key is specific to this function and user to avoid collisions.
+      await rateLimiter.consume(`imagegen_user_${user.id}`, 1, userLimit.points, userLimit.duration);
+
+      // Per-Tenant Rate Limit: Prevents a single organization from overwhelming the service,
+      // which could be caused by a misconfigured script or multiple users.
+      await rateLimiter.consume(`imagegen_tenant_${tenantId}`, 1, 100, 60); // Global limit of 100 images per minute for the whole tenant.
+    }
+
+    // 3. Usage Limits Check
     // Check and consume the quota before proceeding with the expensive generation task.
     // The 'consumed' flag helps us know whether to refund the quota if an error occurs later.
     let consumed = false;
@@ -93,7 +117,7 @@ export class ImageGenerationService {
     }
 
     try {
-      // 3. Secure File Path and Data Isolation
+      // 4. Secure File Path and Data Isolation
       // Create a user-specific directory to ensure data is isolated between users and tenants.
       const userImageDir = path.join(this.imagesDir, tenantId, user.id);
 
@@ -117,7 +141,7 @@ export class ImageGenerationService {
       // Ensure the user's personal directory exists before writing the file.
       await fs.mkdir(userImageDir, { recursive: true });
 
-      // 4. Image Generation
+      // 5. Image Generation
       // Route the request to the appropriate model and generate the image.
       const result = await routeImageGenRequest(prompt, { apiKey: this.apiKey });
       let publicUrl;
@@ -132,7 +156,7 @@ export class ImageGenerationService {
         throw new Error(`Unsupported image generation service: ${result.service}`);
       }
 
-      // 5. Post-generation Tasks (Notifications & Logging)
+      // 6. Post-generation Tasks (Notifications & Logging)
       if (services.notificationService) {
         const payload = {
           message: `User ${user.id} (${user.role}) generated an image in tenant ${tenantId}.`,
@@ -158,7 +182,7 @@ export class ImageGenerationService {
         confidence: result.confidence,
       };
     } catch (error) {
-      // 6. Error Handling and Quota Refund
+      // 7. Error Handling and Quota Refund
       // If an error occurred after the quota was consumed, refund it to the user.
       // This provides a better user experience, as they are not charged for failed attempts.
       if (consumed && services.limitChecker && typeof services.limitChecker.refund === 'function') {
