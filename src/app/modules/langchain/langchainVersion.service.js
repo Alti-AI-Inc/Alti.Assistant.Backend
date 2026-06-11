@@ -66,6 +66,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     );
 
     logger.info({
+      severity: 'INFO', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: created snapshot v${nextVersionNumber} for chain ${chainId}`,
       service: 'langchainVersionService',
       method: 'createSnapshot',
@@ -76,6 +77,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     return snapshot;
   } catch (err) {
     logger.error({
+      severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to create snapshot for chain ${chainId}`,
       service: 'langchainVersionService',
       method: 'createSnapshot',
@@ -133,6 +135,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     await chain.save();
 
     logger.info({
+      severity: 'INFO', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: successfully rolled back chain ${chainId} to version v${versionNumber}`,
       service: 'langchainVersionService',
       method: 'rollbackToVersion',
@@ -147,6 +150,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     };
   } catch (err) {
     logger.error({
+      severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to rollback chain ${chainId} to v${versionNumber}`,
       service: 'langchainVersionService',
       method: 'rollbackToVersion',
@@ -190,6 +194,7 @@ const getVersionHistory = async (chainId, userId) => {
     };
   } catch (err) {
     logger.error({
+      severity: 'ERROR', // Added for GCP Cloud Logging structured log compatibility
       message: `LangchainVersion: failed to retrieve version history for chain ${chainId}`,
       service: 'langchainVersionService',
       method: 'getVersionHistory',
