@@ -3,11 +3,8 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { AiEndpointsController } from './aiEndpoint.controller.js';
+import logger from '../../../config/logger.js'; // AI Agent Patch: Added for robust error logging
 
-/**
- * Express router instance for AI model endpoint routes.
- * @type {import('express').Router}
- */
 const router = express.Router();
 
 /**
@@ -35,20 +32,49 @@ const router = express.Router();
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/AiEndpoint'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   endpointUrl:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   modelType:
+ *                     type: string
  *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Unauthorized. User is not authenticated.
  *       403:
- *         $ref: '#/components/responses/Forbidden'
+ *         description: Forbidden. User does not have the required role.
  *       500:
- *         $ref: '#/components/responses/InternalServerError'
+ *         description: Internal server error.
  */
 router.get(
   '/all-model',
   extractTenantContext,
   // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
   auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
-  AiEndpointsController.getAiEndpointForApp
+  // AI Agent Patch: Added async error handling and logging wrapper.
+  async (req, res, next) => {
+    try {
+      await AiEndpointsController.getAiEndpointForApp(req, res, next);
+    } catch (error) {
+      const tenantId = req.tenantContext?.tenantId || 'unknown';
+      logger.error(
+        `[aiEndpoint.route] Error in GET /all-model for tenant ${tenantId}: ${error.message}`,
+        {
+          error, // The full error object
+          stack: error.stack,
+          tenantId: tenantId,
+          path: req.originalUrl,
+        }
+      );
+      // Pass error to the global error handler for normalized client response.
+      next(error);
+    }
+  }
 );
 
 /**
@@ -76,20 +102,49 @@ router.get(
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/AiEndpoint'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   endpointUrl:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   modelType:
+ *                     type: string
  *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Unauthorized. User is not authenticated.
  *       403:
- *         $ref: '#/components/responses/Forbidden'
+ *         description: Forbidden. User does not have the required role.
  *       500:
- *         $ref: '#/components/responses/InternalServerError'
+ *         description: Internal server error.
  */
 router.get(
   '/all-model-web',
   extractTenantContext,
   // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
   auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
-  AiEndpointsController.getWebAiEndpoint
+  // AI Agent Patch: Added async error handling and logging wrapper.
+  async (req, res, next) => {
+    try {
+      await AiEndpointsController.getWebAiEndpoint(req, res, next);
+    } catch (error) {
+      const tenantId = req.tenantContext?.tenantId || 'unknown';
+      logger.error(
+        `[aiEndpoint.route] Error in GET /all-model-web for tenant ${tenantId}: ${error.message}`,
+        {
+          error, // The full error object
+          stack: error.stack,
+          tenantId: tenantId,
+          path: req.originalUrl,
+        }
+      );
+      // Pass error to the global error handler for normalized client response.
+      next(error);
+    }
+  }
 );
 
 /**
@@ -141,22 +196,52 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AiEndpoint'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 endpointUrl:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 modelType:
+ *                   type: string
  *       400:
- *         $ref: '#/components/responses/BadRequest'
+ *         description: Bad request if required fields are missing or invalid.
  *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Unauthorized. User is not authenticated.
  *       403:
- *         $ref: '#/components/responses/Forbidden'
+ *         description: Forbidden. User does not have the required role.
  *       500:
- *         $ref: '#/components/responses/InternalServerError'
+ *         description: Internal server error.
  */
 router.post(
   '/add-model',
   extractTenantContext,
   // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
   auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
-  AiEndpointsController.addAiEndpoint
+  // AI Agent Patch: Added async error handling and logging wrapper.
+  async (req, res, next) => {
+    try {
+      await AiEndpointsController.addAiEndpoint(req, res, next);
+    } catch (error) {
+      const tenantId = req.tenantContext?.tenantId || 'unknown';
+      logger.error(
+        `[aiEndpoint.route] Error in POST /add-model for tenant ${tenantId}: ${error.message}`,
+        {
+          error, // The full error object
+          stack: error.stack,
+          tenantId: tenantId,
+          path: req.originalUrl,
+          body: req.body, // Log request body for better debugging
+        }
+      );
+      // Pass error to the global error handler for normalized client response.
+      next(error);
+    }
+  }
 );
 
 /**
@@ -211,32 +296,65 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AiEndpoint'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 endpointUrl:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 modelType:
+ *                   type: string
  *       400:
- *         $ref: '#/components/responses/BadRequest'
+ *         description: Bad request if required fields are missing or invalid.
  *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Unauthorized. User is not authenticated.
  *       403:
- *         $ref: '#/components/responses/Forbidden'
+ *         description: Forbidden. User does not have the required role.
  *       404:
- *         $ref: '#/components/responses/NotFound'
+ *         description: Not Found if the AI model endpoint does not exist.
  *       500:
- *         $ref: '#/components/responses/InternalServerError'
+ *         description: Internal server error.
  */
 router.patch(
   '/update-model',
   extractTenantContext,
   // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
   auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
-  AiEndpointsController.updateWebAiEndpoint
+  // AI Agent Patch: Added async error handling and logging wrapper.
+  async (req, res, next) => {
+    try {
+      await AiEndpointsController.updateWebAiEndpoint(req, res, next);
+    } catch (error) {
+      const tenantId = req.tenantContext?.tenantId || 'unknown';
+      logger.error(
+        `[aiEndpoint.route] Error in PATCH /update-model for tenant ${tenantId}: ${error.message}`,
+        {
+          error, // The full error object
+          stack: error.stack,
+          tenantId: tenantId,
+          path: req.originalUrl,
+          body: req.body, // Log request body for better debugging
+        }
+      );
+      // Pass error to the global error handler for normalized client response.
+      next(error);
+    }
+  }
 );
+
+/**
+ * @typedef {import('express').Router} Router
+ */
 
 /**
  * Express router for managing AI model endpoints.
  * Provides routes for retrieving, adding, and updating AI model configurations
  * within a tenant-specific context. All routes require SUPER_ADMIN or ADMIN privileges.
- * @type {import('express').Router}
+ * @type {Router}
  * @namespace aiModelEndpointRoutes
- * @memberof module:routes
  */
 export const aiModelEndpointRoutes = router;
