@@ -1,5 +1,6 @@
 import auth from '../../middlewares/auth/auth.js';
 import { User } from '../../modules/user/user.model.js';
+import { Workspace } from '../../modules/workspace/workspace.model.js';
 
 /**
  * Base authentication middleware.
@@ -8,6 +9,56 @@ import { User } from '../../modules/user/user.model.js';
  * Example: GET /api/v1/users/me
  */
 export const authMiddleware = auth();
+
+/**
+ * Middleware to enforce workspace plan limits.
+ * Prevents actions that would add a new user (e.g., sending an invitation)
+ * if the workspace's user limit has been reached.
+ * This should be applied to routes like POST /api/v1/workspaces/:workspaceId/invitations
+ * AFTER an authentication middleware has run.
+ */
+export const checkPlanLimits = async (req, res, next) => {
+    try {
+        // This middleware must run after an authentication middleware (authMiddleware or roleMiddleware)
+        // so that req.user and req.user.workspaceId are available.
+        if (!req.user || !req.user.workspaceId) {
+            // This case should ideally be caught by the preceding auth middleware, but this is a safeguard.
+            return res.status(401).json({ message: 'Unauthorized: Missing user or workspace context.' });
+        }
+
+        const { workspaceId } = req.user;
+
+        // Find the workspace to get its plan details
+        const workspace = await Workspace.findById(workspaceId).select('plan').lean();
+        if (!workspace || !workspace.plan || typeof workspace.plan.userLimit !== 'number') {
+            // If no plan is found or it's misconfigured, deny the action to be safe.
+            return res.status(403).json({ message: 'Forbidden: Workspace plan information is missing or invalid.' });
+        }
+
+        const { userLimit } = workspace.plan;
+
+        // A userLimit of -1 signifies an unlimited plan.
+        if (userLimit === -1) {
+            return next(); // Bypass the check for unlimited plans.
+        }
+
+        // Count the number of active users currently in the workspace.
+        // A more robust solution might also count pending invitations if they count towards the limit.
+        const currentUserCount = await User.countDocuments({ workspaceId: workspaceId, status: 'active' });
+
+        if (currentUserCount >= userLimit) {
+            return res.status(403).json({
+                message: `Forbidden: Your workspace has reached its user limit of ${userLimit}. Please upgrade your plan to add more members.`,
+                code: 'PLAN_LIMIT_REACHED'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Plan Limit Middleware Error:', error);
+        return res.status(500).json({ message: 'An internal error occurred while verifying your plan limits.' });
+    }
+};
 
 /**
  * Advanced authorization middleware for role and tenancy-based access control.
@@ -20,8 +71,8 @@ export const authMiddleware = auth();
  * 4. Enforces strict tenant boundaries by ensuring users (including 'admin' and 'manager')
  *    can only operate within their own workspace context. It checks `req.params.workspaceId`
  *    against the user's `workspaceId` from their token.
- * 5. Enforces hierarchical boundaries. For instance, a 'manager' can only access or modify
- *    users who are directly assigned to them within the same workspace.
+ * 5. Enforces hierarchical boundaries and prevents privilege escalation. For instance, a 'manager'
+ *    can only modify users they directly manage and cannot promote them to a higher role.
  *
  * CRITICAL: This middleware prevents Insecure Direct Object Reference (IDOR) vulnerabilities
  * by ensuring users cannot access resources outside their permitted scope, even if they guess the ID.
@@ -70,7 +121,7 @@ export const roleMiddleware = (...allowedRoles) => {
           return res.status(403).json({ message: 'Forbidden: You do not have access to this workspace.' });
         }
 
-        // Step 5: Hierarchical Integrity Checks
+        // Step 5: Hierarchical Integrity and Privilege Escalation Checks
         // This ensures managers can only affect users within their own hierarchy.
         const targetUserId = req.params.userId;
         if (targetUserId && targetUserId.toString() !== userId.toString()) {
@@ -78,7 +129,7 @@ export const roleMiddleware = (...allowedRoles) => {
             // An 'admin' can access any user within their own workspace. We don't need a special check here
             // because the workspace check above already confines them.
 
-            // A 'manager' can only access users they are directly assigned to manage.
+            // A 'manager' has more restricted access.
             if (userRole === 'manager') {
                 const targetUser = await User.findById(targetUserId).select('managerId workspaceId').lean();
                 if (!targetUser) {
@@ -87,6 +138,13 @@ export const roleMiddleware = (...allowedRoles) => {
                 // The target user must be in the same workspace AND be managed by the current manager.
                 if (targetUser.workspaceId.toString() !== userWorkspaceId.toString() || targetUser.managerId?.toString() !== userId.toString()) {
                     return res.status(403).json({ message: 'Forbidden: You can only access users directly assigned to you.' });
+                }
+
+                // Privilege Escalation Prevention: A manager cannot promote a user to a role
+                // equal to or higher than their own. This check inspects the request body.
+                const newRole = req.body.role;
+                if (newRole && (newRole === 'admin' || newRole === 'manager')) {
+                    return res.status(403).json({ message: 'Forbidden: Managers cannot assign "admin" or "manager" roles.' });
                 }
             }
         }

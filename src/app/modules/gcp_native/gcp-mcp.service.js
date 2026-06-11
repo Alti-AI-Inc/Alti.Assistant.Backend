@@ -203,6 +203,12 @@ const startMcpServer = async (options = {}) => {
  * @property {string} [database] - The name of the database.
  * @property {string} [user] - The username for database access.
  * @property {string} [password] - The password for database access.
+ * @property {object} [connection] - Advanced connection and pooling options for resiliency.
+ * @property {number} [connection.pool_size=10] - Maximum number of connections in the pool.
+ * @property {number} [connection.connect_timeout=5000] - Connection timeout in milliseconds.
+ * @property {number} [connection.socket_timeout=30000] - Socket read/write timeout in milliseconds for queries.
+ * @property {boolean} [connection.keepalives=true] - Enable TCP keep-alives to prevent premature connection closure by firewalls.
+ * @property {number} [connection.keepalives_idle=60] - Seconds of inactivity before sending a keep-alive probe.
  */
 
 /**
@@ -242,12 +248,37 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
     kind: 'source',
     name: 'alti-default-postgres',
     type: 'postgres',
-    host: '127.0.0.1',
+    host: '127.0.0.1', // For GCP, this is often the Cloud SQL Auth Proxy listener
     port: 5432,
     database: 'alti_db',
     user: 'postgres',
-    password: 'secure_password' // SECURITY NOTE: In a real application, avoid hardcoding sensitive credentials.
+    password: 'secure_password', // SECURITY NOTE: In a real application, avoid hardcoding sensitive credentials.
                                 // Use environment variables or a secure secrets manager.
+    // GCP DATABASE RESILIENCY CONFIGURATION:
+    // The following settings optimize the connection pool for production workloads on GCP,
+    // ensuring robustness against transient network issues common in cloud environments.
+    connection: {
+      // pool_size: Sets the maximum number of clients in the pool.
+      // A value of 10-20 is a safe starting point for many applications.
+      pool_size: 10,
+
+      // connect_timeout: Milliseconds to wait for a connection to be established.
+      // A short timeout (e.g., 5s) prevents the application from hanging on network issues.
+      connect_timeout: 5000,
+
+      // socket_timeout: Milliseconds before a query is automatically aborted if the database is unresponsive.
+      // Prevents long-hanging queries from holding up application threads.
+      socket_timeout: 30000,
+
+      // keepalives: Enables TCP keep-alive probes. This is critical for long-lived connections
+      // that pass through stateful firewalls or NATs (like in GCP VPCs or with the Cloud SQL Auth Proxy),
+      // preventing them from being silently dropped due to inactivity.
+      keepalives: true,
+
+      // keepalives_idle: Seconds of TCP inactivity before sending a keep-alive probe.
+      // A value of 60 seconds is a common and safe choice for GCP networking.
+      keepalives_idle: 60
+    }
   }];
 
   const defaultTools = tools.length > 0 ? tools : [{

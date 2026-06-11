@@ -2,11 +2,49 @@ import { schedulerInitializer } from './services/schedulerInitializer.service.js
 import { cronManager } from './services/cronManager.service.js';
 import { queueManager } from './services/queueManager.service.js';
 import { logger } from '../../../shared/logger.js';
+// Import the GCP Secret Manager client.
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+
+// Instantiate the client once to be reused.
+// This is safe for serverless environments as it will be initialized on the first invocation.
+const secretManagerClient = new SecretManagerServiceClient();
+
+/**
+ * Asynchronously resolves a secret value. If the value is a GCP Secret Manager
+ * resource name (e.g., "projects/.../secrets/.../versions/..."), it fetches the secret
+ * from the service. Otherwise, it returns the original value.
+ * This function is crucial for preventing secrets from being stored in code or configuration files.
+ * @param {string} secretValue - The secret value or its GCP Secret Manager resource name.
+ * @returns {Promise<string>} The resolved secret value.
+ * @throws {Error} If fetching the secret from GCP Secret Manager fails.
+ */
+const resolveSecret = async (secretValue) => {
+  // A valid GCP Secret Manager resource name must start with 'projects/'.
+  if (secretValue && typeof secretValue === 'string' && secretValue.startsWith('projects/')) {
+    try {
+      // Log the attempt to resolve the secret without logging the secret name itself for security.
+      logger.info(`Resolving secret from GCP Secret Manager: ${secretValue.split('/secrets/')[0]}/secrets/****`);
+      const [version] = await secretManagerClient.accessSecretVersion({ name: secretValue });
+      const payload = version.payload.data.toString('utf8');
+      logger.info('Successfully resolved secret from GCP Secret Manager.');
+      return payload;
+    } catch (error) {
+      logger.error(`Failed to access secret version: ${secretValue}`, error);
+      // Fail fast if a required secret cannot be resolved to prevent the application from running in an insecure or non-functional state.
+      throw new Error(`Could not resolve secret from GCP Secret Manager: ${error.message}`);
+    }
+  }
+  // If the value is not a GCP resource name, return it as is.
+  return secretValue;
+};
+
 
 /**
  * @typedef {object} WorkflowSchedulerConfig
  * @property {object} [queue] - Configuration for the queue manager.
  * @property {string} [queue.connectionString] - Connection string for the queue.
+ *   This can be a direct string, a GCP Secret Manager resource name (e.g., "projects/my-project/secrets/my-secret/versions/latest"),
+ *   or it can be provided via the QUEUE_CONNECTION_STRING environment variable.
  * // Add more specific queue config properties if known, otherwise keep it general.
  */
 
@@ -31,6 +69,9 @@ import { logger } from '../../../shared/logger.js';
  * queue and scheduler components. It ensures that the system is ready to process
  * and manage scheduled workflows.
  *
+ * It securely resolves the queue connection string from environment variables (a common pattern for Cloud Run)
+ * or GCP Secret Manager, preventing hardcoded secrets or local file access in production.
+ *
  * @param {WorkflowSchedulerConfig} [config={}] - Optional configuration object for the scheduler components.
  * @returns {Promise<SchedulerInitializationResult>} A promise that resolves to an object indicating the success or failure of the initialization,
  *   along with relevant data or an error message.
@@ -39,8 +80,29 @@ export const initializeWorkflowScheduler = async (config = {}) => {
   try {
     logger.info('Initializing Composio v2 workflow scheduling system...');
 
-    // Initialize queue manager first
-    const queueResult = await queueManager.initialize(config.queue || {});
+    // Create a mutable copy of the queue config to avoid side effects.
+    const queueConfig = { ...(config.queue || {}) };
+
+    // Securely resolve the queue connection string.
+    // Priority order:
+    // 1. Value from the config object.
+    // 2. Value from QUEUE_CONNECTION_STRING environment variable (ideal for Cloud Run).
+    if (!queueConfig.connectionString && process.env.QUEUE_CONNECTION_STRING) {
+      logger.info('Using QUEUE_CONNECTION_STRING from environment variable.');
+      queueConfig.connectionString = process.env.QUEUE_CONNECTION_STRING;
+    }
+
+    // If the connection string is a reference to GCP Secret Manager, resolve it.
+    // Otherwise, use the value as is (from config or environment variable).
+    if (queueConfig.connectionString) {
+      queueConfig.connectionString = await resolveSecret(queueConfig.connectionString);
+    } else {
+      // If no connection string is available after checking config and env vars, fail initialization.
+      throw new Error('Queue connection string is not configured. Provide it in the config or via QUEUE_CONNECTION_STRING environment variable.');
+    }
+
+    // Initialize queue manager first with the resolved and secured configuration.
+    const queueResult = await queueManager.initialize(queueConfig);
     if (!queueResult.success) {
       throw new Error(
         `Queue manager initialization failed: ${queueResult.error}`
