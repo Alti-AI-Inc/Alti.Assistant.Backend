@@ -37,8 +37,8 @@ import mongoose from 'mongoose';
 //    - If conversations are frequently sorted by last activity.
 
 /**
- * Generate unique guest user ID
- * @returns {string}
+ * Generates a unique MongoDB ObjectId string to serve as a guest user ID.
+ * @returns {string} A new unique guest user ID.
  */
 const generateGuestUserId = () => {
   // Generate a proper MongoDB ObjectId for guest users
@@ -46,21 +46,27 @@ const generateGuestUserId = () => {
 };
 
 /**
- * Generate unique image conversation ID
- * @returns {string}
+ * Generates a unique, human-readable ID for an image conversation.
+ * The format is `img-conv-<timestamp>-<random_string>`.
+ * @returns {string} A new unique image conversation ID.
  */
 const generateImageConversationId = () => {
   return `img-conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Create or get image conversation (supports both authenticated and guest users)
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} imageQuery
- * @param {boolean} isGuest
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Retrieves an existing image conversation or creates a new one.
+ * This function supports both authenticated and guest users. For guests, it ensures
+ * conversations are properly associated with their guest ID and marked with 'guest' metadata.
+ *
+ * @async
+ * @param {string} userId - The ID of the user (can be an authenticated user ID or a guest ID).
+ * @param {string|null} conversationId - The ID of an existing conversation to retrieve. If null or not found, a new one is created.
+ * @param {string} imageQuery - The initial user query, used to generate a title for new conversations.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object|null} [req=null] - The Express request object, used for passing context to downstream services.
+ * @returns {Promise<object>} A promise that resolves to the conversation object.
+ * @throws {ApiError} Throws an error if the conversation handling fails.
  */
 const handleImageConversation = async (
   userId,
@@ -190,13 +196,17 @@ const handleImageConversation = async (
 };
 
 /**
- * Add image query message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} imageQuery
- * @param {boolean} isGuest
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Adds a user's image query message to a specified conversation.
+ * This function supports both authenticated and guest users.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user sending the message.
+ * @param {string} imageQuery - The content of the user's query.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object|null} [req=null] - The Express request object for downstream context.
+ * @returns {Promise<object>} A promise that resolves to the newly created message object.
+ * @throws {ApiError} Throws an error if adding the message fails.
  */
 const addImageQueryMessage = async (
   conversationId,
@@ -244,14 +254,18 @@ const addImageQueryMessage = async (
 };
 
 /**
- * Add image result message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string|Object} imageResult
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Adds an assistant's image result message to a specified conversation.
+ * This function supports both authenticated and guest users.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string|object} imageResult - The image result content, typically a URL or a JSON object.
+ * @param {object} [metadata={}] - Additional metadata to store with the message.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object|null} [req=null] - The Express request object for downstream context.
+ * @returns {Promise<object>} A promise that resolves to the newly created message object.
+ * @throws {ApiError} Throws an error if adding the message fails.
  */
 const addImageResultMessage = async (
   conversationId,
@@ -301,14 +315,18 @@ const addImageResultMessage = async (
 };
 
 /**
- * Add error message to conversation
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} errorMessage
- * @param {Error} error
- * @param {boolean} isGuest
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Adds an error message to a specified conversation.
+ * This is used to log processing failures within the chat history for debugging and user feedback.
+ * This function supports both authenticated and guest users.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to add the error to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {string} errorMessage - A user-friendly error message.
+ * @param {Error} error - The actual error object. Its stack is only included in development environments.
+ * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
+ * @param {object|null} [req=null] - The Express request object for downstream context.
+ * @returns {Promise<object|null>} A promise that resolves to the newly created message object, or null if logging the error fails.
  */
 const addErrorMessage = async (
   conversationId,
@@ -356,10 +374,14 @@ const addErrorMessage = async (
 };
 
 /**
- * Get guest conversations for a specific guest user
- * @param {string} guestUserId
- * @param {Object} req
- * @returns {Promise<Array>}
+ * Retrieves a list of image conversations for a specific guest user.
+ * Fetches a summary of conversations (title, metadata, etc.) without the full message history for efficiency.
+ *
+ * @async
+ * @param {string} guestUserId - The ID of the guest user.
+ * @param {object|null} [req=null] - The Express request object (not directly used in this optimized version but kept for signature consistency).
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of guest conversation objects.
+ * @throws {ApiError} Throws an error if the retrieval fails.
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
@@ -399,11 +421,15 @@ const getGuestConversations = async (guestUserId, req = null) => {
 };
 
 /**
- * Get guest conversation by conversation ID
- * @param {string} conversationId
- * @param {string} guestUserId
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Retrieves a single, complete image conversation for a specific guest user by its ID.
+ * Ensures the conversation belongs to the specified guest user and is marked as a guest conversation.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} guestUserId - The ID of the guest user who owns the conversation.
+ * @param {object|null} [req=null] - The Express request object (not directly used in this optimized version but kept for signature consistency).
+ * @returns {Promise<object>} A promise that resolves to the full conversation object.
+ * @throws {ApiError} Throws a NOT_FOUND error if the conversation doesn't exist or doesn't belong to the guest user.
  */
 const getGuestConversation = async (
   conversationId,
@@ -437,10 +463,15 @@ const getGuestConversation = async (
 };
 
 /**
- * Get image statistics for authenticated users
- * @param {string} userId
- * @param {Object} req
- * @returns {Promise<Object>}
+ * Calculates and retrieves usage statistics for an authenticated user's image-related conversations.
+ * Stats include total conversations, total messages, and an estimate of total images generated.
+ *
+ * @permission Authenticated user
+ * @async
+ * @param {string} userId - The ID of the authenticated user.
+ * @param {object|null} [req=null] - The Express request object (not directly used in this optimized version but kept for signature consistency).
+ * @returns {Promise<object>} A promise that resolves to an object containing image usage statistics.
+ * @throws {ApiError} Throws an error if stats calculation fails.
  */
 const getImageStats = async (userId, req = null) => {
   try {
@@ -498,9 +529,14 @@ const getImageStats = async (userId, req = null) => {
 };
 
 /**
- * Validate image URL or base64 data
- * @param {string} imageData
- * @returns {Object}
+ * Validates if a given string is a valid image URL or a properly formatted base64 data URI.
+ * Also enforces a size limit on base64 data to prevent DoS attacks.
+ *
+ * @param {string} imageData - The string to validate.
+ * @returns {{isValid: boolean, type?: 'url'|'base64', error?: string}} An object indicating the validation result.
+ * `isValid` is true if the data is valid.
+ * `type` indicates whether it's a 'url' or 'base64'.
+ * `error` provides a reason for validation failure.
  */
 const validateImageData = imageData => {
   try {
@@ -567,6 +603,22 @@ const validateImageData = imageData => {
   }
 };
 
+/**
+ * A comprehensive service object for managing all image-related assistant functionalities.
+ * It encapsulates logic for handling conversations, messages, statistics, and data validation
+ * for both authenticated and guest users.
+ *
+ * @property {function} generateGuestUserId - Generates a unique ID for a guest user.
+ * @property {function} generateImageConversationId - Generates a unique ID for an image conversation.
+ * @property {function} handleImageConversation - Creates or retrieves an image conversation.
+ * @property {function} addImageQueryMessage - Adds a user's query to a conversation.
+ * @property {function} addImageResultMessage - Adds an assistant's result to a conversation.
+ * @property {function} addErrorMessage - Adds an error message to a conversation.
+ * @property {function} getImageStats - Retrieves usage statistics for an authenticated user.
+ * @property {function} getGuestConversation - Retrieves a specific conversation for a guest user.
+ * @property {function} getGuestConversations - Retrieves all conversations for a guest user.
+ * @property {function} validateImageData - Validates image URL or base64 data.
+ */
 export const imageService = {
   generateGuestUserId,
   generateImageConversationId,

@@ -298,6 +298,8 @@ const streamToBuffer = (stream) => {
  * @param {object} userContext.user - The user initiating the request.
  * @param {string} userContext.user.role - The role of the user (e.g., 'admin', 'manager').
  * @param {object} userContext.workspace - The workspace context for the request.
+ * @param {object} [userContext.workspace.plan] - Subscription plan details.
+ * @param {Array<string>} [userContext.workspace.plan.features] - List of features enabled for the plan.
  * @param {object} [userContext.workspace.usage] - Current usage statistics.
  * @param {object} [userContext.workspace.limits] - Configured usage limits.
  * @returns {Promise<object>} A promise resolving with the PDF buffer, filename, content type, and size.
@@ -315,6 +317,13 @@ export const generatePDFReport = async (reportData, userContext) => {
   const authorizedRoles = ['super_admin', 'admin', 'manager'];
   if (!authorizedRoles.includes(userContext.user.role)) {
       throw new AuthorizationError(`User role '${userContext.user.role}' is not authorized to generate enterprise reports.`);
+  }
+
+  // HIERARCHY & BILLING FIX: Verify the workspace's subscription plan includes this feature.
+  // This check ensures that only workspaces with the appropriate subscription tier can access this premium feature.
+  const planFeatures = userContext.workspace.plan?.features ?? [];
+  if (!planFeatures.includes('PREMIUM_PDF_REPORTS')) {
+      throw new AuthorizationError('Your current subscription plan does not include Premium PDF Report generation. Please upgrade your plan to access this feature.');
   }
 
   // HIERARCHY & BILLING FIX: Enforce usage limits. A value of -1 or null signifies an unlimited plan.
