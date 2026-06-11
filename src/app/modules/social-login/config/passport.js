@@ -190,7 +190,7 @@ export default (passport) => {
       // OPTIMIZATION: Added .lean() to prevent Mongoose document hydration overhead on every single request.
       // This significantly reduces CPU usage and memory footprint for authenticated routes.
       // If your application relies on Mongoose document methods (e.g., user.save()) directly on req.user,
-      // you may need to remove .lean() or manually save via UserModel.updateOne.
+      // you may need to remove .lean() or manually re-fetch the full document when mutation is needed.
       const user = await UserModel.findById(id).lean();
       done(null, user);
     } catch (err) {
