@@ -276,3 +276,28 @@ const transcribeAudioToTextService = async (audioPath) => {
 export const whisperTranscribeService = {
   transcribeAudioToTextService,
 };
+
+// --- Graceful Shutdown for Cloud Run ---
+
+// Cloud Run sends a SIGTERM signal to the container to signal that it's going to be shut down.
+// We listen for this signal to gracefully close connections managed by this module.
+process.on('SIGTERM', async () => {
+  console.log('👋 SIGTERM signal received: closing Redis connection for rate limiting.');
+
+  try {
+    // The 'quit' command gracefully closes the connection to the Redis server.
+    // It waits for all pending replies to be received before closing.
+    if (redisClient.isOpen) {
+      await redisClient.quit();
+      console.log('🟢 Redis client for rate limiting disconnected successfully.');
+    } else {
+      console.log('🟡 Redis client for rate limiting was already disconnected.');
+    }
+  } catch (err) {
+    console.error('🔴 Error during Redis client disconnection:', err);
+  }
+
+  // Note: The main server file (e.g., app.js or server.js) is responsible for
+  // adding health check probes (/healthz, /readyz), binding to process.env.PORT,
+  // and for gracefully stopping the HTTP server to allow in-flight requests to complete.
+});
