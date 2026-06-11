@@ -11,8 +11,18 @@ import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 import { PubSub } from '@google-cloud/pubsub';
 
-// Initialize GCP Pub/Sub client
+/**
+ * Google Cloud Pub/Sub client instance.
+ * Used for asynchronously publishing usage log messages to a topic.
+ * @type {PubSub}
+ */
 const pubsub = new PubSub();
+
+/**
+ * The name of the GCP Pub/Sub topic where usage logs are sent.
+ * Configured via the `USAGE_LOG_TOPIC` environment variable, with a default fallback.
+ * @type {string}
+ */
 const TOPIC_NAME = process.env.USAGE_LOG_TOPIC || 'usage-logs';
 
 /**
@@ -169,7 +179,7 @@ const anonymizeIP = (ip) => {
  * Maps an HTTP status code to a general status category.
  *
  * @param {number} statusCode - The HTTP status code (e.g., 200, 404, 500).
- * @returns {'success' | 'error' | 'client-error' | 'server-error' | 'redirect'} The categorized status.
+ * @returns {'success' | 'redirect' | 'client-error' | 'server-error' | 'unknown'} The categorized status.
  */
 const getStatusFromCode = (statusCode) => {
   if (statusCode >= 200 && statusCode < 300) return 'success';
@@ -239,6 +249,21 @@ const createLogAsync = (logData) => {
  * determines status and error types, and anonymizes sensitive information like IP addresses.
  *
  * @param {object} data - The raw request data to be logged.
+ * @param {string} [data.userId] - The ID of the user who made the request.
+ * @param {string} [data.tenantId] - The ID of the tenant associated with the request.
+ * @param {string} data.endpoint - The API endpoint path.
+ * @param {string} data.method - The HTTP method of the request.
+ * @param {number} data.startTime - The timestamp (ms) when the request started.
+ * @param {number} data.endTime - The timestamp (ms) when the request ended.
+ * @param {number} data.statusCode - The HTTP status code of the response.
+ * @param {string} [data.errorMessage=null] - Any error message associated with a failed request.
+ * @param {number} [data.tokensUsed=0] - The number of tokens consumed by an AI model, if applicable.
+ * @param {string} [data.modelUsed=null] - The name of the AI model used, if applicable.
+ * @param {number} [data.inputSize=0] - The size of the request payload in bytes.
+ * @param {number} [data.outputSize=0] - The size of the response payload in bytes.
+ * @param {object} [data.metadata={}] - Any additional metadata to be stored with the log.
+ * @param {string} [data.ipAddress=null] - The client's IP address.
+ * @param {string} [data.userAgent=null] - The client's user agent string.
  * @returns {void}
  */
 const logRequest = (data) => {
@@ -296,6 +321,9 @@ const logRequest = (data) => {
 /**
  * Retrieves a summary of usage for a specific tenant within a given date range.
  *
+ * @permission Requires admin privileges or being a member of the specified tenant.
+ * @multi-tenant This function is tenant-aware and requires a `tenantId`.
+ *
  * @param {string} tenantId - The ID of the tenant for whom to retrieve usage.
  * @param {Date} startDate - The start date for the usage period.
  * @param {Date} endDate - The end date for the usage period.
@@ -314,6 +342,8 @@ const getTenantUsage = async (tenantId, startDate, endDate) => {
 
 /**
  * Retrieves a summary of usage for a specific user within a given date range.
+ *
+ * @permission Requires admin privileges or the request must be from the specified user.
  *
  * @param {string} userId - The ID of the user for whom to retrieve usage.
  * @param {Date} startDate - The start date for the usage period.
@@ -334,8 +364,18 @@ const getUserUsage = async (userId, startDate, endDate) => {
 /**
  * Retrieves aggregated usage statistics based on various filters and a time period.
  *
+ * @permission Requires admin privileges. If `tenantId` or `userId` is provided,
+ * the caller must have appropriate permissions for that scope.
+ * @multi-tenant Can be filtered by `tenantId`.
+ *
  * @param {object} [filters={}] - An object containing optional filters for the usage statistics.
- * @returns {Promise<object | null>} A promise that resolves to an object containing the aggregated usage statistics.
+ * @param {string} [filters.tenantId] - Filter stats by a specific tenant ID.
+ * @param {string} [filters.userId] - Filter stats by a specific user ID.
+ * @param {string} [filters.module] - Filter stats by a specific module.
+ * @param {Date} [filters.startDate=new Date(Date.now() - 30 days)] - The start date for the period. Defaults to 30 days ago.
+ * @param {Date} [filters.endDate=new Date()] - The end date for the period. Defaults to now.
+ * @returns {Promise<object>} A promise that resolves to an object containing the aggregated usage statistics.
+ *   The object will contain default zero values if no matching logs are found.
  * @throws {Error} If an error occurs during the aggregation query.
  */
 const getUsageStats = async (filters = {}) => {
@@ -424,6 +464,8 @@ const getUsageStats = async (filters = {}) => {
  * Checks if a tenant or user has exceeded a specific usage limit within the current billing cycle.
  * This is a crucial function for enforcing subscription plan limits.
  *
+ * @multi-tenant This function is tenant-aware and requires a `tenantId`.
+ *
  * @param {object} options - The options for the limit check.
  * @param {string} options.tenantId - The ID of the tenant to check.
  * @param {'tokens' | 'requests'} options.limitType - The type of limit to check ('tokens' or 'requests').
@@ -474,8 +516,8 @@ const checkUsageLimit = async ({ tenantId, limitType, limitValue, cycleStartDate
  * @property {function(object): void} logRequest - Logs details of an API request for usage tracking.
  * @property {function(string, Date, Date): Promise<object[]>} getTenantUsage - Retrieves a summary of usage for a specific tenant.
  * @property {function(string, Date, Date): Promise<object[]>} getUserUsage - Retrieves a summary of usage for a specific user.
- * @property {function(object): Promise<object | null>} getUsageStats - Retrieves aggregated usage statistics based on filters.
- * @property {function(object): Promise<object>} checkUsageLimit - Checks if a usage limit has been exceeded for a tenant.
+ * @property {function(object): Promise<object>} getUsageStats - Retrieves aggregated usage statistics based on filters.
+ * @property {function(object): Promise<{exceeded: boolean, currentUsage: number, limit: number, remaining: number}>} checkUsageLimit - Checks if a usage limit has been exceeded for a tenant.
  */
 
 /**
