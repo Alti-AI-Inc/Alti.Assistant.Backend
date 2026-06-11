@@ -111,8 +111,33 @@ const conversationalRequestSchema = z.object({
   }),
 });
 
+// Schema for requesting a GCS signed URL to upload a document.
+// The client should call an endpoint with this body before attempting to upload.
+// The endpoint will return a URL the client can PUT the file to directly.
+const generateSignedUploadUrlSchema = z.object({
+  body: z.object({
+    fileName: z
+      .string({ required_error: 'fileName is required.' })
+      .min(1, 'fileName cannot be empty.')
+      .max(255, 'fileName is too long.'),
+    contentType: z
+      .string({ required_error: 'contentType is required.' })
+      .regex(
+        /^[\w-]+\/[\w-.]+(\+[\w-.]+)?$/,
+        'Invalid content type format (e.g., "application/pdf").'
+      ),
+  }),
+});
+
+// The schema for initiating a document review.
+// It now expects a reference to a file already uploaded to GCS,
+// rather than receiving the file directly. This prevents writing to the local filesystem.
 const reviewDocumentSchema = z.object({
   body: z.object({
+    // Reference to the file in Google Cloud Storage.
+    gcsObjectKey: z
+      .string({ required_error: 'GCS object key is required.' })
+      .min(1, 'GCS object key cannot be empty.'),
     reviewType: z
       .enum([
         'general_review',
@@ -170,7 +195,8 @@ const getConversationHistorySchema = z.object({
 export const DocumentReviewValidation = {
   // Zod validation schemas
   conversationalRequestSchema,
-  reviewDocumentSchema,
+  generateSignedUploadUrlSchema, // For generating GCS upload URLs
+  reviewDocumentSchema, // For starting a review with a GCS file
   getConversationHistorySchema,
 
   // Rate limiting middleware to be applied to the corresponding routes
