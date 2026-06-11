@@ -1,5 +1,39 @@
 import mongoose from 'mongoose';
 
+/**
+ * @description Represents the schema for a single execution of a Langchain chain.
+ * This schema is designed for a multi-tenant environment, capturing detailed information
+ * about the execution's inputs, outputs, steps, status, performance, and token usage.
+ * It includes fields crucial for platform owner oversight, such as tenant isolation,
+ * correlation IDs for tracing, and metadata for auditing.
+ * @property {String} tenantId - The identifier for the tenant under which the execution occurred. Essential for data isolation and management in a multi-tenant system.
+ * @property {mongoose.Schema.Types.ObjectId} chainId - A reference to the 'LangchainChain' document that was executed.
+ * @property {String} userId - The identifier of the user who initiated the execution.
+ * @property {String} [correlationId] - An optional ID to link this execution with a broader workflow or request for end-to-end tracing.
+ * @property {String} environment - The deployment environment (e.g., 'development', 'production') where the execution took place.
+ * @property {mongoose.Schema.Types.Mixed} inputs - The initial input data provided to the chain.
+ * @property {mongoose.Schema.Types.Mixed} outputs - The final output data produced by the chain.
+ * @property {Array<Object>} stepsExecution - An ordered array detailing the execution of each step within the chain.
+ * @property {String} stepsExecution.stepName - The name of the individual step.
+ * @property {String} stepsExecution.stepType - The type of the step (e.g., 'llm', 'prompt', 'tool').
+ * @property {mongoose.Schema.Types.Mixed} stepsExecution.input - The input data for the step.
+ * @property {mongoose.Schema.Types.Mixed} stepsExecution.output - The output data from the step.
+ * @property {Number} stepsExecution.durationMs - The execution duration of the step in milliseconds.
+ * @property {String} stepsExecution.status - The completion status of the step ('success' or 'failed').
+ * @property {String} [stepsExecution.error] - An error message if the step failed.
+ * @property {String} status - The overall status of the chain execution ('running', 'success', 'failed').
+ * @property {Number} totalDurationMs - The total time taken for the entire chain execution in milliseconds.
+ * @property {String} [gcsLogUri] - An optional URI pointing to a detailed log file, typically stored in a cloud storage service like GCS.
+ * @property {Object} tokenUsage - An object tracking the language model token consumption for the execution.
+ * @property {Number} tokenUsage.promptTokens - The number of tokens in the input prompt.
+ * @property {Number} tokenUsage.completionTokens - The number of tokens in the generated completion.
+ * @property {Number} tokenUsage.totalTokens - The sum of prompt and completion tokens.
+ * @property {Object} metadata - Contains metadata about the execution context, primarily for auditing and administrative oversight.
+ * @property {String} metadata.triggeredBy - Indicates the source of the execution trigger ('user', 'platform_owner', 'system').
+ * @property {Boolean} metadata.isLimitOverride - A flag indicating if a Platform Owner bypassed standard tenant limits for this execution.
+ * @property {Date} createdAt - Timestamp of when the document was created.
+ * @property {Date} updatedAt - Timestamp of when the document was last updated.
+ */
 const LangchainExecutionSchema = new mongoose.Schema(
   {
     // Platform Owner Oversight: tenantId is crucial for a multi-tenant architecture.
@@ -115,6 +149,13 @@ LangchainExecutionSchema.index({ tenantId: 1, createdAt: -1 });
 // executions by a specific user within a given tenant.
 LangchainExecutionSchema.index({ tenantId: 1, userId: 1 });
 
+/**
+ * @description Mongoose model for Langchain chain executions.
+ * This model is used to create, read, update, and delete records of chain executions
+ * in the MongoDB database.
+ * @model LangchainExecution
+ * @see LangchainExecutionSchema
+ */
 const LangchainExecution = mongoose.models.LangchainExecution || mongoose.model('LangchainExecution', LangchainExecutionSchema);
 
 export default LangchainExecution;
