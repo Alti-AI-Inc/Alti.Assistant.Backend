@@ -1,7 +1,17 @@
 import mongoose from 'mongoose';
 
-// Sub-schema for members within a workspace.
-// This defines the structure for each team member, including their user reference and role.
+/**
+ * @typedef {object} WorkspaceMember
+ * @property {mongoose.Schema.Types.ObjectId} user - The unique identifier of the user.
+ * @property {('owner'|'admin'|'manager'|'member')} role - The role of the user within the workspace.
+ * @property {Date} joinedAt - The timestamp when the user joined the workspace.
+ */
+
+/**
+ * Mongoose sub-schema for members within a workspace.
+ * This defines the structure for each team member, including their user reference and role.
+ * @type {mongoose.Schema<WorkspaceMember>}
+ */
 const MemberSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -20,8 +30,21 @@ const MemberSchema = new mongoose.Schema({
     },
 }, { _id: false }); // Using _id: false as the user ObjectId can serve as the unique key within the array.
 
-// Sub-schema for pending invitations.
-// This tracks invitations sent to new users, including a unique token for acceptance.
+/**
+ * @typedef {object} WorkspaceInvitation
+ * @property {string} email - The email address of the invited person.
+ * @property {('admin'|'manager'|'member')} role - The role assigned to the invited person upon acceptance.
+ * @property {string} token - A unique token for the invitation link.
+ * @property {mongoose.Schema.Types.ObjectId} invitedBy - The user who sent the invitation.
+ * @property {Date} expiresAt - The timestamp when the invitation token expires.
+ * @property {Date} invitedAt - The timestamp when the invitation was created.
+ */
+
+/**
+ * Mongoose sub-schema for pending invitations.
+ * This tracks invitations sent to new users, including a unique token for acceptance.
+ * @type {mongoose.Schema<WorkspaceInvitation>}
+ */
 const InvitationSchema = new mongoose.Schema({
     email: {
         type: String,
@@ -51,9 +74,18 @@ const InvitationSchema = new mongoose.Schema({
     },
 }, { timestamps: { createdAt: 'invitedAt' } });
 
-// Sub-schema for the workspace's subscription plan.
-// This schema intentionally omits sensitive billing details (e.g., Stripe IDs, payment methods)
-// to ensure managers and other non-billing roles cannot access them through this model.
+/**
+ * @typedef {object} WorkspacePlan
+ * @property {('free'|'starter'|'pro'|'enterprise')} type - The type of subscription plan for the workspace.
+ * @property {number} memberLimit - The maximum number of members allowed under the current plan.
+ */
+
+/**
+ * Mongoose sub-schema for the workspace's subscription plan.
+ * This schema intentionally omits sensitive billing details (e.g., Stripe IDs, payment methods)
+ * to ensure managers and other non-billing roles cannot access them through this model.
+ * @type {mongoose.Schema<WorkspacePlan>}
+ */
 const PlanSchema = new mongoose.Schema({
     type: {
         type: String,
@@ -69,9 +101,44 @@ const PlanSchema = new mongoose.Schema({
     // e.g., apiCallLimit: { type: Number, default: 10000 }
 }, { _id: false });
 
-// Main schema for the Workspace.
-// This model replaces the generic 'Tenant' alias to provide a structured and secure
-// representation of a workspace, tailored for manager dashboard features.
+/**
+ * @typedef {object} WorkspaceMetrics
+ * @property {number} apiCalls - The number of API calls made within the current billing cycle.
+ * @property {number} projectsCount - The total number of projects in the workspace.
+ * @property {number} storageUsedMB - The total storage used by the workspace in megabytes.
+ */
+
+/**
+ * @typedef {object} WorkspaceSettings
+ * @property {string} timezone - The default timezone for the workspace.
+ */
+
+/**
+ * @typedef {import('mongoose').Document & {
+ *   name: string,
+ *   owner: mongoose.Schema.Types.ObjectId,
+ *   members: mongoose.Types.DocumentArray<WorkspaceMember>,
+ *   invitations: mongoose.Types.DocumentArray<WorkspaceInvitation>,
+ *   plan: WorkspacePlan,
+ *   metrics: WorkspaceMetrics,
+ *   settings: WorkspaceSettings,
+ *   createdAt: Date,
+ *   updatedAt: Date,
+ *   memberCount: number,
+ *   isAtMemberLimit: () => boolean,
+ *   getMemberRole: (userId: mongoose.Types.ObjectId | string) => string | null,
+ *   isMember: (userId: mongoose.Types.ObjectId | string) => boolean
+ * }} WorkspaceDocument
+ */
+
+/**
+ * Mongoose schema for a Workspace.
+ * This model replaces the generic 'Tenant' alias to provide a structured and secure
+ * representation of a workspace, tailored for manager dashboard features. It serves
+ * as the central document for a multi-tenant context, defining ownership, membership,
+ * plans, and usage metrics.
+ * @type {mongoose.Schema<WorkspaceDocument>}
+ */
 const WorkspaceSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -125,7 +192,13 @@ WorkspaceSchema.index({ owner: 1 });
 
 
 // --- Virtuals for Computed Properties ---
-// Virtual property to get the current number of members without needing to calculate it on the client.
+/**
+ * Virtual property to get the current number of members.
+ * This provides a convenient way to access the member count without needing to calculate it on the client.
+ * @name WorkspaceDocument#memberCount
+ * @type {number}
+ * @readonly
+ */
 WorkspaceSchema.virtual('memberCount').get(function() {
     return this.members.length;
 });
@@ -135,6 +208,8 @@ WorkspaceSchema.virtual('memberCount').get(function() {
 /**
  * Checks if the workspace has reached its member limit according to its plan.
  * This is a crucial check before sending new invitations to prevent exceeding plan limits.
+ * @memberof WorkspaceDocument
+ * @instance
  * @returns {boolean} True if the member limit has been reached or exceeded.
  */
 WorkspaceSchema.methods.isAtMemberLimit = function() {
@@ -145,6 +220,8 @@ WorkspaceSchema.methods.isAtMemberLimit = function() {
 
 /**
  * Retrieves the role of a specific user within the workspace.
+ * @memberof WorkspaceDocument
+ * @instance
  * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
  * @returns {string|null} The user's role ('owner', 'admin', etc.) or null if the user is not a member.
  */
@@ -155,6 +232,8 @@ WorkspaceSchema.methods.getMemberRole = function(userId) {
 
 /**
  * Checks if a user is a member of the workspace.
+ * @memberof WorkspaceDocument
+ * @instance
  * @param {mongoose.Types.ObjectId | string} userId - The ID of the user.
  * @returns {boolean} True if the user is a member.
  */
@@ -167,6 +246,11 @@ WorkspaceSchema.methods.isMember = function(userId) {
 WorkspaceSchema.set('toJSON', { virtuals: true });
 WorkspaceSchema.set('toObject', { virtuals: true });
 
+/**
+ * Mongoose model for the Workspace collection.
+ * Provides an interface to the database for creating, querying, updating, and deleting workspaces.
+ * @type {mongoose.Model<WorkspaceDocument>}
+ */
 const Workspace = mongoose.model('Workspace', WorkspaceSchema);
 
 export default Workspace;

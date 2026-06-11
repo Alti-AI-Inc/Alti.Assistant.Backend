@@ -9,11 +9,8 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { documentAnalysisService } from './document_analysis.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 // Optimization: For better query performance on SubscriptionModel, consider adding indexes.
-// For queries like `SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 })`,
-// recommended indexes are:
-// 1. { userId: 1 }
-// 2. { userId: 1, createdAt: -1 } (a compound index for the find and sort combination)
-// import { conversationHelpers } from '../conversations/conversation.helpers.js'; // This import is no longer needed after logic correction.
+// For queries like `SubscriptionModel.findOne({ workspaceId }).sort({ createdAt: -1 })`,
+// a compound index on `{ workspaceId: 1, createdAt: -1 }` is recommended.
 import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
@@ -57,7 +54,7 @@ const historyLimiter = new RateLimiterMemory({
  * @property {string} originalname - The original name of the uploaded file.
  * @property {string} mimetype - The MIME type of the file.
  * @property {number} size - The size of the file in bytes.
- * @property {string} location - The canonical GCS URI of the uploaded file (e.g., 'gs://my-bucket/uploads/user123/file.pdf').
+ * @property {string} location - The canonical GCS URI of the uploaded file (e.g., 'gs://my-bucket/uploads/workspace123/user456/file.pdf').
  * @property {object} gcs - GCS-specific details for the service layer.
  * @property {string} gcs.bucket - The GCS bucket name.
  * @property {string} gcs.path - The path to the object within the bucket.
@@ -84,6 +81,7 @@ const historyLimiter = new RateLimiterMemory({
  * @property {string} _id - The ID of the conversation entry.
  * @property {string} conversationId - The ID of the conversation.
  * @property {string} userId - The ID of the user.
+ * @property {string} workspaceId - The ID of the workspace.
  * @property {string} role - The role of the message sender (e.g., 'user', 'assistant').
  * @property {string} content - The content of the message.
  * @property {string} [fileUrl] - A secure, temporary GCS Signed URL for accessing the file associated with the message, if any.
@@ -98,12 +96,13 @@ const historyLimiter = new RateLimiterMemory({
  * @summary Analyze document or text content.
  * @description This endpoint processes either an uploaded document file or a text message for analysis.
  * It supports optional conversation context and different analysis types and output formats.
- * It also enforces subscription limits for authenticated users.
+ * It also enforces subscription limits for authenticated users based on their workspace.
  *
  * @security Guest Access / Authenticated User
- * @permission Multi-tenant / User-isolated. Authenticated users are restricted by their subscription limits. Guests have auto-generated temporary IDs.
+ * @permission Multi-tenant / Workspace-isolated. Authenticated users are restricted by their workspace's subscription limits.
+ * Roles (user, manager, admin) are handled by the service layer. Guests have auto-generated temporary IDs.
  *
- * @param {import('express').Request & { file?: Express.Multer.File, isGuest?: boolean, user?: { userId: string, _id: string } }} req - The Express request object.
+ * @param {import('express').Request & { file?: Express.Multer.File, isGuest?: boolean, user?: { userId: string, _id: string, role: string, workspaceId: string } }} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
@@ -111,7 +110,7 @@ const historyLimiter = new RateLimiterMemory({
  * /api/v1/document-analysis/analyze:
  *   post:
  *     summary: Analyze document or text content
- *     description: Processes either an uploaded document file or a text message for analysis. Enforces subscription limits for authenticated users.
+ *     description: Processes either an uploaded document file or a text message for analysis. Enforces workspace subscription limits for authenticated users.
  *     tags:
  *       - Document Analysis
  *     security:
@@ -169,20 +168,13 @@ const historyLimiter = new RateLimiterMemory({
  *                   type: string
  *                   example: "Document analysis successful"
  *                 data:
- *                   type: object
- *                   properties:
- *                     conversationId:
- *                       type: string
- *                     messageId:
- *                       type: string
- *                     response:
- *                       type: string
- *                     fileUrl:
- *                       type: string
+ *                   $ref: '#/components/schemas/AnalyzeDocumentResponseData'
  *       400:
  *         description: Bad Request - Neither file nor message provided
+ *       401:
+ *         description: Unauthorized - Authenticated user does not have a workspace ID
  *       403:
- *         description: Forbidden - Usage limit exceeded or no active subscription
+ *         description: Forbidden - Workspace usage limit exceeded or no active subscription
  *       429:
  *         description: Too Many Requests - Rate limit exceeded
  *       500:
@@ -190,19 +182,35 @@ const historyLimiter = new RateLimiterMemory({
  */
 export const analyzeDocument = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  // --- Security Enhancement: User ID Management ---
-  // User ID must be immutably sourced from the authentication token (for logged-in users)
-  // or generated server-side (for guests). Allowing it to be overridden from the request
-  // body is a critical security vulnerability that could lead to data tampering and
-  // unauthorized access to other users' conversations.
-  const userId = isGuest
-    ? documentAnalysisService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
-
   const { message, conversationId, analysisType, outputFormat } = req.body;
 
+  // --- Security Enhancement: User & Tenant Context Management ---
+  // User context must be immutably sourced from the authentication token.
+  // For authenticated users, this includes userId, role, and workspaceId.
+  // For guests, a temporary ID is generated.
+  let userId;
+  let workspaceId = null; // Guests do not have a workspace.
+
+  if (isGuest) {
+    userId = documentAnalysisService.generateGuestUserId();
+  } else {
+    userId = req.user?.userId || req.user?._id;
+    workspaceId = req.user?.workspaceId;
+    // CRITICAL: Authenticated users must belong to a workspace to use the service.
+    if (!workspaceId) {
+      logger.error(
+        `User ${userId} attempted to perform an action without a workspaceId.`
+      );
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message:
+          'User is not associated with a workspace. Access denied.',
+      });
+    }
+  }
+
   // --- Rate Limiting ---
-  // Apply rate limiting early to prevent resource abuse before any heavy processing.
   const rateLimitKey = isGuest ? req.ip : userId;
   const limiter = isGuest ? analysisGuestLimiter : analysisAuthLimiter;
 
@@ -222,10 +230,6 @@ export const analyzeDocument = catchAsync(async (req, res) => {
   }
 
   // --- GCS File Upload & Input Validation ---
-  // This logic replaces local filesystem writes. It streams the uploaded file
-  // directly to a GCS bucket, ensuring the application remains stateless. This requires
-  // an upstream middleware like Multer to be configured with 'memoryStorage' to
-  // provide the file in `req.file.buffer`.
   let fileInfo = null;
   if (req.file) {
     if (!gcsBucketName) {
@@ -239,37 +243,35 @@ export const analyzeDocument = catchAsync(async (req, res) => {
       });
     }
 
-    // Sanitize and create a unique GCS path for the file to prevent collisions and path traversal.
+    // Sanitize and create a unique, tenant-aware GCS path for the file.
     const safeOriginalName = req.file.originalname.replace(
       /[^a-zA-Z0-9._-]/g,
       '_'
     );
     const uniqueFileName = `${uuidv4()}-${safeOriginalName}`;
-    const gcsFilePath = `uploads/${userId}/${uniqueFileName}`;
-    const file = storage.bucket(gcsBucketName).file(gcsFilePath);
+    // HIERARCHY FIX: Isolate uploads by workspace for better data management and security.
+    const gcsObjectPath = isGuest
+      ? `uploads/guests/${userId}/${uniqueFileName}`
+      : `uploads/${workspaceId}/${userId}/${uniqueFileName}`;
+    const file = storage.bucket(gcsBucketName).file(gcsObjectPath);
 
     try {
-      // Stream the buffer from memory directly to GCS.
       await file.save(req.file.buffer, {
-        metadata: {
-          contentType: req.file.mimetype,
-        },
-        // For large files (>10MB), consider setting resumable: true
+        metadata: { contentType: req.file.mimetype },
         resumable: false,
       });
 
-      const gcsUri = `gs://${gcsBucketName}/${gcsFilePath}`;
+      const gcsUri = `gs://${gcsBucketName}/${gcsObjectPath}`;
       logger.info(`File successfully uploaded for user ${userId} to ${gcsUri}`);
 
-      // This object is passed to the service layer for further processing.
       fileInfo = {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        location: gcsUri, // The canonical GCS URI.
+        location: gcsUri,
         gcs: {
           bucket: gcsBucketName,
-          path: gcsFilePath,
+          path: gcsObjectPath,
         },
       };
     } catch (error) {
@@ -282,7 +284,6 @@ export const analyzeDocument = catchAsync(async (req, res) => {
     }
   }
 
-  // A user must provide content to be analyzed, either as text or a file.
   if (!fileInfo && (!message || message.trim() === '')) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -293,50 +294,44 @@ export const analyzeDocument = catchAsync(async (req, res) => {
   }
 
   logger.info(
-    `Analysis request from ${isGuest ? 'guest' : 'user'} ${userId}`,
+    `Analysis request from ${
+      isGuest ? 'guest' : `user ${userId} in workspace ${workspaceId}`
+    }`,
     { hasFile: !!fileInfo, hasMessage: !!message, conversationId, analysisType }
   );
 
-  // --- Subscription & Usage Limit Enforcement for Authenticated Users ---
+  // --- HIERARCHY FIX: Workspace Subscription & Usage Limit Enforcement ---
   if (!isGuest) {
-    // Find the user's most recent (and presumably active) subscription plan.
-    const subscription = await SubscriptionModel.findOne({ userId })
-      .sort({
-        createdAt: -1,
-      })
+    // Subscriptions are tied to the workspace, not the individual user.
+    const subscription = await SubscriptionModel.findOne({ workspaceId })
+      .sort({ createdAt: -1 })
       .lean();
 
-    // --- Logic Correction: Usage Limit Check ---
-    // The previous logic was flawed. This corrected logic properly checks if the user's
-    // current usage has met or exceeded their plan's limit.
-    // This assumes the SubscriptionModel contains `currentUsage` and `usageLimit` fields.
     if (!subscription || subscription.currentUsage >= subscription.usageLimit) {
       logger.warn(
-        `Usage limit exceeded for user ${userId}. Current: ${subscription?.currentUsage}, Limit: ${subscription?.usageLimit}`
+        `Usage limit exceeded for workspace ${workspaceId} (user: ${userId}). Current: ${subscription?.currentUsage}, Limit: ${subscription?.usageLimit}`
       );
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
         message:
-          'Usage limit exceeded or no active subscription. Please upgrade your plan.',
+          'Workspace usage limit exceeded or no active subscription. Please contact your administrator.',
       });
     }
   }
 
   // --- Service Layer Call ---
-  // The service layer is responsible for the core business logic. It will receive
-  // the `fileInfo` object containing the GCS location. When returning a `fileUrl`
-  // in the response, the service layer should generate a GCS V4 Signed URL for
-  // secure, temporary access to the file.
+  // Pass the full user context (req.user) to the service layer.
+  // The service layer is responsible for core business logic, including incrementing
+  // workspace usage, handling role-based permissions, and generating notifications.
   const result = await documentAnalysisService.analyzeContent(
-    userId,
     message,
     fileInfo,
     conversationId,
     analysisType,
     outputFormat,
     isGuest,
-    req
+    isGuest ? { userId } : req.user // Pass a consistent user context object
   );
 
   sendResponse(res, {
@@ -351,12 +346,14 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  * Get conversation history endpoint
  *
  * @summary Retrieve the history of a specific conversation.
- * @description Fetches all messages and analysis results associated with a given conversation ID for the authenticated user.
+ * @description Fetches all messages for a given conversation ID. Access is determined by user role within their workspace.
  *
  * @security Authenticated User
- * @permission Multi-tenant / User-isolated. Users can only access conversations belonging to their own `userId`.
+ * @permission Multi-tenant / Role-based.
+ * - 'user' role can only access their own conversations.
+ * - 'manager' and 'admin' roles can access all conversations within their workspace.
  *
- * @param {import('express').Request & { user?: { userId: string, _id: string } }} req - The Express request object.
+ * @param {import('express').Request & { user?: { userId: string, _id: string, role: string, workspaceId: string } }} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
@@ -364,7 +361,7 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  * /api/v1/document-analysis/conversations/{conversationId}:
  *   get:
  *     summary: Retrieve the history of a specific conversation
- *     description: Fetches all messages and analysis results associated with a given conversation ID for the authenticated user.
+ *     description: Fetches messages for a conversation. Access is role-based within the user's workspace.
  *     tags:
  *       - Document Analysis
  *     security:
@@ -399,8 +396,10 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  *                     $ref: '#/components/schemas/ConversationHistoryResponseData'
  *       400:
  *         description: Bad Request - Invalid conversation ID format
+ *       401:
+ *         description: Unauthorized - User context is missing
  *       404:
- *         description: Conversation not found or not accessible
+ *         description: Conversation not found or not accessible by the user
  *       429:
  *         description: Too Many Requests - Rate limit exceeded
  *       500:
@@ -408,11 +407,17 @@ export const analyzeDocument = catchAsync(async (req, res) => {
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
-  const userId = req.user?.userId || req.user?._id;
+  // HIERARCHY FIX: The entire user context (including role and workspaceId) is needed for authorization.
+  const userContext = req.user;
 
-  // --- Input Validation ---
-  // Validate that the conversationId is a valid MongoDB ObjectId before querying the database.
-  // This prevents malformed queries, potential errors, and provides a clearer error to the client.
+  if (!userContext || !userContext.userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Authentication details are missing.',
+    });
+  }
+
   if (!mongoose.Types.ObjectId.isValid(conversationId)) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -423,12 +428,10 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 
   // --- Rate Limiting ---
   try {
-    await historyLimiter.consume(userId || req.ip);
+    await historyLimiter.consume(userContext.userId);
   } catch (rateLimiterRes) {
     logger.warn(
-      `Rate limit exceeded for user ${
-        userId || req.ip
-      } on getConversationHistory`
+      `Rate limit exceeded for user ${userContext.userId} on getConversationHistory`
     );
     return sendResponse(res, {
       statusCode: httpStatus.TOO_MANY_REQUESTS,
@@ -438,16 +441,16 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   logger.info(
-    `Fetching conversation history: ${conversationId} for user ${userId}`
+    `Fetching conversation history: ${conversationId} for user ${userContext.userId} in workspace ${userContext.workspaceId}`
   );
 
-  // The service layer must ensure that the conversation belongs to the requesting userId
-  // to maintain data isolation and privacy. The service layer is also responsible for
-  // generating GCS Signed URLs for any `fileUrl` fields in the response.
+  // HIERARCHY FIX: Pass the full user context to the service layer.
+  // The service layer is now responsible for implementing role-based access control (RBAC).
+  // e.g., it will check if (conversation.userId === user.userId) OR
+  // (conversation.workspaceId === user.workspaceId AND user.role IN ['admin', 'manager']).
   const conversation = await documentAnalysisService.getConversationHistory(
     conversationId,
-    userId,
-    req
+    userContext
   );
 
   sendResponse(res, {
