@@ -5,8 +5,8 @@ const Schema = mongoose.Schema;
 
 /**
  * @file This file defines the Mongoose schema and model for the User entity.
- * @description This model was updated from a generic 'Admin' to a 'User' model to support a multi-tenant workspace structure with Managers and Members.
- * It now includes workspace scoping, role management, and an invitation flow, which are essential for the Manager Dashboard features.
+ * @description This model supports a multi-tenant workspace structure with a full role hierarchy: Super Admin, Admin (Workspace Owner), Manager, and Member.
+ * It includes workspace scoping, role management, and an invitation flow, which are essential for platform and workspace administration.
  * @module models/user
  * @requires mongoose
  * @requires bcryptjs
@@ -15,15 +15,16 @@ const Schema = mongoose.Schema;
 
 /**
  * Mongoose schema for the User entity.
- * Represents a user within a specific workspace, who can have roles like 'manager' or 'member'.
+ * Represents a user within the platform. Users can be platform-level (super_admin) or belong to a specific workspace
+ * with roles like 'admin', 'manager', or 'member'.
  *
  * @typedef {object} UserSchema
  * @property {string} email - The unique email address of the user. Serves as the primary identifier. Required.
  * @property {string} [password] - The hashed password of the user. Not required until the user accepts an invitation.
  * @property {string} [firstName] - The first name of the user.
  * @property {string} [lastName] - The last name of the user.
- * @property {mongoose.Schema.Types.ObjectId} workspaceId - A reference to the Workspace this user belongs to. Required.
- * @property {string} role - The user's role within their workspace (e.g., 'manager', 'member'). Required.
+ * @property {mongoose.Schema.Types.ObjectId} [workspaceId] - A reference to the Workspace this user belongs to. Required for all roles except 'super_admin'.
+ * @property {string} role - The user's role ('super_admin', 'admin', 'manager', 'member'). Required.
  * @property {string} status - The current status of the user account (e.g., 'pending', 'active').
  * @property {string} [invitationToken] - A token sent to the user for them to accept the invitation and set their password.
  * @property {Date} [invitationExpires] - The expiry date for the invitation token.
@@ -56,18 +57,27 @@ const userSchema = new Schema({
         trim: true
     },
     // Core feature: Links user to a specific workspace for multi-tenancy.
-    // All manager actions (viewing metrics, managing roles) are scoped by this ID.
+    // All non-super_admin actions are scoped by this ID.
     workspaceId: {
         type: Schema.Types.ObjectId,
         ref: 'Workspace', // Assumes a 'Workspace' model exists.
-        required: [true, 'User must be associated with a workspace.'],
+        // HIERARCHY FIX: A workspace is required for all roles except the platform-level 'super_admin'.
+        // This enforces tenant boundaries for all workspace-specific users and correctly models the platform owner role.
+        required: [
+            function() { return this.role !== 'super_admin'; },
+            'User must be associated with a workspace unless they are a super_admin.'
+        ],
         index: true
     },
-    // Core feature: Defines user permissions within their workspace.
-    // A 'manager' can invite/manage other users in the same workspace.
+    // Core feature: Defines user permissions.
     role: {
         type: String,
-        enum: ['manager', 'member'], // Workspace-specific roles.
+        // HIERARCHY FIX: Expanded roles to support the full platform hierarchy as required.
+        // 'super_admin': Platform-level owner, not tied to a workspace.
+        // 'admin': Workspace owner, manages billing and top-level settings for their workspace.
+        // 'manager': Manages members and resources within a workspace.
+        // 'member': Standard user within a workspace.
+        enum: ['super_admin', 'admin', 'manager', 'member'],
         required: true,
         default: 'member'
     },
@@ -96,11 +106,9 @@ const userSchema = new Schema({
  * This ensures that plain-text passwords are never stored in the database.
  */
 userSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) {
-        return next();
-    }
-    // If the password field is empty (e.g., during invitation), do not attempt to hash it.
-    if (!this.password) {
+    // BUGFIX: Robustly check if a new, non-empty password needs hashing.
+    // This prevents errors from trying to hash a null or unmodified password.
+    if (!this.isModified('password') || !this.password) {
         return next();
     }
 
@@ -120,6 +128,10 @@ userSchema.pre('save', async function(next) {
  */
 userSchema.methods.comparePassword = async function(candidatePassword) {
     // A query explicitly selecting `+password` is needed before calling this method.
+    // BUGFIX: Handle cases where this.password is null (e.g., for a 'pending' user who hasn't set a password).
+    if (!this.password || !candidatePassword) {
+        return false;
+    }
     return bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -130,7 +142,7 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
  */
 userSchema.methods.generateInvitationToken = function() {
     // Generate a random, secure token.
-    const token = crypto.randomBytes(20).toString('hex');
+    const token = crypto.randomBytes(32).toString('hex'); // Increased token length for better security.
 
     // Hash the token before saving it to the database for added security.
     this.invitationToken = crypto
@@ -153,8 +165,11 @@ userSchema.methods.generateInvitationToken = function() {
 userSchema.index({ workspaceId: 1, status: 1 });
 
 // Optimizes queries for finding users by their role within a workspace.
-// Useful for authorization checks (e.g., is this user a 'manager'?).
+// Useful for authorization checks (e.g., is this user an 'admin' or 'manager'?).
 userSchema.index({ workspaceId: 1, role: 1 });
+
+// Index to quickly find a user by their invitation token during the registration process.
+userSchema.index({ invitationToken: 1 });
 
 
 /**
