@@ -243,6 +243,11 @@ ChatbotSchema.index({ tenantId: 1, userId: 1, isActive: 1 });
  * @index
  */
 ChatbotSchema.index({ tenantId: 1, isShared: 1, isActive: 1 });
+
+// PERFORMANCE_OPTIMIZATION: Added a compound index to efficiently sort chatbots by last activity within a tenant.
+// This is crucial for manager dashboards showing "recently active" bots, avoiding slow in-memory sorts or filesort operations in MongoDB.
+ChatbotSchema.index({ tenantId: 1, lastActivityAt: -1 });
+
 /**
  * Index for querying chatbots by user and active status (legacy fallback).
  * @index
@@ -260,6 +265,7 @@ ChatbotSchema.index({ userId: 1, isActive: 1 }); // Legacy fallback
 ChatbotSchema.pre('save', async function (next) {
   if (this.tenantId && (this.isModified('tenantId') || this.isModified('userId'))) {
     const UserModel = mongoose.model('User');
+    // PERFORMANCE: .lean() is used to prevent hydration of a full Mongoose document for this simple read-only check.
     const user = await UserModel.findById(this.userId).select('tenantId').lean();
 
     if (!user) {
@@ -289,6 +295,7 @@ ChatbotSchema.pre('findOneAndUpdate', async function (next) {
   }
 
   // We need both values for validation. One may be in the update, the other in the original document.
+  // PERFORMANCE: .lean() is used to prevent hydration of a full Mongoose document for this simple read-only check.
   const docToUpdate = await this.model.findOne(this.getQuery()).select('userId tenantId').lean();
   if (!docToUpdate) {
     return next(); // Let the operation fail on its own if doc not found.
@@ -300,6 +307,7 @@ ChatbotSchema.pre('findOneAndUpdate', async function (next) {
   // If the final state includes a tenant, perform the validation.
   if (finalTenantId) {
     const UserModel = mongoose.model('User');
+    // PERFORMANCE: .lean() is used to prevent hydration of a full Mongoose document for this simple read-only check.
     const user = await UserModel.findById(finalUserId).select('tenantId').lean();
 
     if (!user) {

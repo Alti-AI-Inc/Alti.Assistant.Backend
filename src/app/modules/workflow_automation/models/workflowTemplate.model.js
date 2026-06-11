@@ -274,31 +274,33 @@ const WorkflowTemplateSchema = new mongoose.Schema(
 
 /**
  * Indexes for efficient querying of Workflow Templates.
+ * Indexes are crucial for performance, especially for a public-facing template gallery.
  */
-// OPTIMIZATION: Added a text index on name and description to support efficient full-text search.
-// This is crucial for a search bar feature in a template gallery.
+
+// Text index for full-text search on name and description.
+// Essential for implementing a search bar feature.
 WorkflowTemplateSchema.index({ name: 'text', description: 'text' });
 
-// OPTIMIZATION: Added a compound index to optimize the most common browsing pattern:
-// finding public templates in a specific category, sorted by rating or usage.
-// This index covers filtering by isPublic and category, and sorting by rating.average.
+// Compound indexes for the most common browsing and filtering patterns.
+// This supports finding public templates in a specific category, sorted by rating or usage count.
+// The order of fields (isPublic, category, then sort field) is important for query performance.
 WorkflowTemplateSchema.index({ isPublic: 1, category: 1, 'rating.average': -1 });
 WorkflowTemplateSchema.index({ isPublic: 1, category: 1, usageCount: -1 });
 
+// OPTIMIZATION: The index { category: 1, isPublic: 1 } was removed as it is redundant.
+// The compound index { isPublic: 1, category: 1, ... } can efficiently serve queries
+// that filter on `isPublic` and `category` alone by using a prefix of the index.
+// Removing redundant indexes reduces write overhead and storage space.
 
-// OPTIMIZATION: Added an index on `createdBy` to quickly fetch all templates created by a specific user.
+// Index to quickly fetch all templates created by a specific user.
 WorkflowTemplateSchema.index({ createdBy: 1 });
 
-// Index for filtering by category and public status.
-WorkflowTemplateSchema.index({ category: 1, isPublic: 1 });
+// Multi-key indexes for filtering by array fields like tags and requiredApps.
+// These are common filters in a template gallery. `isPublic` is first for consistency.
+WorkflowTemplateSchema.index({ isPublic: 1, tags: 1 });
+WorkflowTemplateSchema.index({ isPublic: 1, requiredApps: 1 });
 
-// Index for filtering by tags and public status (multi-key index).
-WorkflowTemplateSchema.index({ tags: 1, isPublic: 1 });
-
-// OPTIMIZATION: Added an index for finding public templates that require a specific app.
-WorkflowTemplateSchema.index({ requiredApps: 1, isPublic: 1 });
-
-// Index for sorting by popularity/quality.
+// Index for global sorting by popularity/quality across all templates.
 WorkflowTemplateSchema.index({ 'rating.average': -1, usageCount: -1 });
 
 
