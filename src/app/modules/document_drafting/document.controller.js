@@ -2,15 +2,56 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
+import { rateLimiter } from '../../../shared/rateLimiter.js'; // AI-AGENT: Import rate limiter utility
 import { documentService } from './document.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 // import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Removed as it was misused in subscription logic
+
+// --- DDOS & Rate-Limiting Guard ---
+// This section defines rate limiters to protect against API abuse, DDOS, and excessive costs.
+
+// Strict limiter for guest (IP-based) access to expensive AI endpoints.
+const guestGenerationLimiter = rateLimiter({
+  keyPrefix: 'guest_doc_generation_limit_ip',
+  points: 5, // Max 5 requests
+  duration: 60, // per 60 seconds
+  errorMessage:
+    'Too many document generation requests. Please create an account or try again in a minute.',
+});
+
+// Burst protection for authenticated users (user ID-based) on expensive AI endpoints.
+// Their primary limit is the subscription plan; this prevents rapid-fire abuse.
+const authenticatedGenerationLimiter = rateLimiter({
+  keyPrefix: 'auth_doc_generation_limit_user',
+  points: 30, // Max 30 requests
+  duration: 60, // per 60 seconds
+  keyGenerator: req => req.user?.userId || req.user?._id, // Use User ID as the key
+  errorMessage: 'You are making too many requests. Please slow down.',
+});
+
+// Dynamic middleware that applies the correct limiter based on authentication status.
+const conditionalGenerationLimiter = (req, res, next) => {
+  const isGuest = req.isGuest || !req.user;
+  if (isGuest) {
+    return guestGenerationLimiter(req, res, next);
+  }
+  return authenticatedGenerationLimiter(req, res, next);
+};
+
+// General purpose limiter for other endpoints to prevent basic DDOS.
+const generalApiLimiter = rateLimiter({
+  keyPrefix: 'general_api_limit_ip',
+  points: 60, // Max 60 requests
+  duration: 60, // per 60 seconds
+  errorMessage: 'Too many requests. Please try again later.',
+});
+// --- End of DDOS & Rate-Limiting Guard ---
 
 /**
  * Conversational document drafting assistant endpoint
  * Handles natural language requests for document generation
  */
-export const conversationalAssistant = catchAsync(async (req, res) => {
+const conversationalAssistantHandler = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   let userId = isGuest
     ? documentService.generateGuestUserId()
@@ -23,7 +64,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // userId = req.body.userId || userId;
 
   logger.info(
-    `Document assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+    `Document assistant request from ${
+      isGuest ? 'guest' : 'authenticated'
+    } user ${userId}`
   );
 
   // Check subscription limits for authenticated users
@@ -31,9 +74,11 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     // Optimization: Add .lean() for read-only query to reduce Mongoose document overhead.
     // Optimization: Consider adding an index to SubscriptionModel on { userId: 1, createdAt: -1 }
     //               to speed up this query and sorting.
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    }).lean(); // Added .lean()
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
 
     // BUG FIX: Corrected subscription limit check logic.
@@ -118,7 +163,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
  * Direct document generation endpoint (non-conversational)
  * For programmatic access with all parameters provided
  */
-export const generateDocument = catchAsync(async (req, res) => {
+const generateDocumentHandler = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   const userId = isGuest
     ? documentService.generateGuestUserId()
@@ -137,9 +182,11 @@ export const generateDocument = catchAsync(async (req, res) => {
     // Optimization: Add .lean() for read-only query to reduce Mongoose document overhead.
     // Optimization: Consider adding an index to SubscriptionModel on { userId: 1, createdAt: -1 }
     //               to speed up this query and sorting.
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    }).lean(); // Added .lean()
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean(); // Added .lean()
 
     // Assuming userSubscription.usage represents the remaining generations.
     if (!userSubscription || userSubscription.usage <= 0) {
@@ -196,7 +243,7 @@ export const generateDocument = catchAsync(async (req, res) => {
 /**
  * Export existing document to different format
  */
-export const exportDocument = catchAsync(async (req, res) => {
+const exportDocumentHandler = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   const userId = isGuest
     ? documentService.generateGuestUserId()
@@ -233,7 +280,7 @@ export const exportDocument = catchAsync(async (req, res) => {
 /**
  * Edit/refine existing document
  */
-export const editDocument = catchAsync(async (req, res) => {
+const editDocumentHandler = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   const userId = isGuest
     ? documentService.generateGuestUserId()
@@ -264,6 +311,23 @@ export const editDocument = catchAsync(async (req, res) => {
     });
   }
 });
+
+// --- Middleware & Handler Exports ---
+// Each route is protected by one or more rate-limiting middleware before the controller logic is executed.
+
+export const conversationalAssistant = [
+  conditionalGenerationLimiter,
+  conversationalAssistantHandler,
+];
+
+export const generateDocument = [
+  conditionalGenerationLimiter,
+  generateDocumentHandler,
+];
+
+export const exportDocument = [generalApiLimiter, exportDocumentHandler];
+
+export const editDocument = [generalApiLimiter, editDocumentHandler];
 
 export const documentController = {
   conversationalAssistant,

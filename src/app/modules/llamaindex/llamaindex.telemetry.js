@@ -14,28 +14,36 @@ import { logger } from '../../../shared/logger.js';
  * and query type distributions across sessions.
  *
  * Architecture:
- *   - In-memory ring buffer (10k entries) for hot queries (used for `getAnalytics`)
+ *   - In-memory ring buffer for hot queries (used for analytics)
  *   - Separate buffer for entries awaiting flush to disk (to avoid re-writing)
  *   - Periodic flush to disk at storage/ragsystem/telemetry/
  *   - Future: MongoDB migration path via Mongoose model
  */
 
+// PLATFORM OWNER: All key operational parameters are now configurable via environment variables.
+// This allows a Platform Owner to tune the telemetry system's performance and resource usage
+// without requiring a code deployment.
+
 /**
  * @constant {number} MAX_RING_BUFFER_SIZE - Maximum number of completed telemetry entries to keep in memory for analytics.
+ * @env {TELEMETRY_MAX_BUFFER} - Overrides the default value.
  */
-const MAX_RING_BUFFER_SIZE = 10000;
+const MAX_RING_BUFFER_SIZE = parseInt(process.env.TELEMETRY_MAX_BUFFER, 10) || 10000;
 /**
  * @constant {number} FLUSH_INTERVAL_MS - Interval in milliseconds at which pending telemetry entries are flushed to disk.
+ * @env {TELEMETRY_FLUSH_INTERVAL_MS} - Overrides the default value.
  */
-const FLUSH_INTERVAL_MS = 60_000; // Flush every 60 seconds
+const FLUSH_INTERVAL_MS = parseInt(process.env.TELEMETRY_FLUSH_INTERVAL_MS, 10) || 60_000; // Flush every 60 seconds
 /**
  * @constant {number} ACTIVE_TRACE_CLEANUP_INTERVAL_MS - Interval in milliseconds at which active traces are checked for abandonment.
+ * @env {TELEMETRY_CLEANUP_INTERVAL_MS} - Overrides the default value.
  */
-const ACTIVE_TRACE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up active traces every 5 minutes
+const ACTIVE_TRACE_CLEANUP_INTERVAL_MS = parseInt(process.env.TELEMETRY_CLEANUP_INTERVAL_MS, 10) || 5 * 60 * 1000; // Clean up active traces every 5 minutes
 /**
  * @constant {number} ACTIVE_TRACE_TIMEOUT_MS - Duration in milliseconds after which an active trace is considered abandoned if not explicitly ended.
+ * @env {TELEMETRY_TRACE_TIMEOUT_MS} - Overrides the default value.
  */
-const ACTIVE_TRACE_TIMEOUT_MS = 10 * 60 * 1000; // Consider a trace abandoned if active for more than 10 minutes
+const ACTIVE_TRACE_TIMEOUT_MS = parseInt(process.env.TELEMETRY_TRACE_TIMEOUT_MS, 10) || 10 * 60 * 1000; // Consider a trace abandoned if active for more than 10 minutes
 /**
  * @constant {string} TELEMETRY_DIR - The absolute path to the directory where telemetry logs are stored.
  */
@@ -140,7 +148,11 @@ class TelemetryCollector {
       }
 
       this._initialized = true;
-      logger.info('TelemetryCollector initialized');
+      logger.info('TelemetryCollector initialized', {
+        MAX_RING_BUFFER_SIZE,
+        FLUSH_INTERVAL_MS,
+        ACTIVE_TRACE_TIMEOUT_MS,
+      });
     } catch (err) {
       // This will catch synchronous errors from mkdirSync.
       logger.error('TelemetryCollector: Fatal initialization error. Telemetry will be disabled.', { error: err });
@@ -241,29 +253,13 @@ class TelemetryCollector {
   /**
    * Retrieves aggregated analytics for telemetry data.
    * Analytics are computed from the in-memory ring buffer, filtered by context and time window.
+   * PLATFORM OWNER: Call without filters to get a global, system-wide aggregate view.
    *
    * @param {Object} [filters={}] - Optional. An object containing filters for the analytics.
    * @param {string} [filters.userId] - Filters analytics to a specific user.
    * @param {string} [filters.workspaceId] - Filters analytics to a specific workspace.
    * @param {string} [window='24h'] - The time window for aggregation. Supported values: '1h', '6h', '24h', '7d', '30d', 'all'.
    * @returns {Object} An object containing aggregated telemetry analytics.
-   * @property {string} window - The time window used for aggregation.
-   * @property {Object} filters - The filters applied to the analytics query.
-   * @property {number} totalQueries - The total number of queries within the specified window and filter.
-   * @property {number} successRate - The proportion of successful queries (0.0 - 1.0).
-   * @property {number} cacheHitRate - The proportion of cache hits (0.0 - 1.0).
-   * @property {Object} latency - Latency statistics.
-   * @property {number} latency.p50 - 50th percentile latency in milliseconds.
-   * @property {number} latency.p95 - 95th percentile latency in milliseconds.
-   * @property {number} latency.p99 - 99th percentile latency in milliseconds.
-   * @property {number} latency.avg - Average latency in milliseconds.
-   * @property {number} latency.min - Minimum latency in milliseconds.
-   * @property {number} latency.max - Maximum latency in milliseconds.
-   * @property {Object<string, number>} queryTypeDistribution - A map showing the count of each query type.
-   * @property {number} avgChunks - Average number of chunks retrieved per query.
-   * @property {number|null} avgScore - Average retrieval quality score, or null if no scores are available.
-   * @property {Array<Object>} recentErrors - A list of up to 10 most recent errors, including query type, error message, time, and duration.
-   * @property {number} totalRecordedAllTime - The total number of entries ever recorded by this collector instance.
    */
   getAnalytics(filters = {}, window = '24h') {
     const now = Date.now();
@@ -277,6 +273,7 @@ class TelemetryCollector {
 
     // SECURITY: Apply filters to respect tenant/user boundaries.
     // The calling service is responsible for providing the correct filters based on the requester's role.
+    // A Platform Owner can omit filters to see global data.
     if (filters.workspaceId) {
       filtered = filtered.filter((e) => e.workspaceId === filters.workspaceId);
     }
@@ -350,6 +347,105 @@ class TelemetryCollector {
       recentErrors,
       totalRecordedAllTime: this.totalRecorded,
     };
+  }
+
+  /**
+   * PLATFORM OWNER: Retrieves high-level statistics for each tenant (workspace) in the system.
+   * This provides a global oversight view of tenant activity and performance.
+   *
+   * @param {string} [window='24h'] - The time window for aggregation. Supported values: '1h', '6h', '24h', '7d', '30d', 'all'.
+   * @returns {Array<Object>} An array of objects, each containing statistics for a specific workspace.
+   */
+  getGlobalTenantStats(window = '24h') {
+    const now = Date.now();
+    const windowMs = this._parseWindow(window);
+
+    const entriesInWindow = this.entries.filter((e) => {
+      const entryTime = new Date(e.startTime).getTime();
+      return (now - entryTime) <= windowMs;
+    });
+
+    const statsByWorkspace = new Map();
+
+    for (const entry of entriesInWindow) {
+      if (!entry.workspaceId) continue;
+
+      if (!statsByWorkspace.has(entry.workspaceId)) {
+        statsByWorkspace.set(entry.workspaceId, {
+          totalQueries: 0,
+          successCount: 0,
+          totalDurationMs: 0,
+          durations: [],
+        });
+      }
+
+      const stats = statsByWorkspace.get(entry.workspaceId);
+      stats.totalQueries++;
+      if (entry.success) {
+        stats.successCount++;
+      }
+      stats.totalDurationMs += entry.durationMs;
+      stats.durations.push(entry.durationMs);
+    }
+
+    const result = [];
+    for (const [workspaceId, stats] of statsByWorkspace.entries()) {
+      stats.durations.sort((a, b) => a - b);
+      const p95 = stats.durations[Math.floor(stats.durations.length * 0.95)] || 0;
+
+      result.push({
+        workspaceId,
+        totalQueries: stats.totalQueries,
+        successRate: stats.totalQueries > 0 ? Math.round((stats.successCount / stats.totalQueries) * 1000) / 1000 : 1.0,
+        avgLatencyMs: stats.totalQueries > 0 ? Math.round(stats.totalDurationMs / stats.totalQueries) : 0,
+        p95LatencyMs: p95,
+      });
+    }
+
+    // Sort by most active tenants
+    return result.sort((a, b) => b.totalQueries - a.totalQueries);
+  }
+
+  /**
+   * PLATFORM OWNER: Retrieves raw, persisted log entries from a specific day's log file.
+   * This allows for deep-dive analysis and auditing of all platform activity.
+   *
+   * @param {Object} options - The options for retrieving raw logs.
+   * @param {string} [options.date] - The date for which to retrieve logs, in 'YYYY-MM-DD' format. Defaults to today.
+   * @param {Object} [options.filters={}] - Optional filters to apply to the logs.
+   * @param {string} [options.filters.workspaceId] - Filter logs by workspace ID.
+   * @param {string} [options.filters.userId] - Filter logs by user ID.
+   * @returns {Promise<Array<Object>>} A promise that resolves to an array of log entry objects.
+   */
+  async getRawLogs({ date, filters = {} }) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const filePath = path.join(TELEMETRY_DIR, `telemetry_${targetDate}.jsonl`);
+
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      const entries = [];
+
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          // Apply filters
+          if (filters.workspaceId && entry.workspaceId !== filters.workspaceId) continue;
+          if (filters.userId && entry.userId !== filters.userId) continue;
+          entries.push(entry);
+        } catch (parseError) {
+          logger.warn('TelemetryCollector: Skipping malformed line in getRawLogs.', { line, error: parseError });
+        }
+      }
+      return entries;
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        // File not found is a normal case (e.g., no activity on that day)
+        return [];
+      }
+      logger.error('TelemetryCollector: Error reading raw telemetry file from disk.', { filePath, error: err });
+      throw err; // Re-throw other errors
+    }
   }
 
   /**

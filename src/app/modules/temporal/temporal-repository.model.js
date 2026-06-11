@@ -2,7 +2,9 @@ import mongoose from 'mongoose';
 
 /**
  * @typedef {object} TemporalRepositoryDocument
- * @property {string} name - The unique name of the temporal repository.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this repository belongs to.
+ * @property {mongoose.Schema.Types.ObjectId} createdBy - The ID of the user who created this repository record.
+ * @property {string} name - The name of the temporal repository, unique within a workspace.
  * @property {string} [description=''] - A brief description of the repository.
  * @property {'MIT License'|'Apache License 2.0'} license - The full name of the license used by the repository.
  * @property {'mit'|'apache-2.0'} license_key - The SPDX identifier for the license.
@@ -25,17 +27,42 @@ import mongoose from 'mongoose';
 const TemporalRepositorySchema = new mongoose.Schema(
   {
     /**
-     * The unique name of the temporal repository.
+     * BUG_FIX: SECURITY & INTEGRATION - Added workspaceId to enforce tenant boundaries.
+     * This is critical for preventing data leakage and IDOR vulnerabilities in a multi-tenant environment.
+     * All queries on this collection MUST be scoped by workspaceId.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref Workspace
+     * @required
+     */
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true // Indexed for efficient tenant-specific lookups.
+    },
+    /**
+     * BUG_FIX: INTEGRATION & AUDITING - Added createdBy to track ownership and user context.
+     * This is essential for role-based access control (e.g., managers viewing user's data), propagating usage details, and for auditing purposes.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
+     * @required
+     */
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    /**
+     * The name of the temporal repository.
+     * BUG_FIX: SECURITY - Uniqueness is now enforced at the workspace level via a compound index.
+     * This allows different workspaces to use the same repository name without conflict.
      * @type {string}
      * @required
-     * @unique
-     * @index
      */
     name: {
       type: String,
-      required: true,
-      unique: true,
-      index: true
+      required: true
+      // BUG_FIX: Removed global unique:true and index:true. Replaced with a compound index {workspaceId, name}.
     },
     /**
      * A brief description of the repository.
@@ -141,16 +168,21 @@ const TemporalRepositorySchema = new mongoose.Schema(
   }
 );
 
-// OPTIMIZATION: Added a compound index to support common query patterns.
-// This index is optimized for queries that filter by status and archived status,
-// and then sort by the number of stars (e.g., finding active, non-archived repos sorted by popularity).
+// BUG_FIX: SECURITY - Added a compound unique index for name scoped to workspaceId.
+// This ensures that repository names are unique within a single workspace, but can be reused across different workspaces.
+TemporalRepositorySchema.index({ workspaceId: 1, name: 1 }, { unique: true });
+
+// OPTIMIZATION: Updated compound index to include workspaceId for tenant-scoping.
+// This index is optimized for queries that filter by workspace, status, and archived status,
+// and then sort by the number of stars (e.g., finding active, non-archived repos in a specific workspace, sorted by popularity).
 // This is more efficient than having separate indexes on each of these fields, improving read performance and reducing write overhead.
-TemporalRepositorySchema.index({ status: 1, archived: 1, stars: -1 });
+TemporalRepositorySchema.index({ workspaceId: 1, status: 1, archived: 1, stars: -1 });
 
 /**
  * Enable full-text search index on the `name` and `description` fields.
  * Weights are assigned to prioritize matches in the name field.
  * The index is named 'TemporalTextIndex' and language override is set to 'none'.
+ * NOTE: All text search queries must be accompanied by a $match on `workspaceId` to maintain tenant isolation.
  */
 TemporalRepositorySchema.index(
   { name: 'text', description: 'text' },
