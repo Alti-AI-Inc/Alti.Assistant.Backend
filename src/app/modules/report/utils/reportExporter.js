@@ -21,6 +21,60 @@ if (!GCS_REPORT_BUCKET) {
   }
 }
 
+// Placeholder for a dedicated usage and limits service.
+// In a real application, this would be imported from another module
+// and would interact with the database to enforce tenant/workspace-specific rules.
+const usageService = {
+  /**
+   * Checks if a user is allowed to generate a report based on their role and current usage quotas.
+   * This is a critical security and business logic gate.
+   * @param {object} user - The user object with id, role, workspaceId, tenantId.
+   * @returns {Promise<{allowed: boolean, reason: string|null}>}
+   */
+  canGenerateReport: async (user) => {
+    // In a real implementation:
+    // 1. Fetch workspace/tenant subscription plan and associated limits (e.g., max reports per month, max storage).
+    // 2. Fetch current usage for the workspace/tenant for the current billing period.
+    // 3. Compare usage against limits.
+    // 4. Check role-based permissions (e.g., 'user' role might be blocked from generating certain complex reports).
+    logger.info(`Checking report generation limits for user ${user.id} in workspace ${user.workspaceId}`);
+    
+    // Example of a real check:
+    // const limits = await db.getLimitsForTenant(user.tenantId);
+    // const usage = await db.getCurrentUsageForWorkspace(user.workspaceId);
+    // if (usage.reportsThisMonth >= limits.maxReportsPerMonth) {
+    //   return { allowed: false, reason: 'Workspace report generation limit reached for this month.' };
+    // }
+    
+    // For this placeholder, we'll assume the action is always allowed.
+    return { allowed: true, reason: null };
+  },
+
+  /**
+   * Records that a report has been generated to update usage counters and trigger notifications.
+   * This ensures that usage is correctly tracked and propagated up the hierarchy.
+   * @param {object} user - The user object who generated the report.
+   * @param {object} reportDetails - Details about the generated report (e.g., size, format).
+   * @returns {Promise<void>}
+   */
+  recordReportGeneration: async (user, reportDetails) => {
+    // In a real implementation:
+    // 1. Atomically increment report count and storage usage for the user, workspace, and tenant in the database.
+    // 2. Log the generation event for auditing and security purposes.
+    // 3. Check if usage is approaching a limit (e.g., 90%) and trigger notifications
+    //    to managers and workspace administrators as needed.
+    logger.info(`Recording report generation for user ${user.id}. Details: ${JSON.stringify(reportDetails)}`);
+    
+    // Example of notification logic:
+    // const limits = await db.getLimitsForTenant(user.tenantId);
+    // const newUsage = await db.getCurrentUsageForWorkspace(user.workspaceId);
+    // if (newUsage.reportsThisMonth / limits.maxReportsPerMonth >= 0.9) {
+    //   await notificationService.notifyAdmins(user.workspaceId, 'Warning: Your workspace is approaching its monthly report generation limit.');
+    // }
+    return Promise.resolve();
+  }
+};
+
 /**
  * @typedef {object} ReportSection
  * @property {string} title - The title of the section.
@@ -383,39 +437,63 @@ export const generateJSONReport = (reportData, gcsObjectName) => {
 };
 
 /**
+ * @typedef {object} RequestingUser
+ * @property {string} id - The unique identifier for the user.
+ * @property {string} role - The role of the user (e.g., 'super_admin', 'admin', 'manager', 'user').
+ * @property {string} workspaceId - The identifier for the user's workspace.
+ * @property {string} tenantId - The identifier for the user's tenant, ensuring data segregation.
+ */
+
+/**
  * Main export function that dispatches report generation to the appropriate handler.
- * The generated report is uploaded to a user-specific folder in GCS, and a signed URL is returned.
- * This ensures user data isolation and enforces resource limits.
+ * The generated report is uploaded to a tenant- and user-specific folder in GCS, and a signed URL is returned.
+ * This ensures strict data isolation, enforces resource limits, and allows for hierarchical usage tracking.
  * @param {BaseReportData} reportData - The data to be included in the report.
  * @param {string} format - The desired output format (e.g., 'pdf', 'docx', 'csv', 'xlsx', 'txt', 'md', 'html', 'json').
  * @param {string} fileName - The desired file name for the report (e.g., 'monthly-summary.pdf'). Path characters are not allowed.
- * @param {string} userId - The unique identifier for the user requesting the report. Used to isolate user data.
+ * @param {RequestingUser} requestingUser - The context of the user requesting the report, used for authorization, tenancy, and usage tracking.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated report.
- * @throws {Error} If the report data is too large, the format is unsupported, or any underlying generator fails.
+ * @throws {Error} If the user context is invalid, limits are exceeded, the format is unsupported, or any underlying generator fails.
  */
-export const exportReport = async (reportData, format, fileName, userId) => {
-  // 1. Validate inputs for security and data isolation.
-  if (!userId || typeof userId !== 'string') {
-    throw new Error('A valid userId must be provided for report generation.');
-  }
-  // Sanitize userId to ensure it's a safe directory name.
-  const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
-  if (!sanitizedUserId) {
-    throw new Error('Provided userId is invalid or contains only disallowed characters.');
+export const exportReport = async (reportData, format, fileName, requestingUser) => {
+  // 1. Validate inputs for security, authorization, and data isolation.
+  if (!requestingUser || !requestingUser.id || !requestingUser.role || !requestingUser.workspaceId || !requestingUser.tenantId) {
+    // CRITICAL FIX: The user context object must be complete to ensure proper tenancy and authorization.
+    throw new Error('A valid user context (including id, role, workspaceId, tenantId) must be provided.');
   }
 
-  // 2. Enforce user-level limits to prevent abuse and ensure system stability.
+  // Sanitize IDs to ensure they are safe for use in a path.
+  const { id: userId, workspaceId, tenantId } = requestingUser;
+  const sanitizedTenantId = tenantId.replace(/[^a-zA-Z0-9-_]/g, '');
+  const sanitizedWorkspaceId = workspaceId.replace(/[^a-zA-Z0-9-_]/g, '');
+  const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
+
+  if (!sanitizedTenantId || !sanitizedWorkspaceId || !sanitizedUserId) {
+    throw new Error('Provided user context contains invalid IDs.');
+  }
+
+  // 2. Authorization & Limit Checks (Hierarchical)
+  // This is a critical integration point. We delegate to a dedicated service.
+  const check = await usageService.canGenerateReport(requestingUser);
+  if (!check.allowed) {
+    // Propagate reason for denial up to the user.
+    throw new Error(check.reason || 'Report generation limit reached or permission denied.');
+  }
+
+  // 3. Enforce payload size limits to prevent abuse and ensure system stability.
   const MAX_REPORT_DATA_SIZE_BYTES = EXPORT_CONFIG.maxReportSizeBytes || 5 * 1024 * 1024; // 5MB default
+  // Note: This could also be a limit fetched from the usageService based on the user's plan.
   if (Buffer.byteLength(JSON.stringify(reportData), 'utf8') > MAX_REPORT_DATA_SIZE_BYTES) {
     const limitMB = Math.round(MAX_REPORT_DATA_SIZE_BYTES / 1024 / 1024);
     throw new Error(`Report data exceeds the maximum allowed size of ${limitMB}MB.`);
   }
 
-  // 3. Sanitize filename and construct a secure, isolated GCS path.
+  // 4. Sanitize filename and construct a secure, tenant-isolated GCS path.
   const sanitizedFileName = sanitizeFileName(fileName);
-  const gcsObjectName = `reports/${sanitizedUserId}/${sanitizedFileName}`;
+  // CRITICAL FIX: Path now includes tenant and workspace IDs for strict data segregation, preventing IDOR vulnerabilities.
+  const gcsObjectName = `reports/${sanitizedTenantId}/${sanitizedWorkspaceId}/${sanitizedUserId}/${sanitizedFileName}`;
 
-  // 4. Dispatch to the correct generator based on the requested format.
+  // 5. Dispatch to the correct generator based on the requested format.
   const generators = {
     pdf: generatePDFReport,
     docx: generateDOCXReport,
@@ -435,5 +513,24 @@ export const exportReport = async (reportData, format, fileName, userId) => {
     throw new Error(`Unsupported export format: ${format}`);
   }
 
-  return await generator(reportData, gcsObjectName);
+  try {
+    const generatedUrl = await generator(reportData, gcsObjectName);
+
+    // 6. Record Usage (Hierarchical Propagation)
+    // After successful generation, record the event. This service would handle
+    // notifying managers/admins if quotas are being approached.
+    await usageService.recordReportGeneration(requestingUser, {
+      fileName: sanitizedFileName,
+      format,
+      sizeBytes: Buffer.byteLength(JSON.stringify(reportData), 'utf8'),
+      gcsPath: gcsObjectName,
+    });
+
+    return generatedUrl;
+  } catch (error) {
+    logger.error(`Report generation failed for user ${userId} in workspace ${workspaceId}.`, { error, format, fileName });
+    // In case of failure, we might need to perform cleanup or log the failure
+    // in the usage service as a "failed attempt". For now, just re-throwing.
+    throw error;
+  }
 };
