@@ -50,6 +50,38 @@ import {
   getAirplanesService,
 } from './aviationstack.service.js';
 
+const app = express();
+let isShuttingDown = false;
+
+// --- Cloud Run Health Probes ---
+
+/**
+ * Liveness probe endpoint.
+ * Cloud Run uses this to check if the container's server process is running.
+ * If this fails, Cloud Run will restart the container.
+ */
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+/**
+ * Readiness probe endpoint.
+ * Cloud Run uses this to determine if the container is ready to accept traffic.
+ * This should check for the status of critical dependencies (e.g., database connections).
+ */
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown) {
+    // If the server is in the process of shutting down, it's not ready.
+    return res.status(503).send('Service Unavailable: Shutting down');
+  }
+  // If Redis is configured, check if the connection is open and ready.
+  if (redisClient && !redisClient.isOpen) {
+    return res.status(503).send('Service Unavailable: Redis not connected');
+  }
+  // Otherwise, the service is ready to handle requests.
+  res.status(200).send('OK');
+});
+
 /// Initialize Redis client for rate limiting.
 const redisClient = (() => {
   const redisUrl = process.env.REDIS_URL;
@@ -59,9 +91,6 @@ const redisClient = (() => {
   }
   const client = createClient({ url: redisUrl });
   client.on('error', (err) => console.error('AviationStack Rate Limiter Redis Client Error:', err));
-  client.connect().catch((err) => {
-    console.error('Failed to connect to Redis for AviationStack rate limiting:', err);
-  });
   return client;
 })();
 
@@ -520,4 +549,71 @@ router.get('/airplanes', aviationStackApiLimiter, async (req, res) => {
   }
 });
 
-export const aviationStackRoutes = router;
+// Mount the router to the app
+app.use('/', router);
+
+// --- Server Startup and Graceful Shutdown ---
+
+const PORT = process.env.PORT || 8080;
+let server;
+
+/**
+ * Starts the Express server after ensuring critical dependencies are connected.
+ */
+const startServer = async () => {
+  try {
+    if (redisClient) {
+      await redisClient.connect();
+      console.log('Connected to Redis for AviationStack rate limiting.');
+    }
+    server = app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+/**
+ * Handles graceful shutdown of the server.
+ * It stops accepting new connections, waits for existing requests to finish,
+ * and closes connections to external services like Redis.
+ */
+const gracefulShutdown = async () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log('Received signal to terminate. Starting graceful shutdown.');
+
+  // Stop the server from accepting new connections
+  server.close(async () => {
+    console.log('HTTP server closed. No longer accepting new connections.');
+
+    try {
+      // Close the Redis client connection if it exists
+      if (redisClient) {
+        await redisClient.quit();
+        console.log('Redis client connection closed.');
+      }
+    } catch (err) {
+      console.error('Error during Redis client shutdown:', err);
+    } finally {
+      console.log('Graceful shutdown complete. Exiting.');
+      process.exit(0);
+    }
+  });
+
+  // If graceful shutdown is taking too long, force exit
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000); // 10-second timeout
+};
+
+// Listen for termination signals from the OS or Cloud Run
+process.on('SIGTERM', gracefulShutdown);
+// Listen for interrupt signal (e.g., Ctrl+C in local development)
+process.on('SIGINT', gracefulShutdown);
+
+// Start the server
+startServer();

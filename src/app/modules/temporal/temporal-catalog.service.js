@@ -17,6 +17,8 @@ import TemporalRepository from './temporal-repository.model.js';
 //    TemporalRepositorySchema.index({ createdAt: -1 }); // Or { createdAt: 1 }
 // 6. For text search on 'name' and 'description' (used in searchCatalog):
 //    TemporalRepositorySchema.index({ name: 'text', description: 'text' });
+// 7. For tenant-scoping queries (critical for security and performance in a multi-tenant environment):
+//    TemporalRepositorySchema.index({ workspaceId: 1 });
 
 
 /**
@@ -46,7 +48,8 @@ const SCAN_RESULTS_PATH = path.join(ROOT_DIR, 'scan_results.json');
 /**
  * Synchronizes the scanned approved repositories from `scan_results.json` into the MongoDB database.
  * It ensures that only repositories with existing local folders under `external/temporal` are synced.
- * This function is typically run as a startup or background task.
+ * This function is typically run as a startup or background task by a super_admin or system process.
+ * These synced repositories are considered 'global' and have a null workspaceId.
  *
  * @async
  * @returns {Promise<{ success: boolean, message?: string, count?: number, error?: string }>} A promise that resolves to an object
@@ -89,7 +92,7 @@ const syncCatalog = async () => {
       // An index on 'name' (preferably unique) is crucial for the performance of this operation.
       upsertPromises.push(
         TemporalRepository.findOneAndUpdate(
-          { name },
+          { name, workspaceId: null }, // FIX: Ensure we are only upserting the global (null workspace) record.
           {
             name,
             description: repo.description || '',
@@ -100,7 +103,8 @@ const syncCatalog = async () => {
             stars: repo.stars || 0,
             archived: repo.archived || false,
             local_path,
-            status: repo.archived ? 'Archived' : 'Active'
+            status: repo.archived ? 'Archived' : 'Active',
+            workspaceId: null // FIX: Explicitly set workspaceId to null for global catalog items.
           },
           { upsert: true, new: true }
         ).then(() => {
@@ -123,10 +127,13 @@ const syncCatalog = async () => {
 };
 
 /**
- * Queries the MongoDB TemporalRepository collection with strict filters, input sanitation,
- * whitelisted sorting fields, and bounded pagination limits to guarantee absolute security.
+ * Queries the MongoDB TemporalRepository collection respecting tenant boundaries.
+ * It uses strict filters, input sanitation, whitelisted sorting fields, and bounded pagination.
  *
  * @async
+ * @param {object} user - The authenticated user object, containing role and workspaceId for authorization.
+ * @param {string} user.role - The user's role (e.g., 'super_admin', 'admin', 'user').
+ * @param {string} user.workspaceId - The ID of the user's workspace for tenant scoping.
  * @param {string} [query=''] - The search query string. It is sanitized to prevent injection attacks.
  * @param {object} [options={}] - An object containing search options.
  * @param {string} [options.license] - Filters repositories by license key (e.g., 'mit', 'apache-2.0').
@@ -136,16 +143,29 @@ const syncCatalog = async () => {
  * @param {number} [options.limit=20] - The maximum number of results per page. Bounded between 1 and 100.
  * @returns {Promise<{ success: boolean, total: number, page: number, limit: number, results: Array<Object> }>} A promise that resolves to an object
  *   containing the search results and pagination information.
- *   - `success`: `true` if the query was successful.
- *   - `total`: The total number of documents matching the filter.
- *   - `page`: The current page number.
- *   - `limit`: The maximum number of results per page.
- *   - `results`: An array of repository objects.
- * @throws {Error} If the query fails due to a database error.
+ * @throws {Error} If the user context is missing or if the query fails due to a database error.
  */
-const searchCatalog = async (query = '', options = {}) => {
+const searchCatalog = async (user, query = '', options = {}) => {
+  // FIX: Added user context validation for tenant isolation. A user must be provided to ensure data is properly scoped.
+  if (!user || !user.workspaceId || !user.role) {
+    throw new Error('User context with workspaceId and role is required for security and tenancy.');
+  }
+
   try {
-    let filter = {};
+    const andClauses = [];
+
+    // FIX: CRITICAL INTEGRATION - Enforce tenant context boundaries.
+    // Super admins can see everything across all workspaces.
+    // Other users can only see global templates (workspaceId: null) and templates specific to their own workspace.
+    // This prevents data leakage between tenants. Assumes the TemporalRepository schema has a 'workspaceId' field.
+    if (user.role !== 'super_admin') {
+      andClauses.push({
+        $or: [
+          { workspaceId: null }, // Global templates
+          { workspaceId: user.workspaceId } // Workspace-specific templates
+        ]
+      });
+    }
 
     // 1. Strict Input Sanitation - strip potentially hazardous injection characters
     const sanitizedQuery = (typeof query === 'string') 
@@ -155,21 +175,20 @@ const searchCatalog = async (query = '', options = {}) => {
     // 2. Filter Sanitation - enforce whitelisted options
     if (options.license) {
       const lowerLicense = options.license.toLowerCase();
-      // Optimization: Ensure an index exists on 'license' for efficient filtering.
       if (['mit', 'apache-2.0'].includes(lowerLicense)) {
-        filter.license_key = lowerLicense;
+        andClauses.push({ license_key: lowerLicense });
       }
     }
 
     if (options.status) {
       const statusStr = String(options.status);
-      // Optimization: Ensure an index exists on 'status' for efficient filtering.
       if (['Active', 'Archived'].includes(statusStr)) {
-        filter.status = statusStr;
+        andClauses.push({ status: statusStr });
       }
     }
 
     let queryBuilder;
+    let isTextSearch = false;
 
     if (sanitizedQuery) {
       const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'temporal', 'a', 'of', 'in', 'for', 'with', 'on']);
@@ -178,26 +197,27 @@ const searchCatalog = async (query = '', options = {}) => {
         .filter(word => word.length > 2 && !stopWords.has(word));
 
       if (queryWords.length > 0) {
-        // Optimization: Ensure a text index exists on 'name' and 'description' for optimal performance with $text search.
-        // Example: TemporalRepositorySchema.index({ name: 'text', description: 'text' });
-        filter.$text = { $search: queryWords.join(' ') };
-        queryBuilder = TemporalRepository.find(filter, { score: { $meta: 'textScore' } })
-          .sort({ score: { $meta: 'textScore' }, stars: -1 });
+        andClauses.push({ $text: { $search: queryWords.join(' ') } });
+        isTextSearch = true;
       } else {
-        // For regex queries, especially case-insensitive ones without a leading '^', indexes are less effective.
-        // However, a basic index on 'name' and 'description' can still offer some benefit for other query patterns.
-        filter.$or = [
-          { name: { $regex: sanitizedQuery, $options: 'i' } },
-          { description: { $regex: sanitizedQuery, $options: 'i' } }
-        ];
-        // Optimization: Ensure an index exists on 'stars' for efficient sorting.
-        queryBuilder = TemporalRepository.find(filter).sort({ stars: -1 });
+        andClauses.push({
+          $or: [
+            { name: { $regex: sanitizedQuery, $options: 'i' } },
+            { description: { $regex: sanitizedQuery, $options: 'i' } }
+          ]
+        });
       }
+    }
+
+    const filter = andClauses.length > 0 ? { $and: andClauses } : {};
+
+    if (isTextSearch) {
+      queryBuilder = TemporalRepository.find(filter, { score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' }, stars: -1 });
     } else {
       // 3. Sort Key Whitelisting - completely blocks custom SQL/NoSQL sorting injection vectors
       const whitelistedSortFields = ['stars', 'name', 'createdAt'];
       const sortBy = whitelistedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
-      // Optimization: Ensure indexes exist on 'stars', 'name', and 'createdAt' for efficient sorting.
       queryBuilder = TemporalRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
@@ -206,10 +226,7 @@ const searchCatalog = async (query = '', options = {}) => {
     const limit = Math.min(100, Math.max(1, parseInt(options.limit) || 20));
     const startIndex = (page - 1) * limit;
 
-    // countDocuments is generally efficient for simple counts.
     const total = await TemporalRepository.countDocuments(filter);
-    // .lean() is correctly applied here for performance, returning plain JavaScript objects
-    // instead of Mongoose documents, which reduces overhead if no further Mongoose methods are needed.
     const results = await queryBuilder.skip(startIndex).limit(limit).lean();
 
     return {
@@ -225,27 +242,36 @@ const searchCatalog = async (query = '', options = {}) => {
 };
 
 /**
- * Calculates aggregated statistics about the installed Temporal catalog.
- * This includes total repositories, active/archived counts, star counts, and license distribution.
+ * Calculates aggregated statistics about the Temporal catalog, respecting tenant boundaries.
  *
  * @async
+ * @param {object} user - The authenticated user object, containing role and workspaceId for authorization.
+ * @param {string} user.role - The user's role (e.g., 'super_admin', 'admin', 'user').
+ * @param {string} user.workspaceId - The ID of the user's workspace for tenant scoping.
  * @returns {Promise<{ success: boolean, stats: { totalRepositories: number, activeRepositories: number, archivedRepositories: number, totalStars: number, averageStars: number, licenses: Array<{ name: string, count: number }> } }>} A promise that resolves to an object
- *   containing the success status and the calculated statistics.
- *   - `success`: `true` if statistics were retrieved successfully.
- *   - `stats`: An object containing various statistics:
- *     - `totalRepositories`: Total number of repositories.
- *     - `activeRepositories`: Number of repositories with 'Active' status.
- *     - `archivedRepositories`: Number of repositories with 'Archived' status.
- *     - `totalStars`: Sum of stars across all repositories.
- *     - `averageStars`: Average stars per repository, rounded to the nearest integer.
- *     - `licenses`: An array of objects, each with `name` (license key) and `count` (number of repositories with that license).
- * @throws {Error} If the statistics retrieval fails due to a database error.
+ *   containing the success status and the calculated statistics for the user's context.
+ * @throws {Error} If the user context is missing or if the statistics retrieval fails due to a database error.
  */
-const getStats = async () => {
+const getStats = async (user) => {
+  // FIX: Added user context validation for tenant isolation.
+  if (!user || !user.workspaceId || !user.role) {
+    throw new Error('User context with workspaceId and role is required for security and tenancy.');
+  }
+
   try {
+    const matchStage = {};
+    // FIX: CRITICAL INTEGRATION - Enforce tenant context boundaries for statistics.
+    if (user.role !== 'super_admin') {
+      matchStage.$or = [
+        { workspaceId: null },
+        { workspaceId: user.workspaceId }
+      ];
+    }
+
     // Optimization: Combine multiple countDocuments and basic aggregations into a single aggregation pipeline
     // to reduce the number of database round trips and improve efficiency.
     const combinedStats = await TemporalRepository.aggregate([
+      { $match: matchStage }, // FIX: Apply tenant filter at the start of the pipeline.
       {
         $group: {
           _id: null, // Group all documents together
@@ -262,6 +288,7 @@ const getStats = async () => {
 
     // Optimization: Ensure an index exists on 'license' for this aggregation to be efficient.
     const licenses = await TemporalRepository.aggregate([
+      { $match: matchStage }, // FIX: Apply tenant filter here as well.
       {
         $group: {
           _id: '$license', // Group by license to count occurrences
@@ -294,14 +321,23 @@ setTimeout(() => {
 
 /**
  * @typedef {object} TemporalCatalogService
- * @property {function(): Promise<{ success: boolean, message?: string, count?: number, error?: string }>} syncCatalog - Synchronizes the temporal catalog with the database.
- * @property {function(string, object): Promise<{ success: boolean, total: number, page: number, limit: number, results: Array<Object> }>} searchCatalog - Searches the temporal catalog with various filters and pagination.
- * @property {function(): Promise<{ success: boolean, stats: { totalRepositories: number, activeRepositories: number, archivedRepositories: number, totalStars: number, averageStars: number, licenses: Array<{ name: string, count: number }> } }>} getStats - Retrieves aggregated statistics about the temporal catalog.
+ * @property {function(): Promise<{ success: boolean, message?: string, count?: number, error?: string }>} syncCatalog - Synchronizes the global temporal catalog with the database.
+ * @property {function(object, string, object): Promise<{ success: boolean, total: number, page: number, limit: number, results: Array<Object> }>} searchCatalog - Searches the temporal catalog with various filters and pagination, respecting tenant boundaries.
+ * @property {function(object): Promise<{ success: boolean, stats: { totalRepositories: number, activeRepositories: number, archivedRepositories: number, totalStars: number, averageStars: number, licenses: Array<{ name: string, count: number }> } }>} getStats - Retrieves aggregated statistics about the temporal catalog, respecting tenant boundaries.
  */
 
 /**
  * Provides a service layer for managing and querying the Temporal repository catalog.
  * This includes synchronization from local scan results, searching, and retrieving aggregated statistics.
+ * All public-facing functions are tenant-aware and require a user context for authorization.
+ *
+ * // NOTE on Usage Propagation and Limits: This service provides read-only access to the catalog.
+ * // If functionality were added for users to 'install' or 'use' a template (e.g., a new 'installTemplate' function),
+ * // that new function would be responsible for:
+ * // 1. Creating a workspace-specific record of the template usage (e.g., a new document with a workspaceId).
+ * // 2. Validating the user's role (e.g., only 'admin' or 'manager' can install new templates).
+ * // 3. Checking and decrementing usage quotas for the workspace before proceeding.
+ * // 4. Emitting events or creating notifications for workspace owners/managers about new installations or usage.
  * @type {TemporalCatalogService}
  */
 export const TemporalCatalogService = {
