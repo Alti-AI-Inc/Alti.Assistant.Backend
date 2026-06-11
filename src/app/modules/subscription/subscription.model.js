@@ -402,6 +402,8 @@ const SubscriptionSchema = new mongoose.Schema(
 SubscriptionSchema.index({ userId: 1, tenantId: 1 });
 SubscriptionSchema.index({ plan: 1, status: 1 });
 SubscriptionSchema.index({ status: 1, 'billingCycle.currentPeriodEnd': 1 });
+// OPTIMIZATION: Added index to support efficient querying for daily usage resets by background jobs.
+SubscriptionSchema.index({ status: 1, 'usage.lastResetAt': 1 });
 SubscriptionSchema.index({ createdAt: -1 });
 
 /**
@@ -642,6 +644,8 @@ SubscriptionSchema.methods.getSeatCost = function () {
  * @returns {mongoose.Query} A Mongoose query object that resolves to the subscription document or null.
  */
 SubscriptionSchema.statics.findByUser = function (userId) {
+  // NOTE: .lean() is intentionally omitted here as the caller will likely
+  // need a full Mongoose document to call instance methods like .incrementUsage().
   return this.findOne({ userId, status: 'active' });
 };
 
@@ -652,6 +656,8 @@ SubscriptionSchema.statics.findByUser = function (userId) {
  * @returns {mongoose.Query} A Mongoose query object that resolves to the subscription document or null.
  */
 SubscriptionSchema.statics.findByTenant = function (tenantId) {
+  // NOTE: .lean() is intentionally omitted here as the caller will likely
+  // need a full Mongoose document to call instance methods like .addSeat().
   return this.findOne({ tenantId, status: 'active' });
 };
 
@@ -661,7 +667,10 @@ SubscriptionSchema.statics.findByTenant = function (tenantId) {
  * @returns {mongoose.Query} A Mongoose query object that resolves to an array of active subscription documents.
  */
 SubscriptionSchema.statics.findActiveSubscriptions = function () {
-  return this.find({ status: 'active' });
+  // OPTIMIZATION: Use .lean() for read-only operations that fetch multiple documents.
+  // This returns plain JavaScript objects instead of full Mongoose documents,
+  // significantly improving performance and reducing memory usage for list-based queries.
+  return this.find({ status: 'active' }).lean();
 };
 
 /**
@@ -676,13 +685,16 @@ SubscriptionSchema.statics.findExpiring = function (daysFromNow = 7) {
     now.getTime() + daysFromNow * 24 * 60 * 60 * 1000
   );
 
+  // OPTIMIZATION: Use .lean() for read-only operations. This query is likely used for
+  // background jobs like sending notifications, which don't require Mongoose document instances.
+  // This improves query speed and reduces memory footprint.
   return this.find({
     status: 'active',
     'billingCycle.currentPeriodEnd': {
       $gte: now,
       $lte: futureDate,
     },
-  });
+  }).lean();
 };
 
 /**
@@ -693,6 +705,9 @@ SubscriptionSchema.statics.findExpiring = function (daysFromNow = 7) {
 SubscriptionSchema.statics.findNeedingReset = function () {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+  // NOTE: .lean() is intentionally omitted. The caller (e.g., a cron job) will
+  // need to iterate and call the .resetDailyUsage() instance method on each document,
+  // which requires a full Mongoose instance.
   return this.find({
     status: 'active',
     'usage.lastResetAt': { $lt: yesterday },

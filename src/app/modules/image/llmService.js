@@ -1,6 +1,17 @@
 import { JsonOutputParser, StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { llm } from './llm.js';
+// FIX: Import usage tracking service to handle authorization, limits, and hierarchical notifications.
+// This service is responsible for enforcing tenant/workspace boundaries and role-based permissions.
+import { recordUsage, USAGE_UNITS } from '../usage/usageService.js';
+
+/**
+ * @typedef {Object} UserContext
+ * @property {string} id - The ID of the user performing the action.
+ * @property {string} role - The role of the user (e.g., 'user', 'manager', 'admin').
+ * @property {string} workspaceId - The ID of the workspace the user belongs to.
+ * @property {string} tenantId - The ID of the tenant (platform customer) the user belongs to.
+ */
 
 /**
  * @typedef {Object} HistoryItem
@@ -21,9 +32,23 @@ import { llm } from './llm.js';
  *
  * @async
  * @param {string} initialPrompt - The user's first input describing their image idea.
+ * @param {UserContext} userContext - The context of the user making the request for authorization and usage tracking.
  * @returns {Promise<string[]>} An array of clarifying questions. Returns a default set of questions on failure.
  */
-export const generateClarifyingQuestions = async (initialPrompt) => {
+export const generateClarifyingQuestions = async (initialPrompt, userContext) => {
+  // BUGFIX: Integration Gap - Lack of Authorization, Usage Tracking, and Tenant Context.
+  // This function previously had no concept of the user making the request.
+  // It now requires a `userContext` object to enforce permissions and usage limits.
+  // The `recordUsage` service call ensures the user belongs to an active workspace/tenant,
+  // has the necessary permissions, and is within their usage quota before calling the LLM.
+  // This service is also responsible for propagating usage data and notifications up the hierarchy (to managers/admins).
+  // An error will be thrown by recordUsage if the action is not permitted, which is handled by the controller layer.
+  await recordUsage({
+    userContext,
+    feature: USAGE_UNITS.LLM_PROMPT_HELPER_CALL,
+    quantity: 1,
+  });
+
   const parser = new JsonOutputParser();
   const prompt = PromptTemplate.fromTemplate(
     `A user wants to generate an image. Their initial idea is: "{prompt}".
@@ -62,9 +87,17 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
  *
  * @async
  * @param {string} userResponse - The latest message from the user.
+ * @param {UserContext} userContext - The context of the user making the request for authorization and usage tracking.
  * @returns {Promise<boolean>} True if the user indicates they are finished, false otherwise.
  */
-export const isUserFinished = async (userResponse) => {
+export const isUserFinished = async (userResponse, userContext) => {
+  // BUGFIX: Integration Gap - Added user context for authorization and usage tracking.
+  await recordUsage({
+    userContext,
+    feature: USAGE_UNITS.LLM_PROMPT_HELPER_CALL,
+    quantity: 1,
+  });
+
   if (!userResponse) return false;
   const prompt = PromptTemplate.fromTemplate(
     `Analyze the user's response to determine if they are finished providing details for the image.
@@ -98,13 +131,23 @@ export const isUserFinished = async (userResponse) => {
  * @param {string} currentPrompt - The current version of the detailed prompt.
  * @param {string} userResponse - The new information or answer from the user.
  * @param {HistoryItem[]} history - The conversation history for context.
+ * @param {UserContext} userContext - The context of the user making the request for authorization and usage tracking.
  * @returns {Promise<string>} The updated, cohesive prompt paragraph.
  */
 export const updateRefinedPrompt = async (
   currentPrompt,
   userResponse,
-  history
+  history,
+  userContext
 ) => {
+  // BUGFIX: Integration Gap - Added user context for authorization and usage tracking.
+  // This is a more resource-intensive call, so it's tracked as a separate feature.
+  await recordUsage({
+    userContext,
+    feature: USAGE_UNITS.LLM_PROMPT_REFINEMENT_CALL,
+    quantity: 1,
+  });
+
   const historyString = (history || [])
     .map((h) => `${h.type}: ${h.message}`)
     .join('\n');
@@ -155,6 +198,7 @@ export const updateRefinedPrompt = async (
 export const compileFinalPrompt = async (finalRefinedPrompt) => {
   // The refined prompt is already well-structured, so we can often use it directly.
   // This function can be used for a final polish if needed.
+  // NOTE: This function does not make an LLM call, so it does not require usage tracking.
   return finalRefinedPrompt;
 };
 
@@ -164,9 +208,17 @@ export const compileFinalPrompt = async (finalRefinedPrompt) => {
  *
  * @async
  * @param {string} userInput - The raw input string from the user.
+ * @param {UserContext} userContext - The context of the user making the request for authorization and usage tracking.
  * @returns {Promise<ExtractedUrlResult>} An object containing the extracted URL and a flag indicating if it's a YouTube URL.
  */
-export const getUrlFromUserInputUsingAi = async (userInput) => {
+export const getUrlFromUserInputUsingAi = async (userInput, userContext) => {
+  // BUGFIX: Integration Gap - Added user context for authorization and usage tracking.
+  await recordUsage({
+    userContext,
+    feature: USAGE_UNITS.LLM_UTILITY_CALL,
+    quantity: 1,
+  });
+
   const parser = new JsonOutputParser(); // Add JsonOutputParser to parse the LLM's JSON string output
   const prompt = PromptTemplate.fromTemplate(
     `You are an AI assistant helping a user find a URL to summarize.
