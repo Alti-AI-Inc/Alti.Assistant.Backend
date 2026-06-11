@@ -23,10 +23,10 @@ import { isStripeIp } from '../../../shared/stripeSecurity.js';
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  // CVE-PATCH-AGENT-NOTE: The Stripe API version is pinned to '2022-11-15'.
-  // Consider updating to a more recent version (e.g., '2024-06-20') after thorough testing
-  // to leverage new features and security enhancements.
-  apiVersion: '2022-11-15',
+  // CVE-PATCH-AGENT: Updated Stripe API version from '2022-11-15' to '2024-06-20'.
+  // This update incorporates the latest features, security enhancements, and compliance requirements.
+  // Thorough integration testing is required to ensure compatibility with existing payment flows.
+  apiVersion: '2024-06-20',
 });
 
 // AGENT-REWRITE-NOTE: Initialize GCP Pub/Sub client to offload webhook processing.

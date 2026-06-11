@@ -29,6 +29,7 @@ const __dirname = path.dirname(__filename);
 /**
  * An array of available LlamaIndex engine identifiers.
  * @type {string[]}
+ * @constant
  */
 const ENGINES = [
   'vector', 'hybrid', 'fullspectrum', 'selfcorrect',
@@ -43,12 +44,14 @@ const ENGINES = [
 /**
  * The directory where telemetry and router state data is stored.
  * @type {string}
+ * @constant
  */
 const TELEMETRY_DIR = path.resolve(__dirname, '../../../../storage/ragsystem/telemetry');
 
 /**
  * The file path for persisting the router's learned state.
  * @type {string}
+ * @constant
  */
 const ROUTER_STATE_FILE = path.join(TELEMETRY_DIR, 'router_state.json');
 
@@ -56,6 +59,7 @@ const ROUTER_STATE_FILE = path.join(TELEMETRY_DIR, 'router_state.json');
  * Defines profiles for classifying queries based on keywords.
  * Each profile has a set of keywords and a list of preferred engines.
  * @type {Object<string, {keywords: string[], preferredEngines: string[]}>}
+ * @constant
  */
 const DOCUMENT_PROFILES = {
   technical: { keywords: ['code', 'api', 'function', 'class', 'module', 'error', 'debug'], preferredEngines: ['vector', 'selfcorrect'] },
@@ -220,7 +224,17 @@ class QueryRouterService {
    * Retrieves a summary of routing analytics, including total queries routed,
    * performance per engine, and the distribution of query profiles.
    *
-   * @returns {{totalRouted: number, enginePerformance: Record<string, {totalQueries: number, avgLatencyMs: number, avgQuality: number, successRate: number, cacheHitRate: number}>, profileDistribution: Record<string, number>}} An object containing analytics data.
+   * @returns {{
+   *   totalRouted: number,
+   *   enginePerformance: Record<string, {
+   *     totalQueries: number,
+   *     avgLatencyMs: number,
+   *     avgQuality: number,
+   *     successRate: number,
+   *     cacheHitRate: number
+   *   }>,
+   *   profileDistribution: Record<string, number>
+   * }} An object containing analytics data.
    */
   getAnalytics() {
     const analytics = {
@@ -273,7 +287,10 @@ class QueryRouterService {
    * @private
    * @param {string} queryLower - The lowercased user query.
    * @param {Array<object>} userMetadataList - A list of document metadata objects for the user.
-   * @returns {{profile: {name: string, score: number, preferredEngines: string[]}, docCharacteristics: {highlyTechnicalCount: number}}} An object containing the determined profile and document characteristics.
+   * @returns {{
+   *   profile: {name: string, score: number, preferredEngines: string[]},
+   *   docCharacteristics: {highlyTechnicalCount: number}
+   * }} An object containing the determined profile and document characteristics.
    */
   _classifyProfile(queryLower, userMetadataList) {
     // OPTIMIZATION: This function now iterates over userMetadataList only ONCE to extract all
@@ -335,9 +352,12 @@ class QueryRouterService {
    * @private
    * @param {string} engine - The engine to score.
    * @param {object} profile - The classified query profile.
+   * @param {string} profile.name - The name of the profile.
+   * @param {string[]} profile.preferredEngines - The list of preferred engines for the profile.
    * @param {string} queryLower - The lowercased user query.
    * @param {object} options - The original routing options.
    * @param {object} docCharacteristics - Pre-calculated characteristics of the user's document corpus.
+   * @param {number} docCharacteristics.highlyTechnicalCount - Count of highly technical documents.
    * @returns {number} The calculated score for the engine.
    */
   _scoreEngine(engine, profile, queryLower, options, docCharacteristics) {
@@ -386,8 +406,12 @@ class QueryRouterService {
    * @private
    * @param {string} engine - The chosen engine.
    * @param {object} profile - The classified query profile.
+   * @param {string} profile.name - The name of the profile.
+   * @param {string[]} profile.preferredEngines - The list of preferred engines for the profile.
    * @param {object} options - The original routing options.
+   * @param {boolean} [options.isFollowUp] - Flag indicating if this is a follow-up question.
    * @param {object} docCharacteristics - Pre-calculated characteristics of the user's document corpus.
+   * @param {number} docCharacteristics.highlyTechnicalCount - Count of highly technical documents.
    * @returns {string} A semicolon-separated string of reasons for the routing choice.
    */
   _buildReasoning(engine, profile, options, docCharacteristics) {
@@ -447,6 +471,7 @@ class QueryRouterService {
    * This is an asynchronous operation to avoid blocking the event loop.
    * @private
    * @returns {Promise<void>}
+   * @throws {Error} Throws an error if the state cannot be written to the file system.
    */
   async _saveState() {
     // PATCH: Removed the try/catch block. This method now throws on failure, allowing the caller
