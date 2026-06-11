@@ -24,11 +24,12 @@ const asyncHandler = fn => (req, res, next) => {
  * This function initializes an Express router and attaches various image processing
  * endpoints such as image editing, generation, and direct generation. It leverages
  * a controller created with provided services to handle the business logic for each route.
+ * All endpoints defined in this router require user authentication.
  *
- * @param {object} sessionManager - An object responsible for managing user sessions, likely for authentication or context.
- * @param {object} imageService - A service layer object providing image-related business logic and data access.
- * @param {object} promptService - A service layer object providing prompt-related business logic, possibly for AI models.
- * @returns {express.Router} An Express router instance configured with image routes.
+ * @param {object} sessionManager - The session manager instance, used for authenticating and retrieving user context for requests.
+ * @param {object} imageService - The image service instance, which handles the core logic of image manipulation and generation.
+ * @param {object} promptService - The prompt service instance, which manages prompt processing, potentially enhancing or validating them before use with AI models.
+ * @returns {express.Router} An Express router instance configured with all image-related API routes.
  */
 export const createImageRoutes = (
   sessionManager,
@@ -47,9 +48,11 @@ export const createImageRoutes = (
    * /api/image/edit:
    *   post:
    *     summary: Edit an existing image based on a prompt.
-   *     description: Submits a request to modify an existing image using AI or other processing, guided by a textual prompt and specific options.
+   *     description: Submits a request to modify an existing image using AI or other processing, guided by a textual prompt and specific options. This endpoint requires authentication.
    *     tags:
    *       - Image
+   *     security:
+   *       - bearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -103,6 +106,12 @@ export const createImageRoutes = (
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/Error'
+   *       401:
+   *         description: Unauthorized. Authentication token is missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
    *       500:
    *         description: Internal server error during image editing.
    *         content:
@@ -117,9 +126,11 @@ export const createImageRoutes = (
    * /api/image/generate:
    *   post:
    *     summary: Generate a new image from a textual prompt.
-   *     description: Creates a new image using AI or other generative models based on a detailed textual prompt and specific generation options.
+   *     description: Creates a new image using AI or other generative models based on a detailed textual prompt and specific generation options. This endpoint requires authentication.
    *     tags:
    *       - Image
+   *     security:
+   *       - bearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -170,6 +181,12 @@ export const createImageRoutes = (
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/Error'
+   *       401:
+   *         description: Unauthorized. Authentication token is missing or invalid.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
    *       500:
    *         description: Internal server error during image generation.
    *         content:
@@ -184,9 +201,11 @@ export const createImageRoutes = (
    * /api/image/generate-direct:
    *   post:
    *     summary: Directly generate a new image from a textual prompt without intermediate steps.
-   *     description: Provides a streamlined endpoint for image generation, potentially bypassing certain queues or complex workflows, for direct and immediate image creation.
+   *     description: Provides a streamlined endpoint for image generation, potentially bypassing certain queues or complex workflows, for direct and immediate image creation. This endpoint requires authentication.
    *     tags:
    *       - Image
+   *     security:
+   *       - bearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -228,6 +247,12 @@ export const createImageRoutes = (
    *                       example: "https://example.com/direct_image.png"
    *       400:
    *         description: Invalid request payload or missing required parameters.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       401:
+   *         description: Unauthorized. Authentication token is missing or invalid.
    *         content:
    *           application/json:
    *             schema:
