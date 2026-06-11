@@ -69,6 +69,11 @@ const TokenSchema = new mongoose.Schema(
   }
 );
 
+// Bug Fix: Add a TTL index to automatically delete tokens after they expire.
+// This is a crucial maintenance and security feature to prevent the collection
+// from growing indefinitely with stale data and to ensure expired tokens are reliably removed from the system.
+TokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 // Security Patch: Add a pre-save hook to hash the token before storing it.
 // Storing tokens in plaintext is a security risk. If the database is compromised,
 // attackers could use the tokens to take over user accounts.
