@@ -9,7 +9,7 @@ import Product from '../products/products.model.js';
 
 /**
  * Initializes the Stripe API client with the secret key from the application configuration.
- * The API version is set to '2022-11-15'.
+ * The API version is set to '2024-06-20'.
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
