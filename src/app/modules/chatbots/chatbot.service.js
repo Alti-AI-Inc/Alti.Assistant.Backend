@@ -224,6 +224,7 @@ const deleteChatbot = async (chatbotId, userId, req = null) => {
  * Retrieves key metrics for a given workspace (tenant).
  * Intended for manager/admin roles to display on a dashboard.
  *
+ * @permission This service is intended for users with 'admin' or 'manager' roles within the tenant.
  * @param {string} tenantId - The ID of the tenant/workspace.
  * @returns {Promise<object>} A promise that resolves to an object with workspace metrics.
  * @throws {ApiError} If the tenant is not found or an error occurs.
@@ -261,6 +262,7 @@ const getWorkspaceMetrics = async (tenantId) => {
 /**
  * Invites a new member to the workspace via email, checking plan limits.
  *
+ * @permission This service is intended for users with 'admin' or 'manager' roles who can manage team members.
  * @param {string} tenantId - The ID of the tenant/workspace to invite to.
  * @param {string} inviterId - The ID of the user sending the invitation.
  * @param {object} invitationDetails - Details of the invitation.
@@ -325,8 +327,8 @@ const inviteTeamMember = async (tenantId, inviterId, { email, role }) => {
 
 /**
  * Updates the role of a member within a workspace.
- * NOTE: Assumes authorization (e.g., only admins/managers can call this) is handled before this service is called.
  *
+ * @permission Requires 'admin' or 'manager' role. The calling context (e.g., controller) is responsible for enforcing this permission.
  * @param {string} tenantId - The ID of the tenant/workspace.
  * @param {string} memberId - The ID of the member whose role is to be updated.
  * @param {string} newRole - The new role to assign.
