@@ -4,7 +4,10 @@
  * It abstracts the complexity of the search tool to provide a simple interface for fetching search results.
  */
 
+import httpStatus from 'http-status';
 import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
+import logger from '../../../config/logger.js';
+import ApiError from '../../utils/ApiError.js';
 
 /**
  * Fetches search results from Google using the Google Search Grounding Tool.
@@ -18,9 +21,9 @@ import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-
  *   - `title`: The title of the search result.
  *   - `link`: The URL link to the search result.
  *   - `snippet`: A brief content snippet from the search result.
- *   Returns an empty array if an error occurs during the search process or if no results are found.
- * @throws {Error} Logs an error message to the console if the Google Search Grounding Tool
- *   encounters an issue during its construction or invocation, but does not re-throw.
+ *   Returns an empty array if no results are found.
+ * @throws {ApiError} Throws an ApiError if the Google Search Grounding Tool
+ *   encounters an issue during its construction or invocation.
  */
 export const fetchSearchResults = async (query) => {
   try {
@@ -33,18 +36,18 @@ export const fetchSearchResults = async (query) => {
       snippet: r.content
     }));
   } catch (error) {
-    // Log errors in a structured format for GCP Cloud Logging (Stackdriver)
-    console.error(JSON.stringify({
-      severity: 'ERROR',
-      message: 'Google Search Grounding Error in Groq utility.',
-      error: {
-        message: error.message,
-        stack: error.stack,
-      },
+    // Log the detailed internal error for debugging.
+    logger.error('Google Search Grounding Error in Groq utility.', {
+      errorMessage: error.message,
+      errorStack: error.stack,
       context: {
-        query: query,
+        query,
       },
-    }));
-    return [];
+    });
+
+    // Throw a normalized, user-friendly error to be handled by the global error handler.
+    // This prevents leaking internal implementation details like stack traces to the client
+    // and allows the caller to distinguish between a search with no results and a system failure.
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch search results due to an internal error.');
   }
 };
