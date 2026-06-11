@@ -34,7 +34,7 @@ import { logger } from '../../../shared/logger.js';
  * @property {string} action - The specific action to be performed by the app.
  * @property {WorkflowStepParameter} parameters - Key-value pairs of parameters required for the action.
  * @property {number} order - The execution order of the step within the workflow.
- * @property {WorkflowStepCondition} [conditions] - Conditions for executing this step, applicable for 'condition' stepType.
+ * @property {WorkflowStepCondition} [conditions] - Conditions for executing this step.
  */
 
 /**
@@ -232,7 +232,10 @@ const sampleTemplates = [
       },
       {
         stepId: 'send_reminder',
-        stepType: 'condition',
+        // BUG FIX: A step that performs an action (send_notification) should have stepType 'action'.
+        // The 'conditions' property correctly makes this a conditional action, which is the intended behavior.
+        // Using 'condition' for stepType is reserved for pure conditional logic steps that don't execute an app action.
+        stepType: 'action',
         description: 'Send reminder if tasks found',
         app: 'notification',
         action: 'send_notification',
@@ -295,11 +298,20 @@ export const createSampleTemplates = async () => {
 
     // 4. If there are new templates, bulk-insert them in a single, efficient operation.
     if (templatesToCreate.length > 0) {
-      await WorkflowTemplate.insertMany(templatesToCreate);
+      // INTEGRATION FIX: Add scope and sample flags to clearly identify these as global, system-provided templates.
+      // This prevents conflicts with user-created, workspace-specific templates and respects tenant context boundaries
+      // by explicitly marking them as outside any single tenant's scope.
+      const templatesToInsert = templatesToCreate.map(template => ({
+        ...template,
+        isSample: true,
+        scope: 'global',
+      }));
+
+      await WorkflowTemplate.insertMany(templatesToInsert);
       logger.info(
         `Created ${
-          templatesToCreate.length
-        } new sample templates: ${templatesToCreate
+          templatesToInsert.length
+        } new sample templates: ${templatesToInsert
           .map((t) => t.name)
           .join(', ')}`
       );

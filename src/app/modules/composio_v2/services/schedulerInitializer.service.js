@@ -420,7 +420,7 @@ class SchedulerInitializer {
       const isAllowedByHierarchy =
         (caller.role === 'admin' || caller.role === 'manager') &&
         workflow.workspaceId && caller.workspaceId &&
-        workflow.workspaceId.toString() === caller.workspaceId;
+        workflow.workspaceId.toString() === caller.workspaceId.toString();
 
       if (!isOwner && !isSuperAdmin && !isAllowedByHierarchy) {
         logger.warn(`Authorization failed: User ${caller.id} (role: ${caller.role}) attempted to manually execute workflow ${workflowId} owned by ${workflow.userId}.`);
@@ -482,7 +482,7 @@ class SchedulerInitializer {
       const isAdminOfWorkspace =
         caller.role === 'admin' &&
         workflow.workspaceId && caller.workspaceId &&
-        workflow.workspaceId.toString() === caller.workspaceId;
+        workflow.workspaceId.toString() === caller.workspaceId.toString();
 
       if (!isSuperAdmin && !isAdminOfWorkspace) {
         logger.warn(`Authorization failed: User ${caller.id} (role: ${caller.role}) attempted an emergency execution of workflow ${workflowId}.`);
