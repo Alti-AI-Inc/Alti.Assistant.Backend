@@ -82,7 +82,7 @@ import { logger } from '../../../shared/logger.js';
 const runTaskController = catchAsync(async (req, res) => {
   const { prompt, sessionId, structured_output_json } = req.body;
   const isPlatformOwner = req.user?.role === 'super_admin' || req.user?.role === 'platform_owner';
-  
+
   // Default to authenticated user
   let userId = req.user?._id;
 
@@ -97,30 +97,30 @@ const runTaskController = catchAsync(async (req, res) => {
     // Security-sensitive actions like impersonation should be logged with higher severity.
     // A properly configured Winston logger will map 'warn' to the 'WARNING' severity level in GCP.
     logger.warn({
-        message: 'Platform Owner override: Running task on behalf of another user.',
-        actor: { id: originalUserId, role: req.user?.role },
-        target: { userId: userId },
-        sessionId: sessionId || 'new_session',
-        httpRequest: { // This structure helps Cloud Logging associate the log with the request
-            requestMethod: req.method,
-            requestUrl: req.originalUrl,
-            remoteIp: req.ip,
-        },
+      message: 'Platform Owner override: Running task on behalf of another user.',
+      actor: { id: originalUserId, role: req.user?.role },
+      target: { userId: userId },
+      sessionId: sessionId || 'new_session',
+      httpRequest: { // This structure helps Cloud Logging associate the log with the request
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+      },
     });
   } else {
     // Standard operational log.
     // A properly configured Winston logger will map 'info' to the 'INFO' severity level in GCP.
     logger.info({
-        message: 'Initiating browser use task.',
-        context: {
-            userId: userId,
-            sessionId: sessionId || 'new_session',
-        },
-        httpRequest: {
-            requestMethod: req.method,
-            requestUrl: req.originalUrl,
-            remoteIp: req.ip,
-        },
+      message: 'Initiating browser use task.',
+      context: {
+        userId: userId,
+        sessionId: sessionId || 'new_session',
+      },
+      httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+      },
     });
   }
 
@@ -131,20 +131,47 @@ const runTaskController = catchAsync(async (req, res) => {
     );
   }
 
-  const result = await BrowserUseServices.initiateTaskInSessionService(
-    userId,
-    sessionId, // This will be null/undefined for a new session
-    prompt,
-    structured_output_json,
-    req
-  );
+  try {
+    const result = await BrowserUseServices.initiateTaskInSessionService(
+      userId,
+      sessionId, // This will be null/undefined for a new session
+      prompt,
+      structured_output_json,
+      req
+    );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Task initiated successfully.',
-    data: result,
-  });
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Task initiated successfully.',
+      data: result,
+    });
+  } catch (error) {
+    // Log the detailed error for internal analysis, ensuring it's structured for GCP.
+    logger.error({
+      message: `Failed to initiate browser task: ${error.message}`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
+      },
+      context: {
+        userId: userId,
+        sessionId: sessionId || 'new_session',
+        isPlatformOwner,
+      },
+      httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+      },
+    });
+
+    // Re-throw the error to be handled by the global error handler (via catchAsync)
+    // which will normalize it and send the appropriate HTTP response.
+    throw error;
+  }
 });
 
 /**
@@ -199,34 +226,61 @@ const getTaskStatusController = catchAsync(async (req, res) => {
   logger.info({
     message: 'Fetching browser task status.',
     context: {
-        authenticatedUserId: userId,
-        sessionId: sessionId,
-        taskId: taskId,
-        isPlatformOwnerBypass: isPlatformOwner,
+      authenticatedUserId: userId,
+      sessionId: sessionId,
+      taskId: taskId,
+      isPlatformOwnerBypass: isPlatformOwner,
     },
     httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+  });
+
+  try {
+    // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+    const authUserId = isPlatformOwner ? null : userId;
+
+    const result = await BrowserUseServices.updateTaskStatusService(
+      authUserId,
+      sessionId,
+      taskId,
+      req
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: `Task status updated.`,
+      data: result,
+    });
+  } catch (error) {
+    // Log the detailed error for internal analysis.
+    logger.error({
+      message: `Failed to get task status: ${error.message}`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
+      },
+      context: {
+        authenticatedUserId: userId,
+        sessionId,
+        taskId,
+        isPlatformOwner,
+      },
+      httpRequest: {
         requestMethod: req.method,
         requestUrl: req.originalUrl,
         remoteIp: req.ip,
-    },
-  });
+      },
+    });
 
-  // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
-  const authUserId = isPlatformOwner ? null : userId;
-
-  const result = await BrowserUseServices.updateTaskStatusService(
-    authUserId,
-    sessionId,
-    taskId,
-    req
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: `Task status updated.`,
-    data: result,
-  });
+    // Allow the global error handler to format the final response.
+    throw error;
+  }
 });
 
 /**
@@ -268,57 +322,83 @@ const getUserSessionsController = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
-  let result;
-  if (isPlatformOwner) {
-    const targetUserId = req.query.userId;
-    // GCP-compatible structured log for privileged access.
-    logger.info({
+  try {
+    let result;
+    if (isPlatformOwner) {
+      const targetUserId = req.query.userId;
+      // GCP-compatible structured log for privileged access.
+      logger.info({
         message: 'Platform Owner retrieving user sessions.',
         context: {
-            actorId: userId,
-            targetUserId: targetUserId || 'ALL_USERS', // Log if fetching for a specific user or all
+          actorId: userId,
+          targetUserId: targetUserId || 'ALL_USERS', // Log if fetching for a specific user or all
         },
         httpRequest: {
-            requestMethod: req.method,
-            requestUrl: req.originalUrl,
-            remoteIp: req.ip,
+          requestMethod: req.method,
+          requestUrl: req.originalUrl,
+          remoteIp: req.ip,
         },
-    });
-    if (targetUserId) {
-      // Platform Owner viewing sessions of a specific user
-      result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
-    } else {
-      // Platform Owner global oversight: retrieve all sessions across the platform
-      if (typeof BrowserUseServices.getAllSessionsService === 'function') {
-        result = await BrowserUseServices.getAllSessionsService(req);
+      });
+      if (targetUserId) {
+        // Platform Owner viewing sessions of a specific user
+        result = await BrowserUseServices.getSessionsForUserService(targetUserId, req);
       } else {
-        // Fallback: pass null to indicate global retrieval if supported by service
-        result = await BrowserUseServices.getSessionsForUserService(null, req);
+        // Platform Owner global oversight: retrieve all sessions across the platform
+        if (typeof BrowserUseServices.getAllSessionsService === 'function') {
+          result = await BrowserUseServices.getAllSessionsService(req);
+        } else {
+          // Fallback: pass null to indicate global retrieval if supported by service
+          result = await BrowserUseServices.getSessionsForUserService(null, req);
+        }
       }
-    }
-  } else {
-    // GCP-compatible structured log for standard access.
-    logger.info({
+    } else {
+      // GCP-compatible structured log for standard access.
+      logger.info({
         message: 'User retrieving their sessions.',
         context: {
-            userId: userId,
+          userId: userId,
         },
         httpRequest: {
-            requestMethod: req.method,
-            requestUrl: req.originalUrl,
-            remoteIp: req.ip,
+          requestMethod: req.method,
+          requestUrl: req.originalUrl,
+          remoteIp: req.ip,
         },
-    });
-    // Regular user: retrieve only their own sessions
-    result = await BrowserUseServices.getSessionsForUserService(userId, req);
-  }
+      });
+      // Regular user: retrieve only their own sessions
+      result = await BrowserUseServices.getSessionsForUserService(userId, req);
+    }
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Sessions retrieved successfully.',
-    data: result,
-  });
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Sessions retrieved successfully.',
+      data: result,
+    });
+  } catch (error) {
+    // Log the detailed error for internal analysis.
+    logger.error({
+      message: `Failed to retrieve user sessions: ${error.message}`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
+      },
+      context: {
+        authenticatedUserId: userId,
+        targetUserId: req.query.userId,
+        isPlatformOwner,
+      },
+      httpRequest: {
+        requestMethod: req.method,
+        requestUrl: req.originalUrl,
+        remoteIp: req.ip,
+      },
+    });
+
+    // Allow the global error handler to format the final response.
+    throw error;
+  }
 });
 
 /**
@@ -367,32 +447,58 @@ const getSessionByIdController = catchAsync(async (req, res) => {
   logger.info({
     message: 'Fetching browser session by ID.',
     context: {
-        authenticatedUserId: userId,
-        sessionId: sessionId,
-        isPlatformOwnerBypass: isPlatformOwner,
+      authenticatedUserId: userId,
+      sessionId: sessionId,
+      isPlatformOwnerBypass: isPlatformOwner,
     },
     httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+  });
+
+  try {
+    // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
+    const authUserId = isPlatformOwner ? null : userId;
+
+    const result = await BrowserUseServices.getSessionByIdService(
+      sessionId,
+      authUserId,
+      req
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Session retrieved successfully.',
+      data: result,
+    });
+  } catch (error) {
+    // Log the detailed error for internal analysis.
+    logger.error({
+      message: `Failed to retrieve session by ID: ${error.message}`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
+      },
+      context: {
+        authenticatedUserId: userId,
+        sessionId,
+        isPlatformOwner,
+      },
+      httpRequest: {
         requestMethod: req.method,
         requestUrl: req.originalUrl,
         remoteIp: req.ip,
-    },
-  });
+      },
+    });
 
-  // Platform Owner Override: Pass null as userId to bypass ownership validation in the service layer
-  const authUserId = isPlatformOwner ? null : userId;
-
-  const result = await BrowserUseServices.getSessionByIdService(
-    sessionId,
-    authUserId,
-    req
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Session retrieved successfully.',
-    data: result,
-  });
+    // Allow the global error handler to format the final response.
+    throw error;
+  }
 });
 
 /**
@@ -430,33 +536,58 @@ const getGlobalStatsController = catchAsync(async (req, res) => {
   logger.info({
     message: 'Platform Owner retrieving global browser-use statistics.',
     context: {
-        actorId: req.user?._id,
-        actorRole: req.user?.role,
+      actorId: req.user?._id,
+      actorRole: req.user?.role,
     },
     httpRequest: {
+      requestMethod: req.method,
+      requestUrl: req.originalUrl,
+      remoteIp: req.ip,
+    },
+  });
+
+  try {
+    let stats = {};
+    if (typeof BrowserUseServices.getGlobalStatsService === 'function') {
+      stats = await BrowserUseServices.getGlobalStatsService(req);
+    } else {
+      // Fallback/Mock stats if service method is not yet fully implemented
+      stats = {
+        message: "Global stats service not fully implemented, but access is authorized.",
+        timestamp: new Date(),
+      };
+    }
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Global browser-use statistics retrieved successfully.',
+      data: stats,
+    });
+  } catch (error) {
+    // Log the detailed error for internal analysis.
+    logger.error({
+      message: `Failed to retrieve global stats: ${error.message}`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        ...(error instanceof ApiError && { statusCode: error.statusCode, isOperational: error.isOperational }),
+      },
+      context: {
+        actorId: req.user?._id,
+        actorRole: req.user?.role,
+      },
+      httpRequest: {
         requestMethod: req.method,
         requestUrl: req.originalUrl,
         remoteIp: req.ip,
-    },
-  });
+      },
+    });
 
-  let stats = {};
-  if (typeof BrowserUseServices.getGlobalStatsService === 'function') {
-    stats = await BrowserUseServices.getGlobalStatsService(req);
-  } else {
-    // Fallback/Mock stats if service method is not yet fully implemented
-    stats = {
-      message: "Global stats service not fully implemented, but access is authorized.",
-      timestamp: new Date(),
-    };
+    // Allow the global error handler to format the final response.
+    throw error;
   }
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Global browser-use statistics retrieved successfully.',
-    data: stats,
-  });
 });
 
 /**
