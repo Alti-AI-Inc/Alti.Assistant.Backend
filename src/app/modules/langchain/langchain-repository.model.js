@@ -191,7 +191,12 @@ LangchainRepositorySchema.statics.getGlobalStats = async function () {
       rejectedRepositories: statusBreakdown.rejectedRepositories || 0
     };
   } catch (error) {
-    logger.error('Error fetching global langchain repository stats from database.', {
+    logger.error({
+      // GCP Cloud Logging recognizes the 'message' field as the primary log text.
+      message: 'Error fetching global langchain repository stats from database.',
+      // GCP Cloud Logging automatically parses the 'severity' field.
+      severity: 'ERROR',
+      // Additional structured data for context and debugging.
       errorMessage: error.message,
       errorStack: error.stack,
       context: 'LangchainRepository.getGlobalStats'
@@ -241,7 +246,12 @@ LangchainRepositorySchema.statics.getPlatformOwnerView = async function (filters
       totalResults
     };
   } catch (error) {
-    logger.error('Error fetching platform owner view for langchain repositories.', {
+    logger.error({
+      // GCP Cloud Logging recognizes the 'message' field as the primary log text.
+      message: 'Error fetching platform owner view for langchain repositories.',
+      // GCP Cloud Logging automatically parses the 'severity' field.
+      severity: 'ERROR',
+      // Additional structured data for context and debugging.
       errorMessage: error.message,
       errorStack: error.stack,
       context: 'LangchainRepository.getPlatformOwnerView',

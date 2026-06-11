@@ -90,12 +90,17 @@ const routePrompt = catchAsync(async (req, res) => {
  */
 const getGlobalStatistics = catchAsync(async (req, res) => {
   const adminId = req.user?.id;
+  // Allow filtering statistics by a date range for more granular insights.
+  const { from, to } = req.query;
+  const options = { from, to };
+
   logger.info('Platform Owner requested global statistics', {
     severity: 'NOTICE',
     adminId,
+    options,
   });
 
-  const stats = await platformAdminService.getGlobalStatistics();
+  const stats = await platformAdminService.getGlobalStatistics(options);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -106,14 +111,59 @@ const getGlobalStatistics = catchAsync(async (req, res) => {
 });
 
 /**
- * @description Get a list of all tenants on the platform.
+ * @description Manually provision a new tenant on the platform.
+ * @access PLATFORM_OWNER
+ */
+const createTenant = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const tenantData = req.body; // e.g., { name: 'New Corp', plan: 'enterprise', adminEmail: 'admin@newcorp.com' }
+
+  // Basic validation for required fields.
+  if (!tenantData.name || !tenantData.adminEmail) {
+    logger.warn('Invalid request to create tenant', {
+      severity: 'WARNING',
+      adminId,
+      tenantData,
+      reason: 'Missing required fields (name, adminEmail)',
+    });
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Tenant name and adminEmail are required.',
+    });
+  }
+
+  logger.info('Platform Owner is creating a new tenant', {
+    severity: 'NOTICE',
+    adminId,
+    tenantData,
+  });
+
+  const newTenant = await platformAdminService.createTenant(tenantData, adminId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED, // Use 201 Created for new resources.
+    success: true,
+    message: 'Tenant created successfully.',
+    data: newTenant,
+  });
+});
+
+/**
+ * @description Get a list of all tenants on the platform with filtering and pagination.
  * @access PLATFORM_OWNER
  */
 const getAllTenants = catchAsync(async (req, res) => {
   const adminId = req.user?.id;
-  // Add pagination and filtering from query params for scalability
-  const { page = 1, limit = 20, status, sortBy } = req.query;
-  const options = { page, limit, status, sortBy };
+  // Add pagination, filtering, and searching from query params for scalability.
+  const { page = 1, limit = 20, status, sortBy, search } = req.query;
+  const options = {
+    page: parseInt(page, 10), // Ensure numeric types for pagination.
+    limit: parseInt(limit, 10),
+    status,
+    sortBy,
+    search,
+  };
 
   logger.info('Platform Owner requested list of all tenants', {
     severity: 'NOTICE',
@@ -128,6 +178,30 @@ const getAllTenants = catchAsync(async (req, res) => {
     success: true,
     message: 'All tenants retrieved successfully.',
     data: tenants,
+  });
+});
+
+/**
+ * @description Get detailed information for a single tenant by their ID.
+ * @access PLATFORM_OWNER
+ */
+const getTenantById = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const { tenantId } = req.params;
+
+  logger.info('Platform Owner requested details for a single tenant', {
+    severity: 'NOTICE',
+    adminId,
+    tenantId,
+  });
+
+  const tenant = await platformAdminService.getTenantById(tenantId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant details retrieved successfully.',
+    data: tenant,
   });
 });
 
@@ -160,7 +234,7 @@ const updateTenantStatus = catchAsync(async (req, res) => {
     adminId,
     tenantId,
     newStatus: status,
-    reason,
+    reason, // Capturing the reason is crucial for audit trails.
   });
 
   const updatedTenant = await platformAdminService.updateTenantStatus(tenantId, status, reason, adminId);
@@ -196,6 +270,31 @@ const overrideTenantLimits = catchAsync(async (req, res) => {
     success: true,
     message: `Successfully updated limits for tenant ${tenantId}.`,
     data: updatedTenant,
+  });
+});
+
+/**
+ * @description Delete a tenant from the platform.
+ * @access PLATFORM_OWNER
+ * @note This is a destructive action. The service layer should handle soft vs. hard delete logic.
+ */
+const deleteTenant = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const { tenantId } = req.params;
+
+  logger.warn('Platform Owner is deleting a tenant. This is a high-impact action.', {
+    severity: 'WARNING',
+    adminId,
+    tenantId,
+  });
+
+  await platformAdminService.deleteTenant(tenantId, adminId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Tenant ${tenantId} has been successfully deleted.`,
+    data: null,
   });
 });
 
@@ -245,14 +344,38 @@ const updateSystemConfiguration = catchAsync(async (req, res) => {
 });
 
 /**
- * @description Query global system logs.
+ * @description Query global system logs with advanced filtering, sorting, and pagination.
  * @access PLATFORM_OWNER
  */
 const queryGlobalLogs = catchAsync(async (req, res) => {
   const adminId = req.user?.id;
-  // Basic filtering options from query params
-  const { level, service, userId, tenantId, startTime, endTime, limit = 100 } = req.query;
-  const filter = { level, service, userId, tenantId, startTime, endTime, limit };
+  // Enhanced filtering, pagination, and sorting options from query params.
+  const {
+    level,
+    service,
+    userId,
+    tenantId,
+    startTime,
+    endTime,
+    page = 1,
+    limit = 100,
+    sortBy = 'timestamp',
+    sortOrder = 'desc',
+    search, // Add a free-text search capability.
+  } = req.query;
+  const filter = {
+    level,
+    service,
+    userId,
+    tenantId,
+    startTime,
+    endTime,
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    sortBy,
+    sortOrder,
+    search,
+  };
 
   logger.info('Platform Owner is querying global logs', {
     severity: 'NOTICE',
@@ -277,9 +400,12 @@ export const orchestratorController = {
   routePrompt,
   // Platform Owner / Super Admin
   getGlobalStatistics,
+  createTenant,
   getAllTenants,
+  getTenantById,
   updateTenantStatus,
   overrideTenantLimits,
+  deleteTenant,
   getSystemConfiguration,
   updateSystemConfiguration,
   queryGlobalLogs,

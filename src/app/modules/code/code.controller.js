@@ -8,6 +8,8 @@ import { codeService } from './code.service.js';
 // It will be handled by a separate background worker.
 // import { codeAssistantApp } from './code_assistant/workflow.js';
 import SubscriptionModel from '../payment/payment.model.js';
+import ConversationModel from '../conversations/conversation.model.js'; // For validating conversation ownership
+import ApiError from '../../../errors/ApiError.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { codeHelpers } from './code.helper.js';
 
@@ -26,7 +28,7 @@ const codeAssistantTopicName =
  *     summary: Initiate a code generation or assistance task.
  *     description: |
  *       Handles requests for code generation or assistance from both authenticated and guest users.
- *       For authenticated users, it checks monthly subscription limits before processing the request.
+ *       For authenticated users, it checks the workspace's monthly subscription limits before processing the request.
  *       This endpoint accepts the task and queues it for asynchronous processing. The final result should be retrieved via another endpoint or a notification system (e.g., WebSockets).
  *     tags:
  *       - Code
@@ -87,7 +89,7 @@ const codeAssistantTopicName =
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       403:
- *         description: Forbidden. User has reached their code assistance limit.
+ *         description: Forbidden. The workspace has reached its code assistance limit.
  *         content:
  *           application/json:
  *             schema:
@@ -101,7 +103,9 @@ const codeAssistantTopicName =
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: "You have reached your code assistance limit for this month. Please upgrade your plan to continue."
+ *                   example: "Your workspace has reached its code assistance limit for this month. Please contact your administrator to upgrade the plan."
+ *       404:
+ *         description: Not Found. The specified conversation does not exist or is not accessible.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -116,140 +120,134 @@ const codeAssistantTopicName =
  * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 export const performCodeTask = catchAsync(async (req, res) => {
-  // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest
-    ? codeService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
   const { message, conversationId } = req.body;
 
-  // Skip subscription check for guest users
+  // CRITICAL FIX: Establish user and workspace context early. Guests don't have a workspace.
+  const userId = isGuest ? codeService.generateGuestUserId() : req.user?.userId;
+  const workspaceId = isGuest ? null : req.user?.workspaceId;
+  const userRole = isGuest ? 'guest' : req.user?.role;
+
+  if (!message) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'A code query is required');
+  }
+
+  if (!isGuest && (!workspaceId || !userId)) {
+    // This indicates a problem with the user's token or account setup.
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      'User is not associated with a valid workspace.'
+    );
+  }
+
+  // CRITICAL FIX: Hierarchical Subscription and Limit Check (for authenticated users)
   if (!isGuest) {
-    // OPTIMIZATION: Ensure an index exists on { userId: 1, createdAt: -1 } in the 'subscriptions' collection.
-    // This compound index allows MongoDB to efficiently find the user and sort by creation date to get the latest record without scanning.
-    const userSubscription = await SubscriptionModel.findOne({ userId })
-      .sort({
-        createdAt: -1,
-      })
+    // The subscription is tied to the workspace/tenant, not the individual user.
+    const workspaceSubscription = await SubscriptionModel.findOne({ workspaceId })
+      .sort({ createdAt: -1 })
       .lean();
 
-    const monthlyLimit = userSubscription
-      ? userSubscription.usage
+    // The limit is defined by the workspace's plan.
+    const monthlyLimit = workspaceSubscription
+      ? workspaceSubscription.usageLimit // Assumes the field is named usageLimit
       : codeService.getDefaultFreeTierLimit();
 
-    // OPTIMIZATION: The underlying query in getMonthlyMessageCount should be indexed.
-    // A compound index on { userId: 1, createdAt: -1 } on the messages collection is recommended
-    // to efficiently count a user's messages within the current month's date range.
-    const currentMonthlyUsage = await codeService.getMonthlyMessageCount(userId);
+    // Usage is counted for the entire workspace.
+    const currentMonthlyUsage =
+      await codeService.getMonthlyMessageCountForWorkspace(workspaceId);
 
     if (currentMonthlyUsage >= monthlyLimit) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your code assistance limit for this month. Please upgrade your plan to continue.',
-      });
+      // INTEGRATION TASK: Propagate notification to admins.
+      // This could be another Pub/Sub message or a direct service call.
+      // e.g., notificationService.notifyAdmins(workspaceId, 'Code Assistant Limit Reached');
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Your workspace has reached its code assistance limit for this month. Please contact your administrator to upgrade the plan.'
+      );
     }
   }
 
-  if (!message) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'A code query is required',
-    });
-  }
+  // CRITICAL FIX (IDOR Prevention): Validate Conversation Ownership
+  if (conversationId && !isGuest) {
+    // Ensure the user is not trying to access a conversation outside their workspace.
+    const existingConversation = await ConversationModel.findOne({
+      _id: conversationId,
+      workspaceId: workspaceId, // This scopes the search to the user's workspace.
+    }).lean();
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Failed to generate user identifier',
-    });
+    if (!existingConversation) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Conversation not found or you do not have permission to access it.'
+      );
+    }
   }
 
   const thread_id = conversationId || codeService.generateCodeConversationId();
   let actualConversationId;
 
-  try {
-    // Perform initial synchronous database operations
-    const conversation = await codeService.handleCodeConversation(
-      userId,
-      conversationId,
-      message,
-      isGuest,
-      req
-    );
-    actualConversationId = conversation.conversationId || thread_id;
+  // Pass workspace context to service layer for correct data scoping and usage tracking.
+  const conversation = await codeService.handleCodeConversation(
+    userId,
+    workspaceId, // Pass workspaceId
+    conversationId,
+    message,
+    isGuest,
+    req
+  );
+  actualConversationId = conversation.conversationId || thread_id;
 
-    await codeService.addCodeQueryMessage(
-      actualConversationId,
-      userId,
-      message,
-      isGuest,
-      req
-    );
+  // The service layer is now responsible for attributing this message to the user AND the workspace.
+  await codeService.addCodeQueryMessage(
+    actualConversationId,
+    userId,
+    workspaceId, // Pass workspaceId
+    message,
+    isGuest,
+    req
+  );
 
-    // REFACTOR: Instead of invoking the AI model in-process, we offload it to a background worker.
-    // This makes the API endpoint fast, responsive, and prevents it from tying up server resources
-    // or hitting timeout limits for long-running AI tasks.
+  // Offload to Worker with Full Context
+  const taskPayload = {
+    conversationId: actualConversationId,
+    userId,
+    workspaceId, // CRITICAL: Pass workspaceId to the worker
+    userRole, // Pass role for any potential downstream logic in the worker
+    message,
+    isGuest,
+  };
 
-    // 1. Prepare the payload for the background worker.
-    const taskPayload = {
+  const dataBuffer = Buffer.from(JSON.stringify(taskPayload));
+  const messageId = await pubSubClient
+    .topic(codeAssistantTopicName)
+    .publishMessage({ data: dataBuffer });
+
+  logger.info(
+    `Queued code assistant task ${messageId} for conversation: ${actualConversationId} in workspace: ${workspaceId}`
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.ACCEPTED,
+    success: true,
+    message: 'Your request has been accepted and is being processed.',
+    data: {
       conversationId: actualConversationId,
-      userId,
-      message, // The latest user message
-      isGuest,
-      // Pass any other necessary context for the worker.
-      // Avoid passing the full `req` object for security and serialization reasons.
-    };
-
-    // 2. Publish a message to the GCP Pub/Sub topic.
-    const dataBuffer = Buffer.from(JSON.stringify(taskPayload));
-    const messageId = await pubSubClient
-      .topic(codeAssistantTopicName)
-      .publishMessage({ data: dataBuffer });
-
-    logger.info(
-      `Queued code assistant task ${messageId} for conversation: ${actualConversationId}`
-    );
-
-    // 3. Respond immediately to the client with HTTP 202 Accepted.
-    // The client will need to poll for the result or receive it via a WebSocket/SSE connection.
-    return sendResponse(res, {
-      statusCode: httpStatus.ACCEPTED,
-      success: true,
-      message: 'Your request has been accepted and is being processed.',
-      data: {
-        conversationId: actualConversationId,
-        userType: isGuest ? 'guest' : 'authenticated',
-        userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
-      },
-    });
-  } catch (error) {
-    logger.error('Error queuing code assistant task:', error);
-    // This catch block now handles errors during the initial DB writes or publishing to Pub/Sub.
-    // Errors from the AI model itself will be handled by the background worker.
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'An internal error occurred while queueing your code request',
-      data: {
-        conversationId: actualConversationId || thread_id,
-        userType: isGuest ? 'guest' : 'authenticated',
-      },
-    });
-  }
+      userType: isGuest ? 'guest' : 'authenticated',
+      userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
+    },
+  });
 });
 
 /**
  * @swagger
  * /api/v1/code/stats:
  *   get:
- *     summary: Get code statistics for the authenticated user.
+ *     summary: Get code statistics.
  *     description: |
- *       Retrieves usage statistics related to the code assistant for the currently authenticated user.
- *       This endpoint is not available for guest users.
+ *       Retrieves usage statistics related to the code assistant.
+ *       - Authenticated users (role: 'user', 'manager') get their own personal statistics.
+ *       - Workspace administrators (role: 'admin', 'super_admin') get statistics for the entire workspace.
+ *       - This endpoint is not available for guest users.
  *     tags:
  *       - Code
  *     security:
@@ -273,42 +271,32 @@ export const performCodeTask = catchAsync(async (req, res) => {
  *                   example: "Code statistics retrieved successfully"
  *                 data:
  *                   type: object
+ *                   description: Contains statistics for the user or the entire workspace, depending on the user's role.
  *                   properties:
+ *                     scope:
+ *                       type: string
+ *                       enum: [user, workspace]
+ *                       example: "workspace"
  *                     totalConversations:
  *                       type: number
- *                       description: Total number of code conversations initiated by the user.
- *                       example: 15
+ *                       example: 150
  *                     totalMessages:
  *                       type: number
- *                       description: Total number of messages exchanged in code conversations.
- *                       example: 60
+ *                       example: 600
  *                     lastActivity:
  *                       type: string
  *                       format: date-time
- *                       description: Timestamp of the user's last interaction with the code assistant.
  *                       example: "2023-10-27T10:00:00.000Z"
  *       401:
- *         description: Unauthorized. Statistics are only available for authenticated users or user authentication is required.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 401
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Statistics are only available for authenticated users"
+ *         description: Unauthorized. Statistics are only available for authenticated users.
+ *       403:
+ *         description: Forbidden. User does not have the required role.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 /**
- * Controller function to retrieve code assistant usage statistics for an authenticated user.
- * Rejects requests from guest users.
+ * Controller function to retrieve code assistant usage statistics.
+ * Provides user-specific stats for standard users and workspace-wide stats for admins.
  * @function getCodeStats
  * @async
  * @param {import('express').Request} req - The Express request object, containing authenticated user details.
@@ -319,29 +307,37 @@ const getCodeStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
 
   if (isGuest) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Statistics are only available for authenticated users',
-    });
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      'Statistics are only available for authenticated users'
+    );
   }
 
-  const userId = req.user?.userId || req.user?._id;
+  const { userId, workspaceId, role } = req.user;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'User authentication required',
-    });
+  if (!userId || !workspaceId) {
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      'User authentication details are incomplete.'
+    );
   }
 
-  // OPTIMIZATION: The codeService.getCodeStats method likely performs multiple queries (e.g., count conversations, count messages, find last activity).
-  // Ensure that the underlying collections have appropriate indexes to accelerate these lookups.
-  // Recommended indexes:
-  // - On 'conversations' collection: { userId: 1 }
-  // - On 'messages' collection: { userId: 1, createdAt: -1 }
-  const stats = await codeService.getCodeStats(userId, req);
+  let stats;
+  // CRITICAL FIX: Implement role-based access to statistics.
+  // Admins and super_admins can view stats for the entire workspace.
+  // Managers and users can only view their own stats.
+  if (role === 'admin' || role === 'super_admin') {
+    // The service method needs to support fetching stats by workspace.
+    stats = await codeService.getWorkspaceCodeStats(workspaceId, req);
+  } else if (role === 'manager' || role === 'user') {
+    // Existing behavior for standard users, but using a more explicitly named service method.
+    stats = await codeService.getUserCodeStats(userId, req);
+  } else {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You do not have the required role to access statistics.'
+    );
+  }
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
