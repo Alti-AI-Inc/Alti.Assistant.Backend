@@ -70,9 +70,11 @@ export const initializeWorkflowScheduler = async (config = {}) => {
     };
   } catch (error) {
     logger.error('Failed to initialize workflow scheduling system:', error);
+    // SECURITY PATCH: Avoid leaking internal error details.
+    // Return a generic error message to the caller. The specific error is logged for internal review.
     return {
       success: false,
-      error: error.message,
+      error: 'An internal error occurred during scheduler initialization.',
     };
   }
 };
@@ -147,9 +149,11 @@ export const healthCheck = async () => {
     };
   } catch (error) {
     logger.error('Health check failed:', error);
+    // SECURITY PATCH: Avoid leaking internal error details.
+    // Return a generic error message to the caller. The specific error is logged for internal review.
     return {
       healthy: false,
-      error: error.message,
+      error: 'An internal error occurred during the health check.',
       timestamp: new Date().toISOString(),
     };
   }
@@ -193,9 +197,11 @@ export const shutdownWorkflowScheduler = async () => {
     };
   } catch (error) {
     logger.error('Error during workflow scheduler shutdown:', error);
+    // SECURITY PATCH: Avoid leaking internal error details.
+    // Return a generic error message to the caller. The specific error is logged for internal review.
     return {
       success: false,
-      error: error.message,
+      error: 'An internal error occurred during scheduler shutdown.',
     };
   }
 };

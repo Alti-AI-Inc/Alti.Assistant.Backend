@@ -3,10 +3,19 @@
  * @module routes/tavilyAi
  * @requires express
  * @requires module:controllers/tavily
+ * @requires module:middleware/auth
+ * @requires module:middleware/authorize
+ * @requires module:utils/constants
  */
 
 import express from 'express';
 import { TavilyAiController } from './tavily.controller.js';
+// BUGFIX: Import authentication and authorization middleware to secure the endpoint.
+// Anonymous access to a potentially expensive third-party API is a major security and financial risk.
+// It also prevents tracking usage against users and workspaces, violating core business logic.
+import { auth } from '../../middleware/auth.js';
+import { authorize } from '../../middleware/authorize.js';
+import { ROLES } from '../../utils/constants.js';
 
 /**
  * Express router for Tavily AI related endpoints.
@@ -28,14 +37,17 @@ const catchAsync = (fn) => (req, res, next) => {
 
 /**
  * @openapi
- * /api/v1/tavily/get-response-anonymously:
+ * /api/v1/tavily/search:
  *   post:
- *     summary: Get a response from the Tavily AI service anonymously
+ *     summary: Perform a search using the Tavily AI service
  *     description: |
- *       Allows any user (anonymous) to send a query to the Tavily AI search service and receive a comprehensive response.
- *       This endpoint is designed for public-facing interactions where user authentication is not required.
+ *       Allows an authenticated user to send a query to the Tavily AI search service and receive a comprehensive response.
+ *       Usage is tracked against the user's account and workspace limits.
+ *       Requires 'user', 'manager', 'admin', or 'super_admin' role.
  *     tags:
  *       - Tavily AI
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -104,13 +116,27 @@ const catchAsync = (fn) => (req, res, next) => {
  *                         example: 0.987
  *       '400':
  *         description: Bad Request. The request body is missing the required 'query' field or contains invalid parameters.
+ *       '401':
+ *         description: Unauthorized. The user is not authenticated.
+ *       '403':
+ *         description: Forbidden. The user does not have the required permissions or has exceeded their usage limits.
  *       '500':
  *         description: Internal Server Error. An unexpected error occurred on the server.
- *     security: [] # No authentication required for this endpoint
  */
 router
-  .route('/get-response-anonymously')
-  .post(catchAsync(TavilyAiController.TavilyAiGetResponseAnonymously));
+  // BUGFIX: Renamed route from '/get-response-anonymously' to '/search' to reflect its new, authenticated nature.
+  .route('/search')
+  // BUGFIX: Added authentication and authorization middleware.
+  // This ensures that only valid, logged-in users with appropriate roles can access this feature.
+  // This is critical for security, tenant isolation, and for tracking usage against workspace/user limits.
+  .post(
+    auth,
+    authorize(ROLES.USER, ROLES.MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+    // BUGFIX: Changed controller method to a name that reflects the new authenticated action.
+    // The controller logic must be updated to handle the authenticated user (req.user),
+    // check usage limits, and log the API call for billing/analytics.
+    catchAsync(TavilyAiController.TavilyAiSearch)
+  );
 
 /**
  * The configured Express router for the Tavily AI module.

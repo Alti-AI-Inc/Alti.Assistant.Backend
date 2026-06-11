@@ -116,7 +116,7 @@ const noteSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // Assuming you have a User model
     required: true,
-    index: true, // Index for efficient querying of notes by user.
+    index: true, // Index for efficient querying of notes by user across all workspaces (e.g., for super-admins).
   },
   // --- HIERARCHY & MULTI-TENANCY FIX ---
   // Added workspaceId to enforce tenant boundaries at the database level.
@@ -129,12 +129,21 @@ const noteSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Workspace', // Assuming a Workspace model exists for tenancy.
     required: true,
-    index: true, // Index for efficient querying of all notes within a workspace.
+    // The individual index on this field is now redundant because it is the first key
+    // in the compound index defined below.
   },
 }, {
   timestamps: true, // Automatically adds `createdAt` and `updatedAt` fields, managing their values.
                     // This is the recommended way to handle timestamps in Mongoose.
 });
+
+// --- INDEXING OPTIMIZATION ---
+// This compound index is critical for performance in a multi-tenant application.
+// It allows for highly efficient lookups of notes scoped to a specific workspace,
+// which is the most common query pattern for tenants, managers, and admins.
+// This index covers queries filtering by `workspaceId` alone, or by `workspaceId` and then `userId`.
+noteSchema.index({ workspaceId: 1, userId: 1 });
+
 
 /**
  * Mongoose model for the 'Notes' collection.
