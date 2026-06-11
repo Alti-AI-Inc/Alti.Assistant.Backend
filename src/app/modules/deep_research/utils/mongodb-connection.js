@@ -79,10 +79,39 @@ export const connectToMongoDB = async (
     // it will return a promise that resolves with that connection, preventing race conditions.
     console.log('Connecting to MongoDB for research agent...');
 
-    // Mongoose 6+ defaults to useNewUrlParser and useUnifiedTopology,
-    // so these options are no longer necessary and can be removed.
+    // Mongoose 6+ defaults to useNewUrlParser and useUnifiedTopology.
+    // The following options are added for production-grade resiliency in a GCP environment.
     await mongoose.connect(uri, {
+      // GCP Resiliency: Use IPv4 first, as it's standard in most VPCs.
       family: 4,
+
+      // --- Connection Pooling ---
+      // maxPoolSize: The maximum number of sockets the driver will keep open for this connection.
+      // Helps manage concurrent requests without overwhelming the database.
+      // A value of 10 is a sensible default for many applications.
+      maxPoolSize: 10,
+
+      // minPoolSize: The minimum number of sockets the driver will keep open.
+      // Having a minimum pool size can help handle initial bursts of traffic after a period of inactivity.
+      minPoolSize: 5,
+
+      // --- Timeouts for Network Resilience ---
+      // serverSelectionTimeoutMS: How long the driver will try to find a server to send an operation to before timing out.
+      // Prevents the application from hanging indefinitely if the database is unreachable. 5000ms is a common setting.
+      serverSelectionTimeoutMS: 5000,
+
+      // socketTimeoutMS: How long a send or receive on a socket can take before timing out.
+      // Crucial for preventing operations from hanging on network partitions or slow database responses.
+      socketTimeoutMS: 30000, // 30 seconds
+
+      // --- Keep-Alive for Stable Long-Lived Connections ---
+      // keepAlive: A TCP setting that helps maintain long-lived connections through firewalls and load balancers
+      // common in cloud environments like GCP (e.g., through Cloud SQL Auth Proxy or VPC Peering).
+      keepAlive: true,
+
+      // keepAliveInitialDelay: The number of milliseconds to wait before initiating the first keepAlive probe.
+      // A longer delay like 300000ms (5 minutes) prevents unnecessary network chatter on active connections.
+      keepAliveInitialDelay: 300000,
     });
 
     isConnected = true;

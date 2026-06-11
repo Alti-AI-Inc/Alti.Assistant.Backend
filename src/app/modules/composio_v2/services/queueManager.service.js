@@ -57,6 +57,24 @@ class QueueManager {
    */
   async queueWorkflow(workflow, priority = 'normal', metadata = {}) {
     try {
+      // --- SECURITY PATCH: Input Sanitization ---
+      // Validate the incoming workflow object to ensure it has the minimum required structure.
+      // This prevents processing of malformed data, guards against potential downstream errors,
+      // and is a critical step in securing the input boundary of the system.
+      if (
+        !workflow ||
+        typeof workflow !== 'object' ||
+        !workflow.workflowId ||
+        !workflow.userId
+      ) {
+        logger.warn('Queue attempt with invalid workflow object.', { workflow });
+        return {
+          success: false,
+          error:
+            'Invalid workflow object provided. It must contain at least a workflowId and userId.',
+        };
+      }
+
       // --- ENHANCEMENT: Enforce Manager Plan Limits ---
       // Before queuing, verify that the workspace has not exceeded its plan limits.
       // This prevents overuse and ensures fair resource allocation.
