@@ -10,7 +10,11 @@ const { VertexAI } = require('@google-cloud/vertexai');
 // In GCP environments (Cloud Run, GKE, GCE, etc.), credentials are automatically available.
 
 /**
- * Initializes and returns a Secret Manager client using Application Default Credentials.
+ * Initializes and returns a Google Cloud Secret Manager client.
+ * This function leverages Application Default Credentials (ADC) for authentication,
+ * automatically detecting credentials in the environment (e.g., via `gcloud auth application-default login`
+ * for local development or from the service account in a GCP environment).
+ * @returns {SecretManagerServiceClient} An instance of the Secret Manager service client.
  */
 function getSecretManagerClient() {
   // By not providing 'keyFilename' or 'credentials', the client automatically uses ADC.
@@ -19,7 +23,11 @@ function getSecretManagerClient() {
 }
 
 /**
- * Initializes and returns a Google Cloud Storage client using Application Default Credentials.
+ * Initializes and returns a Google Cloud Storage client.
+ * This function uses Application Default Credentials (ADC) for authentication,
+ * which allows the client to work seamlessly in both local development and deployed GCP environments
+ * without hardcoded credentials. The project ID is also inferred from the environment.
+ * @returns {Storage} An instance of the Google Cloud Storage client.
  */
 function getStorageClient() {
   // By not providing 'keyFilename' or 'credentials', the client automatically uses ADC
@@ -29,7 +37,10 @@ function getStorageClient() {
 }
 
 /**
- * Initializes and returns a Vertex AI client using Application Default Credentials.
+ * Initializes and returns a Google Cloud Vertex AI client.
+ * This function requires the `GCP_PROJECT_ID` and `GCP_LOCATION` environment variables to be set.
+ * It uses Application Default Credentials (ADC) for authentication.
+ * @returns {VertexAI} An instance of the Vertex AI client, configured for the project and location specified in the environment variables.
  */
 function getVertexAIClient() {
     // Project and location are required for Vertex AI.
