@@ -39,6 +39,43 @@ import fsPromises from 'node:fs/promises';
 // OPTIMIZATION: Removed sync file system call 'existsSync' to avoid blocking the event loop.
 // import { existsSync } from 'node:fs';
 
+// IMPROVEMENT: Define custom error types for specific limit violations.
+// This allows the upstream API layer to catch specific errors and return
+// more meaningful HTTP status codes (e.g., 413 for file size, 402 for quota)
+// and structured error messages to the client, improving user feedback.
+class SubscriptionLimitError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SubscriptionLimitError';
+  }
+}
+
+class FileSizeLimitExceededError extends SubscriptionLimitError {
+  constructor(message, limit, actual) {
+    super(message);
+    this.name = 'FileSizeLimitExceededError';
+    this.limit = limit;
+    this.actual = actual;
+  }
+}
+
+class DocumentCountLimitExceededError extends SubscriptionLimitError {
+  constructor(message, limit) {
+    super(message);
+    this.name = 'DocumentCountLimitExceededError';
+    this.limit = limit;
+  }
+}
+
+class TotalSizeLimitExceededError extends SubscriptionLimitError {
+  constructor(message, limit, actual) {
+    super(message);
+    this.name = 'TotalSizeLimitExceededError';
+    this.limit = limit;
+    this.actual = actual;
+  }
+}
+
 /**
  * Resolves and validates the user context, enforcing tenant boundaries and role permissions.
  * This function is a critical security checkpoint. It ensures that all operations are
@@ -95,7 +132,7 @@ function validateAndResolveContext(userContext) {
  * @param {Object} userCtx - The validated user context, including limits.
  * @param {Object} usageDetails - Details of the current ingestion (e.g., charCount).
  * @param {Object} manifest - The user's current document manifest for checking cumulative limits.
- * @throws {Error} If any subscription limit is exceeded.
+ * @throws {SubscriptionLimitError} If any subscription limit is exceeded.
  */
 async function propagateUsageAndNotifications(userCtx, usageDetails, manifest) {
   const { userId, tenantId, role, managerId } = userCtx;
@@ -116,20 +153,34 @@ async function propagateUsageAndNotifications(userCtx, usageDetails, manifest) {
   // 1. Per-file size/character limit.
   const limitMaxCharsPerFile = limits.maxCharsPerFile || 5000000; // 5MB default
   if (charCount > limitMaxCharsPerFile) {
-    throw new Error(`Ingestion rejected: File character count (${charCount}) exceeds the per-file limit of ${limitMaxCharsPerFile}.`);
+    // IMPROVEMENT: Throw a specific, custom error for better upstream handling.
+    throw new FileSizeLimitExceededError(
+      `Ingestion rejected: File character count (${charCount}) exceeds the per-file limit of ${limitMaxCharsPerFile}.`,
+      limitMaxCharsPerFile,
+      charCount
+    );
   }
 
   // 2. Total document count limit.
   const limitMaxDocs = limits.maxDocs || 100; // Default 100 documents
   if (existingDocs.length >= limitMaxDocs) {
-    throw new Error(`Ingestion rejected: Document count limit (${limitMaxDocs}) has been reached.`);
+    // IMPROVEMENT: Throw a specific, custom error for better upstream handling.
+    throw new DocumentCountLimitExceededError(
+      `Ingestion rejected: Document count limit (${limitMaxDocs}) has been reached.`,
+      limitMaxDocs
+    );
   }
 
   // 3. Total character count limit across all documents.
   const limitMaxTotalChars = limits.maxTotalChars || 25000000; // 25MB default
   const currentTotalChars = existingDocs.reduce((sum, doc) => sum + (doc.charCount || 0), 0);
   if (currentTotalChars + charCount > limitMaxTotalChars) {
-    throw new Error(`Ingestion rejected: This document would cause the total character count to exceed the limit of ${limitMaxTotalChars}.`);
+    // IMPROVEMENT: Throw a specific, custom error for better upstream handling.
+    throw new TotalSizeLimitExceededError(
+      `Ingestion rejected: This document would cause the total character count to exceed the limit of ${limitMaxTotalChars}.`,
+      limitMaxTotalChars,
+      currentTotalChars + charCount
+    );
   }
 
   // Placeholder for future notification logic (e.g., email, webhook).
@@ -429,7 +480,9 @@ export async function runIngestionWorkflow(filePath, originalName, userContext) 
     return finalEvent.data;
   } catch (error) {
     logger.error(`[Event Ingestion] Critical workflow execution failure for user '${userContext?.userId}': ${error.message}`);
-    // Re-throw the error so the calling API can handle it, e.g., by sending a 402 or 429 status code.
+    // Re-throw the error so the calling API can handle it.
+    // With custom errors, the API can now check `instanceof FileSizeLimitExceededError`
+    // or other specific limit errors to return appropriate HTTP status codes (e.g., 402, 413, 429).
     throw error;
   }
 }
