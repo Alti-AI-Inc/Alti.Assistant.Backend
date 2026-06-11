@@ -1,6 +1,28 @@
 import { GeminiAiService } from '../gemini/gemini.service.js';
 import { logger } from '../../../shared/logger.js';
 
+// VERTEX_AI_AGENT: Added a PII redaction utility.
+// This function masks common PII patterns like emails and phone numbers
+// before the data is sent to the generative model, enhancing user privacy and data security.
+// For production systems, consider using the Google Cloud DLP API for more robust PII detection.
+const maskPii = (text) => {
+  if (typeof text !== 'string' || !text) {
+    return text;
+  }
+  // Mask email addresses
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b/g;
+  // Mask phone numbers (various common formats)
+  const phoneRegex = /\b(?:\+?1[ -]?)?(?:\(?\d{3}\)?|\d{3})[ -]?\d{3}[ -]?\d{4}\b/g;
+  // Mask Social Security Numbers (SSN)
+  const ssnRegex = /\b\d{3}-\d{2}-\d{4}\b/g;
+
+  let maskedText = text.replace(emailRegex, '[EMAIL_REDACTED]');
+  maskedText = maskedText.replace(phoneRegex, '[PHONE_REDACTED]');
+  maskedText = maskedText.replace(ssnRegex, '[SSN_REDACTED]');
+
+  return maskedText;
+};
+
 /**
  * Delegates OpenAI GPT-4o requests exclusively to Google Gemini 3.1 Flash on Google Cloud.
  * This service acts as a proxy, redirecting requests intended for OpenAI's GPT-4o model
@@ -26,8 +48,13 @@ const openAiResponseService = async (prompt, userId, sessionId) => {
     },
   });
   try {
+    // VERTEX_AI_AGENT: Added PII masking to the user prompt.
+    // This step is crucial for data privacy and security, ensuring that sensitive
+    // user information is redacted before being processed by the AI model.
+    const sanitizedPrompt = maskPii(prompt);
+
     // Await the Gemini service call to ensure the promise resolves and errors are caught
-    return await GeminiAiService.geminiService(sessionId, prompt, userId);
+    return await GeminiAiService.geminiService(sessionId, sanitizedPrompt, userId);
   } catch (error) {
     // GCP-AUDITOR-AGENT: Replaced string concatenation with a structured JSON object for error logging.
     // This provides detailed context for debugging in Google Cloud Logging and preserves the full error stack.
@@ -75,8 +102,13 @@ const openAi4NanoResponseService = async (prompt, userId, sessionId) => {
     },
   });
   try {
+    // VERTEX_AI_AGENT: Added PII masking to the user prompt.
+    // This step is crucial for data privacy and security, ensuring that sensitive
+    // user information is redacted before being processed by the AI model.
+    const sanitizedPrompt = maskPii(prompt);
+
     // Await the Gemini service call to ensure the promise resolves and errors are caught
-    return await GeminiAiService.geminiService(sessionId, prompt, userId);
+    return await GeminiAiService.geminiService(sessionId, sanitizedPrompt, userId);
   } catch (error) {
     // GCP-AUDITOR-AGENT: Replaced string concatenation with a structured JSON object for error logging.
     // This provides detailed context for debugging in Google Cloud Logging and preserves the full error stack.
