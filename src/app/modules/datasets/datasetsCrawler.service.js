@@ -9,28 +9,39 @@ import { runDatasetIngestionWorkflow } from './temporal/ingestionWorkflow.js';
 /**
  * @constant {string[]} ALLOWED_LICENSES - Strict legal purity license filter.
  *   Only datasets with these licenses (case-insensitive) will be considered for ingestion.
+ *   BUGFIX: Added 'apache-2.0-only' to align with original intent of allowing Apache 2.0 variants.
  */
-const ALLOWED_LICENSES = ['mit', 'apache-2.0'];
+const ALLOWED_LICENSES = ['mit', 'apache-2.0', 'apache-2.0-only'];
 
 /**
  * @function getMaxSizeBytes
  * @description Retrieves the maximum allowed dataset size in bytes for crawling from environment variables.
- *   Defaults to 2 GB if `HF_CRAWLER_MAX_SIZE_GB` is not set.
+ *   Defaults to 2 GB if `HF_CRAWLER_MAX_SIZE_GB` is not set or is invalid.
  * @returns {number} The maximum dataset size in bytes.
  */
 const getMaxSizeBytes = () => {
   const gb = parseFloat(process.env.HF_CRAWLER_MAX_SIZE_GB || '2');
+  // BUGFIX: Ensure that a non-numeric environment variable doesn't result in NaN, which would break size comparisons.
+  if (isNaN(gb) || gb <= 0) {
+    console.warn(`[HF Crawler Config] Invalid or missing HF_CRAWLER_MAX_SIZE_GB. Defaulting to 2 GB.`);
+    return 2 * 1024 * 1024 * 1024;
+  }
   return gb * 1024 * 1024 * 1024;
 };
 
 /**
  * @function getGcsCapacityBytes
  * @description Retrieves the total GCS storage capacity limit in bytes for archived datasets from environment variables.
- *   Defaults to 5 TB if `HF_CRAWLER_GCS_CAP_TB` is not set.
+ *   Defaults to 5 TB if `HF_CRAWLER_GCS_CAP_TB` is not set or is invalid.
  * @returns {number} The GCS storage capacity limit in bytes.
  */
 const getGcsCapacityBytes = () => {
   const tb = parseFloat(process.env.HF_CRAWLER_GCS_CAP_TB || '5');
+  // BUGFIX: Ensure that a non-numeric environment variable doesn't result in NaN, which would break capacity checks.
+  if (isNaN(tb) || tb <= 0) {
+    console.warn(`[HF Crawler Config] Invalid or missing HF_CRAWLER_GCS_CAP_TB. Defaulting to 5 TB.`);
+    return 5 * 1024 * 1024 * 1024 * 1024;
+  }
   return tb * 1024 * 1024 * 1024 * 1024;
 };
 
@@ -52,37 +63,26 @@ let rateLimitBackoffMs = 0; // Dynamic backoff tracking
 
 /**
  * @function extractLicense
- * @description Normalizes and extracts the license string from a Hugging Face API dataset item.
- *   It attempts to find the license in `item.cardData.license` (string, array, or object with 'type')
- *   or falls back to searching `item.tags` for a 'license:' prefixed tag.
- *   For arrays, it enforces strict purity: only if exactly one allowed license is present will it be returned.
+ * @description REFACTORED: Normalizes and extracts the license string from a Hugging Face API dataset item.
+ *   It checks all known locations for a license, normalizes the findings, and enforces strict purity:
+ *   only if exactly one allowed license (from ALLOWED_LICENSES) is present will it be returned.
  * @param {object} item - The dataset item object from the Hugging Face API.
  * @param {object} [item.cardData] - Card data containing metadata.
- * @param {(string|string[]|object)} [item.cardData.license] - License information, can be a string, array of strings, or an object with a 'type' property.
+ * @param {(string|string[]|object)} [item.cardData.license] - License information.
  * @param {string[]} [item.tags] - Array of tags associated with the dataset.
- * @returns {string} The normalized, lowercase license string, or 'unspecified' if not found or not strictly pure.
+ * @returns {string} The normalized, lowercase, and allowed license string, or 'unspecified' if not found or not strictly pure.
  */
 const extractLicense = (item) => {
-  if (item.cardData && item.cardData.license) {
-    // If it's a string
-    if (typeof item.cardData.license === 'string') {
-      return item.cardData.license.trim().toLowerCase();
-    }
-    // If it's an array, enforce strict purity: only one allowed license
-    if (Array.isArray(item.cardData.license)) {
-      const normalizedLicenses = item.cardData.license
-        .map(l => String(l).trim().toLowerCase())
-        .filter(l => ALLOWED_LICENSES.includes(l)); // Filter for allowed ones
+  const potentialLicenses = [];
 
-      if (normalizedLicenses.length === 1) { // Only one allowed license found
-        return normalizedLicenses[0];
-      }
-      // If zero, or more than one allowed license, it's not "pure"
-      return 'unspecified';
-    }
-    // If it's an object (e.g. { type: 'mit' })
-    if (typeof item.cardData.license === 'object' && item.cardData.license.type) {
-      return String(item.cardData.license.type).trim().toLowerCase();
+  if (item.cardData && item.cardData.license) {
+    const licenseData = item.cardData.license;
+    if (typeof licenseData === 'string') {
+      potentialLicenses.push(licenseData);
+    } else if (Array.isArray(licenseData)) {
+      potentialLicenses.push(...licenseData.map(l => String(l)));
+    } else if (typeof licenseData === 'object' && licenseData.type) {
+      potentialLicenses.push(String(licenseData.type));
     }
   }
 
@@ -90,31 +90,54 @@ const extractLicense = (item) => {
   if (Array.isArray(item.tags)) {
     const licenseTag = item.tags.find(t => t.startsWith('license:'));
     if (licenseTag) {
-      return licenseTag.replace('license:', '').trim().toLowerCase();
+      potentialLicenses.push(licenseTag.replace('license:', ''));
     }
   }
 
+  if (potentialLicenses.length === 0) {
+    return 'unspecified';
+  }
+
+  // Normalize and filter for allowed licenses
+  const normalizedAllowedLicenses = potentialLicenses
+    .map(l => String(l).trim().toLowerCase())
+    .filter(l => ALLOWED_LICENSES.includes(l));
+
+  // Enforce strict purity: only if exactly one allowed license is present will it be returned.
+  if (normalizedAllowedLicenses.length === 1) {
+    return normalizedAllowedLicenses[0];
+  }
+
+  // If zero, or more than one allowed license, it's not "pure"
   return 'unspecified';
 };
+
 
 /**
  * @function scanHuggingFaceHub
  * @description Discovers and indexes Hugging Face datasets into the local crawling queue (`DatasetQueue`).
  *   It fetches datasets from the Hugging Face Hub API, applies various filters (gated, private, media, license, size),
- *   and queues eligible datasets for ingestion. Existing datasets in the queue are updated, and their status
- *   is re-evaluated based on current HF metadata.
+ *   and queues eligible datasets for ingestion. Existing datasets in the queue are updated.
+ * @param {object} user - The authenticated user object, used for authorization.
+ * @param {string} user.role - The role of the user (e.g., 'super_admin').
  * @param {number} [maxDatasetsToScan=500] - The maximum number of datasets to scan from the Hugging Face Hub.
  * @returns {Promise<object>} An object containing `success` status and `stats` about the scan process.
- * @throws {Error} If the HF Discovery Scanner encounters a critical error during the scan.
+ * @throws {Error} If the user is not authorized or if the scanner encounters a critical error.
  */
-const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
+const scanHuggingFaceHub = async (user, maxDatasetsToScan = 500) => {
+  // INTEGRATION: Role-based access control. Only platform owners can trigger a global scan.
+  if (!user || user.role !== 'super_admin') {
+    throw new Error('Authorization failed: You do not have permission to perform this action.');
+  }
+
   try {
     console.log(`[HF Scanner] Initiating paginated discovery. Target scan limit: ${maxDatasetsToScan}`);
     let scannedCount = 0;
     let nextPageUrl = `https://huggingface.co/api/datasets?sort=downloads&direction=-1&limit=100&full=true`;
     
     const maxSizeBytes = getMaxSizeBytes();
-    let stats = { discovered: 0, queued: 0, skippedGated: 0, skippedSize: 0, skippedLicense: 0 };
+    // BUGFIX: Added skippedMediaType to correctly categorize media-related skips.
+    let stats = { discovered: 0, queued: 0, skippedGated: 0, skippedSize: 0, skippedLicense: 0, skippedMediaType: 0 };
 
     while (nextPageUrl && scannedCount < maxDatasetsToScan) {
       console.log(`[HF Scanner] Querying HF Hub endpoint: ${nextPageUrl}`);
@@ -127,14 +150,10 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         break;
       }
 
-      // Optimization: Batch fetch existing queue items for the current page of datasets
-      // This avoids N+1 queries inside the loop for DatasetQueue.findOne
       const datasetIdsOnPage = datasets.map(item => item.id);
-      // Recommended index: { datasetId: 1 } on DatasetQueue model for efficient lookups.
       const existingQueueItems = await DatasetQueue.find({ datasetId: { $in: datasetIdsOnPage } }).lean();
       const existingQueueMap = new Map(existingQueueItems.map(item => [item.datasetId, item]));
 
-      // Optimization: Collect bulk operations to avoid N write queries per page
       const bulkOps = [];
 
       for (const item of datasets) {
@@ -146,20 +165,18 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         const likes = item.likes || 0;
         const isGated = item.gated || false;
         const isPrivate = item.private || false;
+        // REFACTOR: Use the new, more robust license extraction function.
         const rawLicense = extractLicense(item);
         
-        let calculatedStatus = 'pending'; // Default status, will be updated by filters
+        let calculatedStatus = 'pending';
         let calculatedSkipReason = '';
         let calculatedSizeBytes = 0;
 
-        // Determine status based on current Hugging Face data
-        // 1. Gatekeeper Filter: Gated or Private
         if (isGated || isPrivate) {
           calculatedStatus = 'skipped';
           calculatedSkipReason = 'Gated or Private dataset';
           stats.skippedGated++;
         } 
-        // 2. Gatekeeper Filter: Media/Non-Text (Image, Audio, Video, 3D) dataset detection
         else {
           const tags = item.tags || [];
           const blacklistedTasks = [
@@ -184,7 +201,6 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
             }
           }
           
-          // Check dataset ID or tags for keywords like 'image', 'audio', 'video', 'objaverse'
           const lowerId = datasetId.toLowerCase();
           if (!isMedia) {
             const mediaKeywords = ['image', 'audio', 'video', 'spectrogram', 'speech', 'objaverse', 'point-cloud', 'pointcloud', '3d-mesh', 'voxels'];
@@ -200,19 +216,16 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
           if (isMedia) {
             calculatedStatus = 'skipped';
             calculatedSkipReason = `Media/Non-Text Dataset: matched ${matchedMediaTag}`;
-            stats.skippedLicense++; // Count as skipped/license skip metric (as per original logic)
+            stats.skippedMediaType++; // BUGFIX: Correctly categorize media skips.
           } 
-          // 3. Gatekeeper Filter: Strict Legal License Purity (Pure MIT or pure Apache 2.0 only)
+          // REFACTOR: Simplified license check using the improved extractLicense function.
+          else if (rawLicense === 'unspecified') {
+            calculatedStatus = 'skipped';
+            const originalLicense = item.cardData?.license || item.tags?.find(t => t.startsWith('license:')) || 'not found';
+            calculatedSkipReason = `Unsupported or impure license: "${JSON.stringify(originalLicense)}" (Only pure mit and apache-2.0 allowed)`;
+            stats.skippedLicense++;
+          }
           else {
-            const isMIT = rawLicense === 'mit';
-            const isApache = rawLicense === 'apache-2.0' || rawLicense === 'apache-2.0-only';
-            if (!isMIT && !isApache) {
-              calculatedStatus = 'skipped';
-              calculatedSkipReason = `Unsupported License: "${rawLicense}" (Only pure mit and apache-2.0 allowed)`;
-              stats.skippedLicense++;
-            } 
-            // 4. Gatekeeper Filter: Rough Size threshold (if exposed in metadata)
-            else {
               if (item.cardData?.dataset_info?.dataset_size) {
                 calculatedSizeBytes = item.cardData.dataset_info.dataset_size;
               } else if (item.cardData?.dataset_info?.download_size) {
@@ -224,42 +237,33 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
                 calculatedSkipReason = `Exceeded Max Size Limit (${(calculatedSizeBytes / (1024 * 1024)).toFixed(2)} MB)`;
                 stats.skippedSize++;
               }
-            }
           }
         }
 
-        // Now, determine the final status for the queue item, considering its previous state
         const existingQueueItem = existingQueueMap.get(datasetId);
         let finalStatus = calculatedStatus;
 
         if (existingQueueItem) {
-          // If an item was previously completed or downloading, and still passes filters, keep its status.
-          // If it now fails filters, update to 'skipped'.
           if ((existingQueueItem.status === 'completed' || existingQueueItem.status === 'downloading') && calculatedStatus === 'pending') {
             finalStatus = existingQueueItem.status; 
           } 
-          // If it was failed or skipped before, but now passes filters, set to 'pending' for re-evaluation.
           else if ((existingQueueItem.status === 'failed' || existingQueueItem.status === 'skipped') && calculatedStatus === 'pending') {
             finalStatus = 'pending';
           }
-          // In all other cases (e.g., was pending, now skipped; was completed, now skipped; was failed, still skipped),
-          // `finalStatus` remains `calculatedStatus`.
         } else {
-          stats.discovered++; // Only increment discovered for truly new items
+          stats.discovered++;
         }
 
-        // Update or create the queue item in the database
         const updatePayload = {
           downloads,
           likes,
           license: rawLicense,
-          lastAttemptedAt: new Date(), // Always update last attempted at scan time
+          lastAttemptedAt: new Date(),
           status: finalStatus,
           skipReason: calculatedSkipReason,
           sizeBytes: calculatedSizeBytes,
         };
 
-        // Optimization: Push to bulk operations instead of executing individual findOneAndUpdate queries
         bulkOps.push({
           updateOne: {
             filter: { datasetId },
@@ -268,18 +272,15 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
           }
         });
 
-        // Update stats for queued items based on final status
         if (finalStatus === 'pending' && (!existingQueueItem || existingQueueItem.status !== 'pending')) {
-          stats.queued++; // Count as queued if it's new or changed to pending
+          stats.queued++;
         }
       }
 
-      // Optimization: Execute bulk write for the current page
       if (bulkOps.length > 0) {
         await DatasetQueue.bulkWrite(bulkOps);
       }
 
-      // Extract next page URL from 'Link' header (Hugging Face pagination format)
       nextPageUrl = null;
       const linkHeader = response.headers.link;
       if (linkHeader) {
@@ -314,9 +315,7 @@ const runWorkerLoop = async () => {
 
   while (isWorkerRunning) {
     try {
-      // 1. GCS Capacity Guardrail
       const capacityLimit = getGcsCapacityBytes();
-      // Recommended index: { sizeBytes: 1 } on Dataset model for efficient aggregation.
       const currentStorageUsed = await Dataset.aggregate([
         { $group: { _id: null, total: { $sum: '$sizeBytes' } } }
       ]);
@@ -328,15 +327,12 @@ const runWorkerLoop = async () => {
         break;
       }
 
-      // 2. Dynamic rate limit backing-off pause
       if (rateLimitBackoffMs > 0) {
         console.log(`[HF Worker] Applying rate-limit sleep penalty: ${rateLimitBackoffMs / 1000}s`);
         await new Promise(r => setTimeout(r, rateLimitBackoffMs));
-        rateLimitBackoffMs = 0; // Reset after backing off
+        rateLimitBackoffMs = 0;
       }
 
-      // 3. Poll next high-priority pending queue item
-      // Recommended index: { status: 1, downloads: -1 } on DatasetQueue model for efficient polling.
       const queueItem = await DatasetQueue.findOne({ status: 'pending' }).sort({ downloads: -1 });
       if (!queueItem) {
         console.log('[HF Worker] Queue empty. Sleeping for 10 seconds...');
@@ -351,14 +347,11 @@ const runWorkerLoop = async () => {
       queueItem.lastAttemptedAt = new Date();
       await queueItem.save();
 
-      // 4. Archive dataset using Core awaited helper
       try {
-        // Prepare local dataset metadata catalog record
         const info = await DatasetsService.getHFDatasetInfo(datasetId);
         
-        // Optimization: Use findOneAndUpdate with upsert: true and lean: true to avoid Mongoose document overhead.
-        // Recommended index: { datasetId: 1 } on Dataset model for efficient lookups.
-        let dataset = await Dataset.findOneAndUpdate(
+        // BUGFIX: Removed lean: true to get a full Mongoose document for service layer interaction.
+        const datasetDoc = await Dataset.findOneAndUpdate(
           { datasetId },
           {
             $set: {
@@ -371,37 +364,41 @@ const runWorkerLoop = async () => {
               tags: info.tags,
               configs: info.configs,
               splits: info.splits,
-              status: 'pending' // Status will be updated after archiving
+              status: 'pending'
             }
           },
-          { upsert: true, new: true, lean: true } // Added lean: true for performance
+          { upsert: true, new: true }
         );
         
-        // Execute awaited pipeline piping directly to GCS
-        await DatasetsService.archiveDatasetToGCSCore(datasetId, dataset);
+        await DatasetsService.archiveDatasetToGCSCore(datasetId, datasetDoc);
 
-        // Autonomously trigger the high-fidelity RAG vector indexing step sequentially
+        // BUGFIX: The dataset document in the DB may have been updated by the core service (e.g., with sizeBytes).
+        // Refetch the document to ensure we have the latest data before proceeding to avoid using a stale object.
+        const updatedDataset = await Dataset.findOne({ datasetId }).lean();
+        if (!updatedDataset) {
+          throw new Error(`Consistency Error: Dataset ${datasetId} was not found after archiving.`);
+        }
+
         try {
           console.log(`[HF Worker] Autonomously indexing dataset for RAG vector search: ${datasetId}`);
-          await DatasetsService.indexDatasetForRAGCore(datasetId, dataset);
+          await DatasetsService.indexDatasetForRAGCore(datasetId, updatedDataset);
 
-          // If both archiving and indexing succeed, mark as completed
           queueItem.status = 'completed';
-          queueItem.sizeBytes = dataset.sizeBytes;
+          // Use size from the refetched document to ensure accuracy.
+          queueItem.sizeBytes = updatedDataset.sizeBytes || 0;
           queueItem.error = '';
           await queueItem.save();
           console.log(`[HF Worker] Successfully archived to GCS and indexed: ${datasetId}`);
 
         } catch (indexErr) {
           console.error(`[HF Worker] Failed to index dataset ${datasetId} autonomously:`, indexErr.message);
-          // If indexing fails, mark the item as failed for retry or final failure
           queueItem.retryCount = (queueItem.retryCount || 0) + 1;
           queueItem.error = `Indexing Failed: ${indexErr.message}`;
           if (queueItem.retryCount >= 3) {
             queueItem.status = 'failed';
             console.error(`[HF Worker] Dataset ${datasetId} failed all retries including indexing. Marking as FAILED.`);
           } else {
-            queueItem.status = 'pending'; // Schedule retry for the whole ingestion process
+            queueItem.status = 'pending';
             console.log(`[HF Worker] Scheduled retry ${queueItem.retryCount}/3 for dataset (indexing failed): ${datasetId}`);
           }
           await queueItem.save();
@@ -410,28 +407,25 @@ const runWorkerLoop = async () => {
       } catch (err) {
         console.error(`[HF Worker] Ingestion execution failure for ${datasetId}:`, err.message);
 
-        // Check if rate limited
         if (err.message.includes('429') || (err.response && err.response.status === 429)) {
           console.warn('[HF Worker] Rate-limit (429) detected! Backing off worker loop.');
-          rateLimitBackoffMs = 30000; // sleep 30 seconds
-          queueItem.status = 'pending'; // retry later
+          rateLimitBackoffMs = 30000;
+          queueItem.status = 'pending';
           queueItem.error = `Rate Limit: ${err.message}`;
         } else {
-          // Normal failure
-          queueItem.retryCount = (queueItem.retryCount || 0) + 1; // Ensure retryCount exists
+          queueItem.retryCount = (queueItem.retryCount || 0) + 1;
           queueItem.error = err.message;
           if (queueItem.retryCount >= 3) {
             queueItem.status = 'failed';
             console.error(`[HF Worker] Dataset ${datasetId} failed all retries. Marking as FAILED.`);
           } else {
-            queueItem.status = 'pending'; // Schedule retry
+            queueItem.status = 'pending';
             console.log(`[HF Worker] Scheduled retry ${queueItem.retryCount}/3 for dataset: ${datasetId}`);
           }
         }
         await queueItem.save();
       }
 
-      // Add a polite spacing delay between tasks to be gentle on servers
       await new Promise(r => setTimeout(r, 2000));
 
     } catch (loopErr) {
@@ -460,9 +454,7 @@ const runTemporalWorkerLoop = async () => {
 
   while (isWorkerRunning) {
     try {
-      // 1. GCS Capacity Guardrail
       const capacityLimit = getGcsCapacityBytes();
-      // Recommended index: { sizeBytes: 1 } on Dataset model for efficient aggregation.
       const currentStorageUsed = await Dataset.aggregate([
         { $group: { _id: null, total: { $sum: '$sizeBytes' } } }
       ]);
@@ -474,8 +466,6 @@ const runTemporalWorkerLoop = async () => {
         break;
       }
 
-      // 2. Poll next high-priority pending queue item
-      // Recommended index: { status: 1, downloads: -1 } on DatasetQueue model for efficient polling.
       const queueItem = await DatasetQueue.findOne({ status: 'pending' }).sort({ downloads: -1 });
       if (!queueItem) {
         console.log('[HF Worker] Queue empty. Sleeping for 10 seconds...');
@@ -506,7 +496,6 @@ const runTemporalWorkerLoop = async () => {
 
         console.log(`[HF Worker] Durable Ingestion Workflow started with ID: ${workflowId}`);
         
-        // Wait a small delay before checking next item to avoid rapid concurrent starts
         await new Promise(r => setTimeout(r, 5000));
       } catch (err) {
         console.error(`[HF Worker] Failed to start Temporal workflow for ${datasetId}:`, err.message);
@@ -531,13 +520,23 @@ const runTemporalWorkerLoop = async () => {
  * @description Starts the continuous background queue processor worker.
  *   It attempts to connect to Temporal and launches either the Temporal-based coordinator
  *   or falls back to the legacy sequential worker loop if Temporal is unavailable or in mock mode.
+ * @param {object} user - The authenticated user object, used for authorization.
+ * @param {string} user.role - The role of the user (e.g., 'super_admin').
  * @returns {object} An object indicating success and a message about the worker's status.
+ * @throws {Error} If the user is not authorized.
  */
-const startWorker = () => {
+const startWorker = (user) => {
+  // INTEGRATION: Role-based access control. Only platform owners can start the global worker.
+  if (!user || user.role !== 'super_admin') {
+    throw new Error('Authorization failed: You do not have permission to perform this action.');
+  }
+
   if (isWorkerRunning) {
     return { success: true, message: 'Continuous worker loop is already running.' };
   }
   isWorkerRunning = true;
+
+  let workerTypeMessage = 'sequential fallback'; // Default message
 
   // Asynchronously connect to Temporal and start the correct worker loop
   (async () => {
@@ -547,6 +546,7 @@ const startWorker = () => {
         console.log('[HF Worker] System is in Offline/Mock Standby Mode. Launching Legacy sequential loop fallback.');
         runWorkerLoop();
       } else {
+        workerTypeMessage = 'Resilient Temporal';
         console.log('[HF Worker] System is connected to a live cluster. Launching Resilient Temporal Workflow coordinator.');
         runTemporalWorkerLoop();
       }
@@ -554,9 +554,14 @@ const startWorker = () => {
       console.error('[HF Worker] Failed to initialize temporal client, falling back to legacy loop:', err);
       runWorkerLoop();
     }
-  })();
+  })().catch(err => {
+    // BUGFIX: Catch unhandled promise rejections from the worker initialization to prevent process crash.
+    console.error('[HF Worker] Critical error during worker startup sequence:', err);
+    isWorkerRunning = false; // Ensure worker is stopped if startup fails
+  });
 
-  return { success: true, message: 'Continuous sequential background queue worker started.' };
+  // BUGFIX: Return a more accurate message about the dispatched worker type.
+  return { success: true, message: `Continuous ${workerTypeMessage} background queue worker start signal dispatched.` };
 };
 
 
@@ -564,9 +569,17 @@ const startWorker = () => {
  * @function stopWorker
  * @description Stops the continuous background queue processor worker.
  *   It sets a flag that signals the worker loop to gracefully shut down after completing its current task.
+ * @param {object} user - The authenticated user object, used for authorization.
+ * @param {string} user.role - The role of the user (e.g., 'super_admin').
  * @returns {object} An object indicating success and a message about the worker's status.
+ * @throws {Error} If the user is not authorized.
  */
-const stopWorker = () => {
+const stopWorker = (user) => {
+  // INTEGRATION: Role-based access control. Only platform owners can stop the global worker.
+  if (!user || user.role !== 'super_admin') {
+    throw new Error('Authorization failed: You do not have permission to perform this action.');
+  }
+
   if (!isWorkerRunning) {
     return { success: true, message: 'Continuous worker loop is already stopped.' };
   }
@@ -578,12 +591,18 @@ const stopWorker = () => {
  * @function getCrawlerStats
  * @description Compiles real-time metrics and logs for operational visibility of the crawler.
  *   Aggregates counts and total sizes of datasets by their status in the queue.
+ * @param {object} user - The authenticated user object, used for authorization.
+ * @param {string} user.role - The role of the user (e.g., 'super_admin').
  * @returns {Promise<object>} An object containing various statistics about the crawler's state and queue.
- * @throws {Error} If there's a failure in compiling the crawler statistics.
+ * @throws {Error} If the user is not authorized or if there's a failure in compiling stats.
  */
-const getCrawlerStats = async () => {
+const getCrawlerStats = async (user) => {
+  // INTEGRATION: Role-based access control. Only platform owners can view global crawler stats.
+  if (!user || user.role !== 'super_admin') {
+    throw new Error('Authorization failed: You do not have permission to perform this action.');
+  }
+
   try {
-    // Recommended indexes: { status: 1 } and { sizeBytes: 1 } on DatasetQueue model for efficient aggregation.
     const counts = await DatasetQueue.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 }, totalBytes: { $sum: '$sizeBytes' } } }
     ]);
@@ -603,7 +622,8 @@ const getCrawlerStats = async () => {
       if (c._id) {
         stats[c._id] = c.count;
       }
-      if (c._id === 'completed' || c._id === 'downloading') {
+      // BUGFIX: totalBytesDownloaded should only be calculated from datasets that are successfully completed.
+      if (c._id === 'completed') {
         stats.totalBytesDownloaded += (c.totalBytes || 0);
       }
     });
@@ -617,24 +637,27 @@ const getCrawlerStats = async () => {
 /**
  * @function getQueueList
  * @description Queries the dataset queue listings with optional filtering, pagination, and sorting.
+ * @param {object} user - The authenticated user object, used for authorization.
+ * @param {string} user.role - The role of the user (e.g., 'super_admin').
  * @param {object} [filter={}] - MongoDB query filter object to apply to the DatasetQueue.
  * @param {number} [limit=50] - The maximum number of queue items to return.
  * @param {number} [skip=0] - The number of queue items to skip for pagination.
  * @returns {Promise<object>} An object containing the total count, pagination details, and the list of queue items.
- * @throws {Error} If there's a failure in retrieving the queue list.
+ * @throws {Error} If the user is not authorized or if there's a failure in retrieving the list.
  */
-const getQueueList = async (filter = {}, limit = 50, skip = 0) => {
+const getQueueList = async (user, filter = {}, limit = 50, skip = 0) => {
+  // INTEGRATION: Role-based access control. Only platform owners can view the global queue list.
+  if (!user || user.role !== 'super_admin') {
+    throw new Error('Authorization failed: You do not have permission to perform this action.');
+  }
+
   try {
-    // Optimization: Add .lean() for read-only queries to improve performance.
-    // Recommended index: { downloads: -1 } on DatasetQueue model for sorting.
-    // If 'filter' is frequently used with specific fields, consider compound indexes like { 'filterField': 1, downloads: -1 }.
     const list = await DatasetQueue.find(filter)
       .sort({ downloads: -1 })
       .skip(skip)
       .limit(limit)
-      .lean(); // Added .lean()
+      .lean();
     
-    // Recommended index: Indexes on fields used in 'filter' for efficient countDocuments.
     const total = await DatasetQueue.countDocuments(filter);
     
     return { total, limit, skip, data: list };
@@ -647,7 +670,9 @@ const getQueueList = async (filter = {}, limit = 50, skip = 0) => {
  * @namespace DatasetsCrawlerService
  * @description Provides services for crawling, queuing, and managing Hugging Face datasets.
  *   Includes functionality for discovering datasets, running background ingestion workers,
- *   and retrieving operational statistics.
+ *   and retrieving operational statistics. All control functions are restricted to super_admin.
+ *   INTEGRATION NOTE: This service operates at the platform level and does not interact with
+ *   tenant-specific contexts or limits. It populates a global, shared dataset library.
  */
 export const DatasetsCrawlerService = {
   scanHuggingFaceHub,

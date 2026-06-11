@@ -3,6 +3,8 @@ import { logger } from '../../../../shared/logger.js';
 // Assuming LangChainTracer is available from @langchain/core for LangSmith integration.
 // This import path might need adjustment based on the actual project setup and LangChain version.
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
+import httpStatus from 'http-status';
+import ApiError from '../../../../shared/ApiError.js';
 
 /**
  * @class LangsmithMiddleware
@@ -72,13 +74,24 @@ class LangsmithMiddleware {
    * It prioritizes environment variables (`process.env`) over the application's `config` object.
    */
   constructor() {
-    this.apiKey = process.env.LANGCHAIN_API_KEY || config.langchain?.apiKey;
-    // Global tracing is only considered active if an API key is present.
-    this.tracingActive = !!this.apiKey && (process.env.LANGCHAIN_TRACING_V2 === 'true' || config.langchain?.tracingActive === true);
-    this.platformPrefix = config.langchain?.projectPrefix || 'Alti-Assistant';
-    this.defaultProjectName = process.env.LANGCHAIN_PROJECT || config.langchain?.defaultProject || `${this.platformPrefix}-Global`;
-    this.endpoint = process.env.LANGCHAIN_ENDPOINT || config.langchain?.endpoint || 'https://api.smith.langchain.com';
-    this.forceTraceForTenants = config.langchain?.forceTraceForTenants || [];
+    try {
+      this.apiKey = process.env.LANGCHAIN_API_KEY || config.langchain?.apiKey;
+      // Global tracing is only considered active if an API key is present.
+      this.tracingActive = !!this.apiKey && (process.env.LANGCHAIN_TRACING_V2 === 'true' || config.langchain?.tracingActive === true);
+      this.platformPrefix = config.langchain?.projectPrefix || 'Alti-Assistant';
+      this.defaultProjectName = process.env.LANGCHAIN_PROJECT || config.langchain?.defaultProject || `${this.platformPrefix}-Global`;
+      this.endpoint = process.env.LANGCHAIN_ENDPOINT || config.langchain?.endpoint || 'https://api.smith.langchain.com';
+      this.forceTraceForTenants = config.langchain?.forceTraceForTenants || [];
+    } catch (error) {
+      // PATCH: Added robust error handling for initialization.
+      // A configuration error at startup is fatal. Log the error and re-throw to crash the server,
+      // preventing it from running in a misconfigured state.
+      logger.error('[LangSmith Middleware] Failed to initialize due to a configuration error. Check config files.', {
+        errorMessage: error.message,
+        errorStack: error.stack,
+      });
+      throw new Error(`LangSmith Middleware initialization failed: ${error.message}`);
+    }
   }
 
   /**
@@ -128,24 +141,40 @@ class LangsmithMiddleware {
       return {};
     }
 
-    const projectName = this.getProjectNameForTenant(tenantId);
-    const tracer = new LangChainTracer({ projectName });
+    try {
+      // PATCH: Added try-catch around external dependency instantiation.
+      // If the LangChainTracer constructor fails, we need to handle it gracefully.
+      const projectName = this.getProjectNameForTenant(tenantId);
+      const tracer = new LangChainTracer({ projectName });
 
-    // Platform Owner Oversight: Collect all relevant IDs as metadata for powerful filtering in LangSmith.
-    const metadata = {
-      platform_request_id: requestId,
-      tenant_id: tenantId,
-      user_id: userId,
-    };
+      // Platform Owner Oversight: Collect all relevant IDs as metadata for powerful filtering in LangSmith.
+      const metadata = {
+        platform_request_id: requestId,
+        tenant_id: tenantId,
+        user_id: userId,
+      };
 
-    // Clean up metadata to not include empty values.
-    Object.keys(metadata).forEach(key => metadata[key] === undefined && delete metadata[key]);
+      // Clean up metadata to not include empty values.
+      Object.keys(metadata).forEach(key => metadata[key] === undefined && delete metadata[key]);
 
-    return {
-      callbacks: [tracer],
-      metadata,
-      name: runName, // 'name' is the key used by LangChain for the top-level run name.
-    };
+      return {
+        callbacks: [tracer],
+        metadata,
+        name: runName, // 'name' is the key used by LangChain for the top-level run name.
+      };
+    } catch (error) {
+      // PATCH: Log the internal error and throw a normalized ApiError.
+      // This prevents the server from crashing during a request and allows the global
+      // error handler to send a standardized 500 response.
+      logger.error('[LangSmith Middleware] Failed to create LangSmith tracer configuration.', {
+        errorMessage: error.message,
+        errorStack: error.stack,
+        tenantId,
+        userId,
+        requestId,
+      });
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Internal error: Failed to configure request tracing.', true, error.stack);
+    }
   }
 
   /**
@@ -156,14 +185,21 @@ class LangsmithMiddleware {
    * @returns {void}
    */
   logDiagnostics() {
-    if (this.apiKey) {
-      logger.info(`[LangSmith Middleware] Initialized. Global Tracing: ${this.tracingActive ? 'ACTIVE' : 'INACTIVE'}.`);
-      logger.info(`[LangSmith Middleware] Default Project: "${this.defaultProjectName}". Tenant Project Prefix: "${this.platformPrefix}".`);
-      if (this.forceTraceForTenants.length > 0) {
-        logger.warn(`[LangSmith Middleware] Platform Owner Override: Tracing is FORCE-ENABLED for ${this.forceTraceForTenants.length} tenant(s): [${this.forceTraceForTenants.join(', ')}].`);
+    try {
+      // PATCH: Added a try-catch for robustness. If the logger itself fails,
+      // we fall back to console.error to ensure this critical startup information is not lost.
+      if (this.apiKey) {
+        logger.info(`[LangSmith Middleware] Initialized. Global Tracing: ${this.tracingActive ? 'ACTIVE' : 'INACTIVE'}.`);
+        logger.info(`[LangSmith Middleware] Default Project: "${this.defaultProjectName}". Tenant Project Prefix: "${this.platformPrefix}".`);
+        if (this.forceTraceForTenants.length > 0) {
+          logger.warn(`[LangSmith Middleware] Platform Owner Override: Tracing is FORCE-ENABLED for ${this.forceTraceForTenants.length} tenant(s): [${this.forceTraceForTenants.join(', ')}].`);
+        }
+      } else {
+        logger.warn('[LangSmith Middleware] Tracing is globally DISABLED. LANGCHAIN_API_KEY is not configured.');
       }
-    } else {
-      logger.warn('[LangSmith Middleware] Tracing is globally DISABLED. LANGCHAIN_API_KEY is not configured.');
+    } catch (error) {
+      // Fallback logger in case the primary Winston/GCP logger is misconfigured or fails.
+      console.error('[LangSmith Middleware] CRITICAL: The logger failed while reporting diagnostic info.', error);
     }
   }
 }

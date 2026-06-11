@@ -2,6 +2,7 @@
  * @fileoverview This file contains constants related to the configuration, intents, aspects,
  * and messaging for the legal contract review module. It defines various parameters
  * for AI model interaction, file handling, review types, and system prompts.
+ * It also includes workspace and plan-level configurations for managing feature access and limits.
  * @module legal_contract_review/constants
  */
 
@@ -177,8 +178,10 @@ export const RISK_LEVELS = {
   CRITICAL: 'critical',
 };
 
-// INTEGRATION FIX: Added constants for Role-Based Access Control (RBAC) and tenant-aware feature limits.
-// These are CRITICAL for ensuring proper validation, respecting tenant boundaries, and propagating usage details.
+// --- ADMIN & WORKSPACE MANAGEMENT CONSTANTS ---
+// OPTIMIZATION: Centralized constants for Role-Based Access Control (RBAC),
+// subscription plans, and usage limits. These are CRITICAL for ensuring proper
+// validation, respecting tenant boundaries, and propagating usage details to admins.
 
 /**
  * @typedef {object} RolePermissionsConfig
@@ -211,42 +214,72 @@ export const ROLE_PERMISSIONS = {
 };
 
 /**
+ * @typedef {object} FeatureAccess
+ * @property {boolean} comprehensiveReview - Access to the most detailed review type.
+ * @property {boolean} contractComparisonTool - Access to the multi-document comparison tool.
+ * @property {boolean} customPrompts - Ability for admins to define custom review prompts for their workspace.
+ */
+/**
  * @typedef {object} PlanLimits
- * @property {number} maxReviewsPerMonth - Maximum number of contract reviews allowed per month.
+ * @property {number} reviewUnitsPerMonth - Monthly allowance of review units. -1 indicates unlimited.
  * @property {number} maxFileSize - Maximum file size in bytes for this plan.
- * @property {number} maxTeamMembers - Maximum number of team members allowed in the workspace.
- * @property {boolean} comprehensiveReviewAccess - Whether users on this plan can access the most detailed review type.
+ * @property {number} maxTeamMembers - Maximum number of team members allowed in the workspace. -1 indicates unlimited.
+ * @property {FeatureAccess} featureAccess - A set of flags controlling access to specific premium features.
  */
 /**
  * @typedef {object} FeatureLimitsByPlan
  * @property {PlanLimits} free - Limits for the free tier.
  * @property {PlanLimits} standard - Limits for the standard tier.
  * @property {PlanLimits} premium - Limits for the premium tier.
+ * @property {PlanLimits} enterprise - Limits for the enterprise tier.
  */
 /**
- * Defines feature limits based on workspace subscription plans. This is critical for
- * enforcing tenant-specific boundaries and managing resource allocation. Usage data
- * should be checked against these limits at the workspace/tenant level.
+ * Defines feature limits based on workspace subscription plans (e.g., Stripe Plans).
+ * This is critical for enforcing tenant-specific boundaries and managing resource allocation.
+ * Usage data should be checked against these limits at the workspace/tenant level.
  * @type {FeatureLimitsByPlan}
  */
 export const FEATURE_LIMITS_BY_PLAN = {
   free: {
-    maxReviewsPerMonth: 10,
+    reviewUnitsPerMonth: 10,
     maxFileSize: 5 * 1024 * 1024, // 5MB
     maxTeamMembers: 3,
-    comprehensiveReviewAccess: false,
+    featureAccess: {
+      comprehensiveReview: false,
+      contractComparisonTool: false,
+      customPrompts: false,
+    },
   },
   standard: {
-    maxReviewsPerMonth: 100,
+    reviewUnitsPerMonth: 100,
     maxFileSize: 10 * 1024 * 1024, // 10MB
     maxTeamMembers: 20,
-    comprehensiveReviewAccess: false,
+    featureAccess: {
+      comprehensiveReview: false,
+      contractComparisonTool: true,
+      customPrompts: false,
+    },
   },
   premium: {
-    maxReviewsPerMonth: -1, // -1 indicates unlimited
+    reviewUnitsPerMonth: 500,
     maxFileSize: 25 * 1024 * 1024, // 25MB
+    maxTeamMembers: 100,
+    featureAccess: {
+      comprehensiveReview: true,
+      contractComparisonTool: true,
+      customPrompts: true,
+    },
+  },
+  // IMPROVEMENT: Added an Enterprise plan for larger clients with higher/unlimited needs.
+  enterprise: {
+    reviewUnitsPerMonth: -1, // -1 indicates unlimited, often subject to fair use policy
+    maxFileSize: 50 * 1024 * 1024, // 50MB or custom
     maxTeamMembers: -1, // Unlimited
-    comprehensiveReviewAccess: true,
+    featureAccess: {
+      comprehensiveReview: true,
+      contractComparisonTool: true,
+      customPrompts: true,
+    },
   },
 };
 
@@ -259,8 +292,7 @@ export const FEATURE_LIMITS_BY_PLAN = {
  */
 /**
  * Defines the relative "cost" in usage units for each review depth. This allows for
- * more accurate tracking and limit enforcement. For example, a workspace with a limit of
- * 100 "standard" review units could perform 200 "quick" reviews or 50 "detailed" reviews.
+ * more accurate tracking and limit enforcement against the `reviewUnitsPerMonth` limit.
  * This information is vital for propagating usage details up to managers and admins.
  * @type {UsageTrackingConfig}
  */
@@ -270,6 +302,53 @@ export const USAGE_TRACKING_CONFIG = {
   [REVIEW_DEPTH.DETAILED]: 2,
   [REVIEW_DEPTH.COMPREHENSIVE]: 4,
 };
+
+/**
+ * @typedef {object} RateLimitConfig
+ * @property {number} requests - Number of allowed requests.
+ * @property {string} window - The time window for the limit (e.g., '1m', '1h').
+ */
+/**
+ * @typedef {object} ApiRateLimitsByPlan
+ * @property {RateLimitConfig} free - Rate limits for the free tier.
+ * @property {RateLimitConfig} standard - Rate limits for the standard tier.
+ * @property {RateLimitConfig} premium - Rate limits for the premium tier.
+ * @property {RateLimitConfig} enterprise - Rate limits for the enterprise tier.
+ */
+/**
+ * IMPROVEMENT: Defines API rate limits per subscription plan. This is crucial for platform
+ * stability, preventing abuse, and ensuring fair resource allocation for all tenants.
+ * These limits should be enforced at the middleware or API gateway level.
+ * @type {ApiRateLimitsByPlan}
+ */
+export const API_RATE_LIMITS_BY_PLAN = {
+  free: { requests: 60, window: '1m' }, // 60 requests per minute
+  standard: { requests: 180, window: '1m' }, // 180 requests per minute
+  premium: { requests: 300, window: '1m' }, // 300 requests per minute
+  enterprise: { requests: 600, window: '1m' }, // 600 requests per minute or custom
+};
+
+/**
+ * @typedef {object} DataRetentionDaysByPlan
+ * @property {number} free - Data retention period in days for the free tier.
+ * @property {number} standard - Data retention period in days for the standard tier.
+ * @property {number} premium - Data retention period in days for the premium tier.
+ * @property {number} enterprise - Data retention period in days for the enterprise tier.
+ */
+/**
+ * IMPROVEMENT: Defines data retention policies based on subscription plans. This is a key
+ * feature for compliance and data management that workspace owners need to be aware of.
+ * -1 indicates indefinite retention.
+ * @type {DataRetentionDaysByPlan}
+ */
+export const DATA_RETENTION_DAYS_BY_PLAN = {
+  free: 90, // 90 days
+  standard: 365, // 1 year
+  premium: -1, // Indefinite
+  enterprise: -1, // Indefinite or as per contract
+};
+
+// --- MODULE-SPECIFIC CONSTANTS ---
 
 /**
  * The category identifier for conversations related to legal contract review.

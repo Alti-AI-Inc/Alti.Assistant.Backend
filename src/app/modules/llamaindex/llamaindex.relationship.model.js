@@ -245,6 +245,17 @@ DocumentRelationshipSchema.index({ workspaceId: 1, sharedConcepts: 1 });
  * task for enforcing limits, tracking tenant activity, and providing visibility
  * to admins and managers, thus closing a potential hierarchy gap.
  */
+
+/**
+ * Post-save hook to increment the document relationship count on the parent workspace.
+ * This is triggered only on new document creation. It uses the `isNew` property, which is
+ * available on the document instance during the save operation.
+ * This hook is a critical part of the multi-tenancy and usage tracking system, providing visibility
+ * to workspace admins and enabling usage-based limits.
+ * @param {DocumentRelationship} doc The document that was saved.
+ * @param {function(Error=): void} next The next middleware function, which must be called.
+ * @private
+ */
 DocumentRelationshipSchema.post('save', async function (doc, next) {
   // `this.isNew` is a Mongoose internal flag, true only on initial document creation.
   if (this.isNew) {
@@ -276,7 +287,14 @@ DocumentRelationshipSchema.post('save', async function (doc, next) {
   next();
 });
 
-// This hook ensures that when a relationship is deleted (via `doc.deleteOne()`), the usage count is decremented.
+/**
+ * Post-deleteOne hook to decrement the document relationship count on the parent workspace.
+ * This is a document middleware hook, triggered when an instance of a document is deleted.
+ * It ensures usage statistics remain accurate when a relationship is removed.
+ * @param {DocumentRelationship} doc The document that was deleted.
+ * @param {function(Error=): void} next The next middleware function, which must be called.
+ * @private
+ */
 DocumentRelationshipSchema.post('deleteOne', { document: true, query: false }, async function (doc, next) {
     try {
       const Workspace = mongoose.model('Workspace');
