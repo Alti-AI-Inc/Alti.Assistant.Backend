@@ -1,9 +1,12 @@
 /**
  * @file Service for interacting with the Google Cloud Vision API.
  * Provides functionality to analyze images for text, labels, and content moderation.
+ * This service is designed to offload heavy image processing to a background worker
+ * via Google Cloud Pub/Sub.
  * @module gcp-vision.service
  */
 
+import { PubSub } from '@google-cloud/pubsub';
 import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
@@ -16,6 +19,13 @@ import { logger } from '../../../shared/logger.js';
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
+
+/**
+ * Google Cloud Pub/Sub client.
+ * @private
+ */
+const pubSubClient = new PubSub();
+const visionAnalysisTopicName = config.gcp?.pubsub?.visionAnalysisTopic || 'vision-analysis-requests';
 
 /**
  * @typedef {object} SafeSearchResult
@@ -53,17 +63,16 @@ const auth = new GoogleAuth({
  */
 
 /**
- * Analyzes an image buffer using the Google Cloud Vision API.
- * This function supports various features like Optical Character Recognition (OCR),
- * Safe Search (content moderation), and detection of labels, landmarks, and logos.
+ * Performs the actual image analysis using the Google Cloud Vision API.
+ * This function contains the core analysis logic and is intended to be called by a background worker.
  *
+ * @private
  * @param {Buffer} fileBuffer - The raw binary buffer of the image file.
- * @param {string[]} [features=['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION']] - An array of Vision API features to apply.
- *        Valid features include 'TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION', 'LANDMARK_DETECTION', 'LOGO_DETECTION', etc.
+ * @param {string[]} features - An array of Vision API features to apply.
  * @returns {Promise<VisionAnalysisResult>} A promise that resolves to a structured report of the image analysis.
  * @throws {Error} If the API request fails or an error occurs during processing.
  */
-const analyzeImage = async (fileBuffer, features = ['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION']) => {
+const _performAnalysis = async (fileBuffer, features) => {
   try {
     logger.info(`Vision API: Annotating image with features: ${features.join(', ')}`);
 
@@ -126,9 +135,84 @@ const analyzeImage = async (fileBuffer, features = ['TEXT_DETECTION', 'SAFE_SEAR
 };
 
 /**
+ * Publishes a message to a Pub/Sub topic to request an asynchronous image analysis.
+ * This allows the initial request (e.g., an HTTP request) to return immediately,
+ * while the potentially long-running analysis is handled by a background worker.
+ *
+ * @param {Buffer} fileBuffer - The raw binary buffer of the image file.
+ * @param {string[]} [features=['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION']] - An array of Vision API features to apply.
+ * @param {object} [metadata={}] - Additional metadata to pass through the job, e.g., { correlationId, userId, callbackUrl }.
+ * @returns {Promise<string>} A promise that resolves to the message ID of the published message.
+ */
+const requestImageAnalysis = async (fileBuffer, features = ['TEXT_DETECTION', 'SAFE_SEARCH_DETECTION', 'LABEL_DETECTION'], metadata = {}) => {
+  try {
+    const payload = {
+      imageBase64: fileBuffer.toString('base64'),
+      features,
+      metadata
+    };
+
+    const dataBuffer = Buffer.from(JSON.stringify(payload));
+    const messageId = await pubSubClient.topic(visionAnalysisTopicName).publishMessage({ data: dataBuffer });
+    
+    logger.info(`Vision analysis request queued. Topic: ${visionAnalysisTopicName}, Message ID: ${messageId}`);
+    return messageId;
+  } catch (error) {
+    logger.error(`Failed to publish vision analysis request to topic ${visionAnalysisTopicName}`, error);
+    throw new Error(`Failed to queue vision analysis: ${error.message}`);
+  }
+};
+
+/**
+ * Processes a Pub/Sub message for image analysis.
+ * This function is designed to be the handler for a Pub/Sub subscription listening to the vision analysis topic.
+ * It parses the message, calls the Vision API via `_performAnalysis`, and handles the result.
+ *
+ * @param {import('@google-cloud/pubsub').Message} message - The Pub/Sub message object. The message data is expected to be a JSON string
+ * with `imageBase64`, `features`, and `metadata` properties.
+ */
+const processVisionAnalysisMessage = async (message) => {
+  logger.info(`Received vision analysis request with message ID: ${message.id}`);
+  try {
+    const payload = JSON.parse(message.data.toString());
+    const { imageBase64, features, metadata } = payload;
+
+    if (!imageBase64 || !Array.isArray(features)) {
+      throw new Error('Invalid message payload: missing imageBase64 or features.');
+    }
+
+    const fileBuffer = Buffer.from(imageBase64, 'base64');
+    const analysisResult = await _performAnalysis(fileBuffer, features);
+
+    logger.info({
+      message: `Successfully analyzed image for message ID: ${message.id}`,
+      metadata,
+      resultSummary: {
+        hasText: !!analysisResult.text,
+        labels: analysisResult.labels.map(l => l.description).slice(0, 3)
+      }
+    });
+
+    // TODO: Handle the analysis result.
+    // This is where you would save the result to a database (e.g., Firestore, Cloud SQL)
+    // or trigger a subsequent action (e.g., call a webhook, send a notification).
+    // Example: await db.collection('analysis_results').doc(metadata.correlationId).set(analysisResult);
+
+    message.ack();
+    logger.info(`Acked vision analysis message ID: ${message.id}`);
+  } catch (error) {
+    logger.error(`Failed to process vision analysis message ID: ${message.id}`, error);
+    // Nack the message to have Pub/Sub retry it according to the subscription's retry policy.
+    // This prevents losing the message if a transient error occurs.
+    message.nack();
+  }
+};
+
+/**
  * Service object for Google Cloud Vision API operations.
  * @namespace GcpVisionService
  */
 export const GcpVisionService = {
-  analyzeImage
+  requestImageAnalysis,
+  processVisionAnalysisMessage
 };
