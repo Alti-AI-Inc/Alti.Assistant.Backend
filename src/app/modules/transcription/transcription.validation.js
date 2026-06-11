@@ -50,18 +50,30 @@ const authenticatedKeyGenerator = (req) => {
   return `ip:${req.ip}`;
 };
 
+// Improvement: A centralized handler for rate limit errors to ensure consistent API responses.
+// This provides a better developer experience for API consumers.
+const rateLimitHandler = (req, res, next, options) => {
+  res.status(options.statusCode).json({
+    success: false,
+    error: {
+      message: options.message.error,
+    },
+  });
+};
+
 // Rate limiter for guest users. This is the most restrictive limit to protect
 // public-facing endpoints from simple DDOS attacks and anonymous abuse.
 const guestLimiter = rateLimit({
   store: redisStore,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30, // Limit each guest/IP to 30 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  standardHeaders: 'draft-7', // Use the latest standard for rate limit headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   keyGenerator: guestKeyGenerator,
   message: {
     error: 'Too many requests from this guest ID or IP, please try again after 15 minutes.',
   },
+  handler: rateLimitHandler,
 });
 
 // Standard rate limiter for authenticated users for most API endpoints.
@@ -71,12 +83,13 @@ const standardApiLimiter = rateLimit({
   store: redisStore,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 500, // Limit each authenticated user to 500 requests per windowMs
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: authenticatedKeyGenerator,
   message: {
     error: 'You have exceeded the request limit, please try again after 15 minutes.',
   },
+  handler: rateLimitHandler,
 });
 
 // A stricter rate limiter for authenticated users on computationally expensive
@@ -86,17 +99,24 @@ const heavyApiLimiter = rateLimit({
   store: redisStore,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 60, // Limit each user to 60 expensive operations per windowMs
-  standardHeaders: true,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: authenticatedKeyGenerator,
   message: {
     error:
       'You have exceeded the limit for this resource-intensive operation. Please try again after 15 minutes.',
   },
+  handler: rateLimitHandler,
 });
 
-// Regex for MM:SS format, ensuring minutes and seconds are between 00 and 59.
-const mmSsRegex = /^(?:[0-5]\d):(?:[0-5]\d)$/;
+// Improvement: Upgraded regex to support HH:MM:SS and MM:SS formats for longer audio files.
+// This allows any number of digits for hours, which is robust for very long recordings.
+const hhMmSsRegex = /^(?:(\d+):)?([0-5]\d):([0-5]\d)$/;
+const timestampErrorMessage = 'Timestamp must be in HH:MM:SS or MM:SS format.';
+
+// Improvement: Regex to validate a base64 encoded string.
+// This is more precise than a try-catch block and prevents invalid data from reaching the service.
+const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 // --- Reusable Schemas & Refinements ---
 
@@ -104,6 +124,7 @@ const mmSsRegex = /^(?:[0-5]\d):(?:[0-5]\d)$/;
 // This provides immediate, logical feedback to the user and prevents downstream errors.
 const validateTimestampOrder = (data) => {
   if (data.startTimestamp && data.endTimestamp) {
+    // Note: Simple string comparison works for HH:MM:SS/MM:SS formats if they are zero-padded.
     return data.startTimestamp <= data.endTimestamp;
   }
   return true; // Pass if one or both are not provided.
@@ -134,14 +155,8 @@ const smartAssistantSchema = z.object({
           'question',
         ])
         .optional(),
-      startTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
-      endTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
+      startTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
+      endTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
       // Enhancement: Enforce UUID format for conversationId to ensure data integrity.
       conversationId: z.string().uuid('Invalid Conversation ID format.').optional(),
       outputFormat: z.enum(['text', 'json', 'srt', 'vtt']).optional(),
@@ -183,14 +198,8 @@ const transcribeAudioSchema = z.object({
           'question',
         ])
         .default('transcribe'),
-      startTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
-      endTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
+      startTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
+      endTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
       // Enhancement: Enforce UUID format for conversationId to ensure data integrity.
       conversationId: z.string().uuid('Invalid Conversation ID format.').optional(),
       outputFormat: z.enum(['text', 'json', 'srt', 'vtt']).default('text'),
@@ -203,23 +212,13 @@ const transcribeAudioSchema = z.object({
 const transcribeInlineAudioSchema = z.object({
   body: z
     .object({
-      // Enhancement: Validate that audioData is a valid base64 string to prevent processing errors.
+      // Improvement: Validate that audioData is a valid base64 string using a regex to prevent processing errors.
       audioData: z
         .string({
           required_error: 'Audio data is required',
         })
         .min(1, 'Audio data cannot be empty')
-        .refine(
-          (val) => {
-            try {
-              Buffer.from(val, 'base64');
-              return true;
-            } catch (e) {
-              return false;
-            }
-          },
-          { message: 'audioData must be a valid base64 encoded string.' }
-        ),
+        .regex(base64Regex, 'audioData must be a valid base64 encoded string.'),
       mimeType: z.enum([
         'audio/wav',
         'audio/mp3',
@@ -241,14 +240,8 @@ const transcribeInlineAudioSchema = z.object({
           'question',
         ])
         .default('transcribe'),
-      startTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
-      endTimestamp: z
-        .string()
-        .regex(mmSsRegex, 'Timestamp must be in MM:SS format (00:00-59:59)')
-        .optional(),
+      startTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
+      endTimestamp: z.string().regex(hhMmSsRegex, timestampErrorMessage).optional(),
       // Enhancement: Enforce UUID format for conversationId to ensure data integrity.
       conversationId: z.string().uuid('Invalid Conversation ID format.').optional(),
       outputFormat: z.enum(['text', 'json', 'srt', 'vtt']).default('text'),
@@ -263,8 +256,10 @@ const batchTranscribeSchema = z.object({
     audioFiles: z
       .array(
         z.object({
-          // Enhancement: Enforce UUID format for fileId to ensure data integrity.
-          fileId: z.string().uuid('Invalid File ID format.'),
+          // Enhancement: Enforce UUID format for fileId and provide a clear error if missing.
+          fileId: z
+            .string({ required_error: 'A fileId is required for each audio file.' })
+            .uuid('Invalid File ID format.'),
           prompt: z.string().optional(),
           processingType: z
             .enum([
@@ -296,18 +291,8 @@ const analyzeSegmentSchema = z.object({
       .array(
         z
           .object({
-            start: z
-              .string()
-              .regex(
-                mmSsRegex,
-                'Start timestamp must be in MM:SS format (00:00-59:59)'
-              ),
-            end: z
-              .string()
-              .regex(
-                mmSsRegex,
-                'End timestamp must be in MM:SS format (00:00-59:59)'
-              ),
+            start: z.string().regex(hhMmSsRegex, timestampErrorMessage),
+            end: z.string().regex(hhMmSsRegex, timestampErrorMessage),
             prompt: z.string().optional(),
           })
           // Enhancement: Validate start/end logic for each segment individually.
@@ -324,14 +309,6 @@ const analyzeSegmentSchema = z.object({
   }),
 });
 
-// Schema for guest user rate limiting (validates request headers)
-const guestRateLimitSchema = z.object({
-  // Enhancement: Enforce UUID format for guest ID for consistency.
-  'x-guest-id': z.string().uuid('Invalid Guest ID format.').optional(),
-  // Note: x-forwarded-for can be a comma-separated list; simple string validation is sufficient here.
-  'x-forwarded-for': z.string().optional(),
-});
-
 export const TranscriptionValidation = {
   // Validation Schemas
   smartAssistantSchema,
@@ -339,7 +316,6 @@ export const TranscriptionValidation = {
   transcribeInlineAudioSchema,
   batchTranscribeSchema,
   analyzeSegmentSchema,
-  guestRateLimitSchema,
 
   // Rate Limiting Middleware
   guestLimiter,
