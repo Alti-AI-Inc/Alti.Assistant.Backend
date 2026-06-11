@@ -1,5 +1,75 @@
 import mongoose from 'mongoose';
 
+// =================================================================
+// GCP DATABASE RESILIENCY CONFIGURATION
+// =================================================================
+// NOTE: This connection logic is typically placed in a central application
+// entry point (e.g., server.js, app.js) or a dedicated database module
+// (e.g., config/db.js), not in a model file. It is included here to
+// demonstrate a resilient configuration for a GCP environment.
+
+const dbUri = process.env.MONGO_URI || 'mongodb://localhost:27017/altidatabase';
+
+const connectionOptions = {
+  // --- Connection Pooling ---
+  // The maximum number of sockets the MongoDB driver will keep open for this connection.
+  // A pool size of 10 is a good starting point for many applications.
+  // This helps manage concurrent database operations efficiently.
+  maxPoolSize: 10,
+
+  // --- Timeout Settings for GCP ---
+  // How long the driver will wait for a server to respond before throwing an error.
+  // A higher value like 30s is safer in cloud environments where network latency can vary.
+  serverSelectionTimeoutMS: 30000,
+
+  // How long a socket can be idle before being closed by the driver.
+  // Set to a value like 45s to be less than the typical 60s idle timeout of
+  // GCP network components (like NATs or Load Balancers), preventing them
+  // from silently dropping connections.
+  socketTimeoutMS: 45000,
+
+  // --- KeepAlive Settings for GCP ---
+  // This is critical for long-running applications on GCP. It enables TCP KeepAlive
+  // packets to be sent, preventing network infrastructure from considering the
+  // connection idle and terminating it. This is especially important when using
+  // services like the Cloud SQL Auth Proxy or VPC peering.
+  keepAlive: true,
+  // The number of milliseconds to wait before initiating keepAlive on the socket.
+  // A 30s delay is a common and effective setting.
+  keepAliveInitialDelay: 30000,
+};
+
+// In Mongoose 5 and later, the driver handles automatic reconnection by default.
+// There is no need for deprecated options like `autoReconnect: true`.
+// We connect to the database using the URI and the resilient options.
+mongoose.connect(dbUri, connectionOptions)
+  .then(() => console.log('MongoDB connection established successfully.'))
+  .catch(err => {
+    console.error('Initial MongoDB connection error:', err);
+    // It's good practice to exit the process if the initial connection fails,
+    // especially in containerized environments, to allow orchestration tools
+    // (like Kubernetes) to restart the service.
+    process.exit(1);
+  });
+
+// Optional: Add listeners to log connection events for monitoring.
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose re-established connection to MongoDB.');
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('Mongoose connection to MongoDB was lost.');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Mongoose connection error:', err);
+});
+
+
+// =================================================================
+// Original Model Definition
+// =================================================================
+
 /**
  * @typedef {object} BillingAuditLogSchemaDefinition
  * @property {mongoose.Schema.Types.ObjectId} tenantId - The ID of the tenant associated with the billing action. References the 'Tenant' model.
