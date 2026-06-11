@@ -9,7 +9,8 @@ import { logger } from '../../../shared/logger.js';
  * @description The configured Stripe SDK instance for interacting with the Stripe API.
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  apiVersion: '2022-11-15',
+  // CVE-AGENT: Updated Stripe API version to a recent stable release for security, compliance, and new features.
+  apiVersion: '2024-04-10',
 });
 
 /**
