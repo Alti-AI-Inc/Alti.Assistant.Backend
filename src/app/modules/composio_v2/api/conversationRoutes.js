@@ -123,7 +123,7 @@ router.get('/team', async (req, res) => {
  *       400:
  *         description: Invalid input (e.g., bad email format, invalid role).
  *       403:
- *         description: Plan limit exceeded. Cannot add more members.
+ *         description: Plan limit exceeded. Cannot add more members or managers.
  *       409:
  *         description: User is already a member of the workspace.
  *       500:
@@ -149,6 +149,18 @@ router.post(
           success: false,
           error: 'Plan limit reached. Please upgrade your plan to add more members.',
         });
+      }
+
+      // Improvement: Add a specific check for the manager role limit.
+      // This ensures that inviting a new manager is also bound by plan limitations.
+      if (role === 'manager') {
+        const canAddManager = await WorkspaceService.checkManagerLimit(workspaceId);
+        if (!canAddManager) {
+          return res.status(403).json({
+            success: false,
+            error: 'Plan limit for managers reached. Please upgrade your plan to add more managers.',
+          });
+        }
       }
 
       // Proceed with the invitation logic, handled by a dedicated service.
@@ -232,7 +244,7 @@ router.put(
         return res.status(403).json({ success: false, error: 'Managers cannot change their own role.' });
       }
 
-      // Optimization: Check plan limits before promoting a member to a manager role.
+      // Check plan limits before promoting a member to a manager role.
       // This ensures workspace integrity and adherence to subscription plans.
       if (role === 'manager') {
         const canAddManager = await WorkspaceService.checkManagerLimit(workspaceId);
@@ -301,7 +313,7 @@ router.delete(
         return res.status(403).json({ success: false, error: 'You cannot remove yourself from the workspace.' });
       }
 
-      // Optimization: Prevent the removal of the last manager to avoid orphaning the workspace.
+      // Critical check: Prevent the removal of the last manager to avoid orphaning the workspace.
       // This requires fetching the member's details first to check their role.
       const memberToRemove = await TeamService.getMemberById(workspaceId, memberId);
 
