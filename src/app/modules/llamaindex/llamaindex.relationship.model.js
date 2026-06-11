@@ -150,8 +150,8 @@ const DocumentRelationshipSchema = new mongoose.Schema(
      */
     isFlaggedForReview: {
       type: Boolean,
-      default: false,
-      index: true
+      default: false
+      // PERFORMANCE OPTIMIZATION: Index is defined below as a partial index for greater efficiency.
     },
 
     /**
@@ -218,6 +218,22 @@ DocumentRelationshipSchema.index({ workspaceId: 1, targetDocId: 1 });
  * relationships by their type within a specific workspace (e.g., "show all 'hierarchical' relationships").
  */
 DocumentRelationshipSchema.index({ workspaceId: 1, relationType: 1 });
+
+/**
+ * PERFORMANCE OPTIMIZATION: Added a partial index for `isFlaggedForReview`.
+ * This index is more efficient than a standard boolean index because it only includes documents
+ * where `isFlaggedForReview` is true. Since this is expected to be a small subset of the total
+ * documents, the index will be smaller and faster for the common admin query of finding all flagged items.
+ */
+DocumentRelationshipSchema.index({ isFlaggedForReview: 1 }, { partialFilterExpression: { isFlaggedForReview: true } });
+
+/**
+ * PERFORMANCE OPTIMIZATION: Added a compound, multikey index for searching by shared concepts.
+ * This supports efficient lookups for relationships within a workspace that contain a specific
+ * shared concept (e.g., "find all documents related by the concept 'machine_learning'").
+ */
+DocumentRelationshipSchema.index({ workspaceId: 1, sharedConcepts: 1 });
+
 
 /**
  * HIERARCHY & INTEGRATION FIX: Propagate usage data to the parent Workspace.
