@@ -3,7 +3,12 @@ import { relationshipGraphService } from './llamaindex.relationshipGraph.js';
 import { logger } from '../../../shared/logger.js';
 import ApiError from '../../../errors/ApiError.js';
 
-// Common English stopwords to filter out for Jaccard similarity computation
+/**
+ * A set of common English stopwords used to filter out noise during Jaccard similarity computation.
+ * This helps in focusing on meaningful keywords for relevance scoring.
+ * @constant
+ * @type {Set<string>}
+ */
 const STOPWORDS = new Set([
   'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'arent', 'as', 'at',
   'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'cant', 'cannot', 'could',
@@ -20,7 +25,11 @@ const STOPWORDS = new Set([
   'youll', 'youre', 'youve', 'your', 'yours', 'yourself', 'yourselves'
 ]);
 
-// Global system-wide configuration manageable by Platform Owner / Super Admin
+/**
+ * Global system-wide configuration for the context pruner.
+ * These settings can be managed by a Platform Owner or Super Admin.
+ * @type {{minRelevanceThreshold: number, maxContextNodes: number, semanticWeight: number, confidenceWeight: number, bypassPruningForAdmins: boolean}}
+ */
 let globalConfig = {
   minRelevanceThreshold: 0.25,
   maxContextNodes: 5,
@@ -30,7 +39,9 @@ let globalConfig = {
 };
 
 /**
- * Tokenizes a string into a set of lowercased alphanumeric words, filtering out stopwords.
+ * Tokenizes a string into a set of lowercased alphanumeric words, filtering out stopwords and short words.
+ * @param {string} text The input string to tokenize.
+ * @returns {Set<string>} A set of processed, meaningful tokens.
  */
 const getTokens = (text) => {
   if (!text) return new Set();
@@ -42,7 +53,11 @@ const getTokens = (text) => {
 };
 
 /**
- * Computes Jaccard Similarity between two sets of tokens.
+ * Computes the Jaccard Similarity coefficient between two sets of tokens.
+ * The score ranges from 0 (no similarity) to 1 (identical sets).
+ * @param {Set<string>} setA The first set of tokens.
+ * @param {Set<string>} setB The second set of tokens.
+ * @returns {number} The Jaccard similarity score.
  */
 const computeJaccardSimilarity = (setA, setB) => {
   if (setA.size === 0 || setB.size === 0) return 0;
@@ -59,10 +74,24 @@ const computeJaccardSimilarity = (setA, setB) => {
 };
 
 /**
- * Traverses document relationships, evaluates relevance scores using Jaccard and relationship metrics,
- * prunes connections failing a minimal relevance threshold (< 0.25 relevance),
- * and reranks highly pertinent relationship details to place them at the top of the prompt expansion.
- * Supports Platform Owner overrides, global oversight, and custom thresholds.
+ * Traverses document relationships, evaluates relevance scores using Jaccard similarity and relationship metrics,
+ * prunes connections that fall below a relevance threshold, and reranks the most pertinent relationship details
+ * to enrich the user's query with a Graph RAG context block.
+ *
+ * @permission This function supports multi-tenancy and role-based access.
+ * - Standard users: Queries are scoped to their own `userId`.
+ * - Platform Owners (`isPlatformOwner: true`): Can perform queries across all users, or scope to a specific `userId` or `tenantId`.
+ *
+ * @async
+ * @param {string} query The original user query string.
+ * @param {string} userId The ID of the user initiating the query.
+ * @param {object} [options={}] Optional parameters for advanced control.
+ * @param {boolean} [options.isPlatformOwner=false] - If true, enables platform-wide data access.
+ * @param {string} [options.tenantId] - If `isPlatformOwner` is true, scopes the query to a specific tenant.
+ * @param {number} [options.customThreshold] - Overrides the global `minRelevanceThreshold`.
+ * @param {number} [options.customLimit] - Overrides the global `maxContextNodes`.
+ * @returns {Promise<string>} A promise that resolves to the enriched query with a Graph RAG context block, or the original query if no relevant context is found.
+ * @throws {ApiError} Throws an ApiError if there's a failure during context processing.
  */
 const pruneAndRerank = async (query, userId, options = {}) => {
   try {
@@ -242,14 +271,19 @@ ${query}`;
 };
 
 /**
- * Platform Owner / Super Admin: Get current global configuration settings.
+ * Retrieves the current global configuration settings for the context pruner.
+ * @permission Requires Platform Owner or Super Admin role.
+ * @returns {object} A copy of the global configuration object.
  */
 const getGlobalConfig = () => {
   return { ...globalConfig };
 };
 
 /**
- * Platform Owner / Super Admin: Update global configuration settings.
+ * Updates the global configuration settings for the context pruner.
+ * @permission Requires Platform Owner or Super Admin role.
+ * @param {object} newConfig An object containing the configuration keys and values to update.
+ * @returns {object} The new, updated global configuration object.
  */
 const updateGlobalConfig = (newConfig) => {
   globalConfig = { ...globalConfig, ...newConfig };
@@ -264,7 +298,11 @@ const updateGlobalConfig = (newConfig) => {
 };
 
 /**
- * Platform Owner / Super Admin: Retrieve global statistics of document metadata and relationships.
+ * Retrieves global statistics, including total metadata count and unique user count.
+ * @permission Requires Platform Owner or Super Admin role.
+ * @async
+ * @returns {Promise<{totalMetadataCount: number, uniqueUsersCount: number, globalConfig: object}>} A promise that resolves to an object containing global statistics.
+ * @throws {ApiError} Throws an ApiError if fetching statistics from the database fails.
  */
 const getGlobalStats = async () => {
   try {
@@ -309,6 +347,12 @@ const getGlobalStats = async () => {
   }
 };
 
+/**
+ * Service for enriching user queries with relevant, cross-document context using a Graph RAG approach.
+ * It prunes, scores, and reranks document relationships to provide the most coherent context.
+ * Also provides administrative functions for configuration and monitoring.
+ * @namespace contextPrunerService
+ */
 export const contextPrunerService = {
   pruneAndRerank,
   getGlobalConfig,
