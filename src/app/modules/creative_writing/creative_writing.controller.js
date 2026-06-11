@@ -28,8 +28,8 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  * Conversational creative writing assistant endpoint.
  * Handles natural language requests for creative writing, managing user sessions (guest/authenticated)
  * and enforcing subscription limits for authenticated users.
- * @function
- * @param {import('express').Request} req - The Express request object.
+ * @function conversationalAssistant
+ * @param {import('express').Request<object, object, ConversationalAssistantRequestBody>} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
@@ -74,6 +74,7 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       403:
+ *         description: Forbidden. The user has reached their subscription limit.
  *         $ref: '#/components/responses/Forbidden'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
@@ -106,7 +107,7 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *           example: "654321098765432109876543"
  *         response:
  *           type: string
-           description: The AI's response.
+ *           description: The AI's response.
  *           example: "In the neon-drenched alleys of Neo-Kyoto..."
  *         success:
  *           type: boolean
@@ -257,8 +258,10 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
 /**
  * Retrieves the conversation history for a specific creative writing session.
- * @function
- * @param {import('express').Request} req - The Express request object.
+ * Requires user to be authenticated. The service layer must validate that the
+ * requested conversation belongs to the authenticated user.
+ * @function getConversationHistory
+ * @param {import('express').Request<{conversationId: string}>} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  *
@@ -266,7 +269,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
  * /api/v1/creative-writing/conversations/{conversationId}:
  *   get:
  *     summary: Get creative writing conversation history.
- *     description: Retrieves the full message history for a specified creative writing conversation.
+ *     description: |
+ *       Retrieves the full message history for a specified creative writing conversation.
+ *       The user must be authenticated and can only access their own conversations.
  *     tags:
  *       - Creative Writing
  *     security:
