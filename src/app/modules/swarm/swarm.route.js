@@ -1,6 +1,9 @@
 import express from 'express';
+import httpStatus from 'http-status';
 import { SwarmController } from './swarm.controller.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import ApiError from '../../../core/ApiError.js';
+import { logger } from '../../../core/logger.js';
 
 /**
  * Express router for handling swarm-related API routes.
@@ -136,7 +139,17 @@ const validatePrewarmRequest = (req, res, next) => {
  *     security:
  *       - bearerAuth: []
  */
-router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSearch);
+router.post('/stream', optionalAuth(), async (req, res, next) => {
+    try {
+        // The controller is expected to handle the response stream directly.
+        // This try-catch block handles errors that occur before the stream is established.
+        await SwarmController.performSwarmStreamingSearch(req, res, next);
+    } catch (error) {
+        logger.error(`Swarm stream initiation failed: ${error.message}`, { error: error.stack });
+        // Pass a normalized error to the global error handler.
+        next(new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to initiate swarm stream.', true, error.stack));
+    }
+});
 
 /**
  * @swagger
@@ -217,7 +230,14 @@ router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSear
  *     security:
  *       - bearerAuth: []
  */
-router.post('/prewarm', optionalAuth(), validatePrewarmRequest, SwarmController.prewarmUserSandbox);
+router.post('/prewarm', optionalAuth(), validatePrewarmRequest, async (req, res, next) => {
+    try {
+        await SwarmController.prewarmUserSandbox(req, res, next);
+    } catch (error) {
+        logger.error(`Swarm prewarm failed: ${error.message}`, { error: error.stack });
+        next(new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to pre-warm user sandbox.', true, error.stack));
+    }
+});
 
 /**
  * @swagger
@@ -237,16 +257,24 @@ router.post('/prewarm', optionalAuth(), validatePrewarmRequest, SwarmController.
  *     security:
  *       - bearerAuth: []
  */
-router.get('/admin/stats', optionalAuth(), requirePlatformOwner, (req, res, next) => {
-    if (typeof SwarmController.getGlobalStats === 'function') {
-        return SwarmController.getGlobalStats(req, res, next);
+router.get('/admin/stats', optionalAuth(), requirePlatformOwner, async (req, res, next) => {
+    try {
+        if (typeof SwarmController.getGlobalStats === 'function') {
+            // Assuming the controller method is async and handles sending the response.
+            await SwarmController.getGlobalStats(req, res, next);
+        } else {
+            // Fallback response if the controller method is not implemented.
+            res.json({
+                message: "Global swarm statistics retrieved successfully.",
+                activeSwarms: 0,
+                totalSwarmsCreated: 0,
+                systemLoad: "nominal"
+            });
+        }
+    } catch (error) {
+        logger.error(`Failed to get global swarm stats: ${error.message}`, { error: error.stack });
+        next(new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve global swarm statistics.', true, error.stack));
     }
-    return res.json({
-        message: "Global swarm statistics retrieved successfully.",
-        activeSwarms: 0,
-        totalSwarmsCreated: 0,
-        systemLoad: "nominal"
-    });
 });
 
 /**
@@ -273,14 +301,22 @@ router.get('/admin/stats', optionalAuth(), requirePlatformOwner, (req, res, next
  *     security:
  *       - bearerAuth: []
  */
-router.post('/admin/config', optionalAuth(), requirePlatformOwner, (req, res, next) => {
-    if (typeof SwarmController.updateGlobalConfig === 'function') {
-        return SwarmController.updateGlobalConfig(req, res, next);
+router.post('/admin/config', optionalAuth(), requirePlatformOwner, async (req, res, next) => {
+    try {
+        if (typeof SwarmController.updateGlobalConfig === 'function') {
+            // Assuming the controller method is async and handles sending the response.
+            await SwarmController.updateGlobalConfig(req, res, next);
+        } else {
+            // Fallback response if the controller method is not implemented.
+            res.json({
+                message: "System-wide swarm configuration updated successfully.",
+                config: req.body
+            });
+        }
+    } catch (error) {
+        logger.error(`Failed to update global swarm config: ${error.message}`, { error: error.stack });
+        next(new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update system-wide swarm configuration.', true, error.stack));
     }
-    return res.json({
-        message: "System-wide swarm configuration updated successfully.",
-        config: req.body
-    });
 });
 
 /**
