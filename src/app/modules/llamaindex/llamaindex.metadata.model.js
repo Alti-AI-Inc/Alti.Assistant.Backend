@@ -191,6 +191,31 @@ DocumentMetadataSchema.index({ createdAt: -1 });
 DocumentMetadataSchema.index({ tenantId: 1, status: 1 });
 
 /**
+ * OPTIMIZATION: Added compound index to optimize fetching a specific user's documents of a certain status
+ * within a tenant. For example, getting all 'active' documents for a user.
+ */
+DocumentMetadataSchema.index({ tenantId: 1, userId: 1, status: 1 });
+
+/**
+ * OPTIMIZATION: Added index to optimize searching for documents by filename within a specific tenant.
+ * This prevents slow collection scans when users search for a document by its name.
+ */
+DocumentMetadataSchema.index({ tenantId: 1, fileName: 1 });
+
+/**
+ * OPTIMIZATION: Added multikey index to efficiently query for documents that contain a specific topic
+ * within a tenant. Essential for topic-based filtering and discovery features.
+ */
+DocumentMetadataSchema.index({ tenantId: 1, topics: 1 });
+
+/**
+ * OPTIMIZATION: Added multikey index to efficiently query for documents that mention a specific entity
+ * within a tenant. Useful for entity-based search and analysis.
+ */
+DocumentMetadataSchema.index({ tenantId: 1, entities: 1 });
+
+
+/**
  * Mongoose Model for Document Metadata.
  *
  * Provides an interface for interacting with the `document_metadata` collection in MongoDB.

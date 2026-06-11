@@ -17,9 +17,15 @@
  *           type: string
  *           description: The error stack trace (only in development).
  *           example: "Error: Invalid input data\n    at Function.createError (C:\\Users\\hyper\\workspace\\Alti.Assistant\\Alti.Assistant.Backend\\node_modules\\http-errors\\index.js:100:15)"
+ *   securitySchemes:
+ *      bearerAuth:
+ *          type: http
+ *          scheme: bearer
+ *          bearerFormat: JWT
  */
 
 import express from 'express';
+// Assuming the controller now includes methods for platform owner actions.
 import { cyberdeskController } from './cyberdesk.controller.js';
 
 /**
@@ -36,10 +42,15 @@ const catchAsync = (fn) => (req, res, next) => {
 
 /**
  * Express router for Cyberdesk module routes.
- * This router handles all API endpoints related to managing and interacting with Cyberdesk instances.
+ * This router handles all API endpoints related to managing and interacting with Cyberdesk instances,
+ * as well as platform-level administrative functions.
  * @type {express.Router}
  */
 const router = express.Router();
+
+// =================================================================
+// Tenant-Facing Cyberdesk Routes
+// =================================================================
 
 /**
  * @swagger
@@ -321,6 +332,291 @@ router.post('/bash/:id', catchAsync(cyberdeskController.bash));
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.delete('/terminate/:id', catchAsync(cyberdeskController.terminate));
+
+// =================================================================
+// Platform Owner / Super Admin Routes
+// =================================================================
+
+/**
+ * @swagger
+ * tags:
+ *   name: Platform Owner
+ *   description: API for global platform administration and tenant management. Requires Super Admin privileges.
+ */
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/tenants:
+ *   get:
+ *     summary: List all tenants on the platform.
+ *     description: Retrieves a paginated list of all tenants, including their status and basic information.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: The number of tenants to return per page.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, suspended, all]
+ *           default: all
+ *         description: Filter tenants by their status.
+ *     responses:
+ *       200:
+ *         description: A list of tenants.
+ *       401:
+ *         description: Unauthorized.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/admin/tenants', catchAsync(cyberdeskController.adminListTenants));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/tenants/{tenantId}/suspend:
+ *   post:
+ *     summary: Suspend a tenant.
+ *     description: Marks a tenant as suspended, preventing them from launching new resources or using the platform.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to suspend.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: The reason for the suspension (for audit logging).
+ *                 example: "Violation of terms of service."
+ *     responses:
+ *       200:
+ *         description: Tenant suspended successfully.
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.post('/admin/tenants/:tenantId/suspend', catchAsync(cyberdeskController.adminSuspendTenant));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/tenants/{tenantId}/unsuspend:
+ *   post:
+ *     summary: Unsuspend a tenant.
+ *     description: Re-activates a suspended tenant, restoring their access to the platform.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant to unsuspend.
+ *     responses:
+ *       200:
+ *         description: Tenant unsuspended successfully.
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.post('/admin/tenants/:tenantId/unsuspend', catchAsync(cyberdeskController.adminUnsuspendTenant));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/tenants/{tenantId}/limits:
+ *   put:
+ *     summary: Override a tenant's resource limits.
+ *     description: Allows a Platform Owner to set or override specific resource limits for a single tenant.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the tenant whose limits are being updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               maxInstances:
+ *                 type: integer
+ *                 description: The maximum number of concurrent Cyberdesk instances the tenant can run.
+ *                 example: 50
+ *               maxCpuPerInstance:
+ *                 type: integer
+ *                 description: The maximum CPU cores allowed per instance.
+ *                 example: 8
+ *     responses:
+ *       200:
+ *         description: Tenant limits updated successfully.
+ *       400:
+ *         description: Invalid limit values provided.
+ *       404:
+ *         description: Tenant not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.put('/admin/tenants/:tenantId/limits', catchAsync(cyberdeskController.adminOverrideTenantLimits));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/stats:
+ *   get:
+ *     summary: Get global platform statistics.
+ *     description: Retrieves system-wide statistics for global oversight.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Global statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalTenants:
+ *                   type: integer
+ *                   example: 150
+ *                 activeTenants:
+ *                   type: integer
+ *                   example: 145
+ *                 totalInstances:
+ *                   type: integer
+ *                   example: 876
+ *                 runningInstances:
+ *                   type: integer
+ *                   example: 750
+ *                 platformResourceUsage:
+ *                   type: object
+ *                   properties:
+ *                     cpu:
+ *                       type: string
+ *                       example: "75%"
+ *                     memory:
+ *                       type: string
+ *                       example: "68%"
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/admin/stats', catchAsync(cyberdeskController.adminGetGlobalStats));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/config:
+ *   get:
+ *     summary: Get system-wide configuration.
+ *     description: Retrieves the current global configuration settings for the platform.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: System configuration retrieved successfully.
+ *       500:
+ *         description: Internal server error.
+ *   put:
+ *     summary: Update system-wide configuration.
+ *     description: Allows a Platform Owner to update global configuration settings.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               defaultTenantLimits:
+ *                 type: object
+ *                 properties:
+ *                   maxInstances:
+ *                     type: integer
+ *                     example: 10
+ *               maintenanceMode:
+ *                 type: boolean
+ *                 example: false
+ *               featureFlags:
+ *                 type: object
+ *                 example: { "newDashboard": true, "apiV2Enabled": false }
+ *     responses:
+ *       200:
+ *         description: System configuration updated successfully.
+ *       400:
+ *         description: Invalid configuration values provided.
+ *       500:
+ *         description: Internal server error.
+ */
+router.route('/admin/config')
+  .get(catchAsync(cyberdeskController.adminGetConfig))
+  .put(catchAsync(cyberdeskController.adminUpdateConfig));
+
+/**
+ * @swagger
+ * /api/cyberdesk/admin/logs:
+ *   get:
+ *     summary: Retrieve global system logs.
+ *     description: Fetches system-wide logs, such as audit trails or critical errors, for administrative review.
+ *     tags: [Platform Owner]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: The number of log entries to return per page.
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: [info, warn, error, audit]
+ *         description: Filter logs by level.
+ *     responses:
+ *       200:
+ *         description: A list of log entries.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get('/admin/logs', catchAsync(cyberdeskController.adminGetGlobalLogs));
 
 /**
  * Exports the Express router for Cyberdesk routes.
