@@ -15,7 +15,8 @@
  * @returns {object|null} A new object formatted for the Gemini API, containing `name`, `description`, and `parameters`, or null if input is falsy.
  */
 export function sanitizeToolForGemini(tool) {
-  if (!tool) return null;
+  // A tool and its slug are required to generate a valid Gemini function.
+  if (!tool || !tool.slug) return null;
 
   /**
    * Recursively cleans a properties object by removing fields not supported by the Gemini API.
@@ -24,11 +25,15 @@ export function sanitizeToolForGemini(tool) {
    * @returns {object | undefined | null} The cleaned properties object, or the original value if not an object.
    */
   function cleanProperties(props) {
-    if (!props || typeof props !== 'object') return props;
+    // Return non-objects or arrays as-is. Arrays (e.g., for 'enum' or 'required' keywords) should not be destructured.
+    if (!props || typeof props !== 'object' || Array.isArray(props)) {
+      return props;
+    }
 
     const cleaned = {};
     for (const [key, value] of Object.entries(props)) {
-      if (typeof value === 'object' && value !== null) {
+      // We only process values that are non-null objects and not arrays.
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         const cleanedValue = { ...value };
         // Remove unsupported fields for Gemini API
         delete cleanedValue.examples;
@@ -53,15 +58,34 @@ export function sanitizeToolForGemini(tool) {
 
         cleaned[key] = cleanedValue;
       } else {
+        // Primitives, null, and arrays are kept as-is.
         cleaned[key] = value;
       }
     }
     return cleaned;
   }
 
-  console.log('Sanitizing tool:', tool.name);
+  /**
+   * Sanitizes a string to be a valid Gemini function name.
+   * Rules: Must start with a letter or underscore, contain only a-z, A-Z, 0-9, _, or -, and be max 64 chars.
+   * @param {string} name - The proposed name.
+   * @returns {string} A valid function name.
+   */
+  function sanitizeFunctionName(name) {
+    // Replace any character that is not a letter, number, underscore, or dash with an underscore.
+    let sanitized = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // Ensure the name starts with a letter or an underscore.
+    if (!/^[a-zA-Z_]/.test(sanitized)) {
+      sanitized = `fn_${sanitized}`;
+    }
+
+    // Truncate to the maximum length of 64 characters.
+    return sanitized.slice(0, 64);
+  }
+
   const cleanedFunction = {
-    name: tool.slug,
+    name: sanitizeFunctionName(tool.slug),
     description: tool.description,
     parameters: {
       ...tool.parameters, // Preserve any other top-level parameter fields if they exist and are supported

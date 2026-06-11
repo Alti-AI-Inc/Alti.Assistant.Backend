@@ -393,7 +393,7 @@ ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
  * @memberof ConversationSchema.statics
  * @param {string} conversationId - The unique conversation identifier.
  * @param {string|import('mongoose').Types.ObjectId} [userId=null] - Optional user ID to restrict the search.
- * @returns {Promise<import('mongoose').Document|null>} A promise that resolves to the conversation document or null.
+ * @returns {Promise<Object|null>} A promise that resolves to the lean conversation object or null.
  */
 ConversationSchema.statics.findByConversationId = function (
   conversationId,
@@ -403,7 +403,10 @@ ConversationSchema.statics.findByConversationId = function (
   if (userId) {
     query.userId = userId;
   }
-  return this.findOne(query);
+  // Optimization: Use .lean({ getters: true }) to return a plain JavaScript object instead of a full Mongoose document.
+  // This significantly improves performance for read-only operations, especially for large documents with many messages,
+  // while ensuring encrypted fields are still decrypted via schema getters.
+  return this.findOne(query).lean({ getters: true });
 };
 
 /**

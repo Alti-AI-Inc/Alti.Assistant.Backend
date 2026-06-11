@@ -8,12 +8,25 @@ import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
 import ApiError from '../../../errors/ApiError.js';
 
+/**
+ * @constant {VertexAI}
+ * @description Instance of the Google Vertex AI client, configured with project and location details
+ * from the application's configuration. Used for all interactions with Google's generative AI models.
+ */
 const vertex_ai = new VertexAI({
   project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
   location: config.google?.gcp_location || config.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 
 // VAI-SAFETY-FIX: PII masking utility function to redact sensitive information before sending to the AI model.
+/**
+ * Redacts Personally Identifiable Information (PII) from a given string.
+ * This utility function targets common PII patterns like emails, phone numbers, and IP addresses.
+ * It is a security measure to prevent sensitive data from being sent to external AI models.
+ * @param {string} text - The input string to be sanitized.
+ * @returns {string|any} The sanitized string with PII replaced by placeholders, or the original input if not a string.
+ * @private
+ */
 const maskPII = text => {
   if (typeof text !== 'string') return text;
   // Mask emails
@@ -26,6 +39,13 @@ const maskPII = text => {
 };
 
 // VAI-SAFETY-FIX: Recursive function to sanitize an entire object for AI processing.
+/**
+ * Recursively sanitizes an object or array by applying PII masking to all its string values.
+ * This ensures that no sensitive data within a complex data structure is inadvertently exposed to the AI model.
+ * @param {any} obj - The object, array, or primitive to be sanitized.
+ * @returns {any} A deep copy of the input with all string values sanitized.
+ * @private
+ */
 const sanitizeObjectForAI = obj => {
   if (obj === null || typeof obj !== 'object') {
     return obj;
@@ -50,11 +70,28 @@ const sanitizeObjectForAI = obj => {
 };
 
 /**
- * Automatically audits custom chain runs and queries Google Gemini to suggest prompt and structure improvements.
- * Supports multi-tenant isolation, role-based access control (RBAC), usage limit enforcement, and notification propagation.
+ * Analyzes the execution history of a LangChain chain, uses Google's Gemini model to generate optimization suggestions,
+ * and handles all associated business logic including multi-tenancy, role-based access control (RBAC),
+ * usage limits, and notifications.
  *
- * @param {string} chainId - The ID of the chain to optimize.
- * @param {Object|string} userContext - The current user object or user ID.
+ * @multi-tenant This service is tenant-aware. All operations (except for `super_admin`) are scoped to the user's tenant.
+ * It verifies the tenant's active status and enforces AI optimization usage limits defined at the tenant level.
+ *
+ * @permission {super_admin} - Can optimize any chain across any tenant. Bypasses tenant status and usage limit checks.
+ * @permission {admin} - Can optimize any chain within their own tenant.
+ * @permission {manager} - Can optimize their own chains or chains belonging to their direct reports within their tenant.
+ * @permission {user} - Can only optimize their own chains.
+ *
+ * @param {string} chainId - The MongoDB ObjectId of the `LangchainChain` to be optimized.
+ * @param {object|string} userContext - The user object or user ID of the user initiating the optimization.
+ *   This context is critical for enforcing permissions and tenant boundaries.
+ * @returns {Promise<object>} A promise that resolves to an object containing the analysis and optimization suggestions.
+ *   The object includes telemetry data and the structured JSON response from the AI model.
+ * @throws {ApiError} Throws an ApiError with appropriate HTTP status codes for various failure conditions:
+ *   - `401 UNAUTHORIZED`: If the user context is missing.
+ *   - `403 FORBIDDEN`: If the user lacks permission, attempts cross-tenant access, or the tenant's usage limit is exceeded.
+ *   - `404 NOT_FOUND`: If the specified chain or user cannot be found.
+ *   - `500 INTERNAL_SERVER_ERROR`: For unexpected errors, such as failures in communicating with the AI model or database issues.
  */
 const optimizeChain = async (chainId, userContext) => {
   // PLATFORM-OWNER-ENHANCEMENT: Define a logging-specific variable for the user ID
@@ -456,6 +493,10 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
   }
 };
 
+/**
+ * Service object containing methods for LangChain chain analysis and optimization.
+ * @namespace langchainOptimizerService
+ */
 export const langchainOptimizerService = {
   optimizeChain,
 };
