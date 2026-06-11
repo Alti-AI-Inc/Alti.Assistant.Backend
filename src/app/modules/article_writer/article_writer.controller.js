@@ -1,10 +1,27 @@
 import httpStatus from 'http-status';
+import { Storage } from '@google-cloud/storage';
+import { v4 as uuidv4 } from 'uuid';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { articleWriterService } from './article_writer.service.js';
 import SubscriptionModel from '../subscription/subscription.model.js';
 import ConversationModel from '../conversations/conversation.model.js';
+
+// --- GCS Configuration ---
+// The GCS client will automatically use the service account credentials
+// available in the Cloud Run/Functions/GKE environment via Application Default Credentials.
+const storage = new Storage();
+// The GCS bucket name must be configured as an environment variable.
+const gcsBucketName = process.env.GCS_ARTICLE_CONTEXT_BUCKET;
+if (!gcsBucketName) {
+  // Fail fast if the bucket isn't configured to prevent runtime errors.
+  logger.error(
+    'FATAL: GCS_ARTICLE_CONTEXT_BUCKET environment variable not set. File uploads will fail.'
+  );
+  // In a production app, you might throw an error to stop the server from starting.
+  // throw new Error('GCS_ARTICLE_CONTEXT_BUCKET environment variable not set.');
+}
 
 // --- Constants for Input Validation ---
 const ALLOWED_ARTICLE_TYPES = [
@@ -213,23 +230,24 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
   }
 
-  // --- 3. File Handling & Validation ---
-  const fileInfo = req.file
-    ? {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size,
-        path: req.file.path,
-        location: req.file.location || req.file.path,
-      }
-    : null;
+  // --- 3. File Handling & Validation (GCS Stream) ---
+  let fileInfo = null;
+  if (req.file) {
+    // Ensure the GCS bucket is configured before proceeding.
+    if (!gcsBucketName) {
+      logger.error(
+        'File upload failed: GCS_ARTICLE_CONTEXT_BUCKET is not configured on the server.'
+      );
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message:
+          'File upload service is currently unavailable. Please try again later.',
+      });
+    }
 
-  if (fileInfo) {
     // Validate file size to protect server resources and enforce user limits.
-    if (fileInfo.size > MAX_FILE_SIZE_BYTES) {
-      // NOTE: The file upload middleware (e.g., multer) should be configured to automatically
-      // clean up oversized files. If not, manual cleanup logic would be needed here.
+    if (req.file.size > MAX_FILE_SIZE_BYTES) {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
@@ -237,11 +255,58 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       });
     }
     // Validate file type to ensure the backend can process it and for security.
-    if (!ALLOWED_MIMETYPES.includes(fileInfo.mimetype)) {
+    if (!ALLOWED_MIMETYPES.includes(req.file.mimetype)) {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
         message: `Invalid file type. Allowed types are: ${ALLOWED_MIMETYPES.join(', ')}.`,
+      });
+    }
+
+    // --- GCS Upload Logic ---
+    // This block replaces writing to the local filesystem.
+    // It streams the file buffer (from multer memory astorage) directly to a GCS bucket.
+    const bucket = storage.bucket(gcsBucketName);
+    // Create a unique filename to prevent collisions and organize by user.
+    const gcsFileName = `article-context/${userId}/${uuidv4()}-${req.file.originalname.replace(/\s/g, '_')}`;
+    const blob = bucket.file(gcsFileName);
+    const blobStream = blob.createWriteStream({
+      resumable: false, // Best for single-chunk uploads from a buffer.
+      contentType: req.file.mimetype,
+    });
+
+    // Use a Promise to handle the async nature of the stream and await its completion.
+    const gcsUploadPromise = new Promise((resolve, reject) => {
+      blobStream.on('error', err => {
+        logger.error(`GCS stream error for user ${userId}:`, err);
+        reject(new Error('Failed to upload file to cloud storage.'));
+      });
+
+      blobStream.on('finish', () => {
+        // The file has been successfully uploaded.
+        // The GCS URI is the canonical reference to the file for backend services.
+        const gcsUri = `gs://${gcsBucketName}/${gcsFileName}`;
+        logger.info(`File uploaded to GCS for user ${userId} at ${gcsUri}`);
+        resolve({
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          location: gcsUri, // Pass the GCS URI to the service layer.
+        });
+      });
+    });
+
+    // Start the stream by writing the buffer from memory.
+    blobStream.end(req.file.buffer);
+
+    // Wait for the upload to complete before proceeding.
+    try {
+      fileInfo = await gcsUploadPromise;
+    } catch (uploadError) {
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: uploadError.message,
       });
     }
   }
@@ -306,7 +371,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       userId,
       message,
       conversationId,
-      fileInfo,
+      fileInfo, // This now contains the GCS URI if a file was uploaded.
       isGuest,
       articleType,
       tone,

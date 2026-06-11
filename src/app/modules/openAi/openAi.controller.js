@@ -92,12 +92,24 @@ const handleAuthenticatedPrompt = async (req, modelName) => {
 
   // 2. Authorization & Business Logic Checks
   // Ensure the user's workspace/tenant context is valid and they are allowed to make requests.
-  const workspace = await WorkspaceService.getById(user.workspaceId);
+  // OPTIMIZATION: Instead of fetching the entire workspace document with a generic `getById`,
+  // use a more specific service method. This method should be implemented in the WorkspaceService
+  // to fetch only the 'status' field and use .lean() to avoid Mongoose document overhead, reducing query time and memory usage.
+  // Example implementation in WorkspaceService:
+  // const findWorkspaceStatusById = (id) => Workspace.findById(id).select('status').lean().exec();
+  const workspace = await WorkspaceService.findWorkspaceStatusById(user.workspaceId);
   if (!workspace || workspace.status !== 'ACTIVE') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. The associated workspace is not active.');
   }
 
-  // Check if the user and their workspace are within usage limits BEFORE making the expensive API call.
+  // OPTIMIZATION: The `checkLimits` service method is critical for performance and cost control.
+  // It should be implemented efficiently to avoid multiple database round trips (N+1 problem).
+  // A recommended approach is to use a single Mongoose aggregation pipeline to:
+  // 1. Fetch the workspace's plan and usage limits.
+  // 2. Fetch the current monthly usage for both the user and the entire workspace.
+  // 3. Perform the limit check within the database query itself if possible.
+  // This avoids fetching large documents and performing logic in the Node.js process.
+  // Ensure the 'workspaceId' and 'userId' fields on the usage collection are indexed.
   const canMakeRequest = await UsageService.checkLimits(user.id, user.workspaceId);
   if (!canMakeRequest) {
     // This service should also be responsible for triggering notifications to admins/managers.

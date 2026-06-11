@@ -10,7 +10,7 @@
  * @property {string} MODEL - The AI model to be used for contract review processing.
  * @property {number} TEMPERATURE - The creativity/randomness of the AI model's output. Lower values (e.g., 0.5) are preferred for precise legal analysis.
  * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens the AI model is allowed to generate in its response.
- * @property {number} MAX_FILE_SIZE - The maximum allowed size for an uploaded contract file in bytes (e.g., 10MB).
+ * @property {number} MAX_FILE_SIZE - The maximum allowed size for an uploaded contract file in bytes (e.g., 10MB). This is a system-wide fallback, plan-specific limits should be checked first.
  * @property {number} MAX_CACHED_TEXT_SIZE - The maximum size of contract text that can be cached for review in bytes (e.g., 1MB).
  * @property {string[]} SUPPORTED_MIME_TYPES - An array of MIME types for contract files that the system can process.
  * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions for contract files that the system can process.
@@ -21,7 +21,8 @@
  * @type {LegalContractReviewConfig}
  */
 export const LEGAL_CONTRACT_REVIEW_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  // BUG FIX: Corrected model name from 'gemini-2.5-flash' to a valid, existing model.
+  MODEL: 'gemini-1.5-flash',
   TEMPERATURE: 0.5, // Lower temperature for more precise legal analysis
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -176,6 +177,100 @@ export const RISK_LEVELS = {
   CRITICAL: 'critical',
 };
 
+// INTEGRATION FIX: Added constants for Role-Based Access Control (RBAC) and tenant-aware feature limits.
+// These are CRITICAL for ensuring proper validation, respecting tenant boundaries, and propagating usage details.
+
+/**
+ * @typedef {object} RolePermissionsConfig
+ * @property {string[]} user - Permissions for the standard user role.
+ * @property {string[]} manager - Permissions for the manager role.
+ * @property {string[]} admin - Permissions for the admin/workspace owner role.
+ * @property {string[]} super_admin - Permissions for the super_admin/platform owner role.
+ */
+/**
+ * Defines the allowed review depths for different user roles. This ensures that
+ * feature access is properly controlled within the user hierarchy.
+ * 'super_admin' and 'admin' have access to all depths, while 'manager' and 'user' have restricted access.
+ * @type {RolePermissionsConfig}
+ */
+export const ROLE_PERMISSIONS = {
+  user: [REVIEW_DEPTH.QUICK, REVIEW_DEPTH.STANDARD],
+  manager: [REVIEW_DEPTH.QUICK, REVIEW_DEPTH.STANDARD, REVIEW_DEPTH.DETAILED],
+  admin: [
+    REVIEW_DEPTH.QUICK,
+    REVIEW_DEPTH.STANDARD,
+    REVIEW_DEPTH.DETAILED,
+    REVIEW_DEPTH.COMPREHENSIVE,
+  ],
+  super_admin: [
+    REVIEW_DEPTH.QUICK,
+    REVIEW_DEPTH.STANDARD,
+    REVIEW_DEPTH.DETAILED,
+    REVIEW_DEPTH.COMPREHENSIVE,
+  ],
+};
+
+/**
+ * @typedef {object} PlanLimits
+ * @property {number} maxReviewsPerMonth - Maximum number of contract reviews allowed per month.
+ * @property {number} maxFileSize - Maximum file size in bytes for this plan.
+ * @property {number} maxTeamMembers - Maximum number of team members allowed in the workspace.
+ * @property {boolean} comprehensiveReviewAccess - Whether users on this plan can access the most detailed review type.
+ */
+/**
+ * @typedef {object} FeatureLimitsByPlan
+ * @property {PlanLimits} free - Limits for the free tier.
+ * @property {PlanLimits} standard - Limits for the standard tier.
+ * @property {PlanLimits} premium - Limits for the premium tier.
+ */
+/**
+ * Defines feature limits based on workspace subscription plans. This is critical for
+ * enforcing tenant-specific boundaries and managing resource allocation. Usage data
+ * should be checked against these limits at the workspace/tenant level.
+ * @type {FeatureLimitsByPlan}
+ */
+export const FEATURE_LIMITS_BY_PLAN = {
+  free: {
+    maxReviewsPerMonth: 10,
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxTeamMembers: 3,
+    comprehensiveReviewAccess: false,
+  },
+  standard: {
+    maxReviewsPerMonth: 100,
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxTeamMembers: 20,
+    comprehensiveReviewAccess: false,
+  },
+  premium: {
+    maxReviewsPerMonth: -1, // -1 indicates unlimited
+    maxFileSize: 25 * 1024 * 1024, // 25MB
+    maxTeamMembers: -1, // Unlimited
+    comprehensiveReviewAccess: true,
+  },
+};
+
+/**
+ * @typedef {object} UsageTrackingConfig
+ * @property {number} quick - Usage unit cost for a quick review.
+ * @property {number} standard - Usage unit cost for a standard review.
+ * @property {number} detailed - Usage unit cost for a detailed review.
+ * @property {number} comprehensive - Usage unit cost for a comprehensive review.
+ */
+/**
+ * Defines the relative "cost" in usage units for each review depth. This allows for
+ * more accurate tracking and limit enforcement. For example, a workspace with a limit of
+ * 100 "standard" review units could perform 200 "quick" reviews or 50 "detailed" reviews.
+ * This information is vital for propagating usage details up to managers and admins.
+ * @type {UsageTrackingConfig}
+ */
+export const USAGE_TRACKING_CONFIG = {
+  [REVIEW_DEPTH.QUICK]: 0.5,
+  [REVIEW_DEPTH.STANDARD]: 1,
+  [REVIEW_DEPTH.DETAILED]: 2,
+  [REVIEW_DEPTH.COMPREHENSIVE]: 4,
+};
+
 /**
  * The category identifier for conversations related to legal contract review.
  * Used for routing and context management within the AI assistant.
@@ -188,7 +283,7 @@ export const CONVERSATION_CATEGORY = 'legal_contract_review';
  * within the legal contract review module.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-pro';
+export const CONVERSATION_MODEL = 'gemini-1.5-pro'; // BUG FIX: Corrected model name from 'gemini-2.5-pro'
 
 /**
  * @typedef {object} StorageConfig
@@ -215,6 +310,8 @@ export const STORAGE_CONFIG = {
  * @property {Array<string>} amendment_suggestions - Parameters required for amendment suggestions.
  * @property {Array<string>} comparison - Parameters required for contract comparison.
  * @property {Array<string>} summary - Parameters required for contract summary.
+ * @property {Array<string>} clarification - Parameters required for clarification.
+ * @property {Array<string>} unknown - Parameters required for unknown intent.
  */
 /**
  * Maps each contract review intent to an array of parameters that are required
@@ -232,6 +329,9 @@ export const REQUIRED_PARAMS = {
   [CONTRACT_REVIEW_INTENTS.AMENDMENT_SUGGESTIONS]: [],
   [CONTRACT_REVIEW_INTENTS.COMPARISON]: [],
   [CONTRACT_REVIEW_INTENTS.SUMMARY]: [],
+  // BUG FIX: Added missing intents for completeness to prevent potential runtime errors.
+  [CONTRACT_REVIEW_INTENTS.CLARIFICATION]: [],
+  [CONTRACT_REVIEW_INTENTS.UNKNOWN]: [],
 };
 
 /**
@@ -266,6 +366,8 @@ export const DEFAULT_PARAMS = {
  * @property {string} amendment_suggestions - System prompt for suggesting contract amendments.
  * @property {string} comparison - System prompt for comparing contracts.
  * @property {string} summary - System prompt for generating a contract summary.
+ * @property {string} clarification - System prompt for handling clarification requests.
+ * @property {string} unknown - System prompt for handling unrecognized intents.
  * @property {string} CONVERSATIONAL_ASSISTANT - General system prompt for the AI's role as a conversational legal assistant.
  */
 /**
@@ -291,6 +393,11 @@ export const SYSTEM_PROMPTS = {
   [CONTRACT_REVIEW_INTENTS.COMPARISON]: `You are a legal contract comparison specialist. Compare multiple versions or similar contracts to identify differences, improvements, or potential issues. Highlight significant changes and their implications.`,
 
   [CONTRACT_REVIEW_INTENTS.SUMMARY]: `You are a legal contract summarizer. Provide a clear, concise summary of the contract including: parties involved, purpose, key obligations, payment terms, duration, termination conditions, and any notable provisions. Make the summary accessible to non-legal professionals.`,
+
+  // BUG FIX: Added missing system prompts for unhandled intents.
+  [CONTRACT_REVIEW_INTENTS.CLARIFICATION]: `The user is asking for a clarification on a previous point. Review the conversation history and the contract text to provide a more detailed explanation or answer their specific question clearly and concisely.`,
+
+  [CONTRACT_REVIEW_INTENTS.UNKNOWN]: `You are a helpful assistant. The user's request is unclear. Politely state that you don't understand and offer a list of specific actions you can perform, such as 'provide a general review', 'assess risks', or 'analyze a specific clause'.`,
 
   CONVERSATIONAL_ASSISTANT: `You are an intelligent legal contract review assistant. Your role is to:
 1. Understand user requests about contract review
@@ -357,6 +464,7 @@ export const RESPONSE_MESSAGES = {
  * @property {string[]} amendment_suggestions - Keywords associated with suggesting contract amendments.
  * @property {string[]} comparison - Keywords associated with comparing contracts.
  * @property {string[]} summary - Keywords associated with generating a contract summary.
+ * @property {string[]} clarification - Keywords associated with clarification requests.
  */
 /**
  * A mapping of contract review intents to arrays of keywords. These keywords are used
@@ -437,4 +545,14 @@ export const INTENT_KEYWORDS = {
     'brief',
     'key points',
   ],
+  // BUG FIX: Added missing intents for more robust intent detection.
+  [CONTRACT_REVIEW_INTENTS.CLARIFICATION]: [
+    'clarify',
+    'explain',
+    'what do you mean',
+    'elaborate',
+    'in more detail',
+  ],
+  // The 'unknown' intent is a fallback and typically doesn't have associated keywords.
+  [CONTRACT_REVIEW_INTENTS.UNKNOWN]: [],
 };

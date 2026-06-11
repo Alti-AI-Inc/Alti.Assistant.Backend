@@ -103,6 +103,7 @@ const jaccardSimilarity = (tokensA, tokensB) => {
 const recordQuery = async (authContext, query, answer, engine = 'vector', confidence = 0.0) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
     logger.error({
+        severity: 'ERROR',
         message: 'QueryMemory.recordQuery called with invalid authContext. Skipping memory record.',
         component: 'QueryMemory',
         details: { authContext }
@@ -118,6 +119,7 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
         const workspace = await Workspace.findById(workspaceId).select('status').lean();
         if (workspace?.status === 'suspended') {
             logger.warn({
+                severity: 'WARNING',
                 message: 'Attempted to record query for a suspended workspace. Operation blocked.',
                 component: 'QueryMemory',
                 details: { userId, workspaceId }
@@ -144,6 +146,7 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
       const similarity = jaccardSimilarity(queryTokens, entry.queryTokens || []);
       if (similarity > MEMORY_CONFIG.DEDUPE_SIMILARITY_THRESHOLD) {
         logger.debug({
+          severity: 'DEBUG',
           message: 'QueryMemory: skipping duplicate record',
           component: 'QueryMemory',
           details: { userId, workspaceId, similarity: similarity.toFixed(2) },
@@ -166,12 +169,14 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
     // usageService.incrementMemoryCount(workspaceId).catch(...)
 
     logger.debug({
+      severity: 'DEBUG',
       message: 'QueryMemory: recorded query',
       component: 'QueryMemory',
       details: { userId, workspaceId },
     });
   } catch (err) {
     logger.error({
+      severity: 'ERROR',
       message: 'QueryMemory.recordQuery failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
@@ -194,7 +199,7 @@ const recordQuery = async (authContext, query, answer, engine = 'vector', confid
  */
 const getRelevantHistory = async (authContext, currentQuery, limit = MEMORY_CONFIG.HISTORY_DEFAULT_LIMIT, minSimilarity = MEMORY_CONFIG.HISTORY_MIN_SIMILARITY) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
-    logger.error({ message: 'QueryMemory.getRelevantHistory called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
+    logger.error({ severity: 'ERROR', message: 'QueryMemory.getRelevantHistory called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
     return [];
   }
 
@@ -231,6 +236,7 @@ const getRelevantHistory = async (authContext, currentQuery, limit = MEMORY_CONF
     return scored;
   } catch (err) {
     logger.error({
+      severity: 'ERROR',
       message: 'QueryMemory.getRelevantHistory failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
@@ -251,7 +257,7 @@ const getRelevantHistory = async (authContext, currentQuery, limit = MEMORY_CONF
  */
 const buildMemoryEnrichedQuery = async (authContext, currentQuery) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId) {
-    logger.error({ message: 'QueryMemory.buildMemoryEnrichedQuery called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
+    logger.error({ severity: 'ERROR', message: 'QueryMemory.buildMemoryEnrichedQuery called with invalid authContext.', component: 'QueryMemory', details: { authContext } });
     return currentQuery;
   }
 
@@ -276,6 +282,7 @@ Current Query:
 ${currentQuery}`;
 
     logger.info({
+      severity: 'INFO',
       message: 'QueryMemory: enriched query with prior memory entries',
       component: 'QueryMemory',
       details: { userId: authContext.userId, workspaceId: authContext.workspaceId, historyCount: history.length },
@@ -283,6 +290,7 @@ ${currentQuery}`;
     return enriched;
   } catch (err) {
     logger.error({
+      severity: 'ERROR',
       message: 'QueryMemory.buildMemoryEnrichedQuery failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
@@ -305,7 +313,7 @@ ${currentQuery}`;
  */
 const getMemorySummary = async (authContext, targetUserId, targetWorkspaceId) => {
   if (!authContext || !authContext.userId || !authContext.workspaceId || !authContext.role) {
-    logger.error({ message: 'getMemorySummary called with invalid authContext', component: 'QueryMemory' });
+    logger.error({ severity: 'ERROR', message: 'getMemorySummary called with invalid authContext', component: 'QueryMemory' });
     return { success: false, error: 'Authorization context is missing.' };
   }
 
@@ -360,6 +368,7 @@ const getMemorySummary = async (authContext, targetUserId, targetWorkspaceId) =>
     };
   } catch (err) {
     logger.error({
+      severity: 'ERROR',
       message: 'QueryMemory.getMemorySummary failed',
       component: 'QueryMemory',
       error: { message: err.message, stack: err.stack, name: err.name },
@@ -385,7 +394,7 @@ const getMemorySummary = async (authContext, targetUserId, targetWorkspaceId) =>
  */
 const getGlobalMemoryStats = async (authContext) => {
     if (authContext?.role !== 'platform_owner') {
-        logger.warn({ message: 'Unauthorized attempt to access getGlobalMemoryStats', component: 'QueryMemory', details: { userId: authContext?.userId } });
+        logger.warn({ severity: 'WARNING', message: 'Unauthorized attempt to access getGlobalMemoryStats', component: 'QueryMemory', details: { userId: authContext?.userId } });
         return { success: false, error: 'Permission denied.' };
     }
 
@@ -421,7 +430,7 @@ const getGlobalMemoryStats = async (authContext) => {
             byEngine: data.entriesByEngine || [],
         };
     } catch (err) {
-        logger.error({ message: 'QueryMemory.getGlobalMemoryStats failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack } });
+        logger.error({ severity: 'ERROR', message: 'QueryMemory.getGlobalMemoryStats failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack } });
         return { success: false, error: 'An internal error occurred while fetching global stats.' };
     }
 };
@@ -438,7 +447,7 @@ const getGlobalMemoryStats = async (authContext) => {
  */
 const deleteMemoryEntry = async (authContext, entryId) => {
     if (authContext?.role !== 'platform_owner') {
-        logger.warn({ message: 'Unauthorized attempt to access deleteMemoryEntry', component: 'QueryMemory', details: { userId: authContext?.userId, entryId } });
+        logger.warn({ severity: 'WARNING', message: 'Unauthorized attempt to access deleteMemoryEntry', component: 'QueryMemory', details: { userId: authContext?.userId, entryId } });
         return { success: false, error: 'Permission denied.' };
     }
 
@@ -449,13 +458,13 @@ const deleteMemoryEntry = async (authContext, entryId) => {
     try {
         const result = await QueryMemory.deleteOne({ _id: entryId });
         if (result.deletedCount === 0) {
-            logger.warn({ message: 'deleteMemoryEntry: Entry not found', component: 'QueryMemory', details: { entryId } });
+            logger.warn({ severity: 'WARNING', message: 'deleteMemoryEntry: Entry not found', component: 'QueryMemory', details: { entryId } });
             return { success: false, error: 'Entry not found.' };
         }
-        logger.info({ message: 'Platform Owner deleted a memory entry', component: 'QueryMemory', details: { adminId: authContext.userId, deletedEntryId: entryId } });
+        logger.info({ severity: 'INFO', message: 'Platform Owner deleted a memory entry', component: 'QueryMemory', details: { adminId: authContext.userId, deletedEntryId: entryId } });
         return { success: true, deletedCount: result.deletedCount };
     } catch (err) {
-        logger.error({ message: 'QueryMemory.deleteMemoryEntry failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack }, details: { entryId } });
+        logger.error({ severity: 'ERROR', message: 'QueryMemory.deleteMemoryEntry failed', component: 'QueryMemory', error: { message: err.message, stack: err.stack }, details: { entryId } });
         return { success: false, error: 'An internal error occurred during deletion.' };
     }
 };

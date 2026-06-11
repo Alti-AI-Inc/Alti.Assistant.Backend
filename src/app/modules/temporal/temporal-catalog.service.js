@@ -348,45 +348,48 @@ const getStats = async (user) => {
       ];
     }
 
-    // Optimization: Combine multiple countDocuments and basic aggregations into a single aggregation pipeline
-    // to reduce the number of database round trips and improve efficiency.
-    const combinedStats = await TemporalRepository.aggregate([
-      { $match: matchStage }, // FIX: Apply tenant filter at the start of the pipeline.
+    // OPTIMIZATION: Use a single aggregation pipeline with the $facet operator to calculate all statistics
+    // (general counts, star aggregations, and license distribution) in a single database round trip.
+    // This is more efficient than making multiple separate `aggregate` calls.
+    const aggregationResult = await TemporalRepository.aggregate([
+      { $match: matchStage }, // Apply tenant filter once at the beginning
       {
-        $group: {
-          _id: null, // Group all documents together
-          totalRepositories: { $sum: 1 }, // Count all documents
-          activeRepositories: { $sum: { $cond: [{ $eq: ['$status', 'Active'] }, 1, 0] } }, // Conditional sum for active
-          archivedRepositories: { $sum: { $cond: [{ $eq: ['$status', 'Archived'] }, 1, 0] } }, // Conditional sum for archived
-          totalStars: { $sum: '$stars' },
-          avgStars: { $avg: '$stars' }
+        $facet: {
+          // Branch 1: Calculate general statistics
+          generalStats: [
+            {
+              $group: {
+                _id: null,
+                totalRepositories: { $sum: 1 },
+                activeRepositories: { $sum: { $cond: [{ $eq: ['$status', 'Active'] }, 1, 0] } },
+                archivedRepositories: { $sum: { $cond: [{ $eq: ['$status', 'Archived'] }, 1, 0] } },
+                totalStars: { $sum: '$stars' },
+                avgStars: { $avg: '$stars' }
+              }
+            }
+          ],
+          // Branch 2: Calculate license distribution
+          licenseDistribution: [
+            { $group: { _id: '$license', count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ]
         }
       }
     ]);
 
-    const countsAndStars = combinedStats[0] || { totalRepositories: 0, activeRepositories: 0, archivedRepositories: 0, totalStars: 0, avgStars: 0 };
-
-    // Optimization: Ensure an index exists on 'license' for this aggregation to be efficient.
-    const licenses = await TemporalRepository.aggregate([
-      { $match: matchStage }, // FIX: Apply tenant filter here as well.
-      {
-        $group: {
-          _id: '$license', // Group by license to count occurrences
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
+    // The result is an array with one document: [{ generalStats: [stats], licenseDistribution: [licenses] }]
+    const statsData = aggregationResult[0]?.generalStats[0] || { totalRepositories: 0, activeRepositories: 0, archivedRepositories: 0, totalStars: 0, avgStars: 0 };
+    const licenseData = aggregationResult[0]?.licenseDistribution || [];
 
     return {
       success: true,
       stats: {
-        totalRepositories: countsAndStars.totalRepositories,
-        activeRepositories: countsAndStars.activeRepositories,
-        archivedRepositories: countsAndStars.archivedRepositories,
-        totalStars: countsAndStars.totalStars,
-        averageStars: Math.round(countsAndStars.avgStars),
-        licenses: licenses.map(lic => ({ name: lic._id, count: lic.count }))
+        totalRepositories: statsData.totalRepositories,
+        activeRepositories: statsData.activeRepositories,
+        archivedRepositories: statsData.archivedRepositories,
+        totalStars: statsData.totalStars,
+        averageStars: Math.round(statsData.avgStars || 0),
+        licenses: licenseData.map(lic => ({ name: lic._id, count: lic.count }))
       }
     };
   } catch (err) {
