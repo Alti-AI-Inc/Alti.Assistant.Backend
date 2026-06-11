@@ -42,6 +42,17 @@ export const DOCUMENT_ANALYSIS_CONFIG = {
 };
 
 /**
+ * @constant {object} GCS_CONFIG - Configuration for Google Cloud Storage integration.
+ * @property {string} BUCKET_NAME - The name of the GCS bucket for storing uploaded documents for analysis. This MUST be set via environment variables.
+ * @property {number} SIGNED_URL_EXPIRES_IN_MINUTES - The duration in minutes for which a generated signed URL for uploads is valid.
+ */
+export const GCS_CONFIG = {
+  // The GCS bucket name is expected to be set in the environment variables for security and flexibility.
+  BUCKET_NAME: process.env.GCS_DOCUMENT_ANALYSIS_BUCKET,
+  SIGNED_URL_EXPIRES_IN_MINUTES: 15, // URL is valid for 15 minutes
+};
+
+/**
  * @constant {object} ANALYSIS_TYPES - Defines the various types of analysis that can be performed on a document.
  * @property {string} GENERAL - General comprehensive analysis.
  * @property {string} SENTIMENT - Sentiment analysis to determine emotional tone.
@@ -158,6 +169,8 @@ Provide detailed linguistic insights.`,
  * @property {string} PROCESSING_ERROR - Generic message for errors during document processing.
  * @property {string} ANALYSIS_ERROR - Generic message for errors during content analysis.
  * @property {string} CONVERSATION_ERROR - Generic message for errors during conversation handling.
+ * @property {string} GCS_URL_GENERATION_ERROR - Message for errors during GCS signed URL generation.
+ * @property {string} GCS_CONFIG_ERROR - Message for when GCS configuration (e.g., bucket name) is missing.
  */
 export const RESPONSE_MESSAGES = {
   SUCCESS: 'Analysis completed successfully',
@@ -171,6 +184,9 @@ export const RESPONSE_MESSAGES = {
   PROCESSING_ERROR: 'Error processing document',
   ANALYSIS_ERROR: 'Error analyzing content',
   CONVERSATION_ERROR: 'Error handling conversation',
+  GCS_URL_GENERATION_ERROR: 'Could not prepare file upload location.',
+  GCS_CONFIG_ERROR:
+    'File upload service is not configured correctly. Please contact support.',
 };
 
 /**
