@@ -3,10 +3,10 @@
  * including text extraction from various document types (PDF, DOCX, TXT)
  * and integration with Google Cloud Storage for file uploads and deletions.
  * It handles initialization of GCS based on environment variables and
- * provides fallback mechanisms for local storage if GCS is not configured.
+ * provides a stateless, stream-based approach for all file operations,
+ * ensuring no files are written to the local container filesystem.
  */
 
-import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
@@ -71,14 +71,14 @@ const textExtractionLimiter = redisClient
   : null;
 
 /**
- * Rate limiter for file uploads to control costs and prevent storage abuse.
+ * Rate limiter for generating file upload URLs to control costs and prevent storage abuse.
  * Limits are set over a longer duration to manage overall usage patterns.
  */
 const fileUploadLimiter = redisClient
   ? new RateLimiterRedis({
       ...rateLimiterOptions,
-      keyPrefix: 'rl_upload_file',
-      points: 30, // 30 uploads
+      keyPrefix: 'rl_upload_url', // Changed from rl_upload_file
+      points: 30, // 30 URL generations
       duration: 60 * 10, // per 10 minutes
     })
   : null;
@@ -142,7 +142,7 @@ let bucket;
 /**
  * Initializes the Google Cloud Storage client and bucket based on environment variables.
  * If GCS credentials are not found, a warning is logged, and document uploads will
- * default to local storage.
+ * be disabled.
  */
 try {
   const keyFile = process.env.GCS_KEY_FILE;
@@ -155,12 +155,13 @@ try {
       projectId: projectId,
     });
   } else if (projectId) {
+    // This assumes the environment is authenticated (e.g., running on GCP)
     storage = new Storage({
       projectId: projectId,
     });
   } else {
     logger.warn(
-      'GCS credentials not configured. Document uploads will be stored locally only.'
+      'GCS credentials not configured. File operations will be disabled.'
     );
   }
 
@@ -172,22 +173,23 @@ try {
 }
 
 /**
- * Extracts text content from a PDF file.
+ * Extracts text content from a PDF file buffer.
  * @async
- * @param {string} filePath - The absolute path to the PDF file.
+ * @param {Buffer} fileBuffer - The buffer containing the PDF file data.
  * @returns {Promise<string>} A promise that resolves with the extracted text content of the PDF.
- * @throws {ApiError} If there's an error reading the file or extracting text, with status BAD_REQUEST.
+ * @throws {ApiError} If there's an error parsing the buffer, with status BAD_REQUEST.
  */
-const extractTextFromPDF = async (filePath) => {
+const extractTextFromPDF = async (fileBuffer) => {
   try {
-    const dataBuffer = await fs.readFile(filePath);
+    // NOTE: This assumes a custom PDFParse class or an older version API.
+    // A more common pattern is `import pdf from 'pdf-parse'; const data = await pdf(fileBuffer);`
     const data = new PDFParse({
-      data: dataBuffer,
+      data: fileBuffer,
     });
     const pdfContent = await data.getText();
     return pdfContent.text;
   } catch (error) {
-    logger.error('Error extracting text from PDF:', error);
+    logger.error('Error extracting text from PDF buffer:', error);
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Failed to extract text from PDF'
@@ -196,18 +198,18 @@ const extractTextFromPDF = async (filePath) => {
 };
 
 /**
- * Extracts text content from a DOCX file.
+ * Extracts text content from a DOCX file buffer.
  * @async
- * @param {string} filePath - The absolute path to the DOCX file.
+ * @param {Buffer} fileBuffer - The buffer containing the DOCX file data.
  * @returns {Promise<string>} A promise that resolves with the extracted text content of the DOCX file.
- * @throws {ApiError} If there's an error reading the file or extracting text, with status BAD_REQUEST.
+ * @throws {ApiError} If there's an error parsing the buffer, with status BAD_REQUEST.
  */
-const extractTextFromDOCX = async (filePath) => {
+const extractTextFromDOCX = async (fileBuffer) => {
   try {
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return result.value;
   } catch (error) {
-    logger.error('Error extracting text from DOCX:', error);
+    logger.error('Error extracting text from DOCX buffer:', error);
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Failed to extract text from DOCX'
@@ -216,185 +218,157 @@ const extractTextFromDOCX = async (filePath) => {
 };
 
 /**
- * Extracts text content from a plain text file.
+ * Extracts text content from a plain text file buffer.
  * @async
- * @param {string} filePath - The absolute path to the TXT file.
+ * @param {Buffer} fileBuffer - The buffer containing the TXT file data.
  * @returns {Promise<string>} A promise that resolves with the extracted text content of the TXT file.
- * @throws {ApiError} If there's an error reading the file, with status BAD_REQUEST.
  */
-const extractTextFromTXT = async (filePath) => {
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return content;
-  } catch (error) {
-    logger.error('Error reading text file:', error);
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to read text file');
-  }
+const extractTextFromTXT = async (fileBuffer) => {
+  return fileBuffer.toString('utf-8');
 };
 
 /**
- * Core logic to extract text from any supported file type (PDF, DOCX, TXT).
- * This is the unprotected internal implementation.
+ * Core logic to extract text from a file stored in GCS.
+ * This is the unprotected internal implementation. It downloads the file into memory
+ * for processing without writing to the local filesystem.
  * @async
- * @param {object} fileInfo - An object containing information about the file.
- * @param {string} fileInfo.path - The absolute path to the temporary file.
- * @param {string} fileInfo.originalName - The original name of the file, used to determine the file type.
+ * @param {string} gcsPath - The full GCS path (e.g., gs://bucket/path/to/file).
+ * @param {string} originalName - The original name of the file, used to determine the file type.
  * @returns {Promise<string>} A promise that resolves with the extracted text content.
- * @throws {ApiError} If the file type is unsupported or if any extraction fails, with status BAD_REQUEST.
+ * @throws {ApiError} If the file type is unsupported or if any extraction fails.
  */
-const _extractTextFromFileUnprotected = async (fileInfo) => {
-  try {
-    const filePath = fileInfo.path;
-    const ext = path.extname(fileInfo.originalName).toLowerCase();
+const _extractTextFromFileUnprotected = async (gcsPath, originalName) => {
+  if (!storage || !bucket) {
+    throw new ApiError(
+      httpStatus.SERVICE_UNAVAILABLE,
+      'GCS is not configured, cannot extract text.'
+    );
+  }
 
-    logger.info(`Extracting text from file: ${fileInfo.originalName} (${ext})`);
+  try {
+    const bucketName = process.env.GCS_BUCKET_NAME;
+    const filePathInBucket = gcsPath.replace(`gs://${bucketName}/`, '');
+    const ext = path.extname(originalName).toLowerCase();
+
+    logger.info(`Downloading from GCS for text extraction: ${gcsPath}`);
+    const [fileBuffer] = await bucket.file(filePathInBucket).download();
+    logger.info(
+      `Extracting text from in-memory buffer for: ${originalName} (${ext})`
+    );
 
     let text = '';
 
     switch (ext) {
       case '.pdf':
-        text = await extractTextFromPDF(filePath);
+        text = await extractTextFromPDF(fileBuffer);
         break;
       case '.docx':
-        text = await extractTextFromDOCX(filePath);
-        break;
-      case '.doc':
-        // For older .doc files, we'll try mammoth (it may not work for all)
-        // In production, consider using a more robust solution
-        text = await extractTextFromDOCX(filePath);
+      case '.doc': // Attempt to process .doc with the .docx extractor
+        text = await extractTextFromDOCX(fileBuffer);
         break;
       case '.txt':
-        text = await extractTextFromTXT(filePath);
+        text = await extractTextFromTXT(fileBuffer);
         break;
       default:
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `Unsupported file type: ${ext}`
+          `Unsupported file type for text extraction: ${ext}`
         );
     }
 
     logger.info(
-      `Successfully extracted ${text.length} characters from ${fileInfo.originalName}`
+      `Successfully extracted ${text.length} characters from ${originalName}`
     );
     return text;
   } catch (error) {
-    logger.error('Error in extractTextFromFile:', error);
-    throw error;
+    logger.error(`Error in extractTextFromFile for GCS path ${gcsPath}:`, error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to process file from cloud storage.'
+    );
   }
 };
 
 /**
- * Rate-limited public function to extract text from a file.
- * It determines the file type based on the original file name's extension.
+ * Rate-limited public function to extract text from a file stored in GCS.
+ * It downloads the file into a memory buffer and determines the file type
+ * based on the original file name's extension.
  * @async
- * @param {object} fileInfo - An object containing information about the file.
- * @param {string} fileInfo.path - The absolute path to the temporary file.
- * @param {string} fileInfo.originalName - The original name of the file, used to determine the file type.
+ * @param {string} gcsPath - The full GCS path (e.g., gs://bucket/path/to/file).
+ * @param {string} originalName - The original name of the file, used to determine the file type.
  * @param {string} rateLimitKey - A unique identifier for the user or IP to apply rate limits against.
  * @returns {Promise<string>} A promise that resolves with the extracted text content.
  * @throws {ApiError} If the rate limit is exceeded, the file type is unsupported, or if any extraction fails.
  */
-const extractTextFromFile = async (fileInfo, rateLimitKey) => {
+const extractTextFromFile = async (gcsPath, originalName, rateLimitKey) => {
   await handleRateLimit(textExtractionLimiter, rateLimitKey);
-  return _extractTextFromFileUnprotected(fileInfo);
+  return _extractTextFromFileUnprotected(gcsPath, originalName);
 };
 
 /**
- * Cleans up a temporary file by deleting it from the file system.
- * Logs a warning if the file deletion fails.
- * @async
- * @param {string} filePath - The absolute path to the file to be deleted.
- * @returns {Promise<void>} A promise that resolves when the file has been deleted or if deletion fails (logs a warning).
- */
-const cleanupFile = async (filePath) => {
-  try {
-    await fs.unlink(filePath);
-    logger.info(`Cleaned up temporary file: ${filePath}`);
-  } catch (error) {
-    logger.warn(`Failed to cleanup file ${filePath}:`, error);
-  }
-};
-
-/**
- * Core logic to upload a file to Google Cloud Storage.
+ * Core logic to generate a v4 signed URL for direct client-side uploads to GCS.
  * This is the unprotected internal implementation.
  * @async
- * @param {string} localFilePath - The absolute path to the local file to upload.
- * @param {string} filename - The desired filename for the uploaded file in GCS.
+ * @param {string} filename - The original filename from the client.
+ * @param {string} contentType - The MIME type of the file to be uploaded.
  * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
- * @returns {Promise<object>} A promise that resolves with an object containing upload details.
+ * @returns {Promise<object>} A promise that resolves with the signed URL and GCS path.
  */
-const _uploadToGCSUnprotected = async (
-  localFilePath,
+const _generateGCSUploadUrlUnprotected = async (
   filename,
+  contentType,
   documentMetadata = {}
 ) => {
-  try {
-    if (!storage || !bucket) {
-      logger.warn('GCS not configured. Returning local file path.');
-      return {
-        success: true,
-        localPath: localFilePath,
-        fileName: filename,
-        storageType: 'local',
-      };
-    }
+  if (!storage || !bucket) {
+    throw new ApiError(
+      httpStatus.SERVICE_UNAVAILABLE,
+      'GCS not configured. Cannot generate upload URL.'
+    );
+  }
 
+  try {
     const bucketName = process.env.GCS_BUCKET_NAME;
     const destination = `${STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId || 'anonymous'}/${Date.now()}_${filename}`;
 
-    logger.info(`Uploading file to GCS: ${destination}`);
-
-    // Upload file
-    await bucket.upload(localFilePath, {
-      destination,
-      metadata: {
-        contentType: getMimeType(filename),
-        metadata: {
-          documentType: documentMetadata.documentType || 'review',
-          uploadedAt: new Date().toISOString(),
-          userId: documentMetadata.userId || 'anonymous',
-          originalName: documentMetadata.originalName || filename,
-        },
-      },
-    });
-
-    // Generate signed URL (valid for 7 days)
-    const file = bucket.file(destination);
-    const [signedUrl] = await file.getSignedUrl({
+    const options = {
       version: 'v4',
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      contentType: contentType,
+      extensionHeaders: {
+        'x-goog-meta-documenttype': documentMetadata.documentType || 'review',
+        'x-goog-meta-uploadedat': new Date().toISOString(),
+        'x-goog-meta-userid': documentMetadata.userId || 'anonymous',
+        'x-goog-meta-originalname': documentMetadata.originalName || filename,
+      },
+    };
 
-    logger.info(`File uploaded successfully to GCS: ${destination}`);
+    const [signedUrl] = await bucket.file(destination).getSignedUrl(options);
+
+    logger.info(`Generated signed URL for GCS upload to: ${destination}`);
 
     return {
       success: true,
+      signedUrl,
       gcsPath: `gs://${bucketName}/${destination}`,
-      publicUrl: signedUrl,
-      fileName: filename,
-      destination,
       storageType: 'gcs',
     };
   } catch (error) {
-    logger.error('Error uploading to GCS:', error);
-
-    // Return local path as fallback
-    return {
-      success: true,
-      localPath: localFilePath,
-      fileName: filename,
-      storageType: 'local',
-      error: error.message,
-    };
+    logger.error('Error generating GCS signed URL:', error);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Could not generate file upload URL.'
+    );
   }
 };
 
 /**
- * Rate-limited public function to upload a file to Google Cloud Storage.
- * If GCS is not configured or the upload fails, it falls back to returning
- * the local file path and details, indicating local storage.
+ * Rate-limited public function to generate a v4 signed URL for GCS uploads.
+ * This allows clients to upload files directly to GCS, bypassing the server
+ * and avoiding writing files to the local ephemeral filesystem.
  *
  * @security Multi-Tenant / User Isolation:
  * This function enforces logical tenant/user isolation by partitioning uploaded files
@@ -402,32 +376,32 @@ const _uploadToGCSUnprotected = async (
  * `${STORAGE_CONFIG.UPLOAD_FOLDER}/${userId || 'anonymous'}/${timestamp}_${filename}`.
  *
  * @async
- * @param {string} localFilePath - The absolute path to the local file to upload.
- * @param {string} filename - The desired filename for the uploaded file in GCS.
+ * @param {string} filename - The original filename from the client.
+ * @param {string} contentType - The MIME type of the file to be uploaded.
  * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
  * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document (used for path isolation).
  * @param {string} [documentMetadata.documentType='review'] - The type of document (e.g., 'review', 'template').
  * @param {string} [documentMetadata.originalName] - The original name of the file before any renaming.
  * @param {string} rateLimitKey - A unique identifier for the user or IP to apply rate limits against.
  * @returns {Promise<object>} A promise that resolves with an object containing upload details.
- * @property {boolean} success - Indicates if the upload operation was successful (true even for local fallback).
- * @property {string} [gcsPath] - The Google Cloud Storage path (gs://...) if uploaded to GCS.
- * @property {string} [publicUrl] - A signed URL for public access if uploaded to GCS.
- * @property {string} [localPath] - The local file path if GCS is not configured or upload fails.
- * @property {string} fileName - The name of the file.
- * @property {string} [destination] - The full destination path within the GCS bucket if uploaded to GCS.
- * @property {string} storageType - 'gcs' if uploaded to GCS, 'local' otherwise.
- * @property {string} [error] - Error message if GCS upload failed and fallback to local path occurred.
- * @throws {ApiError} If the rate limit is exceeded.
+ * @property {boolean} success - Indicates if the URL generation was successful.
+ * @property {string} signedUrl - The v4 signed URL for the client to use for a PUT request.
+ * @property {string} gcsPath - The destination Google Cloud Storage path (gs://...).
+ * @property {string} storageType - Always 'gcs'.
+ * @throws {ApiError} If the rate limit is exceeded or if GCS is not configured.
  */
-const uploadToGCS = async (
-  localFilePath,
+const generateGCSUploadUrl = async (
   filename,
+  contentType,
   documentMetadata = {},
   rateLimitKey
 ) => {
   await handleRateLimit(fileUploadLimiter, rateLimitKey);
-  return _uploadToGCSUnprotected(localFilePath, filename, documentMetadata);
+  return _generateGCSUploadUrlUnprotected(
+    filename,
+    contentType,
+    documentMetadata
+  );
 };
 
 /**
@@ -504,12 +478,11 @@ const getMimeType = (filename) => {
 
 /**
  * @typedef {object} FileProcessorService
- * @property {function(object, string): Promise<string>} extractTextFromFile - Extracts text from various file types (PDF, DOCX, TXT).
- * @property {function(string): Promise<string>} extractTextFromPDF - Extracts text from a PDF file.
- * @property {function(string): Promise<string>} extractTextFromDOCX - Extracts text from a DOCX file.
- * @property {function(string): Promise<string>} extractTextFromTXT - Extracts text from a TXT file.
- * @property {function(string): Promise<void>} cleanupFile - Deletes a temporary file from the file system.
- * @property {function(string, string, object, string): Promise<object>} uploadToGCS - Uploads a file to Google Cloud Storage or returns local path as fallback.
+ * @property {function(string, string, string): Promise<string>} extractTextFromFile - Extracts text from a file in GCS.
+ * @property {function(Buffer): Promise<string>} extractTextFromPDF - Extracts text from a PDF file buffer.
+ * @property {function(Buffer): Promise<string>} extractTextFromDOCX - Extracts text from a DOCX file buffer.
+ * @property {function(Buffer): Promise<string>} extractTextFromTXT - Extracts text from a TXT file buffer.
+ * @property {function(string, string, object, string): Promise<object>} generateGCSUploadUrl - Generates a signed URL for direct client-side GCS uploads.
  * @property {function(string, string): Promise<object>} deleteDocumentFromGCS - Deletes a document from Google Cloud Storage.
  * @property {function(string): string} getMimeType - Determines the MIME type of a file based on its extension.
  */
@@ -523,8 +496,7 @@ export const fileProcessor = {
   extractTextFromPDF,
   extractTextFromDOCX,
   extractTextFromTXT,
-  cleanupFile,
-  uploadToGCS,
+  generateGCSUploadUrl,
   deleteDocumentFromGCS,
   getMimeType,
 };

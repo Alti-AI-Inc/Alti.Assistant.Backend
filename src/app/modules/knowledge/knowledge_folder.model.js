@@ -2,6 +2,70 @@ import mongoose from 'mongoose';
 import { PubSub } from '@google-cloud/pubsub';
 import { FOLDER_COLORS } from './knowledge.constant.js';
 
+// --- GCP Database Resiliency Configuration ---
+// It is a best practice to centralize database connection logic in a single file (e.g., database.js)
+// and initialize it when the application starts. For the purpose of this audit, the configuration is added here.
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('FATAL ERROR: MONGODB_URI environment variable is not set.');
+  process.exit(1); // Exit the application if the database connection string is missing.
+}
+
+// Mongoose connection options optimized for resiliency and performance in a GCP environment.
+const mongooseOptions = {
+  // --- Connection Pooling ---
+  // maxPoolSize: The maximum number of sockets the driver will keep open for this connection.
+  // A higher value allows for more concurrent database operations.
+  // For serverless environments (Cloud Run), keep this low (e.g., 5-10) to avoid exhausting connections.
+  // For GKE/Compute Engine, a value of 50-100 is a reasonable starting point.
+  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE || '50', 10),
+
+  // --- Timeout Settings ---
+  // serverSelectionTimeoutMS: How long the driver will try to find a server to send an operation to before timing out.
+  // A value of 5000ms (5 seconds) is a good default to fail fast if the database is unreachable.
+  serverSelectionTimeoutMS: 5000,
+
+  // socketTimeoutMS: How long a socket can be idle before being closed.
+  // This should be set to a value higher than the expected longest-running query to prevent premature closure.
+  // 45000ms (45 seconds) is a safe value for most applications.
+  socketTimeoutMS: 45000,
+
+  // connectTimeoutMS: How long the driver will wait for a connection to be established before timing out.
+  // 10000ms (10 seconds) is a reasonable value for connections within a GCP VPC.
+  connectTimeoutMS: 10000,
+
+  // --- KeepAlive Settings ---
+  // keepAlive: Enables TCP KeepAlive on the socket. This is crucial for long-running applications
+  // to prevent network infrastructure (like firewalls or NATs in GCP) from silently dropping idle connections.
+  keepAlive: true,
+
+  // keepAliveInitialDelay: The number of milliseconds to wait before initiating the first keepalive probe.
+  // 300000ms (5 minutes) is a common setting to ensure idle connections are maintained.
+  keepAliveInitialDelay: 300000,
+};
+
+// Establish the database connection.
+mongoose.connect(MONGODB_URI, mongooseOptions)
+  .then(() => console.log('MongoDB connection established successfully.'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Event listeners for the database connection to log status changes.
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose connected to DB.');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error(`Mongoose connection error: ${err}`);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose disconnected from DB.');
+});
+
+// --- End GCP Database Resiliency Configuration ---
+
 // --- GCP Pub/Sub Integration ---
 // Initialize Pub/Sub client. In a production environment, the client automatically
 // uses the service account credentials from the environment (e.g., Cloud Run, GKE).
