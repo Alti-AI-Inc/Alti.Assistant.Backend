@@ -97,7 +97,7 @@ const storedWorkflowSchema = new mongoose.Schema(
     userId: {
       type: String,
       required: true,
-      index: true,
+      // OPTIMIZATION: Individual index removed; covered by multiple compound indexes below.
     },
     /**
      * The title of the workflow.
@@ -130,7 +130,7 @@ const storedWorkflowSchema = new mongoose.Schema(
       type: String,
       enum: ['single_step', 'multi_step'],
       required: true,
-      index: true,
+      // OPTIMIZATION: Individual index removed; covered by compound index { userId: 1, workflowType: 1 }.
     },
     /**
      * The current status of the workflow.
@@ -143,7 +143,7 @@ const storedWorkflowSchema = new mongoose.Schema(
       type: String,
       enum: ['draft', 'ready', 'archived'],
       default: 'draft',
-      index: true,
+      // OPTIMIZATION: Individual index removed; covered by compound index { userId: 1, status: 1 }.
     },
     /**
      * An array of application slugs required for this workflow to function.
@@ -405,6 +405,11 @@ storedWorkflowSchema.index({ userId: 1, status: 1 });
  */
 storedWorkflowSchema.index({ userId: 1, workflowType: 1 });
 /**
+ * Compound index on `userId` and `category` for efficient filtering by user and workflow category.
+ * @index
+ */
+storedWorkflowSchema.index({ userId: 1, category: 1 });
+/**
  * Compound index on `userId` and `createdAt` (descending) for efficient retrieval of a user's latest workflows.
  * @index
  */
@@ -424,6 +429,18 @@ storedWorkflowSchema.index({ tags: 1 });
  * @index
  */
 storedWorkflowSchema.index({ category: 1 });
+
+/**
+ * OPTIMIZATION: Text index for efficient, case-insensitive searching across multiple fields.
+ * This replaces slow, non-indexed $regex queries in the searchWorkflows method.
+ * @index
+ */
+storedWorkflowSchema.index({
+  title: 'text',
+  description: 'text',
+  originalUserInput: 'text',
+  tags: 'text',
+});
 
 // Virtual fields
 /**
@@ -493,7 +510,7 @@ storedWorkflowSchema.statics.findByUserId = function (userId, options = {}) {
     sortOrder = -1,
   } = options;
 
-  let query = { userId };
+  const query = { userId };
 
   if (status) query.status = status;
   if (workflowType) query.workflowType = workflowType;
@@ -502,7 +519,8 @@ storedWorkflowSchema.statics.findByUserId = function (userId, options = {}) {
   return this.find(query)
     .sort({ [sortBy]: sortOrder })
     .limit(limit)
-    .skip(offset);
+    .skip(offset)
+    .lean(); // OPTIMIZATION: Use .lean() for faster read-only queries by returning plain JS objects.
 };
 
 /**
@@ -520,7 +538,7 @@ storedWorkflowSchema.statics.findExecutableWorkflows = function (userId) {
       { missingConnections: { $exists: false } },
       { missingConnections: { $size: 0 } },
     ],
-  });
+  }).lean(); // OPTIMIZATION: Use .lean() for faster read-only queries.
 };
 
 /**
@@ -541,18 +559,18 @@ storedWorkflowSchema.statics.searchWorkflows = function (
 ) {
   const { limit = 20, offset = 0 } = options;
 
-  return this.find({
+  // OPTIMIZATION: Switched from slow, non-indexed $regex to a much faster $text search
+  // which utilizes the 'text' index defined on the schema.
+  const query = {
     userId,
-    $or: [
-      { title: { $regex: searchTerm, $options: 'i' } },
-      { description: { $regex: searchTerm, $options: 'i' } },
-      { originalUserInput: { $regex: searchTerm, $options: 'i' } },
-      { tags: { $in: [new RegExp(searchTerm, 'i')] } },
-    ],
-  })
-    .sort({ createdAt: -1 })
+    $text: { $search: searchTerm },
+  };
+
+  return this.find(query)
+    .sort({ createdAt: -1 }) // Note: Text search also allows sorting by relevance: .sort({ score: { $meta: 'textScore' } })
     .limit(limit)
-    .skip(offset);
+    .skip(offset)
+    .lean(); // OPTIMIZATION: Use .lean() for faster read-only queries.
 };
 
 // Instance methods
@@ -589,7 +607,8 @@ storedWorkflowSchema.methods.updateConnections = function (connectedAccounts) {
   // Update status based on connections
   if (this.missingConnections.length === 0 && this.status === 'draft') {
     this.status = 'ready';
-  } else if (this.missingConnections.length > 0) {
+  } else if (this.missingConnections.length > 0 && this.status === 'ready') {
+    // Also handle the case where a connection is lost, moving it back to draft
     this.status = 'draft';
   }
 
