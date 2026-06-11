@@ -20,6 +20,7 @@ const router = express.Router();
  *       Creates an image based on a user-provided text prompt.
  *       This endpoint is open to all users. Authenticated users will have their usage tracked against their daily limits and tenant context.
  *       Unauthenticated users are subject to stricter rate limiting and daily limits based on their IP address.
+ *       This is a resource-intensive operation and counts towards the user's daily generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -73,8 +74,8 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
-  createRateLimiter(20, 15), // 20 image generation requests per 15 minutes - Re-enabled rate limiting
+  checkDailyRequestLimit, // CORE: This is a final generation, so it must count against the daily limit.
+  createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(EnhancedImageValidation.generateImageSchema),
   enhancedImageController.generateImageDirect
 );
@@ -88,6 +89,7 @@ router.post(
  *       Modifies a base image (provided as a Base64 string) according to a text prompt.
  *       This endpoint is open to all users. Authenticated users will have their usage tracked.
  *       Unauthenticated users are subject to stricter rate limiting and daily limits.
+ *       This is a resource-intensive operation and counts towards the user's daily generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -138,8 +140,8 @@ router.post(
   '/edit',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
-  createRateLimiter(20, 15), // 20 image editing requests per 15 minutes - Re-enabled rate limiting
+  checkDailyRequestLimit, // CORE: This is a final generation, so it must count against the daily limit.
+  createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
   validateRequest(EnhancedImageValidation.editImageSchema),
   enhancedImageController.editImage
 );
@@ -151,7 +153,7 @@ router.post(
  *     summary: Analyze user intent for image generation
  *     description: >
  *       Takes a user's initial idea or prompt and uses an LLM to analyze the intent, breaking it down into key components (like subject, style, composition).
- *       This is a preliminary step in the guided prompt creation flow and is open to all users.
+ *       This is a preliminary step in the guided prompt creation flow and is open to all users. It does not count towards the daily image generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -190,6 +192,8 @@ router.post(
   '/analyze-intent',
   optionalAuth(), // SECURE: Enable user-specific rate limiting and context for authenticated users.
   extractTenantContext,
+  // UX OPTIMIZATION: Daily limit check is intentionally omitted. This is a prompt-building step, not a final image generation.
+  // Rate limiting is sufficient to prevent abuse of the LLM.
   createRateLimiter(30, 15), // Rate limit intent analysis to prevent LLM cost runaway
   validateRequest(EnhancedImageValidation.analyzeIntentSchema),
   enhancedImageController.analyzeIntent
@@ -203,7 +207,7 @@ router.post(
  *     description: >
  *       Performs a multimodal analysis on a provided image to extract its subject, style, composition, and other visual elements.
  *       This can be used to generate similar images or as a starting point for editing.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       This is a resource-intensive operation and counts towards the user's daily generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -242,9 +246,9 @@ router.post(
   '/analyze-image-intent',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
+  checkDailyRequestLimit, // CORE: This is an expensive multimodal analysis, so it must count against the daily limit.
   createRateLimiter(20, 15), // Rate limit expensive multimodal image analysis
-  validateRequest(EnhancedImageValidation.analyzeImageIntentSchema), // Re-enabled validation
+  validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
   enhancedImageController.analyzeImageIntent
 );
 
@@ -256,7 +260,7 @@ router.post(
  *     description: >
  *       Assesses a given prompt for clarity, detail, and effectiveness in generating a high-quality image.
  *       Provides feedback and suggestions for improvement.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       This is a helper endpoint and does not count towards the daily image generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -295,8 +299,9 @@ router.post(
   '/evaluate-prompt',
   optionalAuth(),
   extractTenantContext,
+  // UX OPTIMIZATION: Daily limit check is intentionally omitted. This is a prompt-building step, not a final image generation.
   createRateLimiter(30, 15), // Rate limit prompt evaluation LLM calls
-  validateRequest(EnhancedImageValidation.evaluatePromptSchema), // Re-enabled validation
+  validateRequest(EnhancedImageValidation.evaluatePromptSchema),
   enhancedImageController.evaluatePrompt
 );
 
@@ -308,7 +313,7 @@ router.post(
  *     description: >
  *       Takes an existing conversation history (related to building a prompt) and a new user message,
  *       and integrates the new detail into the conversation, re-evaluating the prompt components.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       This is a helper endpoint and does not count towards the daily image generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -347,6 +352,7 @@ router.post(
   '/add-detail',
   optionalAuth(),
   extractTenantContext,
+  // UX OPTIMIZATION: Daily limit check is intentionally omitted. This is a prompt-building step, not a final image generation.
   createRateLimiter(30, 15), // Rate limit conversation detail additions
   validateRequest(EnhancedImageValidation.addDetailSchema),
   enhancedImageController.addDetail
@@ -359,8 +365,7 @@ router.post(
  *     summary: Finalize and build an enhanced prompt from a conversation
  *     description: >
  *       Consolidates a conversation history into a final, detailed, and optimized prompt suitable for an image generation model.
- *       This is a key step in the guided prompt creation flow.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       This is a key step in the guided prompt creation flow. It does not count towards the daily image generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -401,7 +406,8 @@ router.post(
   '/finalize-prompt',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
+  // UX OPTIMIZATION: Removed checkDailyRequestLimit. This endpoint builds a prompt string, it doesn't generate the final image.
+  // Penalizing users for using prompt-building tools creates a poor experience. Rate limiting is sufficient for abuse prevention.
   createRateLimiter(30, 15), // Rate limit prompt finalization LLM calls
   validateRequest(EnhancedImageValidation.finalizePromptSchema),
   enhancedImageController.finalizePrompt
@@ -414,8 +420,7 @@ router.post(
  *     summary: Build an enhanced prompt from a conversation
  *     description: >
  *       Similar to `/finalize-prompt`, this endpoint builds a detailed prompt from a conversation history.
- *       It might represent a different LLM strategy or flow.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       It might represent a different LLM strategy or flow. It does not count towards the daily image generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -456,7 +461,8 @@ router.post(
   '/build-enhanced-prompt',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
+  // UX OPTIMIZATION: Removed checkDailyRequestLimit. This endpoint builds a prompt string, it doesn't generate the final image.
+  // Penalizing users for using prompt-building tools creates a poor experience. Rate limiting is sufficient for abuse prevention.
   createRateLimiter(30, 15), // Rate limit prompt building LLM calls
   validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
   enhancedImageController.buildEnhancedPrompt
@@ -470,7 +476,7 @@ router.post(
  *     description: >
  *       Takes a full conversation history, builds a final prompt from it, and then generates an image.
  *       This combines the finalization and generation steps into a single API call.
- *       This endpoint is open to all users, with usage tracking for authenticated users.
+ *       This is a resource-intensive operation and counts towards the user's daily generation limit.
  *     tags:
  *       - Enhanced Image
  *     security:
@@ -524,8 +530,8 @@ router.post(
   '/generate-from-conversation',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
-  createRateLimiter(20, 15), // Re-enabled rate limiting
+  checkDailyRequestLimit, // CORE: This is a final generation, so it must count against the daily limit.
+  createRateLimiter(20, 15),
   validateRequest(EnhancedImageValidation.generateFromConversationSchema),
   enhancedImageController.generateFromConversation
 );
