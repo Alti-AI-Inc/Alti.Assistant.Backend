@@ -14,6 +14,47 @@ import { Llama4AiServices } from './llama4.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 // =================================================================
+// == PII Masking Utility
+// =================================================================
+
+/**
+ * Masks common PII patterns in a given text before sending to the AI model.
+ * Note: This is a basic implementation. For production, consider using a dedicated service
+ * like the Google Cloud Data Loss Prevention (DLP) API for more robust PII detection.
+ * @param {string} text The input text to sanitize.
+ * @returns {string} The text with PII masked.
+ */
+const maskPII = text => {
+  if (!text) return text;
+
+  // Mask email addresses
+  let sanitizedText = text.replace(
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    '[EMAIL_REDACTED]'
+  );
+
+  // Mask phone numbers (basic North American format and international)
+  sanitizedText = sanitizedText.replace(
+    /(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g,
+    '[PHONE_NUMBER_REDACTED]'
+  );
+
+  // Mask Social Security Numbers (SSN)
+  sanitizedText = sanitizedText.replace(
+    /\b\d{3}-\d{2}-\d{4}\b/g,
+    '[SSN_REDACTED]'
+  );
+
+  // Mask credit card numbers (simple check for 13-16 digits with optional separators)
+  sanitizedText = sanitizedText.replace(
+    /\b(?:\d[ -]*?){13,16}\b/g,
+    '[CREDIT_CARD_REDACTED]'
+  );
+
+  return sanitizedText;
+};
+
+// =================================================================
 // == User-Facing Endpoints
 // =================================================================
 
@@ -103,8 +144,11 @@ const Llama4AiGetResponse = catchAsync(async (req, res) => {
   const { prompt, sessionId } = await validatePromptRequest(req);
   const userId = req.user.id; // Securely get userId from the authenticated user's context
 
+  // AI Safety & PII Guard: Mask potential PII from the user prompt before sending it to the AI service.
+  const sanitizedPrompt = maskPII(prompt);
+
   const result = await Llama4AiServices.Llama4AiGetResponseService(
-    prompt,
+    sanitizedPrompt, // Use the sanitized prompt for the AI service call.
     userId,
     sessionId
   );

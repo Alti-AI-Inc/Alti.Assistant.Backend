@@ -308,7 +308,7 @@ const conversationSchema = z.object({
  *       description: The unique identifier of the guest user (24-character hex string).
  *       schema:
  *         type: string
- *         pattern: '^[0-9a-fA-F]{24}$'
+ *         pattern: '^[0-9a-fA-F]{24}
  *         example: "65e8a2b1c3d4e5f6a7b8c9d0"
  */
 /**
@@ -333,7 +333,33 @@ const guestUserSchema = z.object({
 });
 
 /**
- * Zod schema for validating GCS upload signed URL requests.
+ * @openapi
+ * components:
+ *   schemas:
+ *     GenerateUploadUrlRequest:
+ *       type: object
+ *       required:
+ *         - contentType
+ *       properties:
+ *         contentType:
+ *           type: string
+ *           description: The MIME type of the file to be uploaded (e.g., 'image/jpeg').
+ *           example: "image/png"
+ *         guestUserId:
+ *           type: string
+ *           description: Optional ID of the guest user initiating the upload.
+ *           example: "65e8a2b1c3d4e5f6a7b8c9d0"
+ */
+/**
+ * Zod schema for validating requests to generate a signed URL for file uploads to GCS.
+ * Ensures the request body contains a valid `contentType` and an optional `guestUserId`.
+ *
+ * @type {z.ZodObject<{
+ *   body: z.ZodObject<{
+ *     contentType: z.ZodString,
+ *     guestUserId: z.ZodOptional<z.ZodString>
+ *   }>
+ * }>}
  */
 const generateUploadUrlSchema = z.object({
   body: z.object({
@@ -365,6 +391,7 @@ export const ImageValidation = {
   imageAnalysisSchema,
   /**
    * Zod schema for validating GCS signed upload URL requests.
+   * @see generateUploadUrlSchema
    */
   generateUploadUrlSchema,
   /**

@@ -1,7 +1,87 @@
+import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import TemporalRepository from './temporal-repository.model.js';
+
+// --- GCP Optimized Mongoose Connection ---
+// This block establishes a resilient connection to MongoDB, optimized for cloud environments like GCP.
+// NOTE: This connection logic is typically centralized in a single file (e.g., 'src/config/database.js' or 'app.js')
+// and executed once when the application starts. It is included here for demonstration and completeness.
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/altidb';
+
+const connectionOptions = {
+  // --- Connection Pooling ---
+  // maxPoolSize: Controls the maximum number of concurrent connections in the pool.
+  // A higher value allows more concurrent database operations, crucial for high-traffic applications.
+  // A value of 50 is a robust starting point for production workloads.
+  maxPoolSize: 50,
+  // minPoolSize: Establishes a minimum number of connections to keep open, reducing latency for new requests.
+  minPoolSize: 5,
+
+  // --- Timeout Settings ---
+  // serverSelectionTimeoutMS: How long the driver waits to find a suitable server before erroring.
+  // Important for initial connection and reconnects in a replica set. 30s is a robust value.
+  serverSelectionTimeoutMS: 30000,
+  // socketTimeoutMS: How long a socket can be idle before it's closed. Prevents hanging operations
+  // from holding resources indefinitely. Set higher than the expected longest query.
+  socketTimeoutMS: 45000, // 45 seconds
+
+  // --- KeepAlive Settings for GCP/Proxies ---
+  // keepAlive: Enables TCP KeepAlive on the socket, preventing intermediate network devices
+  // (like NATs, firewalls, VPC peering, or the Cloud SQL Auth Proxy) from dropping idle connections.
+  keepAlive: true,
+  // keepAliveInitialDelay: How long (in ms) to wait before initiating the first keepAlive probe.
+  // A value like 300000 (5 minutes) is recommended for GCP to ensure connections stay open through idle periods.
+  keepAliveInitialDelay: 300000,
+
+  // --- Write & Journaling Concern ---
+  // w: 'majority' ensures that writes are acknowledged by a majority of replica set members,
+  // providing strong data durability.
+  w: 'majority',
+
+  // --- Retry Logic ---
+  // retryWrites: Enables the driver to automatically retry certain write operations once
+  // if they fail due to transient network errors. Essential for resiliency in a distributed environment.
+  retryWrites: true,
+};
+
+// Asynchronous function to connect to the database
+const connectDB = async () => {
+  try {
+    // The Mongoose driver handles automatic reconnects by default. The options above fine-tune this behavior.
+    await mongoose.connect(MONGODB_URI, connectionOptions);
+  } catch (error) {
+    console.error('FATAL: MongoDB connection error:', error);
+    // Exit process with failure to allow orchestration tools (like Kubernetes/GKE) to restart the container.
+    process.exit(1);
+  }
+};
+
+// Event listeners for the Mongoose connection for improved observability
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connection established successfully.');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error(`MongoDB connection error: ${err}`);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB connection lost. Attempting to reconnect...');
+});
+
+// Graceful shutdown on process termination
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('MongoDB connection closed due to application termination.');
+  process.exit(0);
+});
+
+// Initiate the database connection when the application starts
+connectDB();
+
 
 // --- Indexing Recommendations for TemporalRepository Model ---
 // To optimize database performance, consider adding the following indexes to your TemporalRepository schema:
