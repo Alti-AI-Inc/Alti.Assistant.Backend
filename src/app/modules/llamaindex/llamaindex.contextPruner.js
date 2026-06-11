@@ -268,10 +268,23 @@ const updateGlobalConfig = (newConfig) => {
  */
 const getGlobalStats = async () => {
   try {
-    // INDEX RECOMMENDATION: Ensure { userId: 1 } is indexed to speed up distinct and count operations.
-    const totalMetadataCount = await DocumentMetadata.countDocuments({});
-    const uniqueUsersCount = (await DocumentMetadata.distinct('userId')).length;
-    
+    // OPTIMIZATION: Use a single aggregation pipeline with $facet to compute multiple stats in one DB trip.
+    // This is more efficient than running two separate queries (countDocuments and distinct).
+    // The $group stage for uniqueUsers is more memory-efficient on the DB side than .distinct(), which
+    // can cause performance issues by loading all distinct values into the application's memory.
+    // INDEX RECOMMENDATION: An index on { userId: 1 } is still crucial for the $group stage performance.
+    const statsResult = await DocumentMetadata.aggregate([
+      {
+        $facet: {
+          totalMetadata: [{ $count: 'count' }],
+          uniqueUsers: [{ $group: { _id: '$userId' } }, { $count: 'count' }]
+        }
+      }
+    ]);
+
+    const totalMetadataCount = statsResult[0]?.totalMetadata[0]?.count || 0;
+    const uniqueUsersCount = statsResult[0]?.uniqueUsers[0]?.count || 0;
+
     return {
       totalMetadataCount,
       uniqueUsersCount,

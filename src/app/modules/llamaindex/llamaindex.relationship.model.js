@@ -253,12 +253,19 @@ DocumentRelationshipSchema.post('save', async function (doc, next) {
         $inc: { 'usage.documentRelationships': 1 },
       });
     } catch (error) {
-      // Log the error but do not fail the operation, as the primary record was already saved.
       // A separate monitoring or reconciliation process should handle these failures.
-      console.error(
-        `HIERARCHY_GAP: Failed to increment documentRelationship usage for workspace ${doc.workspaceId}.`,
-        error
-      );
+      // Log the error in a GCP-compatible structured JSON format.
+      console.error(JSON.stringify({
+        severity: 'ERROR',
+        message: `HIERARCHY_GAP: Failed to increment documentRelationship usage for workspace ${doc.workspaceId}.`,
+        workspaceId: doc.workspaceId,
+        component: 'llamaindex.relationship.model',
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        }
+      }));
     }
   }
   next();
@@ -272,10 +279,18 @@ DocumentRelationshipSchema.post('deleteOne', { document: true, query: false }, a
         $inc: { 'usage.documentRelationships': -1 },
       });
     } catch (error) {
-      console.error(
-        `HIERARCHY_GAP: Failed to decrement documentRelationship usage for workspace ${doc.workspaceId}.`,
-        error
-      );
+      // Log the error in a GCP-compatible structured JSON format.
+      console.error(JSON.stringify({
+        severity: 'ERROR',
+        message: `HIERARCHY_GAP: Failed to decrement documentRelationship usage for workspace ${doc.workspaceId}.`,
+        workspaceId: doc.workspaceId,
+        component: 'llamaindex.relationship.model',
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        }
+      }));
     }
     next();
 });
