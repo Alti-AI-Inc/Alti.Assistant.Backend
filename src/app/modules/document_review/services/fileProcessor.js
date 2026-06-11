@@ -12,10 +12,121 @@ import path from 'path';
 import { Storage } from '@google-cloud/storage';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import Redis from 'ioredis';
 import { logger } from '../../../../shared/logger.js';
 import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { STORAGE_CONFIG } from '../document_review.constant.js';
+
+// --- Enterprise Rate-Limiting & DDOS Guard Agent: Initialization ---
+
+/**
+ * Redis client for rate limiting.
+ * Fails fast if Redis is not available to prevent hanging requests.
+ * Rate limiting will be bypassed if the connection fails, ensuring service availability.
+ */
+let redisClient;
+try {
+  redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 1, // Don't retry on connection errors
+    connectTimeout: 5000, // 5 second timeout
+  });
+
+  redisClient.on('error', err => {
+    logger.error(
+      'Redis connection error for rate limiting. Rate limiting will be disabled.',
+      err
+    );
+  });
+  logger.info('Rate limiting Redis client connected.');
+} catch (error) {
+  logger.error(
+    'Failed to initialize Redis client for rate limiting. Rate limiting will be disabled.',
+    error
+  );
+}
+
+/**
+ * Generic options for all Redis-based rate limiters.
+ */
+const rateLimiterOptions = {
+  storeClient: redisClient,
+  keyPrefix: 'rlflx', // Rate Limiter Flex
+  blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
+};
+
+/**
+ * Rate limiter for CPU-intensive text extraction operations.
+ * Protects against resource exhaustion attacks by limiting requests per user/IP.
+ */
+const textExtractionLimiter = redisClient
+  ? new RateLimiterRedis({
+      ...rateLimiterOptions,
+      keyPrefix: 'rl_extract_text',
+      points: 15, // 15 extractions
+      duration: 60, // per 1 minute
+    })
+  : null;
+
+/**
+ * Rate limiter for file uploads to control costs and prevent storage abuse.
+ * Limits are set over a longer duration to manage overall usage patterns.
+ */
+const fileUploadLimiter = redisClient
+  ? new RateLimiterRedis({
+      ...rateLimiterOptions,
+      keyPrefix: 'rl_upload_file',
+      points: 30, // 30 uploads
+      duration: 60 * 10, // per 10 minutes
+    })
+  : null;
+
+/**
+ * Rate limiter for file deletions to prevent abusive GCS API calls.
+ */
+const fileDeletionLimiter = redisClient
+  ? new RateLimiterRedis({
+      ...rateLimiterOptions,
+      keyPrefix: 'rl_delete_file',
+      points: 60, // 60 deletions
+      duration: 60, // per 1 minute
+    })
+  : null;
+
+/**
+ * Helper function to consume a point from a rate limiter.
+ * @async
+ * @param {RateLimiterRedis | null} limiter - The rate limiter instance.
+ * @param {string} key - The key to rate limit against (e.g., user ID, IP address).
+ * @throws {ApiError} If the rate limit is exceeded.
+ */
+const handleRateLimit = async (limiter, key) => {
+  if (!limiter || !redisClient || !redisClient.isReady) {
+    // Fail open: If Redis is not available, bypass rate limiting.
+    return;
+  }
+  try {
+    await limiter.consume(key);
+  } catch (rejRes) {
+    if (rejRes instanceof Error) {
+      // This indicates an issue with the limiter/Redis itself, not a rate limit rejection.
+      logger.error('Rate limiter failed:', rejRes);
+      // Fail open to maintain service availability.
+      return;
+    }
+    // Rate limit was exceeded.
+    throw new ApiError(
+      httpStatus.TOO_MANY_REQUESTS,
+      `Too many requests. Please try again in ${Math.ceil(
+        rejRes.msBeforeNext / 1000
+      )} seconds.`
+    );
+  }
+};
+
+// --- End of Rate-Limiting & DDOS Guard Agent Setup ---
 
 /**
  * Google Cloud Storage client instance.
@@ -122,8 +233,8 @@ const extractTextFromTXT = async (filePath) => {
 };
 
 /**
- * Main function to extract text from any supported file type (PDF, DOCX, TXT).
- * It determines the file type based on the original file name's extension.
+ * Core logic to extract text from any supported file type (PDF, DOCX, TXT).
+ * This is the unprotected internal implementation.
  * @async
  * @param {object} fileInfo - An object containing information about the file.
  * @param {string} fileInfo.path - The absolute path to the temporary file.
@@ -131,7 +242,7 @@ const extractTextFromTXT = async (filePath) => {
  * @returns {Promise<string>} A promise that resolves with the extracted text content.
  * @throws {ApiError} If the file type is unsupported or if any extraction fails, with status BAD_REQUEST.
  */
-const extractTextFromFile = async (fileInfo) => {
+const _extractTextFromFileUnprotected = async (fileInfo) => {
   try {
     const filePath = fileInfo.path;
     const ext = path.extname(fileInfo.originalName).toLowerCase();
@@ -173,6 +284,22 @@ const extractTextFromFile = async (fileInfo) => {
 };
 
 /**
+ * Rate-limited public function to extract text from a file.
+ * It determines the file type based on the original file name's extension.
+ * @async
+ * @param {object} fileInfo - An object containing information about the file.
+ * @param {string} fileInfo.path - The absolute path to the temporary file.
+ * @param {string} fileInfo.originalName - The original name of the file, used to determine the file type.
+ * @param {string} rateLimitKey - A unique identifier for the user or IP to apply rate limits against.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content.
+ * @throws {ApiError} If the rate limit is exceeded, the file type is unsupported, or if any extraction fails.
+ */
+const extractTextFromFile = async (fileInfo, rateLimitKey) => {
+  await handleRateLimit(textExtractionLimiter, rateLimitKey);
+  return _extractTextFromFileUnprotected(fileInfo);
+};
+
+/**
  * Cleans up a temporary file by deleting it from the file system.
  * Logs a warning if the file deletion fails.
  * @async
@@ -189,33 +316,19 @@ const cleanupFile = async (filePath) => {
 };
 
 /**
- * Uploads a file to Google Cloud Storage and returns a signed URL for access.
- * If GCS is not configured or the upload fails, it falls back to returning
- * the local file path and details, indicating local storage.
- * 
- * @security Multi-Tenant / User Isolation:
- * This function enforces logical tenant/user isolation by partitioning uploaded files
- * within the GCS bucket under a user-specific folder structure:
- * `${STORAGE_CONFIG.UPLOAD_FOLDER}/${userId || 'anonymous'}/${timestamp}_${filename}`.
- *
+ * Core logic to upload a file to Google Cloud Storage.
+ * This is the unprotected internal implementation.
  * @async
  * @param {string} localFilePath - The absolute path to the local file to upload.
  * @param {string} filename - The desired filename for the uploaded file in GCS.
  * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
- * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document (used for path isolation).
- * @param {string} [documentMetadata.documentType='review'] - The type of document (e.g., 'review', 'template').
- * @param {string} [documentMetadata.originalName] - The original name of the file before any renaming.
  * @returns {Promise<object>} A promise that resolves with an object containing upload details.
- * @property {boolean} success - Indicates if the upload operation was successful (true even for local fallback).
- * @property {string} [gcsPath] - The Google Cloud Storage path (gs://...) if uploaded to GCS.
- * @property {string} [publicUrl] - A signed URL for public access if uploaded to GCS.
- * @property {string} [localPath] - The local file path if GCS is not configured or upload fails.
- * @property {string} fileName - The name of the file.
- * @property {string} [destination] - The full destination path within the GCS bucket if uploaded to GCS.
- * @property {string} storageType - 'gcs' if uploaded to GCS, 'local' otherwise.
- * @property {string} [error] - Error message if GCS upload failed and fallback to local path occurred.
  */
-const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
+const _uploadToGCSUnprotected = async (
+  localFilePath,
+  filename,
+  documentMetadata = {}
+) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
@@ -279,19 +392,52 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
 };
 
 /**
- * Deletes a document from Google Cloud Storage.
- * 
- * @security Multi-Tenant / User Isolation:
- * The caller must ensure that the user requesting deletion has ownership or permission
- * over the resource represented by the `gcsPath` before invoking this service.
+ * Rate-limited public function to upload a file to Google Cloud Storage.
+ * If GCS is not configured or the upload fails, it falls back to returning
+ * the local file path and details, indicating local storage.
  *
+ * @security Multi-Tenant / User Isolation:
+ * This function enforces logical tenant/user isolation by partitioning uploaded files
+ * within the GCS bucket under a user-specific folder structure:
+ * `${STORAGE_CONFIG.UPLOAD_FOLDER}/${userId || 'anonymous'}/${timestamp}_${filename}`.
+ *
+ * @async
+ * @param {string} localFilePath - The absolute path to the local file to upload.
+ * @param {string} filename - The desired filename for the uploaded file in GCS.
+ * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
+ * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document (used for path isolation).
+ * @param {string} [documentMetadata.documentType='review'] - The type of document (e.g., 'review', 'template').
+ * @param {string} [documentMetadata.originalName] - The original name of the file before any renaming.
+ * @param {string} rateLimitKey - A unique identifier for the user or IP to apply rate limits against.
+ * @returns {Promise<object>} A promise that resolves with an object containing upload details.
+ * @property {boolean} success - Indicates if the upload operation was successful (true even for local fallback).
+ * @property {string} [gcsPath] - The Google Cloud Storage path (gs://...) if uploaded to GCS.
+ * @property {string} [publicUrl] - A signed URL for public access if uploaded to GCS.
+ * @property {string} [localPath] - The local file path if GCS is not configured or upload fails.
+ * @property {string} fileName - The name of the file.
+ * @property {string} [destination] - The full destination path within the GCS bucket if uploaded to GCS.
+ * @property {string} storageType - 'gcs' if uploaded to GCS, 'local' otherwise.
+ * @property {string} [error] - Error message if GCS upload failed and fallback to local path occurred.
+ * @throws {ApiError} If the rate limit is exceeded.
+ */
+const uploadToGCS = async (
+  localFilePath,
+  filename,
+  documentMetadata = {},
+  rateLimitKey
+) => {
+  await handleRateLimit(fileUploadLimiter, rateLimitKey);
+  return _uploadToGCSUnprotected(localFilePath, filename, documentMetadata);
+};
+
+/**
+ * Core logic to delete a document from Google Cloud Storage.
+ * This is the unprotected internal implementation.
  * @async
  * @param {string} gcsPath - The Google Cloud Storage path (e.g., gs://your-bucket/path/to/file) of the document to delete.
  * @returns {Promise<object>} A promise that resolves with an object indicating success or failure.
- * @property {boolean} success - True if deletion was successful, false otherwise.
- * @property {string} message - A message describing the outcome of the operation.
  */
-const deleteDocumentFromGCS = async (gcsPath) => {
+const _deleteDocumentFromGCSUnprotected = async (gcsPath) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Cannot delete from GCS.');
@@ -311,6 +457,26 @@ const deleteDocumentFromGCS = async (gcsPath) => {
     logger.error('Error deleting document from GCS:', error);
     return { success: false, message: error.message };
   }
+};
+
+/**
+ * Rate-limited public function to delete a document from Google Cloud Storage.
+ *
+ * @security Multi-Tenant / User Isolation:
+ * The caller must ensure that the user requesting deletion has ownership or permission
+ * over the resource represented by the `gcsPath` before invoking this service.
+ *
+ * @async
+ * @param {string} gcsPath - The Google Cloud Storage path (e.g., gs://your-bucket/path/to/file) of the document to delete.
+ * @param {string} rateLimitKey - A unique identifier for the user or IP to apply rate limits against.
+ * @returns {Promise<object>} A promise that resolves with an object indicating success or failure.
+ * @property {boolean} success - True if deletion was successful, false otherwise.
+ * @property {string} message - A message describing the outcome of the operation.
+ * @throws {ApiError} If the rate limit is exceeded.
+ */
+const deleteDocumentFromGCS = async (gcsPath, rateLimitKey) => {
+  await handleRateLimit(fileDeletionLimiter, rateLimitKey);
+  return _deleteDocumentFromGCSUnprotected(gcsPath);
 };
 
 /**
@@ -338,13 +504,13 @@ const getMimeType = (filename) => {
 
 /**
  * @typedef {object} FileProcessorService
- * @property {function(object): Promise<string>} extractTextFromFile - Extracts text from various file types (PDF, DOCX, TXT).
+ * @property {function(object, string): Promise<string>} extractTextFromFile - Extracts text from various file types (PDF, DOCX, TXT).
  * @property {function(string): Promise<string>} extractTextFromPDF - Extracts text from a PDF file.
  * @property {function(string): Promise<string>} extractTextFromDOCX - Extracts text from a DOCX file.
  * @property {function(string): Promise<string>} extractTextFromTXT - Extracts text from a TXT file.
  * @property {function(string): Promise<void>} cleanupFile - Deletes a temporary file from the file system.
- * @property {function(string, string, object): Promise<object>} uploadToGCS - Uploads a file to Google Cloud Storage or returns local path as fallback.
- * @property {function(string): Promise<object>} deleteDocumentFromGCS - Deletes a document from Google Cloud Storage.
+ * @property {function(string, string, object, string): Promise<object>} uploadToGCS - Uploads a file to Google Cloud Storage or returns local path as fallback.
+ * @property {function(string, string): Promise<object>} deleteDocumentFromGCS - Deletes a document from Google Cloud Storage.
  * @property {function(string): string} getMimeType - Determines the MIME type of a file based on its extension.
  */
 

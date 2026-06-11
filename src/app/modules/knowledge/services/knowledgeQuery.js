@@ -81,7 +81,7 @@ const ragConfig = {
     max: 20, // Max number of clients in the pool
     min: 2, // Min number of clients in the pool
     idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-    
+
     // Network Resiliency: Optimized for GCP networking (VPC Peering, Cloud SQL Auth Proxy).
     connectionTimeoutMillis: 5000, // Timeout for establishing a connection.
     keepAlive: true, // Enables TCP Keep-Alive to prevent intermediate firewalls/proxies from dropping idle connections.
@@ -297,6 +297,10 @@ const formatConversationHistory = (messages) => {
  * Queries the knowledge base using the RAG system to find an answer to a given query.
  * It retrieves relevant documents based on the `ownerType` and `ownerId` and then generates an answer.
  *
+ * This service is multi-tenant aware, filtering knowledge based on the provided `ownerType` and `ownerId`.
+ * Access is restricted, and the user's permission to query the specified knowledge base is verified before execution.
+ * Usage limits for the owner are also checked and enforced.
+ *
  * @param {string} userId - The ID of the user making the query, for authorization.
  * @param {string} query - The user's query string.
  * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
@@ -310,7 +314,7 @@ const formatConversationHistory = (messages) => {
  *   - `sources`: An array of source documents used to generate the answer.
  *   - `relevantFiles`: The total number of processed files found for the owner.
  *   - `query`: The original query.
- * @throws {Error} If an error occurs during the knowledge query process.
+ * @throws {Error} If an error occurs during the knowledge query process, including authorization or usage limit failures.
  */
 export const queryKnowledge = async (
   userId,
@@ -389,6 +393,10 @@ export const queryKnowledge = async (
  * Handles a conversational query, maintaining context and dynamically selecting an LLM
  * based on query complexity. It integrates with the RAG system for knowledge retrieval.
  *
+ * This service is multi-tenant aware, filtering knowledge based on the provided `ownerType` and `ownerId`.
+ * Access is restricted, and the user's permission to query the specified knowledge base is verified before execution.
+ * Usage limits for the owner are also checked and enforced.
+ *
  * @param {string} userId - The ID of the user making the query.
  * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') for the knowledge base.
  * @param {string} ownerId - The ID of the specific owner.
@@ -405,7 +413,7 @@ export const queryKnowledge = async (
  *   - `hasProcessedFiles`: Boolean indicating if any processed files exist.
  *   - `modelUsed`: The name of the LLM model used for the query.
  *   - `complexity`: An object detailing the complexity analysis (`isComplex`, `score`, `indicators`).
- * @throws {Error} If an error occurs during the conversational query process.
+ * @throws {Error} If an error occurs during the conversational query process, including authorization or usage limit failures.
  */
 export const conversationalQuery = async (
   userId,
@@ -557,6 +565,10 @@ export const conversationalQuery = async (
  * Performs a semantic search on the knowledge base to find documents relevant to a given query.
  * It uses the RAG system's search capabilities to retrieve chunks of text.
  *
+ * This service is multi-tenant aware, filtering knowledge based on the provided `ownerType` and `ownerId`.
+ * Access is restricted, and the user's permission to search the specified knowledge base is verified before execution.
+ * Usage limits for search actions are also checked and enforced.
+ *
  * @param {string} userId - The ID of the user making the query, for authorization.
  * @param {string} query - The search query string.
  * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
@@ -569,7 +581,7 @@ export const conversationalQuery = async (
  *   - `results`: An array of search results, each including document content, score, and associated file metadata.
  *   - `totalResults`: The total number of results found.
  *   - `query`: The original search query.
- * @throws {Error} If an error occurs during the semantic search process.
+ * @throws {Error} If an error occurs during the semantic search process, including authorization or usage limit failures.
  */
 export const semanticSearch = async (
   userId,
@@ -651,12 +663,20 @@ export const semanticSearch = async (
 /**
  * Retrieves the full conversation history for a given conversation ID and user.
  *
+ * Security is a key consideration. This function performs a two-step authorization check:
+ * 1. It verifies that the requesting user is a participant in the specified conversation.
+ * 2. It re-validates that the user *still* has access to the underlying knowledge base
+ *    (defined by `ownerType` and `ownerId` in the conversation's metadata). This prevents
+ *    a user from accessing conversation data after their permissions to the associated
+ *    knowledge resource have been revoked.
+ *
  * @param {string} conversationId - The ID of the conversation to retrieve.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @returns {Promise<{conversation: object, messages: Array<object>}>} An object containing:
  *   - `conversation`: The conversation metadata object.
  *   - `messages`: An array of message objects within the conversation.
- * @throws {Error} If an error occurs while fetching the conversation history.
+ * @throws {Error} Throws an error if the conversation is not found or if the user fails
+ * either of the authorization checks.
  */
 export const getConversationHistory = async (conversationId, userId) => {
   try {

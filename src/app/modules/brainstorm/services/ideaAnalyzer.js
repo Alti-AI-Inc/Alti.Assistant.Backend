@@ -12,6 +12,8 @@ import {
 import { rateLimit } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { redisClient } from '../../../../shared/redis.js'; // Assuming a shared Redis client is available
+import express from 'express';
+import http from 'http';
 
 // --- Rate Limiting & DDOS Protection Setup ---
 
@@ -486,3 +488,92 @@ export const ideaAnalyzer = {
   extractIdea,
   hasValidIdea,
 };
+
+// --- Server Setup & Cloud Run Lifecycle Management ---
+const app = express();
+let isShuttingDown = false;
+
+// --- Health & Readiness Probes for Cloud Run ---
+
+// Liveness probe (/healthz): A simple check to see if the server process is running.
+// Cloud Run uses this to determine if the container needs to be restarted.
+// If this endpoint doesn't respond, the container is considered unhealthy.
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Readiness probe (/readyz): Checks if the application is ready to accept traffic.
+// Cloud Run uses this to decide whether to send new requests to this instance.
+// It should fail if dependencies (like Redis) are not available or
+// if the server is in the process of shutting down.
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown) {
+    // If the server is shutting down, it's no longer "ready" to take new requests.
+    // This tells the load balancer to route traffic to other instances.
+    return res.status(503).send('Service Unavailable: Shutting down');
+  }
+  // Check if essential dependencies are connected.
+  // Assumes the shared redisClient has an `isReady` property (common in node-redis v4).
+  if (redisClient && redisClient.isReady) {
+    return res.status(200).send('OK');
+  }
+  // If Redis is not connected, the service cannot function properly and is not ready.
+  res.status(503).send('Service Unavailable: Not ready');
+});
+
+// --- Server Initialization ---
+
+// Cloud Run provides the PORT environment variable that the container should listen on.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
+  logger.info(`Server listening on port ${PORT}`);
+});
+
+// --- Graceful Shutdown Logic ---
+
+const gracefulShutdown = (signal) => {
+  logger.warn(`Received ${signal}, starting graceful shutdown...`);
+  isShuttingDown = true;
+
+  // Update the readiness probe to fail, stopping new requests from being sent.
+  logger.info('Server is no longer ready. Waiting for in-flight requests to finish.');
+
+  // 1. Stop the server from accepting new connections.
+  // The `close` method waits for all existing connections to terminate.
+  server.close((err) => {
+    if (err) {
+      logger.error('Error during server close:', err);
+      process.exit(1);
+    }
+
+    logger.info('HTTP server closed. No new requests will be handled.');
+
+    // 2. Close essential connections (e.g., Redis, Database).
+    // The rate-limit-redis stores don't need explicit closing, but the shared client does.
+    redisClient.quit()
+      .then(() => {
+        logger.info('Redis connection closed.');
+        // 3. Exit the process cleanly.
+        logger.info('Graceful shutdown complete. Exiting.');
+        process.exit(0);
+      })
+      .catch((redisErr) => {
+        logger.error('Error closing Redis connection:', redisErr);
+        process.exit(1);
+      });
+  });
+
+  // Force shutdown after a timeout if graceful shutdown takes too long.
+  // Cloud Run has a default 10-second timeout for SIGTERM.
+  setTimeout(() => {
+    logger.error('Graceful shutdown timed out. Forcing exit.');
+    process.exit(1);
+  }, 9500); // 9.5-second timeout, slightly less than Cloud Run's default.
+};
+
+// Listen for termination signals. Cloud Run sends a SIGTERM signal to stop a container.
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+// Also listen for SIGINT for local development (e.g., Ctrl+C).
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
