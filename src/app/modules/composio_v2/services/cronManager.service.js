@@ -4,6 +4,19 @@ import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { workflowExecutor } from './workflowExecutor.service.js';
 import parser from 'cron-parser'; // Import cron-parser for accurate next execution time calculation
 
+// SECURITY: Utility to escape HTML to prevent stored XSS attacks if data is ever displayed in a UI.
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string') {
+    return '';
+  }
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 /**
  * @typedef {object} AuthContext
  * @property {string} userId - The ID of the user performing the action.
@@ -145,19 +158,27 @@ class CronManager {
       if (workflow.triggerType === 'scheduled') {
         if (!scheduleConfig.triggerDate) throw new Error('Trigger date is required for scheduled workflows');
         const triggerTime = new Date(scheduleConfig.triggerDate);
-        if (triggerTime <= new Date()) throw new Error('Trigger date must be in the future');
+        if (isNaN(triggerTime.getTime()) || triggerTime <= new Date()) throw new Error('Trigger date must be a valid date in the future');
         cronExpression = this.dateTimeToCron(triggerTime);
         description = `One-time execution at ${triggerTime.toISOString()}`;
       } else if (workflow.triggerType === 'recurring') {
         if (!scheduleConfig.cronExpression) throw new Error('Cron expression is required for recurring workflows');
         cronExpression = scheduleConfig.cronExpression;
-        description = `Recurring execution: ${cronExpression}`;
+        // SECURITY: Escape cron expression to prevent stored XSS if the description is displayed in a UI.
+        description = `Recurring execution: ${escapeHtml(cronExpression)}`;
       } else {
         return { success: true, message: 'Manual trigger workflow, no scheduling needed' };
       }
 
       if (!cron.validate(cronExpression)) {
         throw new Error(`Invalid cron expression: ${cronExpression}`);
+      }
+
+      const timezone = scheduleConfig.timezone || 'UTC';
+      // SECURITY: Sanitize and validate timezone format to prevent potential vulnerabilities in underlying libraries.
+      const isValidTimezone = /^[A-Za-z_]+\/[A-Za-z_]+(?:[\/A-Za-z_]+)?$/.test(timezone) || timezone === 'UTC';
+      if (!isValidTimezone) {
+          throw new Error(`Invalid timezone format provided.`);
       }
 
       const cronJob = cron.schedule(
@@ -171,7 +192,7 @@ class CronManager {
             logger.error(`Unhandled error in cron job for workflow ${workflowId}:`, jobError);
           }
         },
-        { scheduled: true, timezone: scheduleConfig.timezone || 'UTC' }
+        { scheduled: true, timezone: timezone }
       );
 
       this.activeCronJobs.set(workflowId, {
@@ -181,7 +202,7 @@ class CronManager {
         createdAt: new Date(),
       });
 
-      const nextExecution = this.getNextExecutionTime(cronExpression, scheduleConfig.timezone);
+      const nextExecution = this.getNextExecutionTime(cronExpression, timezone);
       
       // SECURITY & TENANCY: Ensure the database update is scoped to the correct tenant.
       await ScheduledWorkflow.updateOne({ workflowId, workspaceId: authContext.workspaceId }, { nextExecution });
@@ -439,9 +460,17 @@ class CronManager {
     // BUG FIX: Replaced placeholder implementation with actual cron expression parsing
     // using 'cron-parser' to accurately calculate the next execution time.
     try {
+      const validatedTimezone = timezone || 'UTC';
+      // SECURITY: Validate timezone format to prevent potential vulnerabilities in the parser library.
+      const isValidTimezone = /^[A-Za-z_]+\/[A-Za-z_]+(?:[\/A-Za-z_]+)?$/.test(validatedTimezone) || validatedTimezone === 'UTC';
+      if (!isValidTimezone) {
+        logger.error(`Invalid timezone format provided to getNextExecutionTime: "${validatedTimezone}"`);
+        return null;
+      }
+
       const options = {
         currentDate: new Date(),
-        tz: timezone,
+        tz: validatedTimezone,
       };
       const interval = parser.parseExpression(cronExpression, options);
       return interval.next().toDate();

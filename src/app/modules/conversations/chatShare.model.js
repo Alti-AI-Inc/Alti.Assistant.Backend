@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
  * @property {object} [custom] - Any other custom metadata.
  */
 
-// SECURITY FIX: Helper function to recursively check for '$' prefixed keys.
+// SECURITY FIX: Helper function to recursively check for ' prefixed keys.
 // This is used to sanitize objects before they are saved into a Mixed type field,
 // preventing NoSQL operator injection attacks (e.g., using '$where').
 const containsDisallowedKeys = (obj) => {
@@ -17,7 +17,7 @@ const containsDisallowedKeys = (obj) => {
     for (const key in obj) {
       // Using hasOwnProperty is a good practice to avoid iterating over prototype properties.
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        if (key.startsWith('$')) {
+        if (key.startsWith(')) {
           return true;
         }
         if (typeof obj[key] === 'object' && obj[key] !== null) {
@@ -117,7 +117,7 @@ const ChatShareSchema = new mongoose.Schema(
       default: {},
       // SECURITY FIX: Add a validator to prevent NoSQL operator injection.
       // The 'Mixed' type is flexible but can be a security risk if user input
-      // containing keys starting with '$' (like '$where') is saved directly.
+      // containing keys starting with ' (like '$where') is saved directly.
       // This validator recursively checks for such keys in the metadata object.
       validate: {
         validator: (v) => !containsDisallowedKeys(v),
@@ -205,7 +205,12 @@ ChatShareSchema.statics.findActiveShare = function (shareId) {
     shareId,
     isActive: true,
     $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
-  }).populate('conversationId');
+  })
+    .populate('conversationId')
+    // PERFORMANCE: Use .lean() for faster read-only queries.
+    // This operation is for public viewing and doesn't require Mongoose document methods,
+    // so skipping object hydration improves performance.
+    .lean();
 };
 
 /**
