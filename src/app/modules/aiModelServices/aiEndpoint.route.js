@@ -4,6 +4,10 @@ import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { AiEndpointsController } from './aiEndpoint.controller.js';
 
+/**
+ * Express router instance for AI model endpoint routes.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
 /**
@@ -31,24 +35,13 @@ const router = express.Router();
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   endpointUrl:
- *                     type: string
- *                   description:
- *                     type: string
- *                   modelType:
- *                     type: string
+ *                 $ref: '#/components/schemas/AiEndpoint'
  *       401:
- *         description: Unauthorized. User is not authenticated.
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Forbidden. User does not have the required role.
+ *         $ref: '#/components/responses/Forbidden'
  *       500:
- *         description: Internal server error.
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get(
   '/all-model',
@@ -83,24 +76,13 @@ router.get(
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   endpointUrl:
- *                     type: string
- *                   description:
- *                     type: string
- *                   modelType:
- *                     type: string
+ *                 $ref: '#/components/schemas/AiEndpoint'
  *       401:
- *         description: Unauthorized. User is not authenticated.
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Forbidden. User does not have the required role.
+ *         $ref: '#/components/responses/Forbidden'
  *       500:
- *         description: Internal server error.
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get(
   '/all-model-web',
@@ -159,26 +141,15 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 endpointUrl:
- *                   type: string
- *                 description:
- *                   type: string
- *                 modelType:
- *                   type: string
+ *               $ref: '#/components/schemas/AiEndpoint'
  *       400:
- *         description: Bad request if required fields are missing or invalid.
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized. User is not authenticated.
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Forbidden. User does not have the required role.
+ *         $ref: '#/components/responses/Forbidden'
  *       500:
- *         description: Internal server error.
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post(
   '/add-model',
@@ -240,28 +211,17 @@ router.post(
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 endpointUrl:
- *                   type: string
- *                 description:
- *                   type: string
- *                 modelType:
- *                   type: string
+ *               $ref: '#/components/schemas/AiEndpoint'
  *       400:
- *         description: Bad request if required fields are missing or invalid.
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized. User is not authenticated.
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Forbidden. User does not have the required role.
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Not Found if the AI model endpoint does not exist.
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Internal server error.
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.patch(
   '/update-model',
@@ -272,14 +232,11 @@ router.patch(
 );
 
 /**
- * @typedef {import('express').Router} Router
- */
-
-/**
  * Express router for managing AI model endpoints.
  * Provides routes for retrieving, adding, and updating AI model configurations
  * within a tenant-specific context. All routes require SUPER_ADMIN or ADMIN privileges.
- * @type {Router}
+ * @type {import('express').Router}
  * @namespace aiModelEndpointRoutes
+ * @memberof module:routes
  */
 export const aiModelEndpointRoutes = router;
