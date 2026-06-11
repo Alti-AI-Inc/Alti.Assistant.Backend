@@ -115,15 +115,27 @@ const forumValidation = require('./forum.validation');
  */
 router
   .route('/:id')
-  .get(extractTenantContext, auth(), forumController.getForumById)
+  .get(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation for URL parameters to prevent NoSQL injection and malformed requests.
+    validateRequest(forumValidation.getForumSchema),
+    forumController.getForumById,
+  )
   .patch(
     extractTenantContext,
     auth(),
-    // BUG FIX: Added validation for the update payload to ensure data integrity.
+    // VULNERABILITY FIX: Ensure validation schema covers both URL parameters (like :id) and the request body.
     validateRequest(forumValidation.updateForumSchema),
     forumController.updateForum,
   )
-  .delete(extractTenantContext, auth(), forumController.deleteForum);
+  .delete(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation for URL parameters to prevent unauthorized or malformed delete requests.
+    validateRequest(forumValidation.deleteForumSchema),
+    forumController.deleteForum,
+  );
 
 /**
  * @openapi
@@ -151,7 +163,13 @@ router
  */
 router
   .route('/comment/:commentId')
-  .get(extractTenantContext, auth(), commentController.getComment);
+  .get(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation for URL parameters to prevent NoSQL injection.
+    validateRequest(forumValidation.getCommentSchema),
+    commentController.getComment,
+  );
 
 /**
  * @openapi
@@ -181,7 +199,13 @@ router
  */
 router
   .route('/deleteComment/:id')
-  .delete(extractTenantContext, auth(), commentController.deleteComment);
+  .delete(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation for URL parameters to prevent NoSQL injection.
+    validateRequest(forumValidation.deleteCommentSchema),
+    commentController.deleteComment,
+  );
 
 /**
  * @openapi
@@ -216,7 +240,13 @@ router
  */
 router
   .route('/getBlogByEmail/:email')
-  .get(extractTenantContext, auth(), commentController.getForumByEmail);
+  .get(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation for email parameter to prevent injection and ensure correct format.
+    validateRequest(forumValidation.getForumByEmailSchema),
+    commentController.getForumByEmail,
+  );
 
 /**
  * @openapi
@@ -303,7 +333,13 @@ router
  */
 router
   .route('/blog-suggestion/:suggestion')
-  .get(extractTenantContext, auth(), forumController.getForumSuggestion);
+  .get(
+    extractTenantContext,
+    auth(),
+    // VULNERABILITY FIX: Add validation and sanitization for search inputs to prevent injection attacks (e.g., NoSQL regex injection).
+    validateRequest(forumValidation.getForumSuggestionSchema),
+    forumController.getForumSuggestion,
+  );
 
 /**
  * @openapi
