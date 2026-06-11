@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import https from 'https'; // For creating a custom agent with keep-alive
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -8,7 +9,40 @@ const auth = new google.auth.GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/bigquery']
 });
 
-const bigquery = google.bigquery({ version: 'v2', auth });
+// GCP Resiliency: Create a custom HTTPS agent to enable TCP Keep-Alive.
+// This is crucial for maintaining stable connections over long periods,
+// especially through network components like the Cloud SQL Auth Proxy or VPC Peering,
+// by preventing idle connections from being terminated by firewalls or NATs.
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 60000, // How often to send keep-alive packets (e.g., every 60 seconds).
+  maxSockets: 100,       // Max number of sockets to allow per host. Acts as a connection pool size.
+  maxFreeSockets: 10,    // Max number of sockets to leave open in a free state.
+  timeout: 60000,        // Socket timeout in milliseconds.
+});
+
+const bigquery = google.bigquery({
+  version: 'v2',
+  auth,
+  // GCP Resiliency: Apply gaxios options for robust HTTP communication.
+  // These settings are passed to the underlying HTTP client for each API call.
+  timeout: 30000, // 30-second timeout for each API request to complete.
+  retryConfig: {
+    // Retry on transient network errors and specific server-side errors (e.g., 5xx, 429).
+    retry: 3,                 // Number of retries on failure.
+    noResponseRetries: 3,     // Retries on requests that receive no response (e.g., socket timeout).
+    retryDelay: 100,          // Initial delay in ms, increases exponentially.
+    httpMethodsToRetry: ['GET', 'PUT', 'POST', 'DELETE'], // Methods considered safe for retries.
+    statusCodesToRetry: [
+      [100, 199], // Informational responses
+      [429, 429], // Rate limited
+      [500, 599], // Server-side errors
+    ],
+  },
+  // Use the custom agent for connection pooling (via maxSockets) and keep-alive.
+  // This reuses TCP connections for multiple API requests, improving performance.
+  agent: httpsAgent,
+});
 
 /**
  * Creates a brand new BigQuery Dataset.

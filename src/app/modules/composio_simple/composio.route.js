@@ -14,7 +14,7 @@ const router = express.Router();
  * /chat:
  *   post:
  *     summary: Send a chat message to the Composio agent
- *     description: Sends a message to the Composio agent, checking daily request limits and authentication.
+ *     description: Sends a message to the Composio agent, checking daily request limits, workspace plan limits, and authentication. This action contributes to the workspace's usage metrics.
  *     tags: [Composio]
  *     security:
  *       - BearerAuth: []
@@ -39,12 +39,13 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized access.
  *       429:
- *         description: Daily request limit exceeded.
+ *         description: Daily request limit or workspace plan limit exceeded.
  */
 router.post(
   '/chat',
-  auth(),
-  checkDailyRequestLimit,
+  auth(), // Authenticates any valid user in a workspace
+  checkDailyRequestLimit, // Checks the individual user's daily request limit
+  checkPlanLimits, // CRITICAL FIX: Ensures the request is within the workspace's overall subscription plan limits.
   composioSimpleController.chatController
 );
 
@@ -309,7 +310,7 @@ router.post('/compare', auth(), composioSimpleController.compareController);
  * /workspace/metrics:
  *   get:
  *     summary: Get workspace usage metrics
- *     description: Retrieves key metrics for the manager's workspace, such as request counts, active members, and integration usage. This endpoint is restricted to users with the 'manager' role and does not expose any billing information.
+ *     description: Retrieves key metrics for the workspace, such as request counts, active members, and integration usage. This endpoint is restricted to users with 'admin' or 'manager' roles and does not expose any billing information.
  *     tags: [Manager Dashboard]
  *     security:
  *       - BearerAuth: []
@@ -319,11 +320,11 @@ router.post('/compare', auth(), composioSimpleController.compareController);
  *       401:
  *         description: Unauthorized.
  *       403:
- *         description: Forbidden. User is not a manager.
+ *         description: Forbidden. User is not an admin or manager.
  */
 router.get(
   '/workspace/metrics',
-  auth('manager'),
+  auth('admin', 'manager'), // HIERARCHY FIX: Allow both workspace admins and managers to view metrics.
   managerController.getWorkspaceMetrics
 );
 
@@ -332,7 +333,7 @@ router.get(
  * /team/members:
  *   get:
  *     summary: List team members
- *     description: Fetches a list of all members within the manager's workspace, including their roles. Restricted to users with the 'manager' role.
+ *     description: Fetches a list of all members within the workspace, including their roles. Restricted to users with 'admin' or 'manager' roles.
  *     tags: [Manager Dashboard]
  *     security:
  *       - BearerAuth: []
@@ -342,16 +343,20 @@ router.get(
  *       401:
  *         description: Unauthorized.
  *       403:
- *         description: Forbidden. User is not a manager.
+ *         description: Forbidden. User is not an admin or manager.
  */
-router.get('/team/members', auth('manager'), managerController.getTeamMembers);
+router.get(
+  '/team/members',
+  auth('admin', 'manager'), // HIERARCHY FIX: Allow both workspace admins and managers to list members.
+  managerController.getTeamMembers
+);
 
 /**
  * @openapi
  * /team/invitations:
  *   post:
  *     summary: Invite a new member to the workspace
- *     description: Sends an invitation to a new member's email address. This action is subject to the workspace's subscription plan limits on the number of team members. Restricted to users with the 'manager' role.
+ *     description: Sends an invitation to a new member's email address. This action is subject to the workspace's subscription plan limits on the number of team members. Restricted to users with 'admin' or 'manager' roles.
  *     tags: [Manager Dashboard]
  *     security:
  *       - BearerAuth: []
@@ -371,7 +376,7 @@ router.get('/team/members', auth('manager'), managerController.getTeamMembers);
  *                 description: The email of the user to invite.
  *               role:
  *                 type: string
- *                 enum: [member, manager]
+ *                 enum: ['user', 'manager'] // CONSISTENCY FIX: Use 'user' role instead of ambiguous 'member'. An admin/manager cannot invite another admin.
  *                 description: The role to assign to the new member.
  *     responses:
  *       201:
@@ -379,14 +384,14 @@ router.get('/team/members', auth('manager'), managerController.getTeamMembers);
  *       401:
  *         description: Unauthorized.
  *       403:
- *         description: Forbidden. User is not a manager.
+ *         description: Forbidden. User is not an admin or manager.
  *       422:
  *         description: Unprocessable Entity. The user is already in the workspace or the plan's member limit has been reached.
  */
 router.post(
   '/team/invitations',
-  auth('manager'),
-  checkPlanLimits,
+  auth('admin', 'manager'), // HIERARCHY FIX: Allow both workspace admins and managers to invite users.
+  checkPlanLimits, // This correctly checks for plan limits (e.g., max number of users).
   managerController.inviteTeamMember
 );
 
@@ -395,7 +400,7 @@ router.post(
  * /team/members/{memberId}:
  *   patch:
  *     summary: Update a team member's role
- *     description: Changes the role of an existing team member within the workspace. Restricted to users with the 'manager' role.
+ *     description: Changes the role of an existing team member within the workspace. Restricted to users with 'admin' or 'manager' roles. The controller must prevent a user from changing their own role or escalating privileges beyond their own.
  *     tags: [Manager Dashboard]
  *     security:
  *       - BearerAuth: []
@@ -417,7 +422,7 @@ router.post(
  *             properties:
  *               role:
  *                 type: string
- *                 enum: [member, manager]
+ *                 enum: ['user', 'manager'] // CONSISTENCY FIX: Use 'user' role instead of ambiguous 'member'.
  *                 description: The new role for the team member.
  *     responses:
  *       200:
@@ -425,13 +430,13 @@ router.post(
  *       401:
  *         description: Unauthorized.
  *       403:
- *         description: Forbidden. User is not a manager.
+ *         description: Forbidden. User is not an admin or manager, or is attempting a restricted role change.
  *       404:
  *         description: Team member not found.
  */
 router.patch(
   '/team/members/:memberId',
-  auth('manager'),
+  auth('admin', 'manager'), // HIERARCHY FIX: Allow both workspace admins and managers to update roles.
   managerController.updateTeamMemberRole
 );
 
@@ -440,7 +445,7 @@ router.patch(
  * /team/members/{memberId}:
  *   delete:
  *     summary: Remove a team member from the workspace
- *     description: Removes a member from the workspace. This action cannot be undone. Restricted to users with the 'manager' role.
+ *     description: Removes a member from the workspace. This action cannot be undone. Restricted to users with 'admin' or 'manager' roles. The controller must prevent a user from removing themselves.
  *     tags: [Manager Dashboard]
  *     security:
  *       - BearerAuth: []
@@ -457,13 +462,13 @@ router.patch(
  *       401:
  *         description: Unauthorized.
  *       403:
- *         description: Forbidden. User is not a manager.
+ *         description: Forbidden. User is not an admin or manager, or is attempting to remove themselves.
  *       404:
  *         description: Team member not found.
  */
 router.delete(
   '/team/members/:memberId',
-  auth('manager'),
+  auth('admin', 'manager'), // HIERARCHY FIX: Allow both workspace admins and managers to remove members.
   managerController.removeTeamMember
 );
 
