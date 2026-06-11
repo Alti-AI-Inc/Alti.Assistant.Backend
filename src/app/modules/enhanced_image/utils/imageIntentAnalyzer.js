@@ -8,8 +8,11 @@ import config from '../../../../../config/index.js';
 
 // --- Rate Limiting & DDOS Protection ---
 
-// Rate limiter for authenticated requests (e.g., identified by a unique API key).
-// Allows a reasonable number of requests for legitimate users to prevent abuse.
+/**
+ * Rate limiter for authenticated requests (e.g., identified by a unique API key or user ID).
+ * This allows a reasonable number of requests for legitimate users while preventing abuse.
+ * @type {RateLimiterRedis}
+ */
 const authenticatedLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rate_limit:image_intent_auth',
@@ -18,10 +21,13 @@ const authenticatedLimiter = new RateLimiterRedis({
   blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
 });
 
-// Stricter rate limiter for unauthenticated/shared key requests.
-// This is a global limit to prevent abuse from a single source overwhelming the system.
-// NOTE: For production, using the user's IP address (passed from the controller) as the key
-// would be more effective than a single global key.
+/**
+ * Stricter rate limiter for unauthenticated/anonymous requests, typically keyed by IP address.
+ * This acts as a global safeguard to prevent abuse from a single source overwhelming the system.
+ * @type {RateLimiterRedis}
+ * @note For production, using the user's IP address (passed from the controller) as the key
+ * is more effective than a single global key.
+ */
 const anonymousLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rate_limit:image_intent_anon',
@@ -32,7 +38,11 @@ const anonymousLimiter = new RateLimiterRedis({
 
 // --- End of Rate Limiting ---
 
-// Define the image intent schema
+/**
+ * Zod schema defining the expected structure of the image intent analysis result.
+ * This ensures the AI model's output is consistently shaped and validated.
+ * @type {z.ZodObject<any, any, any>}
+ */
 const imageIntentSchema = z.object({
   isEditable: z
     .boolean()
@@ -57,10 +67,20 @@ const imageIntentSchema = z.object({
     .describe('Questions to ask user if more info is needed'),
 });
 
+/**
+ * A structured output parser that uses the `imageIntentSchema` to format
+ * instructions for the language model and parse its response into a typed object.
+ * @type {StructuredOutputParser<z.infer<typeof imageIntentSchema>>}
+ */
 const imageIntentParser =
   StructuredOutputParser.fromZodSchema(imageIntentSchema);
 
-// Prompt template for image intent detection
+/**
+ * A prompt template that instructs the language model on how to analyze a user's request
+ * regarding image generation or editing. It includes indicators, context, and placeholders
+ * for the user's request, image attachment status, and formatting instructions.
+ * @type {PromptTemplate}
+ */
 const imageIntentPromptTemplate = PromptTemplate.fromTemplate(
   `You are an AI assistant that analyzes user requests to determine if they want to edit an existing image or generate a new one.
 
@@ -87,16 +107,19 @@ Analyze the request and determine the user's intent.`
 );
 
 /**
- * Analyzes user intent when an image is provided. This is a costly operation and is rate-limited.
- * @param {string} request - The user's text request
- * @param {boolean} hasImage - Whether an image is attached
- * @param {string} context - Conversation context/history
- * @param {Object} options - Configuration options
- * @param {string} [options.apiKey] - A unique key for the user/request, used for rate-limiting.
- * @param {string} [options.modelName] - The name of the model to use.
- * @param {string} [options.ip] - The user's IP address for more granular anonymous rate-limiting.
- * @returns {Promise<Object>} Intent analysis result
- * @throws {Error} Throws an error with status 429 if the rate limit is exceeded.
+ * Analyzes a user's request to determine their intent regarding image manipulation (editing vs. generation).
+ * This is a potentially costly operation and is rate-limited to prevent abuse. The rate limit policy
+ * distinguishes between authenticated (via `apiKey`) and anonymous (via `ip`) requests.
+ *
+ * @param {string} request - The user's text request.
+ * @param {boolean} [hasImage=false] - Whether an image is attached to the request.
+ * @param {string} [context='No previous context.'] - The preceding conversation context or history.
+ * @param {object} [options={}] - Configuration options for the analysis.
+ * @param {string} [options.apiKey] - A unique key for the user/request, used for authenticated rate-limiting. Can represent a tenant or a specific user.
+ * @param {string} [options.modelName='gemini-1.5-flash'] - The name of the generative model to use.
+ * @param {string} [options.ip='global_anon_user'] - The user's IP address for more granular anonymous rate-limiting.
+ * @returns {Promise<z.infer<typeof imageIntentSchema>>} A promise that resolves to the intent analysis result, matching the `imageIntentSchema`.
+ * @throws {Error} Throws an error with status 429 if the rate limit is exceeded. The error will include a `headers` property with a `Retry-After` value.
  */
 export async function analyzeImageIntent(
   request,
