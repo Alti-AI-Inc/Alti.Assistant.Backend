@@ -11,13 +11,20 @@
 export const paginationFields = ['page', 'limit', 'sortBy', 'sortOrder'];
 
 /**
- * @constant {Object<string, string>} USER_ROLES - Defines the available roles within the workspace.
- * The roles are hierarchical: OWNER > MANAGER > MEMBER.
+ * @typedef {Object} Role
+ * @property {string} name - The string identifier for the role (e.g., 'owner').
+ * @property {number} level - A numeric value representing the role's position in the hierarchy. Higher is more powerful.
+ */
+
+/**
+ * @constant {Object<string, Role>} USER_ROLES - Defines the available roles within the workspace.
+ * The roles include a numeric level to facilitate programmatic hierarchy checks, preventing privilege escalation.
+ * Hierarchy: OWNER > MANAGER > MEMBER.
  */
 export const USER_ROLES = {
-  OWNER: 'owner',
-  MANAGER: 'manager',
-  MEMBER: 'member'
+  OWNER: { name: 'owner', level: 3 },
+  MANAGER: { name: 'manager', level: 2 },
+  MEMBER: { name: 'member', level: 1 }
 };
 
 /**
@@ -33,6 +40,12 @@ export const INVITATION_STATUS = {
   REJECTED: 'rejected',
   EXPIRED: 'expired'
 };
+
+/**
+ * @constant {number} INVITATION_EXPIRATION_DAYS - The number of days an invitation is valid before it expires.
+ * This ensures that pending invitations do not remain open indefinitely.
+ */
+export const INVITATION_EXPIRATION_DAYS = 7;
 
 /**
  * @typedef {Object} PlanLimits
@@ -94,13 +107,13 @@ export const OWNER_PERMISSIONS = [
 /**
  * @constant {string[]} MANAGER_ASSIGNABLE_ROLES - Defines the roles a Manager can assign to other members.
  * This is a critical security measure to prevent privilege escalation. A manager cannot promote anyone
- * to an Owner.
+ * to a role equal to or higher than their own.
  */
-export const MANAGER_ASSIGNABLE_ROLES = [USER_ROLES.MANAGER, USER_ROLES.MEMBER];
+export const MANAGER_ASSIGNABLE_ROLES = [USER_ROLES.MANAGER.name, USER_ROLES.MEMBER.name];
 
 /**
  * @constant {string[]} MANAGER_UNMODIFIABLE_ROLES - Defines roles that a Manager cannot modify.
  * This prevents a manager from demoting or otherwise altering the role of an Owner, ensuring the integrity
  * of the workspace hierarchy. This should be checked before any role update operation.
  */
-export const MANAGER_UNMODIFIABLE_ROLES = [USER_ROLES.OWNER];
+export const MANAGER_UNMODIFIABLE_ROLES = [USER_ROLES.OWNER.name];
