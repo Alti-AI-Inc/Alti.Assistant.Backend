@@ -578,6 +578,14 @@ const deleteAllAiSessionsService = async (targetUserId, requestingUser) => {
   }
 };
 
+/**
+ * @description Retrieves all AI chat sessions across the entire platform.
+ * This function is intended for super administrators for platform-wide monitoring.
+ * @permission Requires `super_admin` role.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of all chat history documents,
+ * populated with basic user information (email, name).
+ * @throws {ApiError} If there is a database error during retrieval.
+ */
 const getAllAiSessionsForSuperAdminService = async () => {
   try {
     return await ChatHistory.find({}).populate('user', 'email name').lean();
@@ -586,6 +594,17 @@ const getAllAiSessionsForSuperAdminService = async () => {
   }
 };
 
+/**
+ * @description Retrieves platform-wide statistics about AI usage.
+ * This includes the total number of prompts used, the number of unique users who have
+ * interacted with the AI, and the total number of chat sessions.
+ * @permission Requires `admin` or `super_admin` role.
+ * @returns {Promise<Object>} A promise that resolves to an object containing platform statistics.
+ * @property {number} totalPrompts - The total number of prompts processed across all users.
+ * @property {number} uniqueUsers - The count of unique users who have used the AI service.
+ * @property {number} totalSessions - The total number of chat sessions created.
+ * @throws {ApiError} If there is a database error during aggregation.
+ */
 const getPlatformWideStats = async () => {
   try {
     const totalPromptsResult = await UserModel.aggregate([
@@ -604,6 +623,15 @@ const getPlatformWideStats = async () => {
   }
 };
 
+/**
+ * @description Deletes a single AI chat session by its MongoDB ObjectId, intended for administrative use.
+ * This function bypasses the standard user/workspace ownership checks.
+ * It also removes the session reference from the associated user, if any.
+ * @permission Requires `admin` or `super_admin` role.
+ * @param {string} objectId - The MongoDB ObjectId of the chat session to delete.
+ * @returns {Promise<Object>} A promise that resolves to an object indicating success.
+ * @throws {ApiError} If the session is not found or if a database error occurs.
+ */
 const adminDeleteOneLlamaAiSessionById = async (objectId) => {
   try {
     const sessionToDelete = await ChatHistory.findById(objectId);
@@ -684,7 +712,25 @@ export const LlamaAiService = {
    * @see {@link deleteAllAiSessionsService} for implementation details.
    */
   deleteAllAiSessionsService,
+  /**
+   * @function getAllAiSessionsForSuperAdminService
+   * @memberof LlamaAiService
+   * @description Retrieves all AI chat sessions across the entire platform for super admins.
+   * @see {@link getAllAiSessionsForSuperAdminService} for implementation details.
+   */
   getAllAiSessionsForSuperAdminService,
+  /**
+   * @function getPlatformWideStats
+   * @memberof LlamaAiService
+   * @description Retrieves platform-wide statistics about AI usage for admins.
+   * @see {@link getPlatformWideStats} for implementation details.
+   */
   getPlatformWideStats,
+  /**
+   * @function adminDeleteOneLlamaAiSessionById
+   * @memberof LlamaAiService
+   * @description Deletes a single AI chat session by its ID, for administrative use.
+   * @see {@link adminDeleteOneLlamaAiSessionById} for implementation details.
+   */
   adminDeleteOneLlamaAiSessionById,
 };

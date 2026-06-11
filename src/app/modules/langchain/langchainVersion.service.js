@@ -18,7 +18,8 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
   try {
     // Optimization: Use .lean() for this read-only operation to improve performance by returning a plain
     // JavaScript object instead of a full Mongoose document, reducing memory overhead.
-    // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups.
+    // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups,
+    // although the primary filter on `_id` is already highly efficient.
     // Example: LangchainChainSchema.index({ userId: 1 });
     const chain = await LangchainChain.findOne({ _id: chainId, userId }).lean();
     if (!chain) {
@@ -31,7 +32,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     // Example: LangchainChainVersionSchema.index({ chainId: 1, versionNumber: -1 });
     const latestVersion = await LangchainChainVersion.findOne({ chainId })
       .sort({ versionNumber: -1 })
-      .lean();
+      .lean(); // Optimization: Use .lean() for faster, read-only queries.
 
     const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
@@ -53,7 +54,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     await snapshot.save();
 
     // Sync latest version count back to chain
-    // BUG FIX: The previous direct assignment `chain.version = nextVersionNumber; await chain.save();`
+    // BUG FIX & OPTIMIZATION: The previous direct assignment `chain.version = nextVersionNumber; await chain.save();`
     // was susceptible to race conditions. If multiple snapshots were created concurrently,
     // a lower version number could overwrite a higher one if their `chain.save()` operations interleaved.
     // This `findOneAndUpdate` atomically updates the `version` field only if `nextVersionNumber`
@@ -61,8 +62,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     // reflects the highest successfully created snapshot version.
     await LangchainChain.findOneAndUpdate(
       { _id: chainId, userId, version: { $lt: nextVersionNumber } },
-      { $set: { version: nextVersionNumber } },
-      { new: true } // Return the updated document (optional, but good practice)
+      { $set: { version: nextVersionNumber } }
     );
 
     logger.info({
@@ -107,6 +107,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
   try {
     // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups.
     // Example: LangchainChainSchema.index({ userId: 1 });
+    // Note: .lean() is NOT used here because the 'chain' document is modified and saved.
     const chain = await LangchainChain.findOne({ _id: chainId, userId });
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
@@ -180,7 +181,7 @@ const getVersionHistory = async (chainId, userId) => {
     const history = await LangchainChainVersion.find({ chainId, userId })
       .sort({ versionNumber: -1 })
       .select('versionNumber changeSummary createdAt')
-      .lean();
+      .lean(); // Optimization: Use .lean() for faster, read-only queries.
 
     return {
       success: true,

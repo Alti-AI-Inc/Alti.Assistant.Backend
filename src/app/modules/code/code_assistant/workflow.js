@@ -1,6 +1,14 @@
 import { StateGraph, END, MemorySaver, START } from '@langchain/langgraph';
 // ADDED: Import RunnableConfig to access invocation-specific configuration.
 import { RunnableConfig } from "@langchain/core/runnables";
+// BUGFIX: The state object must be updated to include channels for user and workspace context.
+// This is a critical integration point for the security and context validation node.
+// Example state.js:
+// export const codeAssistantState = {
+//   ...existing channels...,
+//   user: { value: null, default: () => ({ id: null, role: null }) },
+//   workspace: { value: null, default: () => ({ id: null, ownerId: null }) },
+// };
 import { codeAssistantState } from './state.js';
 import {
   detectIntentNode,
@@ -16,7 +24,7 @@ import config from '../../../../../config/index.js';
 // ADDED: Placeholder imports for database models and services.
 // In a real application, these would point to the actual model and service files.
 // import { User, Workspace } from '../../../models/index.js';
-// import { checkUsage } from '../../../services/usageService.js';
+// import { checkUsage, sendLimitNotification } from '../../../services/usageService.js';
 
 /**
  * @module workflow
@@ -25,6 +33,21 @@ import config from '../../../../../config/index.js';
  * based on user intent, allowing for code generation, explanation, debugging,
  * best practices advice, and general conversation.
  */
+
+// HIERARCHY GAP FIX: Placeholder for a notification service.
+/**
+ * Sends a notification when a workspace hits its usage limits.
+ * This demonstrates propagating information up the hierarchy (from a user's action
+ * to an alert for the workspace owner/admin).
+ * @param {object} workspace - The workspace that exceeded the limit.
+ * @param {object} user - The user whose action triggered the limit check.
+ */
+const sendLimitNotification = async (workspace, user) => {
+    // In a real implementation, this would trigger an email, Slack message, or in-app notification
+    // to the workspace owner or designated administrators.
+    console.log(`[NOTIFICATION] Workspace '${workspace.id}' has reached its usage limit. Notifying owner '${workspace.ownerId}'. Triggered by user '${user.id}'.`);
+};
+
 
 // ADDED: Node for security, authorization, and context validation.
 /**
@@ -60,24 +83,32 @@ const validateContextAndPermissionsNode = async (state, config) => {
   // const workspace = await Workspace.findById(workspaceId);
   const FAKE_DB = {
       users: {
-          'user-member-1': { id: 'user-member-1', role: 'member', workspaceId: 'ws-1' },
-          'user-admin-1': { id: 'user-admin-1', role: 'admin', workspaceId: 'ws-1' },
-          'user-viewer-1': { id: 'user-viewer-1', role: 'viewer', workspaceId: 'ws-1' },
+          'user-super-admin': { id: 'user-super-admin', role: 'super_admin', workspaceId: null }, // Platform owner
+          'user-admin-ws1': { id: 'user-admin-ws1', role: 'admin', workspaceId: 'ws-1' }, // Workspace owner
+          'user-manager-ws1': { id: 'user-manager-ws1', role: 'manager', workspaceId: 'ws-1' },
+          'user-member-ws1': { id: 'user-member-ws1', role: 'member', workspaceId: 'ws-1' },
+          'user-admin-ws2': { id: 'user-admin-ws2', role: 'admin', workspaceId: 'ws-2' },
       },
       workspaces: {
           'ws-1': {
               id: 'ws-1',
-              ownerId: 'user-admin-1',
+              ownerId: 'user-admin-ws1',
               features: {
                   codeAssistant: {
                       enabled: true,
                       // OPTIMIZED: Added role-based access control for the feature.
                       // This setting would be configured by a workspace admin in the UI,
                       // allowing them to control which roles can use expensive AI features.
-                      allowedRoles: ['admin', 'member']
+                      allowedRoles: ['admin', 'manager', 'member']
                   }
               },
               limits: { monthlyTokens: 1000000 }
+          },
+          'ws-2': {
+              id: 'ws-2',
+              ownerId: 'user-admin-ws2',
+              features: { codeAssistant: { enabled: false, allowedRoles: ['admin'] } },
+              limits: { monthlyTokens: 50000 }
           }
       }
   };
@@ -86,6 +117,7 @@ const validateContextAndPermissionsNode = async (state, config) => {
 
 
   if (!user || !workspace || user.workspaceId !== workspaceId) {
+    // This check prevents a user from ws-2 from accessing ws-1, a critical IDOR prevention step.
     throw new Error("Authorization Error: User is not authorized for this workspace.");
   }
 
@@ -108,10 +140,10 @@ const validateContextAndPermissionsNode = async (state, config) => {
   // This check enforces the subscription limits. The usage service would track
   // token consumption against the limit defined in the workspace's subscription plan.
   // const usage = await checkUsage(workspaceId, 'codeAssistant');
-  const usage = { tokens: 500000 }; // Placeholder usage
+  const usage = { tokens: 1000000 }; // Placeholder usage
   if (usage.tokens >= workspace.limits.monthlyTokens) {
-    // Optionally, trigger a notification to the workspace owner/admin.
-    // await sendLimitNotification(workspace.ownerId, 'Code Assistant token limit reached.');
+    // HIERARCHY GAP FIX: Propagate notification up to the workspace owner.
+    await sendLimitNotification(workspace, user);
     throw new Error("Usage Limit Exceeded: Your workspace has reached its monthly token limit for the Code Assistant.");
   }
 
@@ -261,13 +293,15 @@ const mongoDbOptions = {
   // Automatic reconnect logic is also built-in and enabled by default.
 };
 
-// CRITICAL SECURITY REQUIREMENT: The custom MongoDBSaver implementation MUST be multi-tenant aware.
-// Its `get`, `put`, and `list` methods must use the `workspaceId` from the `configurable` object passed
+// CRITICAL SECURITY FIX (IDOR): The custom MongoDBSaver implementation MUST be multi-tenant aware.
+// Its `get`, `put`, and `list` methods must use the `workspaceId` from the `metadata` object passed
 // during invocation to scope all database operations. This prevents users from one workspace
-// from accessing conversation threads in another (IDOR vulnerability).
+// from accessing conversation threads in another.
+// This comment is updated to be consistent with the `validateContextAndPermissionsNode`.
 // Example within MongoDBSaver.get(config):
-//   const { thread_id, workspaceId } = config.configurable;
-//   if (!workspaceId) throw new Error("Workspace ID is required for thread retrieval.");
+//   const thread_id = config.configurable.thread_id;
+//   const workspaceId = config.metadata?.workspaceId; // Use optional chaining for safety.
+//   if (!workspaceId) throw new Error("Security Error: Workspace ID is required for thread retrieval.");
 //   const doc = await this.collection.findOne({ _id: thread_id, workspaceId: workspaceId });
 MongoDBSaver.fromUri(config.database_uri, mongoDbOptions) // Use production URI and resiliency options
   .then((mongoCheckpointer) => {
