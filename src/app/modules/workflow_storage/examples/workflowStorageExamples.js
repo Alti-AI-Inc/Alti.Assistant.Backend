@@ -1,14 +1,24 @@
 /**
- * Example usage of the Workflow Storage Module
+ * @file Provides example usage of the Workflow Storage Module.
+ * @module workflowStorageExamples
  *
- * This file demonstrates how to use the workflow storage module
- * to analyze user input and store workflows for later execution.
+ * @description This file demonstrates how to use the workflow storage module
+ * to analyze user input, store workflows, manage them, and prepare them for execution.
+ * It serves as a practical guide for developers integrating with the `workflowStorageService`.
  */
 
 import { workflowStorageService } from './services/workflowStorage.service.js';
 
 /**
- * Example 1: Analyze and store a simple automation workflow
+ * Demonstrates analyzing and storing a simple, single-step automation workflow.
+ * This example simulates a user request to receive daily GitHub notifications via email.
+ * The function calls the `analyzeAndStoreWorkflow` service method and logs the result.
+ *
+ * @async
+ * @function exampleSimpleWorkflow
+ * @returns {Promise<object|undefined>} A promise that resolves with the result object from the service,
+ * or undefined if an error occurs. The result object indicates success or failure and contains
+ * the stored workflow's data.
  */
 export const exampleSimpleWorkflow = async () => {
   try {
@@ -48,7 +58,15 @@ export const exampleSimpleWorkflow = async () => {
 };
 
 /**
- * Example 2: Analyze and store a complex multi-step workflow
+ * Demonstrates analyzing and storing a complex, multi-step workflow involving multiple applications.
+ * This example simulates a user request to integrate GitHub, Slack, and Trello.
+ * It also shows how to pass conversation context to the analysis service.
+ *
+ * @async
+ * @function exampleComplexWorkflow
+ * @returns {Promise<object|undefined>} A promise that resolves with the result object from the service,
+ * or undefined if an error occurs. The result object indicates success or failure and contains
+ * the stored workflow's data, including planning metadata.
  */
 export const exampleComplexWorkflow = async () => {
   try {
@@ -104,7 +122,20 @@ export const exampleComplexWorkflow = async () => {
 };
 
 /**
- * Example 3: Retrieve and manage stored workflows
+ * Demonstrates various management functions for a user's stored workflows.
+ * This includes:
+ * - Fetching all workflows for a user with pagination and sorting.
+ * - Fetching only workflows that are ready for execution.
+ * - Searching for workflows based on a query string.
+ * - Retrieving aggregate statistics about a user's workflows.
+ *
+ * @async
+ * @function exampleWorkflowManagement
+ * @param {string} [userId='user123'] - The ID of the user whose workflows are being managed.
+ * This demonstrates the multi-tenant nature of the service, where all operations are scoped to a specific user.
+ * @returns {Promise<object|undefined>} A promise that resolves with an object containing the results
+ * of all management operations (allWorkflows, executableWorkflows, searchResults, stats),
+ * or undefined if an error occurs.
  */
 export const exampleWorkflowManagement = async (userId = 'user123') => {
   try {
@@ -188,7 +219,18 @@ export const exampleWorkflowManagement = async (userId = 'user123') => {
 };
 
 /**
- * Example 4: Prepare workflow for execution
+ * Demonstrates the process of preparing a stored workflow for execution.
+ * It fetches a specific workflow, checks if it's executable, and if not, attempts to
+ * refresh its connections. Finally, it calls the service to get the data payload
+ * required for execution by another system (e.g., Composio v2).
+ *
+ * @async
+ * @function exampleWorkflowExecution
+ * @param {string} workflowId - The ID of the workflow to prepare for execution.
+ * @param {string} [userId='user123'] - The ID of the user who owns the workflow.
+ * This ensures that a user can only access their own workflows.
+ * @returns {Promise<object|undefined>} A promise that resolves with the execution data from the service,
+ * or undefined if the workflow is not found or an error occurs.
  */
 export const exampleWorkflowExecution = async (
   workflowId,
@@ -274,7 +316,15 @@ export const exampleWorkflowExecution = async (
 };
 
 /**
- * Example 5: Update workflow metadata
+ * Demonstrates how to update the metadata of an existing stored workflow.
+ * This function updates properties like title, description, tags, and category.
+ *
+ * @async
+ * @function exampleWorkflowUpdate
+ * @param {string} workflowId - The ID of the workflow to update.
+ * @param {string} [userId='user123'] - The ID of the user who owns the workflow, ensuring proper authorization.
+ * @returns {Promise<object|undefined>} A promise that resolves with the result of the update operation,
+ * containing the updated workflow data, or undefined if an error occurs.
  */
 export const exampleWorkflowUpdate = async (workflowId, userId = 'user123') => {
   try {
@@ -309,7 +359,13 @@ export const exampleWorkflowUpdate = async (workflowId, userId = 'user123') => {
 };
 
 /**
- * Run all examples
+ * A main function to execute all other example functions in a logical sequence.
+ * This provides a comprehensive demonstration of the workflow storage module's lifecycle,
+ * from creation and management to preparation for execution and updating.
+ *
+ * @async
+ * @function runAllExamples
+ * @returns {Promise<void>} A promise that resolves when all examples have completed.
  */
 export const runAllExamples = async () => {
   console.log('🚀 Running Workflow Storage Module Examples...\n');

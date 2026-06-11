@@ -3,7 +3,45 @@ import path from 'path';
 import { PDFParse } from 'pdf-parse'; // Corrected import for pdf-parse library
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
+import { rateLimit } from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { redisClient } from '../../../../shared/config/redis.js'; // Assumes a configured Redis client is exported
 import { logger } from '../../../../shared/logger.js';
+
+/**
+ * @description Rate limiter for file processing endpoints.
+ * File parsing is a CPU and memory-intensive operation. A strict rate limit is crucial
+ * to prevent DDOS attacks, API abuse, and resource exhaustion that could lead to server
+ * instability or excessive costs. This limiter uses Redis for distributed environments.
+ *
+ * It should be applied as middleware to any Express route that utilizes the `processFile` service.
+ *
+ * @example
+ * // In your router file (e.g., documentAnalysis.routes.js)
+ * import { fileProcessingRateLimiter } from './services/fileProcessor';
+ * router.post('/analyze-document', upload.single('document'), fileProcessingRateLimiter, analyzeDocumentController);
+ */
+export const fileProcessingRateLimiter = rateLimit({
+  // Use Redis as the store to share rate limit state across multiple server instances.
+  store: new RedisStore({
+    // The `rate-limit-redis` library expects a function that can send commands to Redis.
+    // This is compatible with both `ioredis` and `node-redis` clients.
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 file processing requests per 15-minute window.
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers.
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+  message: {
+    status: 429,
+    error: 'Too many requests',
+    message:
+      'You have made too many file processing requests. Please try again in 15 minutes.',
+  },
+  // A custom key generator can be used to rate limit based on user ID for authenticated users.
+  // For this example, we default to the IP address.
+  // keyGenerator: (req, res) => req.user ? req.user.id : req.ip,
+});
 
 /**
  * Extracts text content from a PDF file.
