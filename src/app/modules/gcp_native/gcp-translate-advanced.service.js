@@ -10,9 +10,10 @@ const auth = new GoogleAuth({
  * Automatically detects the language of a given text content.
  * This is a fast, synchronous API call and does not qualify as a long-running job.
  * It is appropriately handled in-process for immediate feedback.
- * 
- * @param {string} text - Input text content
- * @returns {Promise<object>} Detected language report with confidence scores
+ *
+ * @param {string} text - Input text content.
+ * @returns {Promise<{success: boolean, languageCode: string, confidence: number, allDetections: Array<object>}>} A promise that resolves to the detected language report with confidence scores.
+ * @throws {Error} If the GCP Project ID is not configured or the API call fails.
  */
 const detectTextLanguage = async (text) => {
   try {
@@ -57,20 +58,21 @@ const detectTextLanguage = async (text) => {
  * Instead of processing a document in-memory and blocking the request, this function starts a job and returns immediately.
  * The caller is responsible for storing the returned operation name to check for completion later.
  * This approach requires the source document to be in a GCS bucket.
- * 
- * @param {string} gcsInputUri - The GCS URI of the source document. e.g., 'gs://my-bucket/my-folder/document.pdf'
- * @param {string} mimeType - Document mimetype (e.g. 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
- * @param {string} gcsOutputUriPrefix - The GCS URI prefix for the output folder. e.g., 'gs://my-bucket/my-folder/translated/'
- * @param {string} targetLanguageCode - Target ISO language code (e.g. 'es', 'fr', 'ja')
- * @param {string} [sourceLanguageCode] - Optional source language code (if omitted, GCP auto-detects)
- * @returns {Promise<object>} An object containing the name of the long-running operation.
+ *
+ * @param {string} gcsInputUri - The GCS URI of the source document. e.g., 'gs://my-bucket/my-folder/document.pdf'.
+ * @param {string} mimeType - Document mimetype (e.g. 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document').
+ * @param {string} gcsOutputUriPrefix - The GCS URI prefix for the output folder. e.g., 'gs://my-bucket/my-folder/translated/'.
+ * @param {string} targetLanguageCode - Target ISO language code (e.g. 'es', 'fr', 'ja').
+ * @param {string} [sourceLanguageCode] - Optional source language code (if omitted, GCP auto-detects).
+ * @returns {Promise<{success: boolean, operationName: string, message: string}>} A promise that resolves to an object containing the name of the long-running operation.
+ * @throws {Error} If required parameters are missing or the API call to start the job fails.
  */
 const startDocumentTranslation = async (gcsInputUri, mimeType, gcsOutputUriPrefix, targetLanguageCode, sourceLanguageCode = null) => {
   try {
     const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
     // Location must be a regional endpoint for document translation (global not supported for docs)
-    const location = config.google.gcp_location && config.google.gcp_location !== 'global' 
-      ? config.google.gcp_location 
+    const location = config.google.gcp_location && config.google.gcp_location !== 'global'
+      ? config.google.gcp_location
       : 'us-central1';
 
     if (!projectId) {
@@ -124,6 +126,12 @@ const startDocumentTranslation = async (gcsInputUri, mimeType, gcsOutputUriPrefi
   }
 };
 
+/**
+ * @namespace GcpTranslateAdvancedService
+ * @description A service module for interacting with the advanced features of the
+ * Google Cloud Translation API (v3), such as batch document translation and language detection.
+ * This service uses the `google-auth-library` for authentication.
+ */
 export const GcpTranslateAdvancedService = {
   detectTextLanguage,
   startDocumentTranslation
