@@ -43,13 +43,7 @@ const mongooseOptions = {
 };
 
 // Establish the database connection
-if (mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
-  mongoose.connect(MONGO_URI, mongooseOptions).catch(err => {
-    console.error('FATAL: Initial MongoDB connection failed.', err);
-    // In a production environment, you should exit the process if the database connection fails on startup.
-    // process.exit(1);
-  });
-}
+// mongoose.connect removed
 
 // --- Connection Event Listeners for Observability ---
 mongoose.connection.on('connected', () => {

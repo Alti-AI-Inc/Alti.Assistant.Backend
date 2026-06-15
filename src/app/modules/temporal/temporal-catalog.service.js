@@ -84,7 +84,7 @@ const connectDB = async () => {
       return;
     }
     // The Mongoose driver handles automatic reconnects by default. The options above fine-tune this behavior.
-    await mongoose.connect(MONGODB_URI, connectionOptions);
+    // await mongoose.connect(MONGODB_URI, connectionOptions);
   } catch (error) {
     console.error('FATAL: MongoDB connection error:', error);
     // Exit process with failure to allow orchestration tools (like Kubernetes/GKE) to restart the container.

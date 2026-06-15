@@ -39,34 +39,6 @@ const connectionOptions = {
 
 };
 
-// In Mongoose 5 and later, the driver handles automatic reconnection by default.
-// There is no need for deprecated options like `autoReconnect: true`.
-// We connect to the database using the URI and the resilient options.
-mongoose.connect(dbUri, connectionOptions)
-  .then(() => console.log('MongoDB connection established successfully.'))
-  .catch(err => {
-    console.error('Initial MongoDB connection error:', err);
-    // It's good practice to exit the process if the initial connection fails,
-    // especially in containerized environments, to allow orchestration tools
-    // (like Kubernetes) to restart the service.
-    process.exit(1);
-  });
-
-// Optional: Add listeners to log connection events for monitoring.
-mongoose.connection.on('connected', () => {
-  console.log('Mongoose re-established connection to MongoDB.');
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.warn('Mongoose connection to MongoDB was lost.');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('Mongoose connection error:', err);
-});
-
-
-// =================================================================
 // Original Model Definition
 // =================================================================
 

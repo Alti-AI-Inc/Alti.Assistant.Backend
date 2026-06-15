@@ -44,11 +44,7 @@ const mongooseOptions = {
   family: 4,
 };
 
-mongoose.connect(dbUri, mongooseOptions).catch(err => {
-  console.error('Initial MongoDB connection error:', err);
-  // In a production app, you might want to exit the process if the initial connection fails.
-  // process.exit(1);
-});
+// mongoose.connect removed to prevent duplicate connection crashes.
 
 // --- Connection Event Listeners for Monitoring ---
 
@@ -59,25 +55,6 @@ mongoose.connect(dbUri, mongooseOptions).catch(err => {
 mongoose.connection.on('connected', () => {
   console.log('Mongoose connection open to database');
 });
-
-/**
- * Mongoose event listener for a connection error.
- * @event mongoose.connection#error
- * @param {Error} err - The connection error.
- */
-mongoose.connection.on('error', (err) => {
-  console.error('Mongoose connection error:', err);
-});
-
-/**
- * Mongoose event listener for a disconnection.
- * @event mongoose.connection#disconnected
- */
-mongoose.connection.on('disconnected', () => {
-  console.log('Mongoose connection disconnected');
-});
-
-/**
  * Gracefully closes the Mongoose connection when the Node.js process receives a SIGINT signal (e.g., from Ctrl+C).
  * @listens process#SIGINT
  */

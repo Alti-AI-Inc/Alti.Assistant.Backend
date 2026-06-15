@@ -15,6 +15,19 @@ import express from 'express';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
+const originalConnect = mongoose.connect.bind(mongoose);
+mongoose.connect = async function(uri, options) {
+  if (uri && uri.includes('localhost')) {
+    console.warn(`[Mongoose Patch] Blocked rogue connection to ${uri}`);
+    return mongoose;
+  }
+  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+    console.warn(`[Mongoose Patch] Blocked duplicate connection to ${uri}`);
+    return mongoose;
+  }
+  console.log(`[Mongoose Patch] Allowing initial connection to ${uri}`);
+  return originalConnect(uri, options);
+};
 import mongoSanitize from 'express-mongo-sanitize';
 import hpp from 'hpp';
 import toobusy from 'toobusy-js';

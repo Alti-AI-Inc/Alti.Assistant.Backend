@@ -15,6 +15,7 @@ dotenv.config();
 const redisClient = new Redis(config.redis.url, {
   enableOfflineQueue: false,
 });
+redisClient.on('error', err => console.error('Redis client error in imagegen4:', err));
 
 // Rate limiter for authenticated users, identified by their unique userId.
 // This is a generous limit for legitimate users, allowing 20 image generations per hour.
