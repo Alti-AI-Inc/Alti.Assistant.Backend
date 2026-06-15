@@ -4,11 +4,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // This ensures that `const genAI = new GoogleGenerativeAI(...)` in the service file
 // uses our mocked GoogleGenerativeAI.
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
@@ -30,8 +38,8 @@ vi.mock('path', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    resolve: vi.fn((p) => p), // Mock resolve to return path directly for testing relative paths
-    join: vi.fn((...args) => args.join('/')), // Mock join for consistent path strings
+    resolve: vi.fn().mockImplementation((p) => p), // Mock resolve to return path directly for testing relative paths
+    join: vi.fn().mockImplementation((...args) => args.join('/')), // Mock join for consistent path strings
   };
 });
 
@@ -41,7 +49,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'; // Import the mocked
 
 // Mock LangchainChain model
 const mockChainFindByIdLean = vi.fn();
-LangchainChain.findById = vi.fn(() => ({
+LangchainChain.findById = vi.fn().mockImplementation(() => ({
   lean: mockChainFindByIdLean,
 }));
 

@@ -5,20 +5,74 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockAddNode = vi.fn();
 const mockAddEdge = vi.fn();
 const mockAddConditionalEdges = vi.fn();
-const mockCompile = vi.fn((options) => ({
+const mockCompile = vi.fn().mockImplementation((options) => ({
   checkpointer: options.checkpointer,
   invoke: vi.fn(),
   stream: vi.fn(),
 }));
 
 const mockMemorySaverInstance = { type: 'MemorySaverInstance' };
-const mockMemorySaver = vi.fn(() => mockMemorySaverInstance);
-const mockStateGraph = vi.fn(() => ({
-  addNode: mockAddNode,
-  addEdge: mockAddEdge,
-  addConditionalEdges: mockAddConditionalEdges,
-  compile: mockCompile,
-}));
+
+const {
+  mockMemorySaver,
+  mockStateGraph,
+  mockVideoGeneratorState,
+  mockAnalyzeInitialVideoPromptNode,
+  mockProcessVideoUserResponseNode,
+  mockAskVideoQuestionNode,
+  mockGetVideoConfirmationNode,
+  mockCompileVideoFinalPromptNode,
+  mockGenerateVideoNode,
+  mockRouteVideoInitial,
+  mockRouteVideoNextStep,
+  mockConfig,
+  mockMongoDBSaverFromUri
+} = vi.hoisted(() => {
+  const mockMemorySaver = vi.fn().mockImplementation(() => mockMemorySaverInstance);
+  const mockStateGraph = vi.fn().mockImplementation(() => ({
+    addNode: mockAddNode,
+    addEdge: mockAddEdge,
+    addConditionalEdges: mockAddConditionalEdges,
+    compile: mockCompile,
+  }));
+
+  // Mock videoGeneratorState
+  const mockVideoGeneratorState = {
+    messages: { value: (x, y) => x.concat(y), default: () => [] },
+  };
+
+  // Mock node and router functions
+  const mockAnalyzeInitialVideoPromptNode = vi.fn();
+  const mockProcessVideoUserResponseNode = vi.fn();
+  const mockAskVideoQuestionNode = vi.fn();
+  const mockGetVideoConfirmationNode = vi.fn();
+  const mockCompileVideoFinalPromptNode = vi.fn();
+  const mockGenerateVideoNode = vi.fn();
+  const mockRouteVideoInitial = vi.fn();
+  const mockRouteVideoNextStep = vi.fn();
+
+  // Mock config
+  const mockConfig = {
+    database_local: 'mongodb://localhost:27017/test_db',
+  };
+  const mockMongoDBSaverFromUri = vi.fn();
+
+  return {
+    mockMemorySaver,
+    mockStateGraph,
+    mockVideoGeneratorState,
+    mockAnalyzeInitialVideoPromptNode,
+    mockProcessVideoUserResponseNode,
+    mockAskVideoQuestionNode,
+    mockGetVideoConfirmationNode,
+    mockCompileVideoFinalPromptNode,
+    mockGenerateVideoNode,
+    mockRouteVideoInitial,
+    mockRouteVideoNextStep,
+    mockConfig,
+    mockMongoDBSaverFromUri
+  };
+});
 
 vi.mock('@langchain/langgraph', () => ({
   StateGraph: mockStateGraph,
@@ -27,23 +81,9 @@ vi.mock('@langchain/langgraph', () => ({
   MemorySaver: mockMemorySaver,
 }));
 
-// Mock videoGeneratorState
-const mockVideoGeneratorState = {
-  messages: { value: (x, y) => x.concat(y), default: () => [] },
-};
 vi.mock('./state.js', () => ({
   videoGeneratorState: mockVideoGeneratorState,
 }));
-
-// Mock node and router functions
-const mockAnalyzeInitialVideoPromptNode = vi.fn();
-const mockProcessVideoUserResponseNode = vi.fn();
-const mockAskVideoQuestionNode = vi.fn();
-const mockGetVideoConfirmationNode = vi.fn();
-const mockCompileVideoFinalPromptNode = vi.fn();
-const mockGenerateVideoNode = vi.fn();
-const mockRouteVideoInitial = vi.fn();
-const mockRouteVideoNextStep = vi.fn();
 
 vi.mock('./nodes.js', () => ({
   analyzeInitialVideoPromptNode: mockAnalyzeInitialVideoPromptNode,
@@ -56,17 +96,12 @@ vi.mock('./nodes.js', () => ({
   routeVideoNextStep: mockRouteVideoNextStep,
 }));
 
-// Mock config
-const mockConfig = {
-  database_local: 'mongodb://localhost:27017/test_db',
-};
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));
 
 // Mock MongoDBSaver
 const mockMongoDBSaverInstance = { type: 'MongoDBSaverInstance' };
-const mockMongoDBSaverFromUri = vi.fn();
 vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
   MongoDBSaver: {
     fromUri: mockMongoDBSaverFromUri,

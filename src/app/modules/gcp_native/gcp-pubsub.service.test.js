@@ -4,8 +4,16 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
 const mockRequest = vi.fn();
-const mockGetClient = vi.fn().mockResolvedValue({
-  request: mockRequest
+const {
+  mockGetClient
+} = vi.hoisted(() => {
+  const mockGetClient = vi.fn().mockResolvedValue({
+    request: mockRequest
+  });
+
+  return {
+    mockGetClient
+  };
 });
 
 vi.mock('google-auth-library', () => {

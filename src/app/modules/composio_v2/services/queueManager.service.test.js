@@ -1,11 +1,19 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-// Mock logger
-const logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  // Mock logger
+  const logger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 vi.mock('../../../../shared/logger.js', () => ({ logger }));
 
 // Mock WorkflowExecution model

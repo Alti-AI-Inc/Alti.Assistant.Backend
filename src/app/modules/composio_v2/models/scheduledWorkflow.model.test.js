@@ -2,12 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import ScheduledWorkflow from './scheduledWorkflow.model.js';
 
-// Mock the mongoose model methods that would interact with the DB
-const mockSave = vi.fn().mockImplementation(function () {
-  return Promise.resolve(this);
+const {
+  mockSave,
+  mockFind
+} = vi.hoisted(() => {
+  // Mock the mongoose model methods that would interact with the DB
+  const mockSave = vi.fn().mockImplementation(function () {
+    return Promise.resolve(this);
+  });
+
+  const mockFind = vi.fn();
+
+  return {
+    mockSave,
+    mockFind
+  };
 });
 
-const mockFind = vi.fn();
 const mockSort = vi.fn();
 
 mockFind.mockReturnValue({ sort: mockSort });

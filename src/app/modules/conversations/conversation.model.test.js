@@ -41,20 +41,20 @@ vi.mock('mongoose', async (importOriginal) => {
     limit: vi.fn().mockReturnThis(),
     skip: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
-    exec: vi.fn(() => Promise.resolve([])), // Default to resolve empty array
-    then: vi.fn((cb) => cb([])), // Make it thenable for direct promise resolution
+    exec: vi.fn().mockImplementation(() => Promise.resolve([])), // Default to resolve empty array
+    then: vi.fn().mockImplementation((cb) => cb([])), // Make it thenable for direct promise resolution
   };
 
   const mockModel = {
-    find: vi.fn(() => mockQuery),
-    findOne: vi.fn(() => mockQuery),
+    find: vi.fn().mockImplementation(() => mockQuery),
+    findOne: vi.fn().mockImplementation(() => mockQuery),
     // Other methods can be added as needed
   };
 
   return {
     default: {
       Schema: mockSchemaConstructor,
-      model: vi.fn((name, schema) => {
+      model: vi.fn().mockImplementation((name, schema) => {
         // Attach static methods from the schema to the mock model
         Object.assign(mockModel, schema.statics);
         return mockModel;
@@ -75,20 +75,20 @@ vi.mock('crypto', () => {
 
   return {
     default: {
-      randomBytes: vi.fn(() => MOCK_IV),
-      createCipheriv: vi.fn((algo, key, iv) => ({
-        update: vi.fn((text) => Buffer.from(MOCK_ENCRYPTED_PREFIX + text)),
-        final: vi.fn(() => Buffer.from('')),
+      randomBytes: vi.fn().mockImplementation(() => MOCK_IV),
+      createCipheriv: vi.fn().mockImplementation((algo, key, iv) => ({
+        update: vi.fn().mockImplementation((text) => Buffer.from(MOCK_ENCRYPTED_PREFIX + text)),
+        final: vi.fn().mockImplementation(() => Buffer.from('')),
       })),
-      createDecipheriv: vi.fn((algo, key, iv) => ({
-        update: vi.fn((encrypted) => {
+      createDecipheriv: vi.fn().mockImplementation((algo, key, iv) => ({
+        update: vi.fn().mockImplementation((encrypted) => {
           const str = encrypted.toString();
           if (str.startsWith(MOCK_ENCRYPTED_PREFIX)) {
             return Buffer.from(str.substring(MOCK_ENCRYPTED_PREFIX.length));
           }
           return Buffer.from(str); // Fallback if not our mock encrypted text
         }),
-        final: vi.fn(() => Buffer.from('')),
+        final: vi.fn().mockImplementation(() => Buffer.from('')),
       })),
     },
   };
@@ -484,7 +484,7 @@ describe('Conversation Model', () => {
       const preSaveHook = conversationSchemaInstance.pre.mock.calls.find(call => call[0] === 'save')[1];
       const mockDoc = {
         messages: [{ content: 'msg1' }],
-        isModified: vi.fn((field) => field === 'messages'),
+        isModified: vi.fn().mockImplementation((field) => field === 'messages'),
         lastActivity: new Date('2023-01-01T00:00:00.000Z'),
         messageCount: 0,
       };
@@ -503,7 +503,7 @@ describe('Conversation Model', () => {
       const preSaveHook = conversationSchemaInstance.pre.mock.calls.find(call => call[0] === 'save')[1];
       const mockDoc = {
         messages: [{ content: 'msg1' }],
-        isModified: vi.fn((field) => field !== 'messages'),
+        isModified: vi.fn().mockImplementation((field) => field !== 'messages'),
         lastActivity: new Date('2023-01-01T00:00:00.000Z'),
         messageCount: 0,
       };
@@ -634,8 +634,8 @@ describe('Conversation Model', () => {
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([])),
-        then: vi.fn((cb) => cb([])),
+        exec: vi.fn().mockImplementation(() => Promise.resolve([])),
+        then: vi.fn().mockImplementation((cb) => cb([])),
       };
       mockConversationModel.find.mockReturnValue(mockQuery);
       mockConversationModel.findOne.mockReturnValue(mockQuery);

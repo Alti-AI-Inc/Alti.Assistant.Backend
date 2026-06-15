@@ -4,25 +4,33 @@ import { describe, it, expect, vi } from 'vitest';
 // If the schema had methods (e.g., .virtual(), .pre(), .post()), they would be mocked here.
 const mockSchemaInstance = {};
 
-// Define a mock object for the entire 'mongoose' module.
-const mockMongoose = {
-  // Mock the Schema constructor. It should return our `mockSchemaInstance`.
-  Schema: vi.fn((schemaDef, options) => {
-    // We don't need to store schemaDef/options here as `mockMongoose.Schema.mock.calls`
-    // will automatically capture them.
-    return mockSchemaInstance;
-  }),
-  // Mock the model function. It should return a dummy object representing the model.
-  model: vi.fn((name, schema) => {
-    // We don't need to store name/schema here as `mockMongoose.model.mock.calls`
-    // will automatically capture them.
-    return {}; // Return a dummy object for the model
-  }),
-  // Mock Mongoose.Types.ObjectId for schema definition.
-  Types: {
-    ObjectId: vi.fn(),
-  },
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  // Define a mock object for the entire 'mongoose' module.
+  const mockMongoose = {
+    // Mock the Schema constructor. It should return our `mockSchemaInstance`.
+    Schema: vi.fn().mockImplementation((schemaDef, options) => {
+      // We don't need to store schemaDef/options here as `mockMongoose.Schema.mock.calls`
+      // will automatically capture them.
+      return mockSchemaInstance;
+    }),
+    // Mock the model function. It should return a dummy object representing the model.
+    model: vi.fn().mockImplementation((name, schema) => {
+      // We don't need to store name/schema here as `mockMongoose.model.mock.calls`
+      // will automatically capture them.
+      return {}; // Return a dummy object for the model
+    }),
+    // Mock Mongoose.Types.ObjectId for schema definition.
+    Types: {
+      ObjectId: vi.fn(),
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Mock the 'mongoose' module globally. This must be done before the module under test is imported.
 vi.mock('mongoose', () => mockMongoose);

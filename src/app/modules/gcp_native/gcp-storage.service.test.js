@@ -4,7 +4,7 @@ import { logger } from '../../../shared/logger.js';
 
 // Mock the entire @google-cloud/storage module
 const mockGetSignedUrl = vi.fn();
-const mockFile = vi.fn(() => ({
+const mockFile = vi.fn().mockImplementation(() => ({
   getSignedUrl: mockGetSignedUrl,
 }));
 
@@ -13,16 +13,24 @@ const mockBucketInstance = {
   file: mockFile,
   getFiles: mockGetFiles,
 };
-const mockBucket = vi.fn(() => mockBucketInstance);
+const mockBucket = vi.fn().mockImplementation(() => mockBucketInstance);
 
 const mockCreateBucket = vi.fn();
-const mockStorageInstance = {
-  createBucket: mockCreateBucket,
-  bucket: mockBucket,
-};
+const {
+  mockStorageInstance
+} = vi.hoisted(() => {
+  const mockStorageInstance = {
+    createBucket: mockCreateBucket,
+    bucket: mockBucket,
+  };
+
+  return {
+    mockStorageInstance
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn(() => mockStorageInstance),
+  Storage: vi.fn().mockImplementation(() => mockStorageInstance),
 }));
 
 // Mock the logger to prevent console output and allow spying

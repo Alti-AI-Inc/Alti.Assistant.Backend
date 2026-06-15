@@ -23,23 +23,36 @@ vi.mock('path', () => ({
 
 const mockSave = vi.fn();
 const mockDelete = vi.fn();
-const mockFile = vi.fn(() => ({
+const mockFile = vi.fn().mockImplementation(() => ({
   save: mockSave,
   delete: mockDelete,
 }));
-const mockBucket = vi.fn(() => ({
+const mockBucket = vi.fn().mockImplementation(() => ({
   file: mockFile,
 }));
-const mockStorage = vi.fn(() => ({
-  bucket: mockBucket,
-}));
+
+const {
+  mockStorage,
+  mockGetText
+} = vi.hoisted(() => {
+  const mockStorage = vi.fn().mockImplementation(() => ({
+    bucket: mockBucket,
+  }));
+
+  const mockGetText = vi.fn();
+
+  return {
+    mockStorage,
+    mockGetText
+  };
+});
+
 vi.mock('@google-cloud/storage', () => ({
   Storage: mockStorage,
 }));
 
-const mockGetText = vi.fn();
 vi.mock('pdf-parse', () => ({
-  PDFParse: vi.fn(() => ({
+  PDFParse: vi.fn().mockImplementation(() => ({
     getText: mockGetText,
   })),
 }));

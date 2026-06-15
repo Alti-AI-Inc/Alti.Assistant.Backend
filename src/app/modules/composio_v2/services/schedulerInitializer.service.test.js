@@ -385,7 +385,7 @@ describe('SchedulerInitializer', () => {
 
       // Mock process.on to store handlers
       const handlers = {};
-      process.on = vi.fn((event, handler) => {
+      process.on = vi.fn().mockImplementation((event, handler) => {
         handlers[event] = handler;
       });
       instance._processHandlers = handlers; // Store handlers on instance for testing

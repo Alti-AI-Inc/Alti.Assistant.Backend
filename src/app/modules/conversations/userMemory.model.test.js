@@ -16,23 +16,41 @@ const originalConsoleWarn = console.warn;
 const mockSchemaInstance = {
   index: vi.fn(),
 };
-const mockSchema = vi.fn(() => mockSchemaInstance);
+
+const {
+  mockSchema,
+  mockModel,
+  mockRandomBytes,
+  mockCreateCipheriv,
+  mockCreateDecipheriv
+} = vi.hoisted(() => {
+  const mockSchema = vi.fn().mockImplementation(() => mockSchemaInstance);
+  const mockModel = vi.fn().mockImplementation(() => mockModelInstance);
+
+  // Mock crypto functions
+  const mockRandomBytes = vi.fn();
+  const mockCreateCipheriv = vi.fn();
+  const mockCreateDecipheriv = vi.fn();
+
+  return {
+    mockSchema,
+    mockModel,
+    mockRandomBytes,
+    mockCreateCipheriv,
+    mockCreateDecipheriv
+  };
+});
+
 const mockModelInstance = {
   // Mock methods a Mongoose model might have, if needed
   find: vi.fn(),
   create: vi.fn(),
 };
-const mockModel = vi.fn(() => mockModelInstance);
 
 vi.mock('mongoose', () => ({
   Schema: mockSchema,
   model: mockModel,
 }));
-
-// Mock crypto functions
-const mockRandomBytes = vi.fn();
-const mockCreateCipheriv = vi.fn();
-const mockCreateDecipheriv = vi.fn();
 
 vi.mock('crypto', async (importOriginal) => {
   const actualCrypto = await importOriginal();
@@ -46,12 +64,12 @@ vi.mock('crypto', async (importOriginal) => {
 
 // Helper for mocking crypto cipher/decipher streams
 const mockCipherStream = {
-  update: vi.fn((data) => Buffer.from(`encrypted_${data}`)),
-  final: vi.fn(() => Buffer.from('final')),
+  update: vi.fn().mockImplementation((data) => Buffer.from(`encrypted_${data}`)),
+  final: vi.fn().mockImplementation(() => Buffer.from('final')),
 };
 const mockDecipherStream = {
-  update: vi.fn((data) => Buffer.from(`decrypted_${data}`)),
-  final: vi.fn(() => Buffer.from('final')),
+  update: vi.fn().mockImplementation((data) => Buffer.from(`decrypted_${data}`)),
+  final: vi.fn().mockImplementation(() => Buffer.from('final')),
 };
 
 describe('userMemory.model encryption key validation', () => {

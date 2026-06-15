@@ -12,9 +12,19 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-// Setup mocks for ChatGoogleGenerativeAI
-const mockConstructor = vi.fn();
-const mockInvoke = vi.fn();
+const {
+  mockConstructor,
+  mockInvoke
+} = vi.hoisted(() => {
+  // Setup mocks for ChatGoogleGenerativeAI
+  const mockConstructor = vi.fn();
+  const mockInvoke = vi.fn();
+
+  return {
+    mockConstructor,
+    mockInvoke
+  };
+});
 
 vi.mock('@langchain/google-genai', () => {
   return {

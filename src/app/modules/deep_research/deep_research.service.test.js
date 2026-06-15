@@ -10,7 +10,7 @@ import { deepResearchService } from './deep_research.service.js';
 // Mock external modules
 vi.mock('http-status', () => ({ default: { INTERNAL_SERVER_ERROR: 500 } }));
 vi.mock('../../../errors/ApiError.js', () => ({
-  default: vi.fn((status, message) => {
+  default: vi.fn().mockImplementation((status, message) => {
     const error = new Error(message);
     error.statusCode = status;
     return error;
@@ -39,8 +39,8 @@ vi.mock('../conversations/conversation.helpers.js', () => ({
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },

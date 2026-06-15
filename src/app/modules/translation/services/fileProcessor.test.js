@@ -1,18 +1,84 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
-// Mock external dependencies
-// Mock fs/promises
-const mockFsPromises = {
-  readFile: vi.fn(),
-  unlink: vi.fn(),
-};
+const {
+  mockFsPromises,
+  mockFsSync,
+  mockStorageConstructor,
+  mockMammoth,
+  mockPdfParseConstructor,
+  mockXLSX,
+  mockLogger,
+  mockApiError,
+  mockTranslationConstants
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  // Mock fs/promises
+  const mockFsPromises = {
+    readFile: vi.fn(),
+    unlink: vi.fn(),
+  };
+
+  // Mock fs (sync)
+  const mockFsSync = {
+    existsSync: vi.fn(),
+  };
+  const mockStorageConstructor = vi.fn().mockImplementation(() => mockStorage);
+
+  // Mock mammoth
+  const mockMammoth = {
+    extractRawText: vi.fn(),
+  };
+  const mockPdfParseConstructor = vi.fn().mockImplementation(() => mockPdfParseInstance);
+
+  // Mock xlsx (dynamic import)
+  const mockXLSX = {
+    readFile: vi.fn(),
+    utils: {
+      sheet_to_csv: vi.fn(),
+    },
+  };
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  // Mock ApiError
+  const mockApiError = vi.fn().mockImplementation((status, message) => {
+    const error = new Error(message);
+    error.statusCode = status;
+    return error;
+  });
+
+  // Mock translation.constant.js (constants)
+  const mockTranslationConstants = {
+    SUPPORTED_DOCUMENT_FORMATS: ['.pdf', '.docx', '.doc', '.txt', '.md', '.html', '.json', '.csv', '.xlsx'],
+    ERROR_MESSAGES: {
+      UNSUPPORTED_FORMAT: 'Unsupported document format.',
+    },
+    STORAGE_CONFIG: {
+      UPLOAD_FOLDER: 'translation-uploads',
+    },
+  };
+
+  return {
+    mockFsPromises,
+    mockFsSync,
+    mockStorageConstructor,
+    mockMammoth,
+    mockPdfParseConstructor,
+    mockXLSX,
+    mockLogger,
+    mockApiError,
+    mockTranslationConstants
+  };
+});
+
 vi.mock('fs/promises', () => mockFsPromises);
 
-// Mock fs (sync)
-const mockFsSync = {
-  existsSync: vi.fn(),
-};
 vi.mock('fs', () => mockFsSync);
 
 // Mock path (only extname is used, default to actual behavior)
@@ -20,7 +86,7 @@ vi.mock('path', async (importActual) => {
   const actual = await importActual();
   return {
     ...actual,
-    extname: vi.fn((p) => actual.extname(p)), // Default to actual behavior
+    extname: vi.fn().mockImplementation((p) => actual.extname(p)), // Default to actual behavior
   };
 });
 
@@ -32,56 +98,31 @@ const mockFile = {
 };
 const mockBucket = {
   upload: vi.fn(),
-  file: vi.fn(() => mockFile),
+  file: vi.fn().mockImplementation(() => mockFile),
 };
 const mockStorage = {
-  bucket: vi.fn(() => mockBucket),
+  bucket: vi.fn().mockImplementation(() => mockBucket),
 };
-const mockStorageConstructor = vi.fn(() => mockStorage);
 vi.mock('@google-cloud/storage', () => ({
   Storage: mockStorageConstructor,
 }));
 
-// Mock mammoth
-const mockMammoth = {
-  extractRawText: vi.fn(),
-};
 vi.mock('mammoth', () => mockMammoth);
 
 // Mock pdf-parse
 const mockPdfParseInstance = {
   getText: vi.fn(),
 };
-const mockPdfParseConstructor = vi.fn(() => mockPdfParseInstance);
 vi.mock('pdf-parse', () => ({
   PDFParse: mockPdfParseConstructor,
 }));
 
-// Mock xlsx (dynamic import)
-const mockXLSX = {
-  readFile: vi.fn(),
-  utils: {
-    sheet_to_csv: vi.fn(),
-  },
-};
 vi.mock('xlsx', () => mockXLSX);
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-// Mock ApiError
-const mockApiError = vi.fn((status, message) => {
-  const error = new Error(message);
-  error.statusCode = status;
-  return error;
-});
 vi.mock('../../../../errors/ApiError.js', () => ({
   default: mockApiError,
 }));
@@ -89,16 +130,6 @@ vi.mock('../../../../errors/ApiError.js', () => ({
 // Import http-status (constants, no need to mock)
 import httpStatus from 'http-status';
 
-// Mock translation.constant.js (constants)
-const mockTranslationConstants = {
-  SUPPORTED_DOCUMENT_FORMATS: ['.pdf', '.docx', '.doc', '.txt', '.md', '.html', '.json', '.csv', '.xlsx'],
-  ERROR_MESSAGES: {
-    UNSUPPORTED_FORMAT: 'Unsupported document format.',
-  },
-  STORAGE_CONFIG: {
-    UPLOAD_FOLDER: 'translation-uploads',
-  },
-};
 vi.mock('../translation.constant.js', () => mockTranslationConstants);
 
 // Declare a variable to hold the imported module's exports

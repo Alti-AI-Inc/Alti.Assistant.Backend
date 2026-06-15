@@ -7,7 +7,7 @@ vi.mock('@google/genai', () => {
   const mockModels = {
     generateContent: mockGenerateContent,
   };
-  const mockGoogleGenAI = vi.fn(() => ({
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
     models: mockModels,
   }));
   return { GoogleGenAI: mockGoogleGenAI, mockGenerateContent }; // Export mockGenerateContent for direct assertion
@@ -33,21 +33,33 @@ vi.mock('../../../shared/sessionGenerate.js', () => ({
   default: generateSessionId,
 }));
 
-// Mock Mongoose models
-const mockUserModel = {
-  findById: vi.fn().mockReturnThis(), // Allows chaining .lean()
-  lean: vi.fn(),
-  findByIdAndUpdate: vi.fn(),
-};
+const {
+  mockUserModel,
+  mockChatHistoryModel
+} = vi.hoisted(() => {
+  // Mock Mongoose models
+  const mockUserModel = {
+    findById: vi.fn().mockReturnThis(), // Allows chaining .lean()
+    lean: vi.fn(),
+    findByIdAndUpdate: vi.fn(),
+  };
+
+  const mockChatHistoryModel = {
+    findOne: vi.fn().mockReturnThis(), // Allows chaining
+    create: vi.fn(),
+    save: vi.fn(), // For existing session
+  };
+
+  return {
+    mockUserModel,
+    mockChatHistoryModel
+  };
+});
+
 vi.mock('../auth/auth.model.js', () => ({
   default: mockUserModel,
 }));
 
-const mockChatHistoryModel = {
-  findOne: vi.fn().mockReturnThis(), // Allows chaining
-  create: vi.fn(),
-  save: vi.fn(), // For existing session
-};
 vi.mock('../conversations/chatHistory.model.js', () => ({
   default: mockChatHistoryModel,
 }));

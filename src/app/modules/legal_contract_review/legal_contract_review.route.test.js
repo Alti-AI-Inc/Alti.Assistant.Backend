@@ -11,38 +11,44 @@ vi.mock('../../../shared/enum.js', () => ({
 }));
 
 // Mock middleware functions
-const mockAuth = vi.fn((...roles) => (req, res, next) => {
+const mockAuth = vi.fn().mockImplementation((...roles) => (req, res, next) => {
   req.user = { id: 'testUserId', role: roles[0] || 'user', tenantId: 'testTenantId' }; // Simulate authenticated user
   next();
 });
-const mockOptionalAuth = vi.fn(() => (req, res, next) => {
+const mockOptionalAuth = vi.fn().mockImplementation(() => (req, res, next) => {
   // Simulate optional auth, sometimes setting req.user, sometimes not
   // For tests, we'll control this via specific test cases
   next();
 });
-const mockExtractTenantContext = vi.fn((req, res, next) => {
+const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => {
   req.tenant = { id: 'testTenantId', name: 'Test Tenant' };
   next();
 });
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCheckStorageLimit = vi.fn((req, res, next) => next());
+const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+const mockCheckStorageLimit = vi.fn().mockImplementation((req, res, next) => next());
 const mockUploadLegalContractReview = {
-  single: vi.fn(() => (req, res, next) => {
+  single: vi.fn().mockImplementation(() => (req, res, next) => {
     req.file = { originalname: 'test.pdf', buffer: Buffer.from('test content') };
     next();
   }),
 };
-const mockCheckRAGFeature = vi.fn((req, res, next) => next());
-const mockValidateRequest = vi.fn((schema) => (req, res, next) => {
+const mockCheckRAGFeature = vi.fn().mockImplementation((req, res, next) => next());
+const mockValidateRequest = vi.fn().mockImplementation((schema) => (req, res, next) => {
   // Simulate successful validation
   next();
 });
 
 // Mock controller functions
 const mockLegalContractReviewController = {
-  conversationalAssistant: vi.fn((req, res) => res.status(200).json({ success: true, message: 'Assistant response' })),
-  reviewContract: vi.fn((req, res) => res.status(200).json({ success: true, message: 'Review response' })),
-  getConversationHistory: vi.fn((req, res) => res.status(200).json({ success: true, message: 'History response' })),
+  conversationalAssistant: vi.fn().mockImplementation(
+    (req, res) => res.status(200).json({ success: true, message: 'Assistant response' })
+  ),
+  reviewContract: vi.fn().mockImplementation(
+    (req, res) => res.status(200).json({ success: true, message: 'Review response' })
+  ),
+  getConversationHistory: vi.fn().mockImplementation(
+    (req, res) => res.status(200).json({ success: true, message: 'History response' })
+  ),
 };
 
 // Mock validation schemas (they just need to exist for validateRequest to be called)

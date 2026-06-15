@@ -5,7 +5,7 @@ vi.mock('@langchain/langgraph', async (importOriginal) => {
   const original = await importOriginal();
   const mockInvoke = vi.fn();
   const mockGetState = vi.fn();
-  const mockCompile = vi.fn(() => ({
+  const mockCompile = vi.fn().mockImplementation(() => ({
     invoke: mockInvoke,
     getState: mockGetState,
   }));

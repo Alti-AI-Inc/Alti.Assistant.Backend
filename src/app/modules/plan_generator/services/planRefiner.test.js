@@ -10,7 +10,7 @@ import { planRefiner } from './planRefiner.js';
 // Mock dependencies
 vi.mock('rate-limiter-flexible');
 vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
+  createClient: vi.fn().mockImplementation(() => ({
     on: vi.fn(),
     connect: vi.fn().mockResolvedValue(true),
   })),
@@ -42,7 +42,7 @@ RateLimiterRedis.mockImplementation(() => ({
 }));
 
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
 GoogleGenerativeAI.mockImplementation(() => ({

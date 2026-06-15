@@ -3,12 +3,20 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } 
 // Mock the entire @google/genai module
 const mockEmbedContent = vi.fn();
 const mockGenerateContent = vi.fn();
-const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
-  models: {
-    embedContent: mockEmbedContent,
-    generateContent: mockGenerateContent,
-  },
-}));
+const {
+  mockGoogleGenAI
+} = vi.hoisted(() => {
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
+    models: {
+      embedContent: mockEmbedContent,
+      generateContent: mockGenerateContent,
+    },
+  }));
+
+  return {
+    mockGoogleGenAI
+  };
+});
 
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAI,

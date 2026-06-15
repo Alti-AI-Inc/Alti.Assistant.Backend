@@ -1,26 +1,80 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock express and its Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuth,
+  mockOptionalAuth,
+  mockCheckDailyRequestLimit,
+  mockCheckStorageLimit,
+  mockUploadPlanFiles,
+  mockCheckRAGFeature,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockConversationalAssistant,
+  mockConversationalAssistantAsync,
+  mockGetTaskStatus,
+  mockGeneratePlan,
+  mockBrainstormIdea,
+  mockExportPlan,
+  mockGetConversationHistory
+} = vi.hoisted(() => {
+  // Mock express and its Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+  };
+
+  // Mock all middleware functions
+  const mockAuth = vi.fn().mockImplementation(() => (req, res, next) => next());
+  const mockOptionalAuth = vi.fn().mockImplementation(() => (req, res, next) => next());
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckStorageLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockUploadPlanFiles = { single: vi.fn().mockImplementation(() => (req, res, next) => next()) };
+  const mockCheckRAGFeature = vi.fn().mockImplementation((req, res, next) => next());
+  const mockValidateRequest = vi.fn().mockImplementation(() => (req, res, next) => next());
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock the controller methods
+  const mockConversationalAssistant = vi.fn().mockImplementation((req, res, next) => res.status(200).json({ success: true }));
+  const mockConversationalAssistantAsync = vi.fn().mockImplementation(
+    (req, res, next) => res.status(202).json({ success: true, taskId: 'mockTaskId' })
+  );
+  const mockGetTaskStatus = vi.fn().mockImplementation(
+    (req, res, next) => res.status(200).json({ success: true, status: 'completed' })
+  );
+  const mockGeneratePlan = vi.fn().mockImplementation((req, res, next) => res.status(200).json({ success: true, plan: {} }));
+  const mockBrainstormIdea = vi.fn().mockImplementation((req, res, next) => res.status(200).json({ success: true, ideas: [] }));
+  const mockExportPlan = vi.fn().mockImplementation((req, res, next) => res.status(200).send('file content'));
+  const mockGetConversationHistory = vi.fn().mockImplementation(
+    (req, res, next) => res.status(200).json({ success: true, conversation: [] })
+  );
+
+  return {
+    mockRouter,
+    mockAuth,
+    mockOptionalAuth,
+    mockCheckDailyRequestLimit,
+    mockCheckStorageLimit,
+    mockUploadPlanFiles,
+    mockCheckRAGFeature,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockConversationalAssistant,
+    mockConversationalAssistantAsync,
+    mockGetTaskStatus,
+    mockGeneratePlan,
+    mockBrainstormIdea,
+    mockExportPlan,
+    mockGetConversationHistory
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
-
-// Mock all middleware functions
-const mockAuth = vi.fn(() => (req, res, next) => next());
-const mockOptionalAuth = vi.fn(() => (req, res, next) => next());
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCheckStorageLimit = vi.fn((req, res, next) => next());
-const mockUploadPlanFiles = { single: vi.fn(() => (req, res, next) => next()) };
-const mockCheckRAGFeature = vi.fn((req, res, next) => next());
-const mockValidateRequest = vi.fn(() => (req, res, next) => next());
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuth }));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuth }));
@@ -30,15 +84,6 @@ vi.mock('./middlewares/uploadPlanFiles.js', () => ({ uploadPlanFiles: mockUpload
 vi.mock('../../middlewares/checkRAGFeature/checkRAGFeature.js', () => ({ default: mockCheckRAGFeature }));
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validateRequest: mockValidateRequest }));
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
-
-// Mock the controller methods
-const mockConversationalAssistant = vi.fn((req, res, next) => res.status(200).json({ success: true }));
-const mockConversationalAssistantAsync = vi.fn((req, res, next) => res.status(202).json({ success: true, taskId: 'mockTaskId' }));
-const mockGetTaskStatus = vi.fn((req, res, next) => res.status(200).json({ success: true, status: 'completed' }));
-const mockGeneratePlan = vi.fn((req, res, next) => res.status(200).json({ success: true, plan: {} }));
-const mockBrainstormIdea = vi.fn((req, res, next) => res.status(200).json({ success: true, ideas: [] }));
-const mockExportPlan = vi.fn((req, res, next) => res.status(200).send('file content'));
-const mockGetConversationHistory = vi.fn((req, res, next) => res.status(200).json({ success: true, conversation: [] }));
 
 vi.mock('./plan_generator.controller.js', () => ({
   planGeneratorController: {
@@ -76,7 +121,7 @@ describe('planGeneratorRoutes', () => {
     // Re-mock express.Router to ensure mockRouter is fresh for each test
     vi.mock('express', () => ({
       default: {
-        Router: vi.fn(() => mockRouter),
+        Router: vi.fn().mockImplementation(() => mockRouter),
       },
     }));
     // Re-import the routes to ensure the router is re-initialized with fresh mocks

@@ -17,20 +17,38 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 const mockExecutionSave = vi.fn().mockResolvedValue(true);
-const mockExecutionInstance = {
-  _id: 'exec_12345',
-  save: mockExecutionSave,
-  status: 'running',
-  stepsExecution: [],
-  outputs: {},
-  totalDurationMs: 0,
-  tokenUsage: {},
-};
+
+const {
+  mockExecutionInstance,
+  mockLean,
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockExecutionInstance = {
+    _id: 'exec_12345',
+    save: mockExecutionSave,
+    status: 'running',
+    stepsExecution: [],
+    outputs: {},
+    totalDurationMs: 0,
+    tokenUsage: {},
+  };
+
+  const mockLean = vi.fn();
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  return {
+    mockExecutionInstance,
+    mockLean,
+    mockGetGenerativeModel
+  };
+});
+
 vi.mock('./langchain-execution.model.js', () => ({
   default: vi.fn().mockImplementation(() => mockExecutionInstance),
 }));
 
-const mockLean = vi.fn();
 vi.mock('./langchain-chain.model.js', () => ({
   default: {
     findById: vi.fn().mockReturnThis(),
@@ -39,11 +57,8 @@ vi.mock('./langchain-chain.model.js', () => ({
 }));
 
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));

@@ -18,14 +18,22 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 process.env.GCS_DOCUMENT_BUCKET = 'test-bucket';
 process.env.MAX_DOCUMENT_UPLOAD_SIZE_MB = '10';
 
-// Mock Express Router
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock Express Router
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  return {
+    mockRouter
+  };
+});
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -41,10 +49,10 @@ vi.mock('../../../shared/enum.js', () => ({
 
 // Mock all middlewares to isolate the router logic
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn((...roles) => `authMiddleware(${roles.join(',')})`),
+  default: vi.fn().mockImplementation((...roles) => `authMiddleware(${roles.join(',')})`),
 }));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => 'optionalAuthMiddleware'),
+  default: vi.fn().mockImplementation(() => 'optionalAuthMiddleware'),
 }));
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: 'extractTenantContextMiddleware',
@@ -53,10 +61,10 @@ vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', ()
   default: 'checkDailyRequestLimitMiddleware',
 }));
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
-  default: vi.fn((...args) => `rateLimiterMiddleware(${args.join(',')})`),
+  default: vi.fn().mockImplementation((...args) => `rateLimiterMiddleware(${args.join(',')})`),
 }));
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
-  validateRequest: vi.fn(schema => `validateRequestMiddleware(${schema})`),
+  validateRequest: vi.fn().mockImplementation(schema => `validateRequestMiddleware(${schema})`),
 }));
 vi.mock('../../middlewares/checkRAGFeature/checkRAGFeature.js', () => ({
   default: 'checkRAGFeatureMiddleware',
@@ -84,9 +92,9 @@ vi.mock('./document_review.validation.js', () => ({
 // Mock GCS and upload-related dependencies
 vi.mock('@google-cloud/storage', () => {
   const mockStorage = {
-    bucket: vi.fn(() => ({
-      file: vi.fn(() => ({
-        createWriteStream: vi.fn(() => ({
+    bucket: vi.fn().mockImplementation(() => ({
+      file: vi.fn().mockImplementation(() => ({
+        createWriteStream: vi.fn().mockImplementation(() => ({
           on: vi.fn().mockReturnThis(),
           pipe: vi.fn().mockReturnThis(),
         })),
@@ -94,11 +102,11 @@ vi.mock('@google-cloud/storage', () => {
       name: 'mock-gcs-bucket',
     })),
   };
-  return { Storage: vi.fn(() => mockStorage) };
+  return { Storage: vi.fn().mockImplementation(() => mockStorage) };
 });
-vi.mock('busboy', () => ({ default: vi.fn(() => ({ on: vi.fn() })) }));
-vi.mock('uuid', () => ({ v4: vi.fn(() => 'mock-uuid-v4') }));
-vi.mock('path', () => ({ default: { extname: vi.fn(f => `.${f.split('.').pop()}`) } }));
+vi.mock('busboy', () => ({ default: vi.fn().mockImplementation(() => ({ on: vi.fn() })) }));
+vi.mock('uuid', () => ({ v4: vi.fn().mockImplementation(() => 'mock-uuid-v4') }));
+vi.mock('path', () => ({ default: { extname: vi.fn().mockImplementation(f => `.${f.split('.').pop()}`) } }));
 
 // Import the router file. This will execute the route definitions against the mocked router.
 import { documentReviewRoutes } from './document_review.route.js';

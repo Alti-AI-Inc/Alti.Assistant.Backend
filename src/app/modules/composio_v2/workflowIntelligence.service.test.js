@@ -28,12 +28,20 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 
 vi.mock('@google-cloud/vertexai', () => ({
-  VertexAI: vi.fn(() => ({
+  VertexAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));

@@ -20,9 +20,22 @@ const mockLean = vi.fn();
 const mockLimit = vi.fn().mockImplementation(() => ({ lean: mockLean }));
 const mockSkip = vi.fn().mockImplementation(() => ({ limit: mockLimit }));
 const mockSort = vi.fn().mockImplementation(() => ({ skip: mockSkip }));
-const mockFind = vi.fn().mockImplementation(() => ({ sort: mockSort }));
-const mockCountDocuments = vi.fn();
-const mockAggregate = vi.fn();
+
+const {
+  mockFind,
+  mockCountDocuments,
+  mockAggregate
+} = vi.hoisted(() => {
+  const mockFind = vi.fn().mockImplementation(() => ({ sort: mockSort }));
+  const mockCountDocuments = vi.fn();
+  const mockAggregate = vi.fn();
+
+  return {
+    mockFind,
+    mockCountDocuments,
+    mockAggregate
+  };
+});
 
 vi.mock('./composio-repository.model.js', () => {
   return {

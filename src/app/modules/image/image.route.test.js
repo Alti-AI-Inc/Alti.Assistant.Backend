@@ -2,39 +2,63 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
-// Mock all dependencies
-const mockAuth = vi.fn((...roles) => (req, res, next) => next());
-const mockOptionalAuth = vi.fn(() => (req, res, next) => next());
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCreateRateLimiter = vi.fn((limit, window) => (req, res, next) => next());
-const mockValidateRequest = vi.fn((schema) => (req, res, next) => next());
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
+const {
+  mockAuth,
+  mockOptionalAuth,
+  mockCheckDailyRequestLimit,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockImageController,
+  mockImageValidation,
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock all dependencies
+  const mockAuth = vi.fn().mockImplementation((...roles) => (req, res, next) => next());
+  const mockOptionalAuth = vi.fn().mockImplementation(() => (req, res, next) => next());
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => (req, res, next) => next());
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => (req, res, next) => next());
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockImageController = {
-  generateImage: vi.fn(),
-  analyzeImage: vi.fn(),
-  getImageStats: vi.fn(),
-  getImageConversation: vi.fn(),
-  getGuestConversations: vi.fn(),
-};
+  const mockImageController = {
+    generateImage: vi.fn(),
+    analyzeImage: vi.fn(),
+    getImageStats: vi.fn(),
+    getImageConversation: vi.fn(),
+    getGuestConversations: vi.fn(),
+  };
 
-const mockImageValidation = {
-  imageGenerationSchema: { body: 'imageGenerationSchema' },
-  imageAnalysisSchema: { body: 'imageAnalysisSchema' },
-  conversationSchema: { params: 'conversationSchema' },
-  guestUserSchema: { params: 'guestUserSchema' },
-};
+  const mockImageValidation = {
+    imageGenerationSchema: { body: 'imageGenerationSchema' },
+    imageAnalysisSchema: { body: 'imageAnalysisSchema' },
+    conversationSchema: { params: 'conversationSchema' },
+    guestUserSchema: { params: 'guestUserSchema' },
+  };
 
-// Mock express.Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  use: vi.fn(),
-};
+  // Mock express.Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    use: vi.fn(),
+  };
+
+  return {
+    mockAuth,
+    mockOptionalAuth,
+    mockCheckDailyRequestLimit,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockImageController,
+    mockImageValidation,
+    mockRouter
+  };
+});
 
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 

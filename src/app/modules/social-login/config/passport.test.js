@@ -10,16 +10,36 @@ vi.mock('../../auth/auth.model.js', () => ({
   default: UserModel,
 }));
 
-// Mock all strategy files. They will return simple mock objects.
-// This ensures that even if `isReal` passes, we get our controlled mock
-// instead of trying to load actual strategy implementations.
-const mockGoogleStrategy = { name: 'GoogleStrategyInstance' };
-const mockFacebookStrategy = { name: 'FacebookStrategyInstance' };
-const mockTwitterStrategy = { name: 'TwitterStrategyInstance' };
-const mockGithubStrategy = { name: 'GithubStrategyInstance' };
-const mockMicrosoftStrategy = { name: 'MicrosoftStrategyInstance' };
-const mockAppleStrategy = { name: 'AppleStrategyInstance' };
-const mockDiscordStrategy = { name: 'DiscordStrategyInstance' };
+const {
+  mockGoogleStrategy,
+  mockFacebookStrategy,
+  mockTwitterStrategy,
+  mockGithubStrategy,
+  mockMicrosoftStrategy,
+  mockAppleStrategy,
+  mockDiscordStrategy
+} = vi.hoisted(() => {
+  // Mock all strategy files. They will return simple mock objects.
+  // This ensures that even if `isReal` passes, we get our controlled mock
+  // instead of trying to load actual strategy implementations.
+  const mockGoogleStrategy = { name: 'GoogleStrategyInstance' };
+  const mockFacebookStrategy = { name: 'FacebookStrategyInstance' };
+  const mockTwitterStrategy = { name: 'TwitterStrategyInstance' };
+  const mockGithubStrategy = { name: 'GithubStrategyInstance' };
+  const mockMicrosoftStrategy = { name: 'MicrosoftStrategyInstance' };
+  const mockAppleStrategy = { name: 'AppleStrategyInstance' };
+  const mockDiscordStrategy = { name: 'DiscordStrategyInstance' };
+
+  return {
+    mockGoogleStrategy,
+    mockFacebookStrategy,
+    mockTwitterStrategy,
+    mockGithubStrategy,
+    mockMicrosoftStrategy,
+    mockAppleStrategy,
+    mockDiscordStrategy
+  };
+});
 
 vi.mock('./strategies/google.js', () => ({ default: mockGoogleStrategy }));
 vi.mock('./strategies/facebook.js', () => ({ default: mockFacebookStrategy }));

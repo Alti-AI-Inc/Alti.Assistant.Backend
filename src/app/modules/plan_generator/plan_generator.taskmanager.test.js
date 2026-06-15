@@ -10,12 +10,20 @@ import {
   taskManager,
 } from './plan_generator.taskmanager.js'; // Assuming tasks map is internal and not directly exported
 
-// Mock external dependencies
-const logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const logger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 
 const planGeneratorService = {
   conversationalAssistant: vi.fn(),

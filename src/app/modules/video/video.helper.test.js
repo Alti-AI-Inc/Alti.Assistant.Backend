@@ -1,42 +1,60 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock external dependencies
-const mockLogger = {
-  warn: vi.fn(),
-};
+const {
+  mockLogger,
+  mockVideoAssistantConstants,
+  mockFormatVideoResponse,
+  mockFormatAnalysisResponse
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLogger = {
+    warn: vi.fn(),
+  };
 
-const mockVideoAssistantConstants = {
-  VIDEO_ASSISTANT_CONSTANTS: {
-    MESSAGE: {
-      MAX_LENGTH: 200,
-      MIN_LENGTH: 10,
-      DEFAULT_ERROR: 'An unexpected error occurred. Please try again later.',
-    },
-    VIDEO_SPECS: {
-      STYLES: {
-        REALISTIC: 'realistic',
-        CARTOON: 'cartoon',
-        CINEMATIC: 'cinematic',
-        ABSTRACT: 'abstract',
+  const mockVideoAssistantConstants = {
+    VIDEO_ASSISTANT_CONSTANTS: {
+      MESSAGE: {
+        MAX_LENGTH: 200,
+        MIN_LENGTH: 10,
+        DEFAULT_ERROR: 'An unexpected error occurred. Please try again later.',
       },
-      RESOLUTIONS: {
-        '1080P': '1080p',
-        '720P': '720p',
-        '4K': '4k',
+      VIDEO_SPECS: {
+        STYLES: {
+          REALISTIC: 'realistic',
+          CARTOON: 'cartoon',
+          CINEMATIC: 'cinematic',
+          ABSTRACT: 'abstract',
+        },
+        RESOLUTIONS: {
+          '1080P': '1080p',
+          '720P': '720p',
+          '4K': '4k',
+        },
+      },
+      SUCCESS: {
+        VIDEO_GENERATED: 'Your video has been successfully generated!',
+      },
+      ERRORS: {
+        RATE_LIMIT: 'You have exceeded the rate limit. Please try again shortly.',
+        QUOTA_EXCEEDED: 'Our service quota has been exceeded. Please try again later.',
+        NETWORK_ERROR: 'There was a network issue. Please check your connection and try again.',
+        INVALID_FORMAT: 'The video format or prompt is invalid. Please review and try again.',
+        GENERATION_FAILED: 'Video generation failed due to an internal error. Please try again.',
       },
     },
-    SUCCESS: {
-      VIDEO_GENERATED: 'Your video has been successfully generated!',
-    },
-    ERRORS: {
-      RATE_LIMIT: 'You have exceeded the rate limit. Please try again shortly.',
-      QUOTA_EXCEEDED: 'Our service quota has been exceeded. Please try again later.',
-      NETWORK_ERROR: 'There was a network issue. Please check your connection and try again.',
-      INVALID_FORMAT: 'The video format or prompt is invalid. Please review and try again.',
-      GENERATION_FAILED: 'Video generation failed due to an internal error. Please try again.',
-    },
-  },
-};
+  };
+
+  // Define mocks for internal helper functions that formatAssistantResponse calls
+  const mockFormatVideoResponse = vi.fn();
+  const mockFormatAnalysisResponse = vi.fn();
+
+  return {
+    mockLogger,
+    mockVideoAssistantConstants,
+    mockFormatVideoResponse,
+    mockFormatAnalysisResponse
+  };
+});
 
 // Mock the external modules
 vi.mock('../../../shared/logger.js', () => ({
@@ -44,10 +62,6 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 vi.mock('./video.constant.js', () => (mockVideoAssistantConstants));
-
-// Define mocks for internal helper functions that formatAssistantResponse calls
-const mockFormatVideoResponse = vi.fn();
-const mockFormatAnalysisResponse = vi.fn();
 
 // Mock the video.helper.js module itself to inject our spies for formatVideoResponse and formatAnalysisResponse
 // This allows formatAssistantResponse to call our mocked versions when it's imported.

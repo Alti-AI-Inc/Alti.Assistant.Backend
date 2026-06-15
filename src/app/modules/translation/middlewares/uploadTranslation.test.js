@@ -17,7 +17,7 @@ import ApiError from '../../../utils/ApiError.js';
 vi.mock('multer');
 vi.mock('fs');
 vi.mock('express-rate-limit', () => ({
-  rateLimit: vi.fn((options) => options),
+  rateLimit: vi.fn().mockImplementation((options) => options),
 }));
 vi.mock('rate-limit-redis', () => ({
   RedisStore: vi.fn(),
@@ -107,12 +107,12 @@ describe('Upload Translation Middlewares', () => {
     let mockUpload;
 
     beforeEach(() => {
-      mockUpload = vi.fn((req, res, callback) => callback(null));
+      mockUpload = vi.fn().mockImplementation((req, res, callback) => callback(null));
       const mockMulterInstance = {
         single: vi.fn().mockReturnValue(mockUpload),
       };
       multer.mockReturnValue(mockMulterInstance);
-      multer.diskStorage = vi.fn((options) => options);
+      multer.diskStorage = vi.fn().mockImplementation((options) => options);
       multer.MulterError = class extends Error {
         constructor(code, field) {
           super(code);

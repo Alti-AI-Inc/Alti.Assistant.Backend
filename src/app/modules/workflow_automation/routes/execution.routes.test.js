@@ -5,39 +5,55 @@ import auth from '../../../middlewares/auth/auth.js'; // Need to import to mock 
 
 // Mock external dependencies first
 // Mock for auth.js: auth() returns a middleware function.
-const mockAuthMiddlewareInstance = vi.fn((req, res, next) => next()); // The actual middleware function
-const mockAuthFactory = vi.fn(() => mockAuthMiddlewareInstance); // The function that auth.js exports, which when called, returns the middleware
+const mockAuthMiddlewareInstance = vi.fn().mockImplementation((req, res, next) => next()); // The actual middleware function
+
+const {
+  mockAuthFactory,
+  mockExecutionController,
+  mockRouter
+} = vi.hoisted(() => {
+  const mockAuthFactory = vi.fn().mockImplementation(() => mockAuthMiddlewareInstance); // The function that auth.js exports, which when called, returns the middleware
+
+  // Mock for execution.controller.js
+  const mockExecutionController = {
+    getConnectionHealthController: vi.fn(),
+    refreshConnectionController: vi.fn(),
+    executeWorkflowController: vi.fn(),
+    getExecutionHistoryController: vi.fn(),
+    getExecutionDetailsController: vi.fn(),
+    cancelExecutionController: vi.fn(),
+    replayExecutionController: vi.fn(),
+    getPendingApprovalsController: vi.fn(),
+    resolveApprovalController: vi.fn(),
+    scheduleWorkflowController: vi.fn(),
+    unscheduleWorkflowController: vi.fn(),
+    handleWebhookTriggerController: vi.fn(),
+  };
+
+  // Mock for express.Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+  };
+
+  return {
+    mockAuthFactory,
+    mockExecutionController,
+    mockRouter
+  };
+});
+
 vi.mock('../../../middlewares/auth/auth.js', () => ({
   default: mockAuthFactory,
 }));
 
-// Mock for execution.controller.js
-const mockExecutionController = {
-  getConnectionHealthController: vi.fn(),
-  refreshConnectionController: vi.fn(),
-  executeWorkflowController: vi.fn(),
-  getExecutionHistoryController: vi.fn(),
-  getExecutionDetailsController: vi.fn(),
-  cancelExecutionController: vi.fn(),
-  replayExecutionController: vi.fn(),
-  getPendingApprovalsController: vi.fn(),
-  resolveApprovalController: vi.fn(),
-  scheduleWorkflowController: vi.fn(),
-  unscheduleWorkflowController: vi.fn(),
-  handleWebhookTriggerController: vi.fn(),
-};
 vi.mock('../controllers/execution.controller.js', () => ({
   executionController: mockExecutionController,
 }));
 
-// Mock for express.Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-};
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 

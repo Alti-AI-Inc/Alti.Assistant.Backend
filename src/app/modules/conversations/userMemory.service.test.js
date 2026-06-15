@@ -14,12 +14,20 @@ vi.mock('./userMemory.model.js', () => ({
 }));
 
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));

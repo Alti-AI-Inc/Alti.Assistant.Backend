@@ -8,24 +8,35 @@ const mockStdoutWrite = vi.fn();
 // Store original process.env to restore it later
 const originalEnv = process.env;
 
-// Mock readline
-const mockReadlineInterface = {
-  on: vi.fn(),
-  close: vi.fn(),
-};
+const {
+  mockReadlineInterface,
+  mockComposioConstructor
+} = vi.hoisted(() => {
+  // Mock readline
+  const mockReadlineInterface = {
+    on: vi.fn(),
+    close: vi.fn(),
+  };
+  const mockComposioConstructor = vi.fn().mockImplementation(() => ({
+    tools: {
+      get: mockComposioToolsGet,
+      execute: mockComposioToolsExecute,
+    },
+  }));
+
+  return {
+    mockReadlineInterface,
+    mockComposioConstructor
+  };
+});
+
 vi.mock('readline', () => ({
-  createInterface: vi.fn(() => mockReadlineInterface),
+  createInterface: vi.fn().mockImplementation(() => mockReadlineInterface),
 }));
 
 // Mock @composio/core
 const mockComposioToolsGet = vi.fn();
 const mockComposioToolsExecute = vi.fn();
-const mockComposioConstructor = vi.fn(() => ({
-  tools: {
-    get: mockComposioToolsGet,
-    execute: mockComposioToolsExecute,
-  },
-}));
 vi.mock('@composio/core', () => ({
   Composio: mockComposioConstructor,
 }));

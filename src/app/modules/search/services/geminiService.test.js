@@ -5,13 +5,31 @@ import {
   expect
 } from 'vitest';
 
-// Mock the multiCloudModelService.js dependency
-const mockMcSelectModelSmart = vi.fn(() => 'mockSelectModelSmart');
-const mockMcSelectModel = vi.fn(() => 'mockSelectModel');
-const mockMcCreateToolEnabledLLM = vi.fn(() => 'mockToolEnabledLLMInstance');
-const mockMcCreateToolEnabledLLMExplicit = vi.fn(() => 'mockToolEnabledLLMExplicitInstance');
-const mockMcGemini2_5Flash = 'mockGemini2_5FlashInstance';
-const mockMcGemini3ProPreview = 'mockGemini3ProPreviewInstance';
+const {
+  mockMcSelectModelSmart,
+  mockMcSelectModel,
+  mockMcCreateToolEnabledLLM,
+  mockMcCreateToolEnabledLLMExplicit,
+  mockMcGemini2_5Flash,
+  mockMcGemini3ProPreview
+} = vi.hoisted(() => {
+  // Mock the multiCloudModelService.js dependency
+  const mockMcSelectModelSmart = vi.fn().mockImplementation(() => 'mockSelectModelSmart');
+  const mockMcSelectModel = vi.fn().mockImplementation(() => 'mockSelectModel');
+  const mockMcCreateToolEnabledLLM = vi.fn().mockImplementation(() => 'mockToolEnabledLLMInstance');
+  const mockMcCreateToolEnabledLLMExplicit = vi.fn().mockImplementation(() => 'mockToolEnabledLLMExplicitInstance');
+  const mockMcGemini2_5Flash = 'mockGemini2_5FlashInstance';
+  const mockMcGemini3ProPreview = 'mockGemini3ProPreviewInstance';
+
+  return {
+    mockMcSelectModelSmart,
+    mockMcSelectModel,
+    mockMcCreateToolEnabledLLM,
+    mockMcCreateToolEnabledLLMExplicit,
+    mockMcGemini2_5Flash,
+    mockMcGemini3ProPreview
+  };
+});
 
 vi.mock('./multiCloudModelService.js', () => ({
   selectModelSmart: mockMcSelectModelSmart,

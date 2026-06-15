@@ -7,13 +7,49 @@ import {
 } from 'vitest';
 import httpStatus from 'http-status';
 
-// Mock dependencies
-const mockAddTaskServices = vi.fn();
-const mockGetTaskServiceById = vi.fn();
-const mockUpdateTaskService = vi.fn();
-const mockDeleteTaskService = vi.fn();
-const mockGetAllTaskServiceById = vi.fn();
-const mockBulkDeleteTaskService = vi.fn();
+const {
+  mockAddTaskServices,
+  mockGetTaskServiceById,
+  mockUpdateTaskService,
+  mockDeleteTaskService,
+  mockGetAllTaskServiceById,
+  mockBulkDeleteTaskService,
+  mockSendResponse,
+  mockCatchAsync,
+  mockLoggerInfo,
+  mockMongooseTypesObjectIdIsValid
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockAddTaskServices = vi.fn();
+  const mockGetTaskServiceById = vi.fn();
+  const mockUpdateTaskService = vi.fn();
+  const mockDeleteTaskService = vi.fn();
+  const mockGetAllTaskServiceById = vi.fn();
+  const mockBulkDeleteTaskService = vi.fn();
+
+  const mockSendResponse = vi.fn();
+
+  // Mock catchAsync to simply return the function it wraps,
+  // allowing direct testing of the async logic.
+  const mockCatchAsync = vi.fn().mockImplementation((fn) => fn);
+
+  const mockLoggerInfo = vi.fn();
+
+  const mockMongooseTypesObjectIdIsValid = vi.fn();
+
+  return {
+    mockAddTaskServices,
+    mockGetTaskServiceById,
+    mockUpdateTaskService,
+    mockDeleteTaskService,
+    mockGetAllTaskServiceById,
+    mockBulkDeleteTaskService,
+    mockSendResponse,
+    mockCatchAsync,
+    mockLoggerInfo,
+    mockMongooseTypesObjectIdIsValid
+  };
+});
 
 vi.mock('./notes.service', () => ({
   addTaskServices: mockAddTaskServices,
@@ -24,26 +60,20 @@ vi.mock('./notes.service', () => ({
   bulkDeleteTaskService: mockBulkDeleteTaskService,
 }));
 
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse', () => ({
   sendResponse: mockSendResponse,
 }));
 
-// Mock catchAsync to simply return the function it wraps,
-// allowing direct testing of the async logic.
-const mockCatchAsync = vi.fn((fn) => fn);
 vi.mock('../../../shared/catchAsync', () => ({
   catchAsync: mockCatchAsync,
 }));
 
-const mockLoggerInfo = vi.fn();
 vi.mock('../../../shared/logger', () => ({
   logger: {
     info: mockLoggerInfo,
   },
 }));
 
-const mockMongooseTypesObjectIdIsValid = vi.fn();
 vi.mock('mongoose', () => ({
   default: {
     Types: {

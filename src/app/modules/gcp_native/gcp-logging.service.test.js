@@ -1,8 +1,33 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const mockRequest = vi.fn();
-const mockGetClient = vi.fn().mockResolvedValue({
-  request: mockRequest
+
+const {
+  mockGetClient,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  const mockGetClient = vi.fn().mockResolvedValue({
+    request: mockRequest
+  });
+
+  const mockConfig = {
+    google: {
+      gcp_project_id: 'test-project-id'
+    },
+    env: 'test-env'
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn()
+  };
+
+  return {
+    mockGetClient,
+    mockConfig,
+    mockLogger
+  };
 });
 
 vi.mock('google-auth-library', () => {
@@ -15,21 +40,9 @@ vi.mock('google-auth-library', () => {
   };
 });
 
-const mockConfig = {
-  google: {
-    gcp_project_id: 'test-project-id'
-  },
-  env: 'test-env'
-};
-
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig
 }));
-
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn()
-};
 
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger

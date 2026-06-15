@@ -1,79 +1,114 @@
 import { describe, it, expect, vi } from 'vitest';
 import express from 'express';
 
-// Create a single mock router instance that will be returned by express.Router()
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  use: vi.fn(),
-};
+const {
+  mockRouter,
+  ENUM_USER_ROLE,
+  mockAuth,
+  mockOptionalAuth,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockCheckDailyRequestLimit,
+  mockVideoController,
+  mockVideoValidation
+} = vi.hoisted(() => {
+  // Create a single mock router instance that will be returned by express.Router()
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    use: vi.fn(),
+  };
+
+  // Mock shared enum
+  const ENUM_USER_ROLE = {
+    ADMIN: 'admin',
+    USER: 'user',
+  };
+
+  // Mock middlewares that return functions
+  const mockAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockOptionalAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => vi.fn().mockImplementation((req, res, next) => next()));
+
+  // Mock direct middleware functions
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock controller
+  const mockVideoController = {
+    generateVideo: vi.fn(),
+    getOperationStatus: vi.fn(),
+    getVideoStats: vi.fn(),
+    getVideoConversation: vi.fn(),
+    getGuestConversations: vi.fn(),
+  };
+
+  // Mock validation schemas
+  const mockVideoValidation = {
+    videoGenerationSchema: { type: 'object', properties: { prompt: { type: 'string' } } },
+    conversationSchema: { type: 'object', properties: { conversationId: { type: 'string' } } },
+    guestUserSchema: { type: 'object', properties: { guestUserId: { type: 'string' } } },
+  };
+
+  return {
+    mockRouter,
+    ENUM_USER_ROLE,
+    mockAuth,
+    mockOptionalAuth,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockCheckDailyRequestLimit,
+    mockVideoController,
+    mockVideoValidation
+  };
+});
 
 // Mock express to return our mock router instance
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter), // Always return the same mockRouter instance
+    Router: vi.fn().mockImplementation(() => mockRouter), // Always return the same mockRouter instance
   },
 }));
 
-// Mock shared enum
-const ENUM_USER_ROLE = {
-  ADMIN: 'admin',
-  USER: 'user',
-};
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE,
 }));
 
-// Mock middlewares that return functions
-const mockAuth = vi.fn(() => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
-const mockOptionalAuth = vi.fn(() => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
   default: mockOptionalAuth,
 }));
 
-const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: mockCreateRateLimiter,
 }));
 
-const mockValidateRequest = vi.fn((schema) => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
   validateRequest: mockValidateRequest,
 }));
 
-// Mock direct middleware functions
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
 
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
   default: mockCheckDailyRequestLimit,
 }));
 
-// Mock controller
-const mockVideoController = {
-  generateVideo: vi.fn(),
-  getOperationStatus: vi.fn(),
-  getVideoStats: vi.fn(),
-  getVideoConversation: vi.fn(),
-  getGuestConversations: vi.fn(),
-};
 vi.mock('./video.controller.js', () => ({
   videoController: mockVideoController,
 }));
 
-// Mock validation schemas
-const mockVideoValidation = {
-  videoGenerationSchema: { type: 'object', properties: { prompt: { type: 'string' } } },
-  conversationSchema: { type: 'object', properties: { conversationId: { type: 'string' } } },
-  guestUserSchema: { type: 'object', properties: { guestUserId: { type: 'string' } } },
-};
 vi.mock('./video.validation.js', () => ({
   VideoValidation: mockVideoValidation,
 }));

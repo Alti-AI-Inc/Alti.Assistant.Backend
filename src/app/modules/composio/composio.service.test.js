@@ -25,58 +25,72 @@ vi.mock('../../../errors/ApiError.js', () => ({
   },
 }));
 
-// Mock composio-core (OpenAIToolSet)
-const mockOpenAIToolSet = {
-  integrations: {
-    get: vi.fn(),
-    getRequiredParams: vi.fn(),
-    list: vi.fn(),
-  },
-  connectedAccounts: {
-    initiate: vi.fn(),
-    exchangeCode: vi.fn(),
-    list: vi.fn(),
-    delete: vi.fn(),
-  },
-};
+const {
+  mockOpenAIToolSet,
+  mockComposio,
+  mockGoogleGenerativeAI
+} = vi.hoisted(() => {
+  // Mock composio-core (OpenAIToolSet)
+  const mockOpenAIToolSet = {
+    integrations: {
+      get: vi.fn(),
+      getRequiredParams: vi.fn(),
+      list: vi.fn(),
+    },
+    connectedAccounts: {
+      initiate: vi.fn(),
+      exchangeCode: vi.fn(),
+      list: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+
+  // Mock @composio/core (Composio)
+  const mockComposio = {
+    toolkits: {
+      authorize: vi.fn(),
+    },
+    tools: {
+      get: vi.fn(),
+    },
+    provider: {
+      handleToolCalls: vi.fn(),
+    },
+    connectedAccounts: {
+      list: vi.fn(),
+    },
+  };
+  const mockGoogleGenerativeAI = {
+    getGenerativeModel: mockGetGenerativeModel,
+  };
+
+  return {
+    mockOpenAIToolSet,
+    mockComposio,
+    mockGoogleGenerativeAI
+  };
+});
+
 vi.mock('composio-core', () => ({
-  OpenAIToolSet: vi.fn(() => mockOpenAIToolSet),
+  OpenAIToolSet: vi.fn().mockImplementation(() => mockOpenAIToolSet),
 }));
 
-// Mock @composio/core (Composio)
-const mockComposio = {
-  toolkits: {
-    authorize: vi.fn(),
-  },
-  tools: {
-    get: vi.fn(),
-  },
-  provider: {
-    handleToolCalls: vi.fn(),
-  },
-  connectedAccounts: {
-    list: vi.fn(),
-  },
-};
 vi.mock('@composio/core', () => ({
-  Composio: vi.fn(() => mockComposio),
+  Composio: vi.fn().mockImplementation(() => mockComposio),
 }));
 
 // Mock @google/generative-ai
 const mockFunctionCalls = vi.fn();
-const mockGenerateContent = vi.fn(() => ({
+const mockGenerateContent = vi.fn().mockImplementation(() => ({
   response: {
     functionCalls: mockFunctionCalls,
   },
 }));
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
-const mockGoogleGenerativeAI = {
-  getGenerativeModel: mockGetGenerativeModel,
-};
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => mockGoogleGenerativeAI),
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => mockGoogleGenerativeAI),
 }));
 
 // Helper to access internal functions for testing if needed, or ensure they are covered by public ones.

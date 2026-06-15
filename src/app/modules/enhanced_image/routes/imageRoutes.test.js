@@ -3,25 +3,37 @@ import express from 'express';
 import { createImageRoutes } from '../routes/imageRoutes.js';
 import { createImageController } from '../controllers/imageController.js';
 
-// Mock express.Router to capture registered routes and handlers
-const mockRouter = {
-  post: vi.fn(),
-  // Add other HTTP methods if they were used, e.g., get, put, delete
-};
+const {
+  mockRouter,
+  mockController
+} = vi.hoisted(() => {
+  // Mock express.Router to capture registered routes and handlers
+  const mockRouter = {
+    post: vi.fn(),
+    // Add other HTTP methods if they were used, e.g., get, put, delete
+  };
+
+  // Mock createImageController to control its return value and spy on its methods
+  const mockController = {
+    editImage: vi.fn(),
+    generateImage: vi.fn(),
+    generateImageDirect: vi.fn(),
+  };
+
+  return {
+    mockRouter,
+    mockController
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
-// Mock createImageController to control its return value and spy on its methods
-const mockController = {
-  editImage: vi.fn(),
-  generateImage: vi.fn(),
-  generateImageDirect: vi.fn(),
-};
 vi.mock('../controllers/imageController.js', () => ({
-  createImageController: vi.fn(() => mockController),
+  createImageController: vi.fn().mockImplementation(() => mockController),
 }));
 
 describe('imageRoutes', () => {
@@ -93,9 +105,9 @@ describe('imageRoutes', () => {
       // Mock Express request, response, and next objects
       req = { body: {}, params: {}, query: {} };
       res = {
-        status: vi.fn(() => res), // Chainable status method
-        json: vi.fn(() => res),   // Chainable json method
-        send: vi.fn(() => res),   // Chainable send method
+        status: vi.fn().mockImplementation(() => res), // Chainable status method
+        json: vi.fn().mockImplementation(() => res),   // Chainable json method
+        send: vi.fn().mockImplementation(() => res),   // Chainable send method
       };
       next = vi.fn(); // Mock the next middleware function
     });

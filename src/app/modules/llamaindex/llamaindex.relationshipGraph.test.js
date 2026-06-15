@@ -22,7 +22,7 @@ vi.mock('../../../shared/logger.js', () => ({
 
 // Mock Google Generative AI
 const generateContentMock = vi.fn();
-const getGenerativeModelMock = vi.fn(() => ({
+const getGenerativeModelMock = vi.fn().mockImplementation(() => ({
   generateContent: generateContentMock,
 }));
 

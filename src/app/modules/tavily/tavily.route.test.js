@@ -3,10 +3,18 @@ import { TavilyAiController } from './tavily.controller.js';
 
 // Mock the express router
 const mockPost = vi.fn();
-const mockRoute = vi.fn(() => ({ post: mockPost }));
-const mockRouter = {
-  route: mockRoute,
-};
+const mockRoute = vi.fn().mockImplementation(() => ({ post: mockPost }));
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  const mockRouter = {
+    route: mockRoute,
+  };
+
+  return {
+    mockRouter
+  };
+});
 
 vi.mock('express', () => ({
   default: {

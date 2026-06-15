@@ -8,11 +8,19 @@ import { PubSub } from '@google-cloud/pubsub';
 
 // Mock dependencies
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
-  publishMessage: mockPublishMessage
-}));
+const {
+  mockTopic
+} = vi.hoisted(() => {
+  const mockTopic = vi.fn().mockImplementation(() => ({
+    publishMessage: mockPublishMessage
+  }));
+
+  return {
+    mockTopic
+  };
+});
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn(() => ({
+  PubSub: vi.fn().mockImplementation(() => ({
     topic: mockTopic
   }))
 }));
@@ -36,7 +44,7 @@ vi.mock('../../../errors/ApiError.js', () => ({
 }));
 
 vi.mock('../../middlewares/other/pick.js', () => ({
-  default: vi.fn((object, keys) => {
+  default: vi.fn().mockImplementation((object, keys) => {
     const result = {};
     if (!object) return result;
     keys.forEach(key => {

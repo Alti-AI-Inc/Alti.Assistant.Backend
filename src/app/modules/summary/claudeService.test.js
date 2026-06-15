@@ -2,8 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies before importing the module
 const mockSendMessage = vi.fn();
-const mockStartChat = vi.fn(() => ({ sendMessage: mockSendMessage }));
-const mockGetGenerativeModel = vi.fn(() => ({ startChat: mockStartChat }));
+const mockStartChat = vi.fn().mockImplementation(() => ({ sendMessage: mockSendMessage }));
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({ startChat: mockStartChat }));
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 
 vi.mock('../../../../config/index.js', () => ({
   default: {

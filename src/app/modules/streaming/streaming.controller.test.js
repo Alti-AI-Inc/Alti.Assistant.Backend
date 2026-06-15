@@ -1,8 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 
-// Mock dependencies BEFORE importing the controller
-const mockSendResponse = vi.fn();
+const {
+  mockSendResponse,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies BEFORE importing the controller
+  const mockSendResponse = vi.fn();
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockSendResponse,
+    mockLogger
+  };
+});
+
 vi.mock('../../../shared/sendResponse', () => ({
   sendResponse: mockSendResponse,
 }));
@@ -12,10 +28,6 @@ vi.mock('../../../../config', () => ({
   livekit_secret_key: 'test_secret_key',
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger', () => ({
   logger: mockLogger,
 }));
@@ -34,7 +46,7 @@ vi.mock('livekit-server-sdk', () => ({
 
 // Mock the catchAsync wrapper to return the raw function for easier testing
 vi.mock('../../../shared/catchAsync', () => ({
-  catchAsync: vi.fn(fn => fn),
+  catchAsync: vi.fn().mockImplementation(fn => fn),
 }));
 
 // Dynamically import the controller after all mocks are set up

@@ -29,12 +29,12 @@ vi.mock('mongoose', async (importOriginal) => {
     ...actualMongoose,
     default: {
       ...actualMongoose.default,
-      Schema: vi.fn(() => ({
+      Schema: vi.fn().mockImplementation(() => ({
         index: vi.fn(),
       })),
-      model: vi.fn(() => {
+      model: vi.fn().mockImplementation(() => {
         // Mock the constructor for new ResearchResult()
-        const ResearchResultConstructor = vi.fn((data) => {
+        const ResearchResultConstructor = vi.fn().mockImplementation((data) => {
           mockModel.save.mockResolvedValueOnce({ _id: 'mockId123', ...data });
           return { ...data, save: mockModel.save };
         });
@@ -51,13 +51,13 @@ vi.mock('@google-cloud/storage', () => {
     save: vi.fn(),
   };
   const mockBucket = {
-    file: vi.fn(() => mockFile),
+    file: vi.fn().mockImplementation(() => mockFile),
   };
   const mockStorage = {
-    bucket: vi.fn(() => mockBucket),
+    bucket: vi.fn().mockImplementation(() => mockBucket),
   };
   return {
-    Storage: vi.fn(() => mockStorage),
+    Storage: vi.fn().mockImplementation(() => mockStorage),
   };
 });
 
@@ -75,11 +75,11 @@ vi.mock('../../../../../config/index.js', () => ({
 }));
 
 vi.mock('../../../helpers/tenantQuery.js', () => ({
-  withTenantPipeline: vi.fn((req, pipeline) => {
+  withTenantPipeline: vi.fn().mockImplementation((req, pipeline) => {
     const tenantFilter = req?.user?.tenantId ? { tenantId: req.user.tenantId } : {};
     return [{ $match: tenantFilter }, ...pipeline];
   }),
-  withTenantFilter: vi.fn((req, query) => {
+  withTenantFilter: vi.fn().mockImplementation((req, query) => {
     const tenantFilter = req?.user?.tenantId ? { tenantId: req.user.tenantId } : {};
     return { ...query, ...tenantFilter };
   }),
@@ -598,10 +598,10 @@ describe('researchStorageService', () => {
         save: vi.fn().mockResolvedValue(true),
       };
       mockBucketInstance = {
-        file: vi.fn(() => mockFileInstance),
+        file: vi.fn().mockImplementation(() => mockFileInstance),
       };
       mockStorageInstance = {
-        bucket: vi.fn(() => mockBucketInstance),
+        bucket: vi.fn().mockImplementation(() => mockBucketInstance),
       };
       Storage.mockImplementation(() => mockStorageInstance);
       // Re-import to ensure the `storage` variable in the module is updated

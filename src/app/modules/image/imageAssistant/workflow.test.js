@@ -5,12 +5,25 @@ const mockAddNode = vi.fn();
 const mockAddEdge = vi.fn();
 const mockAddConditionalEdges = vi.fn();
 const mockCompile = vi.fn();
-const mockStateGraph = vi.fn(() => ({
-  addNode: mockAddNode,
-  addEdge: mockAddEdge,
-  addConditionalEdges: mockAddConditionalEdges,
-  compile: mockCompile,
-}));
+
+const {
+  mockStateGraph,
+  mockMongoDBSaverFromUri
+} = vi.hoisted(() => {
+  const mockStateGraph = vi.fn().mockImplementation(() => ({
+    addNode: mockAddNode,
+    addEdge: mockAddEdge,
+    addConditionalEdges: mockAddConditionalEdges,
+    compile: mockCompile,
+  }));
+
+  const mockMongoDBSaverFromUri = vi.fn();
+
+  return {
+    mockStateGraph,
+    mockMongoDBSaverFromUri
+  };
+});
 
 // Mock Langchain dependencies
 let MockMemorySaver;
@@ -43,7 +56,6 @@ vi.mock('./state.js', () => ({
   graphState: { messages: 'test_state_schema' },
 }));
 
-const mockMongoDBSaverFromUri = vi.fn();
 vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
   MongoDBSaver: {
     fromUri: mockMongoDBSaverFromUri,

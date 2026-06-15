@@ -21,33 +21,43 @@ vi.mock('fs', async (importOriginal) => {
     };
 });
 
-// Mock https
-const mockResponse = {
-    statusCode: 200,
-    headers: {},
-    on: vi.fn((event, handler) => {
-        if (event === 'data') {
-            mockResponse._dataHandler = handler;
-        } else if (event === 'end') {
-            mockResponse._endHandler = handler;
-        }
-    }),
-    destroy: vi.fn(),
-    _emitData: (chunk) => mockResponse._dataHandler(chunk),
-    _emitEnd: () => mockResponse._endHandler(),
-};
-const mockRequest = {
-    on: vi.fn((event, handler) => {
-        if (event === 'error') {
-            mockRequest._errorHandler = handler;
-        }
-    }),
-    _emitError: (error) => mockRequest._errorHandler(error),
-};
+const {
+    mockResponse,
+    mockRequest
+} = vi.hoisted(() => {
+    // Mock https
+    const mockResponse = {
+        statusCode: 200,
+        headers: {},
+        on: vi.fn().mockImplementation((event, handler) => {
+            if (event === 'data') {
+                mockResponse._dataHandler = handler;
+            } else if (event === 'end') {
+                mockResponse._endHandler = handler;
+            }
+        }),
+        destroy: vi.fn(),
+        _emitData: (chunk) => mockResponse._dataHandler(chunk),
+        _emitEnd: () => mockResponse._endHandler(),
+    };
+    const mockRequest = {
+        on: vi.fn().mockImplementation((event, handler) => {
+            if (event === 'error') {
+                mockRequest._errorHandler = handler;
+            }
+        }),
+        _emitError: (error) => mockRequest._errorHandler(error),
+    };
+
+    return {
+        mockResponse,
+        mockRequest
+    };
+});
 
 vi.mock('https', () => ({
     default: {
-        get: vi.fn((url, callback) => {
+        get: vi.fn().mockImplementation((url, callback) => {
             // Reset mockResponse for each call
             mockResponse.statusCode = 200;
             mockResponse.headers = {};
@@ -70,13 +80,13 @@ const MOCK_DATA_DIR = '/mock/path/to/module/data';
 const MOCK_OUT_FILE = '/mock/path/to/module/data/flat_wisdom.json';
 
 vi.mock('url', () => ({
-    fileURLToPath: vi.fn(() => '/mock/path/to/module/parse_wisdom.js'),
+    fileURLToPath: vi.fn().mockImplementation(() => '/mock/path/to/module/parse_wisdom.js'),
 }));
 
 vi.mock('path', () => ({
     default: {
-        dirname: vi.fn(() => MOCK_DIRNAME),
-        join: vi.fn((...args) => {
+        dirname: vi.fn().mockImplementation(() => MOCK_DIRNAME),
+        join: vi.fn().mockImplementation((...args) => {
             if (args[0] === MOCK_DIRNAME && args[1] === 'data') {
                 return MOCK_DATA_DIR;
             }
@@ -135,7 +145,7 @@ describe('parse_wisdom', () => {
             // Mock the first call to https.get for initialUrl (redirect)
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse, statusCode: 302, headers: { location: redirectUrl } };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -150,7 +160,7 @@ describe('parse_wisdom', () => {
             // Mock the second call to https.get for redirectUrl (success)
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse, statusCode: 200, headers: {} };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -307,7 +317,7 @@ BOOK II.
             // Mock fetchText to return specific content for each source
             https.default.get.mockImplementation((url, callback) => {
                 const res = { ...mockResponse }; // Create a fresh response object for each call
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -394,7 +404,7 @@ BOOK II.
             // Make the first fetch fail, but the second succeed
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -407,7 +417,7 @@ BOOK II.
                 return mockRequest;
             }).mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -451,7 +461,7 @@ Some postamble
 `;
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -467,7 +477,7 @@ Some postamble
             // Mock the second source to return its original content
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -511,7 +521,7 @@ This is a very long paragraph that should be included as a single entry because 
 `;
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });
@@ -527,7 +537,7 @@ This is a very long paragraph that should be included as a single entry because 
             // Mock the second source to return its original content
             https.default.get.mockImplementationOnce((url, callback) => {
                 const res = { ...mockResponse };
-                res.on = vi.fn((event, handler) => {
+                res.on = vi.fn().mockImplementation((event, handler) => {
                     if (event === 'data') res._dataHandler = handler;
                     if (event === 'end') res._endHandler = handler;
                 });

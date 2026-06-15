@@ -17,30 +17,45 @@ vi.mock('../../../shared/sendResponse.js', () => ({
   default: sendResponse,
 }));
 
-// Mock module-specific dependencies
-const mockDocumentService = {
-  generateGuestUserId: vi.fn(),
-  processConversationalRequest: vi.fn(),
-  generateDocument: vi.fn(),
-};
+const {
+  mockDocumentService,
+  mockSubscriptionModel,
+  mockConversationHelpers
+} = vi.hoisted(() => {
+  // Mock module-specific dependencies
+  const mockDocumentService = {
+    generateGuestUserId: vi.fn(),
+    processConversationalRequest: vi.fn(),
+    generateDocument: vi.fn(),
+  };
+
+  const mockSubscriptionModel = {
+    findOne: vi.fn().mockImplementation(() => ({
+      sort: vi.fn().mockImplementation(() => ({
+        lean: vi.fn(), // Will be chained and resolved in specific tests
+      })),
+    })),
+  };
+
+  const mockConversationHelpers = {
+    getConversationById: vi.fn(),
+  };
+
+  return {
+    mockDocumentService,
+    mockSubscriptionModel,
+    mockConversationHelpers
+  };
+});
+
 vi.mock('./document.service.js', () => ({
   documentService: mockDocumentService,
 }));
 
-const mockSubscriptionModel = {
-  findOne: vi.fn(() => ({
-    sort: vi.fn(() => ({
-      lean: vi.fn(), // Will be chained and resolved in specific tests
-    })),
-  })),
-};
 vi.mock('../payment/payment.model.js', () => ({
   default: mockSubscriptionModel,
 }));
 
-const mockConversationHelpers = {
-  getConversationById: vi.fn(),
-};
 vi.mock('../conversations/conversation.helpers.js', () => ({
   conversationHelpers: mockConversationHelpers,
 }));
@@ -160,8 +175,8 @@ describe('document.controller', () => {
     it('should handle authenticated user with sufficient subscription and process request successfully', async () => {
       req.body = { message: 'Draft a contract.', conversationId: 'existingConv456' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 10 })), // 10 prompts available
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 10 })), // 10 prompts available
         })),
       });
       mockConversationHelpers.getConversationById.mockResolvedValueOnce(2); // User has used 2 prompts in this conversation
@@ -205,8 +220,8 @@ describe('document.controller', () => {
     it('should return FORBIDDEN for authenticated user with insufficient subscription', async () => {
       req.body = { message: 'Draft a contract.', conversationId: 'existingConv456' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 2 })), // 2 prompts available
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 2 })), // 2 prompts available
         })),
       });
       mockConversationHelpers.getConversationById.mockResolvedValueOnce(2); // User has used 2 prompts in this conversation
@@ -230,8 +245,8 @@ describe('document.controller', () => {
     it('should return FORBIDDEN for authenticated user with no subscription found', async () => {
       req.body = { message: 'Draft a contract.' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve(null)), // No subscription found
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve(null)), // No subscription found
         })),
       });
       // getConversationById won't be called if userSubscription is null, promptUsage will be 0
@@ -251,8 +266,8 @@ describe('document.controller', () => {
     it('should handle errors from documentService.processConversationalRequest', async () => {
       req.body = { message: 'Error case.' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 10 })),
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 10 })),
         })),
       });
       mockConversationHelpers.getConversationById.mockResolvedValueOnce(0);
@@ -283,8 +298,8 @@ describe('document.controller', () => {
       req.user = { userId: 'originalUserId' }; // This should be overridden
       req.body = { message: 'Hello', userId: 'bodyUserId' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'bodyUserId', usage: 10 })),
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'bodyUserId', usage: 10 })),
         })),
       });
       mockConversationHelpers.getConversationById.mockResolvedValueOnce(0);
@@ -382,8 +397,8 @@ describe('document.controller', () => {
     it('should handle authenticated user with sufficient subscription and generate document successfully', async () => {
       req.body = { documentType: 'report', content: 'Report data' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 5 })), // 5 prompts available
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 5 })), // 5 prompts available
         })),
       });
       mockDocumentService.generateDocument.mockResolvedValueOnce({
@@ -412,8 +427,8 @@ describe('document.controller', () => {
     it('should return FORBIDDEN for authenticated user with insufficient subscription (usage <= 0)', async () => {
       req.body = { documentType: 'letter' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 0 })), // 0 prompts available
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 0 })), // 0 prompts available
         })),
       });
 
@@ -431,8 +446,8 @@ describe('document.controller', () => {
     it('should return FORBIDDEN for authenticated user with no subscription found', async () => {
       req.body = { documentType: 'letter' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve(null)), // No subscription found
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve(null)), // No subscription found
         })),
       });
 
@@ -450,8 +465,8 @@ describe('document.controller', () => {
     it('should handle errors from documentService.generateDocument', async () => {
       req.body = { documentType: 'errorDoc' };
       mockSubscriptionModel.findOne.mockReturnValueOnce({
-        sort: vi.fn(() => ({
-          lean: vi.fn(() => Promise.resolve({ userId: 'authUserId', usage: 5 })),
+        sort: vi.fn().mockImplementation(() => ({
+          lean: vi.fn().mockImplementation(() => Promise.resolve({ userId: 'authUserId', usage: 5 })),
         })),
       });
       const mockError = new Error('Generation failed');

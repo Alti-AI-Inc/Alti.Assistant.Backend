@@ -12,10 +12,10 @@ import {
 // Mock external dependencies
 vi.mock('@google/generative-ai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
     generateContent: mockGenerateContent,
   }));
-  const mockGoogleGenerativeAI = vi.fn(() => ({
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   }));
   return {

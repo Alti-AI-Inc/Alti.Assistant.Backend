@@ -5,9 +5,27 @@ import {
   summarizeContentNode,
 } from './nodes.js';
 
-// Mock external dependencies
-const mockGetUrlFromUserInputUsingAi = vi.fn();
-const mockGenerateSummary = vi.fn();
+const {
+  mockGetUrlFromUserInputUsingAi,
+  mockGenerateSummary,
+  mockCheerioLoad,
+  mockYoutubeLoad
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockGetUrlFromUserInputUsingAi = vi.fn();
+  const mockGenerateSummary = vi.fn();
+
+  // Mock Langchain loaders
+  const mockCheerioLoad = vi.fn();
+  const mockYoutubeLoad = vi.fn();
+
+  return {
+    mockGetUrlFromUserInputUsingAi,
+    mockGenerateSummary,
+    mockCheerioLoad,
+    mockYoutubeLoad
+  };
+});
 
 vi.mock('../openAIService.js', () => ({
   getUrlFromUserInputUsingAi: mockGetUrlFromUserInputUsingAi,
@@ -17,19 +35,15 @@ vi.mock('../summarizerService.js', () => ({
   generateSummary: mockGenerateSummary,
 }));
 
-// Mock Langchain loaders
-const mockCheerioLoad = vi.fn();
-const mockYoutubeLoad = vi.fn();
-
 vi.mock('@langchain/community/document_loaders/web/cheerio', () => ({
-  CheerioWebBaseLoader: vi.fn(() => ({
+  CheerioWebBaseLoader: vi.fn().mockImplementation(() => ({
     load: mockCheerioLoad,
   })),
 }));
 
 vi.mock('@langchain/community/document_loaders/web/youtube', () => ({
   YoutubeLoader: {
-    createFromUrl: vi.fn(() => ({
+    createFromUrl: vi.fn().mockImplementation(() => ({
       load: mockYoutubeLoad,
     })),
   },

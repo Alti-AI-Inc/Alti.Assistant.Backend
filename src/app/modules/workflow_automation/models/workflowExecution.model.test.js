@@ -2,15 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
+const mockTopic = vi.fn().mockImplementation(() => ({
   publishMessage: mockPublishMessage,
 }));
-const mockPubSubClient = {
-  topic: mockTopic,
-};
+const {
+  mockPubSubClient
+} = vi.hoisted(() => {
+  const mockPubSubClient = {
+    topic: mockTopic,
+  };
+
+  return {
+    mockPubSubClient
+  };
+});
 
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn(() => mockPubSubClient),
+  PubSub: vi.fn().mockImplementation(() => mockPubSubClient),
 }));
 
 const postSaveCallbacks = [];

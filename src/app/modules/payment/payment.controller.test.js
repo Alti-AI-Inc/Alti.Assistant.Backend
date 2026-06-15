@@ -106,7 +106,7 @@ describe('Payment Controller', () => {
 
   describe('handleWebhook', () => {
     const mockPublishMessage = vi.fn();
-    const mockTopic = vi.fn(() => ({
+    const mockTopic = vi.fn().mockImplementation(() => ({
       publishMessage: mockPublishMessage,
     }));
 
@@ -248,7 +248,7 @@ describe('Payment Controller', () => {
 
   describe('incrementPromptsUsed & incrementImagesUsed', () => {
     const mockPublishMessage = vi.fn();
-    const mockTopic = vi.fn(() => ({
+    const mockTopic = vi.fn().mockImplementation(() => ({
       publishMessage: mockPublishMessage,
     }));
 

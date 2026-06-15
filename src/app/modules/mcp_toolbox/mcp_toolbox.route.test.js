@@ -3,15 +3,27 @@ import express from 'express';
 import auth from '../../middlewares/auth/auth.js';
 import { mcpToolboxController } from './mcp_toolbox.controller.js';
 
-// Mock dependencies
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-  use: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+    use: vi.fn(),
+  };
+
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
+  return {
+    mockRouter,
+    mockAuthMiddleware
+  };
+});
 
 vi.mock('express', () => ({
   default: {
@@ -19,9 +31,8 @@ vi.mock('express', () => ({
   },
 }));
 
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => mockAuthMiddleware),
+  default: vi.fn().mockImplementation(() => mockAuthMiddleware),
 }));
 
 vi.mock('./mcp_toolbox.controller.js', () => ({

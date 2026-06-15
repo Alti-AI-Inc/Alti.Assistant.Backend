@@ -12,8 +12,8 @@ import { NotificationService } from './notification.service.js';
 // Mock dependencies
 vi.mock('@google-cloud/pubsub', () => {
   const publishMessage = vi.fn();
-  const topic = vi.fn(() => ({ publishMessage }));
-  const PubSub = vi.fn(() => ({ topic }));
+  const topic = vi.fn().mockImplementation(() => ({ publishMessage }));
+  const PubSub = vi.fn().mockImplementation(() => ({ topic }));
   return { PubSub, publishMessage, topic };
 });
 
@@ -25,10 +25,10 @@ vi.mock('../auth/auth.model.js', () => ({
 
 vi.mock('./notification.model.js', () => {
   const lean = vi.fn();
-  const sort = vi.fn(() => ({ lean }));
-  const find = vi.fn(() => ({ sort, lean }));
-  const findOne = vi.fn(() => ({ lean }));
-  const findOneAndUpdate = vi.fn(() => ({ lean }));
+  const sort = vi.fn().mockImplementation(() => ({ lean }));
+  const find = vi.fn().mockImplementation(() => ({ sort, lean }));
+  const findOne = vi.fn().mockImplementation(() => ({ lean }));
+  const findOneAndUpdate = vi.fn().mockImplementation(() => ({ lean }));
 
   return {
     default: {
@@ -52,8 +52,8 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 vi.mock('../../helpers/tenantQuery.js', () => ({
-  withTenantContext: vi.fn((req, data) => ({ ...data, tenantId: req.tenantId })),
-  withTenantFilter: vi.fn((req, query) => ({ ...query, tenantId: req.tenantId })),
+  withTenantContext: vi.fn().mockImplementation((req, data) => ({ ...data, tenantId: req.tenantId })),
+  withTenantFilter: vi.fn().mockImplementation((req, query) => ({ ...query, tenantId: req.tenantId })),
 }));
 
 // Get mock instances for manipulation in tests

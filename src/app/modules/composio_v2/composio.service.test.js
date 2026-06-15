@@ -1,52 +1,83 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock external dependencies
-const mockComposioCore = {
-  Composio: vi.fn(() => ({
-    connectedAccounts: {
-      initiate: vi.fn(),
-      waitForConnection: vi.fn(),
+const {
+  mockComposioCore,
+  mockConfig,
+  mockComposionAuth,
+  mockAuthConfig,
+  mockConversation,
+  mockAiClassificationService,
+  mockTenantQuery
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockComposioCore = {
+    Composio: vi.fn().mockImplementation(() => ({
+      connectedAccounts: {
+        initiate: vi.fn(),
+        waitForConnection: vi.fn(),
+      },
+    })),
+  };
+
+  const mockConfig = {
+    composio: {
+      orgApiKey: 'test-api-key',
     },
-  })),
-};
+  };
+
+  const mockComposionAuth = {
+    findOne: vi.fn(),
+    updateOne: vi.fn(),
+    save: vi.fn(),
+  };
+
+  const mockAuthConfig = {
+    findOne: vi.fn(),
+    save: vi.fn(),
+  };
+
+  const mockConversation = {
+    findByConversationId: vi.fn(),
+    save: vi.fn(),
+    messages: [],
+  };
+
+  const mockAiClassificationService = {
+    processUserInputService: vi.fn(),
+  };
+
+  const mockTenantQuery = {
+    withTenantContext: vi.fn().mockImplementation(
+      (req, data) => (req && req.tenantId ? { ...data, tenantId: req.tenantId } : data)
+    ),
+    withTenantFilter: vi.fn().mockImplementation(
+      (req, query) => (req && req.tenantId ? { ...query, tenantId: req.tenantId } : query)
+    ),
+  };
+
+  return {
+    mockComposioCore,
+    mockConfig,
+    mockComposionAuth,
+    mockAuthConfig,
+    mockConversation,
+    mockAiClassificationService,
+    mockTenantQuery
+  };
+});
+
 vi.mock('@composio/core', () => mockComposioCore);
 
-const mockConfig = {
-  composio: {
-    orgApiKey: 'test-api-key',
-  },
-};
 vi.mock('../../../../config/index.js', () => ({ default: mockConfig }));
 
-const mockComposionAuth = {
-  findOne: vi.fn(),
-  updateOne: vi.fn(),
-  save: vi.fn(),
-};
-vi.mock('./composio.model.js', () => ({ default: vi.fn(() => mockComposionAuth) }));
+vi.mock('./composio.model.js', () => ({ default: vi.fn().mockImplementation(() => mockComposionAuth) }));
 
-const mockAuthConfig = {
-  findOne: vi.fn(),
-  save: vi.fn(),
-};
-vi.mock('./authConfig.model.js', () => ({ default: vi.fn(() => mockAuthConfig) }));
+vi.mock('./authConfig.model.js', () => ({ default: vi.fn().mockImplementation(() => mockAuthConfig) }));
 
-const mockConversation = {
-  findByConversationId: vi.fn(),
-  save: vi.fn(),
-  messages: [],
-};
-vi.mock('../conversations/conversation.model.js', () => ({ default: vi.fn(() => mockConversation) }));
+vi.mock('../conversations/conversation.model.js', () => ({ default: vi.fn().mockImplementation(() => mockConversation) }));
 
-const mockAiClassificationService = {
-  processUserInputService: vi.fn(),
-};
 vi.mock('./aiClassification.service.js', () => ({ aiClassificationService: mockAiClassificationService }));
 
-const mockTenantQuery = {
-  withTenantContext: vi.fn((req, data) => (req && req.tenantId ? { ...data, tenantId: req.tenantId } : data)),
-  withTenantFilter: vi.fn((req, query) => (req && req.tenantId ? { ...query, tenantId: req.tenantId } : query)),
-};
 vi.mock('../../helpers/tenantQuery.js', () => mockTenantQuery);
 
 // Import the service after mocks are set up

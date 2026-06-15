@@ -22,11 +22,19 @@ vi.mock('./code.constant.js', () => ({
   },
 }));
 
-// Mock logger
-const mockLogger = {
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock logger
+  const mockLogger = {
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockLogger
+  };
+});
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

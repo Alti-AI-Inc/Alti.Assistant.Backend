@@ -24,7 +24,7 @@ vi.mock('../../../../shared/logger.js', () => ({
 
 describe('legalContractAnalyzer', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
     generateContent: mockGenerateContent,
   }));
 

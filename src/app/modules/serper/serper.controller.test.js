@@ -11,7 +11,15 @@ vi.mock('../../../../config/index.js', () => ({
   },
 }));
 
-const mockGenerateContent = vi.fn();
+const {
+  mockGenerateContent
+} = vi.hoisted(() => {
+  const mockGenerateContent = vi.fn();
+
+  return {
+    mockGenerateContent
+  };
+});
 vi.mock('@google/genai', () => {
   const GoogleGenAI = vi.fn().mockImplementation(() => ({
     models: {
@@ -22,7 +30,7 @@ vi.mock('@google/genai', () => {
 });
 
 vi.mock('../../../shared/catchAsync.js', () => ({
-  default: vi.fn(fn => fn), // Mock catchAsync to return the function directly
+  default: vi.fn().mockImplementation(fn => fn), // Mock catchAsync to return the function directly
 }));
 
 describe('SerperAiController', () => {

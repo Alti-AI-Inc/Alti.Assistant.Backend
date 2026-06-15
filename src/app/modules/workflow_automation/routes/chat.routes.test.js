@@ -2,32 +2,50 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
 // Mock dependencies
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockAuth = vi.fn(() => mockAuthMiddleware);
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockOptionalAuthMiddleware = vi.fn((req, res, next) => next());
-const mockOptionalAuth = vi.fn(() => mockOptionalAuthMiddleware);
+const {
+  mockAuth,
+  mockOptionalAuth,
+  mockCheckDailyRequestLimit,
+  mockChatController,
+  mockRouter
+} = vi.hoisted(() => {
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
 
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
+  const mockOptionalAuth = vi.fn().mockImplementation(() => mockOptionalAuthMiddleware);
 
-const mockChatController = {
-  createWorkflowFromPromptController: vi.fn(),
-  confirmWorkflowCreationController: vi.fn(),
-  continueConversationController: vi.fn(),
-  getUserConversationsController: vi.fn(),
-  getConversationController: vi.fn(),
-};
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
 
-// Mock express.Router
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+  const mockChatController = {
+    createWorkflowFromPromptController: vi.fn(),
+    confirmWorkflowCreationController: vi.fn(),
+    continueConversationController: vi.fn(),
+    getUserConversationsController: vi.fn(),
+    getConversationController: vi.fn(),
+  };
+
+  // Mock express.Router
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  return {
+    mockAuth,
+    mockOptionalAuth,
+    mockCheckDailyRequestLimit,
+    mockChatController,
+    mockRouter
+  };
+});
+
+const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
 // Mock the express module to return our mock router when Router() is called
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 

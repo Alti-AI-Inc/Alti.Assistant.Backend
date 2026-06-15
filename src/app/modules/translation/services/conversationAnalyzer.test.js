@@ -1,9 +1,17 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const mockInvoke = vi.fn();
-const mockChatGoogleGenerativeAI = vi.fn(() => ({
-  invoke: mockInvoke,
-}));
+const {
+  mockChatGoogleGenerativeAI
+} = vi.hoisted(() => {
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    invoke: mockInvoke,
+  }));
+
+  return {
+    mockChatGoogleGenerativeAI
+  };
+});
 
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,

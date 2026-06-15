@@ -4,12 +4,20 @@ import Dataset from './datasets.model.js'; // We import this to get access to th
 
 // Mock the Google Cloud Pub/Sub client
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
+const mockTopic = vi.fn().mockImplementation(() => ({
   publishMessage: mockPublishMessage,
 }));
-const mockPubSub = vi.fn(() => ({
-  topic: mockTopic,
-}));
+const {
+  mockPubSub
+} = vi.hoisted(() => {
+  const mockPubSub = vi.fn().mockImplementation(() => ({
+    topic: mockTopic,
+  }));
+
+  return {
+    mockPubSub
+  };
+});
 
 vi.mock('@google-cloud/pubsub', () => ({
   PubSub: mockPubSub,

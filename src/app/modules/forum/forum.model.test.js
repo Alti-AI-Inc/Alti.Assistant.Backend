@@ -25,25 +25,37 @@ const mockSchemaConstructor = vi.fn(function(definition, options) {
 const MockObjectIdType = function() {};
 Object.defineProperty(MockObjectIdType, 'name', { value: 'ObjectId' });
 
-const mockMongoose = {
-  // Assign Types to the Schema constructor itself, as used in the model file
-  Schema: Object.assign(mockSchemaConstructor, {
+const {
+  mockMongoose,
+  mockValidator,
+  mockCategoryValues
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    // Assign Types to the Schema constructor itself, as used in the model file
+    Schema: Object.assign(mockSchemaConstructor, {
+      Types: {
+        ObjectId: MockObjectIdType,
+      },
+    }),
+    model: vi.fn().mockImplementation((name, schema) => ({ name, schema })),
+    // Also provide Mongoose.Types.ObjectId for completeness if used directly
     Types: {
       ObjectId: MockObjectIdType,
     },
-  }),
-  model: vi.fn((name, schema) => ({ name, schema })),
-  // Also provide Mongoose.Types.ObjectId for completeness if used directly
-  Types: {
-    ObjectId: MockObjectIdType,
-  },
-};
+  };
 
-const mockValidator = {
-  isEmail: vi.fn(() => true), // Mock the validator function
-};
+  const mockValidator = {
+    isEmail: vi.fn().mockImplementation(() => true), // Mock the validator function
+  };
 
-const mockCategoryValues = ['General', 'Technical', 'Announcements'];
+  const mockCategoryValues = ['General', 'Technical', 'Announcements'];
+
+  return {
+    mockMongoose,
+    mockValidator,
+    mockCategoryValues
+  };
+});
 
 // Mock external modules
 vi.mock('mongoose', () => mockMongoose);

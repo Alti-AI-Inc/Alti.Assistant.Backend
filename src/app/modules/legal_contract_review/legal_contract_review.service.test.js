@@ -30,8 +30,8 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     ...actualMongoose,
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockedObjectId'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockedObjectId'),
       })),
     },
   };
@@ -69,12 +69,12 @@ vi.mock('../conversations/conversation.model.js', () => ({
 }));
 
 // Mock the internal genAI instance
-const mockGenerateContent = vi.fn(() => ({
+const mockGenerateContent = vi.fn().mockImplementation(() => ({
   response: {
-    text: vi.fn(() => 'Mocked AI review content'),
+    text: vi.fn().mockImplementation(() => 'Mocked AI review content'),
   },
 }));
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
 GoogleGenerativeAI.mockImplementation(() => ({
@@ -95,7 +95,7 @@ describe('legalContractReviewService', () => {
     mockGenerateContent.mockClear();
     mockGenerateContent.mockReturnValue({
       response: {
-        text: vi.fn(() => 'Mocked AI review content'),
+        text: vi.fn().mockImplementation(() => 'Mocked AI review content'),
       },
     });
 

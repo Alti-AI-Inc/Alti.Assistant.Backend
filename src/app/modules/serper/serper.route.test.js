@@ -19,24 +19,32 @@ const mockRouteObject = {
 };
 
 // This function represents the `router.route` method
-const mockRouteMethod = vi.fn((path) => mockRouteObject);
+const mockRouteMethod = vi.fn().mockImplementation((path) => mockRouteObject);
 
-// This object represents the router instance returned by `express.Router()`
-const mockRouterInstance = {
-  route: mockRouteMethod,
-  use: mockUse,
-  // Add direct methods if the router can also have them (e.g., router.post('/path', handler))
-  // Although not used in this specific route file, it's good to have a comprehensive mock
-  post: mockPost,
-  get: mockGet,
-  put: mockPut,
-  delete: mockDelete,
-};
+const {
+  mockRouterInstance
+} = vi.hoisted(() => {
+  // This object represents the router instance returned by `express.Router()`
+  const mockRouterInstance = {
+    route: mockRouteMethod,
+    use: mockUse,
+    // Add direct methods if the router can also have them (e.g., router.post('/path', handler))
+    // Although not used in this specific route file, it's good to have a comprehensive mock
+    post: mockPost,
+    get: mockGet,
+    put: mockPut,
+    delete: mockDelete,
+  };
+
+  return {
+    mockRouterInstance
+  };
+});
 
 // Mock express and its Router method to return our mock router instance
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouterInstance),
+    Router: vi.fn().mockImplementation(() => mockRouterInstance),
   },
 }));
 

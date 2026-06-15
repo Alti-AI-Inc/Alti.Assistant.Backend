@@ -1,36 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock express and its Router
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter,
+  mockMulter,
+  mockAuth,
+  mockOptionalAuth,
+  mockExtractTenantContext,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockCheckDailyRequestLimit,
+  mockCheckRAGFeature,
+  mockCheckStorageLimit,
+  mockSummaryController,
+  mockSummaryValidation,
+  mockEnumUserRole
+} = vi.hoisted(() => {
+  // Mock express and its Router
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+  const mockMulter = vi.fn().mockImplementation(() => mockMulterInstance); // The multer constructor
+
+  // Mock all middleware functions
+  const mockAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockOptionalAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiter = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckRAGFeature = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckStorageLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock controller
+  const mockSummaryController = {
+    summarizeContent: vi.fn(),
+    getSummaryStats: vi.fn(),
+  };
+
+  // Mock validation schema
+  const mockSummaryValidation = {
+    summaryQuerySchema: { /* mock schema content if needed for validateRequest */ },
+  };
+
+  // Mock ENUM_USER_ROLE
+  const mockEnumUserRole = {
+    ADMIN: 'admin',
+    USER: 'user',
+  };
+
+  return {
+    mockRouter,
+    mockMulter,
+    mockAuth,
+    mockOptionalAuth,
+    mockExtractTenantContext,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockCheckDailyRequestLimit,
+    mockCheckRAGFeature,
+    mockCheckStorageLimit,
+    mockSummaryController,
+    mockSummaryValidation,
+    mockEnumUserRole
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
 // Mock multer
-const mockMulterSingleMiddleware = vi.fn((req, res, next) => next()); // The middleware returned by upload.single()
+const mockMulterSingleMiddleware = vi.fn().mockImplementation((req, res, next) => next()); // The middleware returned by upload.single()
 const mockMulterInstance = { // The object returned by multer()
-  single: vi.fn(() => mockMulterSingleMiddleware),
+  single: vi.fn().mockImplementation(() => mockMulterSingleMiddleware),
 };
-const mockMulter = vi.fn(() => mockMulterInstance); // The multer constructor
 mockMulter.memoryStorage = vi.fn(); // Mock memoryStorage static method
 vi.mock('multer', () => ({
   default: mockMulter,
 }));
-
-// Mock all middleware functions
-const mockAuth = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockOptionalAuth = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
-const mockCreateRateLimiter = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockValidateRequest = vi.fn((schema) => vi.fn((req, res, next) => next()));
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCheckRAGFeature = vi.fn((req, res, next) => next());
-const mockCheckStorageLimit = vi.fn((req, res, next) => next());
 
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuth }));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuth }));
@@ -41,24 +91,10 @@ vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', ()
 vi.mock('../../middlewares/checkRAGFeature/checkRAGFeature.js', () => ({ default: mockCheckRAGFeature }));
 vi.mock('../../middlewares/checkStorageLimit/checkStorageLimit.js', () => ({ default: mockCheckStorageLimit }));
 
-// Mock controller
-const mockSummaryController = {
-  summarizeContent: vi.fn(),
-  getSummaryStats: vi.fn(),
-};
 vi.mock('./summary.controller.js', () => ({ summaryController: mockSummaryController }));
 
-// Mock validation schema
-const mockSummaryValidation = {
-  summaryQuerySchema: { /* mock schema content if needed for validateRequest */ },
-};
 vi.mock('./summary.validation.js', () => ({ SummaryValidation: mockSummaryValidation }));
 
-// Mock ENUM_USER_ROLE
-const mockEnumUserRole = {
-  ADMIN: 'admin',
-  USER: 'user',
-};
 vi.mock('../../../shared/enum.js', () => ({ ENUM_USER_ROLE: mockEnumUserRole }));
 
 // Import the module under test AFTER all mocks are defined

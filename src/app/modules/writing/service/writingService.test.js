@@ -3,13 +3,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock external dependencies
 const mockGenerateContent = vi.fn();
 const mockGenerateContentStream = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
   generateContentStream: mockGenerateContentStream,
 }));
-const mockGoogleGenerativeAI = vi.fn(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
-}));
+
+const {
+  mockGoogleGenerativeAI,
+  mockLLM,
+  mockJsonOutputParser
+} = vi.hoisted(() => {
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
+  }));
+
+  const mockLLM = {
+    invoke: mockLLMInvoke,
+    pipe: mockLLMPipe,
+  };
+
+  const mockJsonOutputParser = vi.fn().mockImplementation(() => ({
+    parse: vi.fn(), // The parse method is not directly called in the current chain setup, but good to mock
+  }));
+
+  return {
+    mockGoogleGenerativeAI,
+    mockLLM,
+    mockJsonOutputParser
+  };
+});
 
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: mockGoogleGenerativeAI,
@@ -24,20 +46,12 @@ vi.mock('../../../../../config/index.js', () => ({
 
 const mockLLMInvoke = vi.fn();
 const mockLLMPipeInvoke = vi.fn(); // For the piped chain
-const mockLLMPipe = vi.fn(() => ({
+const mockLLMPipe = vi.fn().mockImplementation(() => ({
   invoke: mockLLMPipeInvoke,
 }));
-const mockLLM = {
-  invoke: mockLLMInvoke,
-  pipe: mockLLMPipe,
-};
 
 vi.mock('../llm.js', () => ({
   llm: mockLLM,
-}));
-
-const mockJsonOutputParser = vi.fn(() => ({
-  parse: vi.fn(), // The parse method is not directly called in the current chain setup, but good to mock
 }));
 
 vi.mock('@langchain/core/output_parsers', () => ({

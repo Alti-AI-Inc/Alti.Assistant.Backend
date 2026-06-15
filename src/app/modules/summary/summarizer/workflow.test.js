@@ -4,13 +4,33 @@ import { START, END } from '@langchain/langgraph';
 // Mock the dependencies
 const mockAddNode = vi.fn();
 const mockAddEdge = vi.fn();
-const mockCompile = vi.fn(() => ({ isCompiledApp: true }));
+const mockCompile = vi.fn().mockImplementation(() => ({ isCompiledApp: true }));
 const mockStateGraphInstance = {
   addNode: mockAddNode,
   addEdge: mockAddEdge,
   compile: mockCompile,
 };
-const mockStateGraphConstructor = vi.fn(() => mockStateGraphInstance);
+
+const {
+  mockStateGraphConstructor,
+  mockSummarizerState,
+  mockFetchContentNode,
+  mockSummarizeContentNode
+} = vi.hoisted(() => {
+  const mockStateGraphConstructor = vi.fn().mockImplementation(() => mockStateGraphInstance);
+
+  const mockSummarizerState = { mockState: 'summarizer' };
+
+  const mockFetchContentNode = () => 'fetched';
+  const mockSummarizeContentNode = () => 'summarized';
+
+  return {
+    mockStateGraphConstructor,
+    mockSummarizerState,
+    mockFetchContentNode,
+    mockSummarizeContentNode
+  };
+});
 
 vi.mock('@langchain/langgraph', async (importOriginal) => {
   const original = await importOriginal();
@@ -22,13 +42,10 @@ vi.mock('@langchain/langgraph', async (importOriginal) => {
   };
 });
 
-const mockSummarizerState = { mockState: 'summarizer' };
 vi.mock('./state.js', () => ({
   summarizerState: mockSummarizerState,
 }));
 
-const mockFetchContentNode = () => 'fetched';
-const mockSummarizeContentNode = () => 'summarized';
 vi.mock('./nodes.js', () => ({
   fetchContentNode: mockFetchContentNode,
   summarizeContentNode: mockSummarizeContentNode,

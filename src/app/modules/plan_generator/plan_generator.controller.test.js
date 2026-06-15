@@ -2,56 +2,83 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 import { planGeneratorController } from './plan_generator.controller.js';
 
-// Mock external dependencies
-const mockCatchAsync = (fn) => fn; // Simply return the function to test the inner logic directly
+const {
+  mockCatchAsync,
+  mockLogger,
+  mockSendResponse,
+  mockPlanGeneratorService,
+  mockTaskManager,
+  mockIdeaAnalyzer,
+  mockBrainstormEngine
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockCatchAsync = (fn) => fn; // Simply return the function to test the inner logic directly
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockSendResponse = vi.fn();
+
+  const mockPlanGeneratorService = {
+    generateGuestUserId: vi.fn().mockImplementation(() => 'guest-123'),
+    conversationalAssistant: vi.fn(),
+    generatePlanDirect: vi.fn(),
+    getConversationHistory: vi.fn(),
+    exportPlan: vi.fn(),
+  };
+
+  const mockTaskManager = {
+    createTask: vi.fn(),
+    processTask: vi.fn(),
+    getTask: vi.fn(),
+  };
+
+  // Mock dynamic imports for brainstormIdea
+  const mockIdeaAnalyzer = {
+    analyzeIdea: vi.fn(),
+  };
+
+  const mockBrainstormEngine = {
+    generateBrainstorm: vi.fn(),
+  };
+
+  return {
+    mockCatchAsync,
+    mockLogger,
+    mockSendResponse,
+    mockPlanGeneratorService,
+    mockTaskManager,
+    mockIdeaAnalyzer,
+    mockBrainstormEngine
+  };
+});
+
 vi.mock('../../../shared/catchAsync.js', () => ({
   default: mockCatchAsync,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-const mockPlanGeneratorService = {
-  generateGuestUserId: vi.fn(() => 'guest-123'),
-  conversationalAssistant: vi.fn(),
-  generatePlanDirect: vi.fn(),
-  getConversationHistory: vi.fn(),
-  exportPlan: vi.fn(),
-};
 vi.mock('./plan_generator.service.js', () => ({
   planGeneratorService: mockPlanGeneratorService,
 }));
 
-const mockTaskManager = {
-  createTask: vi.fn(),
-  processTask: vi.fn(),
-  getTask: vi.fn(),
-};
 vi.mock('./plan_generator.taskmanager.js', () => ({
   taskManager: mockTaskManager,
 }));
 
-// Mock dynamic imports for brainstormIdea
-const mockIdeaAnalyzer = {
-  analyzeIdea: vi.fn(),
-};
 vi.mock('./services/ideaAnalyzer.js', () => ({
   ideaAnalyzer: mockIdeaAnalyzer,
 }));
 
-const mockBrainstormEngine = {
-  generateBrainstorm: vi.fn(),
-};
 vi.mock('./services/brainstormEngine.js', () => ({
   brainstormEngine: mockBrainstormEngine,
 }));

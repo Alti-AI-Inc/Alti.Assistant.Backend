@@ -4,24 +4,39 @@ import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { usageController } from './usage.controller.js';
 
-// Mock express and its Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  use: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockExtractTenantContext,
+  mockGetUsageStats
+} = vi.hoisted(() => {
+  // Mock express and its Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    use: vi.fn(),
+  };
+
+  // Mock middleware and controller
+  const mockAuthMiddleware = vi.fn().mockImplementation(() => vi.fn()); // auth() returns a middleware function
+  const mockExtractTenantContext = vi.fn();
+  const mockGetUsageStats = vi.fn();
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockExtractTenantContext,
+    mockGetUsageStats
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
-
-// Mock middleware and controller
-const mockAuthMiddleware = vi.fn(() => vi.fn()); // auth() returns a middleware function
-const mockExtractTenantContext = vi.fn();
-const mockGetUsageStats = vi.fn();
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuthMiddleware,

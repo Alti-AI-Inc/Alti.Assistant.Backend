@@ -29,8 +29,8 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 vi.mock('../../helpers/tenantQuery.js', () => ({
-  withTenantContext: vi.fn((req, payload) => ({ ...payload, tenantId: req.tenantId })),
-  withTenantFilter: vi.fn((req, query) => ({ ...query, tenantId: req.tenantId })),
+  withTenantContext: vi.fn().mockImplementation((req, payload) => ({ ...payload, tenantId: req.tenantId })),
+  withTenantFilter: vi.fn().mockImplementation((req, query) => ({ ...query, tenantId: req.tenantId })),
 }));
 
 vi.mock('../../../errors/ApiError.js', () => {

@@ -2,8 +2,27 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-const mockGeminiAiGetResponse = vi.fn((req, res) => res.status(200).json({ success: true, data: 'normal' }));
-const mockGeminiFlashAiGetResponse = vi.fn((req, res) => res.status(200).json({ success: true, data: 'flash' }));
+const {
+  mockGeminiAiGetResponse,
+  mockGeminiFlashAiGetResponse,
+  mockAuthMiddleware
+} = vi.hoisted(() => {
+  const mockGeminiAiGetResponse = vi.fn().mockImplementation((req, res) => res.status(200).json({ success: true, data: 'normal' }));
+  const mockGeminiFlashAiGetResponse = vi.fn().mockImplementation((req, res) => res.status(200).json({ success: true, data: 'flash' }));
+
+  const mockAuthMiddleware = vi.fn().mockImplementation((...roles) => {
+    return (req, res, next) => {
+      req.authRoles = roles;
+      next();
+    };
+  });
+
+  return {
+    mockGeminiAiGetResponse,
+    mockGeminiFlashAiGetResponse,
+    mockAuthMiddleware
+  };
+});
 
 vi.mock('./gemini.controller.js', () => ({
   GeminiAiController: {
@@ -11,13 +30,6 @@ vi.mock('./gemini.controller.js', () => ({
     GeminiFlashAiGetResponse: (req, res, next) => mockGeminiFlashAiGetResponse(req, res, next),
   }
 }));
-
-const mockAuthMiddleware = vi.fn((...roles) => {
-  return (req, res, next) => {
-    req.authRoles = roles;
-    next();
-  };
-});
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: (...roles) => mockAuthMiddleware(...roles)

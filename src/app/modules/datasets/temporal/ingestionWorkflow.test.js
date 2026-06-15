@@ -1,10 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runDatasetIngestionWorkflow } from './ingestionWorkflow.js';
 
-// Mock the activities module that is dynamically imported in mock mode
-const mockDownloadAndArchiveActivity = vi.fn();
-const mockIndexRAGActivity = vi.fn();
-const mockPurgeCorruptDatasetActivity = vi.fn();
+const {
+  mockDownloadAndArchiveActivity,
+  mockIndexRAGActivity,
+  mockPurgeCorruptDatasetActivity,
+  mockProxyActivities
+} = vi.hoisted(() => {
+  // Mock the activities module that is dynamically imported in mock mode
+  const mockDownloadAndArchiveActivity = vi.fn();
+  const mockIndexRAGActivity = vi.fn();
+  const mockPurgeCorruptDatasetActivity = vi.fn();
+
+  // Mock the Temporal workflow module that is dynamically imported in production mode
+  const mockProxyActivities = vi.fn();
+
+  return {
+    mockDownloadAndArchiveActivity,
+    mockIndexRAGActivity,
+    mockPurgeCorruptDatasetActivity,
+    mockProxyActivities
+  };
+});
 
 vi.mock('./ingestionActivities.js', async () => {
   return {
@@ -13,9 +30,6 @@ vi.mock('./ingestionActivities.js', async () => {
     purgeCorruptDatasetActivity: mockPurgeCorruptDatasetActivity,
   };
 });
-
-// Mock the Temporal workflow module that is dynamically imported in production mode
-const mockProxyActivities = vi.fn();
 
 vi.mock('@temporalio/workflow', async () => {
   return {

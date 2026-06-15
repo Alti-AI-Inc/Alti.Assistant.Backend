@@ -9,11 +9,11 @@ vi.mock('mongoose', async (importOriginal) => {
   const mockSchemaInstance = {
     // Add any methods or properties that might be called on a schema instance if needed
   };
-  const mockSchema = vi.fn(() => mockSchemaInstance);
+  const mockSchema = vi.fn().mockImplementation(() => mockSchemaInstance);
   mockSchema.Types = actualMongoose.Schema.Types; // Keep original Types for validation
 
   // Mock model function
-  const mockModel = vi.fn((name, schema) => ({
+  const mockModel = vi.fn().mockImplementation((name, schema) => ({
     // Simulate a Mongoose model instance
     modelName: name,
     schema: schema,

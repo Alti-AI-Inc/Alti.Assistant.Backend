@@ -3,7 +3,7 @@ import { GcpMcpService } from './gcp-mcp.service.js'; // Assuming the test file 
 
 // Mock external dependencies
 vi.mock('child_process', () => ({
-  spawn: vi.fn(() => {
+  spawn: vi.fn().mockImplementation(() => {
     const mockProcess = new (require('events').EventEmitter)();
     mockProcess.stdout = new (require('events').EventEmitter)();
     mockProcess.stderr = new (require('events').EventEmitter)();
@@ -15,8 +15,8 @@ vi.mock('child_process', () => ({
 
 vi.mock('path', () => ({
   default: {
-    resolve: vi.fn((...args) => args.join('/')), // Simple mock for path resolution
-    dirname: vi.fn((p) => p.split('/').slice(0, -1).join('/')),
+    resolve: vi.fn().mockImplementation((...args) => args.join('/')), // Simple mock for path resolution
+    dirname: vi.fn().mockImplementation((p) => p.split('/').slice(0, -1).join('/')),
   },
 }));
 
@@ -29,7 +29,7 @@ vi.mock('fs', () => ({
 }));
 
 vi.mock('url', () => ({
-  fileURLToPath: vi.fn(() => '/mock/path/to/gcp-mcp.service.js'),
+  fileURLToPath: vi.fn().mockImplementation(() => '/mock/path/to/gcp-mcp.service.js'),
 }));
 
 vi.mock('../../../shared/logger.js', () => ({
@@ -43,14 +43,14 @@ vi.mock('../../../shared/logger.js', () => ({
 // Mock the dynamic import for @toolbox-sdk/core
 vi.mock('@toolbox-sdk/core', () => {
   const mockTool = {
-    getName: vi.fn(() => 'test-tool'),
-    call: vi.fn(async (params) => ({
+    getName: vi.fn().mockImplementation(() => 'test-tool'),
+    call: vi.fn().mockImplementation(async (params) => ({
       data: `Tool called with ${JSON.stringify(params)}`,
       status: 'success'
     })),
   };
   const mockClient = {
-    loadToolset: vi.fn(async (toolsetName) => {
+    loadToolset: vi.fn().mockImplementation(async (toolsetName) => {
       if (toolsetName === 'test-toolset') {
         return [mockTool];
       }
@@ -58,7 +58,7 @@ vi.mock('@toolbox-sdk/core', () => {
     }),
   };
   return {
-    ToolboxClient: vi.fn(() => mockClient),
+    ToolboxClient: vi.fn().mockImplementation(() => mockClient),
   };
 });
 
@@ -444,7 +444,7 @@ describe('GcpMcpService', () => {
     it('should call executeMcpTool and return results in production mode', async () => {
       // Temporarily replace the actual executeMcpTool with our mock
       const originalExecuteMcpTool = GcpMcpService.executeMcpTool;
-      GcpMcpService.executeMcpTool = vi.fn(async (toolset, tool, params) => {
+      GcpMcpService.executeMcpTool = vi.fn().mockImplementation(async (toolset, tool, params) => {
         if (toolset === 'alti-default-postgres' && tool === 'execute_sql') {
           return {
             success: true,
@@ -477,7 +477,7 @@ describe('GcpMcpService', () => {
 
     it('should return an error if executeMcpTool fails in production mode', async () => {
       const originalExecuteMcpTool = GcpMcpService.executeMcpTool;
-      GcpMcpService.executeMcpTool = vi.fn(async () => ({
+      GcpMcpService.executeMcpTool = vi.fn().mockImplementation(async () => ({
         success: false,
         error: 'Database query failed',
       }));

@@ -1,6 +1,14 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-const mockGenerateContent = vi.fn();
+const {
+  mockGenerateContent
+} = vi.hoisted(() => {
+  const mockGenerateContent = vi.fn();
+
+  return {
+    mockGenerateContent
+  };
+});
 
 vi.mock('@google/genai', () => {
   return {

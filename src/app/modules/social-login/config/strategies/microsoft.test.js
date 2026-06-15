@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// --- Mocks ---
-// Mock the findOrCreateUserModel utility
-const mockFindOrCreateUserModel = vi.fn();
+const {
+  mockFindOrCreateUserModel,
+  mockMicrosoftStrategy
+} = vi.hoisted(() => {
+  // --- Mocks ---
+  // Mock the findOrCreateUserModel utility
+  const mockFindOrCreateUserModel = vi.fn();
+  const mockMicrosoftStrategy = vi.fn().mockImplementation((config, verifyCallback) => {
+    capturedConfig = config;
+    capturedVerifyCallback = verifyCallback;
+  });
+
+  return {
+    mockFindOrCreateUserModel,
+    mockMicrosoftStrategy
+  };
+});
+
 vi.mock('../../social-login.utils.js', () => ({
   findOrCreateUserModel: mockFindOrCreateUserModel,
 }));
@@ -10,10 +25,6 @@ vi.mock('../../social-login.utils.js', () => ({
 // Mock the passport-microsoft Strategy
 let capturedConfig;
 let capturedVerifyCallback;
-const mockMicrosoftStrategy = vi.fn((config, verifyCallback) => {
-  capturedConfig = config;
-  capturedVerifyCallback = verifyCallback;
-});
 vi.mock('passport-microsoft', () => ({
   Strategy: mockMicrosoftStrategy,
 }));

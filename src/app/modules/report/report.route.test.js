@@ -1,13 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
-// --- Mocks ---
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  // --- Mocks ---
 
-// Mock Express Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-};
+  // Mock Express Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+  };
+
+  return {
+    mockRouter
+  };
+});
 vi.mock('express', () => ({
   default: {
     Router: () => mockRouter,
@@ -15,10 +23,10 @@ vi.mock('express', () => ({
 }));
 
 // Mock Middlewares and their factories
-const auth = vi.fn((...roles) => `auth(${roles.join(',')})`);
+const auth = vi.fn().mockImplementation((...roles) => `auth(${roles.join(',')})`);
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: auth }));
 
-const optionalAuth = vi.fn(() => 'optionalAuthMiddleware');
+const optionalAuth = vi.fn().mockImplementation(() => 'optionalAuthMiddleware');
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: optionalAuth }));
 
 const checkDailyRequestLimit = 'checkDailyRequestLimitMiddleware';
@@ -26,12 +34,12 @@ vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', ()
   default: checkDailyRequestLimit,
 }));
 
-const createRateLimiter = vi.fn((max, mins) => `rateLimiter(${max},${mins})`);
+const createRateLimiter = vi.fn().mockImplementation((max, mins) => `rateLimiter(${max},${mins})`);
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: createRateLimiter,
 }));
 
-const validateRequest = vi.fn(schema => `validateRequest(${schema})`);
+const validateRequest = vi.fn().mockImplementation(schema => `validateRequest(${schema})`);
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
   validateRequest,
 }));

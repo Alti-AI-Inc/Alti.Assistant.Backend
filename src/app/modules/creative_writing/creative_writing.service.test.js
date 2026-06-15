@@ -26,8 +26,8 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     ...actualMongoose,
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectId123'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectId123'),
       })),
     },
   };
@@ -46,7 +46,7 @@ vi.mock('../conversations/conversation.helpers.js');
 
 // Mock the GoogleGenerativeAI instance and its methods
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
 GoogleGenerativeAI.mockImplementation(() => ({

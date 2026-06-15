@@ -3,7 +3,7 @@ import mongoose from 'mongoose'; // Import real mongoose to get Schema.Types for
 
 // Mock mongoose to prevent actual database operations
 const mockSchemaInstance = {
-  path: vi.fn((path) => ({
+  path: vi.fn().mockImplementation((path) => ({
     instance: 'String', // Default instance for path, can be refined if needed
     caster: { instance: 'ObjectID' }, // For ObjectId types
     options: {}, // For options like required, enum, ref
@@ -17,7 +17,7 @@ const mockMongoose = {
     this.options = options; // Store schema options
     Object.assign(this, mockSchemaInstance); // Add mock methods
   }),
-  model: vi.fn((name, schema) => {
+  model: vi.fn().mockImplementation((name, schema) => {
     // Return a mock model object that can be inspected
     return {
       modelName: name,

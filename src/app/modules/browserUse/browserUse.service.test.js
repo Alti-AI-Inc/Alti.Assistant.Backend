@@ -25,7 +25,7 @@ vi.mock('../../../shared/logger.js', () => ({
 vi.mock('./browserUse.model.js');
 vi.mock('../auth/auth.model.js');
 vi.mock('../../helpers/tenantQuery.js', () => ({
-  withTenantFilter: vi.fn((req, query) => query), // Simple passthrough for testing tenant logic
+  withTenantFilter: vi.fn().mockImplementation((req, query) => query), // Simple passthrough for testing tenant logic
 }));
 
 describe('BrowserUseServices', () => {

@@ -8,42 +8,59 @@ const mockRouteMethods = {
   delete: vi.fn(),
 };
 
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  patch: vi.fn(),
-  delete: vi.fn(),
-  route: vi.fn(() => mockRouteMethods), // route() returns an object with http methods
-};
+const {
+  mockRouter,
+  mockController,
+  mockValidateRequest,
+  mockTenantContext
+} = vi.hoisted(() => {
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    route: vi.fn().mockImplementation(() => mockRouteMethods), // route() returns an object with http methods
+  };
+
+  // Mock the controller (forumController and commentController both point to this)
+  const mockController = {
+    getForumById: vi.fn(),
+    updateForum: vi.fn(),
+    deleteForum: vi.fn(),
+    getComment: vi.fn(),
+    deleteComment: vi.fn(),
+    getForumByEmail: vi.fn(),
+    getForum: vi.fn(),
+    getForumSuggestion: vi.fn(),
+    addForum: vi.fn(),
+    addUserForumActivity: vi.fn(),
+  };
+
+  // Mock middlewares
+  const mockValidateRequest = {
+    validateRequest: vi.fn().mockImplementation(() => (req, res, next) => next()), // Mock as a factory function
+  };
+
+  const mockTenantContext = {
+    extractTenantContext: vi.fn().mockImplementation((req, res, next) => next()),
+  };
+
+  return {
+    mockRouter,
+    mockController,
+    mockValidateRequest,
+    mockTenantContext
+  };
+});
 
 vi.mock('express', () => ({
-  Router: vi.fn(() => mockRouter),
+  Router: vi.fn().mockImplementation(() => mockRouter),
 }));
 
-// Mock the controller (forumController and commentController both point to this)
-const mockController = {
-  getForumById: vi.fn(),
-  updateForum: vi.fn(),
-  deleteForum: vi.fn(),
-  getComment: vi.fn(),
-  deleteComment: vi.fn(),
-  getForumByEmail: vi.fn(),
-  getForum: vi.fn(),
-  getForumSuggestion: vi.fn(),
-  addForum: vi.fn(),
-  addUserForumActivity: vi.fn(),
-};
 vi.mock('./forum.controller', () => mockController);
 
-// Mock middlewares
-const mockValidateRequest = {
-  validateRequest: vi.fn(() => (req, res, next) => next()), // Mock as a factory function
-};
 vi.mock('../../middlewares/validateRequest/validateRequest', () => mockValidateRequest);
 
-const mockTenantContext = {
-  extractTenantContext: vi.fn((req, res, next) => next()),
-};
 vi.mock('../../middlewares/tenant/tenantContext', () => mockTenantContext);
 
 // Mock validation schema (not directly used as a function, but imported)

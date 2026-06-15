@@ -3,17 +3,25 @@ import { GoogleSearchController } from './google-search.controller.js';
 
 // Mock the express router to intercept route definitions
 const mockPost = vi.fn();
-const mockRoute = vi.fn(() => ({
+const mockRoute = vi.fn().mockImplementation(() => ({
   post: mockPost,
 }));
-const mockRouter = {
-  route: mockRoute,
-};
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  const mockRouter = {
+    route: mockRoute,
+  };
+
+  return {
+    mockRouter
+  };
+});
 
 // Mock dependencies BEFORE they are imported by the module under test
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 

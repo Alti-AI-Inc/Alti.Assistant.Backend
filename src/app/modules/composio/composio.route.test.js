@@ -2,51 +2,63 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import { composioController } from './composio.controller.js';
 
-// Mock express and its Router
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-};
+const {
+  mockRouter,
+  mockComposioController
+} = vi.hoisted(() => {
+  // Mock express and its Router
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+  };
+
+  // Mock composioController methods
+  const mockComposioController = {
+    getAllIntegrations: vi.fn(),
+    getAllConnectedAccountsService: vi.fn(),
+    getGmailIntegration: vi.fn(),
+    authorizeGmailIntegration: vi.fn(),
+    initiateGmailConnection: vi.fn(),
+    sendEmailWithComposio: vi.fn(),
+    getYouTubeIntegration: vi.fn(),
+    initiateYouTubeConnection: vi.fn(),
+    searchYouTube: vi.fn(),
+    disconnectYouTubeAccount: vi.fn(),
+    startLinkedInOAuth: vi.fn(),
+    handleLinkedInCallback: vi.fn(),
+    postToLinkedIn: vi.fn(),
+    initiateGoogleCalendarConnection: vi.fn(),
+    createCalendarEvent: vi.fn(),
+    getCalendarEvents: vi.fn(),
+    deleteCalendarEvent: vi.fn(),
+    updateCalendarEvent: vi.fn(),
+    getGithubIntegration: vi.fn(),
+    initiateGithubConnection: vi.fn(),
+    createGithubIssue: vi.fn(),
+    initiateAmazonConnection: vi.fn(),
+    searchAmazonProduct: vi.fn(),
+    initiateTwitterConnection: vi.fn(),
+    postTweet: vi.fn(),
+    followTwitterUser: vi.fn(),
+    deleteTweet: vi.fn(),
+    getTwitterUserByUsername: vi.fn(),
+    sendDMByUsername: vi.fn(),
+  };
+
+  return {
+    mockRouter,
+    mockComposioController
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
-// Mock composioController methods
-const mockComposioController = {
-  getAllIntegrations: vi.fn(),
-  getAllConnectedAccountsService: vi.fn(),
-  getGmailIntegration: vi.fn(),
-  authorizeGmailIntegration: vi.fn(),
-  initiateGmailConnection: vi.fn(),
-  sendEmailWithComposio: vi.fn(),
-  getYouTubeIntegration: vi.fn(),
-  initiateYouTubeConnection: vi.fn(),
-  searchYouTube: vi.fn(),
-  disconnectYouTubeAccount: vi.fn(),
-  startLinkedInOAuth: vi.fn(),
-  handleLinkedInCallback: vi.fn(),
-  postToLinkedIn: vi.fn(),
-  initiateGoogleCalendarConnection: vi.fn(),
-  createCalendarEvent: vi.fn(),
-  getCalendarEvents: vi.fn(),
-  deleteCalendarEvent: vi.fn(),
-  updateCalendarEvent: vi.fn(),
-  getGithubIntegration: vi.fn(),
-  initiateGithubConnection: vi.fn(),
-  createGithubIssue: vi.fn(),
-  initiateAmazonConnection: vi.fn(),
-  searchAmazonProduct: vi.fn(),
-  initiateTwitterConnection: vi.fn(),
-  postTweet: vi.fn(),
-  followTwitterUser: vi.fn(),
-  deleteTweet: vi.fn(),
-  getTwitterUserByUsername: vi.fn(),
-  sendDMByUsername: vi.fn(),
-};
 vi.mock('./composio.controller.js', () => ({
   composioController: mockComposioController,
 }));

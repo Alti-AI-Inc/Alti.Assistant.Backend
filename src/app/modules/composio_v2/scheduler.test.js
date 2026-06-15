@@ -6,31 +6,45 @@ import {
   shutdownWorkflowScheduler,
 } from './scheduler.js';
 
-// Mock dependencies
-const mockSchedulerInitializer = {
-  initialize: vi.fn(),
-  getStatus: vi.fn(),
-  healthCheck: vi.fn(),
-  stop: vi.fn(),
-};
+const {
+  mockSchedulerInitializer,
+  mockCronManager,
+  mockQueueManager,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockSchedulerInitializer = {
+    initialize: vi.fn(),
+    getStatus: vi.fn(),
+    healthCheck: vi.fn(),
+    stop: vi.fn(),
+  };
 
-const mockCronManager = {
-  getStatus: vi.fn(),
-  healthCheck: vi.fn(),
-  gracefulShutdown: vi.fn(),
-};
+  const mockCronManager = {
+    getStatus: vi.fn(),
+    healthCheck: vi.fn(),
+    gracefulShutdown: vi.fn(),
+  };
 
-const mockQueueManager = {
-  initialize: vi.fn(),
-  getQueueStatus: vi.fn(),
-  healthCheck: vi.fn(),
-  stop: vi.fn(),
-};
+  const mockQueueManager = {
+    initialize: vi.fn(),
+    getQueueStatus: vi.fn(),
+    healthCheck: vi.fn(),
+    stop: vi.fn(),
+  };
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockSchedulerInitializer,
+    mockCronManager,
+    mockQueueManager,
+    mockLogger
+  };
+});
 
 vi.mock('./services/schedulerInitializer.service.js', () => ({
   schedulerInitializer: mockSchedulerInitializer,

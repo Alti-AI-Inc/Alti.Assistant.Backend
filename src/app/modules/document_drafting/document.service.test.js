@@ -24,8 +24,8 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     ...actualMongoose,
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   };
@@ -79,7 +79,7 @@ describe('documentService', () => {
 
   const mockGeminiResponse = {
     response: {
-      text: vi.fn(() => 'Generated document content'),
+      text: vi.fn().mockImplementation(() => 'Generated document content'),
     },
   };
 
@@ -100,8 +100,8 @@ describe('documentService', () => {
 
     // Mock GoogleGenerativeAI
     GoogleGenerativeAI.mockImplementation(() => ({
-      getGenerativeModel: vi.fn(() => ({
-        generateContent: vi.fn(() => Promise.resolve(mockGeminiResponse)),
+      getGenerativeModel: vi.fn().mockImplementation(() => ({
+        generateContent: vi.fn().mockImplementation(() => Promise.resolve(mockGeminiResponse)),
       })),
     }));
 

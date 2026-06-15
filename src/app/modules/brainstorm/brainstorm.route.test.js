@@ -1,44 +1,70 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock all external dependencies
-const mockOptionalAuth = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockAuth = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn((req, res, next) => next()));
-const mockValidateRequest = vi.fn(() => vi.fn((req, res, next) => next()));
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
+const {
+  mockOptionalAuth,
+  mockAuth,
+  mockCheckDailyRequestLimit,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockBrainstormController,
+  mockBrainstormValidation,
+  ENUM_USER_ROLE,
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock all external dependencies
+  const mockOptionalAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockAuth = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockValidateRequest = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockBrainstormController = {
-  conversationalAssistant: vi.fn(),
-  generateBrainstorm: vi.fn(),
-  getConversationHistory: vi.fn(),
-  exportBrainstorm: vi.fn(),
-  refineBrainstorm: vi.fn(),
-};
+  const mockBrainstormController = {
+    conversationalAssistant: vi.fn(),
+    generateBrainstorm: vi.fn(),
+    getConversationHistory: vi.fn(),
+    exportBrainstorm: vi.fn(),
+    refineBrainstorm: vi.fn(),
+  };
 
-const mockBrainstormValidation = {
-  conversationalBrainstormSchema: {},
-  structuredBrainstormSchema: {},
-  getConversationHistorySchema: {},
-  exportBrainstormSchema: {},
-  refineBrainstormSchema: {},
-};
+  const mockBrainstormValidation = {
+    conversationalBrainstormSchema: {},
+    structuredBrainstormSchema: {},
+    getConversationHistorySchema: {},
+    exportBrainstormSchema: {},
+    refineBrainstormSchema: {},
+  };
 
-const ENUM_USER_ROLE = {
-  USER: 'user',
-  ADMIN: 'admin',
-};
+  const ENUM_USER_ROLE = {
+    USER: 'user',
+    ADMIN: 'admin',
+  };
 
-// Mock express.Router
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+  // Mock express.Router
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  return {
+    mockOptionalAuth,
+    mockAuth,
+    mockCheckDailyRequestLimit,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockBrainstormController,
+    mockBrainstormValidation,
+    ENUM_USER_ROLE,
+    mockRouter
+  };
+});
 
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -86,10 +112,10 @@ describe('brainstormRoutes', () => {
     // Clear all mocks before each test
     vi.clearAllMocks();
     // Re-mock the return values for functions that return middleware
-    mockOptionalAuth.mockReturnValue(vi.fn((req, res, next) => next()));
-    mockAuth.mockReturnValue(vi.fn((req, res, next) => next()));
-    mockCreateRateLimiter.mockImplementation((limit, window) => vi.fn((req, res, next) => next()));
-    mockValidateRequest.mockImplementation(() => vi.fn((req, res, next) => next()));
+    mockOptionalAuth.mockReturnValue(vi.fn().mockImplementation((req, res, next) => next()));
+    mockAuth.mockReturnValue(vi.fn().mockImplementation((req, res, next) => next()));
+    mockCreateRateLimiter.mockImplementation((limit, window) => vi.fn().mockImplementation((req, res, next) => next()));
+    mockValidateRequest.mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
   });
 
   it('should export the router', () => {

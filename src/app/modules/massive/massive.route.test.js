@@ -6,51 +6,64 @@ const mockRouter = {
   post: vi.fn(),
   // Add other methods like .use, .put, .delete if they were used in the route file
 };
-const mockExpress = {
-  Router: vi.fn(() => mockRouter),
-};
+
+const {
+  mockExpress,
+  mockMassiveController
+} = vi.hoisted(() => {
+  const mockExpress = {
+    Router: vi.fn().mockImplementation(() => mockRouter),
+  };
+
+  // Mock MassiveController and all its methods
+  const mockMassiveController = {
+    getStockQuote: vi.fn(),
+    getStockAggregates: vi.fn(),
+    getPreviousClose: vi.fn(),
+    getStock52Week: vi.fn(),
+    getTickerDetails: vi.fn(),
+    getStockFinancials: vi.fn(),
+    getStockIncomeStatement: vi.fn(),
+    getStockBalanceSheet: vi.fn(),
+    getStockDividends: vi.fn(),
+    getStockSplits: vi.fn(),
+    getStockFloat: vi.fn(),
+    getShortInterest: vi.fn(),
+    getStockNews: vi.fn(),
+    getCryptoQuote: vi.fn(),
+    getCryptoAggregates: vi.fn(),
+    getForexQuote: vi.fn(),
+    getForexAggregates: vi.fn(),
+    getCurrencyConversion: vi.fn(),
+    getOptionsChain: vi.fn(),
+    getOptionsFiltered: vi.fn(),
+    getOptionsQuote: vi.fn(),
+    getBenzingaNews: vi.fn(),
+    getBenzingaRatings: vi.fn(),
+    getEtfProfiles: vi.fn(),
+    getEtfConstituents: vi.fn(),
+    getFedInflation: vi.fn(),
+    getFedYields: vi.fn(),
+    getFedLaborMarket: vi.fn(),
+    getFedInflationExpectations: vi.fn(),
+    getMarketStatus: vi.fn(),
+    getMarketHolidays: vi.fn(),
+    getTopMovers: vi.fn(),
+    getMarketNews: vi.fn(),
+    getGlobalNews: vi.fn(),
+    getIPOs: vi.fn(),
+    getMarketOverview: vi.fn(),
+    getWatchlistQuotes: vi.fn(),
+  };
+
+  return {
+    mockExpress,
+    mockMassiveController
+  };
+});
+
 vi.mock('express', () => ({ default: mockExpress }));
 
-// Mock MassiveController and all its methods
-const mockMassiveController = {
-  getStockQuote: vi.fn(),
-  getStockAggregates: vi.fn(),
-  getPreviousClose: vi.fn(),
-  getStock52Week: vi.fn(),
-  getTickerDetails: vi.fn(),
-  getStockFinancials: vi.fn(),
-  getStockIncomeStatement: vi.fn(),
-  getStockBalanceSheet: vi.fn(),
-  getStockDividends: vi.fn(),
-  getStockSplits: vi.fn(),
-  getStockFloat: vi.fn(),
-  getShortInterest: vi.fn(),
-  getStockNews: vi.fn(),
-  getCryptoQuote: vi.fn(),
-  getCryptoAggregates: vi.fn(),
-  getForexQuote: vi.fn(),
-  getForexAggregates: vi.fn(),
-  getCurrencyConversion: vi.fn(),
-  getOptionsChain: vi.fn(),
-  getOptionsFiltered: vi.fn(),
-  getOptionsQuote: vi.fn(),
-  getBenzingaNews: vi.fn(),
-  getBenzingaRatings: vi.fn(),
-  getEtfProfiles: vi.fn(),
-  getEtfConstituents: vi.fn(),
-  getFedInflation: vi.fn(),
-  getFedYields: vi.fn(),
-  getFedLaborMarket: vi.fn(),
-  getFedInflationExpectations: vi.fn(),
-  getMarketStatus: vi.fn(),
-  getMarketHolidays: vi.fn(),
-  getTopMovers: vi.fn(),
-  getMarketNews: vi.fn(),
-  getGlobalNews: vi.fn(),
-  getIPOs: vi.fn(),
-  getMarketOverview: vi.fn(),
-  getWatchlistQuotes: vi.fn(),
-};
 vi.mock('./massive.controller.js', () => ({
   MassiveController: mockMassiveController,
 }));

@@ -10,16 +10,24 @@ const mockChainAfterJsonParser = {
 };
 
 const mockChainAfterGemini = {
-  pipe: vi.fn(() => mockChainAfterJsonParser), // This pipe is for JsonOutputParser
+  pipe: vi.fn().mockImplementation(() => mockChainAfterJsonParser), // This pipe is for JsonOutputParser
 };
 
 const mockPromptTemplateInstance = {
-  pipe: vi.fn(() => mockChainAfterGemini), // This pipe is for geminiClient
+  pipe: vi.fn().mockImplementation(() => mockChainAfterGemini), // This pipe is for geminiClient
 };
 
-const mockPromptTemplate = {
-  fromTemplate: vi.fn(() => mockPromptTemplateInstance),
-};
+const {
+  mockPromptTemplate
+} = vi.hoisted(() => {
+  const mockPromptTemplate = {
+    fromTemplate: vi.fn().mockImplementation(() => mockPromptTemplateInstance),
+  };
+
+  return {
+    mockPromptTemplate
+  };
+});
 
 // Mock the external modules
 vi.mock('@langchain/core/prompts', () => ({
@@ -27,7 +35,7 @@ vi.mock('@langchain/core/prompts', () => ({
 }));
 
 vi.mock('@langchain/core/output_parsers', () => ({
-  JsonOutputParser: vi.fn(() => ({})), // Mock the constructor, actual methods not needed as we mock the chain's invoke
+  JsonOutputParser: vi.fn().mockImplementation(() => ({})), // Mock the constructor, actual methods not needed as we mock the chain's invoke
 }));
 
 vi.mock('./llm.js', () => ({

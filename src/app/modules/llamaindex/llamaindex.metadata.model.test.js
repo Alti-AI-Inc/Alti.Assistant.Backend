@@ -6,23 +6,31 @@ const mockSchemaInstance = {
   // We can add other schema methods here if the model used them, e.g., pre, post, methods, statics
 };
 
-const mockSchemaConstructor = vi.fn((definition, options) => {
+const mockSchemaConstructor = vi.fn().mockImplementation((definition, options) => {
   mockSchemaInstance.definition = definition;
   mockSchemaInstance.options = options;
   return mockSchemaInstance;
 });
 
-const mockMongoose = {
-  Schema: mockSchemaConstructor,
-  model: vi.fn((name, schema) => {
-    // Simulate mongoose.models cache behavior
-    if (!mockMongoose.models[name]) {
-      mockMongoose.models[name] = { name, schema }; // A simplified mock model object
-    }
-    return mockMongoose.models[name];
-  }),
-  models: {}, // To simulate mongoose.models cache
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: mockSchemaConstructor,
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Simulate mongoose.models cache behavior
+      if (!mockMongoose.models[name]) {
+        mockMongoose.models[name] = { name, schema }; // A simplified mock model object
+      }
+      return mockMongoose.models[name];
+    }),
+    models: {}, // To simulate mongoose.models cache
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Mock the mongoose module
 vi.mock('mongoose', () => ({

@@ -23,7 +23,7 @@ vi.mock('../../../shared/logger.js', () => ({
 
 vi.mock('../../helpers/paginationHelpers.js', () => ({
   default: {
-    calculatePagination: vi.fn((options) => ({
+    calculatePagination: vi.fn().mockImplementation((options) => ({
       page: options.page || 1,
       limit: options.limit || 10,
       skip: ((options.page || 1) - 1) * (options.limit || 10),
@@ -35,29 +35,59 @@ vi.mock('../../helpers/paginationHelpers.js', () => ({
 
 // Mock Mongoose models and their chainable methods
 const mockExec = vi.fn();
-const mockSelect = vi.fn(() => ({ exec: mockExec }));
-const mockSort = vi.fn(() => ({ select: mockSelect, exec: mockExec }));
-const mockSkip = vi.fn(() => ({ sort: mockSort, select: mockSelect, exec: mockExec }));
-const mockLimit = vi.fn(() => ({ skip: mockSkip, sort: mockSort, select: mockSelect, exec: mockExec }));
-const mockPopulate = vi.fn(() => ({ sort: mockSort, skip: mockSkip, limit: mockLimit, exec: mockExec }));
+const mockSelect = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+const mockSort = vi.fn().mockImplementation(() => ({ select: mockSelect, exec: mockExec }));
+const mockSkip = vi.fn().mockImplementation(() => ({ sort: mockSort, select: mockSelect, exec: mockExec }));
+const mockLimit = vi.fn().mockImplementation(
+  () => ({ skip: mockSkip, sort: mockSort, select: mockSelect, exec: mockExec })
+);
+const mockPopulate = vi.fn().mockImplementation(
+  () => ({ sort: mockSort, skip: mockSkip, limit: mockLimit, exec: mockExec })
+);
 
-const mockFind = vi.fn(() => ({
-  select: mockSelect,
-  sort: mockSort,
-  skip: mockSkip,
-  limit: mockLimit,
-  populate: mockPopulate,
-  exec: mockExec,
-}));
-const mockFindOne = vi.fn(() => ({ exec: mockExec }));
-const mockCountDocuments = vi.fn(() => ({ exec: mockExec }));
-const mockUpdateOne = vi.fn(() => ({ exec: mockExec }));
-const mockDeleteOne = vi.fn(() => ({ exec: mockExec }));
-const mockAggregate = vi.fn(() => ({ exec: mockExec }));
-const mockFindById = vi.fn(() => ({ populate: mockPopulate, exec: mockExec }));
-const mockFindByIdAndUpdate = vi.fn(() => ({ exec: mockExec }));
-const mockSave = vi.fn();
-const mockToObject = vi.fn();
+const {
+  mockFind,
+  mockFindOne,
+  mockCountDocuments,
+  mockUpdateOne,
+  mockDeleteOne,
+  mockAggregate,
+  mockFindById,
+  mockFindByIdAndUpdate,
+  mockSave,
+  mockToObject
+} = vi.hoisted(() => {
+  const mockFind = vi.fn().mockImplementation(() => ({
+    select: mockSelect,
+    sort: mockSort,
+    skip: mockSkip,
+    limit: mockLimit,
+    populate: mockPopulate,
+    exec: mockExec,
+  }));
+  const mockFindOne = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockCountDocuments = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockUpdateOne = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockDeleteOne = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockAggregate = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockFindById = vi.fn().mockImplementation(() => ({ populate: mockPopulate, exec: mockExec }));
+  const mockFindByIdAndUpdate = vi.fn().mockImplementation(() => ({ exec: mockExec }));
+  const mockSave = vi.fn();
+  const mockToObject = vi.fn();
+
+  return {
+    mockFind,
+    mockFindOne,
+    mockCountDocuments,
+    mockUpdateOne,
+    mockDeleteOne,
+    mockAggregate,
+    mockFindById,
+    mockFindByIdAndUpdate,
+    mockSave,
+    mockToObject
+  };
+});
 
 vi.mock('../auth/auth.model.js', () => ({
   default: {
@@ -85,7 +115,7 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     ...actualMongoose,
     Types: {
-      ObjectId: vi.fn((id) => ({
+      ObjectId: vi.fn().mockImplementation((id) => ({
         _id: id,
         toString: () => id,
         equals: (other) => id === other.toString(),
@@ -146,7 +176,7 @@ describe('AdminService', () => {
     mockFindByIdAndUpdate.mockReturnThis();
     mockSave.mockResolvedValue(true);
     mockToObject.mockImplementation(function () { return { ...this }; }); // Simulate Mongoose .toObject()
-    mongoose.Types.ObjectId.isValid = vi.fn(() => true); // Default to valid ObjectId
+    mongoose.Types.ObjectId.isValid = vi.fn().mockImplementation(() => true); // Default to valid ObjectId
   });
 
   describe('getAllUsersService', () => {

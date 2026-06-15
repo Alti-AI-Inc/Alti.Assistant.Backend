@@ -4,22 +4,78 @@ import httpStatus from 'http-status';
 // Mock external dependencies
 const mockInMemoryChatMessageHistoryInstance = {
   addMessage: vi.fn(),
-  getMessages: vi.fn(() => []), // Added for completeness, though not directly used in service
+  getMessages: vi.fn().mockImplementation(() => []), // Added for completeness, though not directly used in service
 };
-const mockInMemoryChatMessageHistory = vi.fn(() => mockInMemoryChatMessageHistoryInstance);
+
+const {
+  mockInMemoryChatMessageHistory,
+  mockAIMessage,
+  mockHumanMessage,
+  mockChatGoogleGenerativeAI,
+  mockConversationChain,
+  mockBufferMemory,
+  mockApiError,
+  mockLogger,
+  mockUserModel,
+  mockChatHistory,
+  mockPaymentController
+} = vi.hoisted(() => {
+  const mockInMemoryChatMessageHistory = vi.fn().mockImplementation(() => mockInMemoryChatMessageHistoryInstance);
+
+  const mockAIMessage = vi.fn().mockImplementation((content) => ({ type: 'ai', content }));
+  const mockHumanMessage = vi.fn().mockImplementation((content) => ({ type: 'human', content }));
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => mockChatGoogleGenerativeAIInstance);
+  const mockConversationChain = vi.fn().mockImplementation(() => mockConversationChainInstance);
+  const mockBufferMemory = vi.fn().mockImplementation(() => mockBufferMemoryInstance);
+
+  const mockApiError = vi.fn().mockImplementation((status, message) => {
+    const error = new Error(message);
+    error.statusCode = status;
+    return error;
+  });
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockUserModel = {
+    findByIdAndUpdate: vi.fn(),
+  };
+  const mockChatHistory = {
+    findOne: vi.fn(),
+    create: vi.fn(),
+  };
+
+  const mockPaymentController = {
+    incrementPromptsUsed: vi.fn(),
+  };
+
+  return {
+    mockInMemoryChatMessageHistory,
+    mockAIMessage,
+    mockHumanMessage,
+    mockChatGoogleGenerativeAI,
+    mockConversationChain,
+    mockBufferMemory,
+    mockApiError,
+    mockLogger,
+    mockUserModel,
+    mockChatHistory,
+    mockPaymentController
+  };
+});
+
 vi.mock('@langchain/core/chat_history', () => ({
   InMemoryChatMessageHistory: mockInMemoryChatMessageHistory,
 }));
 
-const mockAIMessage = vi.fn((content) => ({ type: 'ai', content }));
-const mockHumanMessage = vi.fn((content) => ({ type: 'human', content }));
 vi.mock('@langchain/core/messages', () => ({
   AIMessage: mockAIMessage,
   HumanMessage: mockHumanMessage,
 }));
 
 const mockChatGoogleGenerativeAIInstance = {}; // Simple instance
-const mockChatGoogleGenerativeAI = vi.fn(() => mockChatGoogleGenerativeAIInstance);
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,
 }));
@@ -28,7 +84,6 @@ const mockConversationChainInvoke = vi.fn();
 const mockConversationChainInstance = {
   invoke: mockConversationChainInvoke,
 };
-const mockConversationChain = vi.fn(() => mockConversationChainInstance);
 vi.mock('langchain/chains', () => ({
   ConversationChain: mockConversationChain,
 }));
@@ -38,7 +93,6 @@ const mockBufferMemoryInstance = {
   returnMessages: true,
   memoryKey: 'history',
 };
-const mockBufferMemory = vi.fn(() => mockBufferMemoryInstance);
 vi.mock('langchain/memory', () => ({
   BufferMemory: mockBufferMemory,
 }));
@@ -49,42 +103,23 @@ vi.mock('../../../../config/index.js', () => ({
   },
 }));
 
-const mockApiError = vi.fn((status, message) => {
-  const error = new Error(message);
-  error.statusCode = status;
-  return error;
-});
 vi.mock('../../../errors/ApiError.js', () => ({
   default: mockApiError,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockUserModel = {
-  findByIdAndUpdate: vi.fn(),
-};
 vi.mock('../auth/auth.model.js', () => ({
   default: mockUserModel,
 }));
 
 const mockChatHistorySave = vi.fn();
-const mockChatHistory = {
-  findOne: vi.fn(),
-  create: vi.fn(),
-};
 vi.mock('../conversations/chatHistory.model.js', () => ({
   default: mockChatHistory,
 }));
 
-const mockPaymentController = {
-  incrementPromptsUsed: vi.fn(),
-};
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: mockPaymentController,
 }));

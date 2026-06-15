@@ -7,20 +7,38 @@ import Tool from '../composio_v2/tools.model.js';
 
 // Mock @google/generative-ai
 const mockEmbedContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  embedContent: mockEmbedContent,
-}));
+
+const {
+  mockGetGenerativeModel,
+  mockToolFind,
+  mockToolUpdateOne,
+  mockMongooseConnect,
+  mockMongooseDisconnect
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    embedContent: mockEmbedContent,
+  }));
+
+  // Mock mongoose and Tool model
+  const mockToolFind = vi.fn();
+  const mockToolUpdateOne = vi.fn();
+  const mockMongooseConnect = vi.fn();
+  const mockMongooseDisconnect = vi.fn().mockResolvedValue(undefined);
+
+  return {
+    mockGetGenerativeModel,
+    mockToolFind,
+    mockToolUpdateOne,
+    mockMongooseConnect,
+    mockMongooseDisconnect
+  };
+});
+
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
-
-// Mock mongoose and Tool model
-const mockToolFind = vi.fn();
-const mockToolUpdateOne = vi.fn();
-const mockMongooseConnect = vi.fn();
-const mockMongooseDisconnect = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../composio_v2/tools.model.js', () => ({
   default: {

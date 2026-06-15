@@ -12,14 +12,22 @@ vi.mock('fs/promises', () => ({
 const mockSave = vi.fn();
 const mockDelete = vi.fn();
 const mockExists = vi.fn();
-const mockFile = vi.fn(() => ({
+const mockFile = vi.fn().mockImplementation(() => ({
   save: mockSave,
   delete: mockDelete,
   exists: mockExists,
 }));
-const mockBucket = vi.fn(() => ({
-  file: mockFile,
-}));
+const {
+  mockBucket
+} = vi.hoisted(() => {
+  const mockBucket = vi.fn().mockImplementation(() => ({
+    file: mockFile,
+  }));
+
+  return {
+    mockBucket
+  };
+});
 
 vi.mock('@google-cloud/storage', () => {
   return {

@@ -21,7 +21,7 @@ vi.mock('../../../../config/index.js', () => ({
 
 // Mock Redis client for rate limiter (to allow module to load without a real Redis instance)
 vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
+  createClient: vi.fn().mockImplementation(() => ({
     on: vi.fn(),
     connect: vi.fn().mockResolvedValue(undefined),
     sendCommand: vi.fn(),
@@ -36,8 +36,22 @@ vi.mock('rate-limit-redis', () => ({
 }));
 
 
-// Mock Google Auth Library
-const mockGetAccessToken = vi.fn();
+const {
+  mockGetAccessToken,
+  mockGenerateContent
+} = vi.hoisted(() => {
+  // Mock Google Auth Library
+  const mockGetAccessToken = vi.fn();
+
+  // Mock Google Generative AI (Gemini)
+  const mockGenerateContent = vi.fn();
+
+  return {
+    mockGetAccessToken,
+    mockGenerateContent
+  };
+});
+
 vi.mock('google-auth-library', () => ({
   GoogleAuth: vi.fn().mockImplementation(() => ({
     getClient: vi.fn().mockResolvedValue({
@@ -46,8 +60,6 @@ vi.mock('google-auth-library', () => ({
   })),
 }));
 
-// Mock Google Generative AI (Gemini)
-const mockGenerateContent = vi.fn();
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: vi.fn().mockReturnValue({

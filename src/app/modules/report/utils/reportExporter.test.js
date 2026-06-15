@@ -4,7 +4,7 @@ import { Writable } from 'stream';
 // Mock external dependencies
 const mockGcsStream = new Writable();
 mockGcsStream.write = vi.fn();
-mockGcsStream.end = vi.fn((cb) => {
+mockGcsStream.end = vi.fn().mockImplementation((cb) => {
     mockGcsStream.emit('finish');
     if (cb) cb();
 });
@@ -21,26 +21,36 @@ const mockBucket = {
   file: vi.fn().mockReturnValue(mockFile),
 };
 
-const mockStorage = {
-  bucket: vi.fn().mockReturnValue(mockBucket),
-};
+const {
+  mockStorage,
+  mockPdfDoc
+} = vi.hoisted(() => {
+  const mockStorage = {
+    bucket: vi.fn().mockReturnValue(mockBucket),
+  };
+
+  const mockPdfDoc = {
+    pipe: vi.fn(),
+    fontSize: vi.fn().mockReturnThis(),
+    font: vi.fn().mockReturnThis(),
+    text: vi.fn().mockReturnThis(),
+    moveDown: vi.fn().mockReturnThis(),
+    addPage: vi.fn().mockReturnThis(),
+    end: vi.fn(),
+  };
+
+  return {
+    mockStorage,
+    mockPdfDoc
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn(() => mockStorage),
+  Storage: vi.fn().mockImplementation(() => mockStorage),
 }));
 
-const mockPdfDoc = {
-  pipe: vi.fn(),
-  fontSize: vi.fn().mockReturnThis(),
-  font: vi.fn().mockReturnThis(),
-  text: vi.fn().mockReturnThis(),
-  moveDown: vi.fn().mockReturnThis(),
-  addPage: vi.fn().mockReturnThis(),
-  end: vi.fn(),
-};
-
 vi.mock('pdfkit', () => ({
-  default: vi.fn(() => mockPdfDoc),
+  default: vi.fn().mockImplementation(() => mockPdfDoc),
 }));
 
 vi.mock('../../../../shared/logger.js', () => ({

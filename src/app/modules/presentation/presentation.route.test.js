@@ -9,14 +9,22 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
-// Mock dependencies
-const mockRouterInstance = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  patch: vi.fn(),
-  delete: vi.fn(),
-};
+const {
+  mockRouterInstance
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockRouterInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  return {
+    mockRouterInstance
+  };
+});
 vi.mock('express', () => ({
   default: {
     Router: () => mockRouterInstance,
@@ -45,23 +53,23 @@ vi.mock('./presentation.validation.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => (req, res, next) => next()),
+  default: vi.fn().mockImplementation(() => (req, res, next) => next()),
 }));
 
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
-  default: vi.fn((req, res, next) => next()),
+  default: vi.fn().mockImplementation((req, res, next) => next()),
 }));
 
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
-  default: vi.fn(() => (req, res, next) => next()),
+  default: vi.fn().mockImplementation(() => (req, res, next) => next()),
 }));
 
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
-  validateRequest: vi.fn(() => (req, res, next) => next()),
+  validateRequest: vi.fn().mockImplementation(() => (req, res, next) => next()),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
-  extractTenantContext: vi.fn((req, res, next) => next()),
+  extractTenantContext: vi.fn().mockImplementation((req, res, next) => next()),
 }));
 
 describe('Presentation Routes', () => {

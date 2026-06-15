@@ -4,10 +4,18 @@ import { executionController } from './execution.controller.js';
 
 // Mock external dependencies
 const sendResponse = vi.fn();
-const logger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  const logger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 const workflowExecutionService = {
   executeWorkflow: vi.fn(),
   getExecutionHistory: vi.fn(),
@@ -30,7 +38,7 @@ const Workflow = {
   updateOne: vi.fn(),
 };
 const WorkflowApproval = {
-  find: vi.fn(() => ({
+  find: vi.fn().mockImplementation(() => ({
     populate: vi.fn().mockReturnThis(),
   })),
 };

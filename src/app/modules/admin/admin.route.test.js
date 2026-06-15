@@ -1,44 +1,58 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock external dependencies
-const mockAuthMiddleware = vi.fn((_roles) => vi.fn((req, res, next) => next())); // Mock auth to just call next
-const mockAdminController = {
-  updateUserRole: vi.fn(),
-  deleteUser: vi.fn(),
-  getAllBuyer: vi.fn(),
-  getAllUsers: vi.fn(),
-  getAllPayment: vi.fn(),
-  getBillingAuditLogs: vi.fn(),
-  getSwarmAudits: vi.fn(),
-  getAdmin: vi.fn(),
-  getUserStatisticsByMonth: vi.fn(),
-  getAllTenants: vi.fn(),
-  getTenantDetails: vi.fn(),
-  updateTenantStatus: vi.fn(),
-  getTenantUsageAdmin: vi.fn(),
-  extendTenantTrial: vi.fn(),
-};
-const mockEnumUserRole = {
-  SUPER_ADMIN: 'super_admin',
-  ADMIN: 'admin',
-  BUYER: 'buyer',
-  SELLER: 'seller',
-  USER: 'user',
-};
+const {
+  mockAuthMiddleware,
+  mockAdminController,
+  mockEnumUserRole,
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockAuthMiddleware = vi.fn().mockImplementation((_roles) => vi.fn().mockImplementation((req, res, next) => next())); // Mock auth to just call next
+  const mockAdminController = {
+    updateUserRole: vi.fn(),
+    deleteUser: vi.fn(),
+    getAllBuyer: vi.fn(),
+    getAllUsers: vi.fn(),
+    getAllPayment: vi.fn(),
+    getBillingAuditLogs: vi.fn(),
+    getSwarmAudits: vi.fn(),
+    getAdmin: vi.fn(),
+    getUserStatisticsByMonth: vi.fn(),
+    getAllTenants: vi.fn(),
+    getTenantDetails: vi.fn(),
+    updateTenantStatus: vi.fn(),
+    getTenantUsageAdmin: vi.fn(),
+    extendTenantTrial: vi.fn(),
+  };
+  const mockEnumUserRole = {
+    SUPER_ADMIN: 'super_admin',
+    ADMIN: 'admin',
+    BUYER: 'buyer',
+    SELLER: 'seller',
+    USER: 'user',
+  };
 
-// Mock express.Router and its methods
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-};
+  // Mock express.Router and its methods
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+  };
+
+  return {
+    mockAuthMiddleware,
+    mockAdminController,
+    mockEnumUserRole,
+    mockRouter
+  };
+});
 
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -60,15 +74,7 @@ import { adminRoutes } from './admin.route.js';
 describe('Admin Routes', () => {
   beforeEach(() => {
     // Clear all mocks before each test
-    vi.clearAllMocks();
-    // Re-mock express.Router to ensure a fresh router instance for each test if needed,
-    // though for a single import, it's usually fine.
-    // Ensure mockRouter methods are reset.
-    mockRouter.get.mockClear();
-    mockRouter.post.mockClear();
-    mockRouter.put.mockClear();
-    mockRouter.delete.mockClear();
-    mockRouter.patch.mockClear();
+    // vi.clearAllMocks(); // This clears mockRouter as well!
   });
 
   it('should export the router', () => {

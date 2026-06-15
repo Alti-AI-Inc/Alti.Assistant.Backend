@@ -12,10 +12,18 @@ vi.mock('../../../shared/sendResponse.js', () => ({
   default: sendResponse,
 }));
 
-const logger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  const logger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 vi.mock('../../../shared/logger.js', () => ({
   logger,
 }));

@@ -9,11 +9,25 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 import { transcriptionController } from './transcription.controller.js';
 import multer from 'multer';
 
-// Mock express to get a mock router instance
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-};
+const {
+  mockRouter,
+  mockUpload
+} = vi.hoisted(() => {
+  // Mock express to get a mock router instance
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+  };
+  const mockUpload = {
+    fields: vi.fn().mockReturnValue(mockUploadMiddleware),
+  };
+
+  return {
+    mockRouter,
+    mockUpload
+  };
+});
+
 vi.mock('express', () => ({
   default: {
     Router: () => mockRouter,
@@ -22,11 +36,8 @@ vi.mock('express', () => ({
 
 // Mock multer and its methods
 const mockUploadMiddleware = 'upload.fieldsMiddleware';
-const mockUpload = {
-  fields: vi.fn().mockReturnValue(mockUploadMiddleware),
-};
 vi.mock('multer', () => ({
-  default: vi.fn(() => mockUpload),
+  default: vi.fn().mockImplementation(() => mockUpload),
   diskStorage: vi.fn(),
 }));
 
@@ -41,11 +52,11 @@ vi.mock('../../../shared/enum.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn((...roles) => `authMiddleware(${roles.join(',')})`),
+  default: vi.fn().mockImplementation((...roles) => `authMiddleware(${roles.join(',')})`),
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => 'optionalAuthMiddleware'),
+  default: vi.fn().mockImplementation(() => 'optionalAuthMiddleware'),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({

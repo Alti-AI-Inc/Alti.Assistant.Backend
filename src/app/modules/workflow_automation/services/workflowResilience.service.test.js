@@ -5,20 +5,46 @@ import { workflowResilienceService } from './workflowResilience.service.js';
 
 // Mock Google Cloud Pub/Sub
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
-  publishMessage: mockPublishMessage,
-}));
+
+const {
+  mockTopic,
+  mockCreateTask,
+  mockQueuePath,
+  mockPipeline
+} = vi.hoisted(() => {
+  const mockTopic = vi.fn().mockImplementation(() => ({
+    publishMessage: mockPublishMessage,
+  }));
+
+  // Mock Google Cloud Tasks
+  const mockCreateTask = vi.fn();
+  const mockQueuePath = vi.fn().mockImplementation(
+    (project, location, queue) => `projects/${project}/locations/${location}/queues/${queue}`
+  );
+
+  // Mock Redis
+  const mockPipeline = {
+    rpush: vi.fn(),
+    expire: vi.fn(),
+    exec: vi.fn().mockResolvedValue([]),
+  };
+
+  return {
+    mockTopic,
+    mockCreateTask,
+    mockQueuePath,
+    mockPipeline
+  };
+});
+
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn(() => ({
+  PubSub: vi.fn().mockImplementation(() => ({
     topic: mockTopic,
   })),
 }));
 
-// Mock Google Cloud Tasks
-const mockCreateTask = vi.fn();
-const mockQueuePath = vi.fn((project, location, queue) => `projects/${project}/locations/${location}/queues/${queue}`);
 vi.mock('@google-cloud/tasks', () => ({
-  CloudTasksClient: vi.fn(() => ({
+  CloudTasksClient: vi.fn().mockImplementation(() => ({
     queuePath: mockQueuePath,
     createTask: mockCreateTask,
   })),
@@ -33,15 +59,9 @@ vi.mock('../../../../shared/logger.js', () => ({
   },
 }));
 
-// Mock Redis
-const mockPipeline = {
-  rpush: vi.fn(),
-  expire: vi.fn(),
-  exec: vi.fn().mockResolvedValue([]),
-};
 vi.mock('../../../../shared/redis.js', () => ({
   RedisClient: {
-    pipeline: vi.fn(() => mockPipeline),
+    pipeline: vi.fn().mockImplementation(() => mockPipeline),
     lrange: vi.fn(),
     del: vi.fn(),
     eval: vi.fn(),

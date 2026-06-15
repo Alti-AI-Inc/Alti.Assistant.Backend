@@ -25,12 +25,20 @@ const actionAuditService = {
   logComplete: vi.fn(),
 };
 
-// Mock logger
-const logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  // Mock logger
+  const logger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 
 // Mock config
 const config = {
@@ -41,7 +49,7 @@ const config = {
 
 // Mock Composio SDK
 const mockGetConnectedAccount = vi.fn();
-const Composio = vi.fn(() => ({
+const Composio = vi.fn().mockImplementation(() => ({
   connectedAccounts: {
     get: mockGetConnectedAccount,
   },

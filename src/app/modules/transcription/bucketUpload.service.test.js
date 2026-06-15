@@ -11,21 +11,29 @@ const mockFile = {
 
 const mockBucket = {
   upload: vi.fn(),
-  file: vi.fn(() => mockFile),
+  file: vi.fn().mockImplementation(() => mockFile),
 };
 
-const mockStorage = {
-  bucket: vi.fn(() => mockBucket),
-};
+const {
+  mockStorage
+} = vi.hoisted(() => {
+  const mockStorage = {
+    bucket: vi.fn().mockImplementation(() => mockBucket),
+  };
+
+  return {
+    mockStorage
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn(() => mockStorage),
+  Storage: vi.fn().mockImplementation(() => mockStorage),
 }));
 
 // Mock path
 vi.mock('path', () => ({
   default: {
-    extname: vi.fn((filename) => {
+    extname: vi.fn().mockImplementation((filename) => {
       const lastDotIndex = filename.lastIndexOf('.');
       return lastDotIndex !== -1 ? filename.substring(lastDotIndex) : '';
     }),
@@ -35,7 +43,7 @@ vi.mock('path', () => ({
 // Mock fs
 vi.mock('fs', () => ({
   default: {
-    statSync: vi.fn(() => ({ size: 12345 })),
+    statSync: vi.fn().mockImplementation(() => ({ size: 12345 })),
   },
 }));
 

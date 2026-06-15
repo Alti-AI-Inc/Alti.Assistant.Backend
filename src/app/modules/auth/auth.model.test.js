@@ -7,7 +7,7 @@ import emailValidator from 'email-validator';
 const mockSchemaInstance = {
   method: vi.fn(),
   static: vi.fn(),
-  path: vi.fn(() => ({
+  path: vi.fn().mockImplementation(() => ({
     validate: vi.fn(),
     default: vi.fn(),
     enum: vi.fn(),
@@ -16,24 +16,38 @@ const mockSchemaInstance = {
     select: vi.fn(),
   })),
 };
-const mockSchemaConstructor = vi.fn(() => mockSchemaInstance);
+
+const {
+  mockSchemaConstructor,
+  mockMongooseModel,
+  mockObjectId
+} = vi.hoisted(() => {
+  const mockSchemaConstructor = vi.fn().mockImplementation(() => mockSchemaInstance);
+  const mockMongooseModel = vi.fn().mockImplementation(() => mockModelInstance); // This will be the return value of mongoose.model
+  const mockObjectId = {
+    isValid: mockObjectIdIsValid,
+  };
+
+  return {
+    mockSchemaConstructor,
+    mockMongooseModel,
+    mockObjectId
+  };
+});
+
 const mockModelInstance = {
   findById: vi.fn().mockReturnThis(),
   select: vi.fn().mockReturnThis(),
   lean: vi.fn(),
 };
-const mockMongooseModel = vi.fn(() => mockModelInstance); // This will be the return value of mongoose.model
 const mockObjectIdIsValid = vi.fn();
-const mockObjectId = {
-  isValid: mockObjectIdIsValid,
-};
 
 vi.mock('mongoose', async (importOriginal) => {
   const actualMongoose = await importOriginal();
   return {
     ...actualMongoose, // Keep actual types and other utilities if needed
     Schema: mockSchemaConstructor,
-    model: vi.fn((name, schema) => {
+    model: vi.fn().mockImplementation((name, schema) => {
       // Store the schema for inspection if needed, or just return a mock model
       return mockMongooseModel();
     }),
@@ -45,8 +59,8 @@ vi.mock('mongoose', async (importOriginal) => {
 
 // Mock crypto
 vi.mock('crypto', () => ({
-  randomBytes: vi.fn(() => ({
-    toString: vi.fn(() => 'mockConfirmationToken'),
+  randomBytes: vi.fn().mockImplementation(() => ({
+    toString: vi.fn().mockImplementation(() => 'mockConfirmationToken'),
   })),
 }));
 

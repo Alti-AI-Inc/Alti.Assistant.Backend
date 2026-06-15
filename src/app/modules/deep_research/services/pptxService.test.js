@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generatePPTXReport } from '../pptxService'; // Adjust path as needed
 
-// Mock pptxgenjs
-const mockPptxgen = vi.fn();
+const {
+  mockPptxgen
+} = vi.hoisted(() => {
+  // Mock pptxgenjs
+  const mockPptxgen = vi.fn();
+
+  return {
+    mockPptxgen
+  };
+});
 const mockPptxInstance = {
   layout: '',
   addSlide: vi.fn(),
-  write: vi.fn(() => Promise.resolve(Buffer.from('mock_pptx_buffer'))),
+  write: vi.fn().mockImplementation(() => Promise.resolve(Buffer.from('mock_pptx_buffer'))),
 };
 
 // Array to hold distinct mock slide instances

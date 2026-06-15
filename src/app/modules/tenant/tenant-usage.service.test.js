@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the dependency. This must be done before importing the service.
-const mockUsageService = {
-  canMakeApiCall: vi.fn(),
-  recordApiCall: vi.fn()
-};
+const {
+  mockUsageService
+} = vi.hoisted(() => {
+  // Mock the dependency. This must be done before importing the service.
+  const mockUsageService = {
+    canMakeApiCall: vi.fn(),
+    recordApiCall: vi.fn()
+  };
+
+  return {
+    mockUsageService
+  };
+});
 
 vi.mock('../usage/usage.service.js', () => ({
   usageService: mockUsageService

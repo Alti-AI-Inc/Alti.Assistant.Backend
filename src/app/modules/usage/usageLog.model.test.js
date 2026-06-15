@@ -7,31 +7,39 @@ const mockSchemaInstance = {
   statics: {}, // This will be populated by the schema definition
 };
 
-const mockMongoose = {
-  Schema: vi.fn(() => mockSchemaInstance),
-  model: vi.fn((name, schema) => {
-    // Attach statics from the schema to the mock model
-    const mockModel = {
-      create: vi.fn(),
-      aggregate: vi.fn(),
-      // Any other methods that might be called on the model instance
-    };
-    // Mongoose attaches statics directly to the model constructor
-    Object.assign(mockModel, schema.statics);
-    return mockModel;
-  }),
-  Types: {
-    ObjectId: vi.fn((id) => ({
-      _id: id, // Simulate the internal _id property of an ObjectId
-      toString: () => id, // Simulate toString method
-      equals: (other) => other && (other._id === id || other.toString() === id),
-      // Mongoose ObjectId instances are objects. For testing, we return an object
-      // that holds the ID string and has methods similar to a real ObjectId.
-      // This allows us to assert against its presence in the aggregation pipeline.
-    })),
-    Mixed: {}, // Just needs to exist for the schema definition
-  },
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation(() => mockSchemaInstance),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Attach statics from the schema to the mock model
+      const mockModel = {
+        create: vi.fn(),
+        aggregate: vi.fn(),
+        // Any other methods that might be called on the model instance
+      };
+      // Mongoose attaches statics directly to the model constructor
+      Object.assign(mockModel, schema.statics);
+      return mockModel;
+    }),
+    Types: {
+      ObjectId: vi.fn().mockImplementation((id) => ({
+        _id: id, // Simulate the internal _id property of an ObjectId
+        toString: () => id, // Simulate toString method
+        equals: (other) => other && (other._id === id || other.toString() === id),
+        // Mongoose ObjectId instances are objects. For testing, we return an object
+        // that holds the ID string and has methods similar to a real ObjectId.
+        // This allows us to assert against its presence in the aggregation pipeline.
+      })),
+      Mixed: {}, // Just needs to exist for the schema definition
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 vi.mock('mongoose', () => ({
   default: mockMongoose,

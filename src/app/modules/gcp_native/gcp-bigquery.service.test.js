@@ -1,9 +1,30 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GcpBigqueryService } from './gcp-bigquery.service.js';
 
-const mockInsertDataset = vi.fn();
-const mockInsertTable = vi.fn();
-const mockInsertJob = vi.fn();
+const {
+  mockInsertDataset,
+  mockInsertTable,
+  mockInsertJob,
+  mockConfig
+} = vi.hoisted(() => {
+  const mockInsertDataset = vi.fn();
+  const mockInsertTable = vi.fn();
+  const mockInsertJob = vi.fn();
+
+  const mockConfig = {
+    google: {
+      google_application_credentials: 'test_credentials.json',
+      gcp_project_id: 'test-project-id'
+    }
+  };
+
+  return {
+    mockInsertDataset,
+    mockInsertTable,
+    mockInsertJob,
+    mockConfig
+  };
+});
 
 vi.mock('googleapis', () => {
   return {
@@ -27,13 +48,6 @@ vi.mock('googleapis', () => {
     }
   };
 });
-
-const mockConfig = {
-  google: {
-    google_application_credentials: 'test_credentials.json',
-    gcp_project_id: 'test-project-id'
-  }
-};
 
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig

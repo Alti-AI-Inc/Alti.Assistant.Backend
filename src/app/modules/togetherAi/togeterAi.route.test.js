@@ -3,7 +3,7 @@ import express from 'express'; // This import is needed for type inference if no
 
 // Mock the express module
 const mockPost = vi.fn();
-const mockRoute = vi.fn(() => ({
+const mockRoute = vi.fn().mockImplementation(() => ({
   post: mockPost,
   get: vi.fn(),
   put: vi.fn(),
@@ -16,16 +16,27 @@ const mockRouterInstance = {
   use: vi.fn(),
   // Add other router methods if they were used in the file under test
 };
-const mockRouter = vi.fn(() => mockRouterInstance);
+
+const {
+  mockRouter,
+  mockTogetherAiImgGeneration
+} = vi.hoisted(() => {
+  const mockRouter = vi.fn().mockImplementation(() => mockRouterInstance);
+
+  // Mock the TogetherAiController
+  const mockTogetherAiImgGeneration = vi.fn();
+
+  return {
+    mockRouter,
+    mockTogetherAiImgGeneration
+  };
+});
 
 vi.mock('express', () => ({
   default: {
     Router: mockRouter,
   },
 }));
-
-// Mock the TogetherAiController
-const mockTogetherAiImgGeneration = vi.fn();
 
 vi.mock('./togeterAi.controller.js', () => ({
   TogetherAiController: {

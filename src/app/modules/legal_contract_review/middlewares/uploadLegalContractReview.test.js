@@ -42,10 +42,10 @@ describe('uploadLegalContractReview middleware', () => {
 
     // Mock the main multer function to capture its arguments
     mockMulterInstance = {
-      single: vi.fn(() => (req, res, next) => next()),
-      array: vi.fn(() => (req, res, next) => next()),
-      fields: vi.fn(() => (req, res, next) => next()),
-      any: vi.fn(() => (req, res, next) => next()),
+      single: vi.fn().mockImplementation(() => (req, res, next) => next()),
+      array: vi.fn().mockImplementation(() => (req, res, next) => next()),
+      fields: vi.fn().mockImplementation(() => (req, res, next) => next()),
+      any: vi.fn().mockImplementation(() => (req, res, next) => next()),
     };
     multer.mockImplementation((config) => {
       storageConfig = config.storage;

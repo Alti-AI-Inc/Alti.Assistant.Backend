@@ -9,7 +9,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 
 // Mock dependencies
 vi.mock('../../../shared/catchAsync.js', () => ({
-  default: vi.fn(fn => fn),
+  default: vi.fn().mockImplementation(fn => fn),
 }));
 
 vi.mock('../../../shared/logger.js', () => ({
@@ -32,8 +32,16 @@ vi.mock('./creative_writing.service.js', () => ({
 }));
 
 const mockLean = vi.fn();
-const mockSort = vi.fn(() => ({ lean: mockLean }));
-const mockFindOne = vi.fn(() => ({ sort: mockSort }));
+const mockSort = vi.fn().mockImplementation(() => ({ lean: mockLean }));
+const {
+  mockFindOne
+} = vi.hoisted(() => {
+  const mockFindOne = vi.fn().mockImplementation(() => ({ sort: mockSort }));
+
+  return {
+    mockFindOne
+  };
+});
 vi.mock('../payment/payment.model.js', () => ({
   default: { findOne: mockFindOne },
 }));

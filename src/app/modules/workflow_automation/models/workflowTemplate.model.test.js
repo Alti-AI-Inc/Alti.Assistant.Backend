@@ -117,55 +117,63 @@ class MockSchema {
   }
 }
 
-const mockMongoose = {
-  Schema: MockSchema,
-  model: vi.fn((name, schema) => {
-    // Store the schema instance associated with the model name
-    mockMongoose.models[name] = schema;
-    const mockModel = {
-      modelName: name,
-      schema: schema,
-      // Mock a basic create operation that uses schema validation
-      create: vi.fn(async (doc) => {
-        const validationResult = schema.validateSync(doc);
-        if (validationResult) {
-          const error = new Error(`WorkflowTemplate validation failed: ${JSON.stringify(validationResult.errors)}`);
-          error.name = 'ValidationError';
-          error.errors = validationResult.errors;
-          throw error;
-        }
-        // Simulate Mongoose adding _id and timestamps
-        return {
-          ...doc,
-          _id: new mockMongoose.Schema.Types.ObjectId(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }),
-      // Mock other common Mongoose model methods for completeness
-      find: vi.fn(async () => []),
-      findById: vi.fn(async () => null),
-      updateOne: vi.fn(async () => ({ nModified: 1 })),
-      deleteOne: vi.fn(async () => ({ deletedCount: 1 })),
-    };
-    mockModelInstances[name] = mockModel; // Store for direct access in tests
-    return mockModel;
-  }),
-  models: {}, // To store compiled models (like mongoose.models.WorkflowTemplate)
-  // Ensure Schema.Types.ObjectId is available
-  Schema: {
-    Types: {
-      ObjectId: class MockObjectId {
-        constructor(id) {
-          this.id = id || '60c72b2f9b1d8e001c8e4a1b'; // Example ID
-        }
-        toString() {
-          return this.id;
-        }
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: MockSchema,
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Store the schema instance associated with the model name
+      mockMongoose.models[name] = schema;
+      const mockModel = {
+        modelName: name,
+        schema: schema,
+        // Mock a basic create operation that uses schema validation
+        create: vi.fn().mockImplementation(async (doc) => {
+          const validationResult = schema.validateSync(doc);
+          if (validationResult) {
+            const error = new Error(`WorkflowTemplate validation failed: ${JSON.stringify(validationResult.errors)}`);
+            error.name = 'ValidationError';
+            error.errors = validationResult.errors;
+            throw error;
+          }
+          // Simulate Mongoose adding _id and timestamps
+          return {
+            ...doc,
+            _id: new mockMongoose.Schema.Types.ObjectId(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }),
+        // Mock other common Mongoose model methods for completeness
+        find: vi.fn().mockImplementation(async () => []),
+        findById: vi.fn().mockImplementation(async () => null),
+        updateOne: vi.fn().mockImplementation(async () => ({ nModified: 1 })),
+        deleteOne: vi.fn().mockImplementation(async () => ({ deletedCount: 1 })),
+      };
+      mockModelInstances[name] = mockModel; // Store for direct access in tests
+      return mockModel;
+    }),
+    models: {}, // To store compiled models (like mongoose.models.WorkflowTemplate)
+    // Ensure Schema.Types.ObjectId is available
+    Schema: {
+      Types: {
+        ObjectId: class MockObjectId {
+          constructor(id) {
+            this.id = id || '60c72b2f9b1d8e001c8e4a1b'; // Example ID
+          }
+          toString() {
+            return this.id;
+          }
+        },
       },
     },
-  },
-};
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Re-assign Schema to our mock class and ensure Types.ObjectId is available
 mockMongoose.Schema = MockSchema;

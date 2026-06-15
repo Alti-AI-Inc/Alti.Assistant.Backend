@@ -11,8 +11,16 @@ vi.mock('@google-cloud/aiplatform', () => ({
 }));
 
 const mockInvoke = vi.fn();
-const mockPipe = vi.fn().mockReturnValue({
-  invoke: mockInvoke,
+const {
+  mockPipe
+} = vi.hoisted(() => {
+  const mockPipe = vi.fn().mockReturnValue({
+    invoke: mockInvoke,
+  });
+
+  return {
+    mockPipe
+  };
 });
 
 vi.mock('@langchain/core/prompts', () => ({

@@ -3,11 +3,33 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 // Mock console.log to prevent output during tests and capture calls
 const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-// --- Declare variables for mocks at the top level ---
-let mockToolBasedSearchNode;
+const {
+  mockToolBasedSearchNode,
+  mockStateGraphConstructor,
+  mockResearchAgentState
+} = vi.hoisted(() => {
+  // --- Declare variables for mocks at the top level ---
+  let mockToolBasedSearchNode;
+  let mockStateGraphConstructor;
+
+  const mockResearchAgentState = {
+    messages: {
+      value: (x, y) => x.concat(y),
+      default: () => [],
+    },
+    // Add other state channels if they were defined in the actual state.js
+    // For this test, we only need 'messages' to simulate a basic state.
+  };
+
+  return {
+    mockToolBasedSearchNode,
+    mockStateGraphConstructor,
+    mockResearchAgentState
+  };
+});
+
 let mockCompiledGraph;
 let mockStateGraphInstance;
-let mockStateGraphConstructor;
 
 // --- Define vi.mock calls at the top level, using getters for dynamic assignment ---
 // This ensures that when the module under test is imported, it gets the *current* mock implementations.
@@ -15,15 +37,6 @@ let mockStateGraphConstructor;
 vi.mock('./nodes.js', () => ({
   get toolBasedSearchNode() { return mockToolBasedSearchNode; },
 }));
-
-const mockResearchAgentState = {
-  messages: {
-    value: (x, y) => x.concat(y),
-    default: () => [],
-  },
-  // Add other state channels if they were defined in the actual state.js
-  // For this test, we only need 'messages' to simulate a basic state.
-};
 
 vi.mock('./state.js', () => ({
   researchAgentState: mockResearchAgentState,
@@ -45,14 +58,14 @@ describe('Enhanced Conversational Search Workflow', () => {
     consoleLogSpy.mockImplementation(() => {});
 
     // Re-initialize all mock functions for a fresh state in each test
-    mockToolBasedSearchNode = vi.fn(async (state) => {
+    mockToolBasedSearchNode = vi.fn().mockImplementation(async (state) => {
       // Default mock behavior for the node: just pass through or add a simple message
       return { ...state, messages: [...(state.messages || []), { role: 'assistant', content: 'Default mock search result' }] };
     });
 
     // Mock the compiled graph's invoke method to simulate the workflow
     mockCompiledGraph = {
-      invoke: vi.fn(async (inputState) => {
+      invoke: vi.fn().mockImplementation(async (inputState) => {
         // In this simple graph (START -> toolBasedSearch -> END),
         // the invoke method directly calls the toolBasedSearchNode.
         return await mockToolBasedSearchNode(inputState);
@@ -65,11 +78,11 @@ describe('Enhanced Conversational Search Workflow', () => {
     mockStateGraphInstance = {
       addNode: vi.fn(),
       addEdge: vi.fn(),
-      compile: vi.fn(() => mockCompiledGraph), // When compile is called, it returns our mockCompiledGraph
+      compile: vi.fn().mockImplementation(() => mockCompiledGraph), // When compile is called, it returns our mockCompiledGraph
     };
 
     // Mock the StateGraph constructor
-    mockStateGraphConstructor = vi.fn(() => mockStateGraphInstance);
+    mockStateGraphConstructor = vi.fn().mockImplementation(() => mockStateGraphInstance);
 
     // Dynamically import the module under test to ensure it's evaluated with fresh mocks.
     // This is crucial for testing module-level side effects (like graph definition)

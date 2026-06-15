@@ -8,7 +8,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 
 // Mock dependencies
 vi.mock('../../../shared/catchAsync.js', () => ({
-  default: vi.fn(fn => fn), // Mock catchAsync to just return the function it's passed
+  default: vi.fn().mockImplementation(fn => fn), // Mock catchAsync to just return the function it's passed
 }));
 
 vi.mock('../../../shared/sendResponse.js', () => ({

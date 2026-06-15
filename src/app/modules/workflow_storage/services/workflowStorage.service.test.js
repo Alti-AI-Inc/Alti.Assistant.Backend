@@ -28,7 +28,7 @@ const mockStoredWorkflowInstance = (data = {}) => ({
 });
 
 // Mock StoredWorkflow Mongoose model (constructor and static methods)
-const StoredWorkflowConstructor = vi.fn((data) => {
+const StoredWorkflowConstructor = vi.fn().mockImplementation((data) => {
   const instance = mockStoredWorkflowInstance(data);
   instance.save.mockResolvedValue(instance);
   instance.updateConnections.mockResolvedValue(undefined);
@@ -36,17 +36,17 @@ const StoredWorkflowConstructor = vi.fn((data) => {
 });
 
 // Attach static methods to the constructor function
-StoredWorkflowConstructor.find = vi.fn(() => ({
-  sort: vi.fn(() => ({
-    skip: vi.fn(() => ({
-      limit: vi.fn(() => ({
+StoredWorkflowConstructor.find = vi.fn().mockImplementation(() => ({
+  sort: vi.fn().mockImplementation(() => ({
+    skip: vi.fn().mockImplementation(() => ({
+      limit: vi.fn().mockImplementation(() => ({
         lean: vi.fn(),
       })),
     })),
   })),
   lean: vi.fn(),
 }));
-StoredWorkflowConstructor.findOne = vi.fn(() => ({
+StoredWorkflowConstructor.findOne = vi.fn().mockImplementation(() => ({
   lean: vi.fn(),
 }));
 StoredWorkflowConstructor.deleteOne = vi.fn();
@@ -61,34 +61,51 @@ vi.mock('../models/storedWorkflow.model.js', () => ({
   __esModule: true,
 }));
 
-// Mock ComposioAuth Mongoose model
-const mockComposioAuth = {
-  find: vi.fn(() => ({
-    lean: vi.fn(),
-  })),
-};
+const {
+  mockComposioAuth,
+  mockPlanWorkflowNode,
+  mockLogger,
+  mockWithTenantPipeline
+} = vi.hoisted(() => {
+  // Mock ComposioAuth Mongoose model
+  const mockComposioAuth = {
+    find: vi.fn().mockImplementation(() => ({
+      lean: vi.fn(),
+    })),
+  };
+
+  // Mock planWorkflowNode function
+  const mockPlanWorkflowNode = vi.fn();
+
+  // Mock logger
+  const mockLogger = {
+    error: vi.fn(),
+  };
+
+  // Mock withTenantPipeline helper
+  const mockWithTenantPipeline = vi.fn().mockImplementation((req, pipeline) => pipeline);
+
+  return {
+    mockComposioAuth,
+    mockPlanWorkflowNode,
+    mockLogger,
+    mockWithTenantPipeline
+  };
+});
 
 vi.mock('../../composio_v2/composio.model.js', () => ({
   default: mockComposioAuth,
   __esModule: true,
 }));
 
-// Mock planWorkflowNode function
-const mockPlanWorkflowNode = vi.fn();
 vi.mock('../../composio_v2/ai_classification/nodes.js', () => ({
   planWorkflowNode: mockPlanWorkflowNode,
 }));
 
-// Mock logger
-const mockLogger = {
-  error: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-// Mock withTenantPipeline helper
-const mockWithTenantPipeline = vi.fn((req, pipeline) => pipeline);
 vi.mock('../../../helpers/tenantQuery.js', () => ({
   withTenantPipeline: mockWithTenantPipeline,
 }));

@@ -1,19 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { contextPrunerService } from './llamaindex.contextPruner.js'; // Assuming this is the file under test
 
-// Mock dependencies
-const mockDocumentMetadata = {
-  find: vi.fn(),
-};
+const {
+  mockDocumentMetadata,
+  mockRelationshipGraphService,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockDocumentMetadata = {
+    find: vi.fn(),
+  };
 
-const mockRelationshipGraphService = {
-  traverseGraph: vi.fn(),
-};
+  const mockRelationshipGraphService = {
+    traverseGraph: vi.fn(),
+  };
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockDocumentMetadata,
+    mockRelationshipGraphService,
+    mockLogger
+  };
+});
 
 vi.mock('./llamaindex.metadata.model.js', () => ({
   default: mockDocumentMetadata,

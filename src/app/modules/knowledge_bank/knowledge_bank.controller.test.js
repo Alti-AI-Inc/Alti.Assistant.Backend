@@ -14,10 +14,18 @@ const httpStatus = {
 // For testing purposes, catchAsync will just execute the function directly.
 // The controller's internal try/catch blocks handle errors and call sendResponse.
 const catchAsync = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-const logger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  const logger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 const sendResponse = vi.fn();
 
 // Mock service and model

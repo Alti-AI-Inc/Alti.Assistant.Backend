@@ -19,21 +19,38 @@ vi.mock('../../../../config/index.js', () => ({
 // Mock Mongoose models
 const mockConversationSummarySave = vi.fn();
 const mockConversationSummaryLean = vi.fn().mockReturnThis(); // For .lean() calls
-const mockConversationSummary = {
-  findActiveForConversation: vi.fn(() => ({
-    lean: mockConversationSummaryLean,
-  })),
-  // Mock the constructor for new ConversationSummary()
-  // This mock will return an object that mimics a Mongoose document
-  // with a .save() method.
-  mockImplementation: vi.fn((data) => ({
-    ...data,
-    save: mockConversationSummarySave,
-  })),
-};
+
+const {
+  mockConversationSummary,
+  mockConversation
+} = vi.hoisted(() => {
+  const mockConversationSummary = {
+    findActiveForConversation: vi.fn().mockImplementation(() => ({
+      lean: mockConversationSummaryLean,
+    })),
+    // Mock the constructor for new ConversationSummary()
+    // This mock will return an object that mimics a Mongoose document
+    // with a .save() method.
+    mockImplementation: vi.fn().mockImplementation((data) => ({
+      ...data,
+      save: mockConversationSummarySave,
+    })),
+  };
+  const mockConversation = {
+    findByConversationId: vi.fn().mockImplementation(() => ({
+      lean: mockConversationLean,
+    })),
+  };
+
+  return {
+    mockConversationSummary,
+    mockConversation
+  };
+});
+
 // Assign the mockImplementation to the actual ConversationSummary mock
 vi.mock('./conversationSummary.model.js', () => ({
-  default: vi.fn((data) => mockConversationSummary.mockImplementation(data)),
+  default: vi.fn().mockImplementation((data) => mockConversationSummary.mockImplementation(data)),
 }));
 // Re-assign static methods to the default export after mocking the constructor
 // This is a common pattern when mocking Mongoose models with both static and instance methods
@@ -42,21 +59,16 @@ ConversationSummary.findActiveForConversation = mockConversationSummary.findActi
 
 
 const mockConversationLean = vi.fn().mockReturnThis(); // For .lean() calls
-const mockConversation = {
-  findByConversationId: vi.fn(() => ({
-    lean: mockConversationLean,
-  })),
-};
 vi.mock('./conversation.model.js', () => ({
   default: mockConversation,
 }));
 
 // Mock GoogleGenerativeAI methods
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
-const mockGoogleGenerativeAI = vi.fn(() => ({
+const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
   getGenerativeModel: mockGetGenerativeModel,
 }));
 GoogleGenerativeAI.mockImplementation(mockGoogleGenerativeAI);

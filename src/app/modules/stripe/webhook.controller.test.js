@@ -19,7 +19,7 @@ vi.mock('stripe', () => {
     },
   };
   // Mock the constructor to return the mockStripe instance
-  const StripeConstructor = vi.fn(() => mockStripe);
+  const StripeConstructor = vi.fn().mockImplementation(() => mockStripe);
   // Add static properties if needed, e.g., Stripe.errors
   StripeConstructor.errors = {
     StripeSignatureVerificationError: class extends Error {
@@ -37,15 +37,23 @@ vi.mock('stripe', () => {
   };
 });
 
-// Mock config with default values
-const mockConfig = {
-  stripe: {
-    stripe_secret_key: 'sk_test_mock',
-    webhook_secret: 'whsec_test_mock',
-    webhook_secret_fallback: 'whsec_fallback_mock',
-  },
-  env: 'development',
-};
+const {
+  mockConfig
+} = vi.hoisted(() => {
+  // Mock config with default values
+  const mockConfig = {
+    stripe: {
+      stripe_secret_key: 'sk_test_mock',
+      webhook_secret: 'whsec_test_mock',
+      webhook_secret_fallback: 'whsec_fallback_mock',
+    },
+    env: 'development',
+  };
+
+  return {
+    mockConfig
+  };
+});
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));

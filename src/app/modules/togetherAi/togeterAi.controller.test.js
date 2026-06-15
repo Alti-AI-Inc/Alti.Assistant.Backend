@@ -2,8 +2,25 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 import { TogetherAiController } from './togeterAi.controller.js';
 
-// Mock dependencies
-const mockGenerateImages = vi.fn();
+const {
+  mockGenerateImages,
+  mockSendResponse,
+  mockIncrementImagesUsed
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockGenerateImages = vi.fn();
+
+  const mockSendResponse = vi.fn();
+
+  const mockIncrementImagesUsed = vi.fn();
+
+  return {
+    mockGenerateImages,
+    mockSendResponse,
+    mockIncrementImagesUsed
+  };
+});
+
 vi.mock('@google/genai', () => ({
   GoogleGenAI: vi.fn().mockImplementation(() => ({
     models: {
@@ -22,12 +39,10 @@ vi.mock('../../../shared/catchAsync.js', () => ({
   default: fn => fn, // Return the function itself for direct testing
 }));
 
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-const mockIncrementImagesUsed = vi.fn();
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: {
     incrementImagesUsed: mockIncrementImagesUsed,

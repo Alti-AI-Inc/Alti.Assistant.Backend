@@ -2,17 +2,25 @@ import { describe, it, expect, vi } from 'vitest';
 import { ReportValidation } from './report.validation.js';
 import { v4 as uuidv4 } from 'uuid';
 
-// Mock the constants used by the validation schemas
-const mockConstants = {
-  SUPPORTED_OUTPUT_FORMATS: ['pdf', 'docx', 'json'],
-  REPORT_TYPES: ['financial', 'technical', 'summary'],
-  REPORT_TONES: ['formal', 'neutral', 'casual'],
-  REPORT_SECTIONS: {
-    INTRODUCTION: 'introduction',
-    ANALYSIS: 'analysis',
-    CONCLUSION: 'conclusion',
-  },
-};
+const {
+  mockConstants
+} = vi.hoisted(() => {
+  // Mock the constants used by the validation schemas
+  const mockConstants = {
+    SUPPORTED_OUTPUT_FORMATS: ['pdf', 'docx', 'json'],
+    REPORT_TYPES: ['financial', 'technical', 'summary'],
+    REPORT_TONES: ['formal', 'neutral', 'casual'],
+    REPORT_SECTIONS: {
+      INTRODUCTION: 'introduction',
+      ANALYSIS: 'analysis',
+      CONCLUSION: 'conclusion',
+    },
+  };
+
+  return {
+    mockConstants
+  };
+});
 
 vi.mock('./report.constant.js', () => ({
   SUPPORTED_OUTPUT_FORMATS: mockConstants.SUPPORTED_OUTPUT_FORMATS,

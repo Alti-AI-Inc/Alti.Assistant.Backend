@@ -1,49 +1,57 @@
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
-// Mock mongoose
-const mockMongoose = {
-  Schema: class MockSchema {
-    constructor(definition, options) {
-      this.definition = definition;
-      this.options = options;
-      this.statics = {}; // This is where static methods will be added by the schema definition
-      this.methods = {};
-      this.virtuals = {};
-      this.indexes = [];
-    }
-    index(fields, options) {
-      this.indexes.push({ fields, options });
-    }
-  },
-  model: vi.fn((name, schema) => {
-    // This is the actual mock model that will be returned by mongoose.model
-    // It needs to have the static methods defined on the schema,
-    // AND the methods that the static methods call on 'this' (the model itself).
-    const MockModel = {
-      // Mock the methods that the static functions call on 'this' (the model instance)
-      findOneAndUpdate: vi.fn(),
-      findOne: vi.fn(),
-      // sort returns 'this' for chaining, so it needs to return the mock model
-      sort: vi.fn().mockReturnThis(),
-      // Expose the statics defined on the schema
-      ...schema.statics,
-    };
-    return MockModel;
-  }),
-  Types: {
-    ObjectId: class MockObjectId {
-      constructor(id) {
-        this.id = id || '60c728b29b1d4e001c8e4a1b'; // Default mock ID
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  // Mock mongoose
+  const mockMongoose = {
+    Schema: class MockSchema {
+      constructor(definition, options) {
+        this.definition = definition;
+        this.options = options;
+        this.statics = {}; // This is where static methods will be added by the schema definition
+        this.methods = {};
+        this.virtuals = {};
+        this.indexes = [];
       }
-      toString() {
-        return this.id;
-      }
-      equals(other) {
-        return this.id === (other ? other.toString() : null);
+      index(fields, options) {
+        this.indexes.push({ fields, options });
       }
     },
-  },
-};
+    model: vi.fn().mockImplementation((name, schema) => {
+      // This is the actual mock model that will be returned by mongoose.model
+      // It needs to have the static methods defined on the schema,
+      // AND the methods that the static methods call on 'this' (the model itself).
+      const MockModel = {
+        // Mock the methods that the static functions call on 'this' (the model instance)
+        findOneAndUpdate: vi.fn(),
+        findOne: vi.fn(),
+        // sort returns 'this' for chaining, so it needs to return the mock model
+        sort: vi.fn().mockReturnThis(),
+        // Expose the statics defined on the schema
+        ...schema.statics,
+      };
+      return MockModel;
+    }),
+    Types: {
+      ObjectId: class MockObjectId {
+        constructor(id) {
+          this.id = id || '60c728b29b1d4e001c8e4a1b'; // Default mock ID
+        }
+        toString() {
+          return this.id;
+        }
+        equals(other) {
+          return this.id === (other ? other.toString() : null);
+        }
+      },
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 vi.mock('mongoose', () => ({
   default: mockMongoose,

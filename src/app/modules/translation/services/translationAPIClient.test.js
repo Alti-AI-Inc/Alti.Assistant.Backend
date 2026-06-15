@@ -7,10 +7,24 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger,
+  mockChatGoogleGenerativeAI
+} = vi.hoisted(() => {
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    invoke: mockInvoke,
+  }));
+
+  return {
+    mockLogger,
+    mockChatGoogleGenerativeAI
+  };
+});
+
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
@@ -36,9 +50,6 @@ vi.mock('../translation.constant.js', () => ({
 
 // Mock the core dependency
 const mockInvoke = vi.fn();
-const mockChatGoogleGenerativeAI = vi.fn(() => ({
-  invoke: mockInvoke,
-}));
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,
 }));

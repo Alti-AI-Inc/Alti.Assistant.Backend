@@ -12,16 +12,24 @@ const mockSchemaInstance = {
   // Add other schema methods if they were used in the model file (e.g., pre, post, method, static, virtual)
 };
 
-const mockMongoose = {
-  Schema: vi.fn(function(definition, options) {
-    // Store the definition and options on the mock function itself for easy access in tests
-    mockMongoose.Schema.lastDefinition = definition;
-    mockMongoose.Schema.lastOptions = options;
-    return mockSchemaInstance; // Return a consistent mock schema instance
-  }),
-  model: vi.fn((name, schema) => ({ name, schema, isMongooseModel: true })), // Return a mock model object
-  models: {}, // Simulate mongoose.models cache
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn(function(definition, options) {
+      // Store the definition and options on the mock function itself for easy access in tests
+      mockMongoose.Schema.lastDefinition = definition;
+      mockMongoose.Schema.lastOptions = options;
+      return mockSchemaInstance; // Return a consistent mock schema instance
+    }),
+    model: vi.fn().mockImplementation((name, schema) => ({ name, schema, isMongooseModel: true })), // Return a mock model object
+    models: {}, // Simulate mongoose.models cache
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Apply the mock for the 'mongoose' module
 vi.mock('mongoose', () => ({

@@ -4,30 +4,71 @@ import ApiError from '../../../errors/ApiError.js'; // Assuming ApiError is a cl
 
 // Mock external dependencies
 const mockGenerateContent = vi.fn();
-const mockGoogleGenAI = vi.fn(() => ({
-  models: {
-    generateContent: mockGenerateContent,
-  },
-}));
+
+const {
+  mockGoogleGenAI,
+  mockInMemoryChatMessageHistory,
+  mockBufferMemory,
+  mockLoggerInfo,
+  mockLoggerError,
+  mockFindByIdAndUpdate,
+  mockFindOneAndUpdate,
+  mockIncrementPromptsUsed,
+  mockPublish,
+  mockCombinedRouteAndEnhancePrompt
+} = vi.hoisted(() => {
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
+    models: {
+      generateContent: mockGenerateContent,
+    },
+  }));
+  const mockInMemoryChatMessageHistory = vi.fn().mockImplementation(() => ({
+    addMessage: mockAddMessage,
+    getMessages: vi.fn().mockImplementation(() => []), // Add getMessages for completeness if needed
+  }));
+  const mockBufferMemory = vi.fn().mockImplementation(() => ({
+    chatHistory: mockInMemoryChatMessageHistory(),
+    // Add other methods if needed by the service
+  }));
+
+  const mockLoggerInfo = vi.fn();
+  const mockLoggerError = vi.fn();
+
+  const mockFindByIdAndUpdate = vi.fn();
+
+  const mockFindOneAndUpdate = vi.fn();
+
+  const mockIncrementPromptsUsed = vi.fn();
+
+  const mockPublish = vi.fn();
+
+  const mockCombinedRouteAndEnhancePrompt = vi.fn();
+
+  return {
+    mockGoogleGenAI,
+    mockInMemoryChatMessageHistory,
+    mockBufferMemory,
+    mockLoggerInfo,
+    mockLoggerError,
+    mockFindByIdAndUpdate,
+    mockFindOneAndUpdate,
+    mockIncrementPromptsUsed,
+    mockPublish,
+    mockCombinedRouteAndEnhancePrompt
+  };
+});
+
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAI,
 }));
 
 const mockAddMessage = vi.fn();
-const mockInMemoryChatMessageHistory = vi.fn(() => ({
-  addMessage: mockAddMessage,
-  getMessages: vi.fn(() => []), // Add getMessages for completeness if needed
-}));
-const mockBufferMemory = vi.fn(() => ({
-  chatHistory: mockInMemoryChatMessageHistory(),
-  // Add other methods if needed by the service
-}));
 vi.mock('@langchain/core/chat_history', () => ({
   InMemoryChatMessageHistory: mockInMemoryChatMessageHistory,
 }));
 vi.mock('@langchain/core/messages', () => ({
-  AIMessage: vi.fn(msg => ({ type: 'ai', content: msg })),
-  HumanMessage: vi.fn(msg => ({ type: 'human', content: msg })),
+  AIMessage: vi.fn().mockImplementation(msg => ({ type: 'ai', content: msg })),
+  HumanMessage: vi.fn().mockImplementation(msg => ({ type: 'human', content: msg })),
 }));
 vi.mock('langchain/memory', () => ({
   BufferMemory: mockBufferMemory,
@@ -39,8 +80,6 @@ vi.mock('../../../../config/index.js', () => ({
   },
 }));
 
-const mockLoggerInfo = vi.fn();
-const mockLoggerError = vi.fn();
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: mockLoggerInfo,
@@ -48,35 +87,30 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-const mockFindByIdAndUpdate = vi.fn();
 vi.mock('../auth/auth.model.js', () => ({
   default: {
     findByIdAndUpdate: mockFindByIdAndUpdate,
   },
 }));
 
-const mockFindOneAndUpdate = vi.fn();
 vi.mock('../conversations/chatHistory.model.js', () => ({
   default: {
     findOneAndUpdate: mockFindOneAndUpdate,
   },
 }));
 
-const mockIncrementPromptsUsed = vi.fn();
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: {
     incrementPromptsUsed: mockIncrementPromptsUsed,
   },
 }));
 
-const mockPublish = vi.fn();
 vi.mock('../../../shared/redis.js', () => ({
   RedisClient: {
     publish: mockPublish,
   },
 }));
 
-const mockCombinedRouteAndEnhancePrompt = vi.fn();
 vi.mock('../../helpers/UnifiedSmartRouter.js', () => ({
   UnifiedSmartRouter: {
     combinedRouteAndEnhancePrompt: mockCombinedRouteAndEnhancePrompt,

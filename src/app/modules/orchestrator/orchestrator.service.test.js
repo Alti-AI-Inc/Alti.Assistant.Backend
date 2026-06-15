@@ -5,11 +5,62 @@ import { orchestratorService } from './orchestrator.service.js'; // The file und
 // -----------------------------------------------------------------------------
 // Mock @google/generative-ai
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
+
+const {
+  mockGetGenerativeModel,
+  mockLoggerInfo,
+  mockLoggerWarn,
+  mockLoggerError,
+  mockIncrementPromptsUsed,
+  mockExecuteSwarmSync,
+  mockRandomUUID,
+  mockProcessUserInputService,
+  mockAsyncExtractFacts,
+  mockCaptureException
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  // Mock logger
+  const mockLoggerInfo = vi.fn();
+  const mockLoggerWarn = vi.fn();
+  const mockLoggerError = vi.fn();
+
+  // Mock paymentController
+  const mockIncrementPromptsUsed = vi.fn();
+
+  // Mock SwarmService
+  const mockExecuteSwarmSync = vi.fn();
+
+  // Mock crypto
+  const mockRandomUUID = vi.fn().mockImplementation(() => 'mock-uuid-123');
+
+  // Mock aiClassificationService
+  const mockProcessUserInputService = vi.fn();
+
+  // Mock userMemoryService
+  const mockAsyncExtractFacts = vi.fn();
+
+  // Mock sentry
+  const mockCaptureException = vi.fn();
+
+  return {
+    mockGetGenerativeModel,
+    mockLoggerInfo,
+    mockLoggerWarn,
+    mockLoggerError,
+    mockIncrementPromptsUsed,
+    mockExecuteSwarmSync,
+    mockRandomUUID,
+    mockProcessUserInputService,
+    mockAsyncExtractFacts,
+    mockCaptureException
+  };
+});
+
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
@@ -21,10 +72,6 @@ vi.mock('../../../../config/index.js', () => ({
   },
 }));
 
-// Mock logger
-const mockLoggerInfo = vi.fn();
-const mockLoggerWarn = vi.fn();
-const mockLoggerError = vi.fn();
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: mockLoggerInfo,
@@ -33,16 +80,12 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-// Mock paymentController
-const mockIncrementPromptsUsed = vi.fn();
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: {
     incrementPromptsUsed: mockIncrementPromptsUsed,
   },
 }));
 
-// Mock SwarmService
-const mockExecuteSwarmSync = vi.fn();
 vi.mock('../swarm/swarm.service.js', () => ({
   SwarmService: {
     executeSwarmSync: mockExecuteSwarmSync,
@@ -53,7 +96,7 @@ vi.mock('../swarm/swarm.service.js', () => ({
 const mockAddMessage = vi.fn();
 const mockConversationSave = vi.fn();
 const mockConversationFindOne = vi.fn();
-const MockConversation = vi.fn(() => ({
+const MockConversation = vi.fn().mockImplementation(() => ({
   addMessage: mockAddMessage,
   save: mockConversationSave,
 }));
@@ -62,32 +105,24 @@ vi.mock('../conversations/conversation.model.js', () => ({
   default: MockConversation,
 }));
 
-// Mock crypto
-const mockRandomUUID = vi.fn(() => 'mock-uuid-123');
 vi.mock('crypto', () => ({
   default: {
     randomUUID: mockRandomUUID,
   },
 }));
 
-// Mock aiClassificationService
-const mockProcessUserInputService = vi.fn();
 vi.mock('../composio_v2/aiClassification.service.js', () => ({
   aiClassificationService: {
     processUserInputService: mockProcessUserInputService,
   },
 }));
 
-// Mock userMemoryService
-const mockAsyncExtractFacts = vi.fn();
 vi.mock('../conversations/userMemory.service.js', () => ({
   userMemoryService: {
     asyncExtractFacts: mockAsyncExtractFacts,
   },
 }));
 
-// Mock sentry
-const mockCaptureException = vi.fn();
 vi.mock('../../../shared/sentry.js', () => ({
   captureException: mockCaptureException,
 }));

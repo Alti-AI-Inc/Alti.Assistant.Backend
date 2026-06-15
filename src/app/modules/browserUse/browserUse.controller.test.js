@@ -15,10 +15,24 @@ vi.mock('../../../shared/catchAsync.js', () => ({
   default: (fn) => fn,
 }));
 
-const mockInitiateTaskInSessionService = vi.fn();
-const mockUpdateTaskStatusService = vi.fn();
-const mockGetSessionsForUserService = vi.fn();
-const mockGetSessionByIdService = vi.fn();
+const {
+  mockInitiateTaskInSessionService,
+  mockUpdateTaskStatusService,
+  mockGetSessionsForUserService,
+  mockGetSessionByIdService
+} = vi.hoisted(() => {
+  const mockInitiateTaskInSessionService = vi.fn();
+  const mockUpdateTaskStatusService = vi.fn();
+  const mockGetSessionsForUserService = vi.fn();
+  const mockGetSessionByIdService = vi.fn();
+
+  return {
+    mockInitiateTaskInSessionService,
+    mockUpdateTaskStatusService,
+    mockGetSessionsForUserService,
+    mockGetSessionByIdService
+  };
+});
 
 vi.mock('./browserUse.service.js', () => ({
   BrowserUseServices: {

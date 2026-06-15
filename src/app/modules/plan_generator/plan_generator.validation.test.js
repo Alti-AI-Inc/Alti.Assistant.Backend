@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Mock dependencies before importing the module under test
 const rateLimitOptions = {};
 vi.mock('express-rate-limit', () => ({
-  default: vi.fn(options => {
+  default: vi.fn().mockImplementation(options => {
     // Capture options to test internal functions like keyGenerator and tieredLimit.
     // We can identify the limiter by its unique message.
     if (options.message?.error?.includes('AI-intensive')) {
@@ -26,13 +26,21 @@ vi.mock('rate-limit-redis', () => ({
   })),
 }));
 
-const mockRedisClient = {
-  on: vi.fn(),
-  connect: vi.fn().mockResolvedValue(undefined),
-  sendCommand: vi.fn(),
-};
+const {
+  mockRedisClient
+} = vi.hoisted(() => {
+  const mockRedisClient = {
+    on: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    sendCommand: vi.fn(),
+  };
+
+  return {
+    mockRedisClient
+  };
+});
 vi.mock('redis', () => ({
-  createClient: vi.fn(() => mockRedisClient),
+  createClient: vi.fn().mockImplementation(() => mockRedisClient),
 }));
 
 // Import the module to be tested
@@ -395,7 +403,7 @@ describe('PlanGeneratorRateLimiters', () => {
         sendCommand: vi.fn(),
       };
       vi.mock('redis', () => ({
-        createClient: vi.fn(() => localMockClient),
+        createClient: vi.fn().mockImplementation(() => localMockClient),
       }));
 
       // Dynamically import the module to trigger the IIFE with the new env
@@ -436,7 +444,7 @@ describe('PlanGeneratorRateLimiters', () => {
         sendCommand: vi.fn(),
       };
       vi.mock('redis', () => ({
-        createClient: vi.fn(() => localMockClient),
+        createClient: vi.fn().mockImplementation(() => localMockClient),
       }));
 
       await import('../../../../src/app/modules/plan_generator/plan_generator.validation.js');

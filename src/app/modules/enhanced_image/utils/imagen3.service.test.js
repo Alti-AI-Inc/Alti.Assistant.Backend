@@ -1,6 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const mockUploadBuffer = vi.fn();
+const {
+  mockUploadBuffer,
+  mockGenerateContent
+} = vi.hoisted(() => {
+  const mockUploadBuffer = vi.fn();
+
+  const mockGenerateContent = vi.fn();
+
+  return {
+    mockUploadBuffer,
+    mockGenerateContent
+  };
+});
+
 vi.mock('../services/gcpStorageService.js', () => {
   return {
     GCPStorageService: vi.fn().mockImplementation(() => {
@@ -11,7 +24,6 @@ vi.mock('../services/gcpStorageService.js', () => {
   };
 });
 
-const mockGenerateContent = vi.fn();
 vi.mock('@google/genai', () => {
   return {
     GoogleGenAI: vi.fn().mockImplementation(() => {

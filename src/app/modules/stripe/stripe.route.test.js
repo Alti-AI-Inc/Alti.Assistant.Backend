@@ -1,11 +1,44 @@
 import { describe, it, expect, vi } from 'vitest';
 
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-};
+const {
+  mockRouter,
+  mockControllers
+} = vi.hoisted(() => {
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  const mockControllers = {
+    createCustomerController: 'createCustomerController',
+    getCustomerController: 'getCustomerController',
+    updateCustomerController: 'updateCustomerController',
+    deleteCustomerController: 'deleteCustomerController',
+    createProductController: 'createProductController',
+    retrieveProductController: 'retrieveProductController',
+    createPaymentIntentController: 'createPaymentIntentController',
+    addPaymentMethodController: 'addPaymentMethodController',
+    listPaymentMethodsController: 'listPaymentMethodsController',
+    getMyPaymentMethodsController: 'getMyPaymentMethodsController',
+    createSubscriptionController: 'createSubscriptionController',
+    cancelSubscriptionController: 'cancelSubscriptionController',
+    getMySubscriptionsController: 'getMySubscriptionsController',
+    listAccounts: 'listAccounts',
+    listProducts: 'listProducts',
+    listSubscriptions: 'listSubscriptions',
+    getSingleSubscription: 'getSingleSubscription',
+    listPricesController: 'listPricesController',
+    handleWebhook: 'handleWebhook',
+    testWebhook: 'testWebhook',
+  };
+
+  return {
+    mockRouter,
+    mockControllers
+  };
+});
 
 vi.mock('express', () => ({
   default: {
@@ -14,39 +47,16 @@ vi.mock('express', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => 'authMiddleware'),
+  default: vi.fn().mockImplementation(() => 'authMiddleware'),
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => 'optionalAuthMiddleware'),
+  default: vi.fn().mockImplementation(() => 'optionalAuthMiddleware'),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: 'extractTenantContextMiddleware',
 }));
-
-const mockControllers = {
-  createCustomerController: 'createCustomerController',
-  getCustomerController: 'getCustomerController',
-  updateCustomerController: 'updateCustomerController',
-  deleteCustomerController: 'deleteCustomerController',
-  createProductController: 'createProductController',
-  retrieveProductController: 'retrieveProductController',
-  createPaymentIntentController: 'createPaymentIntentController',
-  addPaymentMethodController: 'addPaymentMethodController',
-  listPaymentMethodsController: 'listPaymentMethodsController',
-  getMyPaymentMethodsController: 'getMyPaymentMethodsController',
-  createSubscriptionController: 'createSubscriptionController',
-  cancelSubscriptionController: 'cancelSubscriptionController',
-  getMySubscriptionsController: 'getMySubscriptionsController',
-  listAccounts: 'listAccounts',
-  listProducts: 'listProducts',
-  listSubscriptions: 'listSubscriptions',
-  getSingleSubscription: 'getSingleSubscription',
-  listPricesController: 'listPricesController',
-  handleWebhook: 'handleWebhook',
-  testWebhook: 'testWebhook',
-};
 
 vi.mock('./stripe.controller.js', () => mockControllers);
 

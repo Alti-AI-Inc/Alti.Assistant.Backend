@@ -1,13 +1,21 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { outputFormatter } from './outputFormatter.js';
 
-// Mock the logger dependency
-const mockLogger = {
-  error: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
-};
+const {
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock the logger dependency
+  const mockLogger = {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  };
+
+  return {
+    mockLogger
+  };
+});
 
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
@@ -20,14 +28,14 @@ const originalDate = global.Date;
 
 beforeEach(() => {
   // Mock the Date constructor to return a fixed date
-  global.Date = vi.fn((dateString) => {
+  global.Date = vi.fn().mockImplementation((dateString) => {
     if (dateString) {
       return new originalDate(dateString);
     }
     return mockDate;
   });
   // Mock the toLocaleString method on the mocked Date instance
-  global.Date.prototype.toLocaleString = vi.fn(() => MOCK_DATE_STRING);
+  global.Date.prototype.toLocaleString = vi.fn().mockImplementation(() => MOCK_DATE_STRING);
   // Copy static methods like Date.now() if they are used elsewhere
   Object.assign(global.Date, originalDate);
 
@@ -655,7 +663,7 @@ A different method.`;
     // Mock formatBrainstormResponse to isolate exportToMarkdown's logic
     const originalFormatBrainstormResponse = outputFormatter.formatBrainstormResponse;
     beforeEach(() => {
-      outputFormatter.formatBrainstormResponse = vi.fn(() => 'Formatted Brainstorm Content');
+      outputFormatter.formatBrainstormResponse = vi.fn().mockImplementation(() => 'Formatted Brainstorm Content');
     });
     afterEach(() => {
       outputFormatter.formatBrainstormResponse = originalFormatBrainstormResponse;

@@ -11,11 +11,19 @@ vi.mock('../../../../config/index.js', () => ({
 
 // Mock GoogleGenAI and its methods
 const mockGenerateImages = vi.fn();
-const mockGoogleGenAI = vi.fn(() => ({
-  models: {
-    generateImages: mockGenerateImages,
-  },
-}));
+const {
+  mockGoogleGenAI
+} = vi.hoisted(() => {
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
+    models: {
+      generateImages: mockGenerateImages,
+    },
+  }));
+
+  return {
+    mockGoogleGenAI
+  };
+});
 
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAI,

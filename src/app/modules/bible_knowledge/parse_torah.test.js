@@ -1,9 +1,35 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 
-// Mock fs/promises
-const mockMkdir = vi.fn(() => Promise.resolve());
-const mockWriteFile = vi.fn(() => Promise.resolve());
+const {
+    mockMkdir,
+    mockWriteFile,
+    mockHttpsGet,
+    mockPathJoin,
+    mockPathDirname,
+    mockFileURLToPath
+} = vi.hoisted(() => {
+    // Mock fs/promises
+    const mockMkdir = vi.fn().mockImplementation(() => Promise.resolve());
+    const mockWriteFile = vi.fn().mockImplementation(() => Promise.resolve());
+
+    // Mock https
+    const mockHttpsGet = vi.fn();
+
+    const mockPathJoin = vi.fn().mockImplementation((...args) => args.join('/'));
+    const mockPathDirname = vi.fn().mockImplementation(() => MOCK_DIRNAME);
+    const mockFileURLToPath = vi.fn().mockImplementation(() => `${MOCK_DIRNAME}/parse_torah.js`);
+
+    return {
+        mockMkdir,
+        mockWriteFile,
+        mockHttpsGet,
+        mockPathJoin,
+        mockPathDirname,
+        mockFileURLToPath
+    };
+});
+
 vi.mock('fs/promises', () => ({
     default: {
         mkdir: mockMkdir,
@@ -11,8 +37,6 @@ vi.mock('fs/promises', () => ({
     },
 }));
 
-// Mock https
-const mockHttpsGet = vi.fn();
 vi.mock('https', () => ({
     default: {
         get: mockHttpsGet,
@@ -24,10 +48,6 @@ const MOCK_DIRNAME = '/mock/src/app/modules/bible_knowledge';
 const MOCK_DATA_DIR = `${MOCK_DIRNAME}/data`;
 const MOCK_OUT_JPS = `${MOCK_DATA_DIR}/flat_jps.json`;
 const MOCK_OUT_HEB = `${MOCK_DATA_DIR}/flat_hebrew.json`;
-
-const mockPathJoin = vi.fn((...args) => args.join('/'));
-const mockPathDirname = vi.fn(() => MOCK_DIRNAME);
-const mockFileURLToPath = vi.fn(() => `${MOCK_DIRNAME}/parse_torah.js`);
 
 vi.mock('path', () => ({
     default: {

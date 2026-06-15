@@ -1,10 +1,18 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Mock the router to capture route definitions
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock the router to capture route definitions
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  return {
+    mockRouter
+  };
+});
 vi.mock('express', () => ({
   default: {
     Router: () => mockRouter,
@@ -20,19 +28,19 @@ vi.mock('../../../shared/enum.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn((...roles) => `authMiddleware(${roles.join(',')})`),
+  default: vi.fn().mockImplementation((...roles) => `authMiddleware(${roles.join(',')})`),
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => 'optionalAuthMiddleware'),
+  default: vi.fn().mockImplementation(() => 'optionalAuthMiddleware'),
 }));
 
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
-  default: vi.fn((limit, minutes) => `rateLimiterMiddleware(${limit},${minutes})`),
+  default: vi.fn().mockImplementation((limit, minutes) => `rateLimiterMiddleware(${limit},${minutes})`),
 }));
 
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
-  validateRequest: vi.fn(schema => `validateRequestMiddleware(${schema})`),
+  validateRequest: vi.fn().mockImplementation(schema => `validateRequestMiddleware(${schema})`),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({

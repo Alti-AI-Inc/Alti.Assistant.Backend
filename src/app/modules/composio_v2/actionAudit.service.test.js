@@ -59,7 +59,15 @@ vi.mock('mongoose', async (importOriginal) => {
   };
 });
 
-const mockObjectId = (id) => new mongoose.Types.ObjectId(id);
+const {
+  mockObjectId
+} = vi.hoisted(() => {
+  const mockObjectId = (id) => new mongoose.Types.ObjectId(id);
+
+  return {
+    mockObjectId
+  };
+});
 
 describe('ActionAuditService', () => {
   beforeEach(() => {

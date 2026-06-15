@@ -16,7 +16,7 @@ import {
 // Mock external dependencies
 vi.mock('@langchain/google-genai', () => {
   const mockInvoke = vi.fn();
-  const mockChatGoogleGenerativeAI = vi.fn(() => ({
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
     invoke: mockInvoke,
   }));
   return { ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI, mockInvoke };

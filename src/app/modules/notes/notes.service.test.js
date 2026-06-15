@@ -8,26 +8,38 @@ import {
   bulkDeleteTaskService,
 } from './notes.service';
 
-// Mock external dependencies
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger,
+  mockTask,
+  mockUserModel
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
 
-const mockTask = {
-  create: vi.fn(),
-  find: vi.fn().mockReturnThis(), // Allow chaining .populate().lean()
-  findOne: vi.fn().mockReturnThis(), // Allow chaining .populate().lean()
-  updateOne: vi.fn(),
-  deleteOne: vi.fn(),
-  deleteMany: vi.fn(),
-  populate: vi.fn().mockReturnThis(), // Mock populate to return this for chaining
-  lean: vi.fn(), // Mock lean
-};
+  const mockTask = {
+    create: vi.fn(),
+    find: vi.fn().mockReturnThis(), // Allow chaining .populate().lean()
+    findOne: vi.fn().mockReturnThis(), // Allow chaining .populate().lean()
+    updateOne: vi.fn(),
+    deleteOne: vi.fn(),
+    deleteMany: vi.fn(),
+    populate: vi.fn().mockReturnThis(), // Mock populate to return this for chaining
+    lean: vi.fn(), // Mock lean
+  };
 
-const mockUserModel = {
-  findOneAndUpdate: vi.fn(),
-};
+  const mockUserModel = {
+    findOneAndUpdate: vi.fn(),
+  };
+
+  return {
+    mockLogger,
+    mockTask,
+    mockUserModel
+  };
+});
 
 // Mock the modules
 vi.mock('../../../shared/logger', () => ({

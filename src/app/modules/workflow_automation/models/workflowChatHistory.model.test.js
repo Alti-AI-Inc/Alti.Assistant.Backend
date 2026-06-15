@@ -1,32 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// We need a way to capture *each* Schema instance created and its methods.
-// Let's make Schema a function that returns an object with mock methods.
-const mockMongoose = {
-  Schema: vi.fn(function(definition, options) {
-    // This 'this' refers to the new instance created by 'new mongoose.Schema()'
-    this.obj = definition;
-    this.options = options;
-    this.index = vi.fn(); // Each schema instance gets its own mock index method
-    this.path = vi.fn(function() { return this; }); // Each schema instance gets its own mock path method
-    this.add = vi.fn(function(obj) {
-      Object.assign(this.obj, obj);
-    });
-    // Store this instance for later inspection
-    mockMongoose.Schema.instances.push(this);
-  }),
-  model: vi.fn((name, schema) => {
-    // Simulate mongoose.model caching
-    if (!mockMongoose.models[name]) {
-      mockMongoose.models[name] = { modelName: name, schema: schema };
-    }
-    return mockMongoose.models[name];
-  }),
-  models: {}, // Simulate mongoose.models cache
-  Types: {
-    ObjectId: vi.fn(() => 'mockObjectId'), // Mock ObjectId type
-  },
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  // We need a way to capture *each* Schema instance created and its methods.
+  // Let's make Schema a function that returns an object with mock methods.
+  const mockMongoose = {
+    Schema: vi.fn(function(definition, options) {
+      // This 'this' refers to the new instance created by 'new mongoose.Schema()'
+      this.obj = definition;
+      this.options = options;
+      this.index = vi.fn(); // Each schema instance gets its own mock index method
+      this.path = vi.fn(function() { return this; }); // Each schema instance gets its own mock path method
+      this.add = vi.fn(function(obj) {
+        Object.assign(this.obj, obj);
+      });
+      // Store this instance for later inspection
+      mockMongoose.Schema.instances.push(this);
+    }),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Simulate mongoose.model caching
+      if (!mockMongoose.models[name]) {
+        mockMongoose.models[name] = { modelName: name, schema: schema };
+      }
+      return mockMongoose.models[name];
+    }),
+    models: {}, // Simulate mongoose.models cache
+    Types: {
+      ObjectId: vi.fn().mockImplementation(() => 'mockObjectId'), // Mock ObjectId type
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 // Add an array to the mock Schema constructor to store instances
 mockMongoose.Schema.instances = [];
 

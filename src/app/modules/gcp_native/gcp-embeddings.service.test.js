@@ -2,31 +2,46 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Mock external dependencies
 const mockClientRequest = vi.fn();
-const mockGetClient = vi.fn(() => ({
+const mockGetClient = vi.fn().mockImplementation(() => ({
   request: mockClientRequest,
 }));
-const mockGoogleAuth = vi.fn(() => ({
-  getClient: mockGetClient,
-}));
+
+const {
+  mockGoogleAuth,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  const mockGoogleAuth = vi.fn().mockImplementation(() => ({
+    getClient: mockGetClient,
+  }));
+
+  const mockConfig = {
+    google: {
+      gcp_project_id: 'test-project-id',
+      gcp_location: 'us-central1',
+    },
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockGoogleAuth,
+    mockConfig,
+    mockLogger
+  };
+});
 
 vi.mock('google-auth-library', () => ({
   GoogleAuth: mockGoogleAuth,
 }));
 
-const mockConfig = {
-  google: {
-    gcp_project_id: 'test-project-id',
-    gcp_location: 'us-central1',
-  },
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

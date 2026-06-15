@@ -8,8 +8,16 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-// Mock dynamic import target
-const mockAnalyzeImageIntent = vi.fn();
+const {
+  mockAnalyzeImageIntent
+} = vi.hoisted(() => {
+  // Mock dynamic import target
+  const mockAnalyzeImageIntent = vi.fn();
+
+  return {
+    mockAnalyzeImageIntent
+  };
+});
 vi.mock('../utils/imageIntentAnalyzer.js', () => ({
   analyzeImageIntent: (...args) => mockAnalyzeImageIntent(...args),
 }));

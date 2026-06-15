@@ -4,10 +4,26 @@ import { brainstormController } from './brainstorm.controller.js';
 
 // Mock dependencies
 const sendResponse = vi.fn();
-const logger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+
+const {
+  logger,
+  mockSubscriptionModel
+} = vi.hoisted(() => {
+  const logger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+  const mockSubscriptionModel = {
+    findOne: vi.fn().mockReturnThis(), // findOne returns itself for chaining
+    sort: vi.fn().mockResolvedValue(mockSubscription), // sort returns the mock subscription
+  };
+
+  return {
+    logger,
+    mockSubscriptionModel
+  };
+});
+
 const brainstormService = {
   generateGuestUserId: vi.fn(),
   processConversationalBrainstorm: vi.fn(),
@@ -20,10 +36,6 @@ const brainstormService = {
 // Mock SubscriptionModel with chaining
 const mockSubscription = {
   usage: 10, // Default usage for tests
-};
-const mockSubscriptionModel = {
-  findOne: vi.fn().mockReturnThis(), // findOne returns itself for chaining
-  sort: vi.fn().mockResolvedValue(mockSubscription), // sort returns the mock subscription
 };
 
 // Mock catchAsync to simply return the function it wraps, allowing direct testing

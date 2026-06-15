@@ -6,12 +6,20 @@ const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockPatch = vi.fn();
 const mockDelete = vi.fn();
-const mockRoute = vi.fn(() => ({
-  get: mockGet,
-  post: mockPost,
-  patch: mockPatch,
-  delete: mockDelete,
-}));
+const {
+  mockRoute
+} = vi.hoisted(() => {
+  const mockRoute = vi.fn().mockImplementation(() => ({
+    get: mockGet,
+    post: mockPost,
+    patch: mockPatch,
+    delete: mockDelete,
+  }));
+
+  return {
+    mockRoute
+  };
+});
 vi.mock('express', () => ({
   default: {
     Router: () => ({

@@ -1,26 +1,80 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock all external dependencies
-const mockExpressRouter = vi.fn(() => {
-  const router = {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    route: vi.fn(path => {
-      const routeHandler = {
-        get: vi.fn(),
-        post: vi.fn(),
-        put: vi.fn(),
-        delete: vi.fn(),
-      };
-      // Store the route handler for later inspection
-      router._routes.push({ path, handler: routeHandler });
-      return routeHandler;
-    }),
-    _routes: [], // To store routes defined via .route()
+const {
+  mockExpressRouter,
+  ENUM_USER_ROLE,
+  mockAuthMiddleware,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockAuthController,
+  mockAuthValidation
+} = vi.hoisted(() => {
+  // Mock all external dependencies
+  const mockExpressRouter = vi.fn().mockImplementation(() => {
+    const router = {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      route: vi.fn().mockImplementation(path => {
+        const routeHandler = {
+          get: vi.fn(),
+          post: vi.fn(),
+          put: vi.fn(),
+          delete: vi.fn(),
+        };
+        // Store the route handler for later inspection
+        router._routes.push({ path, handler: routeHandler });
+        return routeHandler;
+      }),
+      _routes: [], // To store routes defined via .route()
+    };
+    return router;
+  });
+
+  const ENUM_USER_ROLE = {
+    ADMIN: 'admin',
+    USER: 'user',
   };
-  return router;
+
+  // Mock middleware functions to return identifiable strings or mock functions
+  const mockAuthMiddleware = vi.fn().mockImplementation((...roles) => `auth_middleware(${roles.join(',')})`);
+
+  const mockCreateRateLimiter = vi.fn().mockImplementation((max, window) => `rate_limiter_middleware(${max},${window})`);
+
+  const mockValidateRequest = vi.fn().mockImplementation(schema => `validate_request_middleware(${JSON.stringify(schema)})`);
+
+  // Mock authController methods
+  const mockAuthController = {
+    getUser: vi.fn().mockImplementation(() => 'authController.getUser'),
+    register: vi.fn().mockImplementation(() => 'authController.register'),
+    resendEmailConfirmation: vi.fn().mockImplementation(() => 'authController.resendEmailConfirmation'),
+    confirmEmail: vi.fn().mockImplementation(() => 'authController.confirmEmail'),
+    login: vi.fn().mockImplementation(() => 'authController.login'),
+    refreshToken: vi.fn().mockImplementation(() => 'authController.refreshToken'),
+    forgetPassword: vi.fn().mockImplementation(() => 'authController.forgetPassword'),
+    resetPassword: vi.fn().mockImplementation(() => 'authController.resetPassword'),
+    changePassword: vi.fn().mockImplementation(() => 'authController.changePassword'),
+    updateUser: vi.fn().mockImplementation(() => 'authController.updateUser'),
+    deleteUserAccountOTP: vi.fn().mockImplementation(() => 'authController.deleteUserAccountOTP'),
+    deleteUserAccount: vi.fn().mockImplementation(() => 'authController.deleteUserAccount'),
+  };
+
+  // Mock AuthValidation schemas
+  const mockAuthValidation = {
+    UserValidationSchema: { _isZodSchema: true, name: 'UserValidationSchema' }, // Simplified mock for schema
+    refreshTokenZodSchema: { _isZodSchema: true, name: 'refreshTokenZodSchema' },
+  };
+
+  return {
+    mockExpressRouter,
+    ENUM_USER_ROLE,
+    mockAuthMiddleware,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockAuthController,
+    mockAuthValidation
+  };
 });
 
 vi.mock('express', () => ({
@@ -29,54 +83,26 @@ vi.mock('express', () => ({
   },
 }));
 
-const ENUM_USER_ROLE = {
-  ADMIN: 'admin',
-  USER: 'user',
-};
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE: ENUM_USER_ROLE,
 }));
 
-// Mock middleware functions to return identifiable strings or mock functions
-const mockAuthMiddleware = vi.fn((...roles) => `auth_middleware(${roles.join(',')})`);
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuthMiddleware,
 }));
 
-const mockCreateRateLimiter = vi.fn((max, window) => `rate_limiter_middleware(${max},${window})`);
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: mockCreateRateLimiter,
 }));
 
-const mockValidateRequest = vi.fn(schema => `validate_request_middleware(${JSON.stringify(schema)})`);
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
   validateRequest: mockValidateRequest,
 }));
 
-// Mock authController methods
-const mockAuthController = {
-  getUser: vi.fn(() => 'authController.getUser'),
-  register: vi.fn(() => 'authController.register'),
-  resendEmailConfirmation: vi.fn(() => 'authController.resendEmailConfirmation'),
-  confirmEmail: vi.fn(() => 'authController.confirmEmail'),
-  login: vi.fn(() => 'authController.login'),
-  refreshToken: vi.fn(() => 'authController.refreshToken'),
-  forgetPassword: vi.fn(() => 'authController.forgetPassword'),
-  resetPassword: vi.fn(() => 'authController.resetPassword'),
-  changePassword: vi.fn(() => 'authController.changePassword'),
-  updateUser: vi.fn(() => 'authController.updateUser'),
-  deleteUserAccountOTP: vi.fn(() => 'authController.deleteUserAccountOTP'),
-  deleteUserAccount: vi.fn(() => 'authController.deleteUserAccount'),
-};
 vi.mock('./auth.controller.js', () => ({
   authController: mockAuthController,
 }));
 
-// Mock AuthValidation schemas
-const mockAuthValidation = {
-  UserValidationSchema: { _isZodSchema: true, name: 'UserValidationSchema' }, // Simplified mock for schema
-  refreshTokenZodSchema: { _isZodSchema: true, name: 'refreshTokenZodSchema' },
-};
 vi.mock('./auth.validation.js', () => ({
   AuthValidation: mockAuthValidation,
 }));

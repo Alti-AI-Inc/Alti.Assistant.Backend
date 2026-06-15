@@ -25,8 +25,8 @@ import httpStatus from 'http-status';
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },
@@ -34,11 +34,11 @@ vi.mock('mongoose', () => ({
 
 vi.mock('@google/generative-ai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGetGenerativeModel = vi.fn(() => ({
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
     generateContent: mockGenerateContent,
   }));
   return {
-    GoogleGenerativeAI: vi.fn(() => ({
+    GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
       getGenerativeModel: mockGetGenerativeModel,
     })),
     __mockGenerateContent: mockGenerateContent,
@@ -49,7 +49,7 @@ vi.mock('@google/generative-ai', () => {
 vi.mock('@google/generative-ai/server', () => {
   const mockUploadFile = vi.fn();
   return {
-    GoogleAIFileManager: vi.fn(() => ({
+    GoogleAIFileManager: vi.fn().mockImplementation(() => ({
       uploadFile: mockUploadFile,
     })),
     __mockUploadFile: mockUploadFile,
@@ -57,7 +57,7 @@ vi.mock('@google/generative-ai/server', () => {
 });
 
 vi.mock('../../../errors/ApiError.js', () => ({
-  default: vi.fn((status, message) => {
+  default: vi.fn().mockImplementation((status, message) => {
     const error = new Error(message);
     error.statusCode = status;
     return error;
@@ -140,9 +140,21 @@ vi.mock('./article_writer.constant.js', async (importOriginal) => {
   };
 });
 
-const mockGenerateContent = GoogleGenerativeAI.__mockGenerateContent;
-const mockGetGenerativeModel = GoogleGenerativeAI.__mockGetGenerativeModel;
-const mockUploadFile = GoogleAIFileManager.__mockUploadFile;
+const {
+  mockGenerateContent,
+  mockGetGenerativeModel,
+  mockUploadFile
+} = vi.hoisted(() => {
+  const mockGenerateContent = GoogleGenerativeAI.__mockGenerateContent;
+  const mockGetGenerativeModel = GoogleGenerativeAI.__mockGetGenerativeModel;
+  const mockUploadFile = GoogleAIFileManager.__mockUploadFile;
+
+  return {
+    mockGenerateContent,
+    mockGetGenerativeModel,
+    mockUploadFile
+  };
+});
 
 describe('articleWriterService', () => {
   beforeEach(() => {

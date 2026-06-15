@@ -17,11 +17,11 @@ vi.mock('fs/promises');
 vi.mock('path');
 vi.mock('../../../../shared/logger.js');
 vi.mock('docx', () => {
-  const mockParagraph = vi.fn((options) => ({ type: 'Paragraph', options }));
-  const mockTextRun = vi.fn((options) => ({ type: 'TextRun', options }));
-  const mockDocument = vi.fn((options) => ({ type: 'Document', options }));
+  const mockParagraph = vi.fn().mockImplementation((options) => ({ type: 'Paragraph', options }));
+  const mockTextRun = vi.fn().mockImplementation((options) => ({ type: 'TextRun', options }));
+  const mockDocument = vi.fn().mockImplementation((options) => ({ type: 'Document', options }));
   const mockPacker = {
-    toBuffer: vi.fn(() => Buffer.from('mock docx buffer')),
+    toBuffer: vi.fn().mockImplementation(() => Buffer.from('mock docx buffer')),
   };
   return {
     Document: mockDocument,

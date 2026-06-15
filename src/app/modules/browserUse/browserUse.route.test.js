@@ -1,35 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock express to capture router calls
-const mockRouter = {
-  use: vi.fn(),
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuth,
+  mockExtractTenantContext,
+  mockRunTaskController,
+  mockGetTaskStatusController,
+  mockGetUserSessionsController,
+  mockGetSessionByIdController
+} = vi.hoisted(() => {
+  // Mock express to capture router calls
+  const mockRouter = {
+    use: vi.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
+
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock BrowserUseController
+  const mockRunTaskController = vi.fn();
+  const mockGetTaskStatusController = vi.fn();
+  const mockGetUserSessionsController = vi.fn();
+  const mockGetSessionByIdController = vi.fn();
+
+  return {
+    mockRouter,
+    mockAuth,
+    mockExtractTenantContext,
+    mockRunTaskController,
+    mockGetTaskStatusController,
+    mockGetUserSessionsController,
+    mockGetSessionByIdController
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
 // Mock middleware
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockAuth = vi.fn(() => mockAuthMiddleware);
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
-
-// Mock BrowserUseController
-const mockRunTaskController = vi.fn();
-const mockGetTaskStatusController = vi.fn();
-const mockGetUserSessionsController = vi.fn();
-const mockGetSessionByIdController = vi.fn();
 
 vi.mock('./browserUse.controller.js', () => ({
   BrowserUseController: {

@@ -4,25 +4,134 @@ import express from 'express';
 
 // Mock external modules
 vi.mock('fs', () => ({
-  existsSync: vi.fn(() => true), // Assume uploadDir always exists for tests
+  existsSync: vi.fn().mockImplementation(() => true), // Assume uploadDir always exists for tests
   mkdirSync: vi.fn(),
 }));
 
 vi.mock('path', () => ({
-  resolve: vi.fn((...args) => args.join('/')), // Simple path resolution for testing
+  resolve: vi.fn().mockImplementation((...args) => args.join('/')), // Simple path resolution for testing
 }));
 
-// Mock auth middleware
-const mockAuth = (roles) => (req, res, next) => {
-  req.user = { id: 'testUserId', userId: 'testUserId', role: roles[0] || 'user' }; // Simulate authenticated user
-  next();
-};
+const {
+  mockAuth,
+  mockOptionalAuth,
+  mockControllers,
+  mockTelemetryCollector,
+  mockWithTelemetry,
+  mockQueryRouterService,
+  mockMetadataAgentService,
+  mockDocumentMetadata,
+  mockRelationshipGraphService,
+  mockContextPrunerService,
+  mockQueryMemoryService,
+  mockExecuteAgenticRAG,
+  mockLogger,
+  mockRagService
+} = vi.hoisted(() => {
+  // Mock auth middleware
+  const mockAuth = (roles) => (req, res, next) => {
+    req.user = { id: 'testUserId', userId: 'testUserId', role: roles[0] || 'user' }; // Simulate authenticated user
+    next();
+  };
+
+  const mockOptionalAuth = () => (req, res, next) => {
+    req.user = { id: 'testUserId', userId: 'testUserId', role: 'user' }; // Simulate authenticated user for optional auth
+    next();
+  };
+
+  // Mock all controller functions
+  const mockControllers = {};
+
+  // Mock telemetry
+  const mockTelemetryCollector = {
+    getAnalytics: vi.fn().mockImplementation(() => ({ some: 'analytics' })),
+    recordEvent: vi.fn(),
+  };
+  const mockWithTelemetry = (eventName, handler) => (req, res, next) => {
+    mockTelemetryCollector.recordEvent(eventName, req.body);
+    // Call the actual handler passed to withTelemetry
+    return handler(req, res, next);
+  };
+
+  // Mock queryRouterService
+  const mockQueryRouterService = {
+    route: vi.fn().mockImplementation(() => ({ engine: 'vector', profile: 'default', confidence: 0.8 })),
+    recordOutcome: vi.fn(),
+    getAnalytics: vi.fn().mockImplementation(() => ({ router: 'analytics' })),
+  };
+
+  // Mock metadataAgentService
+  const mockMetadataAgentService = {
+    enrichAllUserDocuments: vi.fn().mockImplementation(() => ({ success: true, count: 1 })),
+  };
+
+  // Mock DocumentMetadata model
+  const mockDocumentMetadata = {
+    findOne: vi.fn().mockImplementation(() => ({ docId: '123', metadata: { title: 'Test Doc' } })),
+  };
+
+  // Mock relationshipGraphService
+  const mockRelationshipGraphService = {
+    buildRelationshipGraph: vi.fn().mockImplementation(() => ({ success: true, nodes: 1, edges: 1 })),
+    traverseGraph: vi.fn().mockImplementation(() => ({ success: true, path: ['doc1', 'doc2'] })),
+  };
+
+  // Mock contextPrunerService
+  const mockContextPrunerService = {
+    pruneAndRerank: vi.fn().mockImplementation((query) => Promise.resolve(`pruned_${query}`)),
+  };
+
+  // Mock queryMemoryService
+  const mockQueryMemoryService = {
+    buildMemoryEnrichedQuery: vi.fn().mockImplementation((userId, query) => Promise.resolve(`memory_enriched_${query}`)),
+    getMemorySummary: vi.fn().mockImplementation(() => ({ totalEntries: 10 })),
+    getRelevantHistory: vi.fn().mockImplementation(() => ([{ query: 'old query', answer: 'old answer' }])),
+    recordQuery: vi.fn(),
+  };
+
+  // Mock executeAgenticRAG
+  const mockExecuteAgenticRAG = vi.fn().mockImplementation(() => Promise.resolve('Agentic RAG answer'));
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  // Mock ragService - This service is used in the /query-routed endpoint but is NOT imported in the original file.
+  // For testing purposes, we assume it exists and mock its methods. In a real scenario, this would be flagged as a bug
+  // and require refactoring the original file to explicitly import `ragService`.
+  const mockRagService = {
+    queryDocument: vi.fn().mockImplementation(() => Promise.resolve('vector answer')),
+    queryDocumentHybrid: vi.fn().mockImplementation(() => Promise.resolve('hybrid answer')),
+    queryDocumentFullSpectrum: vi.fn().mockImplementation(() => Promise.resolve('fullspectrum answer')),
+    queryDocumentSelfCorrecting: vi.fn().mockImplementation(() => Promise.resolve('selfcorrect answer')),
+    querySemanticallyCached: vi.fn().mockImplementation(() => Promise.resolve('cached answer')),
+    queryDocumentObjectAgent: vi.fn().mockImplementation(() => Promise.resolve('objectagent answer')),
+    queryDocumentChatEngine: vi.fn().mockImplementation(() => Promise.resolve('chat answer')),
+  };
+
+  return {
+    mockAuth,
+    mockOptionalAuth,
+    mockControllers,
+    mockTelemetryCollector,
+    mockWithTelemetry,
+    mockQueryRouterService,
+    mockMetadataAgentService,
+    mockDocumentMetadata,
+    mockRelationshipGraphService,
+    mockContextPrunerService,
+    mockQueryMemoryService,
+    mockExecuteAgenticRAG,
+    mockLogger,
+    mockRagService
+  };
+});
+
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: vi.fn(mockAuth) }));
 
-const mockOptionalAuth = () => (req, res, next) => {
-  req.user = { id: 'testUserId', userId: 'testUserId', role: 'user' }; // Simulate authenticated user for optional auth
-  next();
-};
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: vi.fn(mockOptionalAuth) }));
 
 vi.mock('../../../shared/enum.js', () => ({
@@ -31,14 +140,12 @@ vi.mock('../../../shared/enum.js', () => ({
 
 // Mock GCSStorageEngine - only its constructor is used by multer
 vi.mock('../../middlewares/uploder/uploder.js', () => ({
-  GCSStorageEngine: vi.fn(() => ({
-    _handleFile: vi.fn((req, file, cb) => cb(null, { path: 'mock/path/file.txt' })),
-    _removeFile: vi.fn((req, file, cb) => cb(null)),
+  GCSStorageEngine: vi.fn().mockImplementation(() => ({
+    _handleFile: vi.fn().mockImplementation((req, file, cb) => cb(null, { path: 'mock/path/file.txt' })),
+    _removeFile: vi.fn().mockImplementation((req, file, cb) => cb(null)),
   })),
 }));
 
-// Mock all controller functions
-const mockControllers = {};
 const controllerFunctions = [
   'queryIndex', 'queryIndexStream', 'queryIndexAdvanced', 'queryIndexAgent',
   'queryIndexChatEngine', 'queryIndexSelfCorrecting', 'queryIndexHybrid',
@@ -57,50 +164,21 @@ const controllerFunctions = [
   'queryIngestionStatus'
 ];
 controllerFunctions.forEach(func => {
-  mockControllers[func] = vi.fn((req, res) => res.status(200).json({ message: `${func} called` }));
+  mockControllers[func] = vi.fn().mockImplementation((req, res) => res.status(200).json({ message: `${func} called` }));
 });
 vi.mock('./llamaindex.controller.js', () => mockControllers);
 
-// Mock telemetry
-const mockTelemetryCollector = {
-  getAnalytics: vi.fn(() => ({ some: 'analytics' })),
-  recordEvent: vi.fn(),
-};
-const mockWithTelemetry = (eventName, handler) => (req, res, next) => {
-  mockTelemetryCollector.recordEvent(eventName, req.body);
-  // Call the actual handler passed to withTelemetry
-  return handler(req, res, next);
-};
 vi.mock('./llamaindex.telemetry.js', () => ({
   telemetryCollector: mockTelemetryCollector,
   withTelemetry: vi.fn(mockWithTelemetry),
 }));
 
-// Mock queryRouterService
-const mockQueryRouterService = {
-  route: vi.fn(() => ({ engine: 'vector', profile: 'default', confidence: 0.8 })),
-  recordOutcome: vi.fn(),
-  getAnalytics: vi.fn(() => ({ router: 'analytics' })),
-};
 vi.mock('./llamaindex.queryRouter.js', () => ({ queryRouterService: mockQueryRouterService }));
 
-// Mock metadataAgentService
-const mockMetadataAgentService = {
-  enrichAllUserDocuments: vi.fn(() => ({ success: true, count: 1 })),
-};
 vi.mock('./llamaindex.metadataAgent.js', () => ({ metadataAgentService: mockMetadataAgentService }));
 
-// Mock DocumentMetadata model
-const mockDocumentMetadata = {
-  findOne: vi.fn(() => ({ docId: '123', metadata: { title: 'Test Doc' } })),
-};
 vi.mock('./llamaindex.metadata.model.js', () => ({ default: mockDocumentMetadata }));
 
-// Mock relationshipGraphService
-const mockRelationshipGraphService = {
-  buildRelationshipGraph: vi.fn(() => ({ success: true, nodes: 1, edges: 1 })),
-  traverseGraph: vi.fn(() => ({ success: true, path: ['doc1', 'doc2'] })),
-};
 vi.mock('./llamaindex.relationshipGraph.js', () => ({ relationshipGraphService: mockRelationshipGraphService }));
 
 // Mock DocumentRelationship model (not directly used in routes, but good to mock)
@@ -109,23 +187,10 @@ vi.mock('./llamaindex.relationship.model.js', () => ({ default: {} }));
 // Mock graphRetrieverService (not directly used in routes, but good to mock)
 vi.mock('./llamaindex.graphRetriever.js', () => ({ graphRetrieverService: {} }));
 
-// Mock contextPrunerService
-const mockContextPrunerService = {
-  pruneAndRerank: vi.fn((query) => Promise.resolve(`pruned_${query}`)),
-};
 vi.mock('./llamaindex.contextPruner.js', () => ({ contextPrunerService: mockContextPrunerService }));
 
-// Mock queryMemoryService
-const mockQueryMemoryService = {
-  buildMemoryEnrichedQuery: vi.fn((userId, query) => Promise.resolve(`memory_enriched_${query}`)),
-  getMemorySummary: vi.fn(() => ({ totalEntries: 10 })),
-  getRelevantHistory: vi.fn(() => ([{ query: 'old query', answer: 'old answer' }])),
-  recordQuery: vi.fn(),
-};
 vi.mock('./llamaindex.queryMemory.js', () => ({ queryMemoryService: mockQueryMemoryService }));
 
-// Mock executeAgenticRAG
-const mockExecuteAgenticRAG = vi.fn(() => Promise.resolve('Agentic RAG answer'));
 vi.mock('./langgraph/ragAgentGraph.js', () => ({ executeAgenticRAG: mockExecuteAgenticRAG }));
 
 // Mock mongoose
@@ -134,28 +199,10 @@ vi.mock('mongoose', () => ({
   default: {}, // Export default as an empty object if not used directly
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-// Mock ragService - This service is used in the /query-routed endpoint but is NOT imported in the original file.
-// For testing purposes, we assume it exists and mock its methods. In a real scenario, this would be flagged as a bug
-// and require refactoring the original file to explicitly import `ragService`.
-const mockRagService = {
-  queryDocument: vi.fn(() => Promise.resolve('vector answer')),
-  queryDocumentHybrid: vi.fn(() => Promise.resolve('hybrid answer')),
-  queryDocumentFullSpectrum: vi.fn(() => Promise.resolve('fullspectrum answer')),
-  queryDocumentSelfCorrecting: vi.fn(() => Promise.resolve('selfcorrect answer')),
-  querySemanticallyCached: vi.fn(() => Promise.resolve('cached answer')),
-  queryDocumentObjectAgent: vi.fn(() => Promise.resolve('objectagent answer')),
-  queryDocumentChatEngine: vi.fn(() => Promise.resolve('chat answer')),
-};
 // We'll make it available as if it were imported from a dummy module.
 vi.mock('./llamaindex.ragService.js', () => ({ ragService: mockRagService }));
 
@@ -174,9 +221,9 @@ describe('llamaindexRoutes', () => {
     vi.mock('../../middlewares/uploder/uploder.js', async (importOriginal) => {
       const actual = await importOriginal();
       return {
-        GCSStorageEngine: vi.fn(() => ({
-          _handleFile: vi.fn((req, file, cb) => cb(null, { path: 'mock/path/file.txt' })),
-          _removeFile: vi.fn((req, file, cb) => cb(null)),
+        GCSStorageEngine: vi.fn().mockImplementation(() => ({
+          _handleFile: vi.fn().mockImplementation((req, file, cb) => cb(null, { path: 'mock/path/file.txt' })),
+          _removeFile: vi.fn().mockImplementation((req, file, cb) => cb(null)),
         })),
       };
     });
@@ -185,7 +232,7 @@ describe('llamaindexRoutes', () => {
       const actual = await importOriginal();
       return {
         telemetryCollector: mockTelemetryCollector,
-        withTelemetry: vi.fn((eventName, handler) => (req, res, next) => {
+        withTelemetry: vi.fn().mockImplementation((eventName, handler) => (req, res, next) => {
           mockTelemetryCollector.recordEvent(eventName, req.body);
           return handler(req, res, next);
         }),

@@ -3,70 +3,78 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock mongoose
 const mockSchemaInstance = {
   index: vi.fn(),
-  virtual: vi.fn((name) => ({
-    get: vi.fn((getter) => {
+  virtual: vi.fn().mockImplementation((name) => ({
+    get: vi.fn().mockImplementation((getter) => {
       mockSchemaInstance._virtuals = mockSchemaInstance._virtuals || {};
       mockSchemaInstance._virtuals[name] = getter;
     }),
   })),
-  statics: vi.fn((methods) => {
+  statics: vi.fn().mockImplementation((methods) => {
     mockSchemaInstance._statics = { ...mockSchemaInstance._statics, ...methods };
   }),
-  methods: vi.fn((methods) => {
+  methods: vi.fn().mockImplementation((methods) => {
     mockSchemaInstance._methods = { ...mockSchemaInstance._methods, ...methods };
   }),
-  path: vi.fn(() => ({
+  path: vi.fn().mockImplementation(() => ({
     validate: vi.fn(),
   })),
   pre: vi.fn(),
 };
 
-const mockMongoose = {
-  Schema: vi.fn(() => mockSchemaInstance),
-  model: vi.fn((name, schema) => {
-    // This mock 'model' will act as the StoredWorkflow class
-    const MockModel = function (data) {
-      Object.assign(this, data);
-      this.save = vi.fn(() => Promise.resolve(this)); // Mock save method for instance methods
-    };
-
-    // Attach static methods
-    if (schema._statics) {
-      Object.assign(MockModel, schema._statics);
-    }
-
-    // Attach instance methods
-    if (schema._methods) {
-      Object.assign(MockModel.prototype, schema._methods);
-    }
-
-    // Attach virtuals as getters on the prototype
-    if (schema._virtuals) {
-      for (const virtualName in schema._virtuals) {
-        Object.defineProperty(MockModel.prototype, virtualName, {
-          get: schema._virtuals[virtualName],
-          configurable: true,
-        });
-      }
-    }
-
-    // Mock chainable methods for static methods like find, sort, limit, skip
-    MockModel.find = vi.fn(() => {
-      const chainable = {
-        sort: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        skip: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([])), // Default to empty array
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation(() => mockSchemaInstance),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // This mock 'model' will act as the StoredWorkflow class
+      const MockModel = function (data) {
+        Object.assign(this, data);
+        this.save = vi.fn().mockImplementation(() => Promise.resolve(this)); // Mock save method for instance methods
       };
-      return chainable;
-    });
 
-    return MockModel;
-  }),
-  Types: {
-    Mixed: 'Mixed', // Mock Mongoose.Schema.Types.Mixed
-  },
-};
+      // Attach static methods
+      if (schema._statics) {
+        Object.assign(MockModel, schema._statics);
+      }
+
+      // Attach instance methods
+      if (schema._methods) {
+        Object.assign(MockModel.prototype, schema._methods);
+      }
+
+      // Attach virtuals as getters on the prototype
+      if (schema._virtuals) {
+        for (const virtualName in schema._virtuals) {
+          Object.defineProperty(MockModel.prototype, virtualName, {
+            get: schema._virtuals[virtualName],
+            configurable: true,
+          });
+        }
+      }
+
+      // Mock chainable methods for static methods like find, sort, limit, skip
+      MockModel.find = vi.fn().mockImplementation(() => {
+        const chainable = {
+          sort: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          skip: vi.fn().mockReturnThis(),
+          exec: vi.fn().mockImplementation(() => Promise.resolve([])), // Default to empty array
+        };
+        return chainable;
+      });
+
+      return MockModel;
+    }),
+    Types: {
+      Mixed: 'Mixed', // Mock Mongoose.Schema.Types.Mixed
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Replace the actual mongoose import with our mock
 vi.mock('mongoose', () => mockMongoose);
@@ -307,7 +315,7 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([{ _id: 'mockId1' }])),
+        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'mockId1' }])),
       };
 
       beforeEach(() => {
@@ -379,7 +387,7 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([{ _id: 'execId1' }])),
+        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'execId1' }])),
       };
 
       beforeEach(() => {
@@ -407,7 +415,7 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([{ _id: 'searchId1' }])),
+        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'searchId1' }])),
       };
 
       beforeEach(() => {

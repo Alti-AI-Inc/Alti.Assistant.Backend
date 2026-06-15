@@ -1,29 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateImage, generateImageUsingVertexAI } from './googleService.js';
 
-// Mock external dependencies
-const mockConfig = {
-  gcpProjectId: 'test-project-id',
-  gcpLocation: 'us-central1',
-  google: {
-    vertex_ai_endpoint: 'test-vertex-ai-endpoint.googleapis.com',
-    vertex_ai_region: 'us-central1',
-    model_id: 'imagen-4.0-generate-preview-06-06', // This is the value from config, but the code hardcodes the model name in fetch
-    gcp_project_id: 'test-project-id-2',
-  },
-};
+const {
+  mockConfig,
+  mockPredictionServiceClient,
+  mockGoogleAuth
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockConfig = {
+    gcpProjectId: 'test-project-id',
+    gcpLocation: 'us-central1',
+    google: {
+      vertex_ai_endpoint: 'test-vertex-ai-endpoint.googleapis.com',
+      vertex_ai_region: 'us-central1',
+      model_id: 'imagen-4.0-generate-preview-06-06', // This is the value from config, but the code hardcodes the model name in fetch
+      gcp_project_id: 'test-project-id-2',
+    },
+  };
 
-const mockPredictionServiceClient = {
-  predict: vi.fn(),
-};
+  const mockPredictionServiceClient = {
+    predict: vi.fn(),
+  };
+
+  const mockGoogleAuth = vi.fn().mockImplementation(() => ({
+    getClient: vi.fn().mockImplementation(() => Promise.resolve(mockGoogleAuthClient)),
+  }));
+
+  return {
+    mockConfig,
+    mockPredictionServiceClient,
+    mockGoogleAuth
+  };
+});
 
 const mockGoogleAuthClient = {
-  getAccessToken: vi.fn(() => Promise.resolve({ token: 'mock-access-token' })),
+  getAccessToken: vi.fn().mockImplementation(() => Promise.resolve({ token: 'mock-access-token' })),
 };
-
-const mockGoogleAuth = vi.fn(() => ({
-  getClient: vi.fn(() => Promise.resolve(mockGoogleAuthClient)),
-}));
 
 // Mock the modules
 vi.mock('../../../../config/index.js', () => ({

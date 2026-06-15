@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // and their state cleared across test runs when vi.clearAllMocks() is called.
 
 const mockMemorySaverInstance = { type: 'MemorySaverInstance' };
-const mockMemorySaver = vi.fn(() => mockMemorySaverInstance);
+const mockMemorySaver = vi.fn().mockImplementation(() => mockMemorySaverInstance);
 
 // This mockCompiledStateGraphInstance will be returned by mockStateGraphInstance.compile.
 // We add a custom property `_checkpointer` to track which checkpointer was used during compilation.
@@ -20,42 +20,59 @@ const mockStateGraphInstance = {
   addNode: vi.fn(),
   addEdge: vi.fn(),
   addConditionalEdges: vi.fn(),
-  compile: vi.fn((options) => {
+  compile: vi.fn().mockImplementation((options) => {
     // When compile is called, update the _checkpointer property of the returned instance
     mockCompiledStateGraphInstance._checkpointer = options.checkpointer;
     return mockCompiledStateGraphInstance;
   }),
 };
-const mockStateGraph = vi.fn(() => mockStateGraphInstance);
+const mockStateGraph = vi.fn().mockImplementation(() => mockStateGraphInstance);
 
-const mockLangchainLanggraph = {
-  StateGraph: mockStateGraph,
-  END: 'END',
-  START: 'START',
-  MemorySaver: mockMemorySaver,
-};
+const {
+  mockLangchainLanggraph,
+  mockWritingAssistantState,
+  mockConfig,
+  mockWriteContentNode,
+  mockMongoDBSaver
+} = vi.hoisted(() => {
+  const mockLangchainLanggraph = {
+    StateGraph: mockStateGraph,
+    END: 'END',
+    START: 'START',
+    MemorySaver: mockMemorySaver,
+  };
 
-const mockWritingAssistantState = {
-  messages: {
-    value: (x, y) => x.concat(y),
-    default: () => [],
-  },
-  topic: {
-    value: (x, y) => y,
-    default: () => null,
-  },
-};
+  const mockWritingAssistantState = {
+    messages: {
+      value: (x, y) => x.concat(y),
+      default: () => [],
+    },
+    topic: {
+      value: (x, y) => y,
+      default: () => null,
+    },
+  };
 
-const mockConfig = {
-  database_local: 'mongodb://localhost:27017/testdb',
-};
+  const mockConfig = {
+    database_local: 'mongodb://localhost:27017/testdb',
+  };
 
-const mockWriteContentNode = vi.fn();
+  const mockWriteContentNode = vi.fn();
+
+  const mockMongoDBSaver = {
+    fromUri: vi.fn().mockImplementation(() => Promise.resolve(mockMongoDBSaverInstance)), // Default to success
+  };
+
+  return {
+    mockLangchainLanggraph,
+    mockWritingAssistantState,
+    mockConfig,
+    mockWriteContentNode,
+    mockMongoDBSaver
+  };
+});
 
 const mockMongoDBSaverInstance = { type: 'MongoDBSaverInstance' };
-const mockMongoDBSaver = {
-  fromUri: vi.fn(() => Promise.resolve(mockMongoDBSaverInstance)), // Default to success
-};
 
 describe('writing_assistant/workflow', () => {
   let consoleLogSpy;
@@ -162,7 +179,7 @@ describe('writing_assistant/workflow', () => {
       vi.mock('./nodes.js', () => ({ writeContentNode: mockWriteContentNode }));
       vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
         MongoDBSaver: {
-          fromUri: vi.fn(() => Promise.reject(mockError)), // Mock failure for this test suite
+          fromUri: vi.fn().mockImplementation(() => Promise.reject(mockError)), // Mock failure for this test suite
         },
       }));
 

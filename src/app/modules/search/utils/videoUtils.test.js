@@ -8,17 +8,29 @@ import {
   searchYouTube,
 } from './videoUtils';
 
-// Mock external dependencies
-const mockLlmInvoke = vi.fn();
+const {
+  mockLlmInvoke,
+  mockConfig
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLlmInvoke = vi.fn();
+
+  const mockConfig = {
+    youtube_api_key: 'test_youtube_api_key',
+  };
+
+  return {
+    mockLlmInvoke,
+    mockConfig
+  };
+});
+
 vi.mock('../services/geminiService.js', () => ({
   llm: {
     invoke: mockLlmInvoke,
   },
 }));
 
-const mockConfig = {
-  youtube_api_key: 'test_youtube_api_key',
-};
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));

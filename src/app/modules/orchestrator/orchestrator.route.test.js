@@ -2,9 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 
-// Mock the dependencies
-// Mock orchestratorController
-const mockRoutePrompt = vi.fn((req, res) => res.status(200).send('Prompt routed'));
+const {
+  mockRoutePrompt,
+  mockAuth,
+  mockShieldOfLight,
+  mockCreateRateLimiter
+} = vi.hoisted(() => {
+  // Mock the dependencies
+  // Mock orchestratorController
+  const mockRoutePrompt = vi.fn().mockImplementation((req, res) => res.status(200).send('Prompt routed'));
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware); // auth() returns a middleware function
+  const mockShieldOfLight = vi.fn().mockImplementation(() => mockShieldOfLightMiddleware); // shieldOfLight() returns a middleware function
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => {
+    return mockRateLimiterActualMiddleware; // createRateLimiter() returns a middleware function
+  });
+
+  return {
+    mockRoutePrompt,
+    mockAuth,
+    mockShieldOfLight,
+    mockCreateRateLimiter
+  };
+});
+
 vi.mock('./orchestrator.controller.js', () => ({
   orchestratorController: {
     routePrompt: mockRoutePrompt,
@@ -12,30 +32,25 @@ vi.mock('./orchestrator.controller.js', () => ({
 }));
 
 // Mock auth middleware
-const mockAuthMiddleware = vi.fn((req, res, next) => {
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => {
   req.user = { id: 'test-user', role: 'user' }; // Simulate user being set by auth
   next();
 });
-const mockAuth = vi.fn(() => mockAuthMiddleware); // auth() returns a middleware function
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
 // Mock shieldOfLight middleware
-const mockShieldOfLightMiddleware = vi.fn((req, res, next) => {
+const mockShieldOfLightMiddleware = vi.fn().mockImplementation((req, res, next) => {
   next();
 });
-const mockShieldOfLight = vi.fn(() => mockShieldOfLightMiddleware); // shieldOfLight() returns a middleware function
 vi.mock('../../middlewares/shieldOfLight.js', () => ({
   shieldOfLight: mockShieldOfLight,
 }));
 
 // Mock createRateLimiter middleware
-const mockRateLimiterActualMiddleware = vi.fn((req, res, next) => {
+const mockRateLimiterActualMiddleware = vi.fn().mockImplementation((req, res, next) => {
   next();
-});
-const mockCreateRateLimiter = vi.fn((limit, window) => {
-  return mockRateLimiterActualMiddleware; // createRateLimiter() returns a middleware function
 });
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: mockCreateRateLimiter,

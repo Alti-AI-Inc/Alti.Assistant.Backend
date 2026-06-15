@@ -7,8 +7,16 @@ import {
   getUrlFromUserInputUsingAi,
 } from './llmService.js';
 
-// This mock will represent the final `invoke` call on any LangChain chain.
-const mockInvoke = vi.fn();
+const {
+  mockInvoke
+} = vi.hoisted(() => {
+  // This mock will represent the final `invoke` call on any LangChain chain.
+  const mockInvoke = vi.fn();
+
+  return {
+    mockInvoke
+  };
+});
 
 // Mock the dependencies to isolate our service logic.
 vi.mock('./llm.js', () => ({

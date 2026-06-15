@@ -13,18 +13,26 @@ import {
 import { codeAssistantState } from './state.js';
 import config from '../../../../../config/index.js';
 
-// --- Mocks ---
+const {
+  mockWorkflowInstance
+} = vi.hoisted(() => {
+  // --- Mocks ---
 
-const mockWorkflowInstance = {
-  addNode: vi.fn(),
-  addEdge: vi.fn(),
-  addConditionalEdges: vi.fn(),
-  compile: vi.fn((config) => ({
-    ...config,
-    compiled: true,
-    checkpointerType: config.checkpointer?.constructor.name || 'unknown'
-  })),
-};
+  const mockWorkflowInstance = {
+    addNode: vi.fn(),
+    addEdge: vi.fn(),
+    addConditionalEdges: vi.fn(),
+    compile: vi.fn().mockImplementation((config) => ({
+      ...config,
+      compiled: true,
+      checkpointerType: config.checkpointer?.constructor.name || 'unknown'
+    })),
+  };
+
+  return {
+    mockWorkflowInstance
+  };
+});
 
 vi.mock('@langchain/langgraph', async (importOriginal) => {
   const original = await importOriginal();
@@ -42,13 +50,13 @@ vi.mock('./state.js', () => ({
 }));
 
 vi.mock('./nodes.js', () => ({
-  detectIntentNode: vi.fn(() => 'detectIntentNode'),
-  routeOnIntent: vi.fn(() => 'routeOnIntent'),
-  generateCodeNode: vi.fn(() => 'generateCodeNode'),
-  explainCodeNode: vi.fn(() => 'explainCodeNode'),
-  debugCodeNode: vi.fn(() => 'debugCodeNode'),
-  bestPracticesNode: vi.fn(() => 'bestPracticesNode'),
-  generalConversationNode: vi.fn(() => 'generalConversationNode'),
+  detectIntentNode: vi.fn().mockImplementation(() => 'detectIntentNode'),
+  routeOnIntent: vi.fn().mockImplementation(() => 'routeOnIntent'),
+  generateCodeNode: vi.fn().mockImplementation(() => 'generateCodeNode'),
+  explainCodeNode: vi.fn().mockImplementation(() => 'explainCodeNode'),
+  debugCodeNode: vi.fn().mockImplementation(() => 'debugCodeNode'),
+  bestPracticesNode: vi.fn().mockImplementation(() => 'bestPracticesNode'),
+  generalConversationNode: vi.fn().mockImplementation(() => 'generalConversationNode'),
 }));
 
 const mockMongoCheckpointer = { type: 'MongoDBSaver' };

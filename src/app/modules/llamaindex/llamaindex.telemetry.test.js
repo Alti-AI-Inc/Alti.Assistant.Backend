@@ -1,27 +1,41 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TelemetryCollector, withTelemetry, telemetryCollector } from './llamaindex.telemetry.js';
 
-// Mock dependencies
-const mockFsPromises = {
-  appendFile: vi.fn(),
-  readFile: vi.fn(),
-};
-const mockFs = {
-  existsSync: vi.fn(),
-  mkdirSync: vi.fn(),
-};
-const mockPath = {
-  resolve: vi.fn((p) => p), // Simplify for testing, assume current dir
-  join: vi.fn((...args) => args.join('/')), // Simplify for testing
-};
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockFsPromises,
+  mockFs,
+  mockPath,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockFsPromises = {
+    appendFile: vi.fn(),
+    readFile: vi.fn(),
+  };
+  const mockFs = {
+    existsSync: vi.fn(),
+    mkdirSync: vi.fn(),
+  };
+  const mockPath = {
+    resolve: vi.fn().mockImplementation((p) => p), // Simplify for testing, assume current dir
+    join: vi.fn().mockImplementation((...args) => args.join('/')), // Simplify for testing
+  };
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockFsPromises,
+    mockFs,
+    mockPath,
+    mockLogger
+  };
+});
 
 // Mock global timers
-const mockSetInterval = vi.fn(() => ({ unref: vi.fn() }));
+const mockSetInterval = vi.fn().mockImplementation(() => ({ unref: vi.fn() }));
 const mockClearInterval = vi.fn();
 
 // Mock Date.now() for consistent time
@@ -566,7 +580,7 @@ describe('withTelemetry HOF', () => {
       end: vi.fn().mockReturnThis(),
     };
     mockNext = vi.fn(); // Not used in this HOF, but common in Express middleware
-    mockHandler = vi.fn(async (req, res) => {
+    mockHandler = vi.fn().mockImplementation(async (req, res) => {
       res.json({ data: 'response' });
     });
   });

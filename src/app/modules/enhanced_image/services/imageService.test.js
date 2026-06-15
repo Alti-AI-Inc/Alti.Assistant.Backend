@@ -13,7 +13,7 @@ vi.mock('../utils/intentClassifier.js', () => ({
 }));
 vi.mock('path', () => ({
   default: {
-    join: vi.fn((...args) => args.join('/')), // Mock path.join for consistent testing across OS
+    join: vi.fn().mockImplementation((...args) => args.join('/')), // Mock path.join for consistent testing across OS
   },
 }));
 

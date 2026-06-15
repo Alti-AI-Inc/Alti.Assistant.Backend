@@ -24,7 +24,7 @@ vi.mock('stripe', () => {
     },
   };
   // The default export is the constructor
-  const Stripe = vi.fn(() => mockStripe);
+  const Stripe = vi.fn().mockImplementation(() => mockStripe);
   // Assign the mocked methods to the constructor for access
   Stripe.prototype.paymentIntents = mockStripe.paymentIntents;
   Stripe.prototype.paymentMethods = mockStripe.paymentMethods;

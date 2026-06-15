@@ -5,37 +5,64 @@ const mockExpressRouter = {
   get: vi.fn(),
   post: vi.fn(),
 };
-const mockExpress = {
-  Router: vi.fn(() => mockExpressRouter),
-};
+
+const {
+  mockExpress,
+  ENUM_USER_ROLE,
+  mockAuth,
+  mockOptionalAuth,
+  mockExtractTenantContext,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockCheckDeepResearchLimit
+} = vi.hoisted(() => {
+  const mockExpress = {
+    Router: vi.fn().mockImplementation(() => mockExpressRouter),
+  };
+
+  const ENUM_USER_ROLE = {
+    ADMIN: 'admin',
+    USER: 'user',
+  };
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware); // auth is a factory function
+  const mockOptionalAuth = vi.fn().mockImplementation(() => mockOptionalAuthMiddleware); // optionalAuth is a factory function
+
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => mockRateLimiterMiddleware); // createRateLimiter is a factory function
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => mockValidateRequestMiddleware); // validateRequest is a factory function
+
+  const mockCheckDeepResearchLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  return {
+    mockExpress,
+    ENUM_USER_ROLE,
+    mockAuth,
+    mockOptionalAuth,
+    mockExtractTenantContext,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockCheckDeepResearchLimit
+  };
+});
+
 vi.mock('express', () => ({ default: mockExpress }));
 
-const ENUM_USER_ROLE = {
-  ADMIN: 'admin',
-  USER: 'user',
-};
 vi.mock('../../../shared/enum.js', () => ({ ENUM_USER_ROLE }));
 
-const mockAuthMiddleware = vi.fn((req, res, next) => next()); // Actual middleware function returned by auth() factory
-const mockAuth = vi.fn(() => mockAuthMiddleware); // auth is a factory function
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next()); // Actual middleware function returned by auth() factory
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuth }));
 
-const mockOptionalAuthMiddleware = vi.fn((req, res, next) => next()); // Actual middleware function returned by optionalAuth() factory
-const mockOptionalAuth = vi.fn(() => mockOptionalAuthMiddleware); // optionalAuth is a factory function
+const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next()); // Actual middleware function returned by optionalAuth() factory
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuth }));
 
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
 
-const mockRateLimiterMiddleware = vi.fn((req, res, next) => next()); // Actual middleware function returned by createRateLimiter() factory
-const mockCreateRateLimiter = vi.fn((limit, window) => mockRateLimiterMiddleware); // createRateLimiter is a factory function
+const mockRateLimiterMiddleware = vi.fn().mockImplementation((req, res, next) => next()); // Actual middleware function returned by createRateLimiter() factory
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({ default: mockCreateRateLimiter }));
 
-const mockValidateRequestMiddleware = vi.fn((req, res, next) => next()); // Actual middleware function returned by validateRequest() factory
-const mockValidateRequest = vi.fn((schema) => mockValidateRequestMiddleware); // validateRequest is a factory function
+const mockValidateRequestMiddleware = vi.fn().mockImplementation((req, res, next) => next()); // Actual middleware function returned by validateRequest() factory
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validateRequest: mockValidateRequest }));
 
-const mockCheckDeepResearchLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkSubscriptionLimits.js', () => ({ checkDeepResearchLimit: mockCheckDeepResearchLimit }));
 
 const mockPerformDeepResearch = vi.fn();

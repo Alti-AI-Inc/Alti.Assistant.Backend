@@ -3,7 +3,24 @@ import express from 'express';
 import { createPromptRoutes } from './promptRoutes.js';
 import { createPromptController } from '../controllers/promptController.js';
 
-const mockPost = vi.fn();
+const {
+  mockPost,
+  mockController
+} = vi.hoisted(() => {
+  const mockPost = vi.fn();
+
+  const mockController = {
+    evaluatePrompt: vi.fn(),
+    addDetail: vi.fn(),
+    finalizePrompt: vi.fn(),
+  };
+
+  return {
+    mockPost,
+    mockController
+  };
+});
+
 vi.mock('express', () => ({
   default: {
     Router: () => ({
@@ -12,14 +29,8 @@ vi.mock('express', () => ({
   },
 }));
 
-const mockController = {
-  evaluatePrompt: vi.fn(),
-  addDetail: vi.fn(),
-  finalizePrompt: vi.fn(),
-};
-
 vi.mock('../controllers/promptController.js', () => ({
-  createPromptController: vi.fn(() => mockController),
+  createPromptController: vi.fn().mockImplementation(() => mockController),
 }));
 
 describe('Prompt Routes', () => {
@@ -29,7 +40,7 @@ describe('Prompt Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionManager = {
-      authenticate: vi.fn((req, res, next) => next()),
+      authenticate: vi.fn().mockImplementation((req, res, next) => next()),
     };
     promptService = {};
   });

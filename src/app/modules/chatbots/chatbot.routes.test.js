@@ -13,31 +13,61 @@ const mockRouteMethods = {
   delete: mockDelete,
 };
 
-const mockRoute = vi.fn(() => mockRouteMethods);
+const mockRoute = vi.fn().mockImplementation(() => mockRouteMethods);
 
-const mockRouter = {
-  route: mockRoute,
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockCreateChatbot,
+  mockGetChatbots,
+  mockGetChatbotById,
+  mockUpdateChatbot,
+  mockDeleteChatbot,
+  ENUM_USER_ROLE
+} = vi.hoisted(() => {
+  const mockRouter = {
+    route: mockRoute,
+  };
+
+  // Mock auth middleware
+  // The mock returns a distinct string to easily verify it was passed to the route method.
+  const mockAuthMiddleware = vi.fn().mockImplementation((...roles) => `auth-middleware-for-${roles.join('-')}`);
+
+  // Mock chatbotController functions
+  const mockCreateChatbot = vi.fn();
+  const mockGetChatbots = vi.fn();
+  const mockGetChatbotById = vi.fn();
+  const mockUpdateChatbot = vi.fn();
+  const mockDeleteChatbot = vi.fn();
+
+  // Mock ENUM_USER_ROLE
+  const ENUM_USER_ROLE = {
+    USER: 'user',
+    ADMIN: 'admin',
+    SUPER_ADMIN: 'super_admin',
+  };
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockCreateChatbot,
+    mockGetChatbots,
+    mockGetChatbotById,
+    mockUpdateChatbot,
+    mockDeleteChatbot,
+    ENUM_USER_ROLE
+  };
+});
 
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
-// Mock auth middleware
-// The mock returns a distinct string to easily verify it was passed to the route method.
-const mockAuthMiddleware = vi.fn((...roles) => `auth-middleware-for-${roles.join('-')}`);
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuthMiddleware,
 }));
-
-// Mock chatbotController functions
-const mockCreateChatbot = vi.fn();
-const mockGetChatbots = vi.fn();
-const mockGetChatbotById = vi.fn();
-const mockUpdateChatbot = vi.fn();
-const mockDeleteChatbot = vi.fn();
 
 vi.mock('./chatbot.controller.js', () => ({
   chatbotController: {
@@ -49,12 +79,6 @@ vi.mock('./chatbot.controller.js', () => ({
   },
 }));
 
-// Mock ENUM_USER_ROLE
-const ENUM_USER_ROLE = {
-  USER: 'user',
-  ADMIN: 'admin',
-  SUPER_ADMIN: 'super_admin',
-};
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE,
 }));

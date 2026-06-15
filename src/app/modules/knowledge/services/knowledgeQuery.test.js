@@ -13,13 +13,13 @@ vi.mock('../../usage/usage.service.js', () => ({
 }));
 
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: vi.fn(),
   })),
 }));
 
 vi.mock('rag-system-pgvector', () => ({
-  RAGSystem: vi.fn(() => ({
+  RAGSystem: vi.fn().mockImplementation(() => ({
     initialize: vi.fn(),
     query: vi.fn(),
     search: vi.fn(),
@@ -32,11 +32,11 @@ vi.mock('../../../../shared/hybridSearch.js', () => ({
 }));
 
 vi.mock('../../../../shared/embeddings.js', () => ({
-  SafeGoogleGenerativeAIEmbeddings: vi.fn(() => ({})),
+  SafeGoogleGenerativeAIEmbeddings: vi.fn().mockImplementation(() => ({})),
 }));
 
 vi.mock('@langchain/google-genai', () => ({
-  ChatGoogleGenerativeAI: vi.fn((options) => ({
+  ChatGoogleGenerativeAI: vi.fn().mockImplementation((options) => ({
     // Mock a simple object for LLM instances
     model: options.model,
     temperature: options.temperature,

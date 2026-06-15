@@ -5,15 +5,51 @@ import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { AiEndpointsController } from './aiEndpoint.controller.js';
 
-// Mock express to capture router calls
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  patch: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockExtractTenantContext,
+  mockGetAiEndpointForApp,
+  mockGetWebAiEndpoint,
+  mockAddAiEndpoint,
+  mockUpdateWebAiEndpoint
+} = vi.hoisted(() => {
+  // Mock express to capture router calls
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+  };
+
+  // Mock auth middleware to return a mock middleware function
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock extractTenantContext middleware
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => {
+    req.tenant = { id: 'test-tenant-id' }; // Simulate tenant context extraction
+    next();
+  });
+
+  // Mock AiEndpointsController methods
+  const mockGetAiEndpointForApp = vi.fn();
+  const mockGetWebAiEndpoint = vi.fn();
+  const mockAddAiEndpoint = vi.fn();
+  const mockUpdateWebAiEndpoint = vi.fn();
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockExtractTenantContext,
+    mockGetAiEndpointForApp,
+    mockGetWebAiEndpoint,
+    mockAddAiEndpoint,
+    mockUpdateWebAiEndpoint
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -24,26 +60,14 @@ vi.mock('../../../shared/enum.js', () => ({
   },
 }));
 
-// Mock auth middleware to return a mock middleware function
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => mockAuthMiddleware),
+  default: vi.fn().mockImplementation(() => mockAuthMiddleware),
 }));
 
-// Mock extractTenantContext middleware
-const mockExtractTenantContext = vi.fn((req, res, next) => {
-  req.tenant = { id: 'test-tenant-id' }; // Simulate tenant context extraction
-  next();
-});
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
 
-// Mock AiEndpointsController methods
-const mockGetAiEndpointForApp = vi.fn();
-const mockGetWebAiEndpoint = vi.fn();
-const mockAddAiEndpoint = vi.fn();
-const mockUpdateWebAiEndpoint = vi.fn();
 vi.mock('./aiEndpoint.controller.js', () => ({
   AiEndpointsController: {
     getAiEndpointForApp: mockGetAiEndpointForApp,

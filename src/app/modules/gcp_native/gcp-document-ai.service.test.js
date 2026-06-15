@@ -1,27 +1,42 @@
 import { vi } from 'vitest';
 
-// Mock @google-cloud/documentai
-const mockProcessDocument = vi.fn();
+const {
+  mockProcessDocument,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock @google-cloud/documentai
+  const mockProcessDocument = vi.fn();
+
+  // Mock config
+  const mockConfig = {
+    gcp_project_id: 'test-gcp-project',
+    gcp_document_ai_processor_id: 'test-processor-id',
+  };
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockProcessDocument,
+    mockConfig,
+    mockLogger
+  };
+});
+
 vi.mock('@google-cloud/documentai', () => ({
-  DocumentProcessorServiceClient: vi.fn(() => ({
+  DocumentProcessorServiceClient: vi.fn().mockImplementation(() => ({
     processDocument: mockProcessDocument,
   })),
 }));
 
-// Mock config
-const mockConfig = {
-  gcp_project_id: 'test-gcp-project',
-  gcp_document_ai_processor_id: 'test-processor-id',
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

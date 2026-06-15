@@ -10,41 +10,55 @@ import {
   getCompanyTimeline,
 } from './explorium.agent.js';
 
-// Mock external dependencies
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-};
+const {
+  mockLogger,
+  mockExploriumService,
+  mockGoogleGenerativeAI
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  const mockExploriumService = {
+    matchBusinessService: vi.fn(),
+    enrichBusinessSingleService: vi.fn(),
+    getCompanyIntelligenceService: vi.fn(),
+    getProspectIntelligenceService: vi.fn(),
+    fetchBusinessesService: vi.fn(),
+    businessStatisticsService: vi.fn(),
+    fetchBusinessEventsService: vi.fn(),
+    getDecisionMakersService: vi.fn(),
+    businessAutocompleteService: vi.fn(),
+  };
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
+  }));
+
+  return {
+    mockLogger,
+    mockExploriumService,
+    mockGoogleGenerativeAI
+  };
+});
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockExploriumService = {
-  matchBusinessService: vi.fn(),
-  enrichBusinessSingleService: vi.fn(),
-  getCompanyIntelligenceService: vi.fn(),
-  getProspectIntelligenceService: vi.fn(),
-  fetchBusinessesService: vi.fn(),
-  businessStatisticsService: vi.fn(),
-  fetchBusinessEventsService: vi.fn(),
-  getDecisionMakersService: vi.fn(),
-  businessAutocompleteService: vi.fn(),
-};
 vi.mock('./explorium.service.js', () => mockExploriumService);
 
 // Mock withCache to simply execute the fetcher function
 vi.mock('./explorium.cache.js', () => ({
-  withCache: vi.fn((key, params, fetcher) => fetcher()),
+  withCache: vi.fn().mockImplementation((key, params, fetcher) => fetcher()),
 }));
 
 // Mock GoogleGenerativeAI
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
-}));
-const mockGoogleGenerativeAI = vi.fn(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
 }));
 
 vi.mock('@google/generative-ai', async (importOriginal) => {

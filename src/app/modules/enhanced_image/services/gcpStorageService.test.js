@@ -9,16 +9,24 @@ const mockFile = {
 
 const mockBucket = {
   upload: vi.fn(),
-  file: vi.fn(() => mockFile),
+  file: vi.fn().mockImplementation(() => mockFile),
   exists: vi.fn(),
 };
 
-const mockStorage = {
-  bucket: vi.fn(() => mockBucket),
-};
+const {
+  mockStorage
+} = vi.hoisted(() => {
+  const mockStorage = {
+    bucket: vi.fn().mockImplementation(() => mockBucket),
+  };
+
+  return {
+    mockStorage
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn(() => mockStorage),
+  Storage: vi.fn().mockImplementation(() => mockStorage),
 }));
 
 describe('GCPStorageService', () => {

@@ -1,14 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openAIAiServices } from './openAi.service.js';
 
-// Mock external dependencies
-const mockGeminiAiService = {
-  geminiService: vi.fn(),
-};
+const {
+  mockGeminiAiService,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockGeminiAiService = {
+    geminiService: vi.fn(),
+  };
 
-const mockLogger = {
-  info: vi.fn(),
-};
+  const mockLogger = {
+    info: vi.fn(),
+  };
+
+  return {
+    mockGeminiAiService,
+    mockLogger
+  };
+});
 
 // Mock the modules
 vi.mock('../gemini/gemini.service.js', () => ({

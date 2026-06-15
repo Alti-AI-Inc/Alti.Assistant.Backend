@@ -50,14 +50,22 @@ vi.mock('../../../shared/stripeSecurity.js', () => ({
   isStripeIp: vi.fn(),
 }));
 
-// Mock Stripe module
-const mockStripe = {
-  webhooks: {
-    constructEvent: vi.fn(),
-  },
-};
+const {
+  mockStripe
+} = vi.hoisted(() => {
+  // Mock Stripe module
+  const mockStripe = {
+    webhooks: {
+      constructEvent: vi.fn(),
+    },
+  };
+
+  return {
+    mockStripe
+  };
+});
 vi.mock('stripe', () => ({
-  default: vi.fn(() => mockStripe),
+  default: vi.fn().mockImplementation(() => mockStripe),
 }));
 
 // Mock http-status for direct comparison
@@ -96,7 +104,7 @@ describe('Subscription Controller', () => {
     };
     res = {
       json: vi.fn(),
-      status: vi.fn(() => res),
+      status: vi.fn().mockImplementation(() => res),
     };
     next = vi.fn();
 

@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WisdomSearchTool } from './wisdom.tool.js';
 
-// Mock the wisdomService dependency
-const mockWisdomService = {
-    lookupPassage: vi.fn(),
-    search: vi.fn(),
-    formatVerses: vi.fn(),
-};
+const {
+    mockWisdomService
+} = vi.hoisted(() => {
+    // Mock the wisdomService dependency
+    const mockWisdomService = {
+        lookupPassage: vi.fn(),
+        search: vi.fn(),
+        formatVerses: vi.fn(),
+    };
+
+    return {
+        mockWisdomService
+    };
+});
 
 // Mock the entire module to inject the mock service
 vi.mock('./wisdom.service.js', () => ({

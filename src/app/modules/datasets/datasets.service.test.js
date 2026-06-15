@@ -82,10 +82,10 @@ describe('DatasetsService', () => {
 
     // Mock GCS Storage
     mockFile = {
-      createWriteStream: vi.fn(() => {
+      createWriteStream: vi.fn().mockImplementation(() => {
         const writable = new Readable({ read() {} }); // Mock a writable stream
-        writable.pipe = vi.fn(() => writable);
-        writable.on = vi.fn((event, cb) => {
+        writable.pipe = vi.fn().mockImplementation(() => writable);
+        writable.on = vi.fn().mockImplementation((event, cb) => {
           if (event === 'finish') {
             setTimeout(cb, 10); // Simulate async finish
           } else if (event === 'error') {
@@ -95,15 +95,15 @@ describe('DatasetsService', () => {
         });
         return writable;
       }),
-      download: vi.fn(() => [Buffer.from('mock parquet content')]),
+      download: vi.fn().mockImplementation(() => [Buffer.from('mock parquet content')]),
     };
     mockBucket = {
-      exists: vi.fn(() => [true]),
+      exists: vi.fn().mockImplementation(() => [true]),
       create: vi.fn(),
-      file: vi.fn(() => mockFile),
+      file: vi.fn().mockImplementation(() => mockFile),
     };
     Storage.mockImplementation(() => ({
-      bucket: vi.fn(() => mockBucket),
+      bucket: vi.fn().mockImplementation(() => mockBucket),
     }));
 
     // Mock Dataset instance
@@ -148,7 +148,7 @@ describe('DatasetsService', () => {
 
     // Mock path
     path.join.mockImplementation((...args) => args.join('/'));
-    path.basename = vi.fn(p => p.split('/').pop());
+    path.basename = vi.fn().mockImplementation(p => p.split('/').pop());
 
     // Mock fs.promises
     fs.promises.mkdir.mockResolvedValue(undefined);
@@ -157,8 +157,8 @@ describe('DatasetsService', () => {
     // Mock fs.createWriteStream for local fallback
     fs.createWriteStream.mockImplementation(() => {
       const writable = new Readable({ read() {} }); // Mock a writable stream
-      writable.pipe = vi.fn(() => writable);
-      writable.on = vi.fn((event, cb) => {
+      writable.pipe = vi.fn().mockImplementation(() => writable);
+      writable.on = vi.fn().mockImplementation((event, cb) => {
         if (event === 'finish') {
           setTimeout(cb, 10); // Simulate async finish
         } else if (event === 'error') {

@@ -4,31 +4,46 @@ import { imagegen_4 } from './imagegen4.service.js';
 // Mock external dependencies
 // Mock @google/genai
 const mockGenerateImages = vi.fn();
-const mockGoogleGenAI = vi.fn(() => ({
-  models: {
-    generateImages: mockGenerateImages,
-  },
-}));
+
+const {
+  mockGoogleGenAI,
+  mockGCPStorageService,
+  mockConfig
+} = vi.hoisted(() => {
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
+    models: {
+      generateImages: mockGenerateImages,
+    },
+  }));
+  const mockGCPStorageService = vi.fn().mockImplementation(() => ({
+    uploadBuffer: mockUploadBuffer,
+  }));
+
+  // Mock config
+  const mockConfig = {
+    google: {
+      gcp_project_id: 'test-project',
+      vertex_ai_region: 'us-central1',
+    },
+  };
+
+  return {
+    mockGoogleGenAI,
+    mockGCPStorageService,
+    mockConfig
+  };
+});
+
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAI,
 }));
 
 // Mock GCPStorageService
 const mockUploadBuffer = vi.fn();
-const mockGCPStorageService = vi.fn(() => ({
-  uploadBuffer: mockUploadBuffer,
-}));
 vi.mock('../services/gcpStorageService.js', () => ({
   GCPStorageService: mockGCPStorageService,
 }));
 
-// Mock config
-const mockConfig = {
-  google: {
-    gcp_project_id: 'test-project',
-    vertex_ai_region: 'us-central1',
-  },
-};
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));

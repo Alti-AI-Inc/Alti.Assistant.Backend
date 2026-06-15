@@ -10,13 +10,23 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-// Mock @langchain/google-genai
-const mockInvoke = vi.fn();
-const mockStream = vi.fn();
+const {
+  mockInvoke,
+  mockStream
+} = vi.hoisted(() => {
+  // Mock @langchain/google-genai
+  const mockInvoke = vi.fn();
+  const mockStream = vi.fn();
+
+  return {
+    mockInvoke,
+    mockStream
+  };
+});
 
 vi.mock('@langchain/google-genai', () => {
   return {
-    ChatGoogleGenerativeAI: vi.fn(() => ({
+    ChatGoogleGenerativeAI: vi.fn().mockImplementation(() => ({
       invoke: mockInvoke,
       stream: mockStream,
     })),

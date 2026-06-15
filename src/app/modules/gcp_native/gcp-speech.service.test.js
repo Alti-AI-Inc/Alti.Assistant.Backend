@@ -4,12 +4,20 @@ import { UsageService } from '../usage/usage.service.js';
 import { logger } from '../../../shared/logger.js';
 import { GoogleAuth } from 'google-auth-library';
 
-// Mock dependencies
-const mockGcpClient = {
-  request: vi.fn(),
-};
+const {
+  mockGcpClient
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockGcpClient = {
+    request: vi.fn(),
+  };
+
+  return {
+    mockGcpClient
+  };
+});
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn(() => ({
+  GoogleAuth: vi.fn().mockImplementation(() => ({
     getClient: vi.fn().mockResolvedValue(mockGcpClient),
   })),
 }));

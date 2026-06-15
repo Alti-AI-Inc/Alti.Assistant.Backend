@@ -45,8 +45,8 @@ vi.mock('../conversations/conversation.helpers.js', () => ({
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },
@@ -81,13 +81,13 @@ vi.mock('../utils/imagen3.service.js', () => ({
 
 vi.mock('path', () => ({
   default: {
-    join: vi.fn((...args) => args.join('/')), // Simple join for testing
-    dirname: vi.fn(() => '/mock/path'),
+    join: vi.fn().mockImplementation((...args) => args.join('/')), // Simple join for testing
+    dirname: vi.fn().mockImplementation(() => '/mock/path'),
   },
 }));
 
 vi.mock('url', () => ({
-  fileURLToPath: vi.fn(() => '/mock/path/file.js'),
+  fileURLToPath: vi.fn().mockImplementation(() => '/mock/path/file.js'),
 }));
 
 vi.mock('../../../../config/index.js', () => ({
@@ -816,7 +816,7 @@ describe('enhancedImageService', () => {
       vi.mock('../utils/imageIntentAnalyzer.js', () => ({
         analyzeImageIntent: vi.fn(), // Original export
         analyzeImageIntent: vi.fn(), // This is the one used by analyzeImageIntent
-        analyzeImageIntent: vi.fn((...args) => { // This is the one used by analyzeImageIntentWithContext
+        analyzeImageIntent: vi.fn().mockImplementation((...args) => { // This is the one used by analyzeImageIntentWithContext
           if (args[0] === mockPrompt && args[1] === mockHasImage && args[2] === mockContext) {
             return Promise.resolve(mockAnalysisResult);
           }
@@ -839,7 +839,7 @@ describe('enhancedImageService', () => {
 
     it('should throw ApiError on internal service error', async () => {
       vi.mock('../utils/imageIntentAnalyzer.js', () => ({
-        analyzeImageIntent: vi.fn(() => Promise.reject(new Error('Dynamic analysis error'))),
+        analyzeImageIntent: vi.fn().mockImplementation(() => Promise.reject(new Error('Dynamic analysis error'))),
       }));
 
       await expect(

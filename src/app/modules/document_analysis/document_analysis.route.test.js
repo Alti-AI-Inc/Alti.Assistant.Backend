@@ -1,29 +1,59 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock all dependencies
-// Middleware functions that are directly imported and used
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockCheckStorageLimit = vi.fn((req, res, next) => next());
-const mockCheckRAGFeature = vi.fn((req, res, next) => next());
+const {
+  mockExtractTenantContext,
+  mockCheckDailyRequestLimit,
+  mockCheckStorageLimit,
+  mockCheckRAGFeature,
+  mockAuth,
+  mockOptionalAuth,
+  mockValidateRequest,
+  mockAnalyzeDocument,
+  mockGetConversationHistory,
+  mockAnalyzeRequestSchema,
+  mockGetConversationHistorySchema,
+  mockUploadDocumentAnalysis
+} = vi.hoisted(() => {
+  // Mock all dependencies
+  // Middleware functions that are directly imported and used
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckStorageLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckRAGFeature = vi.fn().mockImplementation((req, res, next) => next());
 
-// Middleware functions that are factories (return a middleware)
-const mockAuth = vi.fn((...roles) => (req, res, next) => next());
-const mockOptionalAuth = vi.fn(() => (req, res, next) => next());
-const mockValidateRequest = vi.fn((schema) => (req, res, next) => next());
+  // Middleware functions that are factories (return a middleware)
+  const mockAuth = vi.fn().mockImplementation((...roles) => (req, res, next) => next());
+  const mockOptionalAuth = vi.fn().mockImplementation(() => (req, res, next) => next());
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => (req, res, next) => next());
 
-// Controller methods
-const mockAnalyzeDocument = vi.fn();
-const mockGetConversationHistory = vi.fn();
+  // Controller methods
+  const mockAnalyzeDocument = vi.fn();
+  const mockGetConversationHistory = vi.fn();
 
-// Validation schemas
-const mockAnalyzeRequestSchema = { type: 'object', properties: { /* ... */ }, _isJoi: true }; // Add _isJoi for potential Joi validation checks
-const mockGetConversationHistorySchema = { type: 'object', properties: { /* ... */ }, _isJoi: true };
+  // Validation schemas
+  const mockAnalyzeRequestSchema = { type: 'object', properties: { /* ... */ }, _isJoi: true }; // Add _isJoi for potential Joi validation checks
+  const mockGetConversationHistorySchema = { type: 'object', properties: { /* ... */ }, _isJoi: true };
 
-// Upload middleware object
-const mockUploadDocumentAnalysis = {
-  single: vi.fn((fieldName) => (req, res, next) => next()),
-};
+  // Upload middleware object
+  const mockUploadDocumentAnalysis = {
+    single: vi.fn().mockImplementation((fieldName) => (req, res, next) => next()),
+  };
+
+  return {
+    mockExtractTenantContext,
+    mockCheckDailyRequestLimit,
+    mockCheckStorageLimit,
+    mockCheckRAGFeature,
+    mockAuth,
+    mockOptionalAuth,
+    mockValidateRequest,
+    mockAnalyzeDocument,
+    mockGetConversationHistory,
+    mockAnalyzeRequestSchema,
+    mockGetConversationHistorySchema,
+    mockUploadDocumentAnalysis
+  };
+});
 
 // Mock express router factory
 const createMockRouter = () => ({
@@ -36,7 +66,7 @@ let currentMockRouter; // To hold the router instance for the current test
 // Mock express to return a new router for each test
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => {
+    Router: vi.fn().mockImplementation(() => {
       currentMockRouter = createMockRouter();
       return currentMockRouter;
     }),

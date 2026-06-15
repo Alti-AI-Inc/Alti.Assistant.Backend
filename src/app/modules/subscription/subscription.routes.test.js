@@ -1,51 +1,73 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock express.Router()
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  use: vi.fn(),
-};
+const {
+  mockRouter,
+  mockSubscriptionController,
+  mockAuthMiddlewareFactory,
+  mockExtractTenantContext,
+  mockRequireTenantAdmin,
+  mockCreateRateLimiter
+} = vi.hoisted(() => {
+  // Mock express.Router()
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    use: vi.fn(),
+  };
+
+  // Mock subscriptionController
+  const mockSubscriptionController = {
+    handleStripeWebhook: vi.fn(),
+    getAvailablePlans: vi.fn(),
+    getMySubscription: vi.fn(),
+    getTenantSubscription: vi.fn(),
+    createFreeSubscription: vi.fn(),
+    upgradeSubscription: vi.fn(),
+    confirmPayment: vi.fn(),
+    processCheckout: vi.fn(),
+    createBillingPortalSession: vi.fn(),
+    cancelSubscription: vi.fn(),
+    addSeat: vi.fn(),
+    removeSeat: vi.fn(),
+    checkUsageLimit: vi.fn(),
+    incrementUsage: vi.fn(),
+    getUsageStats: vi.fn(),
+  };
+  const mockAuthMiddlewareFactory = vi.fn().mockImplementation(() => mockAuthMiddlewareInstance);
+
+  // Mock tenant context middlewares
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+  const mockRequireTenantAdmin = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiter = vi.fn().mockImplementation(() => mockRateLimiterMiddleware);
+
+  return {
+    mockRouter,
+    mockSubscriptionController,
+    mockAuthMiddlewareFactory,
+    mockExtractTenantContext,
+    mockRequireTenantAdmin,
+    mockCreateRateLimiter
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
-// Mock subscriptionController
-const mockSubscriptionController = {
-  handleStripeWebhook: vi.fn(),
-  getAvailablePlans: vi.fn(),
-  getMySubscription: vi.fn(),
-  getTenantSubscription: vi.fn(),
-  createFreeSubscription: vi.fn(),
-  upgradeSubscription: vi.fn(),
-  confirmPayment: vi.fn(),
-  processCheckout: vi.fn(),
-  createBillingPortalSession: vi.fn(),
-  cancelSubscription: vi.fn(),
-  addSeat: vi.fn(),
-  removeSeat: vi.fn(),
-  checkUsageLimit: vi.fn(),
-  incrementUsage: vi.fn(),
-  getUsageStats: vi.fn(),
-};
 vi.mock('./subscription.controller.js', () => ({
   default: mockSubscriptionController,
 }));
 
 // Mock auth middleware
 // auth() is a factory function that returns the actual middleware
-const mockAuthMiddlewareInstance = vi.fn((req, res, next) => next());
-const mockAuthMiddlewareFactory = vi.fn(() => mockAuthMiddlewareInstance);
+const mockAuthMiddlewareInstance = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuthMiddlewareFactory,
 }));
 
-// Mock tenant context middlewares
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
-const mockRequireTenantAdmin = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
   requireTenantAdmin: mockRequireTenantAdmin,
@@ -53,8 +75,7 @@ vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
 
 // Mock rate limiter middleware
 // createRateLimiter is a factory function that returns the actual middleware
-const mockRateLimiterMiddleware = vi.fn((req, res, next) => next());
-const mockCreateRateLimiter = vi.fn(() => mockRateLimiterMiddleware);
+const mockRateLimiterMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: mockCreateRateLimiter,
 }));

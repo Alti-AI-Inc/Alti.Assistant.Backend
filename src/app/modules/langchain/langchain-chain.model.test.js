@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock mongoose
 const mockSchemaInstance = {
   index: vi.fn(),
-  path: vi.fn((key) => {
+  path: vi.fn().mockImplementation((key) => {
     // Simulate mongoose.Schema.prototype.path for basic type checks
     const paths = {
       name: { instanceType: 'String', isRequired: true, isIndexed: true },
@@ -20,7 +20,7 @@ const mockSchemaInstance = {
     return paths[key] || { instanceType: 'Unknown' };
   })
 };
-const mockSchemaConstructor = vi.fn(() => mockSchemaInstance);
+const mockSchemaConstructor = vi.fn().mockImplementation(() => mockSchemaInstance);
 mockSchemaConstructor.Types = {
   Mixed: 'Mixed' // Simulate mongoose.Schema.Types.Mixed
 };
@@ -29,11 +29,19 @@ const mockMongooseModel = {
   modelName: 'LangchainChain',
   schema: mockSchemaInstance
 };
-const mockMongoose = {
-  Schema: mockSchemaConstructor,
-  model: vi.fn(() => mockMongooseModel),
-  models: {} // Initially empty, will be populated by the model creation logic if it runs
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: mockSchemaConstructor,
+    model: vi.fn().mockImplementation(() => mockMongooseModel),
+    models: {} // Initially empty, will be populated by the model creation logic if it runs
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 vi.mock('mongoose', () => ({
   default: mockMongoose

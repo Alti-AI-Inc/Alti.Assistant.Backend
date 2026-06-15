@@ -5,7 +5,15 @@ const mockMulterInstance = {
   single: vi.fn().mockImplementation(() => (req, res, next) => next()),
 };
 
-const mockMulter = vi.fn().mockReturnValue(mockMulterInstance);
+const {
+  mockMulter
+} = vi.hoisted(() => {
+  const mockMulter = vi.fn().mockReturnValue(mockMulterInstance);
+
+  return {
+    mockMulter
+  };
+});
 mockMulter.memoryStorage = vi.fn().mockReturnValue(mockMemoryStorageInstance);
 
 vi.mock('multer', () => ({

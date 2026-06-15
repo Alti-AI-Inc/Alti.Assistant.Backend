@@ -3,36 +3,53 @@ import express from 'express';
 
 // Mock express to capture router creation and method calls
 const mockPost = vi.fn();
-const mockRouter = {
-  post: mockPost,
-};
+
+const {
+  mockRouter,
+  mockAudioUploader,
+  mockWishperAiController,
+  mockExtractTenantContext
+} = vi.hoisted(() => {
+  const mockRouter = {
+    post: mockPost,
+  };
+  const mockAudioUploader = {
+    single: mockAudioUploaderSingle,
+  };
+  const mockWishperAiController = {
+    transcribeAudioToTextController: mockTranscribeAudioToTextController,
+  };
+
+  // Mock extractTenantContext, though it's not used in the active route, it's imported.
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  return {
+    mockRouter,
+    mockAudioUploader,
+    mockWishperAiController,
+    mockExtractTenantContext
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
 // Mock audioUploader middleware
-const mockAudioUploaderMiddleware = vi.fn((req, res, next) => next());
-const mockAudioUploaderSingle = vi.fn(() => mockAudioUploaderMiddleware);
-const mockAudioUploader = {
-  single: mockAudioUploaderSingle,
-};
+const mockAudioUploaderMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+const mockAudioUploaderSingle = vi.fn().mockImplementation(() => mockAudioUploaderMiddleware);
 vi.mock('../../middlewares/uploder/uploadAudio.js', () => ({
   default: mockAudioUploader,
 }));
 
 // Mock WishperAiController
 const mockTranscribeAudioToTextController = vi.fn();
-const mockWishperAiController = {
-  transcribeAudioToTextController: mockTranscribeAudioToTextController,
-};
 vi.mock('./wishper.controller.js', () => ({
   WishperAiController: mockWishperAiController,
 }));
 
-// Mock extractTenantContext, though it's not used in the active route, it's imported.
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));

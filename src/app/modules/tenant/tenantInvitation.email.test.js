@@ -1,34 +1,56 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock external dependencies
-const mockSendMailWithNodeMailer = vi.fn();
+const {
+  mockSendMailWithNodeMailer,
+  mockGenerateInvitationEmailHTML,
+  mockGenerateInvitationEmailText,
+  mockGetInvitationEmailSubject,
+  mockLogger,
+  mockConfig
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockSendMailWithNodeMailer = vi.fn();
+
+  const mockGenerateInvitationEmailHTML = vi.fn();
+  const mockGenerateInvitationEmailText = vi.fn();
+  const mockGetInvitationEmailSubject = vi.fn();
+
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockConfig = {
+    app: {
+      frontend_url: 'http://localhost:3000',
+    },
+  };
+
+  return {
+    mockSendMailWithNodeMailer,
+    mockGenerateInvitationEmailHTML,
+    mockGenerateInvitationEmailText,
+    mockGetInvitationEmailSubject,
+    mockLogger,
+    mockConfig
+  };
+});
+
 vi.mock('../../middlewares/sendEmail/sendMail.js', () => ({
   sendMailWithNodeMailer: mockSendMailWithNodeMailer,
 }));
 
-const mockGenerateInvitationEmailHTML = vi.fn();
-const mockGenerateInvitationEmailText = vi.fn();
-const mockGetInvitationEmailSubject = vi.fn();
 vi.mock('./templates/invitationEmail.js', () => ({
   generateInvitationEmailHTML: mockGenerateInvitationEmailHTML,
   generateInvitationEmailText: mockGenerateInvitationEmailText,
   getInvitationEmailSubject: mockGetInvitationEmailSubject,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockConfig = {
-  app: {
-    frontend_url: 'http://localhost:3000',
-  },
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));
@@ -36,7 +58,7 @@ vi.mock('../../../../config/index.js', () => ({
 // Mock setInterval and clearInterval to prevent background timers from running during tests.
 // The module's internal setInterval for cache cleanup will be "created" but not executed.
 // The cache cleanup logic is implicitly tested by `checkEmailRateLimit`'s filtering.
-vi.stubGlobal('setInterval', vi.fn(() => 12345)); // Return a dummy ID
+vi.stubGlobal('setInterval', vi.fn().mockImplementation(() => 12345)); // Return a dummy ID
 vi.stubGlobal('clearInterval', vi.fn());
 
 describe('tenantInvitation.email', () => {

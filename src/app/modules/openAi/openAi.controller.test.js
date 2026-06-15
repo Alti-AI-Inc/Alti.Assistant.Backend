@@ -6,35 +6,60 @@ const httpStatus = {
   BAD_REQUEST: 400,
 };
 
-// Mock crypto's randomUUID
-const mockRandomUUID = vi.fn();
+const {
+  mockRandomUUID,
+  mockCatchAsync,
+  mockSendResponse,
+  mockValidatePromptRequest,
+  mockOpenAiResponseService,
+  mockOpenAi4NanoResponseService,
+  mockOpenAiAnonymousResponseService
+} = vi.hoisted(() => {
+  // Mock crypto's randomUUID
+  const mockRandomUUID = vi.fn();
+
+  // Mock catchAsync to simply return the function it wraps,
+  // allowing us to test the async logic directly.
+  const mockCatchAsync = (fn) => fn;
+
+  // Mock sendResponse
+  const mockSendResponse = vi.fn();
+
+  // Mock validatePromptRequest
+  const mockValidatePromptRequest = vi.fn();
+
+  // Mock openAIAiServices
+  const mockOpenAiResponseService = vi.fn();
+  const mockOpenAi4NanoResponseService = vi.fn();
+  const mockOpenAiAnonymousResponseService = vi.fn();
+
+  return {
+    mockRandomUUID,
+    mockCatchAsync,
+    mockSendResponse,
+    mockValidatePromptRequest,
+    mockOpenAiResponseService,
+    mockOpenAi4NanoResponseService,
+    mockOpenAiAnonymousResponseService
+  };
+});
+
 vi.mock('crypto', () => ({
   randomUUID: mockRandomUUID,
 }));
 
-// Mock catchAsync to simply return the function it wraps,
-// allowing us to test the async logic directly.
-const mockCatchAsync = (fn) => fn;
 vi.mock('../../../shared/catchAsync.js', () => ({
   default: mockCatchAsync,
 }));
 
-// Mock sendResponse
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-// Mock validatePromptRequest
-const mockValidatePromptRequest = vi.fn();
 vi.mock('../../../shared/validatePromptRequest.js', () => ({
   default: mockValidatePromptRequest,
 }));
 
-// Mock openAIAiServices
-const mockOpenAiResponseService = vi.fn();
-const mockOpenAi4NanoResponseService = vi.fn();
-const mockOpenAiAnonymousResponseService = vi.fn();
 vi.mock('./openAi.service.js', () => ({
   openAIAiServices: {
     openAiResponseService: mockOpenAiResponseService,

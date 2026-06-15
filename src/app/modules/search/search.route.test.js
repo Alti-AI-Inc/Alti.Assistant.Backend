@@ -1,13 +1,77 @@
 import { vi, describe, it, expect } from 'vitest';
 
-// Mock express to capture router calls
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockOptionalAuthMiddleware,
+  mockCheckDailyRequestLimit,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockCheckWebSearchLimit,
+  mockSearchController,
+  mockSearchQuerySchema
+} = vi.hoisted(() => {
+  // Mock express to capture router calls
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  // Mock all middleware functions
+  const mockAuthMiddleware = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockOptionalAuthMiddleware = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // createRateLimiter is commented out in the source file, so we won't mock it.
+  // If it were active, it would be mocked as:
+  // const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn((req, res, next) => next()));
+  // vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({ default: mockCreateRateLimiter }));
+
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => vi.fn().mockImplementation((req, res, next) => next()));
+
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockCheckWebSearchLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock searchController methods
+  const mockSearchController = {
+    performSearch: vi.fn(),
+    generateCode: vi.fn(),
+    generateWriting: vi.fn(),
+    getSearchStats: vi.fn(),
+    performNativeGroundingSearch: vi.fn(),
+    performStreamingSearch: vi.fn(),
+  };
+
+  // Mock SearchValidation schema
+  const mockSearchQuerySchema = {
+    // A simple mock object representing the schema that validateRequest expects
+    body: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+      },
+    },
+  };
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockOptionalAuthMiddleware,
+    mockCheckDailyRequestLimit,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockCheckWebSearchLimit,
+    mockSearchController,
+    mockSearchQuerySchema
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -19,51 +83,20 @@ vi.mock('../../../shared/enum.js', () => ({
   },
 }));
 
-// Mock all middleware functions
-const mockAuthMiddleware = vi.fn(() => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuthMiddleware }));
 
-const mockOptionalAuthMiddleware = vi.fn(() => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuthMiddleware }));
 
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({ default: mockCheckDailyRequestLimit }));
 
-// createRateLimiter is commented out in the source file, so we won't mock it.
-// If it were active, it would be mocked as:
-// const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn((req, res, next) => next()));
-// vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({ default: mockCreateRateLimiter }));
-
-const mockValidateRequest = vi.fn((schema) => vi.fn((req, res, next) => next()));
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validateRequest: mockValidateRequest }));
 
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
 
-const mockCheckWebSearchLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkSubscriptionLimits.js', () => ({ checkWebSearchLimit: mockCheckWebSearchLimit }));
 
-// Mock searchController methods
-const mockSearchController = {
-  performSearch: vi.fn(),
-  generateCode: vi.fn(),
-  generateWriting: vi.fn(),
-  getSearchStats: vi.fn(),
-  performNativeGroundingSearch: vi.fn(),
-  performStreamingSearch: vi.fn(),
-};
 vi.mock('./search.controller.js', () => ({ searchController: mockSearchController }));
 
-// Mock SearchValidation schema
-const mockSearchQuerySchema = {
-  // A simple mock object representing the schema that validateRequest expects
-  body: {
-    type: 'object',
-    properties: {
-      query: { type: 'string' },
-    },
-  },
-};
 vi.mock('./search.validation.js', () => ({ SearchValidation: { searchQuerySchema: mockSearchQuerySchema } }));
 
 // Import the router after all mocks are set up.

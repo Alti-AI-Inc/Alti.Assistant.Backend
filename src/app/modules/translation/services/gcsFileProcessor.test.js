@@ -5,42 +5,50 @@ import httpStatus from 'http-status';
 // Mock external dependencies first
 // Mock @google-cloud/storage
 const mockFile = {
-  getSignedUrl: vi.fn(() => Promise.resolve(['http://signed.url/file'])),
-  download: vi.fn(() => Promise.resolve()),
-  delete: vi.fn(() => Promise.resolve()),
+  getSignedUrl: vi.fn().mockImplementation(() => Promise.resolve(['http://signed.url/file'])),
+  download: vi.fn().mockImplementation(() => Promise.resolve()),
+  delete: vi.fn().mockImplementation(() => Promise.resolve()),
 };
 const mockBucket = {
-  upload: vi.fn(() => Promise.resolve()),
-  file: vi.fn(() => mockFile),
+  upload: vi.fn().mockImplementation(() => Promise.resolve()),
+  file: vi.fn().mockImplementation(() => mockFile),
 };
 const mockStorage = {
-  bucket: vi.fn(() => mockBucket),
+  bucket: vi.fn().mockImplementation(() => mockBucket),
 };
-const Storage = vi.fn(() => mockStorage);
+const Storage = vi.fn().mockImplementation(() => mockStorage);
 vi.mock('@google-cloud/storage', () => ({ Storage }));
 
 // Mock fs/promises
 const fsPromises = {
-  unlink: vi.fn(() => Promise.resolve()),
+  unlink: vi.fn().mockImplementation(() => Promise.resolve()),
 };
 vi.mock('fs/promises', () => fsPromises);
 
 // Mock fs (sync)
 const fsSync = {
-  existsSync: vi.fn(() => true), // Default to true for keyFile existence
+  existsSync: vi.fn().mockImplementation(() => true), // Default to true for keyFile existence
 };
 vi.mock('fs', () => fsSync);
 
-// Mock logger
-const logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  logger
+} = vi.hoisted(() => {
+  // Mock logger
+  const logger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    logger
+  };
+});
 vi.mock('../../../../shared/logger.js', () => ({ logger }));
 
 // Mock ApiError
-const ApiError = vi.fn((status, message) => {
+const ApiError = vi.fn().mockImplementation((status, message) => {
   const error = new Error(message);
   error.statusCode = status;
   return error;

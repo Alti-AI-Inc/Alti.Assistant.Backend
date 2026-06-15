@@ -11,8 +11,28 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-const mockChainFindOne = vi.fn();
-const mockChainFindOneAndUpdate = vi.fn();
+const {
+  mockChainFindOne,
+  mockChainFindOneAndUpdate,
+  mockVersionFindOne,
+  mockVersionFind,
+  mockVersionSave
+} = vi.hoisted(() => {
+  const mockChainFindOne = vi.fn();
+  const mockChainFindOneAndUpdate = vi.fn();
+
+  const mockVersionFindOne = vi.fn();
+  const mockVersionFind = vi.fn();
+  const mockVersionSave = vi.fn();
+
+  return {
+    mockChainFindOne,
+    mockChainFindOneAndUpdate,
+    mockVersionFindOne,
+    mockVersionFind,
+    mockVersionSave
+  };
+});
 
 vi.mock('./langchain-chain.model.js', () => ({
   default: {
@@ -20,10 +40,6 @@ vi.mock('./langchain-chain.model.js', () => ({
     findOneAndUpdate: mockChainFindOneAndUpdate,
   },
 }));
-
-const mockVersionFindOne = vi.fn();
-const mockVersionFind = vi.fn();
-const mockVersionSave = vi.fn();
 
 vi.mock('./langchain-version.model.js', () => {
   const MockModel = vi.fn().mockImplementation(function (data) {

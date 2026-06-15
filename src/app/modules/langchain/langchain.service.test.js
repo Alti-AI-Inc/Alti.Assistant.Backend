@@ -14,18 +14,26 @@ const mockQueryBuilder = {
   lean: vi.fn().mockResolvedValue([]),
 };
 
-const mockLangchainRepository = {
-  collection: mockCollection,
-  find: vi.fn().mockReturnValue(mockQueryBuilder),
-  countDocuments: vi.fn().mockResolvedValue(0),
-  aggregate: vi.fn().mockResolvedValue([
-    {
-      overallStats: [{ totalStars: 100, totalForks: 50, avgStars: 10, totalRepositories: 10 }],
-      languages: [{ _id: 'JavaScript', count: 5 }],
-      licenses: [{ _id: 'MIT', count: 5 }]
-    }
-  ]),
-};
+const {
+  mockLangchainRepository
+} = vi.hoisted(() => {
+  const mockLangchainRepository = {
+    collection: mockCollection,
+    find: vi.fn().mockReturnValue(mockQueryBuilder),
+    countDocuments: vi.fn().mockResolvedValue(0),
+    aggregate: vi.fn().mockResolvedValue([
+      {
+        overallStats: [{ totalStars: 100, totalForks: 50, avgStars: 10, totalRepositories: 10 }],
+        languages: [{ _id: 'JavaScript', count: 5 }],
+        licenses: [{ _id: 'MIT', count: 5 }]
+      }
+    ]),
+  };
+
+  return {
+    mockLangchainRepository
+  };
+});
 
 vi.mock('./langchain-repository.model.js', () => ({
   default: mockLangchainRepository
@@ -41,7 +49,7 @@ vi.mock('fs', () => ({
 
 // Mock child_process
 vi.mock('child_process', () => ({
-  execFile: vi.fn((cmd, args, opts, cb) => {
+  execFile: vi.fn().mockImplementation((cmd, args, opts, cb) => {
     cb(null, 'stdout output', '');
   })
 }));

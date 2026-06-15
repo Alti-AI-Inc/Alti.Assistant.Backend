@@ -7,27 +7,42 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 // Mock GCP Pub/Sub client
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
-  publishMessage: mockPublishMessage,
-}));
+
+const {
+  mockTopic,
+  mockAuth,
+  mockExtractTenantContext
+} = vi.hoisted(() => {
+  const mockTopic = vi.fn().mockImplementation(() => ({
+    publishMessage: mockPublishMessage,
+  }));
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
+
+  // Mock tenant context middleware
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => {
+    req.tenant = { tenantId: 'mock-tenant-id' };
+    next();
+  });
+
+  return {
+    mockTopic,
+    mockAuth,
+    mockExtractTenantContext
+  };
+});
+
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn(() => ({
+  PubSub: vi.fn().mockImplementation(() => ({
     topic: mockTopic,
   })),
 }));
 
 // Mock auth middleware factory to verify role checks
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockAuth = vi.fn(() => mockAuthMiddleware);
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
-// Mock tenant context middleware
-const mockExtractTenantContext = vi.fn((req, res, next) => {
-  req.tenant = { tenantId: 'mock-tenant-id' };
-  next();
-});
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
@@ -35,18 +50,15 @@ vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
 // Mock NotificationController
 vi.mock('./notification.controller.js', () => ({
   NotificationController: {
-    getNotificationById: vi.fn((req, res) => res.status(200).json([])),
-    updateNotificationById: vi.fn((req, res) =>
-      res.status(200).json({ success: true })
-    ),
-    deleteNotificationById: vi.fn((req, res) =>
-      res.status(200).json({ success: true })
-    ),
-    getNotification: vi.fn((req, res) => res.status(200).json([])),
-    getUserInbox: vi.fn((req, res) => res.status(200).json([])),
-    archiveNotification: vi.fn((req, res) =>
-      res.status(200).json({ success: true })
-    ),
+    getNotificationById: vi.fn().mockImplementation((req, res) => res.status(200).json([])),
+    updateNotificationById: vi.fn().mockImplementation((req, res) =>
+      res.status(200).json({ success: true })),
+    deleteNotificationById: vi.fn().mockImplementation((req, res) =>
+      res.status(200).json({ success: true })),
+    getNotification: vi.fn().mockImplementation((req, res) => res.status(200).json([])),
+    getUserInbox: vi.fn().mockImplementation((req, res) => res.status(200).json([])),
+    archiveNotification: vi.fn().mockImplementation((req, res) =>
+      res.status(200).json({ success: true })),
   },
 }));
 

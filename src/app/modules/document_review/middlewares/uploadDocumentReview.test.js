@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Setup mocks before importing the module to intercept immediate execution
-const mockDiskStorage = vi.fn((config) => {
+const mockDiskStorage = vi.fn().mockImplementation((config) => {
   return {
     _destination: config.destination,
     _filename: config.filename,
@@ -16,10 +16,18 @@ const mockMulterInstance = {
   fields: vi.fn(),
 };
 
-const mockMulter = vi.fn((options) => {
+const {
+  mockMulter
+} = vi.hoisted(() => {
+  const mockMulter = vi.fn().mockImplementation((options) => {
+    return {
+      ...mockMulterInstance,
+      options,
+    };
+  });
+
   return {
-    ...mockMulterInstance,
-    options,
+    mockMulter
   };
 });
 mockMulter.diskStorage = mockDiskStorage;
@@ -30,7 +38,7 @@ vi.mock('multer', () => ({
 
 vi.mock('fs', () => ({
   default: {
-    existsSync: vi.fn(() => false),
+    existsSync: vi.fn().mockImplementation(() => false),
     mkdirSync: vi.fn(),
   },
 }));

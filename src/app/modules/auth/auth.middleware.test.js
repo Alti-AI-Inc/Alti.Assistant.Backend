@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the core dependency. This mock will be used for all imports of this path.
-// We make it return a unique string based on args to test the return value.
-const mockAuth = vi.fn((...args) => `mocked_middleware_for:[${args.join(',')}]`);
+const {
+  mockAuth
+} = vi.hoisted(() => {
+  // Mock the core dependency. This mock will be used for all imports of this path.
+  // We make it return a unique string based on args to test the return value.
+  const mockAuth = vi.fn().mockImplementation((...args) => `mocked_middleware_for:[${args.join(',')}]`);
+
+  return {
+    mockAuth
+  };
+});
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,

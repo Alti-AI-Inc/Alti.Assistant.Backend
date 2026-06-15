@@ -6,84 +6,124 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 // Mock @google-cloud/pubsub
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
+const mockTopic = vi.fn().mockImplementation(() => ({
   publishMessage: mockPublishMessage,
 }));
-const mockPubSub = vi.fn(() => ({
-  topic: mockTopic,
-}));
+
+const {
+  mockPubSub,
+  mockAuthMiddleware,
+  mockExtractTenantContext,
+  mockCheckDailyRequestLimit,
+  mockValidateRequest,
+  mockUploadMiddleware,
+  mockCheckRAGFeature,
+  mockCheckStorageLimit,
+  mockLegalContractController,
+  mockValidationSchemas,
+  mockRouter
+} = vi.hoisted(() => {
+  const mockPubSub = vi.fn().mockImplementation(() => ({
+    topic: mockTopic,
+  }));
+
+  // Mock Middlewares
+  const mockAuthMiddleware = vi.fn().mockImplementation((...roles) => (req, res, next) => next());
+
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockValidateRequest = vi.fn().mockImplementation(schema => (req, res, next) => next());
+
+  const mockUploadMiddleware = {
+    single: vi.fn().mockImplementation(() => (req, res, next) => next()),
+  };
+
+  const mockCheckRAGFeature = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockCheckStorageLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock Controller and Validation
+  const mockLegalContractController = {
+    getConversationHistory: vi.fn(),
+    downloadContract: vi.fn(),
+  };
+
+  const mockValidationSchemas = {
+    conversationalRequestSchema: { name: 'conversationalRequestSchema' },
+    generateContractSchema: { name: 'generateContractSchema' },
+    getConversationHistorySchema: { name: 'getConversationHistorySchema' },
+    downloadContractSchema: { name: 'downloadContractSchema' },
+    modifyContractSchema: { name: 'modifyContractSchema' },
+  };
+
+  // Mock express.Router
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  return {
+    mockPubSub,
+    mockAuthMiddleware,
+    mockExtractTenantContext,
+    mockCheckDailyRequestLimit,
+    mockValidateRequest,
+    mockUploadMiddleware,
+    mockCheckRAGFeature,
+    mockCheckStorageLimit,
+    mockLegalContractController,
+    mockValidationSchemas,
+    mockRouter
+  };
+});
+
 vi.mock('@google-cloud/pubsub', () => ({
   PubSub: mockPubSub,
 }));
 
 // Mock uuid
 vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'mock-uuid-v4'),
+  v4: vi.fn().mockImplementation(() => 'mock-uuid-v4'),
 }));
 
-// Mock Middlewares
-const mockAuthMiddleware = vi.fn((...roles) => (req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuthMiddleware,
 }));
 
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
 
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
   default: mockCheckDailyRequestLimit,
 }));
 
-const mockValidateRequest = vi.fn(schema => (req, res, next) => next());
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
   validateRequest: mockValidateRequest,
 }));
 
-const mockUploadMiddleware = {
-  single: vi.fn(() => (req, res, next) => next()),
-};
 vi.mock('./middlewares/uploadLegalContract.js', () => ({
   uploadLegalContract: mockUploadMiddleware,
 }));
 
-const mockCheckRAGFeature = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkRAGFeature/checkRAGFeature.js', () => ({
   default: mockCheckRAGFeature,
 }));
 
-const mockCheckStorageLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkStorageLimit/checkStorageLimit.js', () => ({
   default: mockCheckStorageLimit,
 }));
 
-// Mock Controller and Validation
-const mockLegalContractController = {
-  getConversationHistory: vi.fn(),
-  downloadContract: vi.fn(),
-};
 vi.mock('./legal_contract.controller.js', () => ({
   legalContractController: mockLegalContractController,
 }));
 
-const mockValidationSchemas = {
-  conversationalRequestSchema: { name: 'conversationalRequestSchema' },
-  generateContractSchema: { name: 'generateContractSchema' },
-  getConversationHistorySchema: { name: 'getConversationHistorySchema' },
-  downloadContractSchema: { name: 'downloadContractSchema' },
-  modifyContractSchema: { name: 'modifyContractSchema' },
-};
 vi.mock('./legal_contract.validation.js', () => ({
   LegalContractValidation: mockValidationSchemas,
 }));
 
-// Mock express.Router
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
 vi.mock('express', {
   default: {
     Router: () => mockRouter,

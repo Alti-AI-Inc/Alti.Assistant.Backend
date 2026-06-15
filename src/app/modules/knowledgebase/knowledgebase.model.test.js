@@ -21,7 +21,7 @@ vi.mock('mongoose', async (importOriginal) => {
 
   // Mock Schema instance methods (virtual, index)
   const mockSchemaInstance = {
-    virtual: vi.fn((name) => {
+    virtual: vi.fn().mockImplementation((name) => {
       const virtualObj = {
         get: vi.fn(function (getterFn) {
           capturedVirtuals[name] = { get: getterFn };
@@ -37,13 +37,13 @@ vi.mock('mongoose', async (importOriginal) => {
     // Mongoose directly assigns to .methods and .statics, so we need to provide references
     methods: capturedMethods,
     statics: capturedStatics,
-    index: vi.fn((idx) => {
+    index: vi.fn().mockImplementation((idx) => {
       capturedIndexes.push(idx);
     }),
   };
 
   // Mock mongoose.Schema constructor
-  const Schema = vi.fn((definition, options) => {
+  const Schema = vi.fn().mockImplementation((definition, options) => {
     capturedSchemaDefinition = definition;
     capturedSchemaOptions = options;
     return mockSchemaInstance;
@@ -52,7 +52,7 @@ vi.mock('mongoose', async (importOriginal) => {
   Schema.Types = actualMongoose.Schema.Types;
 
   // Mock mongoose.model
-  const model = vi.fn((name, schema) => {
+  const model = vi.fn().mockImplementation((name, schema) => {
     // This mock model will be used to test static methods
     const MockModel = {
       find: vi.fn().mockReturnThis(), // Mock find to allow chaining .sort()
@@ -65,7 +65,7 @@ vi.mock('mongoose', async (importOriginal) => {
   });
 
   // Mock mongoose.Types.ObjectId to return a valid ObjectId instance
-  const ObjectId = vi.fn(() => new actualMongoose.Types.ObjectId());
+  const ObjectId = vi.fn().mockImplementation(() => new actualMongoose.Types.ObjectId());
   ObjectId.isValid = actualMongoose.Types.ObjectId.isValid; // Keep original isValid for potential validation tests
 
   return {

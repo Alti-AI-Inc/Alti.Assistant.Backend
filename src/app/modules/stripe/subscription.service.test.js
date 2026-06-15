@@ -15,7 +15,7 @@ vi.mock('stripe', () => {
     cancel: vi.fn(),
     list: vi.fn(),
   };
-  const MockStripe = vi.fn(() => ({
+  const MockStripe = vi.fn().mockImplementation(() => ({
     subscriptions: mockSubscriptions,
   }));
   return { default: MockStripe };

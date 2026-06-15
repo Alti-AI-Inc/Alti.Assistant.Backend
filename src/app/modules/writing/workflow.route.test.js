@@ -2,9 +2,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
 const mockPost = vi.fn();
-const mockRouter = {
-  post: mockPost,
-};
+
+const {
+  mockRouter,
+  mockWritingController,
+  mockOptionalAuth,
+  mockExtractTenantContext,
+  mockCheckDailyRequestLimit
+} = vi.hoisted(() => {
+  const mockRouter = {
+    post: mockPost,
+  };
+
+  const mockWritingController = vi.fn();
+
+  const mockOptionalAuth = vi.fn().mockImplementation(() => 'optionalAuthMiddleware');
+
+  const mockExtractTenantContext = vi.fn();
+
+  const mockCheckDailyRequestLimit = vi.fn();
+
+  return {
+    mockRouter,
+    mockWritingController,
+    mockOptionalAuth,
+    mockExtractTenantContext,
+    mockCheckDailyRequestLimit
+  };
+});
 
 vi.mock('express', () => ({
   default: {
@@ -12,22 +37,18 @@ vi.mock('express', () => ({
   },
 }));
 
-const mockWritingController = vi.fn();
 vi.mock('./writer.controller.js', () => ({
   default: mockWritingController,
 }));
 
-const mockOptionalAuth = vi.fn(() => 'optionalAuthMiddleware');
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
   default: mockOptionalAuth,
 }));
 
-const mockExtractTenantContext = vi.fn();
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
 
-const mockCheckDailyRequestLimit = vi.fn();
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
   default: mockCheckDailyRequestLimit,
 }));

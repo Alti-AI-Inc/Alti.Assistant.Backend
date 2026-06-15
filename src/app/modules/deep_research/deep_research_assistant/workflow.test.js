@@ -5,21 +5,103 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockAddNode = vi.fn();
 const mockAddEdge = vi.fn();
 const mockInvoke = vi.fn(); // This will be the mock for the compiled app's invoke method
-const mockCompile = vi.fn(() => ({
+const mockCompile = vi.fn().mockImplementation(() => ({
   invoke: mockInvoke,
 }));
 
-const mockStateGraph = vi.fn(() => ({
-  addNode: mockAddNode,
-  addEdge: mockAddEdge,
-  compile: mockCompile,
-}));
+const {
+  mockStateGraph,
+  mockMemorySaver,
+  mockEND,
+  mockSTART,
+  mockDeepResearchAgentState,
+  mockInitializeResearchNode,
+  mockBreadthFirstSearchNode,
+  mockIdentifyPromisingLeadsNode,
+  mockDeepDiveResearchNode,
+  mockSynthesizeComprehensiveReportNode,
+  mockBoardDebateNode,
+  mockRefineSynthesisNode,
+  mockSaveDeepResearchNode,
+  mockGenerateDeepResearchPDFNode,
+  mockConfig,
+  mockMongoDBSaver
+} = vi.hoisted(() => {
+  const mockStateGraph = vi.fn().mockImplementation(() => ({
+    addNode: mockAddNode,
+    addEdge: mockAddEdge,
+    compile: mockCompile,
+  }));
+
+  const mockMemorySaver = vi.fn().mockImplementation(() => mockMemorySaverInstance); // Mock the constructor
+
+  const mockEND = 'END';
+  const mockSTART = 'START';
+
+  // Mock state
+  const mockDeepResearchAgentState = {
+    originalQuery: { value: null },
+    conversationId: { value: null },
+    generatePdf: { value: false },
+    history: { value: [] },
+    maxDepth: { value: 3 },
+    currentDepth: { value: 0 },
+    boardPersonas: { value: [] },
+    consensusLevel: { value: 'majority' },
+    finalReport: { value: null },
+    allSources: { value: [] },
+    promisingLeads: { value: [] },
+    deepDiveResults: { value: [] },
+    qualityMetrics: { value: {} },
+    knowledgeGraph: { value: {} },
+    metadata: { value: {} },
+    pdfData: { value: null },
+    researchProgress: { value: [] },
+  };
+
+  // Mock nodes - just need them to be functions
+  const mockInitializeResearchNode = vi.fn();
+  const mockBreadthFirstSearchNode = vi.fn();
+  const mockIdentifyPromisingLeadsNode = vi.fn();
+  const mockDeepDiveResearchNode = vi.fn();
+  const mockSynthesizeComprehensiveReportNode = vi.fn();
+  const mockBoardDebateNode = vi.fn();
+  const mockRefineSynthesisNode = vi.fn();
+  const mockSaveDeepResearchNode = vi.fn();
+  const mockGenerateDeepResearchPDFNode = vi.fn();
+
+  // Mock config
+  const mockConfig = {
+    database_local: 'mongodb://localhost:27017/testdb',
+    configurable: {
+      thread_id: 'default_thread_id',
+    },
+  };
+  const mockMongoDBSaver = {
+    fromUri: vi.fn().mockImplementation(() => Promise.resolve(mockMongoDBSaverInstance)),
+  };
+
+  return {
+    mockStateGraph,
+    mockMemorySaver,
+    mockEND,
+    mockSTART,
+    mockDeepResearchAgentState,
+    mockInitializeResearchNode,
+    mockBreadthFirstSearchNode,
+    mockIdentifyPromisingLeadsNode,
+    mockDeepDiveResearchNode,
+    mockSynthesizeComprehensiveReportNode,
+    mockBoardDebateNode,
+    mockRefineSynthesisNode,
+    mockSaveDeepResearchNode,
+    mockGenerateDeepResearchPDFNode,
+    mockConfig,
+    mockMongoDBSaver
+  };
+});
 
 const mockMemorySaverInstance = {}; // A simple object to represent the instance
-const mockMemorySaver = vi.fn(() => mockMemorySaverInstance); // Mock the constructor
-
-const mockEND = 'END';
-const mockSTART = 'START';
 
 vi.mock('@langchain/langgraph', () => ({
   StateGraph: mockStateGraph,
@@ -28,40 +110,9 @@ vi.mock('@langchain/langgraph', () => ({
   MemorySaver: mockMemorySaver,
 }));
 
-// Mock state
-const mockDeepResearchAgentState = {
-  originalQuery: { value: null },
-  conversationId: { value: null },
-  generatePdf: { value: false },
-  history: { value: [] },
-  maxDepth: { value: 3 },
-  currentDepth: { value: 0 },
-  boardPersonas: { value: [] },
-  consensusLevel: { value: 'majority' },
-  finalReport: { value: null },
-  allSources: { value: [] },
-  promisingLeads: { value: [] },
-  deepDiveResults: { value: [] },
-  qualityMetrics: { value: {} },
-  knowledgeGraph: { value: {} },
-  metadata: { value: {} },
-  pdfData: { value: null },
-  researchProgress: { value: [] },
-};
 vi.mock('./state.js', () => ({
   deepResearchAgentState: mockDeepResearchAgentState,
 }));
-
-// Mock nodes - just need them to be functions
-const mockInitializeResearchNode = vi.fn();
-const mockBreadthFirstSearchNode = vi.fn();
-const mockIdentifyPromisingLeadsNode = vi.fn();
-const mockDeepDiveResearchNode = vi.fn();
-const mockSynthesizeComprehensiveReportNode = vi.fn();
-const mockBoardDebateNode = vi.fn();
-const mockRefineSynthesisNode = vi.fn();
-const mockSaveDeepResearchNode = vi.fn();
-const mockGenerateDeepResearchPDFNode = vi.fn();
 
 vi.mock('./nodes.js', () => ({
   initializeResearchNode: mockInitializeResearchNode,
@@ -75,13 +126,6 @@ vi.mock('./nodes.js', () => ({
   generateDeepResearchPDFNode: mockGenerateDeepResearchPDFNode,
 }));
 
-// Mock config
-const mockConfig = {
-  database_local: 'mongodb://localhost:27017/testdb',
-  configurable: {
-    thread_id: 'default_thread_id',
-  },
-};
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));
@@ -89,9 +133,6 @@ vi.mock('../../../../../config/index.js', () => ({
 // Mock MongoDBSaver
 const mockMongoDBSaverInstance = {
   // Mock methods if needed, but for this test, just need the instance
-};
-const mockMongoDBSaver = {
-  fromUri: vi.fn(() => Promise.resolve(mockMongoDBSaverInstance)),
 };
 vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
   MongoDBSaver: mockMongoDBSaver,

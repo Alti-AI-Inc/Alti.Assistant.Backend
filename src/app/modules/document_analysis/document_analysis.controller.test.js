@@ -8,52 +8,76 @@ vi.mock('../../../shared/catchAsync.js', () => ({
   default: (fn) => fn,
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger,
+  mockSendResponse,
+  mockDocumentAnalysisService,
+  mockSubscriptionModel,
+  mockConversationHelpers,
+  mockResponseMessages
+} = vi.hoisted(() => {
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  // Mock sendResponse
+  const mockSendResponse = vi.fn();
+
+  // Mock documentAnalysisService
+  const mockDocumentAnalysisService = {
+    generateGuestUserId: vi.fn(),
+    analyzeContent: vi.fn(),
+    getConversationHistory: vi.fn(),
+  };
+
+  // Mock SubscriptionModel
+  const mockSubscriptionModel = {
+    findOne: vi.fn().mockReturnThis(), // Allows chaining .sort()
+    sort: vi.fn(), // Mock .sort()
+  };
+
+  // Mock conversationHelpers
+  const mockConversationHelpers = {
+    getConversationById: vi.fn(),
+  };
+
+  // Mock RESPONSE_MESSAGES constant
+  const mockResponseMessages = {
+    SUCCESS: 'Document analysis successful',
+  };
+
+  return {
+    mockLogger,
+    mockSendResponse,
+    mockDocumentAnalysisService,
+    mockSubscriptionModel,
+    mockConversationHelpers,
+    mockResponseMessages
+  };
+});
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-// Mock sendResponse
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-// Mock documentAnalysisService
-const mockDocumentAnalysisService = {
-  generateGuestUserId: vi.fn(),
-  analyzeContent: vi.fn(),
-  getConversationHistory: vi.fn(),
-};
 vi.mock('./document_analysis.service.js', () => ({
   documentAnalysisService: mockDocumentAnalysisService,
 }));
 
-// Mock SubscriptionModel
-const mockSubscriptionModel = {
-  findOne: vi.fn().mockReturnThis(), // Allows chaining .sort()
-  sort: vi.fn(), // Mock .sort()
-};
 vi.mock('../payment/payment.model.js', () => ({
   default: mockSubscriptionModel,
 }));
 
-// Mock conversationHelpers
-const mockConversationHelpers = {
-  getConversationById: vi.fn(),
-};
 vi.mock('../conversations/conversation.helpers.js', () => ({
   conversationHelpers: mockConversationHelpers,
 }));
 
-// Mock RESPONSE_MESSAGES constant
-const mockResponseMessages = {
-  SUCCESS: 'Document analysis successful',
-};
 vi.mock('./document_analysis.constant.js', () => ({
   RESPONSE_MESSAGES: mockResponseMessages,
 }));

@@ -25,12 +25,12 @@ vi.mock('./knowledgebase.controller.js', () => ({
 
 const authMiddleware = vi.fn();
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => authMiddleware),
+  default: vi.fn().mockImplementation(() => authMiddleware),
 }));
 
 const optionalAuthMiddleware = vi.fn();
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => optionalAuthMiddleware),
+  default: vi.fn().mockImplementation(() => optionalAuthMiddleware),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
@@ -46,23 +46,31 @@ vi.mock('../../middlewares/checkStorageLimit/checkStorageLimit.js', () => ({
 }));
 
 const multerAnyMiddleware = vi.fn();
-const mockUpload = {
-  any: vi.fn(() => multerAnyMiddleware),
-};
+const {
+  mockUpload
+} = vi.hoisted(() => {
+  const mockUpload = {
+    any: vi.fn().mockImplementation(() => multerAnyMiddleware),
+  };
+
+  return {
+    mockUpload
+  };
+});
 vi.mock('multer', () => ({
-  default: vi.fn(() => mockUpload),
+  default: vi.fn().mockImplementation(() => mockUpload),
   diskStorage: vi.fn(),
 }));
 
 vi.mock('os', () => ({
   default: {
-    tmpdir: vi.fn(() => '/tmp'),
+    tmpdir: vi.fn().mockImplementation(() => '/tmp'),
   },
 }));
 
 vi.mock('path', () => ({
   default: {
-    extname: vi.fn(name => `.${name.split('.').pop()}`),
+    extname: vi.fn().mockImplementation(name => `.${name.split('.').pop()}`),
   },
 }));
 

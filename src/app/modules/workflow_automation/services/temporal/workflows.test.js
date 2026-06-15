@@ -8,17 +8,27 @@ const mockSkipWorkflowStepActivity = vi.fn();
 const mockCompleteExecutionActivity = vi.fn();
 const mockFailExecutionActivity = vi.fn();
 
-const mockActivities = {
-  executeWorkflowStepActivity: mockExecuteWorkflowStepActivity,
-  rollbackWorkflowStepActivity: mockRollbackWorkflowStepActivity,
-  updateExecutionToRunningActivity: mockUpdateExecutionToRunningActivity,
-  skipWorkflowStepActivity: mockSkipWorkflowStepActivity,
-  completeExecutionActivity: mockCompleteExecutionActivity,
-  failExecutionActivity: mockFailExecutionActivity,
-};
+const {
+  mockActivities,
+  mockProxyActivities
+} = vi.hoisted(() => {
+  const mockActivities = {
+    executeWorkflowStepActivity: mockExecuteWorkflowStepActivity,
+    rollbackWorkflowStepActivity: mockRollbackWorkflowStepActivity,
+    updateExecutionToRunningActivity: mockUpdateExecutionToRunningActivity,
+    skipWorkflowStepActivity: mockSkipWorkflowStepActivity,
+    completeExecutionActivity: mockCompleteExecutionActivity,
+    failExecutionActivity: mockFailExecutionActivity,
+  };
 
-// Mock Temporal's proxyActivities to return our mock activities
-const mockProxyActivities = vi.fn(() => mockActivities);
+  // Mock Temporal's proxyActivities to return our mock activities
+  const mockProxyActivities = vi.fn().mockImplementation(() => mockActivities);
+
+  return {
+    mockActivities,
+    mockProxyActivities
+  };
+});
 
 vi.mock('@temporalio/workflow', () => ({
   proxyActivities: mockProxyActivities,

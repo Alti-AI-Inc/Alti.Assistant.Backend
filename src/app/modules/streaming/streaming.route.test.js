@@ -1,18 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the controller dependency. This replaces the actual controller with a mock.
-const mockAuthStreamingController = vi.fn();
+const {
+  mockAuthStreamingController,
+  mockExpressRouter
+} = vi.hoisted(() => {
+  // Mock the controller dependency. This replaces the actual controller with a mock.
+  const mockAuthStreamingController = vi.fn();
+  const mockExpressRouter = vi.fn().mockImplementation(() => mockRouter);
+
+  return {
+    mockAuthStreamingController,
+    mockExpressRouter
+  };
+});
+
 vi.mock('./streaming.controller', () => ({
   authStreamingController: mockAuthStreamingController,
 }));
 
 // Mock the express router. This allows us to spy on its methods like .route() and .get().
 const mockGet = vi.fn();
-const mockRoute = vi.fn(() => ({ get: mockGet }));
+const mockRoute = vi.fn().mockImplementation(() => ({ get: mockGet }));
 const mockRouter = {
   route: mockRoute,
 };
-const mockExpressRouter = vi.fn(() => mockRouter);
 vi.mock('express', () => ({
   Router: mockExpressRouter,
 }));

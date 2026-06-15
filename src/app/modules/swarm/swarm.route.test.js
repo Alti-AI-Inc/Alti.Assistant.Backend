@@ -28,7 +28,7 @@ vi.mock('./swarm.controller.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-    default: vi.fn(() => (req, res, next) => next()),
+    default: vi.fn().mockImplementation(() => (req, res, next) => next()),
 }));
 
 // Dynamically import the router file to apply mocks

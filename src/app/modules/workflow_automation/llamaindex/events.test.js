@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // This must be done before importing the module under test to ensure the mock is active
 vi.mock('@llamaindex/workflow-core', () => {
   // Create a mock function for workflowEvent
-  const mockWorkflowEvent = vi.fn((options) => ({
+  const mockWorkflowEvent = vi.fn().mockImplementation((options) => ({
     // Return a simple object that includes the debugLabel for verification.
     // This mimics the expected output structure of a workflow event.
     debugLabel: options.debugLabel,

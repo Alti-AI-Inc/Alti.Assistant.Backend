@@ -1,26 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock express and its Router method
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-  delete: vi.fn(),
-};
+const {
+  mockRouter,
+  mockCyberdeskController
+} = vi.hoisted(() => {
+  // Mock express and its Router method
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  // Mock the cyberdeskController
+  const mockCyberdeskController = {
+    launch: vi.fn(),
+    info: vi.fn(),
+    click: vi.fn(),
+    bash: vi.fn(),
+    terminate: vi.fn(),
+  };
+
+  return {
+    mockRouter,
+    mockCyberdeskController
+  };
+});
 
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
-
-// Mock the cyberdeskController
-const mockCyberdeskController = {
-  launch: vi.fn(),
-  info: vi.fn(),
-  click: vi.fn(),
-  bash: vi.fn(),
-  terminate: vi.fn(),
-};
 
 vi.mock('./cyberdesk.controller.js', () => ({
   cyberdeskController: mockCyberdeskController,

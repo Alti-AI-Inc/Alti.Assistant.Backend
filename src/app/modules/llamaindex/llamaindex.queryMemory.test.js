@@ -1,27 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { queryMemoryService } from './llamaindex.queryMemory.js';
 
-// Mock external dependencies
-const mockLogger = {
-  debug: vi.fn(),
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger,
+  mockQueryMemoryModel
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLogger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockQueryMemoryModel = {
+    find: vi.fn().mockReturnThis(),
+    sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+    create: vi.fn(),
+    countDocuments: vi.fn(),
+    aggregate: vi.fn(),
+    findOne: vi.fn().mockReturnThis(),
+  };
+
+  return {
+    mockLogger,
+    mockQueryMemoryModel
+  };
+});
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockQueryMemoryModel = {
-  find: vi.fn().mockReturnThis(),
-  sort: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  lean: vi.fn(),
-  create: vi.fn(),
-  countDocuments: vi.fn(),
-  aggregate: vi.fn(),
-  findOne: vi.fn().mockReturnThis(),
-};
 vi.mock('./llamaindex.queryMemory.model.js', () => ({
   default: mockQueryMemoryModel,
 }));

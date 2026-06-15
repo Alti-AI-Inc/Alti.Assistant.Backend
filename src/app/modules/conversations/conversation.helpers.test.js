@@ -26,13 +26,13 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 vi.mock('./conversation.model.js'); // Mocks the entire module, we'll define specific mocks later
 vi.mock('../../helpers/tenantQuery.js', () => ({
-  withTenantFilter: vi.fn((req, query) => {
+  withTenantFilter: vi.fn().mockImplementation((req, query) => {
     if (req && req.user && req.user.currentTenantId) {
       return { ...query, tenantId: req.user.currentTenantId };
     }
     return query;
   }),
-  withTenantPipeline: vi.fn((req, pipeline) => {
+  withTenantPipeline: vi.fn().mockImplementation((req, pipeline) => {
     if (req && req.user && req.user.currentTenantId) {
       return [{ $match: { tenantId: req.user.currentTenantId } }, ...pipeline];
     }

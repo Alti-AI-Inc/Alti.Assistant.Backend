@@ -8,32 +8,46 @@ const mockExecuteComputerAction = vi.fn();
 const mockExecuteBashAction = vi.fn();
 const mockTerminateDesktop = vi.fn();
 
-const mockCreateCyberdeskClient = vi.fn(() => ({
-  launchDesktop: mockLaunchDesktop,
-  getDesktop: mockGetDesktop,
-  executeComputerAction: mockExecuteComputerAction,
-  executeBashAction: mockExecuteBashAction,
-  terminateDesktop: mockTerminateDesktop,
-}));
+const {
+  mockCreateCyberdeskClient,
+  mockApiError,
+  mockConfig
+} = vi.hoisted(() => {
+  const mockCreateCyberdeskClient = vi.fn().mockImplementation(() => ({
+    launchDesktop: mockLaunchDesktop,
+    getDesktop: mockGetDesktop,
+    executeComputerAction: mockExecuteComputerAction,
+    executeBashAction: mockExecuteBashAction,
+    terminateDesktop: mockTerminateDesktop,
+  }));
+
+  // Mock ApiError to allow checking its constructor calls
+  const mockApiError = vi.fn().mockImplementation((status, message) => {
+    const error = new Error(message);
+    error.statusCode = status;
+    return error;
+  });
+
+  // Mock config, allowing it to be reset for specific tests
+  let mockConfig = {
+    cyberdesk_api_key: 'test-api-key',
+  };
+
+  return {
+    mockCreateCyberdeskClient,
+    mockApiError,
+    mockConfig
+  };
+});
 
 vi.mock('cyberdesk', () => ({
   createCyberdeskClient: mockCreateCyberdeskClient,
 }));
 
-// Mock ApiError to allow checking its constructor calls
-const mockApiError = vi.fn((status, message) => {
-  const error = new Error(message);
-  error.statusCode = status;
-  return error;
-});
 vi.mock('../../../errors/ApiError.js', () => ({
   default: mockApiError,
 }));
 
-// Mock config, allowing it to be reset for specific tests
-let mockConfig = {
-  cyberdesk_api_key: 'test-api-key',
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));

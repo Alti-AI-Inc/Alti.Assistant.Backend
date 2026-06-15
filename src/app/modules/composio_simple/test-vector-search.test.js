@@ -1,7 +1,27 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-const mockConnect = vi.fn();
-const mockDisconnect = vi.fn();
+const {
+  mockConnect,
+  mockDisconnect,
+  mockAggregate,
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockConnect = vi.fn();
+  const mockDisconnect = vi.fn();
+
+  const mockAggregate = vi.fn();
+  const mockGetGenerativeModel = vi.fn().mockReturnValue({
+    embedContent: (...args) => mockEmbedContent(...args),
+  });
+
+  return {
+    mockConnect,
+    mockDisconnect,
+    mockAggregate,
+    mockGetGenerativeModel
+  };
+});
+
 vi.mock('mongoose', () => ({
   default: {
     connect: (...args) => mockConnect(...args),
@@ -9,7 +29,6 @@ vi.mock('mongoose', () => ({
   },
 }));
 
-const mockAggregate = vi.fn();
 vi.mock('../composio_v2/tools.model.js', () => ({
   default: {
     aggregate: (...args) => mockAggregate(...args),
@@ -17,9 +36,6 @@ vi.mock('../composio_v2/tools.model.js', () => ({
 }));
 
 const mockEmbedContent = vi.fn();
-const mockGetGenerativeModel = vi.fn().mockReturnValue({
-  embedContent: (...args) => mockEmbedContent(...args),
-});
 vi.mock('@google/generative-ai', () => {
   return {
     GoogleGenerativeAI: vi.fn().mockImplementation(() => {

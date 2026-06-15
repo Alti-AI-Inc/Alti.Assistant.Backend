@@ -58,7 +58,7 @@ describe('QwenAiServices', () => {
     // Mock Langchain components with state management
     let actualChatMessages = [];
     mockInMemoryChatMessageHistoryInstance = {
-      addMessage: vi.fn(message => actualChatMessages.push(message)),
+      addMessage: vi.fn().mockImplementation(message => actualChatMessages.push(message)),
       get messages() { return actualChatMessages; },
     };
     InMemoryChatMessageHistory.mockImplementation(() => {

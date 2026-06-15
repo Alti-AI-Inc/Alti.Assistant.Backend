@@ -31,48 +31,72 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-const mockSendResponse = vi.fn();
+const {
+  mockSendResponse,
+  mockPresentationService,
+  mockConversationHelpers,
+  mockConversationService,
+  mockPresentonAPIClient,
+  mockUploadPresentationToGCS,
+  mockPath
+} = vi.hoisted(() => {
+  const mockSendResponse = vi.fn();
+
+  const mockPresentationService = {
+    generateGuestUserId: vi.fn(),
+    processConversationalRequest: vi.fn(),
+  };
+
+  const mockConversationHelpers = {
+    getConversationById: vi.fn(),
+  };
+
+  const mockConversationService = {
+    updatePresentationMetadata: vi.fn(),
+  };
+
+  // Mock dynamically imported modules
+  const mockPresentonAPIClient = {
+    generatePresentationAsync: vi.fn(),
+    generatePresentation: vi.fn(),
+    checkTaskStatus: vi.fn(),
+    editPresentation: vi.fn(),
+    derivePresentation: vi.fn(),
+    getPresentation: vi.fn(),
+  };
+  const mockUploadPresentationToGCS = vi.fn();
+  const mockPath = {
+    default: {
+      basename: vi.fn(),
+    },
+  };
+
+  return {
+    mockSendResponse,
+    mockPresentationService,
+    mockConversationHelpers,
+    mockConversationService,
+    mockPresentonAPIClient,
+    mockUploadPresentationToGCS,
+    mockPath
+  };
+});
+
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-const mockPresentationService = {
-  generateGuestUserId: vi.fn(),
-  processConversationalRequest: vi.fn(),
-};
 vi.mock('./presentation.service.js', () => ({
   presentationService: mockPresentationService,
 }));
 
-const mockConversationHelpers = {
-  getConversationById: vi.fn(),
-};
 vi.mock('../conversations/conversation.helpers.js', () => ({
   conversationHelpers: mockConversationHelpers,
 }));
 
-const mockConversationService = {
-  updatePresentationMetadata: vi.fn(),
-};
 vi.mock('../conversations/conversation.service.js', () => ({
   conversationService: mockConversationService,
 }));
-
-// Mock dynamically imported modules
-const mockPresentonAPIClient = {
-  generatePresentationAsync: vi.fn(),
-  generatePresentation: vi.fn(),
-  checkTaskStatus: vi.fn(),
-  editPresentation: vi.fn(),
-  derivePresentation: vi.fn(),
-  getPresentation: vi.fn(),
-};
-const mockUploadPresentationToGCS = vi.fn();
-const mockPath = {
-  default: {
-    basename: vi.fn(),
-  },
-};
 
 vi.mock('./services/presentonAPIClient.js', async (importOriginal) => {
   const original = await importOriginal();

@@ -14,7 +14,7 @@ import {
 
 // Mock dependencies
 vi.mock('xss', () => ({
-  default: vi.fn((str) => str), // Simple pass-through mock
+  default: vi.fn().mockImplementation((str) => str), // Simple pass-through mock
 }));
 
 vi.mock('../conversations/conversation.model.js', () => {
@@ -30,7 +30,7 @@ vi.mock('../conversations/conversation.model.js', () => {
   const findOneChainable = {
     lean: vi.fn(),
   };
-  ConversationMock.findOne = vi.fn(() => findOneChainable);
+  ConversationMock.findOne = vi.fn().mockImplementation(() => findOneChainable);
 
   const findChainable = {
     sort: vi.fn().mockReturnThis(),
@@ -38,7 +38,7 @@ vi.mock('../conversations/conversation.model.js', () => {
     limit: vi.fn().mockReturnThis(),
     lean: vi.fn(),
   };
-  ConversationMock.find = vi.fn(() => findChainable);
+  ConversationMock.find = vi.fn().mockImplementation(() => findChainable);
 
   return { default: ConversationMock };
 });

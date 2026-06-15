@@ -1,14 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { analyzeImageIntent } from './imageIntentAnalyzer.js';
 
-// Mock config first, as it's imported early and its values are used in ChatGoogleGenerativeAI constructor
-const mockConfig = {
-  gemini_secret_key: 'mock_gemini_key_from_config',
-  google: {
-    gcp_project_id: 'mock-gcp-project',
-    vertex_ai_region: 'mock-region',
-  },
-};
+const {
+  mockConfig,
+  mockChatGoogleGenerativeAI
+} = vi.hoisted(() => {
+  // Mock config first, as it's imported early and its values are used in ChatGoogleGenerativeAI constructor
+  const mockConfig = {
+    gemini_secret_key: 'mock_gemini_key_from_config',
+    google: {
+      gcp_project_id: 'mock-gcp-project',
+      vertex_ai_region: 'mock-region',
+    },
+  };
+
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    // Simulate the `pipe` method returning a new Runnable, which also has a `pipe` method,
+    // and the final result has an `invoke` method.
+    pipe: vi.fn().mockImplementation(() => ({
+      pipe: vi.fn().mockImplementation(() => ({
+        invoke: mockInvoke,
+      })),
+    })),
+  }));
+
+  return {
+    mockConfig,
+    mockChatGoogleGenerativeAI
+  };
+});
 
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
@@ -19,15 +39,6 @@ vi.mock('../../../../../config/index.js', () => ({
 // The `analyzeImageIntent` function creates a ChatGoogleGenerativeAI instance,
 // then pipes it twice to form a chain. We need to mock this chain's final `invoke` method.
 const mockInvoke = vi.fn();
-const mockChatGoogleGenerativeAI = vi.fn(() => ({
-  // Simulate the `pipe` method returning a new Runnable, which also has a `pipe` method,
-  // and the final result has an `invoke` method.
-  pipe: vi.fn(() => ({
-    pipe: vi.fn(() => ({
-      invoke: mockInvoke,
-    })),
-  })),
-}));
 
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,

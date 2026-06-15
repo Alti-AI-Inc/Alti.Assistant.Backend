@@ -3,27 +3,42 @@ import { VertexAiService } from './vertexAiService.js'; // Assuming the default 
 
 // Mock external dependencies
 const mockGenerateContent = vi.fn();
-const mockGoogleGenAI = vi.fn(() => ({
-  models: {
-    generateContent: mockGenerateContent,
-  },
-}));
+
+const {
+  mockGoogleGenAI,
+  mockDynamicTool,
+  mockConfig
+} = vi.hoisted(() => {
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
+    models: {
+      generateContent: mockGenerateContent,
+    },
+  }));
+
+  const mockDynamicTool = vi.fn();
+
+  const mockConfig = {
+    gemini_secret_key: 'test-gemini-key',
+    google: {
+      gcp_project_id: 'test-gcp-project',
+    },
+  };
+
+  return {
+    mockGoogleGenAI,
+    mockDynamicTool,
+    mockConfig
+  };
+});
 
 vi.mock('@google/genai', () => ({
   GoogleGenAI: mockGoogleGenAI,
 }));
 
-const mockDynamicTool = vi.fn();
 vi.mock('@langchain/core/tools', () => ({
   DynamicTool: mockDynamicTool,
 }));
 
-const mockConfig = {
-  gemini_secret_key: 'test-gemini-key',
-  google: {
-    gcp_project_id: 'test-gcp-project',
-  },
-};
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));

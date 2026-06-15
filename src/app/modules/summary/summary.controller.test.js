@@ -2,30 +2,73 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 import { summaryController } from './summary.controller.js';
 
-// Mock external dependencies
-const mockPDFParse = vi.fn();
+const {
+  mockPDFParse,
+  mockMammothExtractRawText,
+  mockCsvParse,
+  mockCatchAsync,
+  mockLoggerInfo,
+  mockLoggerError,
+  mockSendResponse,
+  mockSummaryService,
+  mockSummarizerAppInvoke
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockPDFParse = vi.fn();
+
+  const mockMammothExtractRawText = vi.fn();
+
+  const mockCsvParse = vi.fn();
+
+  // Mock shared utilities
+  const mockCatchAsync = (fn) => fn; // Directly execute the async function for testing
+  const mockLoggerInfo = vi.fn();
+  const mockLoggerError = vi.fn();
+  const mockSendResponse = vi.fn();
+
+  // Mock summaryService
+  const mockSummaryService = {
+    generateGuestUserId: vi.fn(),
+    generateSummaryConversationId: vi.fn(),
+    handleSummaryConversation: vi.fn(),
+    addSummaryQueryMessage: vi.fn(),
+    addSummaryResultMessage: vi.fn(),
+    addErrorMessage: vi.fn(),
+    getSummaryStats: vi.fn(),
+  };
+
+  // Mock summarizerApp
+  const mockSummarizerAppInvoke = vi.fn();
+
+  return {
+    mockPDFParse,
+    mockMammothExtractRawText,
+    mockCsvParse,
+    mockCatchAsync,
+    mockLoggerInfo,
+    mockLoggerError,
+    mockSendResponse,
+    mockSummaryService,
+    mockSummarizerAppInvoke
+  };
+});
+
 vi.mock('pdf-parse', () => ({
-  PDFParse: vi.fn(() => ({
+  PDFParse: vi.fn().mockImplementation(() => ({
     getText: mockPDFParse,
   })),
 }));
 
-const mockMammothExtractRawText = vi.fn();
 vi.mock('mammoth', () => ({
   default: {
     extractRawText: mockMammothExtractRawText,
   },
 }));
 
-const mockCsvParse = vi.fn();
 vi.mock('csv-parse/browser/esm', () => ({
   parse: mockCsvParse,
 }));
 
-// Mock shared utilities
-const mockCatchAsync = (fn) => fn; // Directly execute the async function for testing
-const mockLoggerInfo = vi.fn();
-const mockLoggerError = vi.fn();
 vi.mock('../../../shared/catchAsync.js', () => ({
   default: mockCatchAsync,
 }));
@@ -35,27 +78,14 @@ vi.mock('../../../shared/logger.js', () => ({
     error: mockLoggerError,
   },
 }));
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-// Mock summaryService
-const mockSummaryService = {
-  generateGuestUserId: vi.fn(),
-  generateSummaryConversationId: vi.fn(),
-  handleSummaryConversation: vi.fn(),
-  addSummaryQueryMessage: vi.fn(),
-  addSummaryResultMessage: vi.fn(),
-  addErrorMessage: vi.fn(),
-  getSummaryStats: vi.fn(),
-};
 vi.mock('./summary.service.js', () => ({
   summaryService: mockSummaryService,
 }));
 
-// Mock summarizerApp
-const mockSummarizerAppInvoke = vi.fn();
 vi.mock('./summarizer/workflow.js', () => ({
   summarizerApp: {
     invoke: mockSummarizerAppInvoke,

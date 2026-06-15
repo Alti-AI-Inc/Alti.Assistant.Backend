@@ -2,74 +2,103 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 import { codeController, performCodeTask, getCodeStats } from './code.controller.js';
 
-// Mock external dependencies
-const mockCatchAsync = (fn) => async (req, res, next) => {
-  try {
-    await fn(req, res, next);
-  } catch (error) {
-    // In a real scenario, catchAsync would pass to error middleware.
-    // For unit testing, we'll re-throw or handle as needed.
-    throw error;
-  }
-};
+const {
+  mockCatchAsync,
+  mockLogger,
+  mockSendResponse,
+  mockCodeService,
+  mockCodeAssistantApp,
+  mockSubscriptionModel,
+  mockConversationHelpers,
+  mockCodeHelpers
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockCatchAsync = (fn) => async (req, res, next) => {
+    try {
+      await fn(req, res, next);
+    } catch (error) {
+      // In a real scenario, catchAsync would pass to error middleware.
+      // For unit testing, we'll re-throw or handle as needed.
+      throw error;
+    }
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockSendResponse = vi.fn();
+
+  const mockCodeService = {
+    generateGuestUserId: vi.fn(),
+    generateCodeConversationId: vi.fn(),
+    handleCodeConversation: vi.fn(),
+    addCodeQueryMessage: vi.fn(),
+    addCodeResultMessage: vi.fn(),
+    addErrorMessage: vi.fn(),
+    getCodeStats: vi.fn(),
+  };
+
+  const mockCodeAssistantApp = {
+    invoke: vi.fn(),
+  };
+
+  const mockSubscriptionModel = {
+    findOne: vi.fn().mockReturnThis(), // Allows chaining .sort() and .lean()
+    sort: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+  };
+
+  const mockConversationHelpers = {
+    getConversationById: vi.fn(),
+  };
+
+  const mockCodeHelpers = {
+    formatCodeResponse: vi.fn(),
+    formatErrorMessage: vi.fn(),
+  };
+
+  return {
+    mockCatchAsync,
+    mockLogger,
+    mockSendResponse,
+    mockCodeService,
+    mockCodeAssistantApp,
+    mockSubscriptionModel,
+    mockConversationHelpers,
+    mockCodeHelpers
+  };
+});
 
 vi.mock('../../../shared/catchAsync.js', () => ({
   default: mockCatchAsync,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockSendResponse = vi.fn();
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
-const mockCodeService = {
-  generateGuestUserId: vi.fn(),
-  generateCodeConversationId: vi.fn(),
-  handleCodeConversation: vi.fn(),
-  addCodeQueryMessage: vi.fn(),
-  addCodeResultMessage: vi.fn(),
-  addErrorMessage: vi.fn(),
-  getCodeStats: vi.fn(),
-};
 vi.mock('./code.service.js', () => ({
   codeService: mockCodeService,
 }));
 
-const mockCodeAssistantApp = {
-  invoke: vi.fn(),
-};
 vi.mock('./code_assistant/workflow.js', () => ({
   codeAssistantApp: mockCodeAssistantApp,
 }));
 
-const mockSubscriptionModel = {
-  findOne: vi.fn().mockReturnThis(), // Allows chaining .sort() and .lean()
-  sort: vi.fn().mockReturnThis(),
-  lean: vi.fn(),
-};
 vi.mock('../payment/payment.model.js', () => ({
   default: mockSubscriptionModel,
 }));
 
-const mockConversationHelpers = {
-  getConversationById: vi.fn(),
-};
 vi.mock('../conversations/conversation.helpers.js', () => ({
   conversationHelpers: mockConversationHelpers,
 }));
 
-const mockCodeHelpers = {
-  formatCodeResponse: vi.fn(),
-  formatErrorMessage: vi.fn(),
-};
 vi.mock('./code.helper.js', () => ({
   codeHelpers: mockCodeHelpers,
 }));

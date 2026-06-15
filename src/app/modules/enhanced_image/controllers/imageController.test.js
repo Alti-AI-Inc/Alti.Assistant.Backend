@@ -9,8 +9,16 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-// Mock the dynamic import for imagen3.service.js
-const mockEditImageWithImagen3 = vi.fn();
+const {
+  mockEditImageWithImagen3
+} = vi.hoisted(() => {
+  // Mock the dynamic import for imagen3.service.js
+  const mockEditImageWithImagen3 = vi.fn();
+
+  return {
+    mockEditImageWithImagen3
+  };
+});
 vi.mock('../utils/imagen3.service.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {

@@ -15,7 +15,7 @@ vi.mock('stripe', () => {
     },
   };
   // The default export is the constructor function
-  const Stripe = vi.fn(() => mockStripeInstance);
+  const Stripe = vi.fn().mockImplementation(() => mockStripeInstance);
   return { default: Stripe };
 });
 
@@ -25,7 +25,7 @@ vi.mock('@google-cloud/tasks', () => {
     createTask: vi.fn(),
   };
   return {
-    CloudTasksClient: vi.fn(() => mockTasksClientInstance),
+    CloudTasksClient: vi.fn().mockImplementation(() => mockTasksClientInstance),
   };
 });
 

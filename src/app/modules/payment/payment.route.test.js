@@ -9,14 +9,25 @@ import { ROLES } from '../../config/roles.js';
 // Mock dependencies
 const mockGet = vi.fn();
 const mockPost = vi.fn();
-const mockRoute = vi.fn(() => ({
+const mockRoute = vi.fn().mockImplementation(() => ({
   get: mockGet,
   post: mockPost,
 }));
-const mockRouter = {
-  route: mockRoute,
-};
-const mockExpressRaw = vi.fn(options => `express.raw(${JSON.stringify(options)})`);
+
+const {
+  mockRouter,
+  mockExpressRaw
+} = vi.hoisted(() => {
+  const mockRouter = {
+    route: mockRoute,
+  };
+  const mockExpressRaw = vi.fn().mockImplementation(options => `express.raw(${JSON.stringify(options)})`);
+
+  return {
+    mockRouter,
+    mockExpressRaw
+  };
+});
 
 vi.mock('express', () => ({
   default: {
@@ -26,24 +37,24 @@ vi.mock('express', () => ({
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
-  extractTenantContext: vi.fn(() => 'extractTenantContextMiddleware'),
+  extractTenantContext: vi.fn().mockImplementation(() => 'extractTenantContextMiddleware'),
 }));
 
 vi.mock('./payment.controller.js', () => ({
   paymentController: {
-    createCheckoutSession: vi.fn(() => 'createCheckoutSessionHandler'),
-    getAllSubscriptions: vi.fn(() => 'getAllSubscriptionsHandler'),
-    getSubscriptionsByUserId: vi.fn(() => 'getSubscriptionsByUserIdHandler'),
-    handleWebhook: vi.fn(() => 'handleWebhookHandler'),
+    createCheckoutSession: vi.fn().mockImplementation(() => 'createCheckoutSessionHandler'),
+    getAllSubscriptions: vi.fn().mockImplementation(() => 'getAllSubscriptionsHandler'),
+    getSubscriptionsByUserId: vi.fn().mockImplementation(() => 'getSubscriptionsByUserIdHandler'),
+    handleWebhook: vi.fn().mockImplementation(() => 'handleWebhookHandler'),
   },
 }));
 
 vi.mock('../../middlewares/auth/authenticate.js', () => ({
-  authenticate: vi.fn(() => 'authenticateMiddleware'),
+  authenticate: vi.fn().mockImplementation(() => 'authenticateMiddleware'),
 }));
 
 vi.mock('../../middlewares/auth/authorize.js', () => ({
-  authorize: vi.fn(roles => `authorizeMiddleware(${roles.join(',')})`),
+  authorize: vi.fn().mockImplementation(roles => `authorizeMiddleware(${roles.join(',')})`),
 }));
 
 vi.mock('../../config/roles.js', () => ({

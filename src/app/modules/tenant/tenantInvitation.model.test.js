@@ -8,12 +8,20 @@ const methodsContainer = {};
 // Mock Schema constructor and its methods
 const mockSchemaInstance = {
   index: vi.fn(),
-  statics: vi.fn((obj) => Object.assign(staticsContainer, obj)), // Assign to container
-  methods: vi.fn((obj) => Object.assign(methodsContainer, obj)), // Assign to container
+  statics: vi.fn().mockImplementation((obj) => Object.assign(staticsContainer, obj)), // Assign to container
+  methods: vi.fn().mockImplementation((obj) => Object.assign(methodsContainer, obj)), // Assign to container
   pre: vi.fn(),
 };
 
-const mockSchemaConstructor = vi.fn((definition, options) => mockSchemaInstance);
+const {
+  mockSchemaConstructor
+} = vi.hoisted(() => {
+  const mockSchemaConstructor = vi.fn().mockImplementation((definition, options) => mockSchemaInstance);
+
+  return {
+    mockSchemaConstructor
+  };
+});
 mockSchemaConstructor.Types = {
   ObjectId: mongoose.Types.ObjectId, // Use real ObjectId for type consistency
 };
@@ -23,11 +31,11 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     ...actualMongoose,
     Schema: mockSchemaConstructor,
-    model: vi.fn((name, schema) => {
+    model: vi.fn().mockImplementation((name, schema) => {
       // This mock model will contain the statics and methods defined on the schema
       const MockModel = function (data) {
         Object.assign(this, data);
-        this.save = vi.fn(async () => this); // Mock save method for instances
+        this.save = vi.fn().mockImplementation(async () => this); // Mock save method for instances
       };
       // Attach static methods from the staticsContainer
       Object.assign(MockModel, staticsContainer);
@@ -35,13 +43,13 @@ vi.mock('mongoose', async (importOriginal) => {
       Object.assign(MockModel.prototype, methodsContainer);
 
       // Mock query methods on the model
-      MockModel.find = vi.fn(() => ({
+      MockModel.find = vi.fn().mockImplementation(() => ({
         populate: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve([])),
+        exec: vi.fn().mockImplementation(() => Promise.resolve([])),
       }));
-      MockModel.findOne = vi.fn(() => ({
+      MockModel.findOne = vi.fn().mockImplementation(() => ({
         populate: vi.fn().mockReturnThis(),
-        exec: vi.fn(() => Promise.resolve(null)),
+        exec: vi.fn().mockImplementation(() => Promise.resolve(null)),
       }));
       return MockModel;
     }),
@@ -52,8 +60,8 @@ vi.mock('mongoose', async (importOriginal) => {
 });
 
 vi.mock('crypto', () => ({
-  randomBytes: vi.fn(() => ({
-    toString: vi.fn(() => 'mockedCryptoToken1234567890abcdefghijklmnopqrstuvwxyz'),
+  randomBytes: vi.fn().mockImplementation(() => ({
+    toString: vi.fn().mockImplementation(() => 'mockedCryptoToken1234567890abcdefghijklmnopqrstuvwxyz'),
   })),
 }));
 
@@ -74,8 +82,8 @@ describe('TenantInvitation Model', () => {
     }
     // Re-initialize the mockSchemaInstance.statics and .methods to ensure they are fresh vi.fn()
     // for any potential re-evaluation of the schema (though not typical for global imports).
-    mockSchemaInstance.statics = vi.fn((obj) => Object.assign(staticsContainer, obj));
-    mockSchemaInstance.methods = vi.fn((obj) => Object.assign(methodsContainer, obj));
+    mockSchemaInstance.statics = vi.fn().mockImplementation((obj) => Object.assign(staticsContainer, obj));
+    mockSchemaInstance.methods = vi.fn().mockImplementation((obj) => Object.assign(methodsContainer, obj));
   });
 
   it('should define the TenantInvitationSchema correctly', () => {
@@ -308,7 +316,7 @@ describe('TenantInvitation Model', () => {
       invitationDoc = {
         status: 'pending',
         expiresAt: new Date(Date.now() + 3600000), // Future date
-        isExpired: vi.fn(() => false), // Mock isExpired method
+        isExpired: vi.fn().mockImplementation(() => false), // Mock isExpired method
       };
     });
 

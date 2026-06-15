@@ -1,7 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Setup mocks before importing the module under test
-const mockPost = vi.fn();
+const {
+  mockPost
+} = vi.hoisted(() => {
+  // Setup mocks before importing the module under test
+  const mockPost = vi.fn();
+
+  return {
+    mockPost
+  };
+});
 
 vi.mock('express', () => {
   return {

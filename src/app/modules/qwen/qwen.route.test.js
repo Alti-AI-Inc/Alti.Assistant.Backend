@@ -4,19 +4,27 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { QwenAiController } from './qwen.controller.js';
 
-// Mock express to capture router calls
-const mockRouter = {
-  post: vi.fn(),
-};
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  // Mock express to capture router calls
+  const mockRouter = {
+    post: vi.fn(),
+  };
+
+  return {
+    mockRouter
+  };
+});
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
 // Mock auth middleware
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn((...roles) => (req, res, next) => {
+  default: vi.fn().mockImplementation((...roles) => (req, res, next) => {
     // This mock middleware just calls next to simulate passing through
     // In a real scenario, you might want to test its behavior more deeply
     // but for route testing, we just need to confirm it's called with correct args.
@@ -27,8 +35,8 @@ vi.mock('../../middlewares/auth/auth.js', () => ({
 // Mock QwenAiController methods
 vi.mock('./qwen.controller.js', () => ({
   QwenAiController: {
-    QwenAiGetResponse: vi.fn((req, res) => res.status(200).json({ message: 'Mocked Coder Response' })),
-    QwenQWQAiGetResponse: vi.fn((req, res) => res.status(200).json({ message: 'Mocked QWQ Response' })),
+    QwenAiGetResponse: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'Mocked Coder Response' })),
+    QwenQWQAiGetResponse: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'Mocked QWQ Response' })),
   },
 }));
 

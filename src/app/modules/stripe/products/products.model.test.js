@@ -5,18 +5,30 @@ const mockSchemaInstance = {
   path: vi.fn(),
 };
 
-const mockSchemaConstructor = vi.fn((definition, options) => {
-  return mockSchemaInstance;
-});
+const {
+  mockSchemaConstructor,
+  mockObjectId,
+  mockModel
+} = vi.hoisted(() => {
+  const mockSchemaConstructor = vi.fn().mockImplementation((definition, options) => {
+    return mockSchemaInstance;
+  });
 
-const mockObjectId = vi.fn();
+  const mockObjectId = vi.fn();
+
+  const mockModel = vi.fn().mockImplementation(() => ({})); // Return a simple object for the model
+
+  return {
+    mockSchemaConstructor,
+    mockObjectId,
+    mockModel
+  };
+});
 
 // Attach Types to the mockSchemaConstructor directly, as it's a static property
 mockSchemaConstructor.Types = {
   ObjectId: mockObjectId,
 };
-
-const mockModel = vi.fn(() => ({})); // Return a simple object for the model
 
 vi.mock('mongoose', () => ({
   default: {

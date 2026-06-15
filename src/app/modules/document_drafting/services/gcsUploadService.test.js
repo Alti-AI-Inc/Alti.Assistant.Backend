@@ -15,17 +15,35 @@ vi.mock('../document.constant.js', () => ({
 
 // Mock @google-cloud/storage
 const mockFile = {
-  getSignedUrl: vi.fn(() => Promise.resolve(['http://mock-signed-url'])),
-  delete: vi.fn(() => Promise.resolve()),
+  getSignedUrl: vi.fn().mockImplementation(() => Promise.resolve(['http://mock-signed-url'])),
+  delete: vi.fn().mockImplementation(() => Promise.resolve()),
 };
 const mockBucket = {
-  upload: vi.fn(() => Promise.resolve()),
-  file: vi.fn(() => mockFile),
+  upload: vi.fn().mockImplementation(() => Promise.resolve()),
+  file: vi.fn().mockImplementation(() => mockFile),
 };
 const mockStorage = {
-  bucket: vi.fn(() => mockBucket),
+  bucket: vi.fn().mockImplementation(() => mockBucket),
 };
-const mockStorageConstructor = vi.fn(() => mockStorage);
+
+const {
+  mockStorageConstructor,
+  mockLogger
+} = vi.hoisted(() => {
+  const mockStorageConstructor = vi.fn().mockImplementation(() => mockStorage);
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockStorageConstructor,
+    mockLogger
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
   Storage: mockStorageConstructor,
@@ -36,12 +54,6 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

@@ -1,16 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { composioIntegrationService } from './composioIntegration.service.js';
 
-// Mock external dependencies
-// 1. Mock Composio SDK
-const mockComposioInstance = {
-  getTools: vi.fn(),
-  connectedAccounts: {
-    initiate: vi.fn(),
-  },
-};
+const {
+  mockComposioInstance,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  // 1. Mock Composio SDK
+  const mockComposioInstance = {
+    getTools: vi.fn(),
+    connectedAccounts: {
+      initiate: vi.fn(),
+    },
+  };
+
+  // 4. Mock Logger
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  return {
+    mockComposioInstance,
+    mockLogger
+  };
+});
+
 vi.mock('@composio/core', () => ({
-  Composio: vi.fn(() => mockComposioInstance),
+  Composio: vi.fn().mockImplementation(() => mockComposioInstance),
 }));
 
 // 2. Mock config
@@ -35,16 +53,16 @@ const ComposioAuthMock = vi.fn().mockImplementation((data) => {
     save: vi.fn().mockResolvedValue(data), // Mock save method on instance
   };
 });
-ComposioAuthMock.find = vi.fn((query) => createLeanMock([])); // Default to empty array
-ComposioAuthMock.findOne = vi.fn((query) => createLeanMock(null)); // Default to null
+ComposioAuthMock.find = vi.fn().mockImplementation((query) => createLeanMock([])); // Default to empty array
+ComposioAuthMock.findOne = vi.fn().mockImplementation((query) => createLeanMock(null)); // Default to null
 vi.mock('../../composio_v2/composio.model.js', () => ({
   default: ComposioAuthMock,
 }));
 
 // Mock AuthConfig Model
 const AuthConfigMock = {
-  find: vi.fn((query) => createLeanMock([])), // Default to empty array
-  findOne: vi.fn((query) => createLeanMock(null)), // Default to null
+  find: vi.fn().mockImplementation((query) => createLeanMock([])), // Default to empty array
+  findOne: vi.fn().mockImplementation((query) => createLeanMock(null)), // Default to null
 };
 vi.mock('../../composio_v2/authConfig.model.js', () => ({
   default: AuthConfigMock,
@@ -52,9 +70,9 @@ vi.mock('../../composio_v2/authConfig.model.js', () => ({
 
 // Mock Tool Model
 const ToolMock = {
-  find: vi.fn((query) => ({
-    limit: vi.fn(() => createLeanMock([])), // Default to empty array
-    lean: vi.fn(() => createLeanMock([])), // For cases without limit
+  find: vi.fn().mockImplementation((query) => ({
+    limit: vi.fn().mockImplementation(() => createLeanMock([])), // Default to empty array
+    lean: vi.fn().mockImplementation(() => createLeanMock([])), // For cases without limit
   })),
   distinct: vi.fn().mockResolvedValue([]), // Default to empty array
 };
@@ -62,12 +80,6 @@ vi.mock('../../composio_v2/tools.model.js', () => ({
   default: ToolMock,
 }));
 
-// 4. Mock Logger
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
@@ -84,8 +96,8 @@ describe('ComposioIntegrationService', () => {
     AuthConfigMock.find.mockImplementation((query) => createLeanMock([]));
     AuthConfigMock.findOne.mockImplementation((query) => createLeanMock(null));
     ToolMock.find.mockImplementation((query) => ({
-      limit: vi.fn(() => createLeanMock([])),
-      lean: vi.fn(() => createLeanMock([])),
+      limit: vi.fn().mockImplementation(() => createLeanMock([])),
+      lean: vi.fn().mockImplementation(() => createLeanMock([])),
     }));
     ToolMock.distinct.mockResolvedValue([]);
     mockComposioInstance.getTools.mockResolvedValue([]);
@@ -228,7 +240,7 @@ describe('ComposioIntegrationService', () => {
         { name: 'Local Tool 2', description: 'Desc 2', slug: 'local_tool_2', appName: 'Slack' },
       ];
       ToolMock.find.mockImplementation(() => ({
-        limit: vi.fn(() => createLeanMock(mockLocalTools)),
+        limit: vi.fn().mockImplementation(() => createLeanMock(mockLocalTools)),
       }));
 
       const result = await composioIntegrationService.getUserAvailableTools(userId);
@@ -261,7 +273,7 @@ describe('ComposioIntegrationService', () => {
         { name: 'Local Tool 1', description: 'Desc 1', slug: 'local_tool_1', appName: 'Google Drive' },
       ];
       ToolMock.find.mockImplementation(() => ({
-        limit: vi.fn(() => createLeanMock(mockLocalTools)),
+        limit: vi.fn().mockImplementation(() => createLeanMock(mockLocalTools)),
       }));
 
       const result = await composioIntegrationService.getUserAvailableTools(userId, ['google drive']);
@@ -308,7 +320,7 @@ describe('ComposioIntegrationService', () => {
         { name: 'Local Tool 1', description: 'Desc 1', slug: 'local_tool_1', appName: 'Google Drive' },
       ];
       ToolMock.find.mockImplementation(() => ({
-        limit: vi.fn(() => createLeanMock(mockLocalTools)),
+        limit: vi.fn().mockImplementation(() => createLeanMock(mockLocalTools)),
       }));
 
       const result = await composioIntegrationService.getUserAvailableTools(userId);

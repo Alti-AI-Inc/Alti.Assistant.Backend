@@ -5,11 +5,11 @@ const mockSchemaInstance = {
   obj: {}, // Stores the schema definition object
   options: {}, // Stores schema options
   path: {}, // Simulates schema paths for validation checks
-  virtual: vi.fn(() => mockSchemaInstance),
-  pre: vi.fn(() => mockSchemaInstance),
-  post: vi.fn(() => mockSchemaInstance),
-  method: vi.fn(() => mockSchemaInstance),
-  static: vi.fn(() => mockSchemaInstance),
+  virtual: vi.fn().mockImplementation(() => mockSchemaInstance),
+  pre: vi.fn().mockImplementation(() => mockSchemaInstance),
+  post: vi.fn().mockImplementation(() => mockSchemaInstance),
+  method: vi.fn().mockImplementation(() => mockSchemaInstance),
+  static: vi.fn().mockImplementation(() => mockSchemaInstance),
   // Mock validateSync to simulate Mongoose validation
   validateSync: vi.fn(function(doc) {
     const errors = {};
@@ -65,55 +65,63 @@ const mockSchemaInstance = {
   }),
 };
 
-const mockMongoose = {
-  Schema: vi.fn((schemaDef, options) => {
-    // Reset mockSchemaInstance properties for each new Schema call
-    mockSchemaInstance.obj = schemaDef;
-    mockSchemaInstance.options = options;
-    mockSchemaInstance.path = {};
-    for (const key in schemaDef) {
-      mockSchemaInstance.path[key] = {
-        options: schemaDef[key],
-        get: (prop) => schemaDef[key][prop] // Basic getter for path options
-      };
-    }
-    return mockSchemaInstance;
-  }),
-  model: vi.fn((name, schema) => {
-    // Return a mock model class that can be instantiated
-    return class MockModel {
-      constructor(data) {
-        this._doc = { ...data }; // Simulate document data
-        // Apply defaults based on the schema definition
-        for (const key in schema.obj) {
-          if (this._doc[key] === undefined && schema.obj[key].default !== undefined) {
-            // If default is a function, call it. Otherwise, use the value.
-            this._doc[key] = typeof schema.obj[key].default === 'function'
-              ? schema.obj[key].default()
-              : schema.obj[key].default;
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation((schemaDef, options) => {
+      // Reset mockSchemaInstance properties for each new Schema call
+      mockSchemaInstance.obj = schemaDef;
+      mockSchemaInstance.options = options;
+      mockSchemaInstance.path = {};
+      for (const key in schemaDef) {
+        mockSchemaInstance.path[key] = {
+          options: schemaDef[key],
+          get: (prop) => schemaDef[key][prop] // Basic getter for path options
+        };
+      }
+      return mockSchemaInstance;
+    }),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Return a mock model class that can be instantiated
+      return class MockModel {
+        constructor(data) {
+          this._doc = { ...data }; // Simulate document data
+          // Apply defaults based on the schema definition
+          for (const key in schema.obj) {
+            if (this._doc[key] === undefined && schema.obj[key].default !== undefined) {
+              // If default is a function, call it. Otherwise, use the value.
+              this._doc[key] = typeof schema.obj[key].default === 'function'
+                ? schema.obj[key].default()
+                : schema.obj[key].default;
+            }
           }
         }
-      }
-      validateSync() {
-        // Pass a clone of _doc to validateSync so that trim simulation doesn't affect the original _doc
-        // unless we explicitly want it to. For this simple case, modifying _doc directly is fine.
-        return schema.validateSync(this._doc);
-      }
-      get(key) {
-        return this._doc[key];
-      }
-      set(key, value) {
-        this._doc[key] = value;
-      }
-      toObject() {
-        return { ...this._doc };
-      }
-    };
-  }),
-  Types: {
-    ObjectId: vi.fn(() => 'mockObjectId'),
-  },
-};
+        validateSync() {
+          // Pass a clone of _doc to validateSync so that trim simulation doesn't affect the original _doc
+          // unless we explicitly want it to. For this simple case, modifying _doc directly is fine.
+          return schema.validateSync(this._doc);
+        }
+        get(key) {
+          return this._doc[key];
+        }
+        set(key, value) {
+          this._doc[key] = value;
+        }
+        toObject() {
+          return { ...this._doc };
+        }
+      };
+    }),
+    Types: {
+      ObjectId: vi.fn().mockImplementation(() => 'mockObjectId'),
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 vi.mock('mongoose', () => ({
   default: mockMongoose,

@@ -7,7 +7,7 @@ import { logger } from '../../../shared/logger.js';
 // Mock dependencies
 vi.mock('./llamaindex.metadata.model.js', () => ({
   default: {
-    find: vi.fn(() => ({
+    find: vi.fn().mockImplementation(() => ({
       lean: vi.fn(),
     })),
   },

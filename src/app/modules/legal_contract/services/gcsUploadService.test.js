@@ -3,15 +3,23 @@ import path from 'path';
 
 // Mock dependencies
 const mockDelete = vi.fn();
-const mockFile = vi.fn(() => ({ delete: mockDelete }));
+const mockFile = vi.fn().mockImplementation(() => ({ delete: mockDelete }));
 const mockUpload = vi.fn();
-const mockBucket = vi.fn(() => ({
+const mockBucket = vi.fn().mockImplementation(() => ({
   upload: mockUpload,
   file: mockFile,
 }));
-const mockStorage = vi.fn(() => ({
-  bucket: mockBucket,
-}));
+const {
+  mockStorage
+} = vi.hoisted(() => {
+  const mockStorage = vi.fn().mockImplementation(() => ({
+    bucket: mockBucket,
+  }));
+
+  return {
+    mockStorage
+  };
+});
 
 vi.mock('@google-cloud/storage', () => ({
   Storage: mockStorage,

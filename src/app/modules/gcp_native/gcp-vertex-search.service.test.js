@@ -12,7 +12,15 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 const mockRequest = vi.fn();
-const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
+const {
+  mockGetClient
+} = vi.hoisted(() => {
+  const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
+
+  return {
+    mockGetClient
+  };
+});
 vi.mock('google-auth-library', () => ({
   GoogleAuth: vi.fn().mockImplementation(() => ({
     getClient: mockGetClient,

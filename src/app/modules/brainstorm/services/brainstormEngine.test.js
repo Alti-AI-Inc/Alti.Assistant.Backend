@@ -22,7 +22,7 @@ vi.mock('../../../../shared/errors/AppError.js');
 
 // Mock implementation for the AI model
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
 

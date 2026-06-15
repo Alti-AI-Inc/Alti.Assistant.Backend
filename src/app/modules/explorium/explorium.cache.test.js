@@ -1,23 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createHash } from 'crypto';
 
-// Mock dependencies
-const mockRedisClient = {
-  get: vi.fn(),
-  set: vi.fn(),
-  mget: vi.fn(),
-  del: vi.fn(),
-  pipeline: vi.fn(() => ({
+const {
+  mockRedisClient,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockRedisClient = {
+    get: vi.fn(),
     set: vi.fn(),
-    exec: vi.fn(),
-  })),
-};
+    mget: vi.fn(),
+    del: vi.fn(),
+    pipeline: vi.fn().mockImplementation(() => ({
+      set: vi.fn(),
+      exec: vi.fn(),
+    })),
+  };
 
-const mockLogger = {
-  debug: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+  const mockLogger = {
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockRedisClient,
+    mockLogger
+  };
+});
 
 // Mock the modules that export RedisClient and logger
 vi.mock('../../../shared/redis.js', () => ({
@@ -76,13 +86,13 @@ describe('explorium.cache', () => {
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, params1, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, params1, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKey);
       expect(mockRedisClient.set).toHaveBeenCalledWith(expectedKey, expect.any(String), expect.any(Object));
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, params2, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, params2, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKey);
     });
 
@@ -95,12 +105,12 @@ describe('explorium.cache', () => {
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, params1, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, params1, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKey1);
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, params2, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, params2, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKey2);
       expect(expectedKey1).not.toBe(expectedKey2);
     });
@@ -112,12 +122,12 @@ describe('explorium.cache', () => {
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, null, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, null, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKeyNull);
 
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache(type, undefined, vi.fn(() => Promise.resolve('data')));
+      await withCache(type, undefined, vi.fn().mockImplementation(() => Promise.resolve('data')));
       expect(mockRedisClient.get).toHaveBeenCalledWith(expectedKeyUndefined);
       expect(expectedKeyNull).toBe(expectedKeyUndefined);
     });
@@ -128,7 +138,7 @@ describe('explorium.cache', () => {
     const params = { companyId: '123' };
     const key = `explorium:${type}:${generateTestHash(params)}`;
     const freshData = { companyName: 'Test Co' };
-    const fetcher = vi.fn(() => Promise.resolve(freshData));
+    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(freshData));
 
     it('should return cached data on a cache hit', async () => {
       mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(freshData));
@@ -225,8 +235,8 @@ describe('explorium.cache', () => {
 
     it('should not cache null or undefined data returned by fetcher', async () => {
       mockRedisClient.get.mockResolvedValueOnce(null);
-      const nullFetcher = vi.fn(() => Promise.resolve(null));
-      const undefinedFetcher = vi.fn(() => Promise.resolve(undefined));
+      const nullFetcher = vi.fn().mockImplementation(() => Promise.resolve(null));
+      const undefinedFetcher = vi.fn().mockImplementation(() => Promise.resolve(undefined));
 
       let result = await withCache(type, params, nullFetcher);
       expect(result).toBeNull();
@@ -247,7 +257,9 @@ describe('explorium.cache', () => {
     const paramsList = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const keys = paramsList.map(p => `explorium:${type}:${generateTestHash(p)}`);
     const freshData = [{ tech: 'A' }, { tech: 'B' }, { tech: 'C' }];
-    const fetcher = vi.fn(missedParams => Promise.resolve(missedParams.map((p, i) => ({ tech: `Fresh ${p.id}` }))));
+    const fetcher = vi.fn().mockImplementation(
+      missedParams => Promise.resolve(missedParams.map((p, i) => ({ tech: `Fresh ${p.id}` })))
+    );
 
     it('should return all cached data on a full cache hit', async () => {
       mockRedisClient.mget.mockResolvedValueOnce(freshData.map(d => JSON.stringify(d)));
@@ -452,7 +464,7 @@ describe('explorium.cache', () => {
       const params1 = { id: 1 };
       const params2 = { id: 2 };
       const params3 = { id: 3 };
-      const fetcher = vi.fn(() => Promise.resolve({ data: 'fresh' }));
+      const fetcher = vi.fn().mockImplementation(() => Promise.resolve({ data: 'fresh' }));
 
       // Miss -> Set
       mockRedisClient.get.mockResolvedValueOnce(null);
@@ -492,7 +504,7 @@ describe('explorium.cache', () => {
       await withCache('firmographics', { id: 1 }, vi.fn());
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache('firmographics', { id: 2 }, vi.fn(() => Promise.resolve({ data: 'fresh' })));
+      await withCache('firmographics', { id: 2 }, vi.fn().mockImplementation(() => Promise.resolve({ data: 'fresh' })));
 
       expect(getCacheStats().hits).toBe(1);
       expect(getCacheStats().misses).toBe(1);
@@ -523,13 +535,13 @@ describe('explorium.cache', () => {
       // 1 hit, 1 miss
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache('firmographics', { id: 2 }, vi.fn(() => Promise.resolve({ data: 'fresh' })));
+      await withCache('firmographics', { id: 2 }, vi.fn().mockImplementation(() => Promise.resolve({ data: 'fresh' })));
       expect(getCacheStats().hit_rate).toBe('50.0%');
 
       // 1 hit, 2 misses
       mockRedisClient.get.mockResolvedValueOnce(null);
       mockRedisClient.set.mockResolvedValueOnce('OK');
-      await withCache('firmographics', { id: 3 }, vi.fn(() => Promise.resolve({ data: 'fresh' })));
+      await withCache('firmographics', { id: 3 }, vi.fn().mockImplementation(() => Promise.resolve({ data: 'fresh' })));
       expect(getCacheStats().hit_rate).toBe('33.3%');
     });
   });

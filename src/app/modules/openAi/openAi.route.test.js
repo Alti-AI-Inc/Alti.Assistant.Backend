@@ -7,7 +7,7 @@ import { openAIAiController } from './openAi.controller.js';
 
 // Mock dependencies
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => (req, res, next) => next()), // auth is a HOF
+  default: vi.fn().mockImplementation(() => (req, res, next) => next()), // auth is a HOF
 }));
 
 vi.mock('./openAi.controller.js', () => ({

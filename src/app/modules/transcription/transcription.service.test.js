@@ -37,8 +37,8 @@ vi.mock('../conversations/conversation.helpers.js', () => ({
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },

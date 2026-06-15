@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { convertComposioToolsToLangchainTools, getAndConvertComposioTools } from './composio.utils';
 
-// Mock external dependencies
-const mockGetComposioTools = vi.fn();
+const {
+  mockGetComposioTools
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockGetComposioTools = vi.fn();
+
+  return {
+    mockGetComposioTools
+  };
+});
 vi.mock('./composio.service', () => ({
   getComposioTools: mockGetComposioTools,
 }));

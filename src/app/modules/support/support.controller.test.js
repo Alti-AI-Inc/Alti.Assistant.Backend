@@ -2,12 +2,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 
 // Mock dependencies
-const catchAsync = vi.fn((fn) => fn); // Mock catchAsync to just return the function
+const catchAsync = vi.fn().mockImplementation((fn) => fn); // Mock catchAsync to just return the function
 const sendResponse = vi.fn();
-const logger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+
+const {
+  logger,
+  mockMongoose
+} = vi.hoisted(() => {
+  const logger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  // Mock mongoose.Types.ObjectId.isValid
+  // This needs to be done carefully as mongoose might not be fully initialized in a unit test.
+  // We'll mock the specific method used.
+  const mockMongoose = {
+    Types: {
+      ObjectId: {
+        isValid: vi.fn(),
+      },
+    },
+  };
+
+  return {
+    logger,
+    mockMongoose
+  };
+});
+
 const supportService = {
   reqForSupportService: vi.fn(),
   getAllSupportService: vi.fn(),
@@ -17,16 +40,6 @@ const supportService = {
   bulkDeleteSupportReqService: vi.fn(),
 };
 
-// Mock mongoose.Types.ObjectId.isValid
-// This needs to be done carefully as mongoose might not be fully initialized in a unit test.
-// We'll mock the specific method used.
-const mockMongoose = {
-  Types: {
-    ObjectId: {
-      isValid: vi.fn(),
-    },
-  },
-};
 // Replace the actual mongoose import with our mock for the test scope
 vi.mock('mongoose', () => mockMongoose);
 

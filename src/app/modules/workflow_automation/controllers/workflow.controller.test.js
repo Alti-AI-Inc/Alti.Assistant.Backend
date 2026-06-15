@@ -4,26 +4,37 @@ import { workflowController } from './workflow.controller.js';
 
 // Mock dependencies
 const sendResponse = vi.fn();
-const logger = {
-  error: vi.fn(),
-  info: vi.fn(),
-};
 
-// Mock Mongoose Workflow model
-const mockWorkflow = {
-  _id: 'workflowId123',
-  userId: 'userId123',
-  name: 'Test Workflow',
-  description: 'A test workflow',
-  status: 'active',
-  category: 'Automation',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  steps: [],
-  trigger: { triggerType: 'manual' },
-  requiredApps: [],
-  metadata: {},
-};
+const {
+  logger,
+  mockWorkflow
+} = vi.hoisted(() => {
+  const logger = {
+    error: vi.fn(),
+    info: vi.fn(),
+  };
+
+  // Mock Mongoose Workflow model
+  const mockWorkflow = {
+    _id: 'workflowId123',
+    userId: 'userId123',
+    name: 'Test Workflow',
+    description: 'A test workflow',
+    status: 'active',
+    category: 'Automation',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    steps: [],
+    trigger: { triggerType: 'manual' },
+    requiredApps: [],
+    metadata: {},
+  };
+
+  return {
+    logger,
+    mockWorkflow
+  };
+});
 
 const mockWorkflowTemplate = {
   _id: 'templateId123',
@@ -52,7 +63,7 @@ const Workflow = {
 };
 
 // Mock Workflow constructor
-const WorkflowConstructor = vi.fn(() => ({
+const WorkflowConstructor = vi.fn().mockImplementation(() => ({
   ...mockWorkflow,
   save: Workflow.save,
 }));
@@ -106,7 +117,7 @@ vi.mock('../models/workflow.model.js', async (importOriginal) => {
       skip: vi.fn().mockReturnThis(),
       exec: vi.fn(),
       // Mock the constructor for `new Workflow(...)`
-      constructor: vi.fn(() => ({
+      constructor: vi.fn().mockImplementation(() => ({
         ...mockWorkflow,
         save: vi.fn().mockResolvedValue(mockWorkflow),
       })),

@@ -5,28 +5,67 @@ const mockRouter = {
   post: vi.fn(),
   get: vi.fn(),
 };
-const mockExpress = {
-  Router: vi.fn(() => mockRouter),
-};
+
+const {
+  mockExpress,
+  mockAuth,
+  mockOptionalAuth,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockCheckDailyRequestLimit,
+  mockExtractTenantContext,
+  mockCodeController,
+  mockCodeValidation
+} = vi.hoisted(() => {
+  const mockExpress = {
+    Router: vi.fn().mockImplementation(() => mockRouter),
+  };
+  const mockAuth = vi.fn().mockImplementation((...roles) => mockAuthMiddleware);
+
+  const mockOptionalAuth = vi.fn().mockImplementation(() => mockOptionalAuthMiddleware);
+
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => mockCreateRateLimiterMiddleware);
+
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => mockValidateRequestMiddleware);
+
+  // Direct middleware functions
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockCodeController = {
+    performCodeTask: mockPerformCodeTask,
+    getCodeStats: mockGetCodeStats,
+  };
+  const mockCodeValidation = {
+    CodeValidation: {
+      codeQuerySchema: mockCodeQuerySchema,
+    },
+  };
+
+  return {
+    mockExpress,
+    mockAuth,
+    mockOptionalAuth,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockCheckDailyRequestLimit,
+    mockExtractTenantContext,
+    mockCodeController,
+    mockCodeValidation
+  };
+});
+
 vi.mock('express', () => ({ default: mockExpress }));
 
 // Mock middleware functions
 // Middleware factories (return a middleware function)
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockAuth = vi.fn((...roles) => mockAuthMiddleware);
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockOptionalAuthMiddleware = vi.fn((req, res, next) => next());
-const mockOptionalAuth = vi.fn(() => mockOptionalAuthMiddleware);
+const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockCreateRateLimiterMiddleware = vi.fn((req, res, next) => next());
-const mockCreateRateLimiter = vi.fn((limit, window) => mockCreateRateLimiterMiddleware);
+const mockCreateRateLimiterMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
-const mockValidateRequestMiddleware = vi.fn((req, res, next) => next());
-const mockValidateRequest = vi.fn((schema) => mockValidateRequestMiddleware);
-
-// Direct middleware functions
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
-const mockExtractTenantContext = vi.fn((req, res, next) => next());
+const mockValidateRequestMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE: {
@@ -44,10 +83,6 @@ vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantConte
 // Mock controller methods
 const mockPerformCodeTask = vi.fn();
 const mockGetCodeStats = vi.fn();
-const mockCodeController = {
-  performCodeTask: mockPerformCodeTask,
-  getCodeStats: mockGetCodeStats,
-};
 vi.mock('./code.controller.js', () => ({ codeController: mockCodeController }));
 
 // Mock validation schema
@@ -60,11 +95,6 @@ const mockCodeQuerySchema = {
       context: { type: 'string' },
     },
     required: ['prompt'],
-  },
-};
-const mockCodeValidation = {
-  CodeValidation: {
-    codeQuerySchema: mockCodeQuerySchema,
   },
 };
 vi.mock('./code.validation.js', () => (mockCodeValidation));

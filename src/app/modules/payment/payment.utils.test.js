@@ -2,11 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import moment from 'moment';
 import { purchasePlanTemplate } from './payment.utils.js';
 
-// Mock the moment library to ensure deterministic date formatting in tests
-// This setup allows us to control the output of moment().format()
-const mockFormat = vi.fn();
+const {
+  mockFormat
+} = vi.hoisted(() => {
+  // Mock the moment library to ensure deterministic date formatting in tests
+  // This setup allows us to control the output of moment().format()
+  const mockFormat = vi.fn();
+
+  return {
+    mockFormat
+  };
+});
 vi.mock('moment', () => ({
-  default: vi.fn(() => ({
+  default: vi.fn().mockImplementation(() => ({
     format: mockFormat,
   })),
 }));

@@ -29,8 +29,8 @@ vi.mock('./translation.service.js', () => ({
 
 vi.mock('../payment/payment.model.js', () => {
   const mockLean = vi.fn();
-  const mockSort = vi.fn(() => ({ lean: mockLean }));
-  const mockFindOne = vi.fn(() => ({ sort: mockSort }));
+  const mockSort = vi.fn().mockImplementation(() => ({ lean: mockLean }));
+  const mockFindOne = vi.fn().mockImplementation(() => ({ sort: mockSort }));
   
   class MockSubscriptionModel {
     static findOne = mockFindOne;

@@ -4,7 +4,7 @@ import { aiClassificationController } from './aiClassification.controller.js';
 
 // Mock external dependencies
 const sendResponse = vi.fn();
-const catchAsync = vi.fn((fn) => fn); // Mock catchAsync to just return the function it wraps
+const catchAsync = vi.fn().mockImplementation((fn) => fn); // Mock catchAsync to just return the function it wraps
 
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: sendResponse,
@@ -23,15 +23,27 @@ vi.mock('./aiClassification.service.js', () => ({
   aiClassificationService: aiClassificationService,
 }));
 
-// Mock dynamic imports
-const mockToolFind = vi.fn();
+const {
+  mockToolFind,
+  mockClassifyUserIntent
+} = vi.hoisted(() => {
+  // Mock dynamic imports
+  const mockToolFind = vi.fn();
+
+  const mockClassifyUserIntent = vi.fn();
+
+  return {
+    mockToolFind,
+    mockClassifyUserIntent
+  };
+});
+
 vi.mock('./tools.model.js', () => ({
   default: {
     find: mockToolFind,
   },
 }));
 
-const mockClassifyUserIntent = vi.fn();
 vi.mock('./services/aiClassificationService.js', () => ({
   classifyUserIntent: mockClassifyUserIntent,
 }));

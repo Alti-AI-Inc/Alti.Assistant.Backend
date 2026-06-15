@@ -2,12 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import { MongoDBSaver } from './MongoDBSaver';
 
-// Mock the entire mongoose library
-const mockCheckpointModel = {
-  findById: vi.fn(),
-  findByIdAndUpdate: vi.fn(),
-  find: vi.fn(),
-};
+const {
+  mockCheckpointModel
+} = vi.hoisted(() => {
+  // Mock the entire mongoose library
+  const mockCheckpointModel = {
+    findById: vi.fn(),
+    findByIdAndUpdate: vi.fn(),
+    find: vi.fn(),
+  };
+
+  return {
+    mockCheckpointModel
+  };
+});
 
 vi.mock('mongoose', async () => {
   const actualMongoose = await vi.importActual('mongoose');

@@ -9,7 +9,7 @@ import { codeService } from './code.service.js';
 // Mock external dependencies
 vi.mock('http-status', () => ({ default: { INTERNAL_SERVER_ERROR: 500 } }));
 vi.mock('../../../errors/ApiError.js', () => ({
-  default: vi.fn((status, message) => {
+  default: vi.fn().mockImplementation((status, message) => {
     const error = new Error(message);
     error.statusCode = status;
     return error;

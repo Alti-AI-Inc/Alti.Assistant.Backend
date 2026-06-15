@@ -1,44 +1,61 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock express and its Router method
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  use: vi.fn(), // In case .use is ever called, though not in this file
-};
+const {
+  mockRouter,
+  mockComposioSimpleController,
+  mockAuth,
+  mockCheckDailyRequestLimit
+} = vi.hoisted(() => {
+  // Mock express and its Router method
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    use: vi.fn(), // In case .use is ever called, though not in this file
+  };
+
+  // Mock controller functions
+  const mockComposioSimpleController = {
+    chatController: vi.fn(),
+    initiateAuthController: vi.fn(),
+    waitForConnectionController: vi.fn(),
+    getConversationsController: vi.fn(),
+    getConversationController: vi.fn(),
+    getConnectedAccountsController: vi.fn(),
+    disconnectAppController: vi.fn(),
+    getAppCapabilitiesController: vi.fn(),
+    connectionStatusStreamController: vi.fn(),
+    compareController: vi.fn(),
+  };
+  const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
+
+  // Mock checkDailyRequestLimit middleware
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  return {
+    mockRouter,
+    mockComposioSimpleController,
+    mockAuth,
+    mockCheckDailyRequestLimit
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
-// Mock controller functions
-const mockComposioSimpleController = {
-  chatController: vi.fn(),
-  initiateAuthController: vi.fn(),
-  waitForConnectionController: vi.fn(),
-  getConversationsController: vi.fn(),
-  getConversationController: vi.fn(),
-  getConnectedAccountsController: vi.fn(),
-  disconnectAppController: vi.fn(),
-  getAppCapabilitiesController: vi.fn(),
-  connectionStatusStreamController: vi.fn(),
-  compareController: vi.fn(),
-};
 vi.mock('./composio.controller.js', () => ({
   composioSimpleController: mockComposioSimpleController,
 }));
 
 // Mock auth middleware
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockAuth = vi.fn(() => mockAuthMiddleware);
+const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
-// Mock checkDailyRequestLimit middleware
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
   default: mockCheckDailyRequestLimit,
 }));

@@ -4,14 +4,38 @@ import { usageLogService } from './usageLog.service.js';
 // Mock external dependencies
 // Mock uuid
 vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'mock-uuid-123'),
+  v4: vi.fn().mockImplementation(() => 'mock-uuid-123'),
 }));
 
-// Mock UsageLog model
-const mockUsageLogCreate = vi.fn();
-const mockGetTenantUsageSummary = vi.fn();
-const mockGetUserUsageSummary = vi.fn();
-const mockAggregate = vi.fn();
+const {
+  mockUsageLogCreate,
+  mockGetTenantUsageSummary,
+  mockGetUserUsageSummary,
+  mockAggregate,
+  mockLoggerError,
+  mockCreateHash
+} = vi.hoisted(() => {
+  // Mock UsageLog model
+  const mockUsageLogCreate = vi.fn();
+  const mockGetTenantUsageSummary = vi.fn();
+  const mockGetUserUsageSummary = vi.fn();
+  const mockAggregate = vi.fn();
+
+  // Mock logger
+  const mockLoggerError = vi.fn();
+  const mockCreateHash = vi.fn().mockImplementation(() => ({
+    update: mockUpdate,
+  }));
+
+  return {
+    mockUsageLogCreate,
+    mockGetTenantUsageSummary,
+    mockGetUserUsageSummary,
+    mockAggregate,
+    mockLoggerError,
+    mockCreateHash
+  };
+});
 
 vi.mock('./usageLog.model.js', () => ({
   default: {
@@ -22,8 +46,6 @@ vi.mock('./usageLog.model.js', () => ({
   },
 }));
 
-// Mock logger
-const mockLoggerError = vi.fn();
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     error: mockLoggerError,
@@ -31,12 +53,9 @@ vi.mock('../../../shared/logger.js', () => ({
 }));
 
 // Mock crypto for anonymizeIP
-const mockDigest = vi.fn(() => 'mockedhashvalue');
-const mockUpdate = vi.fn(() => ({
+const mockDigest = vi.fn().mockImplementation(() => 'mockedhashvalue');
+const mockUpdate = vi.fn().mockImplementation(() => ({
   digest: mockDigest,
-}));
-const mockCreateHash = vi.fn(() => ({
-  update: mockUpdate,
 }));
 vi.mock('crypto', () => ({
   default: {

@@ -14,10 +14,22 @@ vi.mock('../../../shared/logger.js', () => ({
 
 // Mock Mongoose models and their methods
 const mockSupportLean = vi.fn();
-const mockSupportLimit = vi.fn(() => ({ lean: mockSupportLean }));
-const mockSupportFind = vi.fn(() => ({ limit: mockSupportLimit, lean: mockSupportLean }));
+const mockSupportLimit = vi.fn().mockImplementation(() => ({ lean: mockSupportLean }));
+
+const {
+  mockSupportFind,
+  mockSupportFindOne
+} = vi.hoisted(() => {
+  const mockSupportFind = vi.fn().mockImplementation(() => ({ limit: mockSupportLimit, lean: mockSupportLean }));
+  const mockSupportFindOne = vi.fn().mockImplementation(() => ({ lean: mockSupportFindOneLean }));
+
+  return {
+    mockSupportFind,
+    mockSupportFindOne
+  };
+});
+
 const mockSupportFindOneLean = vi.fn();
-const mockSupportFindOne = vi.fn(() => ({ lean: mockSupportFindOneLean }));
 
 vi.mock('./support.model.js', () => ({
   default: {

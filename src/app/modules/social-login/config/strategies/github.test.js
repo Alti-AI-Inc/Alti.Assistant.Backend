@@ -1,7 +1,21 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Mock passport-github2 to capture the strategy constructor arguments, especially the verify callback
-const mockStrategyConstructor = vi.fn();
+const {
+  mockStrategyConstructor,
+  mockFindOrCreateUserModel
+} = vi.hoisted(() => {
+  // Mock passport-github2 to capture the strategy constructor arguments, especially the verify callback
+  const mockStrategyConstructor = vi.fn();
+
+  // Mock the utility function
+  const mockFindOrCreateUserModel = vi.fn();
+
+  return {
+    mockStrategyConstructor,
+    mockFindOrCreateUserModel
+  };
+});
+
 vi.mock('passport-github2', () => {
   class MockGithubStrategy {
     constructor(...args) {
@@ -11,8 +25,6 @@ vi.mock('passport-github2', () => {
   return { Strategy: MockGithubStrategy };
 });
 
-// Mock the utility function
-const mockFindOrCreateUserModel = vi.fn();
 vi.mock('../../social-login.utils.js', () => ({
   findOrCreateUserModel: mockFindOrCreateUserModel,
 }));

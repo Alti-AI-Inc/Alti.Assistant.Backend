@@ -11,20 +11,20 @@ vi.mock('../../../shared/enum.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => (req, res, next) => next())
+  default: vi.fn().mockImplementation(() => (req, res, next) => next())
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
-  extractTenantContext: vi.fn((req, res, next) => next())
+  extractTenantContext: vi.fn().mockImplementation((req, res, next) => next())
 }));
 
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
-  validateRequest: vi.fn(() => (req, res, next) => next())
+  validateRequest: vi.fn().mockImplementation(() => (req, res, next) => next())
 }));
 
 vi.mock('./middlewares/uploadKnowledge.js', () => ({
   uploadKnowledge: {
-    single: vi.fn(() => (req, res, next) => {
+    single: vi.fn().mockImplementation(() => (req, res, next) => {
       req.file = { filename: 'test.pdf' };
       next();
     })
@@ -54,22 +54,22 @@ vi.mock('./knowledge.validation.js', () => ({
 
 vi.mock('./knowledge.controller.js', () => ({
   knowledgeController: {
-    uploadFile: vi.fn((req, res) => res.status(200).json({ message: 'uploadFile' })),
-    processFile: vi.fn((req, res) => res.status(200).json({ message: 'processFile' })),
-    getFiles: vi.fn((req, res) => res.status(200).json({ message: 'getFiles' })),
-    getFileById: vi.fn((req, res) => res.status(200).json({ message: 'getFileById' })),
-    deleteFile: vi.fn((req, res) => res.status(200).json({ message: 'deleteFile' })),
-    getStorageStats: vi.fn((req, res) => res.status(200).json({ message: 'getStorageStats' })),
-    createFolder: vi.fn((req, res) => res.status(200).json({ message: 'createFolder' })),
-    getFolders: vi.fn((req, res) => res.status(200).json({ message: 'getFolders' })),
-    getFolderById: vi.fn((req, res) => res.status(200).json({ message: 'getFolderById' })),
-    updateFolder: vi.fn((req, res) => res.status(200).json({ message: 'updateFolder' })),
-    deleteFolder: vi.fn((req, res) => res.status(200).json({ message: 'deleteFolder' })),
-    getFolderContents: vi.fn((req, res) => res.status(200).json({ message: 'getFolderContents' })),
-    conversationalQuery: vi.fn((req, res) => res.status(200).json({ message: 'conversationalQuery' })),
-    queryKnowledge: vi.fn((req, res) => res.status(200).json({ message: 'queryKnowledge' })),
-    semanticSearch: vi.fn((req, res) => res.status(200).json({ message: 'semanticSearch' })),
-    getConversationHistory: vi.fn((req, res) => res.status(200).json({ message: 'getConversationHistory' }))
+    uploadFile: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'uploadFile' })),
+    processFile: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'processFile' })),
+    getFiles: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getFiles' })),
+    getFileById: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getFileById' })),
+    deleteFile: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'deleteFile' })),
+    getStorageStats: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getStorageStats' })),
+    createFolder: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'createFolder' })),
+    getFolders: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getFolders' })),
+    getFolderById: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getFolderById' })),
+    updateFolder: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'updateFolder' })),
+    deleteFolder: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'deleteFolder' })),
+    getFolderContents: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getFolderContents' })),
+    conversationalQuery: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'conversationalQuery' })),
+    queryKnowledge: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'queryKnowledge' })),
+    semanticSearch: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'semanticSearch' })),
+    getConversationHistory: vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'getConversationHistory' }))
   }
 }));
 

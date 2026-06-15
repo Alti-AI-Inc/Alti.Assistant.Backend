@@ -8,12 +8,20 @@ import config from '../../../../config/index.js';
 
 // Mock dependencies
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
-const mockVertexAI = vi.fn(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
-}));
+const {
+  mockVertexAI
+} = vi.hoisted(() => {
+  const mockVertexAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
+  }));
+
+  return {
+    mockVertexAI
+  };
+});
 
 vi.mock('@google-cloud/vertexai', () => ({
   VertexAI: mockVertexAI,

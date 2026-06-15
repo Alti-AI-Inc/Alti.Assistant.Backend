@@ -15,7 +15,7 @@ class MockMulterError extends Error {
 
 // Mock fs module
 vi.mock('fs', () => ({
-  existsSync: vi.fn(() => true), // Assume directory exists by default
+  existsSync: vi.fn().mockImplementation(() => true), // Assume directory exists by default
   mkdirSync: vi.fn(),
 }));
 
@@ -24,14 +24,14 @@ vi.mock('path', async (importOriginal) => {
   const actualPath = await importOriginal();
   return {
     ...actualPath,
-    join: vi.fn((...args) => {
+    join: vi.fn().mockImplementation((...args) => {
       // Custom logic to return a consistent upload directory path
       if (args.includes('uploads/legal_contracts')) {
         return '/mocked/upload/dir';
       }
       return actualPath.join(...args);
     }),
-    dirname: vi.fn(() => '/mock/src/app/modules/legal_contract/middlewares'), // Mock __dirname
+    dirname: vi.fn().mockImplementation(() => '/mock/src/app/modules/legal_contract/middlewares'), // Mock __dirname
     extname: vi.fn(actualPath.extname),
     basename: vi.fn(actualPath.basename),
   };
@@ -48,14 +48,14 @@ vi.mock('../legal_contract.constant.js', () => ({
 
 // Mock multer module
 vi.mock('multer', () => {
-  const mockDiskStorage = vi.fn((options) => options); // Capture options passed to diskStorage
-  const mockMulter = vi.fn((config) => ({ // Capture config passed to multer
+  const mockDiskStorage = vi.fn().mockImplementation((options) => options); // Capture options passed to diskStorage
+  const mockMulter = vi.fn().mockImplementation((config) => ({ // Capture config passed to multer
     config,
-    single: vi.fn(() => (req, res, next) => next()), // Mock the actual middleware function
-    array: vi.fn(() => (req, res, next) => next()),
-    fields: vi.fn(() => (req, res, next) => next()),
-    none: vi.fn(() => (req, res, next) => next()),
-    any: vi.fn(() => (req, res, next) => next()),
+    single: vi.fn().mockImplementation(() => (req, res, next) => next()), // Mock the actual middleware function
+    array: vi.fn().mockImplementation(() => (req, res, next) => next()),
+    fields: vi.fn().mockImplementation(() => (req, res, next) => next()),
+    none: vi.fn().mockImplementation(() => (req, res, next) => next()),
+    any: vi.fn().mockImplementation(() => (req, res, next) => next()),
   }));
   mockMulter.diskStorage = mockDiskStorage;
   mockMulter.MulterError = MockMulterError; // Attach the mock MulterError

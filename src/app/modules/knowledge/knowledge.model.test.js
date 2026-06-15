@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 // Mock mongoose
 const mockSchema = {
   index: vi.fn(),
-  virtual: vi.fn(() => ({ get: vi.fn() })),
+  virtual: vi.fn().mockImplementation(() => ({ get: vi.fn() })),
   statics: {},
   methods: {},
   set: vi.fn(), // For toJSON/toObject options
@@ -17,48 +17,56 @@ const mockQueryChain = {
   exec: vi.fn().mockResolvedValue([]), // Default to empty array
 };
 
-const mockMongoose = {
-  Schema: vi.fn((schemaDef, options) => {
-    // Simulate schema options being set
-    if (options) {
-      if (options.timestamps) {
-        schemaDef.createdAt = { type: Date };
-        schemaDef.updatedAt = { type: Date };
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation((schemaDef, options) => {
+      // Simulate schema options being set
+      if (options) {
+        if (options.timestamps) {
+          schemaDef.createdAt = { type: Date };
+          schemaDef.updatedAt = { type: Date };
+        }
+        if (options.toJSON) {
+          mockSchema.set('toJSON', options.toJSON);
+        }
+        if (options.toObject) {
+          mockSchema.set('toObject', options.toObject);
+        }
       }
-      if (options.toJSON) {
-        mockSchema.set('toJSON', options.toJSON);
-      }
-      if (options.toObject) {
-        mockSchema.set('toObject', options.toObject);
-      }
-    }
-    return mockSchema;
-  }),
-  model: vi.fn((name, schema) => {
-    // Return a mock model constructor
-    const MockModel = function (data) {
-      Object.assign(this, data);
-      this.save = vi.fn().mockResolvedValue(this); // Mock save on instance
-    };
-    // Attach static methods from the schema mock
-    Object.assign(MockModel, schema.statics);
-    // Attach instance methods from the schema mock to the prototype
-    Object.assign(MockModel.prototype, schema.methods);
+      return mockSchema;
+    }),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Return a mock model constructor
+      const MockModel = function (data) {
+        Object.assign(this, data);
+        this.save = vi.fn().mockResolvedValue(this); // Mock save on instance
+      };
+      // Attach static methods from the schema mock
+      Object.assign(MockModel, schema.statics);
+      // Attach instance methods from the schema mock to the prototype
+      Object.assign(MockModel.prototype, schema.methods);
 
-    // Mock query methods that would be on the model directly
-    MockModel.find = vi.fn(() => mockQueryChain);
-    MockModel.countDocuments = vi.fn().mockResolvedValue(0);
-    MockModel.aggregate = vi.fn().mockResolvedValue([]);
+      // Mock query methods that would be on the model directly
+      MockModel.find = vi.fn().mockImplementation(() => mockQueryChain);
+      MockModel.countDocuments = vi.fn().mockResolvedValue(0);
+      MockModel.aggregate = vi.fn().mockResolvedValue([]);
 
-    MockModel.schema = schema; // Attach the schema for inspection
-    return MockModel;
-  }),
-  Types: {
-    ObjectId: {
-      isValid: vi.fn((id) => typeof id === 'string' && id.length === 24), // Simple mock
+      MockModel.schema = schema; // Attach the schema for inspection
+      return MockModel;
+    }),
+    Types: {
+      ObjectId: {
+        isValid: vi.fn().mockImplementation((id) => typeof id === 'string' && id.length === 24), // Simple mock
+      },
     },
-  },
-};
+  };
+
+  return {
+    mockMongoose
+  };
+});
 // Ensure Schema.Types.ObjectId and Mixed are correctly set up for the schema definition
 mockMongoose.Schema.Types = {
   ObjectId: mockMongoose.Types.ObjectId,

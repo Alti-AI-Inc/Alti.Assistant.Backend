@@ -1,42 +1,62 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-// Mock @temporalio/client
-const mockConnection = {
-  connect: vi.fn(),
-};
-const mockClient = {
-  workflow: {
-    start: vi.fn(),
-  },
-};
+const {
+  mockConnection,
+  mockClient,
+  mockRunDurableWorkflow,
+  mockLogger,
+  mockConfig
+} = vi.hoisted(() => {
+  // Mock @temporalio/client
+  const mockConnection = {
+    connect: vi.fn(),
+  };
+  const mockClient = {
+    workflow: {
+      start: vi.fn(),
+    },
+  };
+
+  // Mock runDurableWorkflow
+  const mockRunDurableWorkflow = vi.fn();
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  // Mock config
+  const mockConfig = {
+    temporal: {
+      address: 'test-temporal-address:7233',
+      namespace: 'test-namespace',
+      active: true,
+    },
+  };
+
+  return {
+    mockConnection,
+    mockClient,
+    mockRunDurableWorkflow,
+    mockLogger,
+    mockConfig
+  };
+});
+
 vi.mock('@temporalio/client', () => ({
   Connection: mockConnection,
-  Client: vi.fn(() => mockClient),
+  Client: vi.fn().mockImplementation(() => mockClient),
 }));
 
-// Mock runDurableWorkflow
-const mockRunDurableWorkflow = vi.fn();
 vi.mock('./workflows.js', () => ({
   runDurableWorkflow: mockRunDurableWorkflow,
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-};
 vi.mock('../../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-// Mock config
-const mockConfig = {
-  temporal: {
-    address: 'test-temporal-address:7233',
-    namespace: 'test-namespace',
-    active: true,
-  },
-};
 vi.mock('../../../../../../config/index.js', () => ({
   default: mockConfig,
 }));

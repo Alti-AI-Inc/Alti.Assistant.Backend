@@ -12,7 +12,7 @@ vi.mock('./composio-catalog.controller.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth.middleware.js', () => ({
-  authMiddleware: vi.fn((req, res, next) => next()),
+  authMiddleware: vi.fn().mockImplementation((req, res, next) => next()),
 }));
 
 // Import router and mocked modules

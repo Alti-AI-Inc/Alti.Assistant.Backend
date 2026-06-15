@@ -4,13 +4,21 @@ import { textAnalyzer } from './textAnalyzer.js';
 // Define mock functions prefixed with 'mock' so they are accessible inside vi.mock()
 const mockGenerateContent = vi.fn();
 const mockSendMessage = vi.fn();
-const mockStartChat = vi.fn(() => ({
+const mockStartChat = vi.fn().mockImplementation(() => ({
   sendMessage: mockSendMessage,
 }));
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-  startChat: mockStartChat,
-}));
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+    startChat: mockStartChat,
+  }));
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 
 // Mock external dependencies
 vi.mock('@google/generative-ai', () => {

@@ -5,45 +5,53 @@ const mockSchemaInstance = {
   index: vi.fn(), // Mock the index method
   paths: {}, // Will be populated by the mock Schema constructor
   options: {}, // Will be populated by the mock Schema constructor
-  indexes: vi.fn(() => []), // Mock the indexes method to return an array of indexes
+  indexes: vi.fn().mockImplementation(() => []), // Mock the indexes method to return an array of indexes
 };
 
 // Mock mongoose.Types.ObjectId as a function/constructor
 const MockObjectId = function() {};
 
-const mockMongoose = {
-  Schema: vi.fn((definition, options) => {
-    // Simulate Mongoose's internal path processing for basic checks
-    mockSchemaInstance.paths = {};
-    for (const key in definition) {
-      const fieldDef = definition[key];
-      // Simulate a SchemaType object for basic checks
-      mockSchemaInstance.paths[key] = {
-        path: key,
-        instance: fieldDef.type === String ? 'String' :
-                  fieldDef.type === Boolean ? 'Boolean' :
-                  fieldDef.type === Number ? 'Number' :
-                  fieldDef.type === Date ? 'Date' :
-                  fieldDef.type === MockObjectId ? 'ObjectID' : // Check against our mock ObjectId
-                  undefined, // Default or other types
-        isRequired: fieldDef.required || false,
-        defaultValue: fieldDef.default,
-        options: fieldDef, // Keep original definition for deeper checks
-        caster: fieldDef.ref ? { options: { ref: fieldDef.ref } } : undefined, // Simulate ref property
-        _index: fieldDef.index, // Simulate index property
-      };
-    }
-    mockSchemaInstance.options = options;
-    return mockSchemaInstance;
-  }),
-  model: vi.fn((name, schema) => {
-    // Return a mock model that exposes the schema
-    return { modelName: name, schema: schema };
-  }),
-  Types: {
-    ObjectId: MockObjectId, // Use our mock ObjectId
-  },
-};
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation((definition, options) => {
+      // Simulate Mongoose's internal path processing for basic checks
+      mockSchemaInstance.paths = {};
+      for (const key in definition) {
+        const fieldDef = definition[key];
+        // Simulate a SchemaType object for basic checks
+        mockSchemaInstance.paths[key] = {
+          path: key,
+          instance: fieldDef.type === String ? 'String' :
+                    fieldDef.type === Boolean ? 'Boolean' :
+                    fieldDef.type === Number ? 'Number' :
+                    fieldDef.type === Date ? 'Date' :
+                    fieldDef.type === MockObjectId ? 'ObjectID' : // Check against our mock ObjectId
+                    undefined, // Default or other types
+          isRequired: fieldDef.required || false,
+          defaultValue: fieldDef.default,
+          options: fieldDef, // Keep original definition for deeper checks
+          caster: fieldDef.ref ? { options: { ref: fieldDef.ref } } : undefined, // Simulate ref property
+          _index: fieldDef.index, // Simulate index property
+        };
+      }
+      mockSchemaInstance.options = options;
+      return mockSchemaInstance;
+    }),
+    model: vi.fn().mockImplementation((name, schema) => {
+      // Return a mock model that exposes the schema
+      return { modelName: name, schema: schema };
+    }),
+    Types: {
+      ObjectId: MockObjectId, // Use our mock ObjectId
+    },
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 vi.mock('mongoose', () => mockMongoose);
 

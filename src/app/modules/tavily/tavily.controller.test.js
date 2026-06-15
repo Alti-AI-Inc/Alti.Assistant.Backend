@@ -12,11 +12,35 @@ import { GoogleGenAI } from '@google/genai';
 
 // Mock @google/genai
 const mockSendMessage = vi.fn();
-const mockStartChat = vi.fn(() => ({ sendMessage: mockSendMessage }));
-const mockGetGenerativeModel = vi.fn(() => ({
-  startChat: mockStartChat,
-  model: 'mock-gemini-model',
-}));
+const mockStartChat = vi.fn().mockImplementation(() => ({ sendMessage: mockSendMessage }));
+
+const {
+  mockGetGenerativeModel,
+  mockUserFindById,
+  mockChatHistoryFindOne
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    startChat: mockStartChat,
+    model: 'mock-gemini-model',
+  }));
+
+  // Mock Mongoose Models
+  const mockUserFindById = {
+    select: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+  };
+
+  const mockChatHistoryFindOne = {
+    lean: vi.fn(),
+  };
+
+  return {
+    mockGetGenerativeModel,
+    mockUserFindById,
+    mockChatHistoryFindOne
+  };
+});
+
 vi.mock('@google/genai', () => ({
   GoogleGenAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
@@ -33,33 +57,25 @@ vi.mock('../../../../config/index.js', () => ({
 
 // Mock shared utilities
 vi.mock('../../../shared/catchAsync.js', () => ({
-  default: vi.fn(fn => fn), // Pass-through mock
+  default: vi.fn().mockImplementation(fn => fn), // Pass-through mock
 }));
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: vi.fn(),
 }));
 vi.mock('../../../shared/sessionGenerate.js', () => ({
-  default: vi.fn(() => 'new-mock-session-id'),
+  default: vi.fn().mockImplementation(() => 'new-mock-session-id'),
 }));
 
-// Mock Mongoose Models
-const mockUserFindById = {
-  select: vi.fn().mockReturnThis(),
-  lean: vi.fn(),
-};
 vi.mock('../auth/auth.model.js', () => ({
   default: {
-    findById: vi.fn(() => mockUserFindById),
+    findById: vi.fn().mockImplementation(() => mockUserFindById),
     findByIdAndUpdate: vi.fn().mockResolvedValue(true),
   },
 }));
 
-const mockChatHistoryFindOne = {
-  lean: vi.fn(),
-};
 vi.mock('../conversations/chatHistory.model.js', () => ({
   default: {
-    findOne: vi.fn(() => mockChatHistoryFindOne),
+    findOne: vi.fn().mockImplementation(() => mockChatHistoryFindOne),
     findOneAndUpdate: vi.fn(),
   },
 }));

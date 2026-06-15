@@ -1,18 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the dependencies before any imports
-const mockChatGoogleGenerativeAI = vi.fn();
+const {
+  mockChatGoogleGenerativeAI,
+  mockConfig
+} = vi.hoisted(() => {
+  // Mock the dependencies before any imports
+  const mockChatGoogleGenerativeAI = vi.fn();
+
+  const mockConfig = {
+    gemini_secret_key: 'test-gemini-key',
+    google: {
+      gcp_project_id: 'test-gcp-project',
+      vertex_ai_region: 'test-region',
+    },
+  };
+
+  return {
+    mockChatGoogleGenerativeAI,
+    mockConfig
+  };
+});
+
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,
 }));
 
-const mockConfig = {
-  gemini_secret_key: 'test-gemini-key',
-  google: {
-    gcp_project_id: 'test-gcp-project',
-    vertex_ai_region: 'test-region',
-  },
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));

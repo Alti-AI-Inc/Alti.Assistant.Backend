@@ -5,27 +5,42 @@ import {
   webhookHandler,
 } from './explorium.webhook.handler.js';
 
-// Mock external dependencies
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger,
+  mockRedisClient,
+  mockInvalidateCache
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockRedisClient = {
+    publish: vi.fn(),
+    lpush: vi.fn(),
+    ltrim: vi.fn(),
+    expire: vi.fn(),
+  };
+
+  const mockInvalidateCache = vi.fn();
+
+  return {
+    mockLogger,
+    mockRedisClient,
+    mockInvalidateCache
+  };
+});
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockRedisClient = {
-  publish: vi.fn(),
-  lpush: vi.fn(),
-  ltrim: vi.fn(),
-  expire: vi.fn(),
-};
 vi.mock('../../../shared/redis.js', () => ({
   RedisClient: mockRedisClient,
 }));
 
-const mockInvalidateCache = vi.fn();
 vi.mock('./explorium.cache.js', () => ({
   invalidateCache: mockInvalidateCache,
 }));

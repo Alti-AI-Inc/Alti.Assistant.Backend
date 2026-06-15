@@ -10,26 +10,36 @@ const mockSchemaInstance = {
   // If we needed to test methods called on the schema instance, we would mock them here.
 };
 
-// Mock the mongoose.Schema constructor.
-// When `new mongoose.Schema()` is called in the module under test, this function runs.
-const mockSchemaConstructor = vi.fn(function(definition, options) {
-  mockSchemaInstance.definition = definition;
-  mockSchemaInstance.options = options;
-  // Return the mockSchemaInstance so that `StripeEventSchema` in the original file
-  // holds our mock object, allowing `mongoose.model` to receive it.
-  return mockSchemaInstance;
-});
+const {
+  mockSchemaConstructor,
+  mockModel
+} = vi.hoisted(() => {
+  // Mock the mongoose.Schema constructor.
+  // When `new mongoose.Schema()` is called in the module under test, this function runs.
+  const mockSchemaConstructor = vi.fn(function(definition, options) {
+    mockSchemaInstance.definition = definition;
+    mockSchemaInstance.options = options;
+    // Return the mockSchemaInstance so that `StripeEventSchema` in the original file
+    // holds our mock object, allowing `mongoose.model` to receive it.
+    return mockSchemaInstance;
+  });
 
-// Mock the mongoose.model method.
-// When `mongoose.model()` is called in the module under test, this function runs.
-const mockModel = vi.fn((name, schema) => {
-  // Return a simple object that mimics a Mongoose model.
-  // This allows us to check what was returned by mongoose.model and exported.
+  // Mock the mongoose.model method.
+  // When `mongoose.model()` is called in the module under test, this function runs.
+  const mockModel = vi.fn().mockImplementation((name, schema) => {
+    // Return a simple object that mimics a Mongoose model.
+    // This allows us to check what was returned by mongoose.model and exported.
+    return {
+      modelName: name,
+      schema: schema,
+      // Add other mock methods (e.g., find, create) here if the application code
+      // directly calls them on the exported model in a way that needs testing.
+    };
+  });
+
   return {
-    modelName: name,
-    schema: schema,
-    // Add other mock methods (e.g., find, create) here if the application code
-    // directly calls them on the exported model in a way that needs testing.
+    mockSchemaConstructor,
+    mockModel
   };
 });
 

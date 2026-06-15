@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock external dependencies
 // Mock passport-apple to capture constructor arguments and the verify callback
-const AppleStrategyConstructorMock = vi.fn((options, verifyCallback) => {
+const AppleStrategyConstructorMock = vi.fn().mockImplementation((options, verifyCallback) => {
   // Store options and verifyCallback for testing
   AppleStrategyConstructorMock.mock.lastCallOptions = options;
   AppleStrategyConstructorMock.mock.lastCallVerifyCallback = verifyCallback;
@@ -18,8 +18,16 @@ vi.mock('passport-apple', () => ({
   default: AppleStrategyConstructorMock,
 }));
 
-// Mock the utility function
-const mockFindOrCreateUserModel = vi.fn();
+const {
+  mockFindOrCreateUserModel
+} = vi.hoisted(() => {
+  // Mock the utility function
+  const mockFindOrCreateUserModel = vi.fn();
+
+  return {
+    mockFindOrCreateUserModel
+  };
+});
 vi.mock('../../social-login.utils.js', () => ({
   findOrCreateUserModel: mockFindOrCreateUserModel,
 }));

@@ -6,7 +6,7 @@ class MockObjectId {}
 // Mock Schema instance methods
 const mockSchemaInstance = {
   // This `path` mock is crucial for checking schema type properties
-  path: vi.fn((key) => {
+  path: vi.fn().mockImplementation((key) => {
     // Access the schema definition that was passed to the constructor.
     // Since the constructor is called only once at module load, we get it from `mockSchemaConstructor.mock.calls[0][0]`.
     const schemaDefinition = mockSchemaConstructor.mock.calls[0][0];
@@ -34,19 +34,29 @@ const mockSchemaInstance = {
   index: vi.fn(),
 };
 
-// Mock Schema constructor
-const mockSchemaConstructor = vi.fn(function(definition, options) {
-  // Assign mock methods to `this` to simulate a Mongoose Schema instance
-  Object.assign(this, mockSchemaInstance);
-  this.definition = definition; // Store the definition for inspection
-  this.options = options; // Store options too
-  return this; // Return `this` to simulate constructor behavior
-});
+const {
+  mockSchemaConstructor,
+  mockModel
+} = vi.hoisted(() => {
+  // Mock Schema constructor
+  const mockSchemaConstructor = vi.fn(function(definition, options) {
+    // Assign mock methods to `this` to simulate a Mongoose Schema instance
+    Object.assign(this, mockSchemaInstance);
+    this.definition = definition; // Store the definition for inspection
+    this.options = options; // Store options too
+    return this; // Return `this` to simulate constructor behavior
+  });
 
-// Mock mongoose.model
-const mockModel = vi.fn((name, schema) => {
-  // Return a dummy model object that includes the schema for verification
-  return { modelName: name, schema: schema };
+  // Mock mongoose.model
+  const mockModel = vi.fn().mockImplementation((name, schema) => {
+    // Return a dummy model object that includes the schema for verification
+    return { modelName: name, schema: schema };
+  });
+
+  return {
+    mockSchemaConstructor,
+    mockModel
+  };
 });
 
 // Set up the mock for the 'mongoose' module

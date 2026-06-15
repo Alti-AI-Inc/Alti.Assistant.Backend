@@ -16,7 +16,7 @@ vi.mock('fs', () => ({
 // but for simple joins, it's often not strictly necessary to mock.
 // We'll mock it to be safe and explicit.
 vi.mock('path', () => ({
-  join: vi.fn((...args) => args.join('/')), // Simple join for testing purposes
+  join: vi.fn().mockImplementation((...args) => args.join('/')), // Simple join for testing purposes
 }));
 
 describe('StreamingService', () => {
@@ -28,7 +28,7 @@ describe('StreamingService', () => {
 
     // Create a mock ReadStream that extends EventEmitter
     mockReadStream = Object.assign(new EventEmitter(), {
-      pipe: vi.fn(dest => dest), // Mock pipe to return the destination stream
+      pipe: vi.fn().mockImplementation(dest => dest), // Mock pipe to return the destination stream
       // Add other methods if they are called on the stream object
     });
 

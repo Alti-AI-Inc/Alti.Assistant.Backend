@@ -4,7 +4,15 @@ import { logger } from '../../../../shared/logger.js';
 import { REVIEW_INTENTS } from '../document_review.constant.js';
 
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn();
+const {
+  mockGetGenerativeModel
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn();
+
+  return {
+    mockGetGenerativeModel
+  };
+});
 
 vi.mock('@google-generative-ai', () => {
   return {

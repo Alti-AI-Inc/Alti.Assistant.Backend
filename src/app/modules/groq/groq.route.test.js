@@ -13,14 +13,14 @@ vi.mock('express', () => {
   };
   return {
     default: {
-      Router: vi.fn(() => mockRouter),
+      Router: vi.fn().mockImplementation(() => mockRouter),
     },
   };
 });
 
 // Mock the auth middleware
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => (req, res, next) => next()), // Mock auth to return a simple middleware that calls next
+  default: vi.fn().mockImplementation(() => (req, res, next) => next()), // Mock auth to return a simple middleware that calls next
 }));
 
 // Mock the GroqAiController

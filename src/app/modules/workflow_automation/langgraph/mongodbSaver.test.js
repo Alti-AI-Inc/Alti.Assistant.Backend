@@ -1,21 +1,31 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MongoDBSaver } from './mongodbSaver.js';
 
-// Mock WorkflowCheckpoint model
-const mockWorkflowCheckpoint = {
-  findOne: vi.fn(),
-  find: vi.fn(() => ({
-    sort: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    exec: vi.fn(),
-  })),
-  updateOne: vi.fn(),
-};
+const {
+  mockWorkflowCheckpoint,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock WorkflowCheckpoint model
+  const mockWorkflowCheckpoint = {
+    findOne: vi.fn(),
+    find: vi.fn().mockImplementation(() => ({
+      sort: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      exec: vi.fn(),
+    })),
+    updateOne: vi.fn(),
+  };
 
-// Mock logger
-const mockLogger = {
-  error: vi.fn(),
-};
+  // Mock logger
+  const mockLogger = {
+    error: vi.fn(),
+  };
+
+  return {
+    mockWorkflowCheckpoint,
+    mockLogger
+  };
+});
 
 // Mock BaseCheckpointSaver and its serde property
 // MongoDBSaver extends BaseCheckpointSaver, and relies on `this.serde`
@@ -23,8 +33,8 @@ const mockLogger = {
 class MockBaseCheckpointSaver {
   constructor() {
     this.serde = {
-      parse: vi.fn(str => JSON.parse(str)),
-      stringify: vi.fn(obj => JSON.stringify(obj)),
+      parse: vi.fn().mockImplementation(str => JSON.parse(str)),
+      stringify: vi.fn().mockImplementation(obj => JSON.stringify(obj)),
     };
   }
 }
@@ -52,8 +62,8 @@ describe('MongoDBSaver', () => {
     saver = new MongoDBSaver();
     // Ensure serde mocks are available on the instance and reset for each test
     saver.serde = {
-      parse: vi.fn(str => JSON.parse(str)),
-      stringify: vi.fn(obj => JSON.stringify(obj)),
+      parse: vi.fn().mockImplementation(str => JSON.parse(str)),
+      stringify: vi.fn().mockImplementation(obj => JSON.stringify(obj)),
     };
   });
 

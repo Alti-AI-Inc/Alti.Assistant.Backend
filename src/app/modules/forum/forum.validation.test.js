@@ -1,16 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import forumUserActivitiesValidationSchema from './forum.validation'; // Assuming test file is in the same directory
 
-// Mock dependencies
-const mockMongoose = {
-  Types: {
-    ObjectId: {
-      isValid: vi.fn(),
+const {
+  mockMongoose,
+  mockCategoryValues
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockMongoose = {
+    Types: {
+      ObjectId: {
+        isValid: vi.fn(),
+      },
     },
-  },
-};
+  };
 
-const mockCategoryValues = ['Tech', 'Science', 'Art', 'Gaming', 'Lifestyle'];
+  const mockCategoryValues = ['Tech', 'Science', 'Art', 'Gaming', 'Lifestyle'];
+
+  return {
+    mockMongoose,
+    mockCategoryValues
+  };
+});
 
 vi.mock('mongoose', () => mockMongoose);
 vi.mock('./forum.constant', () => ({ // Assuming forum.constant is in the same directory

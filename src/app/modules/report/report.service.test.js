@@ -4,15 +4,15 @@ import httpStatus from 'http-status';
 // Mock external dependencies first
 vi.mock('mongoose', () => ({
   Types: {
-    ObjectId: vi.fn(() => ({
-      toString: vi.fn(() => 'mockObjectId'),
+    ObjectId: vi.fn().mockImplementation(() => ({
+      toString: vi.fn().mockImplementation(() => 'mockObjectId'),
     })),
   },
 }));
 
 // Mock path.join to return predictable paths
 vi.mock('path', () => ({
-  join: vi.fn((...args) => {
+  join: vi.fn().mockImplementation((...args) => {
     // This mock ensures that any call to path.join returns a predictable,
     // platform-agnostic path for testing purposes.
     // For example, if the call is path.join(process.cwd(), 'output', 'reports', 'file.pdf'),
@@ -27,23 +27,33 @@ vi.mock('path', () => ({
 
 vi.mock('fs', () => ({
   promises: {
-    mkdir: vi.fn(() => Promise.resolve()),
+    mkdir: vi.fn().mockImplementation(() => Promise.resolve()),
   },
 }));
 
-// Mock GoogleGenerativeAI and its methods
-const mockGenerateContent = vi.fn(() =>
-  Promise.resolve({
-    response: {
-      text: vi.fn(() => '{"mockKey": "mockValue"}'),
-    },
-  })
-);
-const mockGetGenerativeModel = vi.fn(() => ({
+const {
+  mockGenerateContent,
+  mockGoogleGenerativeAI
+} = vi.hoisted(() => {
+  // Mock GoogleGenerativeAI and its methods
+  const mockGenerateContent = vi.fn().mockImplementation(() =>
+    Promise.resolve({
+      response: {
+        text: vi.fn().mockImplementation(() => '{"mockKey": "mockValue"}'),
+      },
+    }));
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
+  }));
+
+  return {
+    mockGenerateContent,
+    mockGoogleGenerativeAI
+  };
+});
+
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
-}));
-const mockGoogleGenerativeAI = vi.fn(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
 }));
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: mockGoogleGenerativeAI,
@@ -178,7 +188,7 @@ const resetAllMocks = () => {
   vi.clearAllMocks();
   _mockGenerateContent.mockResolvedValue({
     response: {
-      text: vi.fn(() => '{"mockKey": "mockValue"}'),
+      text: vi.fn().mockImplementation(() => '{"mockKey": "mockValue"}'),
     },
   });
   conversationService.createConversation.mockResolvedValue({
@@ -210,7 +220,7 @@ const resetAllMocks = () => {
   cleanupUploadedFiles.mockImplementation(() => {});
   fsPromises.mkdir.mockResolvedValue(undefined);
   mongoose.Types.ObjectId.mockImplementation(() => ({
-    toString: vi.fn(() => 'mockObjectId'),
+    toString: vi.fn().mockImplementation(() => 'mockObjectId'),
   }));
   path.join.mockImplementation((...args) => {
     if (args.includes('output') && args.includes('reports')) {
@@ -259,7 +269,7 @@ describe('reportService', () => {
 
     it('should generate report content based on provided parameters', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockReportData)) },
       });
 
       const params = {
@@ -304,7 +314,7 @@ describe('reportService', () => {
 
     it('should use default parameters if not provided', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockReportData)) },
       });
 
       const params = {
@@ -321,7 +331,7 @@ describe('reportService', () => {
     it('should handle AI response in markdown code block', async () => {
       const markdownResponse = '```json\n' + JSON.stringify(mockReportData) + '\n```';
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => markdownResponse) },
+        response: { text: vi.fn().mockImplementation(() => markdownResponse) },
       });
 
       const result = await reportService.generateReportContent({ content: 'test' });
@@ -342,7 +352,7 @@ describe('reportService', () => {
 
     it('should throw ApiError on invalid JSON response', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => 'invalid json') },
+        response: { text: vi.fn().mockImplementation(() => 'invalid json') },
       });
 
       await expect(
@@ -370,7 +380,7 @@ describe('reportService', () => {
 
     it('should analyze user message and conversation history', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockAnalysis)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysis)) },
       });
 
       const userMessage = 'Generate a sales report in PDF.';
@@ -401,7 +411,7 @@ describe('reportService', () => {
     it('should handle AI response in markdown code block', async () => {
       const markdownResponse = '```json\n' + JSON.stringify(mockAnalysis) + '\n```';
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => markdownResponse) },
+        response: { text: vi.fn().mockImplementation(() => markdownResponse) },
       });
 
       const result = await reportService.analyzeConversationalRequest('test');
@@ -422,7 +432,7 @@ describe('reportService', () => {
 
     it('should throw ApiError on invalid JSON response', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => 'invalid json') },
+        response: { text: vi.fn().mockImplementation(() => 'invalid json') },
       });
 
       await expect(
@@ -501,10 +511,10 @@ describe('reportService', () => {
       extractContentFromFiles.mockResolvedValueOnce(mockExtractedContent);
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
 
       const result = await reportService.processConversationalRequest(
@@ -594,10 +604,10 @@ describe('reportService', () => {
       });
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
 
       await reportService.processConversationalRequest(
@@ -630,10 +640,10 @@ describe('reportService', () => {
       }); // For subsequent get
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
 
       await reportService.processConversationalRequest(
@@ -660,7 +670,7 @@ describe('reportService', () => {
 
     it('should return needsMoreInfo if AI analysis indicates it', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockAnalysisNeedsMoreInfo)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisNeedsMoreInfo)) },
       });
 
       const result = await reportService.processConversationalRequest(
@@ -702,10 +712,10 @@ describe('reportService', () => {
       extractContentFromFiles.mockRejectedValueOnce(new Error('File processing failed'));
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
 
       const result = await reportService.processConversationalRequest(
@@ -770,7 +780,7 @@ describe('reportService', () => {
     it('should throw error if report generation fails', async () => {
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockRejectedValueOnce(new Error('Report generation error'));
 
@@ -786,10 +796,10 @@ describe('reportService', () => {
     it('should throw error if report export fails', async () => {
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
       exportReport.mockRejectedValueOnce(new Error('Export failed'));
 
@@ -802,10 +812,10 @@ describe('reportService', () => {
     it('should throw error if GCS upload fails', async () => {
       _mockGenerateContent
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockAnalysisReportReady)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockAnalysisReportReady)) },
         })
         .mockResolvedValueOnce({
-          response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+          response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
         });
       uploadReportToGCS.mockRejectedValueOnce(new Error('GCS upload failed'));
 
@@ -831,7 +841,7 @@ describe('reportService', () => {
 
     it('should generate, export, and upload a report directly', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
       });
 
       const result = await reportService.generateReport(mockParams, MOCK_USER_ID);
@@ -878,7 +888,7 @@ describe('reportService', () => {
     it('should use default output format if not provided', async () => {
       const paramsWithoutFormat = { ...mockParams, outputFormat: undefined };
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
       });
 
       await reportService.generateReport(paramsWithoutFormat, MOCK_USER_ID);
@@ -912,7 +922,7 @@ describe('reportService', () => {
 
     it('should throw error if report export fails', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
       });
       exportReport.mockRejectedValueOnce(new Error('Export failed'));
 
@@ -927,7 +937,7 @@ describe('reportService', () => {
 
     it('should throw error if GCS upload fails', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => JSON.stringify(mockGeneratedReportData)) },
+        response: { text: vi.fn().mockImplementation(() => JSON.stringify(mockGeneratedReportData)) },
       });
       uploadReportToGCS.mockRejectedValueOnce(new Error('GCS upload failed'));
 
@@ -962,7 +972,7 @@ describe('reportService', () => {
     it('should analyze uploaded files and return analysis', async () => {
       extractContentFromFiles.mockResolvedValueOnce(mockExtractedData);
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: vi.fn(() => mockAnalysisResult) },
+        response: { text: vi.fn().mockImplementation(() => mockAnalysisResult) },
       });
 
       const result = await reportService.analyzeFiles(

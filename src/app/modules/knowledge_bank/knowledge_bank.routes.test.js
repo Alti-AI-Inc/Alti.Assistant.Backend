@@ -7,19 +7,42 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
-// Mock dependencies
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockExtractTenantContextMiddleware,
+  mockCheckRAGFeatureMiddleware,
+  mockCheckStorageLimitMiddleware,
+  mockUpload
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  };
 
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
-const mockExtractTenantContextMiddleware = vi.fn((req, res, next) => next());
-const mockCheckRAGFeatureMiddleware = vi.fn((req, res, next) => next());
-const mockCheckStorageLimitMiddleware = vi.fn((req, res, next) => next());
-const mockUploadAnyMiddleware = vi.fn((req, res, next) => next());
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockExtractTenantContextMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckRAGFeatureMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCheckStorageLimitMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
+  const mockUpload = {
+    any: vi.fn().mockImplementation(() => mockUploadAnyMiddleware),
+  };
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockExtractTenantContextMiddleware,
+    mockCheckRAGFeatureMiddleware,
+    mockCheckStorageLimitMiddleware,
+    mockUpload
+  };
+});
+
+const mockUploadAnyMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
 vi.mock('express', () => ({
   default: {
@@ -27,11 +50,8 @@ vi.mock('express', () => ({
   },
 }));
 
-const mockUpload = {
-  any: vi.fn(() => mockUploadAnyMiddleware),
-};
 vi.mock('multer', () => ({
-  default: vi.fn(() => mockUpload),
+  default: vi.fn().mockImplementation(() => mockUpload),
   memoryStorage: vi.fn(),
 }));
 
@@ -53,7 +73,7 @@ vi.mock('./knowledge_bank.controller.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => mockAuthMiddleware),
+  default: vi.fn().mockImplementation(() => mockAuthMiddleware),
 }));
 
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({

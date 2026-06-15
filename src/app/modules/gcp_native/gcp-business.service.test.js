@@ -6,7 +6,15 @@ import { GcpBusinessService } from './gcp-business.service.js';
 
 // Mock dependencies
 const mockRequest = vi.fn();
-const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
+const {
+  mockGetClient
+} = vi.hoisted(() => {
+  const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
+
+  return {
+    mockGetClient
+  };
+});
 
 vi.mock('google-auth-library', () => {
   const GoogleAuth = vi.fn().mockImplementation(() => ({

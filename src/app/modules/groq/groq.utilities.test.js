@@ -3,7 +3,7 @@ import { fetchSearchResults } from './groq.utilities'; // Assuming the test file
 
 // Mock the GoogleSearchGroundingTool dependency
 const mockInvoke = vi.fn();
-const MockGoogleSearchGroundingTool = vi.fn(() => ({
+const MockGoogleSearchGroundingTool = vi.fn().mockImplementation(() => ({
   invoke: mockInvoke,
 }));
 

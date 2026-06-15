@@ -1,19 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { langchainOptimizerService } from './langchainOptimizer.service.js';
 
-// Mock dependencies
-const mockGeminiSecretKey = 'mock-gemini-secret-key';
-const mockLoggerInfo = vi.fn();
-const mockLoggerError = vi.fn();
+const {
+  mockGeminiSecretKey,
+  mockLoggerInfo,
+  mockLoggerError,
+  mockChainFindById,
+  mockExecutionFind,
+  mockGoogleGenerativeAI
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockGeminiSecretKey = 'mock-gemini-secret-key';
+  const mockLoggerInfo = vi.fn();
+  const mockLoggerError = vi.fn();
 
-const mockChainFindById = vi.fn();
-const mockExecutionFind = vi.fn();
+  const mockChainFindById = vi.fn();
+  const mockExecutionFind = vi.fn();
 
-const mockGoogleGenerativeAI = vi.fn(() => ({
-  getGenerativeModel: vi.fn(() => ({
-    generateContent: vi.fn(),
-  })),
-}));
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: vi.fn().mockImplementation(() => ({
+      generateContent: vi.fn(),
+    })),
+  }));
+
+  return {
+    mockGeminiSecretKey,
+    mockLoggerInfo,
+    mockLoggerError,
+    mockChainFindById,
+    mockExecutionFind,
+    mockGoogleGenerativeAI
+  };
+});
 
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: mockGoogleGenerativeAI,
@@ -52,7 +70,7 @@ describe('langchainOptimizerService', () => {
     vi.clearAllMocks();
     // Reset the mock for GoogleGenerativeAI to ensure a fresh instance for each test
     mockGoogleGenerativeAI.mockImplementation(() => ({
-      getGenerativeModel: vi.fn(() => ({
+      getGenerativeModel: vi.fn().mockImplementation(() => ({
         generateContent: vi.fn(),
       })),
     }));

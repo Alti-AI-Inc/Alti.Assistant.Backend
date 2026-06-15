@@ -15,7 +15,7 @@ vi.mock('path', () => {
   return {
     default: {
       ...actualPath, // Keep other path methods if they are not explicitly mocked
-      join: vi.fn((...args) => {
+      join: vi.fn().mockImplementation((...args) => {
         // Custom logic for the specific uploadDir path calculation
         if (args[0] === '/mock/path/to/module' && args[1] === '../../../../../uploads/document_analysis') {
           return MOCK_UPLOAD_DIR_RESOLVED;
@@ -23,8 +23,8 @@ vi.mock('path', () => {
         // Fallback for other join calls if any, or a generic join
         return args.join('/');
       }),
-      dirname: vi.fn(() => '/mock/path/to/module'),
-      extname: vi.fn((filename) => {
+      dirname: vi.fn().mockImplementation(() => '/mock/path/to/module'),
+      extname: vi.fn().mockImplementation((filename) => {
         const lastDotIndex = filename.lastIndexOf('.');
         return lastDotIndex !== -1 ? filename.substring(lastDotIndex) : '';
       }),
@@ -40,7 +40,7 @@ vi.mock('fs', () => ({
 }));
 
 vi.mock('url', () => ({
-  fileURLToPath: vi.fn(() => '/mock/path/to/module/file.js'),
+  fileURLToPath: vi.fn().mockImplementation(() => '/mock/path/to/module/file.js'),
 }));
 
 vi.mock('../document_analysis.constant.js', () => ({
@@ -59,8 +59,16 @@ const mockMulterInstance = {
   single: vi.fn(),
   array: vi.fn(),
 };
-const mockMulter = vi.fn(() => mockMulterInstance);
-mockMulter.diskStorage = vi.fn(() => mockDiskStorage);
+const {
+  mockMulter
+} = vi.hoisted(() => {
+  const mockMulter = vi.fn().mockImplementation(() => mockMulterInstance);
+
+  return {
+    mockMulter
+  };
+});
+mockMulter.diskStorage = vi.fn().mockImplementation(() => mockDiskStorage);
 vi.mock('multer', () => ({
   default: mockMulter,
 }));

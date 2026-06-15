@@ -1,24 +1,61 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 
-// Mock express.Router to capture calls
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuth,
+  mockOptionalAuth,
+  mockCheckDailyRequestLimit,
+  mockCreateRateLimiter,
+  mockValidateRequest,
+  mockExtractTenantContext,
+  mockConversationalAssistant,
+  mockGetConversationHistory,
+  mockConversationalRequestSchema,
+  mockGetConversationHistorySchema
+} = vi.hoisted(() => {
+  // Mock express.Router to capture calls
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+
+  // Mock all middleware functions
+  const mockAuth = vi.fn().mockImplementation(() => vi.fn()); // auth returns a middleware function
+  const mockOptionalAuth = vi.fn().mockImplementation(() => vi.fn()); // optionalAuth returns a middleware function
+  const mockCheckDailyRequestLimit = vi.fn(); // Direct middleware function
+  const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => vi.fn()); // createRateLimiter is a factory
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => vi.fn()); // validateRequest is a factory
+  const mockExtractTenantContext = vi.fn(); // Direct middleware function
+
+  // Mock controller functions
+  const mockConversationalAssistant = vi.fn();
+  const mockGetConversationHistory = vi.fn();
+
+  // Mock validation schemas
+  const mockConversationalRequestSchema = { _isJoi: true, description: 'conversationalRequestSchema' };
+  const mockGetConversationHistorySchema = { _isJoi: true, description: 'getConversationHistorySchema' };
+
+  return {
+    mockRouter,
+    mockAuth,
+    mockOptionalAuth,
+    mockCheckDailyRequestLimit,
+    mockCreateRateLimiter,
+    mockValidateRequest,
+    mockExtractTenantContext,
+    mockConversationalAssistant,
+    mockGetConversationHistory,
+    mockConversationalRequestSchema,
+    mockGetConversationHistorySchema
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
-
-// Mock all middleware functions
-const mockAuth = vi.fn(() => vi.fn()); // auth returns a middleware function
-const mockOptionalAuth = vi.fn(() => vi.fn()); // optionalAuth returns a middleware function
-const mockCheckDailyRequestLimit = vi.fn(); // Direct middleware function
-const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn()); // createRateLimiter is a factory
-const mockValidateRequest = vi.fn((schema) => vi.fn()); // validateRequest is a factory
-const mockExtractTenantContext = vi.fn(); // Direct middleware function
 
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuth }));
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuth }));
@@ -27,9 +64,6 @@ vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({ default: mockCrea
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validateRequest: mockValidateRequest }));
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
 
-// Mock controller functions
-const mockConversationalAssistant = vi.fn();
-const mockGetConversationHistory = vi.fn();
 vi.mock('./creative_writing.controller.js', () => ({
   creativeWritingController: {
     conversationalAssistant: mockConversationalAssistant,
@@ -37,9 +71,6 @@ vi.mock('./creative_writing.controller.js', () => ({
   },
 }));
 
-// Mock validation schemas
-const mockConversationalRequestSchema = { _isJoi: true, description: 'conversationalRequestSchema' };
-const mockGetConversationHistorySchema = { _isJoi: true, description: 'getConversationHistorySchema' };
 vi.mock('./creative_writing.validation.js', () => ({
   CreativeWritingValidation: {
     conversationalRequestSchema: mockConversationalRequestSchema,

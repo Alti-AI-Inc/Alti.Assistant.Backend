@@ -22,14 +22,28 @@ const mockStripeSubscriptions = {
   list: vi.fn(),
 };
 
-const mockStripeInstance = {
-  customers: mockStripeCustomers,
-  subscriptions: mockStripeSubscriptions,
-};
+const {
+  mockStripeInstance,
+  mockProductFind
+} = vi.hoisted(() => {
+  const mockStripeInstance = {
+    customers: mockStripeCustomers,
+    subscriptions: mockStripeSubscriptions,
+  };
+
+  const mockProductFind = vi.fn().mockImplementation(() => ({
+    lean: mockProductLean,
+  }));
+
+  return {
+    mockStripeInstance,
+    mockProductFind
+  };
+});
 
 // Mock the 'stripe' module itself
 vi.mock('stripe', () => ({
-  default: vi.fn(() => mockStripeInstance),
+  default: vi.fn().mockImplementation(() => mockStripeInstance),
 }));
 
 // Mock the config module
@@ -43,9 +57,6 @@ vi.mock('../../../../../config/index.js', () => ({
 
 // Mock the Product model
 const mockProductLean = vi.fn();
-const mockProductFind = vi.fn(() => ({
-  lean: mockProductLean,
-}));
 
 vi.mock('../products/products.model.js', () => ({
   default: {

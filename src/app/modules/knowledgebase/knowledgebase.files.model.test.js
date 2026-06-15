@@ -10,21 +10,29 @@ const methods = {};
 const virtuals = {};
 const indexes = [];
 
-const mockSchemaInstance = {
-  index: vi.fn((indexDef) => indexes.push(indexDef)),
-  virtual: vi.fn((name) => ({
-    get: (getter) => {
-      virtuals[name] = { get: getter };
-    },
-  })),
-  statics, // Plain object to be populated by the model file
-  methods, // Plain object to be populated by the model file
-};
+const {
+  mockSchemaInstance
+} = vi.hoisted(() => {
+  const mockSchemaInstance = {
+    index: vi.fn().mockImplementation((indexDef) => indexes.push(indexDef)),
+    virtual: vi.fn().mockImplementation((name) => ({
+      get: (getter) => {
+        virtuals[name] = { get: getter };
+      },
+    })),
+    statics, // Plain object to be populated by the model file
+    methods, // Plain object to be populated by the model file
+  };
+
+  return {
+    mockSchemaInstance
+  };
+});
 
 // Mock the mongoose module before importing the model file
 vi.mock('mongoose', () => ({
   default: {
-    Schema: vi.fn((def, opt) => {
+    Schema: vi.fn().mockImplementation((def, opt) => {
       // Capture the schema definition and options for later assertions
       Object.assign(schemaDefinition, def);
       Object.assign(schemaOptions, opt);

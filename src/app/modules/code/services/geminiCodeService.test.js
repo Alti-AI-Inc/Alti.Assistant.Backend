@@ -13,7 +13,7 @@ import {
 // Mock external dependencies
 vi.mock('@google/genai', () => {
   const mockGenerateContent = vi.fn();
-  const mockGoogleGenAI = vi.fn(() => ({
+  const mockGoogleGenAI = vi.fn().mockImplementation(() => ({
     vertexAI: {
       project: 'mock-project',
       location: 'mock-location',

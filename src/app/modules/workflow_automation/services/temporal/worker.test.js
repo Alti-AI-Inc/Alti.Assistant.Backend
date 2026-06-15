@@ -7,13 +7,39 @@ import config from '../../../../../../config/index.js';
 import { temporalWorkerCoordinator } from './worker';
 
 const mockWorkerInstance = {
-  run: vi.fn(() => Promise.resolve()),
-  shutdown: vi.fn(() => Promise.resolve()),
+  run: vi.fn().mockImplementation(() => Promise.resolve()),
+  shutdown: vi.fn().mockImplementation(() => Promise.resolve()),
 };
 
-const mockWorker = {
-  create: vi.fn(() => Promise.resolve(mockWorkerInstance)),
-};
+const {
+  mockWorker,
+  mockLogger,
+  mockConfig
+} = vi.hoisted(() => {
+  const mockWorker = {
+    create: vi.fn().mockImplementation(() => Promise.resolve(mockWorkerInstance)),
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  const mockConfig = {
+    temporal: {
+      address: 'test-temporal:7233',
+      namespace: 'test-namespace',
+      active: true,
+    },
+  };
+
+  return {
+    mockWorker,
+    mockLogger,
+    mockConfig
+  };
+});
 
 vi.mock('@temporalio/worker', () => ({
   Worker: mockWorker,
@@ -21,35 +47,23 @@ vi.mock('@temporalio/worker', () => ({
 
 vi.mock('path', () => ({
   default: {
-    resolve: vi.fn((_, p) => p),
-    dirname: vi.fn(() => '/mock/dir'),
+    resolve: vi.fn().mockImplementation((_, p) => p),
+    dirname: vi.fn().mockImplementation(() => '/mock/dir'),
   },
 }));
 
 vi.mock('url', () => ({
-  fileURLToPath: vi.fn(() => '/mock/file.js'),
+  fileURLToPath: vi.fn().mockImplementation(() => '/mock/file.js'),
 }));
 
 vi.mock('./activities.js', () => ({
   activities: {},
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));
 
-const mockConfig = {
-  temporal: {
-    address: 'test-temporal:7233',
-    namespace: 'test-namespace',
-    active: true,
-  },
-};
 vi.mock('../../../../../../config/index.js', () => ({
   default: mockConfig,
 }));

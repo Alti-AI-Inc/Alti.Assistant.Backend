@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GcpAdkService } from './gcp-adk.service.js'; // Adjust path as necessary
 
-// Mock the logger dependency
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock the logger dependency
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockLogger
+  };
+});
 
 // Mock the module to inject the mock logger
 vi.mock('../../../shared/logger.js', () => ({

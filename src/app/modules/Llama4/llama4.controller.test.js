@@ -2,15 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 import { Llama4AiController } from './llama4.controller';
 
-// Mock shared utilities and services
-const mockCatchAsync = (fn) => fn; // catchAsync just wraps, so we can test the inner function directly
-const mockSendResponse = vi.fn();
-const mockValidatePromptRequest = vi.fn();
+const {
+  mockCatchAsync,
+  mockSendResponse,
+  mockValidatePromptRequest,
+  mockLlama4AiServices
+} = vi.hoisted(() => {
+  // Mock shared utilities and services
+  const mockCatchAsync = (fn) => fn; // catchAsync just wraps, so we can test the inner function directly
+  const mockSendResponse = vi.fn();
+  const mockValidatePromptRequest = vi.fn();
 
-// Mock the service layer
-const mockLlama4AiServices = {
-  Llama4AiGetResponseService: vi.fn(),
-};
+  // Mock the service layer
+  const mockLlama4AiServices = {
+    Llama4AiGetResponseService: vi.fn(),
+  };
+
+  return {
+    mockCatchAsync,
+    mockSendResponse,
+    mockValidatePromptRequest,
+    mockLlama4AiServices
+  };
+});
 
 // Mock the modules that are imported
 vi.mock('../../../shared/catchAsync.js', () => ({

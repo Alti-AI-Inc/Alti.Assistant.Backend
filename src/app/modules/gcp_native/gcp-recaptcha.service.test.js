@@ -1,28 +1,43 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GcpRecaptchaService } from './gcp-recaptcha.service.js';
 
-// Mock external dependencies
-const mockGoogleAuth = {
-  getClient: vi.fn(),
-};
+const {
+  mockGoogleAuth,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockGoogleAuth = {
+    getClient: vi.fn(),
+  };
+
+  const mockConfig = {
+    google: {
+      gcp_project_id: 'test-project-id',
+    },
+    recaptcha_site_key: 'test-config-site-key',
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockGoogleAuth,
+    mockConfig,
+    mockLogger
+  };
+});
+
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn(() => mockGoogleAuth),
+  GoogleAuth: vi.fn().mockImplementation(() => mockGoogleAuth),
 }));
 
-const mockConfig = {
-  google: {
-    gcp_project_id: 'test-project-id',
-  },
-  recaptcha_site_key: 'test-config-site-key',
-};
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

@@ -6,66 +6,95 @@ import {
   purgeCorruptDatasetActivity
 } from './ingestionActivities.js';
 
-// Mock external dependencies
-const mockDatasetsCrawlerService = {
-  scanHuggingFaceHub: vi.fn()
-};
+const {
+  mockDatasetsCrawlerService,
+  mockDatasetsService,
+  mockDatasetFindOne,
+  mockDataset,
+  mockDatasetQueueFindOne,
+  mockDatasetQueue,
+  mockStorage,
+  mockPathJoin,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockDatasetsCrawlerService = {
+    scanHuggingFaceHub: vi.fn()
+  };
 
-const mockDatasetsService = {
-  getHFDatasetInfo: vi.fn(),
-  archiveDatasetToGCSCore: vi.fn(),
-  indexDatasetForRAGCore: vi.fn()
-};
+  const mockDatasetsService = {
+    getHFDatasetInfo: vi.fn(),
+    archiveDatasetToGCSCore: vi.fn(),
+    indexDatasetForRAGCore: vi.fn()
+  };
+
+  const mockDatasetFindOne = vi.fn();
+  const mockDataset = vi.fn().mockImplementation(() => ({
+    datasetId: 'mock-new-dataset',
+    name: 'Mock New Dataset',
+    author: 'Mock Author',
+    description: 'Mock Description',
+    downloads: 100,
+    likes: 10,
+    tags: ['mock', 'test'],
+    configs: [],
+    splits: [],
+    status: 'pending',
+    save: mockDatasetSave
+  }));
+
+  const mockDatasetQueueFindOne = vi.fn();
+  const mockDatasetQueue = vi.fn().mockImplementation(() => ({
+    datasetId: 'mock-queued-dataset',
+    status: 'pending',
+    save: mockDatasetQueueSave
+  }));
+
+  const mockStorage = vi.fn().mockImplementation(() => ({
+    bucket: mockStorageBucket
+  }));
+
+  const mockPathJoin = vi.fn();
+
+  const mockConfig = {
+    google: {
+      google_application_credentials: 'mock-gcp-key.json'
+    },
+    gcs: {
+      knowledge_bank_bucket: 'mock-gcs-bucket'
+    }
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn()
+  };
+
+  return {
+    mockDatasetsCrawlerService,
+    mockDatasetsService,
+    mockDatasetFindOne,
+    mockDataset,
+    mockDatasetQueueFindOne,
+    mockDatasetQueue,
+    mockStorage,
+    mockPathJoin,
+    mockConfig,
+    mockLogger
+  };
+});
 
 const mockDatasetSave = vi.fn();
-const mockDatasetFindOne = vi.fn();
-const mockDataset = vi.fn(() => ({
-  datasetId: 'mock-new-dataset',
-  name: 'Mock New Dataset',
-  author: 'Mock Author',
-  description: 'Mock Description',
-  downloads: 100,
-  likes: 10,
-  tags: ['mock', 'test'],
-  configs: [],
-  splits: [],
-  status: 'pending',
-  save: mockDatasetSave
-}));
 
 const mockDatasetQueueSave = vi.fn();
-const mockDatasetQueueFindOne = vi.fn();
-const mockDatasetQueue = vi.fn(() => ({
-  datasetId: 'mock-queued-dataset',
-  status: 'pending',
-  save: mockDatasetQueueSave
-}));
 
 const mockFileDelete = vi.fn();
 const mockBucketGetFiles = vi.fn();
-const mockStorageBucket = vi.fn(() => ({
+const mockStorageBucket = vi.fn().mockImplementation(() => ({
   getFiles: mockBucketGetFiles
 }));
-const mockStorage = vi.fn(() => ({
-  bucket: mockStorageBucket
-}));
-
-const mockPathJoin = vi.fn();
-
-const mockConfig = {
-  google: {
-    google_application_credentials: 'mock-gcp-key.json'
-  },
-  gcs: {
-    knowledge_bank_bucket: 'mock-gcs-bucket'
-  }
-};
-
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn()
-};
 
 vi.mock('../datasetsCrawler.service.js', () => ({
   DatasetsCrawlerService: mockDatasetsCrawlerService

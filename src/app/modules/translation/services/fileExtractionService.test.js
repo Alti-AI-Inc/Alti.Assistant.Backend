@@ -21,7 +21,7 @@ vi.mock('fs', () => ({
 }));
 
 vi.mock('util', () => ({
-  promisify: vi.fn(fn => fn), // Pass through the mocked fs.readFile
+  promisify: vi.fn().mockImplementation(fn => fn), // Pass through the mocked fs.readFile
 }));
 
 vi.mock('mammoth', () => ({

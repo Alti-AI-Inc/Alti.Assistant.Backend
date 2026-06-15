@@ -18,7 +18,7 @@ const mockProcess = {
   stdin: { write: vi.fn() },
   stdout: new EventEmitter(),
   stderr: new EventEmitter(),
-  on: vi.fn((event, cb) => {
+  on: vi.fn().mockImplementation((event, cb) => {
     if (event === 'exit') mockProcess.exitCb = cb;
     if (event === 'error') mockProcess.errorCb = cb;
     return mockProcess;
@@ -30,7 +30,7 @@ const mockProcess = {
 };
 
 const mockReadlineInterface = {
-  on: vi.fn((event, cb) => {
+  on: vi.fn().mockImplementation((event, cb) => {
     if (event === 'line') mockReadlineInterface.lineCb = cb;
   }),
   lineCb: null,

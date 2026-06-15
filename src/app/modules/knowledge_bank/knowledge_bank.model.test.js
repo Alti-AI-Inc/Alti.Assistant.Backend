@@ -4,11 +4,19 @@ import KnowledgeBankFile from '../../../../../src/app/modules/knowledge_bank/kno
 
 // Mocking PubSub
 const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn(() => ({
-  publishMessage: mockPublishMessage,
-}));
+const {
+  mockTopic
+} = vi.hoisted(() => {
+  const mockTopic = vi.fn().mockImplementation(() => ({
+    publishMessage: mockPublishMessage,
+  }));
+
+  return {
+    mockTopic
+  };
+});
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn(() => ({
+  PubSub: vi.fn().mockImplementation(() => ({
     topic: mockTopic,
   })),
 }));

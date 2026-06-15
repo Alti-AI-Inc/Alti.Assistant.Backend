@@ -4,17 +4,36 @@ import { workflowController } from '../controllers/workflow.controller.js';
 import auth from '../../../middlewares/auth/auth.js';
 import optionalAuth from '../../../middlewares/auth/optionalAuth.js';
 
-// Mock express and its Router method
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-};
+const {
+  mockRouter,
+  mockAuthMiddleware,
+  mockOptionalAuthMiddleware
+} = vi.hoisted(() => {
+  // Mock express and its Router method
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+  };
+
+  // Mock auth middleware
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock optionalAuth middleware
+  const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
+  return {
+    mockRouter,
+    mockAuthMiddleware,
+    mockOptionalAuthMiddleware
+  };
+});
+
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
 
@@ -33,16 +52,12 @@ vi.mock('../controllers/workflow.controller.js', () => ({
   },
 }));
 
-// Mock auth middleware
-const mockAuthMiddleware = vi.fn((req, res, next) => next());
 vi.mock('../../../middlewares/auth/auth.js', () => ({
-  default: vi.fn(() => mockAuthMiddleware), // auth() returns a middleware function
+  default: vi.fn().mockImplementation(() => mockAuthMiddleware), // auth() returns a middleware function
 }));
 
-// Mock optionalAuth middleware
-const mockOptionalAuthMiddleware = vi.fn((req, res, next) => next());
 vi.mock('../../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => mockOptionalAuthMiddleware), // optionalAuth() returns a middleware function
+  default: vi.fn().mockImplementation(() => mockOptionalAuthMiddleware), // optionalAuth() returns a middleware function
 }));
 
 // Import the router after all mocks are set up

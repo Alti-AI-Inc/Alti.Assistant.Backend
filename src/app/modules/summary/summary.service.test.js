@@ -16,7 +16,7 @@ vi.mock('http-status', () => ({
 }));
 
 vi.mock('../../../errors/ApiError.js', () => ({
-  default: vi.fn((statusCode, message) => {
+  default: vi.fn().mockImplementation((statusCode, message) => {
     const error = new Error(message);
     error.statusCode = statusCode;
     return error;
@@ -48,8 +48,8 @@ vi.mock('../conversations/conversation.helpers.js', () => ({
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },

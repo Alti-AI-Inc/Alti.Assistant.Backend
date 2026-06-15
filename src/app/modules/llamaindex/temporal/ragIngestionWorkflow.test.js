@@ -1,12 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { resilientRAGIngestionWorkflow } from './ragIngestionWorkflow';
 
-// Mock the activities module functions
-const mockDownloadAndLoadFileActivity = vi.fn();
-const mockParseToMarkdownActivity = vi.fn();
-const mockChunkAndEmbedActivity = vi.fn();
-const mockCommitToVectorStoreActivity = vi.fn();
-const mockCleanupFailedIngestionActivity = vi.fn();
+const {
+  mockDownloadAndLoadFileActivity,
+  mockParseToMarkdownActivity,
+  mockChunkAndEmbedActivity,
+  mockCommitToVectorStoreActivity,
+  mockCleanupFailedIngestionActivity
+} = vi.hoisted(() => {
+  // Mock the activities module functions
+  const mockDownloadAndLoadFileActivity = vi.fn();
+  const mockParseToMarkdownActivity = vi.fn();
+  const mockChunkAndEmbedActivity = vi.fn();
+  const mockCommitToVectorStoreActivity = vi.fn();
+  const mockCleanupFailedIngestionActivity = vi.fn();
+
+  return {
+    mockDownloadAndLoadFileActivity,
+    mockParseToMarkdownActivity,
+    mockChunkAndEmbedActivity,
+    mockCommitToVectorStoreActivity,
+    mockCleanupFailedIngestionActivity
+  };
+});
 
 // Mock the dynamic import for ragIngestionActivities.js
 // Vitest will intercept this module path regardless of whether it's a static or dynamic import.
@@ -21,7 +37,7 @@ vi.mock('./ragIngestionActivities.js', () => ({
 // Mock @temporalio/workflow. This mock will be used when `isMock` is false.
 // The `proxyActivities` function will return an object containing our shared mock activity functions.
 vi.mock('@temporalio/workflow', () => ({
-  proxyActivities: vi.fn(() => ({
+  proxyActivities: vi.fn().mockImplementation(() => ({
     downloadAndLoadFileActivity: mockDownloadAndLoadFileActivity,
     parseToMarkdownActivity: mockParseToMarkdownActivity,
     chunkAndEmbedActivity: mockChunkAndEmbedActivity,

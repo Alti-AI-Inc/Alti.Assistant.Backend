@@ -9,7 +9,7 @@ import { cronManager } from './cronManager.service.js';
 vi.mock('node-cron', () => ({
   default: {
     schedule: vi.fn(),
-    validate: vi.fn(() => true),
+    validate: vi.fn().mockImplementation(() => true),
   },
 }));
 

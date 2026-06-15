@@ -2,18 +2,38 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock dependencies
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
-  generateContent: mockGenerateContent,
-}));
+
+const {
+  mockGetGenerativeModel,
+  mockConsume,
+  mockLogger
+} = vi.hoisted(() => {
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+  }));
+
+  const mockConsume = vi.fn();
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockGetGenerativeModel,
+    mockConsume,
+    mockLogger
+  };
+});
+
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
     getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
-const mockConsume = vi.fn();
 vi.mock('rate-limiter-flexible', () => ({
-  RateLimiterRedis: vi.fn(() => ({
+  RateLimiterRedis: vi.fn().mockImplementation(() => ({
     consume: mockConsume,
   })),
 }));
@@ -28,10 +48,6 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

@@ -1,23 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GoogleAuth } from 'google-auth-library';
 
-// Mock dependencies
-const mockGoogleAuthInstance = {
-  getClient: vi.fn(),
-};
-const mockConfig = {
-  google: {
-    gcp_project_id: 'test-project-id',
-    gcp_location: 'us-central1',
-  },
-};
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockGoogleAuthInstance,
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockGoogleAuthInstance = {
+    getClient: vi.fn(),
+  };
+  const mockConfig = {
+    google: {
+      gcp_project_id: 'test-project-id',
+      gcp_location: 'us-central1',
+    },
+  };
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockGoogleAuthInstance,
+    mockConfig,
+    mockLogger
+  };
+});
 
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn(() => mockGoogleAuthInstance),
+  GoogleAuth: vi.fn().mockImplementation(() => mockGoogleAuthInstance),
 }));
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,

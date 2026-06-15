@@ -2,46 +2,94 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 
-// Mock all external dependencies
-// Mock optionalAuth - it's a function that returns a middleware
-const mockOptionalAuthMiddleware = vi.fn((req, res, next) => {
-  req.user = { id: 'test-user-id', role: 'user' }; // Simulate an authenticated user
-  next();
+const {
+  mockOptionalAuthMiddleware,
+  mockExtractTenantContext,
+  mockCheckDailyRequestLimit,
+  mockUploadTranslationSingle,
+  mockValidateRequest,
+  mockConversationalRequestSchema,
+  mockTranslateTextSchema,
+  mockDetectLanguageSchema,
+  mockConversationalAssistant,
+  mockTranslateText,
+  mockDetectLanguage,
+  mockGetSupportedLanguages
+} = vi.hoisted(() => {
+  // Mock all external dependencies
+  // Mock optionalAuth - it's a function that returns a middleware
+  const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => {
+    req.user = { id: 'test-user-id', role: 'user' }; // Simulate an authenticated user
+    next();
+  });
+
+  // Mock extractTenantContext
+  const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => {
+    req.tenant = { id: 'test-tenant-id' };
+    next();
+  });
+
+  // Mock checkDailyRequestLimit
+  const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
+
+  // Mock uploadTranslation (multer middleware)
+  const mockUploadTranslationSingle = vi.fn().mockImplementation((fieldName) => (req, res, next) => {
+    // Simulate multer processing: if a file is attached, populate req.file
+    if (req.file) { // supertest's .attach() will set req.file
+      req.file = {
+        fieldname: fieldName,
+        originalname: 'test.txt',
+        encoding: '7bit',
+        mimetype: 'text/plain',
+        buffer: Buffer.from('test content'),
+        size: 12,
+      };
+    }
+    next();
+  });
+  const mockValidateRequest = vi.fn().mockImplementation((schema) => mockValidateRequestMiddleware);
+
+  // Mock TranslationValidation schemas
+  const mockConversationalRequestSchema = { type: 'object', properties: { prompt: { type: 'string' } }, _isJoi: true };
+  const mockTranslateTextSchema = { type: 'object', properties: { text: { type: 'string' } }, _isJoi: true };
+  const mockDetectLanguageSchema = { type: 'object', properties: { text: { type: 'string' } }, _isJoi: true };
+
+  // Mock translationController
+  const mockConversationalAssistant = vi.fn().mockImplementation(
+    (req, res) => res.status(200).json({ message: 'Conversational assistant response' })
+  );
+  const mockTranslateText = vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'Translated text' }));
+  const mockDetectLanguage = vi.fn().mockImplementation((req, res) => res.status(200).json({ message: 'Detected language' }));
+  const mockGetSupportedLanguages = vi.fn().mockImplementation((req, res) => res.status(200).json({ languages: ['en', 'es', 'fr'] }));
+
+  return {
+    mockOptionalAuthMiddleware,
+    mockExtractTenantContext,
+    mockCheckDailyRequestLimit,
+    mockUploadTranslationSingle,
+    mockValidateRequest,
+    mockConversationalRequestSchema,
+    mockTranslateTextSchema,
+    mockDetectLanguageSchema,
+    mockConversationalAssistant,
+    mockTranslateText,
+    mockDetectLanguage,
+    mockGetSupportedLanguages
+  };
 });
+
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({
-  default: vi.fn(() => mockOptionalAuthMiddleware),
+  default: vi.fn().mockImplementation(() => mockOptionalAuthMiddleware),
 }));
 
-// Mock extractTenantContext
-const mockExtractTenantContext = vi.fn((req, res, next) => {
-  req.tenant = { id: 'test-tenant-id' };
-  next();
-});
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({
   extractTenantContext: mockExtractTenantContext,
 }));
 
-// Mock checkDailyRequestLimit
-const mockCheckDailyRequestLimit = vi.fn((req, res, next) => next());
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({
   default: mockCheckDailyRequestLimit,
 }));
 
-// Mock uploadTranslation (multer middleware)
-const mockUploadTranslationSingle = vi.fn((fieldName) => (req, res, next) => {
-  // Simulate multer processing: if a file is attached, populate req.file
-  if (req.file) { // supertest's .attach() will set req.file
-    req.file = {
-      fieldname: fieldName,
-      originalname: 'test.txt',
-      encoding: '7bit',
-      mimetype: 'text/plain',
-      buffer: Buffer.from('test content'),
-      size: 12,
-    };
-  }
-  next();
-});
 vi.mock('./middlewares/uploadTranslation.js', () => ({
   uploadTranslation: {
     single: mockUploadTranslationSingle,
@@ -49,16 +97,11 @@ vi.mock('./middlewares/uploadTranslation.js', () => ({
 }));
 
 // Mock validateRequest - it's a function that returns a middleware
-const mockValidateRequestMiddleware = vi.fn((req, res, next) => next());
-const mockValidateRequest = vi.fn((schema) => mockValidateRequestMiddleware);
+const mockValidateRequestMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({
   validateRequest: mockValidateRequest,
 }));
 
-// Mock TranslationValidation schemas
-const mockConversationalRequestSchema = { type: 'object', properties: { prompt: { type: 'string' } }, _isJoi: true };
-const mockTranslateTextSchema = { type: 'object', properties: { text: { type: 'string' } }, _isJoi: true };
-const mockDetectLanguageSchema = { type: 'object', properties: { text: { type: 'string' } }, _isJoi: true };
 vi.mock('./translation.validation.js', () => ({
   TranslationValidation: {
     conversationalRequestSchema: mockConversationalRequestSchema,
@@ -67,11 +110,6 @@ vi.mock('./translation.validation.js', () => ({
   },
 }));
 
-// Mock translationController
-const mockConversationalAssistant = vi.fn((req, res) => res.status(200).json({ message: 'Conversational assistant response' }));
-const mockTranslateText = vi.fn((req, res) => res.status(200).json({ message: 'Translated text' }));
-const mockDetectLanguage = vi.fn((req, res) => res.status(200).json({ message: 'Detected language' }));
-const mockGetSupportedLanguages = vi.fn((req, res) => res.status(200).json({ languages: ['en', 'es', 'fr'] }));
 vi.mock('./translation.controller.js', () => ({
   translationController: {
     conversationalAssistant: mockConversationalAssistant,

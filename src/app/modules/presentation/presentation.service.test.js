@@ -22,8 +22,8 @@ import {
 vi.mock('mongoose', () => ({
   default: {
     Types: {
-      ObjectId: vi.fn(() => ({
-        toString: vi.fn(() => 'mockObjectIdString'),
+      ObjectId: vi.fn().mockImplementation(() => ({
+        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
       })),
     },
   },
@@ -31,7 +31,7 @@ vi.mock('mongoose', () => ({
 
 vi.mock('path', () => ({
   default: {
-    basename: vi.fn((p) => p.split('/').pop()),
+    basename: vi.fn().mockImplementation((p) => p.split('/').pop()),
   },
 }));
 

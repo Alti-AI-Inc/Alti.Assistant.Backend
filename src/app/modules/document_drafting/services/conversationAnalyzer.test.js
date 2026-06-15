@@ -3,19 +3,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock external dependencies
 // Mock @google/generative-ai
 const mockGenerateContent = vi.fn();
-const mockGetGenerativeModel = vi.fn(() => ({
+const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
-const mockGoogleGenerativeAI = vi.fn(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
-}));
+
+const {
+  mockGoogleGenerativeAI,
+  mockLoggerInfo,
+  mockLoggerError
+} = vi.hoisted(() => {
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
+  }));
+
+  // Mock logger
+  const mockLoggerInfo = vi.fn();
+  const mockLoggerError = vi.fn();
+
+  return {
+    mockGoogleGenerativeAI,
+    mockLoggerInfo,
+    mockLoggerError
+  };
+});
+
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: mockGoogleGenerativeAI,
 }));
 
-// Mock logger
-const mockLoggerInfo = vi.fn();
-const mockLoggerError = vi.fn();
 vi.mock('../../../../shared/logger.js', () => ({
   logger: {
     info: mockLoggerInfo,
@@ -64,7 +79,7 @@ describe('conversationAnalyzer functions', () => {
     // Set a default mock for generateContent for most tests to return a valid JSON structure
     mockGenerateContent.mockResolvedValue({
       response: {
-        text: vi.fn(() => JSON.stringify({
+        text: vi.fn().mockImplementation(() => JSON.stringify({
           intent: DOCUMENT_INTENTS.DRAFT,
           confidence: 0.9,
           parameters: { content: 'default content' },

@@ -6,30 +6,44 @@ import {
   compileVideoFinalPrompt,
 } from './videoGenerationService';
 
-// Mock Langchain dependencies
-const mockJsonOutputParserInstance = {
-  getFormatInstructions: vi.fn(() => 'format instructions'),
-};
+const {
+  mockJsonOutputParserInstance,
+  mockPromptTemplateInstance,
+  mockLlm
+} = vi.hoisted(() => {
+  // Mock Langchain dependencies
+  const mockJsonOutputParserInstance = {
+    getFormatInstructions: vi.fn().mockImplementation(() => 'format instructions'),
+  };
+
+  const mockPromptTemplateInstance = {
+    pipe: vi.fn().mockReturnThis(), // Allow chaining .pipe() calls
+  };
+  const mockLlm = {
+    pipe: vi.fn().mockImplementation(() => ({
+      invoke: mockLlmInvoke,
+    })),
+  };
+
+  return {
+    mockJsonOutputParserInstance,
+    mockPromptTemplateInstance,
+    mockLlm
+  };
+});
+
 vi.mock('@langchain/core/output_parsers', () => ({
-  JsonOutputParser: vi.fn(() => mockJsonOutputParserInstance),
+  JsonOutputParser: vi.fn().mockImplementation(() => mockJsonOutputParserInstance),
 }));
 
-const mockPromptTemplateInstance = {
-  pipe: vi.fn().mockReturnThis(), // Allow chaining .pipe() calls
-};
 vi.mock('@langchain/core/prompts', () => ({
   PromptTemplate: {
-    fromTemplate: vi.fn(() => mockPromptTemplateInstance),
+    fromTemplate: vi.fn().mockImplementation(() => mockPromptTemplateInstance),
   },
 }));
 
 // Mock the LLM dependency
 const mockLlmInvoke = vi.fn();
-const mockLlm = {
-  pipe: vi.fn(() => ({
-    invoke: mockLlmInvoke,
-  })),
-};
 vi.mock('./llm.js', () => ({
   llm: mockLlm,
 }));

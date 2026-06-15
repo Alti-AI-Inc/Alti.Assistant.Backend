@@ -1,22 +1,34 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock external dependencies
-// Mock config
-const mockConfig = {
-  langchain: {
-    tracingActive: 'false', // Default to false for easier testing of process.env override
-    apiKey: undefined,
-    project: undefined,
-  },
-};
+const {
+  mockConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  // Mock config
+  const mockConfig = {
+    langchain: {
+      tracingActive: 'false', // Default to false for easier testing of process.env override
+      apiKey: undefined,
+      project: undefined,
+    },
+  };
+
+  // Mock logger
+  const mockLogger = {
+    info: vi.fn(),
+  };
+
+  return {
+    mockConfig,
+    mockLogger
+  };
+});
+
 vi.mock('../../../../../config/index.js', () => ({
   default: mockConfig,
 }));
 
-// Mock logger
-const mockLogger = {
-  info: vi.fn(),
-};
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

@@ -6,16 +6,38 @@ import {
   aiClassificationApp, // Import aiClassificationApp to access its mocked methods
 } from './workflow.js';
 
-// Mock external dependencies
-// Mock @composio/core
-const mockComposioConnectedAccountsList = vi.fn(() => Promise.resolve({ items: [{ id: 'acc1', name: 'Account 1' }] }));
+const {
+  mockComposioConnectedAccountsList,
+  mockAiClassificationAppInvoke,
+  mockAiClassificationAppGetState,
+  mockAiClassificationAppUpdateState
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  // Mock @composio/core
+  const mockComposioConnectedAccountsList = vi.fn().mockImplementation(() => Promise.resolve({ items: [{ id: 'acc1', name: 'Account 1' }] }));
+
+  // Mock LangGraph components and the compiled workflow methods
+  // This ensures that when `workflow.compile()` is called in the original file,
+  // it returns an object with our mock functions for `invoke`, `getState`, `updateState`.
+  const mockAiClassificationAppInvoke = vi.fn();
+  const mockAiClassificationAppGetState = vi.fn();
+  const mockAiClassificationAppUpdateState = vi.fn();
+
+  return {
+    mockComposioConnectedAccountsList,
+    mockAiClassificationAppInvoke,
+    mockAiClassificationAppGetState,
+    mockAiClassificationAppUpdateState
+  };
+});
+
 vi.mock('@composio/core', () => {
   const mockComposio = {
     connectedAccounts: {
       list: mockComposioConnectedAccountsList,
     },
   };
-  return { Composio: vi.fn(() => mockComposio) };
+  return { Composio: vi.fn().mockImplementation(() => mockComposio) };
 });
 
 // Mock config
@@ -33,26 +55,19 @@ vi.mock('../../../../../config/index.js', () => ({
 // keeping `aiClassificationApp` as the initial mocked compiled object.
 vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
   MongoDBSaver: {
-    fromUri: vi.fn(() => Promise.reject(new Error('Mocked MongoDB connection failure'))),
+    fromUri: vi.fn().mockImplementation(() => Promise.reject(new Error('Mocked MongoDB connection failure'))),
   },
 }));
-
-// Mock LangGraph components and the compiled workflow methods
-// This ensures that when `workflow.compile()` is called in the original file,
-// it returns an object with our mock functions for `invoke`, `getState`, `updateState`.
-const mockAiClassificationAppInvoke = vi.fn();
-const mockAiClassificationAppGetState = vi.fn();
-const mockAiClassificationAppUpdateState = vi.fn();
 
 vi.mock('@langchain/langgraph', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    StateGraph: vi.fn(() => ({
+    StateGraph: vi.fn().mockImplementation(() => ({
       addNode: vi.fn(),
       addEdge: vi.fn(),
       addConditionalEdges: vi.fn(),
-      compile: vi.fn(() => ({ // This is the object assigned to aiClassificationApp
+      compile: vi.fn().mockImplementation(() => ({ // This is the object assigned to aiClassificationApp
         invoke: mockAiClassificationAppInvoke,
         getState: mockAiClassificationAppGetState,
         updateState: mockAiClassificationAppUpdateState,

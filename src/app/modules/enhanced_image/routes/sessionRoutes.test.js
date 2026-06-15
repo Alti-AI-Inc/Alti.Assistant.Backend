@@ -12,7 +12,7 @@ vi.mock('express', () => {
   };
   return {
     default: {
-      Router: vi.fn(() => mockRouter),
+      Router: vi.fn().mockImplementation(() => mockRouter),
     },
   };
 });
@@ -20,12 +20,20 @@ vi.mock('express', () => {
 // Mock the sessionController module
 const mockStartSession = vi.fn();
 const mockDeleteSession = vi.fn();
-const mockController = {
-  startSession: mockStartSession,
-  deleteSession: mockDeleteSession,
-};
+const {
+  mockController
+} = vi.hoisted(() => {
+  const mockController = {
+    startSession: mockStartSession,
+    deleteSession: mockDeleteSession,
+  };
+
+  return {
+    mockController
+  };
+});
 vi.mock('../controllers/sessionController.js', () => ({
-  createSessionController: vi.fn(() => mockController),
+  createSessionController: vi.fn().mockImplementation(() => mockController),
 }));
 
 describe('sessionRoutes', () => {

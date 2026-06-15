@@ -1,9 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runCodeGeneration } from './codeGeneration.js';
 
-// Mock dependencies
-const mockPrepareConversationContext = vi.fn();
-const mockExecuteToolBasedConversation = vi.fn();
+const {
+  mockPrepareConversationContext,
+  mockExecuteToolBasedConversation,
+  mockConversationModel
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockPrepareConversationContext = vi.fn();
+  const mockExecuteToolBasedConversation = vi.fn();
+
+  // Mock Mongoose model
+  const mockConversationModel = {
+    findOne: vi.fn().mockImplementation(() => mockConversationModel), // Allow chaining .select()
+    select: vi.fn().mockImplementation(() => mockConversationModel), // Allow chaining .lean()
+    lean: vi.fn().mockImplementation(() => Promise.resolve(null)), // Default to resolving null
+  };
+
+  return {
+    mockPrepareConversationContext,
+    mockExecuteToolBasedConversation,
+    mockConversationModel
+  };
+});
 
 vi.mock('./utils/historyManager.js', () => ({
   prepareConversationContext: mockPrepareConversationContext,
@@ -12,13 +31,6 @@ vi.mock('./utils/historyManager.js', () => ({
 vi.mock('./services/reactAgent.js', () => ({
   executeToolBasedConversation: mockExecuteToolBasedConversation,
 }));
-
-// Mock Mongoose model
-const mockConversationModel = {
-  findOne: vi.fn(() => mockConversationModel), // Allow chaining .select()
-  select: vi.fn(() => mockConversationModel), // Allow chaining .lean()
-  lean: vi.fn(() => Promise.resolve(null)), // Default to resolving null
-};
 
 vi.mock('../conversations/conversation.model.js', () => ({
   default: mockConversationModel,

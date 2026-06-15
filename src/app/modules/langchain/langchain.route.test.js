@@ -1,9 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-};
+const {
+  mockRouter
+} = vi.hoisted(() => {
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+  };
+
+  return {
+    mockRouter
+  };
+});
 
 vi.mock('express', () => ({
   default: {

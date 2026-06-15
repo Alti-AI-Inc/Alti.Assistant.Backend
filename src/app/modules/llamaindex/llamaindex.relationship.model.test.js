@@ -10,13 +10,13 @@ vi.mock('mongoose', () => {
   };
 
   const mockMongoose = {
-    Schema: vi.fn((definition, options) => {
+    Schema: vi.fn().mockImplementation((definition, options) => {
       // Store the definition and options for inspection
       mockSchemaInstance.definition = definition;
       mockSchemaInstance.options = options;
       return mockSchemaInstance; // Return the mock instance
     }),
-    model: vi.fn((name, schema) => {
+    model: vi.fn().mockImplementation((name, schema) => {
       // For testing, we can return the schema instance itself or a simple mock object
       // Returning the schema instance allows us to verify it was passed correctly.
       return schema;

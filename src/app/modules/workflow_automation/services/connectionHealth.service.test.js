@@ -1,16 +1,46 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { connectionHealthService } from '../connectionHealth.service.js';
 
-// Mock external dependencies
-const mockComposio = {
-  connectedAccounts: {
-    get: vi.fn(),
-    initiate: vi.fn(),
-  },
-};
+const {
+  mockComposio,
+  mockComposioAuth,
+  mockAuthConfig,
+  mockLogger
+} = vi.hoisted(() => {
+  // Mock external dependencies
+  const mockComposio = {
+    connectedAccounts: {
+      get: vi.fn(),
+      initiate: vi.fn(),
+    },
+  };
+
+  const mockComposioAuth = {
+    find: vi.fn(),
+    findOne: vi.fn(),
+    updateOne: vi.fn(),
+  };
+
+  const mockAuthConfig = {
+    find: vi.fn(),
+    findOne: vi.fn(),
+  };
+
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockComposio,
+    mockComposioAuth,
+    mockAuthConfig,
+    mockLogger
+  };
+});
 
 vi.mock('@composio/core', () => ({
-  Composio: vi.fn(() => mockComposio),
+  Composio: vi.fn().mockImplementation(() => mockComposio),
 }));
 
 vi.mock('../../../../../config/index.js', () => ({
@@ -21,29 +51,13 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
-const mockComposioAuth = {
-  find: vi.fn(),
-  findOne: vi.fn(),
-  updateOne: vi.fn(),
-};
-
 vi.mock('../../composio_v2/composio.model.js', () => ({
   default: mockComposioAuth,
 }));
 
-const mockAuthConfig = {
-  find: vi.fn(),
-  findOne: vi.fn(),
-};
-
 vi.mock('../../composio_v2/authConfig.model.js', () => ({
   default: mockAuthConfig,
 }));
-
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
 
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,

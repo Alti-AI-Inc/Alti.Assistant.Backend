@@ -2,28 +2,50 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GcpWorkspaceService } from './gcp-workspace.service.js';
 import { logger } from '../../../shared/logger.js';
 
-// Mock the entire 'googleapis' library
-const mockDriveFilesCreate = vi.fn();
-const mockDriveFilesGet = vi.fn();
-const mockSheetsSpreadsheetsCreate = vi.fn();
-const mockSheetsSpreadsheetsValuesAppend = vi.fn();
-const mockSheetsSpreadsheetsValuesGet = vi.fn();
-const mockDocsDocumentsBatchUpdate = vi.fn();
-const mockCalendarEventsInsert = vi.fn();
-const mockCalendarEventsList = vi.fn();
+const {
+  mockDriveFilesCreate,
+  mockDriveFilesGet,
+  mockSheetsSpreadsheetsCreate,
+  mockSheetsSpreadsheetsValuesAppend,
+  mockSheetsSpreadsheetsValuesGet,
+  mockDocsDocumentsBatchUpdate,
+  mockCalendarEventsInsert,
+  mockCalendarEventsList
+} = vi.hoisted(() => {
+  // Mock the entire 'googleapis' library
+  const mockDriveFilesCreate = vi.fn();
+  const mockDriveFilesGet = vi.fn();
+  const mockSheetsSpreadsheetsCreate = vi.fn();
+  const mockSheetsSpreadsheetsValuesAppend = vi.fn();
+  const mockSheetsSpreadsheetsValuesGet = vi.fn();
+  const mockDocsDocumentsBatchUpdate = vi.fn();
+  const mockCalendarEventsInsert = vi.fn();
+  const mockCalendarEventsList = vi.fn();
+
+  return {
+    mockDriveFilesCreate,
+    mockDriveFilesGet,
+    mockSheetsSpreadsheetsCreate,
+    mockSheetsSpreadsheetsValuesAppend,
+    mockSheetsSpreadsheetsValuesGet,
+    mockDocsDocumentsBatchUpdate,
+    mockCalendarEventsInsert,
+    mockCalendarEventsList
+  };
+});
 
 vi.mock('googleapis', () => ({
   google: {
     auth: {
       GoogleAuth: vi.fn().mockImplementation(() => ({})),
     },
-    drive: vi.fn(() => ({
+    drive: vi.fn().mockImplementation(() => ({
       files: {
         create: mockDriveFilesCreate,
         get: mockDriveFilesGet,
       },
     })),
-    sheets: vi.fn(() => ({
+    sheets: vi.fn().mockImplementation(() => ({
       spreadsheets: {
         create: mockSheetsSpreadsheetsCreate,
         values: {
@@ -32,12 +54,12 @@ vi.mock('googleapis', () => ({
         },
       },
     })),
-    docs: vi.fn(() => ({
+    docs: vi.fn().mockImplementation(() => ({
       documents: {
         batchUpdate: mockDocsDocumentsBatchUpdate,
       },
     })),
-    calendar: vi.fn(() => ({
+    calendar: vi.fn().mockImplementation(() => ({
       events: {
         insert: mockCalendarEventsInsert,
         list: mockCalendarEventsList,

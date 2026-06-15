@@ -8,33 +8,47 @@ vi.mock('../../../shared/catchAsync.js', () => ({
   default: (fn) => fn,
 }));
 
-// Mock sendResponse
-const mockSendResponse = vi.fn();
+const {
+  mockSendResponse,
+  mockFindOne,
+  mockNotificationService
+} = vi.hoisted(() => {
+  // Mock sendResponse
+  const mockSendResponse = vi.fn();
+  const mockFindOne = vi.fn().mockImplementation(() => ({ lean: mockLean }));
+
+  // Mock NotificationService
+  const mockNotificationService = {
+    sendNotificationService: vi.fn(),
+    getNotificationService: vi.fn(),
+    sendNotificationByIdService: vi.fn(),
+    getNotificationByIdService: vi.fn(),
+    updateNotificationByIdService: vi.fn(),
+    deleteNotificationByIdService: vi.fn(),
+    deleteAllNotificationService: vi.fn(),
+    getUserInboxService: vi.fn(),
+    archiveNotificationService: vi.fn(),
+  };
+
+  return {
+    mockSendResponse,
+    mockFindOne,
+    mockNotificationService
+  };
+});
+
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: mockSendResponse,
 }));
 
 // Mock UserModel
 const mockLean = vi.fn();
-const mockFindOne = vi.fn(() => ({ lean: mockLean }));
 vi.mock('../auth/auth.model.js', () => ({
   default: {
     findOne: mockFindOne,
   },
 }));
 
-// Mock NotificationService
-const mockNotificationService = {
-  sendNotificationService: vi.fn(),
-  getNotificationService: vi.fn(),
-  sendNotificationByIdService: vi.fn(),
-  getNotificationByIdService: vi.fn(),
-  updateNotificationByIdService: vi.fn(),
-  deleteNotificationByIdService: vi.fn(),
-  deleteAllNotificationService: vi.fn(),
-  getUserInboxService: vi.fn(),
-  archiveNotificationService: vi.fn(),
-};
 vi.mock('./notification.service.js', () => ({
   NotificationService: mockNotificationService,
 }));

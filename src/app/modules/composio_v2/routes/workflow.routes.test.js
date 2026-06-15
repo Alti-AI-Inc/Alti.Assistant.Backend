@@ -1,34 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express'; // Import express to mock it correctly
 
-// Mock express and its Router method
-const mockRouter = {
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-};
+const {
+  mockRouter,
+  mockWorkflowController
+} = vi.hoisted(() => {
+  // Mock express and its Router method
+  const mockRouter = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  // Mock the workflowController module
+  const mockWorkflowController = {
+    createWorkflowController: vi.fn(),
+    getUserWorkflowsController: vi.fn(),
+    getWorkflowController: vi.fn(),
+    updateWorkflowController: vi.fn(),
+    deleteWorkflowController: vi.fn(),
+    triggerWorkflowController: vi.fn(),
+    pauseWorkflowController: vi.fn(),
+    resumeWorkflowController: vi.fn(),
+    getWorkflowExecutionsController: vi.fn(),
+    getExecutionController: vi.fn(),
+  };
+
+  return {
+    mockRouter,
+    mockWorkflowController
+  };
+});
 
 // Mock the default export of 'express' to return our mockRouter when Router() is called
 vi.mock('express', () => ({
   default: {
-    Router: vi.fn(() => mockRouter),
+    Router: vi.fn().mockImplementation(() => mockRouter),
   },
 }));
-
-// Mock the workflowController module
-const mockWorkflowController = {
-  createWorkflowController: vi.fn(),
-  getUserWorkflowsController: vi.fn(),
-  getWorkflowController: vi.fn(),
-  updateWorkflowController: vi.fn(),
-  deleteWorkflowController: vi.fn(),
-  triggerWorkflowController: vi.fn(),
-  pauseWorkflowController: vi.fn(),
-  resumeWorkflowController: vi.fn(),
-  getWorkflowExecutionsController: vi.fn(),
-  getExecutionController: vi.fn(),
-};
 
 // Mock the specific named export 'workflowController' from its path
 vi.mock('../controllers/workflow.controller.js', () => ({

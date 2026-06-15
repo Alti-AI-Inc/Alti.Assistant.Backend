@@ -13,7 +13,7 @@ vi.mock('fs', () => ({
 
 // Mock path.extname for consistent behavior
 vi.mock('path', () => ({
-  extname: vi.fn((p) => {
+  extname: vi.fn().mockImplementation((p) => {
     const lastDotIndex = p.lastIndexOf('.');
     return lastDotIndex !== -1 ? p.substring(lastDotIndex) : '';
   }),
@@ -27,20 +27,20 @@ let capturedMulterOptions;
 
 // Mock multer to capture its configuration
 vi.mock('multer', () => {
-  const mockMulterInstance = vi.fn((options) => {
+  const mockMulterInstance = vi.fn().mockImplementation((options) => {
     capturedMulterOptions = options; // Capture options passed to multer()
     capturedFileFilterFn = options.fileFilter; // Capture the fileFilter function
     return {
       // Simulate a multer instance with common methods
-      single: vi.fn(() => (req, res, next) => next()),
-      array: vi.fn(() => (req, res, next) => next()),
+      single: vi.fn().mockImplementation(() => (req, res, next) => next()),
+      array: vi.fn().mockImplementation(() => (req, res, next) => next()),
       options, // Store options for direct inspection if needed
     };
   });
 
   return {
     default: mockMulterInstance, // Mock the default export (the multer instance)
-    diskStorage: vi.fn((options) => {
+    diskStorage: vi.fn().mockImplementation((options) => {
       capturedDestinationFn = options.destination; // Capture destination function
       capturedFilenameFn = options.filename; // Capture filename function
       // Return a mock storage engine object that Multer would expect
@@ -69,8 +69,8 @@ describe('uploadArticleFile middleware', () => {
     fs.existsSync.mockReturnValue(true);
 
     // Mock Date.now and Math.random for deterministic filename generation
-    Date.now = vi.fn(() => 1678886400000); // Fixed timestamp
-    Math.random = vi.fn(() => 0.123456789); // Fixed random number
+    Date.now = vi.fn().mockImplementation(() => 1678886400000); // Fixed timestamp
+    Math.random = vi.fn().mockImplementation(() => 0.123456789); // Fixed random number
   });
 
   afterEach(() => {

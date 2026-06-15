@@ -3,17 +3,25 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 // Mock mongoose
 const mockSchemaInstance = {}; // We don't need to mock methods on the schema instance itself for this test
 
-const mockMongoose = {
-  Schema: vi.fn((definition, options) => mockSchemaInstance), // Capture definition and options
-  model: vi.fn((name, schema) => ({ name, schema, isMongooseModel: true })), // Return a mock model object
-  models: {}, // Initially empty to simulate first-time model creation
-  Schema: {
-    Types: {
-      ObjectId: 'ObjectId', // Mock the type reference
-      Mixed: 'Mixed',       // Mock the type reference
+const {
+  mockMongoose
+} = vi.hoisted(() => {
+  const mockMongoose = {
+    Schema: vi.fn().mockImplementation((definition, options) => mockSchemaInstance), // Capture definition and options
+    model: vi.fn().mockImplementation((name, schema) => ({ name, schema, isMongooseModel: true })), // Return a mock model object
+    models: {}, // Initially empty to simulate first-time model creation
+    Schema: {
+      Types: {
+        ObjectId: 'ObjectId', // Mock the type reference
+        Mixed: 'Mixed',       // Mock the type reference
+      }
     }
-  }
-};
+  };
+
+  return {
+    mockMongoose
+  };
+});
 
 // Mock mongoose globally for the test file
 vi.mock('mongoose', () => ({

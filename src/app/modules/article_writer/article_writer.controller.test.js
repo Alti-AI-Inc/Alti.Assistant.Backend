@@ -2,29 +2,47 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import httpStatus from 'http-status';
 import { articleWriterController } from './article_writer.controller.js'; // The file under test
 
-// Mock dependencies
-const mockCatchAsync = (fn) => fn; // Directly execute the async function
-const mockSendResponse = vi.fn();
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-};
+const {
+  mockCatchAsync,
+  mockSendResponse,
+  mockLogger,
+  mockArticleWriterService,
+  mockSubscriptionModel,
+  mockConversationModel
+} = vi.hoisted(() => {
+  // Mock dependencies
+  const mockCatchAsync = (fn) => fn; // Directly execute the async function
+  const mockSendResponse = vi.fn();
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+  };
 
-const mockArticleWriterService = {
-  generateGuestUserId: vi.fn(),
-  processConversationalRequest: vi.fn(),
-  getConversationHistory: vi.fn(),
-};
+  const mockArticleWriterService = {
+    generateGuestUserId: vi.fn(),
+    processConversationalRequest: vi.fn(),
+    getConversationHistory: vi.fn(),
+  };
 
-const mockSubscriptionModel = {
-  findOne: vi.fn().mockReturnThis(), // Allows chaining .sort().lean()
-  sort: vi.fn().mockReturnThis(),
-  lean: vi.fn(),
-};
+  const mockSubscriptionModel = {
+    findOne: vi.fn().mockReturnThis(), // Allows chaining .sort().lean()
+    sort: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+  };
 
-const mockConversationModel = {
-  countDocuments: vi.fn(),
-};
+  const mockConversationModel = {
+    countDocuments: vi.fn(),
+  };
+
+  return {
+    mockCatchAsync,
+    mockSendResponse,
+    mockLogger,
+    mockArticleWriterService,
+    mockSubscriptionModel,
+    mockConversationModel
+  };
+});
 
 // Mock the modules
 vi.mock('http-status', () => ({ default: httpStatus }));

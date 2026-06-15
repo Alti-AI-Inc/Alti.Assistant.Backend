@@ -1,20 +1,28 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Define a mock object for the Schema instance that will be returned by new mongoose.Schema()
-const mockSchemaInstance = {
-  index: vi.fn(),
-  virtual: vi.fn(),
-  set: vi.fn(),
-  statics: {}, // Will be populated by the schema definition
-  methods: {}, // Will be populated by the schema definition
-};
+const {
+  mockSchemaInstance
+} = vi.hoisted(() => {
+  // Define a mock object for the Schema instance that will be returned by new mongoose.Schema()
+  const mockSchemaInstance = {
+    index: vi.fn(),
+    virtual: vi.fn(),
+    set: vi.fn(),
+    statics: {}, // Will be populated by the schema definition
+    methods: {}, // Will be populated by the schema definition
+  };
+
+  return {
+    mockSchemaInstance
+  };
+});
 
 // Mock the mongoose module
 vi.mock('mongoose', async (importOriginal) => {
   const actualMongoose = await importOriginal(); // Get actual mongoose for types like Schema.Types.Mixed
 
   // Create a mock Schema constructor that returns our mockSchemaInstance
-  const MockSchemaConstructor = vi.fn((definition, options) => {
+  const MockSchemaConstructor = vi.fn().mockImplementation((definition, options) => {
     // Store the definition and options for later inspection
     mockSchemaInstance._definition = definition;
     mockSchemaInstance._options = options;
@@ -27,7 +35,7 @@ vi.mock('mongoose', async (importOriginal) => {
   return {
     default: {
       Schema: MockSchemaConstructor,
-      model: vi.fn((name, schema) => {
+      model: vi.fn().mockImplementation((name, schema) => {
         // This mock model will be the actual export
         const MockModel = function (data) {
           Object.assign(this, data);
