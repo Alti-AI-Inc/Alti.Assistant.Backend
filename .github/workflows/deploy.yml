@@ -117,6 +117,15 @@ jobs:
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
             set -e
+            echo "Waiting for Docker to be ready..."
+            for i in {1..30}; do
+              if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+                echo "Docker is ready!"
+                break
+              fi
+              echo "Waiting for Docker daemon... ($i/30)"
+              sleep 5
+            done
             echo "Navigating to compose directory..."
             cd ${{ env.COMPOSE_DIR }}
             echo "Stopping existing containers..."
