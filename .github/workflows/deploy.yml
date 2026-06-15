@@ -11,7 +11,6 @@ env:
   REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
   IMAGE_NAME: alti-assistant-backend
   VM_USER: alti_deployer
-  VM_HOST: 35.239.192.33
   COMPOSE_DIR: '~'
   COMPOSE_FILE: docker-compose.yml
 
@@ -37,6 +36,34 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Ensure Sandbox VM is Provisioned
+        run: |
+          INSTANCE_NAME="alti-sandbox-vm"
+          ZONE="us-central1-a"
+          
+          echo "Checking if instance $INSTANCE_NAME exists..."
+          if ! gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod > /dev/null 2>&1; then
+            echo "Instance $INSTANCE_NAME does not exist. Provisioning..."
+            gcloud compute instances create $INSTANCE_NAME \
+              --project=alti-assistant-prod \
+              --zone=$ZONE \
+              --machine-type=e2-medium \
+              --image-family=ubuntu-2204-lts \
+              --image-project=ubuntu-os-cloud \
+              --metadata-from-file=startup-script=scripts/setup-sandbox.sh \
+              --tags=http-server,https-server \
+              --quiet
+              
+            echo "Waiting for VM to boot and run startup script (approx 60s)..."
+            sleep 60
+          else
+            echo "Instance $INSTANCE_NAME is already running."
+          fi
+          
+          VM_IP=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+          echo "Discovered dynamic IP: $VM_IP"
+          echo "VM_HOST=$VM_IP" >> $GITHUB_ENV
 
       - name: Ensure Artifact Registry repository exists
         continue-on-error: true
@@ -69,12 +96,22 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Set up SSH key
+      - name: Set up SSH key and Metadata
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
           chmod 600 ~/.ssh/alti-vm-key
+          
+          ssh-keygen -y -f ~/.ssh/alti-vm-key > ~/.ssh/alti-vm-key.pub
+          echo "${{ env.VM_USER }}:$(cat ~/.ssh/alti-vm-key.pub)" > /tmp/ssh_keys
+          gcloud compute instances add-metadata alti-sandbox-vm --project=alti-assistant-prod --zone=us-central1-a --metadata-from-file=ssh-keys=/tmp/ssh_keys
+          
+          sleep 10
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy docker-compose to VM
+        run: |
+          scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:${{ env.COMPOSE_DIR }}/docker-compose.yml
 
       - name: Deploy to VM
         run: |
