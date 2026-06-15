@@ -14,7 +14,7 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import ApiError from '../../../../errors/ApiError.js';
 import { PLAN_GENERATOR_CONFIG } from '../plan_generator.constant.js';
-import redisClient from '../../../../config/redisClient.js';
+import redisClient from '../../../../shared/redis.js';
 
 /**
  * @description Rate limiter for the file upload endpoint.

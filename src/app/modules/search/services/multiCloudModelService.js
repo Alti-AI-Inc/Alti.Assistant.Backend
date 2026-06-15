@@ -123,7 +123,7 @@ const awsModel = null;
  * @returns {Object} LangChain-compatible Chat Model instance
  * BUG FIX: Added tenantId parameter to enable multi-tenancy.
  */
-function resolveActiveModelInstance(tenantId, complexity = 'simple') {
+function resolveActiveModelInstance(tenantId, complexity = 'simple', tools = null) {
   // If tenant is blocked by budget limits, immediately resolve BlockedBillingModel
   // BUG FIX: Use dynamic tenantId instead of hardcoded 'alti-enterprise-tenant-default'
   if (blockedTenantsCache.has(tenantId)) {
@@ -131,10 +131,14 @@ function resolveActiveModelInstance(tenantId, complexity = 'simple') {
   }
 
   const provider = (config.llmProvider || 'gcp').toLowerCase();
-  const primaryGcp = complexity === 'complex' ? gcpPro : gcpFlash;
+  let primaryGcp = complexity === 'complex' ? gcpPro : gcpFlash;
   
   if (provider !== 'gcp') {
     console.warn(`☁️ [Multi-Cloud Deprecation] Non-GCP provider "${provider}" configuration bypassed. Exclusively routing model execution to Google Cloud (Gemini).`);
+  }
+  
+  if (tools) {
+    primaryGcp = primaryGcp.bindTools(tools);
   }
   
   // Exclusively return Google Cloud Platform (Gemini)
@@ -153,12 +157,12 @@ function resolveActiveModelInstance(tenantId, complexity = 'simple') {
  * @returns {Object} The optimal Chat Model instance
  * BUG FIX: Added tenantId parameter to enable multi-tenancy.
  */
-export function selectModelSmart(query, context = {}, tenantId) {
+export function selectModelSmart(query, context = {}, tenantId, tools = null) {
   const analysis = analyzeAndLogModelSelection(query, context);
   console.log(`🧠 Multi-Cloud Selection: Provider: "${config.llmProvider || 'gcp'}" | Pro requested: ${analysis.usePro}`);
   
   // BUG FIX: Pass tenantId to resolveActiveModelInstance
-  return resolveActiveModelInstance(tenantId, analysis.usePro ? 'complex' : 'simple');
+  return resolveActiveModelInstance(tenantId, analysis.usePro ? 'complex' : 'simple', tools);
 }
 
 /**
@@ -168,7 +172,7 @@ export function selectModelSmart(query, context = {}, tenantId) {
  * @returns {Object} The appropriate Chat Model instance
  * BUG FIX: Added tenantId parameter to enable multi-tenancy.
  */
-export function selectModel(options = {}, tenantId) {
+export function selectModel(options = {}, tenantId, tools = null) {
   const {
     complexity = 'simple',
     inputLength = 0,
@@ -184,16 +188,16 @@ export function selectModel(options = {}, tenantId) {
       ...context,
       requiresReasoning,
       inputLength,
-    }, tenantId);
+    }, tenantId, tools);
   }
 
   if (complexity === 'complex' || requiresReasoning || inputLength > 10000) {
     // BUG FIX: Pass tenantId to resolveActiveModelInstance
-    return resolveActiveModelInstance(tenantId, 'complex');
+    return resolveActiveModelInstance(tenantId, 'complex', tools);
   }
 
   // BUG FIX: Pass tenantId to resolveActiveModelInstance
-  return resolveActiveModelInstance(tenantId, 'simple');
+  return resolveActiveModelInstance(tenantId, 'simple', tools);
 }
 
 /**
@@ -207,9 +211,9 @@ export function selectModel(options = {}, tenantId) {
 export function createToolEnabledLLM(query = null, options = {}, tenantId) {
   const searchTools = [new YouTubeSearchTool(), googleSearch];
   // BUG FIX: Pass tenantId to selectModel
-  const model = selectModel({ query, ...options }, tenantId);
+  const model = selectModel({ query, ...options }, tenantId, searchTools);
   
-  return model.bindTools(searchTools);
+  return model;
 }
 
 /**
@@ -222,9 +226,9 @@ export function createToolEnabledLLM(query = null, options = {}, tenantId) {
 export function createToolEnabledLLMExplicit(modelType = 'flash', tenantId) {
   const searchTools = [new YouTubeSearchTool(), googleSearch];
   // BUG FIX: Pass tenantId to resolveActiveModelInstance
-  const model = resolveActiveModelInstance(tenantId, modelType === 'pro' ? 'complex' : 'simple');
+  const model = resolveActiveModelInstance(tenantId, modelType === 'pro' ? 'complex' : 'simple', searchTools);
   
-  return model.bindTools(searchTools);
+  return model;
 }
 
 // Export default instances for backward compatibility mapping

@@ -1,6 +1,6 @@
 import express from 'express';
 import { LangchainController } from './langchain.controller.js';
-import asyncHandler from '../../utils/asyncHandler.js';
+import asyncHandler from '../../utils/catchAsync.js';
 
 /**
  * @fileoverview Express router defining endpoints for Langchain integration, repository management, and LCEL (LangChain Expression Language) custom chain execution.

@@ -39,11 +39,11 @@ const mongooseOptions = {
   // --- KeepAlive Settings ---
   // keepAlive: Enables TCP KeepAlive on the socket. This is crucial for long-running applications
   // to prevent network infrastructure (like firewalls or NATs in GCP) from silently dropping idle connections.
-  keepAlive: true,
+
 
   // keepAliveInitialDelay: The number of milliseconds to wait before initiating the first keepalive probe.
   // 300000ms (5 minutes) is a common setting to ensure idle connections are maintained.
-  keepAliveInitialDelay: 300000,
+
 };
 
 // Establish the database connection.

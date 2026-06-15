@@ -2,7 +2,9 @@
 
 import httpStatus from 'http-status';
 // Fix: Correct import for pdf-parse. It exports a default function.
-import pdf from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 import mammoth from 'mammoth';
 // Fix: Correct import path for csv-parse in a Node.js environment.
 import { parse } from 'csv-parse';

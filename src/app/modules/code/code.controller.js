@@ -7,8 +7,8 @@ import { codeService } from './code.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import ConversationModel from '../conversations/conversation.model.js'; // For validating conversation ownership
 import ApiError from '../../../errors/ApiError.js';
-import { USER_ROLES } from '../../../constants/roles.js'; // OPTIMIZATION: Use role constants for maintainability.
-import { notificationService } from '../notifications/notification.service.js'; // For admin notifications.
+import { ROLES as USER_ROLES } from '../../config/roles.js'; // OPTIMIZATION: Use role constants for maintainability.
+import { notificationService } from '../notification/notification.service.js'; // For admin notifications.
 
 // Initialize the Google Cloud Pub/Sub client.
 // This should be a singleton instance in a real application.

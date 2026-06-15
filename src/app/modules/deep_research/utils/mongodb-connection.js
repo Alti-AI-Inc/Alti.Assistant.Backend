@@ -81,6 +81,11 @@ export const connectToMongoDB = async (
 
     // Mongoose 6+ defaults to useNewUrlParser and useUnifiedTopology.
     // The following options are added for production-grade resiliency in a GCP environment.
+    if (mongoose.connection.readyState === 1) return mongoose.connection;
+    if (mongoose.connection.readyState === 2) {
+      await new Promise(resolve => mongoose.connection.once('open', resolve));
+      return mongoose.connection;
+    }
     await mongoose.connect(uri, {
       // GCP Resiliency: Use IPv4 first, as it's standard in most VPCs.
       family: 4,
@@ -100,20 +105,16 @@ export const connectToMongoDB = async (
       // Prevents the application from hanging indefinitely if the database is unreachable. 5000ms is a common setting.
       serverSelectionTimeoutMS: 5000,
 
-      // socketTimeoutMS: How long a send or receive on a socket can take before timing out.
-      // Crucial for preventing operations from hanging on network partitions or slow database responses.
+      // socketTimeoutMS: How long the driver will wait for a response from the server after sending a request.
+      // Useful for failing fast if a long-running query hangs. 30000ms (30s) is standard.
       socketTimeoutMS: 30000, // 30 seconds
-
-      // --- Keep-Alive for Stable Long-Lived Connections ---
-      // keepAlive: A TCP setting that helps maintain long-lived connections through firewalls and load balancers
-      // common in cloud environments like GCP (e.g., through Cloud SQL Auth Proxy or VPC Peering).
-      keepAlive: true,
-
-      // keepAliveInitialDelay: The number of milliseconds to wait before initiating the first keepAlive probe.
-      // A longer delay like 300000ms (5 minutes) prevents unnecessary network chatter on active connections.
-      keepAliveInitialDelay: 300000,
     });
-
+    // --- Keep-Alive for Stable Long-Lived Connections ---
+    // keepAlive: A TCP setting that helps maintain long-lived connections through firewalls and load balancers
+    // common in cloud environments like GCP (e.g., through Cloud SQL Auth Proxy or VPC Peering).
+    
+    // keepAliveInitialDelay: The number of milliseconds to wait before initiating the first keepAlive probe.
+    // A longer delay like 300000ms (5 minutes) prevents unnecessary network chatter on active connections.
     isConnected = true;
     currentUri = uri;
     console.log('MongoDB connected successfully for research agent');

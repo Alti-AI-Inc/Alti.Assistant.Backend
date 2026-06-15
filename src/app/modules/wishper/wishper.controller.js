@@ -2,7 +2,7 @@ import fs from 'fs';
 import httpStatus from 'http-status';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import redisClient from '../../config/redis.js'; // Assumes a configured ioredis client is exported from here
+import redisClient from '../../../shared/redis.js'; // Assumes a configured ioredis client is exported from here
 import { whisperTranscribeService } from './wishper.service.js';
 
 // const WishperAiGetResponse = catchAsync(async (req, res) => {

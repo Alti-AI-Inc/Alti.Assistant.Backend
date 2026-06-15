@@ -2,8 +2,8 @@ import express from 'express';
 import httpStatus from 'http-status';
 import { SwarmController } from './swarm.controller.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
-import ApiError from '../../../core/ApiError.js';
-import { logger } from '../../../core/logger.js';
+import ApiError from '../../../errors/ApiError.js';
+import { logger } from '../../../shared/logger.js';
 
 /**
  * Express router for handling swarm-related API routes.

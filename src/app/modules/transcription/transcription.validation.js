@@ -1,21 +1,11 @@
 import * as zod from 'zod';
-import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-// Enterprise-grade rate limiting requires a centralized store like Redis
-// to ensure limits are applied consistently across all application instances.
-// This assumes a pre-configured Redis client is available for import.
-import redisClient from '../../../config/redis';
+import redisClient from '../../../shared/redis.js';
 
 const { z } = zod;
 
-// --- Rate Limiting Middleware ---
+import { createRateLimiter } from '../../../shared/rateLimiter.js';
 
-// Create a Redis store for rate-limit-redis.
-// Using a single store instance is more efficient.
-const redisStore = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis types and ioredis/node-redis v4.
-  sendCommand: (...args) => redisClient.sendCommand(args),
-});
+// --- Rate Limiting Middleware ---
 
 // A robust key generator for guest/unauthenticated users.
 // It prioritizes a specific guest ID header, then the client's IP from X-Forwarded-For,
@@ -50,63 +40,36 @@ const authenticatedKeyGenerator = (req) => {
   return `ip:${req.ip}`;
 };
 
-// Improvement: A centralized handler for rate limit errors to ensure consistent API responses.
-// This provides a better developer experience for API consumers.
-const rateLimitHandler = (req, res, next, options) => {
-  res.status(options.statusCode).json({
-    success: false,
-    error: {
-      message: options.message.error,
-    },
-  });
-};
-
 // Rate limiter for guest users. This is the most restrictive limit to protect
 // public-facing endpoints from simple DDOS attacks and anonymous abuse.
-const guestLimiter = rateLimit({
-  store: redisStore,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit each guest/IP to 30 requests per windowMs
-  standardHeaders: 'draft-7', // Use the latest standard for rate limit headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+const guestLimiter = createRateLimiter({
+  keyPrefix: 'transcription_guest',
+  duration: 15 * 60, // 15 minutes
+  points: 30, // Limit each guest/IP to 30 requests per windowMs
   keyGenerator: guestKeyGenerator,
-  message: {
-    error: 'Too many requests from this guest ID or IP, please try again after 15 minutes.',
-  },
-  handler: rateLimitHandler,
+  errorMessage: 'Too many requests from this guest ID or IP, please try again after 15 minutes.',
 });
 
 // Standard rate limiter for authenticated users for most API endpoints.
 // This provides a generous limit for normal application usage while still
 // protecting against a compromised account or a buggy client.
-const standardApiLimiter = rateLimit({
-  store: redisStore,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each authenticated user to 500 requests per windowMs
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
+const standardApiLimiter = createRateLimiter({
+  keyPrefix: 'transcription_standard',
+  duration: 15 * 60, // 15 minutes
+  points: 500, // Limit each authenticated user to 500 requests per windowMs
   keyGenerator: authenticatedKeyGenerator,
-  message: {
-    error: 'You have exceeded the request limit, please try again after 15 minutes.',
-  },
-  handler: rateLimitHandler,
+  errorMessage: 'You have exceeded the request limit, please try again after 15 minutes.',
 });
 
 // A stricter rate limiter for authenticated users on computationally expensive
 // or high-cost endpoints (e.g., AI processing, batch jobs, inline audio transcription).
 // This is a critical defense against cost runaway and resource exhaustion attacks.
-const heavyApiLimiter = rateLimit({
-  store: redisStore,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 60, // Limit each user to 60 expensive operations per windowMs
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
+const heavyApiLimiter = createRateLimiter({
+  keyPrefix: 'transcription_heavy',
+  duration: 15 * 60, // 15 minutes
+  points: 60, // Limit each user to 60 expensive operations per windowMs
   keyGenerator: authenticatedKeyGenerator,
-  message: {
-    error:
-      'You have exceeded the limit for this resource-intensive operation. Please try again after 15 minutes.',
-  },
-  handler: rateLimitHandler,
+  errorMessage: 'You have exceeded the limit for this resource-intensive operation. Please try again after 15 minutes.',
 });
 
 // Improvement: Upgraded regex to support HH:MM:SS and MM:SS formats for longer audio files.

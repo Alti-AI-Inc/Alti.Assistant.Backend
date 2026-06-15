@@ -3,8 +3,8 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { geminiClient } from './llm.js';
 // INTEGRATION FIX: Import services for usage tracking and custom error types.
 // These services are essential for ensuring actions respect tenant boundaries and limits.
-import { usageService } from '../../services/usageService.js'; // NOTE: Assumed path and service
-import { AppError, USAGE_LIMIT_EXCEEDED } from '../../utils/errors.js'; // NOTE: Assumed path and error definitions
+import { usageService } from '../usage/usage.service.js'; // NOTE: Assumed path and service
+import { AppError } from '../../../shared/errors.js'; // NOTE: Assumed path and error definitions
 
 /**
  * Extracts a URL from a user's text input using an AI model (Gemini).
@@ -40,7 +40,7 @@ export const getUrlFromUserInputUsingAi = async (userInput, userContext) => {
   });
 
   if (!canPerformAction) {
-    throw new AppError('Usage limit exceeded for AI-powered URL extraction.', 429, USAGE_LIMIT_EXCEEDED);
+    throw new AppError('Usage limit exceeded for AI-powered URL extraction.', 429, 'USAGE_LIMIT_EXCEEDED');
   }
 
   const prompt = PromptTemplate.fromTemplate(

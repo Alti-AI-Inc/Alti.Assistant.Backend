@@ -10,7 +10,7 @@ import httpStatus from 'http-status';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import config from '../../../../config/index.js';
-import redisClient from '../../../../config/redisClient.js'; // Enterprise-grade DDOS/abuse protection requires a distributed store like Redis.
+import redisClient from '../../../shared/redis.js'; // Enterprise-grade DDOS/abuse protection requires a distributed store like Redis.
 import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';

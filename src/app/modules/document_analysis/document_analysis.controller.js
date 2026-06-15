@@ -462,6 +462,17 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 });
 
 /**
+ * Generate a pre-signed URL for client-side uploads.
+ */
+export const generateUploadUrl = catchAsync(async (req, res) => {
+  return sendResponse(res, {
+    statusCode: httpStatus.NOT_IMPLEMENTED,
+    success: false,
+    message: 'GCS Upload URL generation is not yet implemented for document analysis.',
+  });
+});
+
+/**
  * @namespace documentAnalysisController
  * @description Controller for handling document analysis and conversation-related operations.
  * This object groups all the route handlers for document analysis features.
@@ -469,4 +480,5 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 export const documentAnalysisController = {
   analyzeDocument,
   getConversationHistory,
+  generateUploadUrl,
 };

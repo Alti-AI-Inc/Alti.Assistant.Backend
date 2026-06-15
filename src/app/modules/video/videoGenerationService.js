@@ -1,7 +1,7 @@
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { llm } from './llm.js';
-
+import { createLlmInstance } from './llm.js';
+const llm = createLlmInstance();
 /**
  * Analyzes an initial user prompt to generate a set of clarifying questions,
  * guiding the user to provide more detailed specifications for video generation.

@@ -6,7 +6,7 @@ import ComposioAuth from './composio.model.js';
 // --- Manager Platform Features Start ---
 // The following models are assumed to exist to support manager dashboard features.
 import Workspace from '../workspace/workspace.model.js'; // Assumed model for workspaces, plans, and members
-import ComposioConversation from './composio.conversation.model.js'; // Assumed conversation model with workspaceId
+import ComposioConversation from '../conversations/conversation.model.js'; // Assumed conversation model with workspaceId
 // --- Manager Platform Features End ---
 
 /**

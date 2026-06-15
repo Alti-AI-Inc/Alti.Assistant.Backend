@@ -6,8 +6,8 @@
 
 import httpStatus from 'http-status';
 import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
-import logger from '../../../shared/logger.js';
-import ApiError from '../../utils/ApiError.js';
+import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../errors/ApiError.js';
 
 /**
  * Fetches search results from Google using the Google Search Grounding Tool.

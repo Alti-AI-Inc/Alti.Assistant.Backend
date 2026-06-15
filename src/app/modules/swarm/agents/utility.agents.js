@@ -2,7 +2,7 @@
 import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import winston from 'winston';
 import httpStatus from 'http-status';
-import ApiError from '../../../core/ApiError.js';
+import ApiError from '../../../../errors/ApiError.js';
 
 /**
  * A Winston logger configured for GCP Cloud Logging.

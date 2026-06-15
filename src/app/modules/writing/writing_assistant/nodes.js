@@ -8,7 +8,7 @@ import {
   startWritingLimiter,
   writingInteractionLimiter,
   finalContentLimiter,
-} from '../../middleware/rateLimiter.js'; // Enterprise-grade Redis-backed rate limiters for DDOS/abuse protection.
+} from '../middleware/rateLimiter.js'; // Enterprise-grade Redis-backed rate limiters for DDOS/abuse protection.
 
 export const analyzeTopicNode = async (state) => {
   const { initialTopic, userId } = state; // userId is essential for rate-limiting.

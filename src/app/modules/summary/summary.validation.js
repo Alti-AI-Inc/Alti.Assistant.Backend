@@ -9,7 +9,7 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 // Enterprise applications typically have a centralized Redis client configuration.
 // This import assumes such a client is exported from a shared config location.
-import { redisClient } from '../../../config/redis';
+import { redisClient } from '../../../shared/redis.js';
 import * as zod from 'zod';
 const { z } = zod;
 

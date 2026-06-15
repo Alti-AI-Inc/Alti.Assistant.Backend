@@ -69,10 +69,10 @@ if (!MONGO_URI) {
     // --- KeepAlive for Long-Lived Connections ---
     // keepAlive: Enables TCP KeepAlive to prevent intermediate network devices (firewalls, NATs)
     // from silently dropping idle connections. This is critical for resiliency.
-    keepAlive: true,
+
     // keepAliveInitialDelay: Delay in milliseconds before the first keepAlive probe is sent.
     // A value like 300000ms (5 minutes) is a common starting point.
-    keepAliveInitialDelay: 300000,
+
   };
 
   // GCP Agent AI: Establish the database connection.

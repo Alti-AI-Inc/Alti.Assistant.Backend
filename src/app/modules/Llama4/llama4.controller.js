@@ -16,7 +16,7 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 // This logger should be set up with winston.format.json() and a transport
 // like @google-cloud/logging-winston to ensure logs are sent to Cloud Logging
 // as structured JSON with the correct severity levels.
-import logger from '../../../shared/logger.js';
+import { logger } from '../../../shared/logger.js';
 
 // =================================================================
 // == User-Facing Endpoints

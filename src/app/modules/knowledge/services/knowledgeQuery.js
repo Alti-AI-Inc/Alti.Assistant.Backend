@@ -84,8 +84,8 @@ const ragConfig = {
 
     // Network Resiliency: Optimized for GCP networking (VPC Peering, Cloud SQL Auth Proxy).
     connectionTimeoutMillis: 5000, // Timeout for establishing a connection.
-    keepAlive: true, // Enables TCP Keep-Alive to prevent intermediate firewalls/proxies from dropping idle connections.
-    keepAliveInitialDelayMillis: 30000, // How long to wait before sending the first keep-alive probe.
+
+
 
     // Query Resiliency: Prevents long-running or hung queries from holding connections indefinitely.
     statement_timeout: 15000, // Aborts any statement that takes more than 15 seconds.

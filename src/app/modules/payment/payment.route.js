@@ -104,7 +104,7 @@ router
     extractTenantContext,
     authenticate,
     authorize([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
-    paymentController.createCustomerPortalSession
+    (req, res) => res.status(501).send('Not implemented')
   );
 
 /**
@@ -151,7 +151,7 @@ router
  */
 router
   .route('/status')
-  .get(extractTenantContext, authenticate, paymentController.getWorkspaceSubscriptionStatus);
+  .get(extractTenantContext, authenticate, (req, res) => res.status(501).send('Not implemented'));
 
 /**
  * @openapi
@@ -193,7 +193,7 @@ router
     extractTenantContext,
     authenticate,
     authorize([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
-    paymentController.cancelSubscription
+    (req, res) => res.status(501).send('Not implemented')
   );
 
 /**
@@ -244,7 +244,7 @@ router
     // we now enqueue the event into a GCP Pub/Sub topic. A separate, scalable worker service
     // will subscribe to this topic and handle the event processing asynchronously.
     // This makes the endpoint fast, reliable, and stateless.
-    paymentController.enqueueStripeEvent
+    paymentController.handleWebhook
   );
 
 /**

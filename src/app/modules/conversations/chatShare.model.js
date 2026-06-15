@@ -17,7 +17,7 @@ const containsDisallowedKeys = (obj) => {
     for (const key in obj) {
       // Using hasOwnProperty is a good practice to avoid iterating over prototype properties.
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        if (key.startsWith(')) {
+        if (key.startsWith('$')) {
           return true;
         }
         if (typeof obj[key] === 'object' && obj[key] !== null) {

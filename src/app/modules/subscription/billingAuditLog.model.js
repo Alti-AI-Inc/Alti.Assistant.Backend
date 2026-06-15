@@ -33,10 +33,10 @@ const connectionOptions = {
   // packets to be sent, preventing network infrastructure from considering the
   // connection idle and terminating it. This is especially important when using
   // services like the Cloud SQL Auth Proxy or VPC peering.
-  keepAlive: true,
+
   // The number of milliseconds to wait before initiating keepAlive on the socket.
   // A 30s delay is a common and effective setting.
-  keepAliveInitialDelay: 30000,
+
 };
 
 // In Mongoose 5 and later, the driver handles automatic reconnection by default.

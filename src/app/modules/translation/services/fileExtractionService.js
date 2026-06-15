@@ -10,7 +10,7 @@ import {
 // BUG & INTEGRATION-FIX: Import services required for validation and limit checks.
 // This ensures that file processing respects user/workspace boundaries and subscription plans.
 import { workspaceService } from '../../workspace/services/workspaceService.js'; // Assuming this service exists to fetch plan limits
-import { usageService } from '../../usage/services/usageService.js'; // Assuming this service exists to check usage against quotas
+import { usageService } from '../../usage/usage.service.js'; // Assuming this service exists to check usage against quotas
 
 /**
  * File Extraction Service

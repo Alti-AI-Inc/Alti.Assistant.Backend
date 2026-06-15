@@ -2,7 +2,7 @@ import Tenant from '../../tenant/tenant.model.js';
 import TenantMember from '../../tenant/tenantMember.model.js';
 // AI-FIX: It's a best practice to use a centralized logger and custom error types for better error handling and security.
 // Assuming these utilities exist within the project structure.
-import logger from '../../../../shared/logger.js';
+import { logger } from '../../../../shared/logger.js';
 import { AppError, ForbiddenError, NotFoundError } from '../../utils/error.util.js';
 
 /**

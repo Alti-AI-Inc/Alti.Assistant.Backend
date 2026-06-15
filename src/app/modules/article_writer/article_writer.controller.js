@@ -543,10 +543,22 @@ export const getConversationHistory = catchAsync(async (req, res) => {
  */
 
 /**
+ * Generate a pre-signed URL for client-side uploads.
+ */
+export const generateUploadUrl = catchAsync(async (req, res) => {
+  return sendResponse(res, {
+    statusCode: httpStatus.NOT_IMPLEMENTED,
+    success: false,
+    message: 'GCS Upload URL generation is not yet implemented for article writer.',
+  });
+});
+
+/**
  * Controller for handling article writer related operations.
  * @type {ArticleWriterController}
  */
 export const articleWriterController = {
   conversationalAssistant,
   getConversationHistory,
+  generateUploadUrl,
 };

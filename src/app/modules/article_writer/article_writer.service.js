@@ -7,7 +7,7 @@ import { Storage } from '@google-cloud/storage';
 // Using 'rate-limiter-flexible' for robust and efficient rate limiting with Redis.
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 // Assuming a shared Redis client is configured and exported from this path.
-import { redisClient } from '../../../../config/redis.js';
+import { redisClient } from '../../../shared/redis.js';
 // --- End Rate Limiting Imports ---
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';

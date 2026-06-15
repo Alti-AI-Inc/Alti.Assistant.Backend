@@ -11,7 +11,7 @@ import {
 } from './uploadTranslation.js';
 import WorkspaceService from '../../workspace/workspace.service.js';
 import UsageService from '../../usage/usage.service.js';
-import ApiError from '../../../utils/ApiError.js';
+import ApiError from '../../../../errors/ApiError.js';
 
 // Mock dependencies
 vi.mock('multer');
@@ -22,14 +22,14 @@ vi.mock('express-rate-limit', () => ({
 vi.mock('rate-limit-redis', () => ({
   RedisStore: vi.fn(),
 }));
-vi.mock('../../../config/redis.js', () => ({
+vi.mock('../../../../shared/redis.js', () => ({
   default: {
     sendCommand: vi.fn(),
   },
 }));
 vi.mock('../../workspace/workspace.service.js');
 vi.mock('../../usage/usage.service.js');
-vi.mock('../../../utils/ApiError.js');
+vi.mock('../../../../errors/ApiError.js');
 vi.mock('../translation.constant.js', () => ({
   FILE_SIZE_LIMITS: { SUPER_ADMIN_MAX_FILE_SIZE: 104857600 }, // 100MB
   STORAGE_CONFIG: { TEMP_FOLDER: '/tmp/uploads' },

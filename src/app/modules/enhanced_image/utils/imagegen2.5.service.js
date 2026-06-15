@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'; // USER DATA: For generating unique, non-co
 import dotenv from 'dotenv';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
-import redisClient from '../../../../../config/redisClient.js'; // DDOS GUARD: Import shared Redis client for rate limiting.
+import redisClient from '../../../../shared/redis.js'; // DDOS GUARD: Import shared Redis client for rate limiting.
 // INTEGRATION: Import services for usage tracking and limit enforcement across the tenant hierarchy.
 // This is an assumed service that encapsulates the business logic for checking and recording usage.
 import { checkImageGenerationLimit, recordImageGeneration } from '../../usage/usage.service.js';

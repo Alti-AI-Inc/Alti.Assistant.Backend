@@ -34,7 +34,7 @@ import { DatasetsCrawlerService } from '../datasetsCrawler.service.js';
 import { DatasetsService } from '../datasets.service.js';
 import Dataset from '../datasets.model.js';
 import DatasetQueue from '../datasetQueue.model.js';
-import Workspace from '../../workspaces/workspace.model.js';
+import Workspace from '../../workspace/workspace.model.js';
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import config from '../../../../../config/index.js';

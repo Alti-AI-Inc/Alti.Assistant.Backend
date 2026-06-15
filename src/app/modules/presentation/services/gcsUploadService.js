@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 import config from '../../../../../config/index.js';
 // INTEGRATION: Import models to handle usage tracking and limit enforcement.
 // Note: The exact path may vary based on project structure.
-import User from '../../user/models/user.model.js';
-import Workspace from '../../workspace/models/workspace.model.js';
+import UserModel from '../../auth/auth.model.js';
+import Workspace from '../../workspace/workspace.model.js';
 
 
 /**
@@ -141,7 +141,7 @@ export const uploadPresentationToGCS = async (
     const fileSize = fileBuffer.length;
 
     // HIERARCHY GAP FIX: Validate against workspace storage limits before uploading.
-    const user = await User.findById(userId).populate('workspace').lean();
+    const user = await UserModel.findById(userId).populate('workspace').lean();
     if (!user || !user.workspace) {
       throw new Error('User or associated workspace not found.');
     }

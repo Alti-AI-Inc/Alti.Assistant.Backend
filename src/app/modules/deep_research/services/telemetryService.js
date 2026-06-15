@@ -1,5 +1,7 @@
 import { PubSub } from '@google-cloud/pubsub';
+import { EventEmitter } from 'events';
 
+export const telemetryEmitter = new EventEmitter();
 // Initialize the Google Cloud Pub/Sub client.
 // This will automatically use the service account credentials available in the environment
 // (e.g., when running on Cloud Run, GKE, or with GOOGLE_APPLICATION_CREDENTIALS set).
@@ -45,6 +47,9 @@ export const emitTelemetryProgress = async (conversationId, data) => {
     
     // Optional: Log the message ID for tracing purposes in a real environment.
     // console.log(`Telemetry message ${messageId} published for conversation ${conversationId}.`);
+    
+    // Also emit locally for SSE
+    telemetryEmitter.emit('progress', messagePayload);
   } catch (error) {
     // Log any errors that occur during the publishing process.
     // In a production environment, this should be routed to a proper logging/monitoring service.

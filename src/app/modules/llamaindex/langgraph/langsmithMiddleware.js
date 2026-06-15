@@ -4,7 +4,7 @@ import { logger } from '../../../../shared/logger.js';
 // This import path might need adjustment based on the actual project setup and LangChain version.
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 import httpStatus from 'http-status';
-import ApiError from '../../../../shared/ApiError.js';
+import ApiError from '../../../../errors/ApiError.js';
 
 /**
  * @class LangsmithMiddleware

@@ -7,7 +7,7 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { checkDeepResearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
 import { deepResearchController } from './deep_research.controller.js';
-import { DeepResearchValidation } from './deep_research.validation.js';
+import { AppValidation } from './deep_research.validation.js';
 
 /**
  * @typedef {import('express').Router} Router
@@ -85,7 +85,7 @@ router.post(
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext, // Extract tenant context after auth
   createRateLimiter(10, 15), // Rate limit first to prevent DB load/abuse from spam requests
-  validateRequest(DeepResearchValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
+  validateRequest(AppValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
   checkDeepResearchLimit, // Check subscription limits only after passing rate limiting and validation
   deepResearchController.performDeepResearch
 );

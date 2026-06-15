@@ -49,8 +49,8 @@ const ragConfig = {
 
     // TCP Keep-Alive: Crucial for GCP networking (VPC Peering, Proxies) to prevent network intermediaries
     // from silently dropping idle connections, which would otherwise lead to cryptic connection errors.
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 30000, // Time (ms) a connection must be idle before the first keep-alive probe is sent.
+
+
   },
 
   embeddings: embeddings,

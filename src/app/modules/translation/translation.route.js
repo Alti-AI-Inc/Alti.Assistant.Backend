@@ -9,7 +9,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { TranslationValidation } from './translation.validation.js';
 import { translationController } from './translation.controller.js';
-import { uploadTranslation } from './middlewares/uploadTranslation.js';
+import { translationUploadMiddleware } from './middlewares/uploadTranslation.js';
 
 /**
  * Express router for handling translation-related API routes.
@@ -17,38 +17,7 @@ import { uploadTranslation } from './middlewares/uploadTranslation.js';
  */
 const router = express.Router();
 
-/**
- * Custom middleware to handle Multer errors specifically for the optional file upload.
- * This ensures that file upload-related errors (e.g., file size limits, invalid file types)
- * return appropriate 400 Bad Request responses instead of potentially falling through
- * to a generic 500 error handler or crashing the server.
- *
- * @param {import('express').Request} req - The Express request object.
- * @param {import('express').Response} res - The Express response object.
- * @param {import('express').NextFunction} next - The Express next middleware function.
- * @returns {void}
- */
-const handleMulterError = (req, res, next) => {
-  uploadTranslation.single('file')(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred during file upload
-      return res.status(400).json({
-        success: false,
-        message: err.message,
-        errorMessages: [{ path: 'file', message: err.message }],
-      });
-    } else if (err) {
-      // An unknown error occurred during file upload
-      return res.status(500).json({
-        success: false,
-        message: 'An unknown error occurred during file upload.',
-        errorMessages: [{ path: 'file', message: err.message || 'Unknown file upload error' }],
-      });
-    }
-    // No error, proceed to the next middleware
-    next();
-  });
-};
+
 
 /**
  * @swagger
@@ -128,7 +97,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  handleMulterError, // Use the custom error handler for optional file upload
+  translationUploadMiddleware, // Use the custom error handler for optional file upload
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(TranslationValidation.conversationalRequestSchema),
   translationController.conversationalAssistant

@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import logger from '../../../shared/logger.js'; // GCP-compatible structured JSON logger
+import { logger } from '../../../shared/logger.js'; // GCP-compatible structured JSON logger
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import Tenant from '../tenant/tenant.model.js';

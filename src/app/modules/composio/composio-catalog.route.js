@@ -14,7 +14,7 @@ import { planLimitMiddleware } from '../billing/planLimit.middleware.js';
 
 // --- Controller Import ---
 // The controller encapsulates the business logic for manager-specific actions.
-import { ManagerController } from './manager.controller.js';
+import { managerController } from '../manager/manager.controller.js';
 
 const router = express.Router();
 
@@ -76,7 +76,7 @@ router.get(
   '/team',
   authMiddleware,
   managerMiddleware, // SECURITY: Ensures only managers can access team data.
-  asyncHandler(ManagerController.getTeamMembers)
+  asyncHandler(managerController.getTeamMembers)
 );
 
 
@@ -139,7 +139,7 @@ router.post(
       .escape(),
   ],
   validate,
-  asyncHandler(ManagerController.inviteMember)
+  asyncHandler(managerController.inviteMember)
 );
 
 /**
@@ -180,7 +180,7 @@ router.get(
   '/metrics',
   authMiddleware,
   managerMiddleware, // SECURITY: Workspace metrics are sensitive and restricted to managers.
-  asyncHandler(ManagerController.getWorkspaceMetrics)
+  asyncHandler(managerController.getWorkspaceMetrics)
 );
 
 /**
@@ -243,7 +243,7 @@ router.patch(
       .escape(),
   ],
   validate,
-  asyncHandler(ManagerController.updateMemberRole)
+  asyncHandler(managerController.updateMemberRole)
 );
 
 // VERIFICATION: No routes related to billing or payment information are exposed in this module,
@@ -261,4 +261,4 @@ router.patch(
  *
  * @type {Router}
  */
-export const managerRoutes = router;
+export const composioCatalogRoutes = router;

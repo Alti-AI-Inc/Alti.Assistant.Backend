@@ -13,7 +13,7 @@ import {
 import config from '../../../../config/index.js';
 // INTEGRATION: Import a hypothetical usage service to handle limits and billing.
 // This is critical for ensuring user actions correctly propagate usage details.
-import { usageService } from '../../services/usage.service.js'; // NOTE: Path is assumed for this integration.
+import { usageService } from '../usage/usage.service.js'; // NOTE: Path is assumed for this integration.
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);

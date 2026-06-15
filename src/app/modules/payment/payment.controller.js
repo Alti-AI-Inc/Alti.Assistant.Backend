@@ -36,18 +36,20 @@ const mongooseOptions = {
   // --- KeepAlive Settings for GCP Network Infrastructure (VPC Peering, Cloud SQL Auth Proxy) ---
   // Enables TCP KeepAlive. This is crucial for maintaining long-lived connections through network proxies,
   // NATs, or firewalls which may otherwise terminate idle sockets.
-  keepAlive: true,
+
   // The delay in milliseconds before the first keep-alive probe is sent on an idle socket.
   // A value of 300000ms (5 minutes) is recommended for GCP environments.
-  keepAliveInitialDelay: 300000,
+
 };
 
 // Establish the database connection
-mongoose.connect(MONGO_URI, mongooseOptions).catch(err => {
-  console.error('FATAL: Initial MongoDB connection failed.', err);
-  // In a production environment, you should exit the process if the database connection fails on startup.
-  // process.exit(1);
-});
+if (mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
+  mongoose.connect(MONGO_URI, mongooseOptions).catch(err => {
+    console.error('FATAL: Initial MongoDB connection failed.', err);
+    // In a production environment, you should exit the process if the database connection fails on startup.
+    // process.exit(1);
+  });
+}
 
 // --- Connection Event Listeners for Observability ---
 mongoose.connection.on('connected', () => {

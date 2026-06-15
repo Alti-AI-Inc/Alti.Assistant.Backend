@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { rateLimiter } from '../../../shared/rateLimiter.js'; // AI-AGENT: Import rate limiter utility
+import { createRateLimiter } from '../../../shared/rateLimiter.js'; // AI-AGENT: Import rate limiter utility
 import { documentService } from './document.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 // import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Removed as it was misused in subscription logic
@@ -11,21 +11,20 @@ import SubscriptionModel from '../payment/payment.model.js';
 // This section defines rate limiters to protect against API abuse, DDOS, and excessive costs.
 
 // Strict limiter for guest (IP-based) access to expensive AI endpoints.
-const guestGenerationLimiter = rateLimiter({
+const guestGenerationLimiter = createRateLimiter({
   keyPrefix: 'guest_doc_generation_limit_ip',
   points: 5, // Max 5 requests
   duration: 60, // per 60 seconds
-  errorMessage:
-    'Too many document generation requests. Please create an account or try again in a minute.',
+  errorMessage: 'Too many requests from this IP. Please try again later.',
 });
 
 // Burst protection for authenticated users (user ID-based) on expensive AI endpoints.
 // Their primary limit is the subscription plan; this prevents rapid-fire abuse.
-const authenticatedGenerationLimiter = rateLimiter({
+const authenticatedGenerationLimiter = createRateLimiter({
   keyPrefix: 'auth_doc_generation_limit_user',
   points: 30, // Max 30 requests
   duration: 60, // per 60 seconds
-  keyGenerator: req => req.user?.userId || req.user?._id, // Use User ID as the key
+  keyGenerator: (req) => req.user?.userId || req.user?._id, // Use User ID as the key
   errorMessage: 'You are making too many requests. Please slow down.',
 });
 
@@ -39,7 +38,7 @@ const conditionalGenerationLimiter = (req, res, next) => {
 };
 
 // General purpose limiter for other endpoints to prevent basic DDOS.
-const generalApiLimiter = rateLimiter({
+const generalApiLimiter = createRateLimiter({
   keyPrefix: 'general_api_limit_ip',
   points: 60, // Max 60 requests
   duration: 60, // per 60 seconds

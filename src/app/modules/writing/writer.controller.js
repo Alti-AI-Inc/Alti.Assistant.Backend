@@ -149,7 +149,7 @@ app.get('/readyz', (req, res) => {
  *           type: string
  *           description: A descriptive error message.
  */
-const writingTask = async (req, res) => {
+export const writingTask = async (req, res) => {
   const { message, conversationId } = req.body;
   if (!message) {
     return res

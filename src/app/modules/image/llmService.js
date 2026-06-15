@@ -3,7 +3,12 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { llm } from './llm.js';
 // FIX: Import usage tracking service to handle authorization, limits, and hierarchical notifications.
 // This service is responsible for enforcing tenant/workspace boundaries and role-based permissions.
-import { recordUsage, USAGE_UNITS } from '../usage/usageService.js';
+import { recordUsage } from '../usage/usage.service.js';
+const USAGE_UNITS = {
+  LLM_PROMPT_HELPER_CALL: 'LLM_PROMPT_HELPER_CALL',
+  LLM_PROMPT_REFINEMENT_CALL: 'LLM_PROMPT_REFINEMENT_CALL',
+  LLM_UTILITY_CALL: 'LLM_UTILITY_CALL'
+};
 
 /**
  * @typedef {Object} UserContext

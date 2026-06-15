@@ -1,6 +1,6 @@
 import auth from '../../middlewares/auth/auth.js';
-import { User } from '../../modules/user/user.model.js';
-import { Workspace } from '../../modules/workspace/workspace.model.js';
+import UserModel from './auth.model.js';
+import Workspace from '../../modules/workspace/workspace.model.js';
 
 /**
  * Base authentication middleware.
@@ -44,7 +44,7 @@ export const checkPlanLimits = async (req, res, next) => {
 
         // Count the number of active users currently in the workspace.
         // A more robust solution might also count pending invitations if they count towards the limit.
-        const currentUserCount = await User.countDocuments({ workspaceId: workspaceId, status: 'active' });
+        const currentUserCount = await UserModel.countDocuments({ workspaceId: workspaceId, status: 'active' });
 
         if (currentUserCount >= userLimit) {
             return res.status(403).json({
@@ -131,7 +131,7 @@ export const roleMiddleware = (...allowedRoles) => {
 
             // A 'manager' has more restricted access.
             if (userRole === 'manager') {
-                const targetUser = await User.findById(targetUserId).select('managerId workspaceId').lean();
+                const targetUser = await UserModel.findById(targetUserId).select('managerId workspaceId').lean();
                 if (!targetUser) {
                     return res.status(404).json({ message: 'Target user not found.' });
                 }

@@ -1,5 +1,5 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redisClient from '../../../../../config/redisClient.js'; // Assumes a configured Redis client is exported from here
+import redisClient from '../../../../shared/redis.js'; // Assumes a configured Redis client is exported from here
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';

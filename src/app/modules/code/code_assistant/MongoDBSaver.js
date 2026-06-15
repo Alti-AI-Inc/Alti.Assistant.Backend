@@ -65,7 +65,10 @@ export class MongoDBSaver extends BaseCheckpointSaver {
    * @returns {Promise<MongoDBSaver>} A promise that resolves to a new `MongoDBSaver` instance.
    */
   static async fromUri(uri) {
-    if (mongoose.connection.readyState !== 1) {
+    if (mongoose.connection.readyState === 2) {
+      // Already connecting, wait for it to open
+      await new Promise((resolve) => mongoose.connection.once('open', resolve));
+    } else if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(uri, {
         // --- GCP & Production Resiliency Recommendations ---
         // Use IPv4, skipping the expensive IPv6 lookup. Helpful in containerized environments like GKE or Cloud Run.
@@ -78,11 +81,6 @@ export class MongoDBSaver extends BaseCheckpointSaver {
         socketTimeoutMS: 45000,
         // How long the driver will wait to establish a connection before timing out (e.g., 10 seconds).
         connectTimeoutMS: 10000,
-        // Keep connections alive to prevent them from being dropped by firewalls, NATs, or load balancers.
-        keepAlive: true,
-        // The number of milliseconds to wait before initiating the first keepalive probe (e.g., 5 minutes).
-        keepAliveInitialDelay: 300000,
-        // --- End of Recommendations ---
       });
       console.log(
         'Successfully connected to MongoDB via Mongoose with production settings.'

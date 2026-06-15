@@ -55,7 +55,7 @@ const RedisClient = createClient({
     // For GCP network routing (VPC, proxies, etc.), longer keep-alives are beneficial
     // to prevent intermediate network devices (firewalls, NATs) from closing idle connections
     // that they no longer track. A 60-second keepAlive is a robust setting.
-    keepAlive: 1000 * 60, // 60 seconds in milliseconds
+
 
     // A reasonable timeout for establishing the initial connection.
     connectTimeout: 10000, // 10 seconds

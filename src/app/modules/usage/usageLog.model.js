@@ -38,11 +38,11 @@ export const connectDB = async () => {
     // Enable TCP KeepAlive to send probes on idle sockets. This prevents network
     // infrastructure from considering the connection stale and dropping it.
     // This is highly recommended for long-running applications and resilient connections in GCP.
-    keepAlive: true,
+
 
     // Delay in milliseconds between when the socket becomes idle and when the first
     // keep-alive probe is sent. 30000ms (30 seconds) is a good starting point.
-    keepAliveInitialDelay: 30000,
+
 
     // Note: In Mongoose 6+ (and the underlying modern Node.js MongoDB driver),
     // automatic reconnection is handled by default and is part of the core topology

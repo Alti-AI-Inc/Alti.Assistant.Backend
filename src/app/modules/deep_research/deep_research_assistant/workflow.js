@@ -89,8 +89,8 @@ if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
     serverSelectionTimeoutMS: 30000, // Time to find a suitable server before failing
 
     // KeepAlive: Essential for stable connections through GCP firewalls, NATs, or proxies
-    keepAlive: true,
-    keepAliveInitialDelay: 300000, // Send keep-alive pings every 5 minutes
+
+
   };
 
   // Construct the full connection URI with resiliency parameters.

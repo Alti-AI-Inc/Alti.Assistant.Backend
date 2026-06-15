@@ -5,7 +5,7 @@ import path from 'path';
 // import { pipeline } from 'stream/promises'; // Removed: Unused import
 import { GoogleAuth } from 'google-auth-library';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redisClient from '../../../../config/redisClient.js';
+import redisClient from '../../../shared/redis.js';
 
 // --- Enterprise Rate-Limiting & DDOS Guard ---
 // Centralized handler for rate limit errors to ensure consistent responses.

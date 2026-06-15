@@ -51,10 +51,10 @@ const connectionOptions = {
   // --- KeepAlive Settings for GCP/Proxies ---
   // keepAlive: Enables TCP KeepAlive on the socket, preventing intermediate network devices
   // (like NATs, firewalls, VPC peering, or the Cloud SQL Auth Proxy) from dropping idle connections.
-  keepAlive: true,
+
   // keepAliveInitialDelay: How long (in ms) to wait before initiating the first keepAlive probe.
   // A value like 300000 (5 minutes) is recommended for GCP to ensure connections stay open through idle periods.
-  keepAliveInitialDelay: 300000,
+
 
   // --- Write & Journaling Concern ---
   // w: 'majority' ensures that writes are acknowledged by a majority of replica set members,
@@ -78,6 +78,11 @@ const connectionOptions = {
  */
 const connectDB = async () => {
   try {
+    if (mongoose.connection.readyState === 1) return;
+    if (mongoose.connection.readyState === 2) {
+      await new Promise(resolve => mongoose.connection.once('open', resolve));
+      return;
+    }
     // The Mongoose driver handles automatic reconnects by default. The options above fine-tune this behavior.
     await mongoose.connect(MONGODB_URI, connectionOptions);
   } catch (error) {

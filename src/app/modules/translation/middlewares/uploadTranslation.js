@@ -15,9 +15,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { rateLimit } from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-import redisClient from '../../../config/redis.js'; // Assumes a shared Redis client instance is exported from this path
+import redisClient from '../../../../shared/redis.js'; // Assumes a shared Redis client instance is exported from this path
 import {
   FILE_SIZE_LIMITS,
   STORAGE_CONFIG,
@@ -30,15 +28,11 @@ import {
 import WorkspaceService from '../../workspace/workspace.service.js'; // Assumed path and service
 import Workspace from '../../workspace/workspace.model.js'; // OPTIMIZATION: Import model for direct, optimized queries.
 import UsageService from '../../usage/usage.service.js'; // Assumed path and service
-import ApiError from '../../../utils/ApiError.js'; // Assumed path to a custom error class
+import ApiError from '../../../../errors/ApiError.js'; // Assumed path to a custom error class
+
+import { createRateLimiter } from '../../../../shared/rateLimiter.js';
 
 // --- Rate Limiting Configuration ---
-
-// Create a new Redis store for the rate limiters to share state across multiple processes/servers.
-const store = new RedisStore({
-  // @ts-ignore
-  sendCommand: (...args) => redisClient.sendCommand(args),
-});
 
 /**
  * Rate limiter for authenticated users uploading translation files.
@@ -51,27 +45,12 @@ const store = new RedisStore({
  * // Usage in a route:
  * // router.post('/upload', authMiddleware, uploadLimiterAuthenticated, translationUploadMiddleware, controller);
  */
-export const uploadLimiterAuthenticated = rateLimit({
-  store,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each authenticated user to 20 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  keyGenerator: (req) => {
-    // Use the user ID from the request object (set by an auth middleware) as the key.
-    // Fallback to IP if user ID is not available, though `skip` should prevent this.
-    return req.user?.id || req.ip;
-  },
-  handler: (req, res, next, options) => {
-    // FIX: Use ApiError for consistent error responses.
-    next(
-      new ApiError(
-        options.statusCode,
-        'Too many file upload attempts. Please try again in 15 minutes.'
-      )
-    );
-  },
-  skip: (req) => !req.user, // Only apply this limiter if the user is authenticated.
+export const uploadLimiterAuthenticated = createRateLimiter({
+  keyPrefix: 'translation_upload_auth',
+  duration: 15 * 60, // 15 minutes
+  points: 20, // Limit each authenticated user to 20 requests per windowMs
+  keyGenerator: (req) => req.user?.id || req.ip,
+  errorMessage: 'Too many file upload attempts. Please try again in 15 minutes.',
 });
 
 /**
@@ -85,22 +64,12 @@ export const uploadLimiterAuthenticated = rateLimit({
  * // Usage in a route:
  * // router.post('/public/upload', uploadLimiterPublic, translationUploadMiddleware, controller);
  */
-export const uploadLimiterPublic = rateLimit({
-  store,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res, next, options) => {
-    // FIX: Use ApiError for consistent error responses.
-    next(
-      new ApiError(
-        options.statusCode,
-        'Too many file upload attempts from this IP. Please try again in 15 minutes.'
-      )
-    );
-  },
-  skip: (req) => !!req.user, // Skip this limiter if the user is authenticated (the other limiter will apply).
+export const uploadLimiterPublic = createRateLimiter({
+  keyPrefix: 'translation_upload_public',
+  duration: 15 * 60, // 15 minutes
+  points: 5, // Limit each IP to 5 requests per windowMs
+  keyGenerator: (req) => req.ip,
+  errorMessage: 'Too many file upload attempts from this IP. Please try again in 15 minutes.',
 });
 
 // --- Multer File Upload Configuration ---

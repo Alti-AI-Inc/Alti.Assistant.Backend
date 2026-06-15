@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const sanitizeHtml = require('sanitize-html');
 const pick = require('../../middlewares/other/pick');
-const ApiError = require('../../utils/ApiError'); // Assuming a custom error class for structured HTTP errors
+const ApiError = require('../../../errors/ApiError'); // Assuming a custom error class for structured HTTP errors
 const catchAsync = require('../../utils/catchAsync'); // Assuming a utility to wrap async route handlers
 const logger = require('../../../shared/logger.js'); // BUG FIX: Added logger import
 const { paginationFields } = require('./forum.constant');

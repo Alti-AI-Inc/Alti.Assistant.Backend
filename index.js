@@ -8,6 +8,9 @@ try {
 import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('buffer').SlowBuffer = require('buffer').Buffer;
 import express from 'express';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
@@ -187,15 +190,23 @@ const connectDB = (retries = 5, delay = 5000) => {
   }
 
   try {
-    mongoose
-      .connect(dbUri, {
+    let connectionPromise;
+    if (mongoose.connection.readyState === 1) {
+      connectionPromise = Promise.resolve();
+    } else if (mongoose.connection.readyState === 2) {
+      connectionPromise = new Promise((resolve) => mongoose.connection.once('open', resolve));
+    } else {
+      connectionPromise = mongoose.connect(dbUri, {
         family: 4,
         serverSelectionTimeoutMS: 10000,
         maxPoolSize: 20,
         minPoolSize: 2,
         socketTimeoutMS: 45000,
         connectTimeoutMS: 10000,
-      })
+      });
+    }
+
+    connectionPromise
       .then(() => {
         logger.info('✅ Database connection successfully');
         initializeCronJobs();

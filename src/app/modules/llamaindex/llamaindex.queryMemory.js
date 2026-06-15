@@ -1,8 +1,8 @@
 import { logger } from '../../../shared/logger.js';
 import QueryMemory from './llamaindex.queryMemory.model.js';
 // PLATFORM OWNER FIX: Import necessary models for platform-wide operations.
-import Workspace from '../../workspace/workspace.model.js'; // Hypothetical workspace model for status checks
-import User from '../../user/user.model.js'; // Hypothetical user model for role checks
+import Workspace from '../workspace/workspace.model.js'; // Hypothetical workspace model for status checks
+import UserModel from '../auth/auth.model.js'; // Hypothetical user model for role checks
 // import { usageService } from '../../usage/usage.service.js'; // Hypothetical usage tracking service
 // import { configService } from '../../../config/config.service.js'; // Hypothetical central config service
 
@@ -331,7 +331,7 @@ const getMemorySummary = async (authContext, targetUserId, targetWorkspaceId) =>
     }
     // Admins/Managers can access others in their own workspace.
     if ((role === 'admin' || role === 'manager') && requesterId !== effectiveUserId) {
-      const targetUser = await User.findOne({ _id: effectiveUserId, workspaceId: requesterWorkspaceId }).lean();
+      const targetUser = await UserModel.findOne({ _id: effectiveUserId, workspaceId: requesterWorkspaceId }).lean();
       if (!targetUser) {
         return { success: false, error: `Permission denied or user with ID ${effectiveUserId} not found in your workspace.` };
       }

@@ -1,5 +1,5 @@
 import { logger } from '../../../shared/logger.js';
-import { ApiError } from '../../../shared/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainChainVersion from './langchain-version.model.js';
 

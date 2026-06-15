@@ -11,7 +11,7 @@ import httpStatus from 'http-status';
 // Use the official Google Cloud Vertex AI SDK for enterprise features and security
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import config from '../../../../config/index.js';
-import ApiError from '../../../utils/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 
 // Create a Winston logger configured for GCP Cloud Logging (Stackdriver).
 // When logs are output as JSON to stdout/stderr, GCP Cloud Logging automatically

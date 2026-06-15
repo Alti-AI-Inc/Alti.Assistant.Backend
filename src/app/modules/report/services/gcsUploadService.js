@@ -9,7 +9,7 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import config from '../../../../../config/index.js';
-import { redisClient } from '../../../../config/redis.js'; // Assumes a configured Redis client is exported
+import { redisClient } from '../../../../shared/redis.js'; // Assumes a configured Redis client is exported
 import { logger } from '../../../../shared/logger.js';
 
 // --- Rate Limiting & DDOS Protection Setup ---

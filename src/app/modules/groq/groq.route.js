@@ -637,7 +637,7 @@ router.delete(
 router.get(
   '/admin/stats',
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
-  GroqAiController.getGlobalAiStats
+  GroqAiController.adminGetPlatformStats
 );
 
 /**
@@ -675,7 +675,7 @@ router.get(
 router.get(
   '/admin/config',
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
-  GroqAiController.getGroqConfig
+  GroqAiController.adminGetSystemConfig
 );
 
 /**
@@ -721,7 +721,7 @@ router.get(
 router.put(
   '/admin/config',
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
-  GroqAiController.updateGroqConfig
+  GroqAiController.adminUpdateSystemConfig
 );
 
 /**

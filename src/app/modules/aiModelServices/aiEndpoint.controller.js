@@ -14,9 +14,9 @@ import aiEndpoints from './aiEndpoint.utils.js';
 // Hypothetical audit logger for Platform Owner actions. Assumes a logger is configured elsewhere.
 import auditLogger from '../../../shared/auditLogger.js';
 // PATCH: Import general system logger for detailed error logging.
-import logger from '../../../shared/logger.js';
+import { logger } from '../../../shared/logger.js';
 // PATCH: Import ApiError for standardized, user-friendly error responses.
-import ApiError from '../../../core/ApiError.js';
+import ApiError from '../../../errors/ApiError.js';
 
 // Optimization Recommendations:
 // For improved query performance, ensure the following indexes are defined in the `AiEndpoint` Mongoose schema (aiEndpoint.Model.js):

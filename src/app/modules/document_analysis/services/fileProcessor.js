@@ -3,9 +3,7 @@ import { Storage } from '@google-cloud/storage';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
-import { rateLimit } from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../../../../shared/config/redis.js';
+import { redisClient } from '../../../../shared/redis.js';
 import { logger } from '../../../../shared/logger.js';
 
 // --- Google Cloud Storage Integration ---
@@ -106,6 +104,8 @@ const getSignedUrlForGcsFile = async (gcsUri, durationMinutes = 15) => {
   }
 };
 
+import { createRateLimiter } from '../../../../shared/rateLimiter.js';
+
 // --- Rate Limiting ---
 
 /**
@@ -113,20 +113,11 @@ const getSignedUrlForGcsFile = async (gcsUri, durationMinutes = 15) => {
  * File parsing is a CPU and memory-intensive operation. A strict rate limit is crucial
  * to prevent DDOS attacks, API abuse, and resource exhaustion.
  */
-export const fileProcessingRateLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-  }),
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 file processing requests per window.
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    status: 429,
-    error: 'Too many requests',
-    message:
-      'You have made too many file processing requests. Please try again in 15 minutes.',
-  },
+export const fileProcessingRateLimiter = createRateLimiter({
+  keyPrefix: 'file_processing',
+  points: 20, // Limit each IP to 20 file processing requests per window.
+  duration: 15 * 60, // 15 minutes in seconds
+  errorMessage: 'You have made too many file processing requests. Please try again in 15 minutes.',
 });
 
 // --- Text Extraction Services (Refactored to use Buffers) ---

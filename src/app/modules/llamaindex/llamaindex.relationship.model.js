@@ -5,8 +5,8 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import logger from '../../../core/utils/logger.js';
-import ApiError from '../../../core/utils/ApiError.js';
+import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 
 /**

@@ -24,3 +24,9 @@ try {
   console.error('[preload] Failed to set fallback DNS servers:', dnsErr.message);
 }
 
+ 
+// Polyfill for SlowBuffer which was removed in Node.js 26 to fix mongoose-encryption
+const buffer = require('buffer');
+if (!buffer.SlowBuffer) {
+  buffer.SlowBuffer = buffer.Buffer;
+}

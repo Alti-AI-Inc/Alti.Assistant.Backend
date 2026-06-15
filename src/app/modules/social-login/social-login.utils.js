@@ -13,7 +13,7 @@
 
 import UserModel from '../auth/auth.model.js';
 // INTEGRATION FIX: Import WorkspaceModel to create a tenant context for new users.
-import WorkspaceModel from '../workspaces/workspace.model.js';
+import WorkspaceModel from '../workspace/workspace.model.js';
 
 /**
  * Finds an existing user based on their social provider profile or creates a new one.

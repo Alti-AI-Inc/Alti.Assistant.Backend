@@ -37,8 +37,8 @@ const mongooseOptions = {
   socketTimeoutMS: 45000,
 
   // --- KeepAlive for Long-Lived Connections ---
-  keepAlive: true,
-  keepAliveInitialDelay: 300000,
+
+
 
   // --- Network Configuration ---
   family: 4,
