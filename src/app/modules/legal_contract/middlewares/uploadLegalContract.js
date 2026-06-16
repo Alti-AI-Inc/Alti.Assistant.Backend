@@ -28,19 +28,12 @@ const pubSubClient = new PubSub();
  * // In your .env file
  * // LEGAL_CONTRACTS_GCS_BUCKET=your-company-legal-contracts-bucket
  */
-const GCS_BUCKET_NAME = process.env.LEGAL_CONTRACTS_GCS_BUCKET || (process.env.NODE_ENV !== 'production' ? 'development-legal-contracts-bucket' : '');
-const PUBSUB_TOPIC_NAME = process.env.LEGAL_CONTRACT_PROCESSING_TOPIC || (process.env.NODE_ENV !== 'production' ? 'projects/development-project/topics/development-legal-contract-topic' : '');
-
-// Startup check to ensure necessary environment variables are set for the service to function.
-if (!GCS_BUCKET_NAME || !PUBSUB_TOPIC_NAME) {
-  throw new Error(
-    'FATAL_ERROR: Missing required environment variables: LEGAL_CONTRACTS_GCS_BUCKET and/or LEGAL_CONTRACT_PROCESSING_TOPIC must be set.'
-  );
-}
+const GCS_BUCKET_NAME = process.env.LEGAL_CONTRACTS_GCS_BUCKET || 'development-legal-contracts-bucket';
+const PUBSUB_TOPIC_NAME = process.env.LEGAL_CONTRACT_PROCESSING_TOPIC || 'projects/development-project/topics/development-legal-contract-topic';
 
 if (!process.env.LEGAL_CONTRACTS_GCS_BUCKET || !process.env.LEGAL_CONTRACT_PROCESSING_TOPIC) {
   console.warn(
-    'Warning: LEGAL_CONTRACTS_GCS_BUCKET and/or LEGAL_CONTRACT_PROCESSING_TOPIC are not set. Initializing fallback values for development/testing.'
+    'Warning: LEGAL_CONTRACTS_GCS_BUCKET and/or LEGAL_CONTRACT_PROCESSING_TOPIC are not set. Using fallback values. Legal contract features may not work correctly.'
   );
 }
 
