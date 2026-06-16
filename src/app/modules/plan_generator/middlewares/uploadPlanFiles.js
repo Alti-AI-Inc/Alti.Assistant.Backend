@@ -39,9 +39,12 @@ export const uploadPlanRateLimiter = rateLimit({
   standardHeaders: 'draft-7', // Use standard `RateLimit-*` headers.
   legacyHeaders: false, // Disable the non-standard `X-RateLimit-*` headers.
   // Store rate limit data in Redis to ensure consistency across multiple server instances.
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-  }),
+  // Falls back to in-memory store if Redis is not connected yet.
+  store: (redisClient && redisClient.isOpen)
+    ? new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      })
+    : undefined,
   // Key requests by the authenticated user's ID for fairness. Fallback to IP if unauthenticated.
   keyGenerator: (req, res) => {
     return req.user?.id || req.ip;

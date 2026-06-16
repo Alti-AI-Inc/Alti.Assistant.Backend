@@ -103,9 +103,12 @@ const fileFilter = (req, file, cb) => {
  */
 const documentUploadLimiter = rateLimit({
   // Store session data in Redis, essential for distributed/clustered environments.
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-  }),
+  // Falls back to in-memory store if Redis is not connected yet.
+  store: (redisClient && redisClient.isOpen)
+    ? new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      })
+    : undefined,
   // 1-hour window for the rate limit.
   windowMs: 60 * 60 * 1000,
   // Dynamically set the maximum number of requests based on authentication status.

@@ -24,10 +24,12 @@ import http from 'http';
  * for accurate limiting in a scaled environment.
  * @type {RedisStore}
  */
-const rateLimitStoreAnalysis = new RedisStore({
-  sendCommand: (...args) => redisClient.sendCommand(args),
-  prefix: 'rl:brainstorm:analysis:',
-});
+const rateLimitStoreAnalysis = (redisClient && redisClient.isOpen)
+  ? new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:brainstorm:analysis:',
+    })
+  : undefined;
 
 /**
  * A Redis-backed store for the AI extraction rate limiter.
@@ -35,10 +37,12 @@ const rateLimitStoreAnalysis = new RedisStore({
  * and shared across multiple server instances or processes.
  * @type {RedisStore}
  */
-const rateLimitStoreExtraction = new RedisStore({
-  sendCommand: (...args) => redisClient.sendCommand(args),
-  prefix: 'rl:brainstorm:extraction:',
-});
+const rateLimitStoreExtraction = (redisClient && redisClient.isOpen)
+  ? new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:brainstorm:extraction:',
+    })
+  : undefined;
 
 /**
  * Custom key generator for rate limiting.

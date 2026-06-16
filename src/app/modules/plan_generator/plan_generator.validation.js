@@ -350,7 +350,7 @@ const redisClient = (() => {
  * @returns {RedisStore|undefined} The RedisStore instance or undefined.
  */
 const createRateLimitStore = (prefix) => {
-  return redisClient
+  return (redisClient && redisClient.isOpen)
     ? new RedisStore({
         // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
         sendCommand: (...args) => redisClient.sendCommand(args),

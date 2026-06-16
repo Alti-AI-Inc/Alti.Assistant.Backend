@@ -65,7 +65,7 @@ const redisClient = (() => {
 })();
 
 // Create a Redis store for the rate limiter.
-const redisStore = redisClient
+const redisStore = (redisClient && redisClient.isOpen)
   ? new RedisStore({
       // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
       sendCommand: (...args) => redisClient.sendCommand(args),

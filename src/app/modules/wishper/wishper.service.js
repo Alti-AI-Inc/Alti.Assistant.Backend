@@ -36,10 +36,13 @@ redisClient.on('error', (err) => console.error('🔴 Redis Client Error for Rate
 // Limits are applied per IP address. This middleware should be applied to the route that calls this service.
 export const transcriptionLimiter = rateLimit({
   // Store request counts in Redis, making the limiter effective across multiple server instances or containers.
-  store: new RedisStore({
-    // The 'sendCommand' method is used by the Redis store to execute Redis commands.
-    sendCommand: (...args) => redisClient.sendCommand(args),
-  }),
+  // Falls back to in-memory store if Redis is not connected yet.
+  store: (redisClient && redisClient.isOpen)
+    ? new RedisStore({
+        // The 'sendCommand' method is used by the Redis store to execute Redis commands.
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      })
+    : undefined,
   // The time window for which requests are checked, in milliseconds. Here, it's 15 minutes.
   windowMs: 15 * 60 * 1000,
   // The maximum number of requests allowed from a single IP within the windowMs.

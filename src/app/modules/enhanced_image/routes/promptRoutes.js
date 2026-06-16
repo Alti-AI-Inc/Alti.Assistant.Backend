@@ -19,11 +19,14 @@ export const createPromptRoutes = (sessionManager, promptService, redisClient) =
   // from a single authenticated user spamming the service.
   // It uses a Redis store to ensure limits are applied consistently across a distributed system.
   const promptApiLimiter = rateLimit({
-    store: new RedisStore({
-      // The `rate-limit-redis` library needs a function that can send commands to Redis.
-      // `redisClient.sendCommand` is the recommended approach for `node-redis` v4+.
-      sendCommand: (...args) => redisClient.sendCommand(args),
-    }),
+    // Falls back to in-memory store if Redis client is not connected yet.
+    store: (redisClient && redisClient.isOpen)
+      ? new RedisStore({
+          // The `rate-limit-redis` library needs a function that can send commands to Redis.
+          // `redisClient.sendCommand` is the recommended approach for `node-redis` v4+.
+          sendCommand: (...args) => redisClient.sendCommand(args),
+        })
+      : undefined,
     windowMs: 60 * 1000, // 1 minute window
     max: 30, // Limit each authenticated user to 30 prompt-related requests per minute.
     keyGenerator: (req) => {

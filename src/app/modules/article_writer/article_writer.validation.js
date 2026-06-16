@@ -17,7 +17,7 @@ import redisClient from '../../../shared/redis.js'; // Assuming a shared Redis c
 // Helper to create a unique Redis store for each rate limiter if a client is available.
 // This ensures that rate limits are shared across all server instances in a cluster without store sharing crashes.
 const createRateLimitStore = (prefix) => {
-  return redisClient
+  return (redisClient && redisClient.isOpen)
     ? new RedisStore({
         // @ts-ignore - Known issue with rate-limit-redis types and ioredis/node-redis v4.
         sendCommand: (...args) => redisClient.sendCommand(args),

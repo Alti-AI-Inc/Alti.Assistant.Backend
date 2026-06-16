@@ -19,23 +19,29 @@ const redisClient = createClient({
 redisClient.connect().catch(console.error);
 
 // Create a Redis store for rate-limit-redis.
-const redisStoreConversational = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-  sendCommand: (...args) => redisClient.sendCommand(args),
-  prefix: 'rl:doc_review:conv:',
-});
+const redisStoreConversational = (redisClient && redisClient.isOpen)
+  ? new RedisStore({
+      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:doc_review:conv:',
+    })
+  : undefined;
 
-const redisStoreReview = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-  sendCommand: (...args) => redisClient.sendCommand(args),
-  prefix: 'rl:doc_review:rev:',
-});
+const redisStoreReview = (redisClient && redisClient.isOpen)
+  ? new RedisStore({
+      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:doc_review:rev:',
+    })
+  : undefined;
 
-const redisStoreHistory = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-  sendCommand: (...args) => redisClient.sendCommand(args),
-  prefix: 'rl:doc_review:hist:',
-});
+const redisStoreHistory = (redisClient && redisClient.isOpen)
+  ? new RedisStore({
+      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:doc_review:hist:',
+    })
+  : undefined;
 
 // Generic key generator to identify clients.
 // Prioritizes authenticated user ID, then a guest user ID from the body, and finally falls back to IP.

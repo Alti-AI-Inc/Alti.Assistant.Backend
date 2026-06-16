@@ -142,10 +142,13 @@ import { whisperTranscribeService } from './wishper.service.js';
 // across multiple application instances.
 const transcribeAudioLimiter = rateLimit({
   // Use Redis for distributed rate limiting.
-  store: new RedisStore({
-    // @ts-expect-error - ioredis types can be incompatible with express-rate-limit
-    sendCommand: (...args) => redisClient.sendCommand(args),
-  }),
+  // Falls back to in-memory store if Redis is not connected yet.
+  store: (redisClient && redisClient.isOpen)
+    ? new RedisStore({
+        // @ts-expect-error - ioredis types can be incompatible with express-rate-limit
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      })
+    : undefined,
   windowMs: 1 * 60 * 1000, // 1 minute window.
   limit: 15, // Limit each user (or IP if unauthenticated) to 15 requests per minute.
   standardHeaders: 'draft-7', // Send standard `RateLimit-*` headers.
