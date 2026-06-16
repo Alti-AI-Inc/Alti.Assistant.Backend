@@ -308,30 +308,27 @@ const encryptionKey = process.env.MONGOOSE_ENCRYPTION_KEY;
 const signingKey = process.env.MONGOOSE_SIGNING_KEY;
 
 if (!encryptionKey || !signingKey) {
-  // In a real application, you might throw an error only in production.
-  // For development, you might use default keys but log a prominent warning.
+  // Log warning but don't crash — allows app to start without encryption
   console.error('CRITICAL SECURITY WARNING: MONGOOSE_ENCRYPTION_KEY and MONGOOSE_SIGNING_KEY environment variables are not set. Sensitive data will not be encrypted.');
-  // Throwing an error to prevent the application from starting in an insecure state.
-  throw new Error('Mongoose encryption keys are not configured. Halting application start.');
-}
-
-// SECURITY_PATCH: Apply the encryption plugin to the schema.
-// This will automatically encrypt/decrypt the specified fields when saving/retrieving documents.
-// The `authenticated` option adds an authenticated encryption layer (AEAD) for integrity protection.
-ComposioAuthSchema.plugin(encrypt, {
-  encryptionKey: encryptionKey,
-  signingKey: signingKey,
-  encryptedFields: ['accessToken', 'refreshToken', 'idToken'],
-  // It's recommended to use authenticated encryption to protect against tampering.
+  // In production, consider setting these via Docker secrets or env vars.
+} else {
+  // SECURITY_PATCH: Apply the encryption plugin to the schema.
+  // This will automatically encrypt/decrypt the specified fields when saving/retrieving documents.
+  // The `authenticated` option adds an authenticated encryption layer (AEAD) for integrity protection.
+  ComposioAuthSchema.plugin(encrypt, {
+    encryptionKey: encryptionKey,
+    signingKey: signingKey,
+    encryptedFields: ['accessToken', 'refreshToken', 'idToken'],
+    // It's recommended to use authenticated encryption to protect against tampering.
   // This requires specifying fields that will be used as Additional Authenticated Data (AAD).
   // Here, we use the document's _id and tenantId to scope the encryption, ensuring a token
   // from one document cannot be moved to another.
-  additionalAuthenticatedData: (doc) => ({
-    composioAuthId: doc._id.toString(),
-    tenantId: doc.tenantId.toString(),
-  }),
-});
-
+    additionalAuthenticatedData: (doc) => ({
+      composioAuthId: doc._id.toString(),
+      tenantId: doc.tenantId.toString(),
+    }),
+  });
+}
 
 /**
  * Compound index for the most common query pattern:

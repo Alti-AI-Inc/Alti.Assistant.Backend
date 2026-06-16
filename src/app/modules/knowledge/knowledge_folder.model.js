@@ -9,8 +9,8 @@ import { FOLDER_COLORS } from './knowledge.constant.js';
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  console.error('FATAL ERROR: MONGODB_URI environment variable is not set.');
-  process.exit(1); // Exit the application if the database connection string is missing.
+  // Log warning but don't exit — the main app manages the database connection via DATABASE_LOCAL
+  console.warn('WARNING: MONGODB_URI environment variable is not set. Using shared mongoose connection.');
 }
 
 // Mongoose connection options optimized for resiliency and performance in a GCP environment.
