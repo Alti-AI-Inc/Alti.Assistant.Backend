@@ -31,21 +31,26 @@ jobs:
             echo "=== Container Inspect (exit code, OOM, restarts) ==="
             docker inspect alti-backend --format '{{.State.Status}} | ExitCode={{.State.ExitCode}} | OOMKilled={{.State.OOMKilled}} | RestartCount={{.RestartCount}} | StartedAt={{.State.StartedAt}} | FinishedAt={{.State.FinishedAt}}' 2>/dev/null || echo "Container not found"
             
-            echo "=== Container Healthcheck Config ==="
-            docker inspect alti-backend --format '{{json .Config.Healthcheck}}' 2>/dev/null || echo "No healthcheck"
+            echo "=== CRITICAL FIX VERIFICATION ==="
+            echo "--- notes.model.js line 58 (should NOT have bare JSDoc) ---"
+            docker exec alti-backend sed -n '55,65p' src/app/modules/notes/notes.model.js 2>/dev/null || echo "FAILED to read file"
+            echo "--- writer.controller.js (should NOT have app.listen) ---"
+            docker exec alti-backend grep -c "app.listen" src/app/modules/writing/writer.controller.js 2>/dev/null && echo "  ❌ STILL HAS app.listen!" || echo "  ✅ app.listen removed"
+            echo "--- index.js EXIT DIAGNOSTIC handler ---"
+            docker exec alti-backend grep -c "EXIT DIAGNOSTIC" index.js 2>/dev/null && echo "  ✅ EXIT handler present" || echo "  ❌ EXIT handler MISSING"
             
-            echo "=== EXIT/SIGTERM messages in ALL logs ==="
-            docker logs alti-backend 2>&1 | grep -i "EXIT DIAGNOSTIC\|BEFORE EXIT\|SIGTERM\|SIGINT\|shutting down\|graceful\|App is running\|listening on\|Server running\|Connected to\|Database connection\|exit code" | tail -30
+            echo "=== STDERR from container (last 30 lines) ==="
+            docker logs alti-backend 2>&1 1>/dev/null | tail -30
             
-            echo "=== Last 50 lines of backend logs ==="
-            docker logs alti-backend --tail=50 2>&1
+            echo "=== ALL logs from container (last 100 lines) ==="
+            docker logs alti-backend --tail=100 2>&1
+            
+            echo "=== Try manual node syntax check ==="
+            docker exec alti-backend node -e "try { require('./src/app/modules/notes/notes.model.js') } catch(e) { console.log('IMPORT ERROR:', e.message) }" 2>&1 || true
+            docker exec alti-backend node --check index.js 2>&1 || true
             
             echo "=== Memory usage ==="
             free -h
-            
-            echo "=== Compose file on VM ==="
-            cat docker-compose.yml 2>/dev/null | head -30
-            cat docker-compose.presenton.yml 2>/dev/null | head -30 || echo "No presenton compose"
             
             echo "=== Disk space ==="
             df -h /
