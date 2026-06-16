@@ -81,12 +81,14 @@ jobs:
             if [ "$CONTAINER_STATUS" = "missing" ] || ! docker stop $CONTAINER 2>/dev/null; then
               echo "=== Container missing or unusable. Force removing and recreating ==="
               docker rm -f $CONTAINER 2>/dev/null || true
+              # Clean up any failed image pulls
+              docker system prune -f 2>/dev/null || true
+              echo "Disk space:"
+              df -h / | tail -1
               cd ~
-              COMPOSE_FILE="docker-compose.yml"
-              if [ -f "docker-compose.presenton.yml" ]; then
-                COMPOSE_FILE="docker-compose.presenton.yml"
-              fi
-              docker compose -f $COMPOSE_FILE up -d alti-backend
+              # IMPORTANT: Use presenton compose file (only backend + presenton)
+              # NOT the full docker-compose.yml which includes ES, kibana, mongo, etc.
+              docker compose -f docker-compose.presenton.yml up -d alti-backend
               sleep 5
               echo "Container recreated"
               # Stop it so we can update files
