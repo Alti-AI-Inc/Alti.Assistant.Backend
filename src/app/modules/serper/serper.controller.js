@@ -10,17 +10,17 @@ import catchAsync from '../../../shared/catchAsync.js';
 // Connection details should be stored in environment variables and accessed via the config object.
 const redisClient = new Redis(config.redis.url);
 
-redisClient.on('error', err => console.error('Redis Client Error for Rate Limiter', err));
+if (redisClient) {
+  redisClient.on('error', err => console.error('Redis Client Error for Rate Limiter', err));
+}
 
 // Create a rate limiter for the expensive Google AI search endpoint.
 // This helps prevent DDOS attacks, API abuse, and excessive costs.
 // It limits each IP address to 10 requests per minute.
 const serperApiLimiter = rateLimit({
-	store: new RedisStore({
-		// The `sendCommand` function is required by `rate-limit-redis` to send commands to Redis.
-		// `client.call` is the command for ioredis.
+	store: (redisClient && typeof redisClient.call === 'function') ? new RedisStore({
 		sendCommand: (...args) => redisClient.call(...args),
-	}),
+	}) : undefined,
 	windowMs: 1 * 60 * 1000, // 1 minute
 	max: 10, // Limit each IP to 10 requests per window (per minute)
 	message: {

@@ -46,10 +46,12 @@ const mongooseOptions = {
 
 };
 
-// Establish the database connection.
-mongoose.connect(MONGODB_URI, mongooseOptions)
-  .then(() => console.log('MongoDB connection established successfully.'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Establish the database connection only if a URI is configured.
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI, mongooseOptions)
+    .then(() => console.log('MongoDB connection established successfully.'))
+    .catch(err => console.error('MongoDB connection error:', err));
+}
 
 // Event listeners for the database connection to log status changes.
 mongoose.connection.on('connected', () => {

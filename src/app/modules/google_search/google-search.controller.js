@@ -16,17 +16,33 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 // control costs, and ensure service availability for all users.
 
 // Assumes a shared Redis client is available for a distributed, scalable rate-limiting state.
-const storeMinute = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
-  sendCommand: (...args) => redisClient.call(...args),
-  prefix: 'rl:google-search:minute:',
-});
-
-const storeDaily = new RedisStore({
-  // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
-  sendCommand: (...args) => redisClient.call(...args),
-  prefix: 'rl:google-search:daily:',
-});
+// Falls back to in-memory rate limiting when Redis is unavailable.
+let storeMinute, storeDaily;
+if (redisClient && typeof redisClient.call === 'function') {
+  storeMinute = new RedisStore({
+    // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
+    sendCommand: (...args) => redisClient.call(...args),
+    prefix: 'rl:google-search:minute:',
+  });
+  storeDaily = new RedisStore({
+    // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
+    sendCommand: (...args) => redisClient.call(...args),
+    prefix: 'rl:google-search:daily:',
+  });
+} else if (redisClient && typeof redisClient.sendCommand === 'function') {
+  storeMinute = new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:google-search:minute:',
+  });
+  storeDaily = new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:google-search:daily:',
+  });
+} else {
+  console.warn('Redis client unavailable for rate limiting. Using in-memory store.');
+  storeMinute = undefined;
+  storeDaily = undefined;
+}
 
 // LAYER 1: Strict Per-Minute Limiter
 // Protects against short-term, high-frequency burst attacks and API abuse.
