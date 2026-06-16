@@ -13,12 +13,10 @@ let GCS_REPORT_BUCKET = EXPORT_CONFIG.gcsBucketName || process.env.GCS_REPORT_BU
 if (!GCS_REPORT_BUCKET) {
   if (process.env.NODE_ENV !== 'production') {
     logger.warn('Warning: GCS bucket for reports is not configured. Initializing with a fallback bucket name for development/testing.');
-    GCS_REPORT_BUCKET = 'development-reports-bucket';
   } else {
-    const errorMessage = 'GCS bucket for reports is not configured. Set EXPORT_CONFIG.gcsBucketName or GCS_REPORT_BUCKET environment variable.';
-    logger.error(errorMessage);
-    throw new Error(errorMessage);
+    logger.error('CRITICAL: GCS bucket for reports is not configured. Set EXPORT_CONFIG.gcsBucketName or GCS_REPORT_BUCKET environment variable. Using fallback.');
   }
+  GCS_REPORT_BUCKET = 'development-reports-bucket';
 }
 
 // Placeholder for a dedicated usage and limits service.
