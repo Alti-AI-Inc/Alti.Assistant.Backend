@@ -33,15 +33,10 @@ try {
   } else {
     if (process.env.NODE_ENV !== 'production') {
       logger.warn('GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). Initializing mock storage client for development/testing.');
-      storage = new Storage();
     } else {
-      // In a stateless, cloud-native environment, GCS is not optional.
-      // Throw an error during initialization if configuration is missing.
-      const errorMsg =
-        'GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). This service cannot operate without GCS.';
-      logger.error(errorMsg);
-      throw new Error(errorMsg);
+      logger.error('CRITICAL: GCS credentials not configured (GCS_KEY_FILE or GCP_PROJECT_ID not set). Translation file processing will be unavailable.');
     }
+    storage = new Storage();
   }
 
   if (storage && bucketName) {
@@ -49,21 +44,17 @@ try {
   } else if (storage && !bucketName) {
     if (process.env.NODE_ENV !== 'production') {
       logger.warn('GCS_BUCKET_NAME is not set. Initializing with a fallback bucket name for development/testing.');
-      bucket = storage.bucket('development-translation-bucket');
     } else {
-      const errorMsg =
-        'GCS_BUCKET_NAME is not set. This service cannot operate without a target bucket.';
-      logger.error(errorMsg);
-      throw new Error(errorMsg);
+      logger.error('CRITICAL: GCS_BUCKET_NAME is not set. Translation file processing will be unavailable.');
     }
+    bucket = storage.bucket('development-translation-bucket');
   }
 } catch (error) {
   logger.error(
     'Failed to initialize Google Cloud Storage for translation:',
     error
   );
-  // Re-throw to prevent the application from starting in a broken state.
-  throw error;
+  // Log but don't re-throw — allow the app to start even if GCS is unavailable
 }
 
 // ============================================

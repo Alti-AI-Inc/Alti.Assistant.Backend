@@ -6,10 +6,10 @@ import config from '../../../../config/index.js';
 // Improvement: Centralized validation for essential configuration.
 // Ensures the application fails fast with a clear error message if critical configuration is missing.
 if (!config.gemini_secret_key) {
-  throw new Error('GEMINI_SECRET_KEY is not set in the environment or configuration.');
+  console.error('CRITICAL: GEMINI_SECRET_KEY is not set in the environment or configuration. Video LLM features will be unavailable.');
 }
 if (!config.google.gcp_project_id) {
-  throw new Error('GCP_PROJECT_ID is not set in the environment or configuration.');
+  console.error('CRITICAL: GCP_PROJECT_ID is not set in the environment or configuration. Video LLM features will be unavailable.');
 }
 
 /**

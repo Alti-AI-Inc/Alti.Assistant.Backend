@@ -26,13 +26,12 @@ if (!bucketName) {
     console.warn(
       'Warning: GCS_UPLOADS_BUCKET environment variable not set. Initializing with a fallback bucket name for development/testing.'
     );
-    bucketName = 'development-uploads-bucket';
   } else {
-    // Throw an error on startup if the bucket isn't configured, to prevent runtime errors.
-    throw new Error(
-      'GCS_UPLOADS_BUCKET environment variable not set. File uploads will fail.'
+    console.error(
+      'CRITICAL: GCS_UPLOADS_BUCKET environment variable not set. File uploads will fail. Using fallback.'
     );
   }
+  bucketName = 'development-uploads-bucket';
 }
 
 /**
