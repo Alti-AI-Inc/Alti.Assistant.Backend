@@ -23,7 +23,7 @@ try {
   }
 
   if (storage && GCS_CONFIG.BUCKET_NAME) {
-    bucket = storage.bucket(GCS_CONFIG.BUCKET_NAME);
+    bucket = storage.bucket(GCS_CONFIG.BUCKET_NAME || 'development-fallback-bucket');
   }
 } catch (error) {
   logger.error('Failed to initialize Google Cloud Storage:', error);

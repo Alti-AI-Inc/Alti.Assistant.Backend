@@ -40,7 +40,7 @@ if (!bucketName) {
   );
 }
 const bucket = storage.bucket(
-  bucketName || (process.env.NODE_ENV !== 'production' ? 'development-plan-generator-bucket' : '')
+  bucketName || 'development-plan-generator-bucket'
 );
 
 /**

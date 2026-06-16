@@ -24,7 +24,7 @@ import { summarizerApp } from './summarizer/workflow.js';
 const GCS_BUCKET_NAME =
   process.env.GCS_SUMMARY_UPLOADS_BUCKET || 'your-gcs-bucket-name'; // TODO: Replace with actual env var
 const storage = new Storage();
-const bucket = storage.bucket(GCS_BUCKET_NAME);
+const bucket = storage.bucket(GCS_BUCKET_NAME || 'development-fallback-bucket');
 // --- End GCS Configuration ---
 
 /**

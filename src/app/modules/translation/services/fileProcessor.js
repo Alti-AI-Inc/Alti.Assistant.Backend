@@ -40,7 +40,7 @@ try {
   }
 
   if (storage && bucketName) {
-    bucket = storage.bucket(bucketName);
+    bucket = storage.bucket(bucketName || 'development-fallback-bucket');
   } else if (storage && !bucketName) {
     if (process.env.NODE_ENV !== 'production') {
       logger.warn('GCS_BUCKET_NAME is not set. Initializing with a fallback bucket name for development/testing.');

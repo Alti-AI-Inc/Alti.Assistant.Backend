@@ -34,7 +34,7 @@ const BUCKET_NAME = config.gcs?.transcription_bucket || 'alti_assistant_transcri
  * @constant {Bucket} bucket - A reference to the specific Google Cloud Storage bucket.
  * All file operations will be performed on this bucket.
  */
-const bucket = storage.bucket(BUCKET_NAME);
+const bucket = storage.bucket(BUCKET_NAME || 'development-fallback-bucket');
 
 /**
  * Uploads an audio file from a buffer in memory to the configured Google Cloud Storage bucket.

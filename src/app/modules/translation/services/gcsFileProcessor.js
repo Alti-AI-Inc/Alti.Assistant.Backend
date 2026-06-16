@@ -32,7 +32,7 @@ try {
   }
 
   if (storage && bucketName) {
-    bucket = storage.bucket(bucketName);
+    bucket = storage.bucket(bucketName || 'development-fallback-bucket');
   }
 } catch (error) {
   logger.error(
