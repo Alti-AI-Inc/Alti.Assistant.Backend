@@ -25,7 +25,7 @@ describe('Chatbot Model', () => {
     expect(schema.path('name')).toBeDefined();
     expect(schema.path('name').instance).toBe('String');
     expect(schema.path('name').isRequired).toBe(true);
-    expect(schema.path('name').validators.some(v => v.type === 'maxlength' && v.max === 100)).toBe(true);
+    expect(schema.path('name').validators.some(v => v.type === 'maxlength' && v.maxlength === 100)).toBe(true);
 
     expect(schema.path('description')).toBeDefined();
     expect(schema.path('description').instance).toBe('String');
@@ -48,13 +48,13 @@ describe('Chatbot Model', () => {
     expect(schema.path('avatar').defaultValue).toBe('🤖');
 
     expect(schema.path('userId')).toBeDefined();
-    expect(schema.path('userId').instance).toBe('ObjectID');
+    expect(schema.path('userId').instance).toBe('ObjectId');
     expect(schema.path('userId').isRequired).toBe(true);
-    expect(schema.path('userId').caster.options.ref).toBe('User');
+    expect(schema.path('userId').options.ref).toBe('User');
 
     expect(schema.path('knowledgebaseIds')).toBeDefined();
     expect(schema.path('knowledgebaseIds').instance).toBe('Array');
-    expect(schema.path('knowledgebaseIds').caster.instance).toBe('ObjectID');
+    expect(schema.path('knowledgebaseIds').caster.instance).toBe('ObjectId');
     expect(schema.path('knowledgebaseIds').caster.options.ref).toBe('KnowledgeBase');
 
     expect(schema.path('isActive')).toBeDefined();
@@ -63,11 +63,16 @@ describe('Chatbot Model', () => {
 
     expect(schema.path('metadata')).toBeDefined();
     expect(schema.path('metadata').instance).toBe('Mixed');
-    expect(schema.path('metadata').defaultValue).toEqual({});
+    const metadataDefault = schema.path('metadata').defaultValue;
+    if (typeof metadataDefault === 'function') {
+      expect(metadataDefault()).toEqual({});
+    } else {
+      expect(metadataDefault).toEqual({});
+    }
 
     expect(schema.path('tenantId')).toBeDefined();
-    expect(schema.path('tenantId').instance).toBe('ObjectID');
-    expect(schema.path('tenantId').caster.options.ref).toBe('Tenant');
+    expect(schema.path('tenantId').instance).toBe('ObjectId');
+    expect(schema.path('tenantId').options.ref).toBe('Tenant');
     expect(schema.path('tenantId').defaultValue).toBe(null);
 
     expect(schema.path('isShared')).toBeDefined();
@@ -89,11 +94,12 @@ describe('Chatbot Model', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    const originalId = doc._id;
 
-    const transformedDoc = Chatbot.schema.options.toJSON.transform(null, doc);
+    const transformedDoc = Chatbot.schema.options.toJSON.transform(null, { ...doc });
 
     expect(transformedDoc).toBeDefined();
-    expect(transformedDoc.id).toEqual(doc._id);
+    expect(transformedDoc.id).toEqual(originalId);
     expect(transformedDoc._id).toBeUndefined();
     expect(transformedDoc.__v).toBeUndefined();
     expect(transformedDoc.name).toEqual(doc.name);
@@ -108,7 +114,12 @@ describe('Chatbot Model', () => {
     const expectedIndexes = [
       { 'tenantId': 1, 'userId': 1, 'isActive': 1 },
       { 'tenantId': 1, 'isShared': 1, 'isActive': 1 },
+      { 'tenantId': 1, 'lastActivityAt': -1 },
       { 'userId': 1, 'isActive': 1 },
+      { 'userId': 1 },
+      { 'tenantId': 1 },
+      { 'lastActivityAt': 1 },
+      { 'isShared': 1 },
     ];
 
     // Extract just the key part of the indexes for comparison
@@ -148,7 +159,7 @@ describe('Chatbot Model', () => {
     expect(error.errors.name).toBeDefined();
     expect(error.errors.name.message).toBe('Chatbot name is required');
     expect(error.errors.userId).toBeDefined();
-    expect(error.errors.userId.message).toBe('Path `userId` is required.');
+    expect(error.errors.userId.message).toBe('A chatbot must be owned by a user.');
   });
 
   it('should validate maxlength for name', async () => {

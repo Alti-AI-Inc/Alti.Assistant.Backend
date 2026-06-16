@@ -2,6 +2,10 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { chatbotService } from './chatbot.service.js';
+import { startModelTuning, checkModelTuningStatus } from './chatbotTuning.service.js';
+import { logger } from '../../../shared/logger.js';
+import Chatbot from './chatbot.model.js';
+import ApiError from '../../../errors/ApiError.js';
 
 /**
  * @swagger
@@ -85,9 +89,23 @@ import { chatbotService } from './chatbot.service.js';
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const createChatbot = catchAsync(async (req, res) => {
-  // Pass the entire user context (req.user) to the service layer to allow proper validation of roles
-  // (super_admin, admin, manager, user), tenant context boundaries, and propagation of usage/limits.
-  const result = await chatbotService.createChatbot(req.body, req.user);
+  const userId = req.user.userId || req.user.id || req.user._id;
+  const result = await chatbotService.createChatbot(req.body, userId, req);
+
+  // Auto-trigger SFT tuning if it is a Model (isShared is true)
+  if (result.isShared) {
+    // Set status immediately
+    await Chatbot.findByIdAndUpdate(result.id || result._id, {
+      $set: {
+        'metadata.status': 'tuning',
+        'metadata.tuningError': null
+      }
+    });
+    startModelTuning(result.id || result._id).catch((err) => {
+      logger.error(`[Tuning] Failed to auto-trigger tuning for chatbot ${result.id || result._id}:`, err);
+    });
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -186,13 +204,13 @@ const createChatbot = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getChatbots = catchAsync(async (req, res) => {
-  // Pass the entire user context (req.user) to enforce tenant boundaries and role-based visibility.
-  const result = await chatbotService.getChatbots(req.user, req.query);
+  const userId = req.user.userId || req.user.id || req.user._id;
+  const result = await chatbotService.getChatbots(userId, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Chatbots retrieved successfully',
-    ...result, // Service layer should return { meta, data }
+    data: result,
   });
 });
 
@@ -268,8 +286,8 @@ const getChatbots = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getChatbotById = catchAsync(async (req, res) => {
-  // Pass the entire user context (req.user) to allow role-based access control and tenant checks.
-  const result = await chatbotService.getChatbotById(req.params.id, req.user);
+  const userId = req.user.userId || req.user.id || req.user._id;
+  const result = await chatbotService.getChatbotById(req.params.id, userId, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -371,8 +389,8 @@ const getChatbotById = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const updateChatbot = catchAsync(async (req, res) => {
-  // Pass the entire user context (req.user) to allow role-based validation and tenant checks.
-  const result = await chatbotService.updateChatbot(req.params.id, req.user, req.body);
+  const userId = req.user.userId || req.user.id || req.user._id;
+  const result = await chatbotService.updateChatbot(req.params.id, userId, req.body, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -453,8 +471,8 @@ const updateChatbot = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const deleteChatbot = catchAsync(async (req, res) => {
-  // Pass the entire user context (req.user) to allow role-based validation and tenant checks.
-  const result = await chatbotService.deleteChatbot(req.params.id, req.user);
+  const userId = req.user.userId || req.user.id || req.user._id;
+  const result = await chatbotService.deleteChatbot(req.params.id, userId, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -772,6 +790,54 @@ const removeTeamMember = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} removeTeamMember - Controller for managers to remove members from the workspace.
  */
 
+const startTuning = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId || req.user.id || req.user._id;
+
+  const chatbot = await chatbotService.getChatbotById(id, userId, req);
+  if (!chatbot) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Chatbot not found');
+  }
+
+  // Immediately flag status as tuning in DB
+  await Chatbot.findByIdAndUpdate(id, {
+    $set: {
+      'metadata.status': 'tuning',
+      'metadata.tuningError': null
+    }
+  });
+
+  // Launch async tuning process
+  startModelTuning(id).catch((err) => {
+    logger.error(`[Tuning] Asynchronous tuning failed for chatbot ${id}:`, err);
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Model tuning triggered successfully',
+    data: { chatbotId: id, status: 'tuning' },
+  });
+});
+
+const getTuningStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId || req.user.id || req.user._id;
+
+  // Validate accessibility permissions
+  await chatbotService.getChatbotById(id, userId, req);
+
+  // Poll status from Vertex AI (updates DB accordingly)
+  const statusInfo = await checkModelTuningStatus(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tuning status retrieved successfully',
+    data: statusInfo,
+  });
+});
+
 /**
  * Exports an object containing all chatbot and manager controller functions.
  * @type {ChatbotController}
@@ -782,6 +848,8 @@ export const chatbotController = {
   getChatbotById,
   updateChatbot,
   deleteChatbot,
+  startTuning,
+  getTuningStatus,
   // Manager Dashboard Controllers
   getWorkspaceMetrics,
   getTeamMembers,

@@ -1,20 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
 
-// Mock shared utilities
-const sendResponse = vi.fn();
+const { sendResponse, chatbotService } = vi.hoisted(() => {
+  return {
+    sendResponse: vi.fn(),
+    chatbotService: {
+      createChatbot: vi.fn(),
+      getChatbots: vi.fn(),
+      getChatbotById: vi.fn(),
+      updateChatbot: vi.fn(),
+      deleteChatbot: vi.fn(),
+      getWorkspaceMetrics: vi.fn(),
+      getTeamMembers: vi.fn(),
+      inviteTeamMember: vi.fn(),
+      updateTeamMemberRole: vi.fn(),
+      removeTeamMember: vi.fn(),
+    },
+  };
+});
+
 vi.mock('../../../shared/sendResponse.js', () => ({
   default: sendResponse,
 }));
 
-// Mock chatbotService
-const chatbotService = {
-  createChatbot: vi.fn(),
-  getChatbots: vi.fn(),
-  getChatbotById: vi.fn(),
-  updateChatbot: vi.fn(),
-  deleteChatbot: vi.fn(),
-};
 vi.mock('./chatbot.service.js', () => ({
   chatbotService: chatbotService,
 }));
@@ -53,7 +61,7 @@ describe('Chatbot Controller', () => {
 
       await chatbotController.createChatbot(req, res);
 
-      expect(chatbotService.createChatbot).toHaveBeenCalledWith(req.body, req.user.userId);
+      expect(chatbotService.createChatbot).toHaveBeenCalledWith(req.body, req.user.userId, req);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.CREATED,
         success: true,
@@ -73,7 +81,7 @@ describe('Chatbot Controller', () => {
 
       await chatbotController.getChatbots(req, res);
 
-      expect(chatbotService.getChatbots).toHaveBeenCalledWith(req.user.userId, req.query);
+      expect(chatbotService.getChatbots).toHaveBeenCalledWith(req.user.userId, req);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -93,7 +101,7 @@ describe('Chatbot Controller', () => {
 
       await chatbotController.getChatbotById(req, res);
 
-      expect(chatbotService.getChatbotById).toHaveBeenCalledWith(chatbotId, req.user.userId);
+      expect(chatbotService.getChatbotById).toHaveBeenCalledWith(chatbotId, req.user.userId, req);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -115,7 +123,7 @@ describe('Chatbot Controller', () => {
 
       await chatbotController.updateChatbot(req, res);
 
-      expect(chatbotService.updateChatbot).toHaveBeenCalledWith(chatbotId, req.user.userId, updatePayload);
+      expect(chatbotService.updateChatbot).toHaveBeenCalledWith(chatbotId, req.user.userId, updatePayload, req);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -135,7 +143,7 @@ describe('Chatbot Controller', () => {
 
       await chatbotController.deleteChatbot(req, res);
 
-      expect(chatbotService.deleteChatbot).toHaveBeenCalledWith(chatbotId, req.user.userId);
+      expect(chatbotService.deleteChatbot).toHaveBeenCalledWith(chatbotId, req.user.userId, req);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.OK,
         success: true,

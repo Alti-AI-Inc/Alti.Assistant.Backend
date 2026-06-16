@@ -269,6 +269,22 @@ router
     chatbotController.deleteChatbot
   );
 
+router.post(
+  '/:id/tune',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+  chatbotIdValidation,
+  handleValidationErrors,
+  chatbotController.startTuning
+);
+
+router.get(
+  '/:id/tuning-status',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
+  chatbotIdValidation,
+  handleValidationErrors,
+  chatbotController.getTuningStatus
+);
+
 // ARCHITECTURE NOTE: The following routes for the Manager Dashboard are included here to provide a complete solution
 // as requested. In a production application, these would be logically separated into their own modules and files
 // (e.g., `team.routes.js`, `workspace.routes.js`) for better maintainability and separation of concerns.

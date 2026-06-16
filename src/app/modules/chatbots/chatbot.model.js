@@ -209,6 +209,15 @@ const ChatbotSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    /**
+     * Linked knowledgebase ID.
+     * @type {string}
+     * @default null
+     */
+    data: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields

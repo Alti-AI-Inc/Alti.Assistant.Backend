@@ -5,6 +5,8 @@ import { enableHybridSearch } from '../../../shared/hybridSearch.js';
 import path from 'path';
 import KnowledgeBase from './knowledgebase.model.js';
 import KnowledgebaseFile from './knowledgebase.files.model.js';
+import Chatbot from '../chatbots/chatbot.model.js';
+import { queryTunedModel } from '../chatbots/chatbotTuning.service.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -669,6 +671,50 @@ User: Please summarize the following conversation history, keeping it under 2500
       logger.info(
         `Processing chat message for knowledge base: ${knowledgebaseId}, conversation: ${conversationId}`
       );
+
+      // 1. Query the associated chatbot using knowledgebaseIds or data field
+      const chatbot = await Chatbot.findOne({
+        $or: [
+          { knowledgebaseIds: knowledgebaseId },
+          { data: knowledgebaseId }
+        ],
+        isActive: true
+      }).lean();
+
+      if (chatbot && chatbot.isShared) {
+        const status = chatbot.metadata?.status;
+        if (status === 'tuning') {
+          return {
+            answer: "Model training is in progress. Please wait...",
+            sources: [],
+            confidence: 1.0,
+            model: chatbot.model || 'Gemini Fine-Tuned (Tuning)',
+            tokensUsed: 0,
+            chatHistory: conversationHistory.concat([
+              { role: 'user', content: message },
+              { role: 'model', content: "Model training is in progress. Please wait..." }
+            ]),
+            sessionId: conversationId,
+          };
+        } else if (status === 'failed') {
+          const errMsg = chatbot.metadata?.tuningError || 'Unknown tuning failure';
+          return {
+            answer: `Model training failed. Error: ${errMsg}. Please retry.`,
+            sources: [],
+            confidence: 1.0,
+            model: chatbot.model || 'Gemini Fine-Tuned (Failed)',
+            tokensUsed: 0,
+            chatHistory: conversationHistory.concat([
+              { role: 'user', content: message },
+              { role: 'model', content: `Model training failed. Error: ${errMsg}. Please retry.` }
+            ]),
+            sessionId: conversationId,
+          };
+        } else if (status === 'ready' && chatbot.model && chatbot.model.startsWith('projects/')) {
+          // Redirect the query to the fine-tuned Vertex AI model
+          return await queryTunedModel(chatbot, message, conversationHistory);
+        }
+      }
 
       // Initialize RAG system
       await rag.initialize();
