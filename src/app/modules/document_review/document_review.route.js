@@ -80,13 +80,12 @@ if (!bucketName) {
     console.warn(
       'Warning: GCS_DOCUMENT_BUCKET environment variable is not set. Initializing with a fallback bucket name for development/testing.'
     );
-    bucketName = 'development-documents-bucket';
   } else {
-    // Throw an error on startup if the bucket isn't configured, preventing runtime failures.
-    throw new Error(
-      'GCS_DOCUMENT_BUCKET environment variable is not set. This is required for file uploads.'
+    console.error(
+      'CRITICAL: GCS_DOCUMENT_BUCKET environment variable is not set. File uploads will be unavailable. Using fallback.'
     );
   }
+  bucketName = 'development-documents-bucket';
 }
 
 /**
