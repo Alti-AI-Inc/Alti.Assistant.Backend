@@ -221,6 +221,7 @@ import {
   speechWriter,
   socialMediaSwarmWriter
 } from './writing.agents.js';
+import { knowledgeCatalogEnricher, knowledgeDiscoveryAgent } from './catalog.agents.js';
 
 
 /**
@@ -233,6 +234,8 @@ import {
  */
 export const customAgents = [
   generalChatAssistant,
+  knowledgeCatalogEnricher,
+  knowledgeDiscoveryAgent,
 
   realtimeSearchAgent,
   perplexityDeepSearcher,

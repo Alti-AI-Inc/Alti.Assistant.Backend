@@ -49,6 +49,7 @@ import { legalContractRoutes } from '../modules/legal_contract/legal_contract.ro
 import { legalContractReviewRoutes } from '../modules/legal_contract_review/legal_contract_review.route.js';
 import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
 import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
+import { knowledgeCatalogRoutes } from '../modules/knowledge_catalog/knowledge_catalog.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
 import { predictionDataRoutes } from '../modules/predictiondata/predictiondata.route.js';
@@ -308,6 +309,10 @@ const moduleRoutes = [
   {
     path: '/knowledge',
     route: knowledgeRoutes,
+  },
+  {
+    path: '/knowledge-catalog',
+    route: knowledgeCatalogRoutes,
   },
   {
     path: '/gcp-native',
