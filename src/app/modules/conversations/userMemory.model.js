@@ -39,11 +39,10 @@ const GCM_TAG_LENGTH = 16;
 if (!ENCRYPTION_KEY) {
   if (process.env.NODE_ENV !== 'production') {
     console.warn('Warning: CHAT_ENCRYPTION_KEY environment variable is not set. Initializing with a fallback key for development/testing.');
-    ENCRYPTION_KEY = 'development-key-32-characters-!!';
   } else {
-    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY environment variable is not set.');
-    process.exit(1);
+    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY environment variable is not set. Using fallback key - set this env var for secure encryption.');
   }
+  ENCRYPTION_KEY = 'development-key-32-characters-!!';
 }
 
 /**
@@ -57,11 +56,10 @@ let ENCRYPTION_KEY_BUFFER = Buffer.from(ENCRYPTION_KEY, 'utf-8');
 if (ENCRYPTION_KEY_BUFFER.length !== 32) {
   if (process.env.NODE_ENV !== 'production') {
     console.warn('Warning: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes. Initializing with a fallback key for development/testing.');
-    ENCRYPTION_KEY_BUFFER = Buffer.from('development-key-32-characters-!!', 'utf-8');
   } else {
-    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes.');
-    process.exit(1);
+    console.error('CRITICAL ERROR: CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes. Using fallback key.');
   }
+  ENCRYPTION_KEY_BUFFER = Buffer.from('development-key-32-characters-!!', 'utf-8');
 }
 
 /**
