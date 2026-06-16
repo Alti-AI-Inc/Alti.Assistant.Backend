@@ -491,7 +491,7 @@ const loginService = async (
   }
 
   // BUG FIX: Ensure 'username' is selected for Stripe customer creation later
-  const user = await UserModel.findOne({ email }).select('+password username');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() }).select('+password username');
 
   if (!user) {
     throw new ApiError(
