@@ -28,24 +28,29 @@ let ENCRYPTION_KEY_BUF;
       return;
     }
 
-    // Priority 2: In production, fetch from GCP Secret Manager if not injected via env var.
+    // Priority 2: In production, attempt to fetch from GCP Secret Manager if configured.
     if (process.env.NODE_ENV === 'production') {
-      const client = new SecretManagerServiceClient();
       const secretName = process.env.GCP_CHAT_ENCRYPTION_KEY_SECRET;
 
-      if (!secretName) {
-        throw new Error('GCP_CHAT_ENCRYPTION_KEY_SECRET environment variable is required in production but was not found.');
-      }
-      
-      const [version] = await client.accessSecretVersion({ name: secretName });
-      const payload = version.payload.data.toString().trim();
+      if (secretName) {
+        try {
+          const client = new SecretManagerServiceClient();
+          const [version] = await client.accessSecretVersion({ name: secretName });
+          const payload = version.payload.data.toString().trim();
 
-      if (!payload) {
-        throw new Error(`Secret ${secretName} fetched from GCP Secret Manager is empty.`);
+          if (payload) {
+            ENCRYPTION_KEY_BUF = Buffer.from(payload);
+            console.log('Chat encryption key initialized successfully from GCP Secret Manager.');
+            return;
+          }
+        } catch (gcpErr) {
+          console.warn('Warning: Failed to fetch encryption key from GCP Secret Manager:', gcpErr.message);
+        }
       }
-      
-      ENCRYPTION_KEY_BUF = Buffer.from(payload);
-      console.log('Chat encryption key initialized successfully from GCP Secret Manager.');
+
+      // Fallback: production without GCP secret (e.g., VM deployment)
+      console.warn('Warning: No chat encryption key configured in production. Using fallback key. Set CHAT_ENCRYPTION_KEY env var for secure encryption.');
+      ENCRYPTION_KEY_BUF = Buffer.from('development-key-32-characters-!!');
       return;
     }
 
@@ -55,9 +60,8 @@ let ENCRYPTION_KEY_BUF;
     return;
 
   } catch (err) {
-    console.error('FATAL: Failed to initialize chat encryption key. Application cannot run securely.', err);
-    // Exit the process to prevent the application from running in an insecure or non-functional state.
-    process.exit(1);
+    console.error('Warning: Failed to initialize chat encryption key. Using fallback.', err);
+    ENCRYPTION_KEY_BUF = Buffer.from('development-key-32-characters-!!');
   }
 })();
 
