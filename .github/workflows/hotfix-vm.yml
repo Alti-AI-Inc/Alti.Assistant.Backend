@@ -74,23 +74,28 @@ jobs:
             cd /tmp/app-staging
             tar xzf /tmp/app-code.tar.gz
 
-            # ── Check if container exists, recreate if needed ──
-            if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-              echo "=== Container not found! Recreating from compose file ==="
+            # ── Ensure container exists and is usable ──
+            CONTAINER_STATUS=$(docker inspect $CONTAINER --format '{{.State.Status}}' 2>/dev/null || echo "missing")
+            echo "Container status: $CONTAINER_STATUS"
+
+            if [ "$CONTAINER_STATUS" = "missing" ] || ! docker stop $CONTAINER 2>/dev/null; then
+              echo "=== Container missing or unusable. Force removing and recreating ==="
+              docker rm -f $CONTAINER 2>/dev/null || true
               cd ~
               COMPOSE_FILE="docker-compose.yml"
               if [ -f "docker-compose.presenton.yml" ]; then
                 COMPOSE_FILE="docker-compose.presenton.yml"
               fi
-              docker compose -f $COMPOSE_FILE up -d $CONTAINER
+              docker compose -f $COMPOSE_FILE up -d alti-backend
               sleep 5
               echo "Container recreated"
+              # Stop it so we can update files
+              docker stop $CONTAINER 2>/dev/null || true
+              sleep 2
+            else
+              echo "=== Container stopped successfully ==="
+              sleep 2
             fi
-
-            # ── Stop container to break any crash-restart loop ──
-            echo "=== Stopping container ==="
-            docker stop $CONTAINER 2>/dev/null || true
-            sleep 2
 
             # ── Copy files using docker cp (works on stopped containers) ──
             echo "=== Copying files into container ==="
