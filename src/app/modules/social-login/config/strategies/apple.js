@@ -8,14 +8,11 @@
 import AppleStrategy from 'passport-apple';
 import { findOrCreateUserModel } from '../../social-login.utils.js';
 
-// Security Patch: Add checks for required environment variables at startup.
-// This prevents the application from starting with an incomplete or insecure configuration.
-// A crash during an authentication attempt due to a missing private key, for example,
-// could create a denial-of-service (DoS) vulnerability.
+// Security Patch: Check for required environment variables at startup and warn if missing.
 const requiredEnvVars = ['APPLE_CLIENT_ID', 'APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY'];
 for (const varName of requiredEnvVars) {
   if (!process.env[varName]) {
-    throw new Error(`FATAL: Missing required Apple OAuth environment variable: ${varName}. Application cannot start.`);
+    console.error(`CRITICAL: Missing required Apple OAuth environment variable: ${varName}. Apple login will be unavailable.`);
   }
 }
 

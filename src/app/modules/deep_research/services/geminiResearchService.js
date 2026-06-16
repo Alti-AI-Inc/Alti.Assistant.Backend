@@ -6,8 +6,8 @@ import config from '../../../../../config/index.js';
 const getApiKey = () => {
   const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Throwing an error on startup is better than failing silently on the first API call.
-    throw new Error('GEMINI_API_KEY is not set. Please provide it in config or environment variables.');
+    console.error('CRITICAL: GEMINI_API_KEY is not set. Please provide it in config or environment variables. Gemini research will be unavailable.');
+    return 'MISSING_API_KEY';
   }
   return apiKey;
 };

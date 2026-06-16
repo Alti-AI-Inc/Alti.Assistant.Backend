@@ -22,11 +22,9 @@ const storageClient = new Storage();
 const bucketName = process.env.GCS_REPORTS_BUCKET;
 
 if (!bucketName) {
-  const errorMessage = 'GCS_REPORTS_BUCKET environment variable not set.';
+  const errorMessage = 'CRITICAL: GCS_REPORTS_BUCKET environment variable not set. Report uploads will fail.';
   logger.error(errorMessage);
-  // This is a critical server configuration error. Throwing will prevent the app from starting
-  // in a misconfigured state, which is safer than failing at runtime.
-  throw new Error(errorMessage);
+  console.error(errorMessage);
 }
 const bucket = storageClient.bucket(bucketName);
 
