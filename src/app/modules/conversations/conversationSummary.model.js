@@ -18,12 +18,12 @@ if (!ENCRYPTION_KEY || Buffer.from(ENCRYPTION_KEY).length !== 32) {
     console.warn(
       'Warning: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long. Initializing with a fallback key for development/testing.'
     );
-    ENCRYPTION_KEY = 'development-key-32-characters-!!';
   } else {
-    throw new Error(
-      'FATAL: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long.'
+    console.error(
+      'CRITICAL: CHAT_ENCRYPTION_KEY environment variable is not set or is not 32 bytes long. Using fallback key - set this env var for secure encryption.'
     );
   }
+  ENCRYPTION_KEY = 'development-key-32-characters-!!';
 }
 
 /**
