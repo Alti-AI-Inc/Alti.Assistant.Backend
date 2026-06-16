@@ -16,30 +16,25 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 // control costs, and ensure service availability for all users.
 
 // Assumes a shared Redis client is available for a distributed, scalable rate-limiting state.
-// Falls back to in-memory rate limiting when Redis is unavailable.
+// Falls back to in-memory rate limiting when Redis is unavailable or not connected.
 let storeMinute, storeDaily;
-if (redisClient && typeof redisClient.call === 'function') {
-  storeMinute = new RedisStore({
-    // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
-    sendCommand: (...args) => redisClient.call(...args),
-    prefix: 'rl:google-search:minute:',
-  });
-  storeDaily = new RedisStore({
-    // @ts-expect-error - Known issue with rate-limit-redis and ioredis types
-    sendCommand: (...args) => redisClient.call(...args),
-    prefix: 'rl:google-search:daily:',
-  });
-} else if (redisClient && typeof redisClient.sendCommand === 'function') {
-  storeMinute = new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-    prefix: 'rl:google-search:minute:',
-  });
-  storeDaily = new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-    prefix: 'rl:google-search:daily:',
-  });
+if (redisClient && redisClient.isOpen) {
+  try {
+    storeMinute = new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:google-search:minute:',
+    });
+    storeDaily = new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: 'rl:google-search:daily:',
+    });
+  } catch (err) {
+    console.warn('Failed to initialize Redis rate limit store, using in-memory:', err.message);
+    storeMinute = undefined;
+    storeDaily = undefined;
+  }
 } else {
-  console.warn('Redis client unavailable for rate limiting. Using in-memory store.');
+  console.warn('Redis client not connected for rate limiting. Using in-memory store.');
   storeMinute = undefined;
   storeDaily = undefined;
 }

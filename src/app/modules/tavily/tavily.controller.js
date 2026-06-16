@@ -32,7 +32,7 @@ const genAI = new GoogleGenAI(config.gemini_secret_key);
  * Uses Redis for a distributed, scalable rate-limiting strategy.
  */
 const geminiApiLimiter = rateLimit({
-  store: (redisClient && typeof redisClient.sendCommand === 'function') ? new RedisStore({
+  store: (redisClient && redisClient.isOpen) ? new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
   }) : undefined,
   windowMs: 1 * 60 * 1000, // 1 minute
