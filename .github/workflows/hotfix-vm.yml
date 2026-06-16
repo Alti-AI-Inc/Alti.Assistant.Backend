@@ -54,6 +54,16 @@ jobs:
             CONTAINER="alti-backend"
             APP_ROOT="/app/alti-core-service"
 
+            # ── Clean up disk space first ──
+            echo "=== Cleaning disk space ==="
+            docker system prune -f --volumes 2>/dev/null || true
+            docker image prune -af 2>/dev/null || true
+            rm -rf /tmp/app-staging /tmp/app-code-old.tar.gz /tmp/npm-sync 2>/dev/null || true
+            # Clean npm cache
+            npm cache clean --force 2>/dev/null || true
+            echo "Disk after cleanup:"
+            df -h / | tail -1
+
             echo "=== Extracting code on host ==="
             rm -rf /tmp/app-staging
             mkdir -p /tmp/app-staging
