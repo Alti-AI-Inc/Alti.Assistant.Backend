@@ -429,6 +429,16 @@ const gracefulShutdown = async (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Diagnostic: log WHY the process exits (helpful for debugging container restarts)
+process.on('exit', (code) => {
+  console.error(`[EXIT DIAGNOSTIC] Process exiting with code: ${code} at ${new Date().toISOString()}`);
+  console.error(`[EXIT DIAGNOSTIC] Stack trace:`, new Error().stack);
+});
+
+process.on('beforeExit', (code) => {
+  console.error(`[BEFORE EXIT] Process about to exit with code: ${code} — event loop empty at ${new Date().toISOString()}`);
+});
+
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught Exception:', err);
   captureException(err, { fatal: true });
