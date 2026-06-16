@@ -55,15 +55,9 @@ const mongooseOptions = {
 mongoose.connection.on('connected', () => {
   console.log('Mongoose connection open to database');
 });
- * Gracefully closes the Mongoose connection when the Node.js process receives a SIGINT signal (e.g., from Ctrl+C).
- * @listens process#SIGINT
- */
-process.on('SIGINT', () => {
-  mongoose.connection.close(() => {
-    console.log('Mongoose connection disconnected through app termination');
-    process.exit(0);
-  });
-});
+
+// Note: Graceful shutdown (SIGINT/SIGTERM) is handled centrally in index.js.
+// Removed duplicate process.on('SIGINT') handler that was calling process.exit(0).
 
 // --- Original Model Definition ---
 
