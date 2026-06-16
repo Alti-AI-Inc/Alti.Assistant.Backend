@@ -31,30 +31,24 @@ jobs:
             echo "=== Container Inspect (exit code, OOM, restarts) ==="
             docker inspect alti-backend --format '{{.State.Status}} | ExitCode={{.State.ExitCode}} | OOMKilled={{.State.OOMKilled}} | RestartCount={{.RestartCount}} | StartedAt={{.State.StartedAt}} | FinishedAt={{.State.FinishedAt}}' 2>/dev/null || echo "Container not found"
             
+            echo "=== Container Healthcheck Config ==="
+            docker inspect alti-backend --format '{{json .Config.Healthcheck}}' 2>/dev/null || echo "No healthcheck"
+            
+            echo "=== EXIT/SIGTERM messages in ALL logs ==="
+            docker logs alti-backend 2>&1 | grep -i "EXIT DIAGNOSTIC\|BEFORE EXIT\|SIGTERM\|SIGINT\|shutting down\|graceful\|App is running\|listening on\|Server running\|Connected to\|Database connection\|exit code" | tail -30
+            
+            echo "=== Last 50 lines of backend logs ==="
+            docker logs alti-backend --tail=50 2>&1
+            
             echo "=== Memory usage ==="
             free -h
             
-            echo "=== Docker stats (snapshot) ==="
-            docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" 2>/dev/null || echo "No running containers"
-            
-            echo "=== OOM Killer (dmesg) ==="
-            sudo dmesg -T 2>/dev/null | grep -i "oom\|killed process\|out of memory" | tail -5 || echo "No OOM events"
-            
-            echo "=== Backend Logs (last 200 lines) ==="
-            docker logs alti-backend --tail=200 2>&1
-            
-            echo "=== Docker events (last 2 min) ==="
-            docker events --since 2m --until 0s --format '{{.Time}} {{.Action}} {{.Actor.Attributes.name}}' 2>/dev/null | head -20 || echo "No recent events"
-
-            echo "=== Compose file healthcheck ==="
-            grep -A6 "healthcheck" docker-compose.presenton.yml 2>/dev/null || echo "No healthcheck in compose"
+            echo "=== Compose file on VM ==="
+            cat docker-compose.yml 2>/dev/null | head -30
+            cat docker-compose.presenton.yml 2>/dev/null | head -30 || echo "No presenton compose"
             
             echo "=== Disk space ==="
             df -h /
-            
-            echo "=== Docker version ==="
-            docker --version
-            docker compose version
           EOF
 
       - name: Clean up SSH key
