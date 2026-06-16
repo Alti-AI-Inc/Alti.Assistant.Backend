@@ -45,6 +45,8 @@ jobs:
         run: |
           scp -i ~/.ssh/alti-vm-key /tmp/app-code.tar.gz \
             alti_deployer@35.239.192.33:/tmp/app-code.tar.gz
+          scp -i ~/.ssh/alti-vm-key docker-compose.presenton.yml \
+            alti_deployer@35.239.192.33:~/docker-compose.presenton.yml 2>/dev/null || true
 
       - name: Deploy into container and restart
         run: |
@@ -54,13 +56,15 @@ jobs:
             CONTAINER="alti-backend"
             APP_ROOT="/app/alti-core-service"
 
-            # ── Clean up disk space first ──
+            # ── Clean up disk space (safely - don't remove running containers) ──
             echo "=== Cleaning disk space ==="
-            docker system prune -f --volumes 2>/dev/null || true
-            docker image prune -af 2>/dev/null || true
+            # Only remove dangling images and build cache, NOT containers
+            docker builder prune -af 2>/dev/null || true
+            docker image prune -f 2>/dev/null || true
             rm -rf /tmp/app-staging /tmp/app-code-old.tar.gz /tmp/npm-sync 2>/dev/null || true
-            # Clean npm cache
             npm cache clean --force 2>/dev/null || true
+            # Clean old docker logs
+            truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true
             echo "Disk after cleanup:"
             df -h / | tail -1
 
@@ -69,6 +73,19 @@ jobs:
             mkdir -p /tmp/app-staging
             cd /tmp/app-staging
             tar xzf /tmp/app-code.tar.gz
+
+            # ── Check if container exists, recreate if needed ──
+            if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+              echo "=== Container not found! Recreating from compose file ==="
+              cd ~
+              COMPOSE_FILE="docker-compose.yml"
+              if [ -f "docker-compose.presenton.yml" ]; then
+                COMPOSE_FILE="docker-compose.presenton.yml"
+              fi
+              docker compose -f $COMPOSE_FILE up -d $CONTAINER
+              sleep 5
+              echo "Container recreated"
+            fi
 
             # ── Stop container to break any crash-restart loop ──
             echo "=== Stopping container ==="
@@ -92,18 +109,12 @@ jobs:
             echo "  ✅ src/ merged"
 
             # ── Sync ALL dependencies: npm install on HOST, copy to container ──
-            # Copies existing node_modules out of stopped container, runs npm install
-            # with the NEW package.json, then copies everything back. Bulletproof.
             echo "=== Syncing dependencies ==="
             rm -rf /tmp/npm-sync && mkdir -p /tmp/npm-sync
-            # Get existing node_modules from container (if any) to speed up install
             docker cp "$CONTAINER:$APP_ROOT/node_modules" /tmp/npm-sync/node_modules 2>/dev/null || mkdir -p /tmp/npm-sync/node_modules
-            # Use new package.json
             cp /tmp/app-staging/package.json /tmp/npm-sync/package.json
-            # Install
             cd /tmp/npm-sync && npm install --production --legacy-peer-deps 2>&1 | tail -5
             echo "  Installed $(ls node_modules | wc -l) packages"
-            # Copy back to container
             docker cp /tmp/npm-sync/node_modules/. "$CONTAINER:$APP_ROOT/node_modules/"
             echo "  ✅ Dependencies synced"
             rm -rf /tmp/npm-sync
