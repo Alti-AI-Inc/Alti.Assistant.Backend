@@ -6,7 +6,7 @@ on:
       branch:
         description: 'Branch to deploy (e.g. main, dev)'
         required: true
-        default: 'main'
+        default: 'dev'
   push:
     branches:
       - dev
@@ -14,13 +14,20 @@ on:
       - 'data/**'
       - '*.md'
 
+env:
+  VM_HOST: ${{ secrets.VM_HOST }}
+  VM_USER: ${{ secrets.VM_USER }}
+  REGISTRY: us-central1-docker.pkg.dev
+  IMAGE: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend
+
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Deploy Latest Code to Production VM
+    name: Build, Push & Deploy to VM
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
@@ -28,76 +35,96 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Log in to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: _json_key
+          password: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
           chmod 600 ~/.ssh/alti-vm-key
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image on runner
+      - name: Copy docker-compose to VM
         run: |
-          docker build -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
-
-      - name: Export and compress Docker image
-        run: |
-          echo "Exporting and compressing image..."
-          docker save us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest | gzip > /tmp/backend-image.tar.gz
-          echo "Compressed image size: $(du -h /tmp/backend-image.tar.gz | cut -f1)"
-
-      - name: Upload image to VM
-        run: |
-          echo "Uploading image to VM..."
-          scp -i ~/.ssh/alti-vm-key /tmp/backend-image.tar.gz \
-            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/backend-image.tar.gz
-
-      - name: Upload compose file to VM
-        run: |
-          echo "Uploading docker-compose.presenton.yml to VM..."
-          scp -i ~/.ssh/alti-vm-key docker-compose.presenton.yml \
-            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/docker-compose.yml
+          scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no \
+            docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/docker-compose.yml
 
       - name: Deploy to VM
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash <<'DEPLOY'
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash -s << 'EOF'
             set -e
-            
-            echo "=== Loading Docker image on VM ==="
-            docker load -i /tmp/backend-image.tar.gz
-            
-            echo "=== Restarting production compose stack ==="
-            cd ~
-            COMPOSE_FILE="docker-compose.yml"
-            if [ -f "docker-compose.presenton.yml" ]; then
-              COMPOSE_FILE="docker-compose.presenton.yml"
+
+            echo "=== Step 1: Stop containers (release image locks) ==="
+            docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
+
+            echo "=== Step 2: Aggressive disk cleanup BEFORE pull ==="
+            docker container prune -f 2>/dev/null || true
+            docker image prune -af 2>/dev/null || true
+            docker volume prune -f 2>/dev/null || true
+            docker builder prune -af 2>/dev/null || true
+            df -h / | tail -1
+
+            AVAIL=$(df / | awk 'NR==2 {print $4}')
+            if [ "$AVAIL" -lt 1048576 ]; then
+              echo "ERROR: Less than 1GB free after prune ($AVAIL KB). Aborting."
+              exit 1
             fi
-            echo "Using production compose file: $COMPOSE_FILE"
-            
-            docker compose -f $COMPOSE_FILE down
-            docker compose -f $COMPOSE_FILE up -d
-            sleep 5
-            
-            echo "=== Updating admin password ==="
-            docker exec alti-backend node scripts/change-password.js admin@altihq.com "${{ secrets.ADMIN_PASSWORD }}" || echo "⚠️ Warning: Password update command failed."
-            
-            echo "=== Container status ==="
-            docker compose -f $COMPOSE_FILE ps
-            
-            echo "=== Recent logs ==="
-            sleep 5
-            docker compose -f $COMPOSE_FILE logs --tail=20
-            
-            echo "=== Cleaning up uploaded files on VM ==="
-            rm -f /tmp/backend-image.tar.gz
-            
+            echo "Disk OK: ${AVAIL}KB available"
+
+            echo "=== Step 3: Fix .env CRLF (Docker env_file requires LF) ==="
+            [ -f ~/.env ] && sed -i 's/\r//' ~/.env && echo ".env CRLF stripped"
+
+            echo "=== Step 4: Authenticate with Artifact Registry ==="
+            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet 2>/dev/null || true
+
+            echo "=== Step 5: Pull latest images ==="
+            docker compose -f ~/docker-compose.yml pull
+
+            echo "=== Step 6: Start containers ==="
+            docker compose -f ~/docker-compose.yml up -d
+
+            echo "=== Step 7: Status + disk ==="
+            docker compose -f ~/docker-compose.yml ps
+            df -h /
+
             echo "=== Deploy complete! ==="
-          DEPLOY
+          EOF
+
+      - name: Health check
+        run: |
+          echo "Waiting 30s for backend to start..."
+          sleep 30
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+            "curl -sf http://localhost:5100/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
+
+      - name: Fetch recent logs
+        if: always()
+        run: |
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+            "docker logs alti-backend --tail=20 2>&1" || true
 
       - name: Clean up SSH key
         if: always()
-        run: |
-          rm -f ~/.ssh/alti-vm-key
-          rm -f /tmp/backend-image.tar.gz
+        run: rm -f ~/.ssh/alti-vm-key
