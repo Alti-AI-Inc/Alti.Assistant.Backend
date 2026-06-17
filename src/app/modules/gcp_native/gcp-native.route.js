@@ -467,4 +467,109 @@ router.post(
   GcpNativeController.mcpUpdateTools
 );
 
+// ── Phase 14: Vertex AI Reasoning Engine (Agent Builder) ──────────────────────
+router.get(
+  '/reasoning-engine',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineList
+);
+
+router.get(
+  '/reasoning-engine/:engineId',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineGet
+);
+
+router.post(
+  '/reasoning-engine/:engineId/sessions',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineCreateSession
+);
+
+router.get(
+  '/reasoning-engine/:engineId/sessions',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineListSessions
+);
+
+router.delete(
+  '/reasoning-engine/:engineId/sessions/:sessionId',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineDeleteSession
+);
+
+router.post(
+  '/reasoning-engine/:engineId/sessions/:sessionId/query',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineQuery
+);
+
+router.get(
+  '/reasoning-engine/:engineId/sessions/:sessionId/history',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineGetHistory
+);
+
+router.post(
+  '/reasoning-engine/:engineId/query',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.reasoningEngineRunOneShot
+);
+
+// ── Phase 15: Gemini Live API (Real-Time Multimodal) ──────────────────────────
+router.get(
+  '/gemini-live/connect',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.geminiLiveGetConnectionInfo
+);
+
+router.post(
+  '/gemini-live/generate',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.geminiLiveGenerateText
+);
+
+router.post(
+  '/gemini-live/setup',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.geminiLiveBuildSetup
+);
+
+// ── Phase 16: Vertex AI Pipelines (Kubeflow ML Orchestration) ────────────────
+router.get(
+  '/vertex-pipeline',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineList
+);
+
+router.get(
+  '/vertex-pipeline/:jobId',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineGet
+);
+
+router.post(
+  '/vertex-pipeline',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineCreate
+);
+
+router.post(
+  '/vertex-pipeline/:jobId/cancel',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineCancel
+);
+
+router.delete(
+  '/vertex-pipeline/:jobId',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineDelete
+);
+
+router.post(
+  '/vertex-pipeline/:jobId/wait',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.vertexPipelineWait
+);
+
 export const gcpNativeRoutes = router;

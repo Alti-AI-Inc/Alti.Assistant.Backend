@@ -34,6 +34,9 @@ import { GcpAguiService } from './gcp-agui.service.js';
 import { GcpA2aService } from './gcp-a2a.service.js';
 import { GcpAdkService } from './gcp-adk.service.js';
 import { GcpMcpService } from './gcp-mcp.service.js';
+import { GcpReasoningEngineService } from './gcp-reasoning-engine.service.js';
+import { GcpGeminiLiveService } from './gcp-gemini-live.service.js';
+import { GcpVertexPipelineService } from './gcp-vertex-pipeline.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -1412,6 +1415,127 @@ const adkBootstrap = catchAsync(async (req, res) => {
   });
 });
 
+// ── Vertex AI Reasoning Engine ───────────────────────────────────────────────
+
+const reasoningEngineList = catchAsync(async (req, res) => {
+  const result = await GcpReasoningEngineService.listReasoningEngines();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engines listed.', data: result });
+});
+
+const reasoningEngineGet = catchAsync(async (req, res) => {
+  const { engineId } = req.params;
+  const result = await GcpReasoningEngineService.getReasoningEngine(engineId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine retrieved.', data: result });
+});
+
+const reasoningEngineCreateSession = catchAsync(async (req, res) => {
+  const { engineId } = req.params;
+  const { metadata } = req.body;
+  const userMeta = { ...metadata, userId: req.user?._id?.toString(), workspaceId: req.user?.workspaceId?.toString() };
+  const result = await GcpReasoningEngineService.createSession(engineId, userMeta);
+  sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Reasoning Engine session created.', data: result });
+});
+
+const reasoningEngineListSessions = catchAsync(async (req, res) => {
+  const { engineId } = req.params;
+  const result = await GcpReasoningEngineService.listSessions(engineId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine sessions listed.', data: result });
+});
+
+const reasoningEngineDeleteSession = catchAsync(async (req, res) => {
+  const { engineId, sessionId } = req.params;
+  const result = await GcpReasoningEngineService.deleteSession(engineId, sessionId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine session deleted.', data: result });
+});
+
+const reasoningEngineQuery = catchAsync(async (req, res) => {
+  const { engineId, sessionId } = req.params;
+  const { input, queryParams } = req.body;
+  if (!input) throw new ApiError(httpStatus.BAD_REQUEST, 'Input text is required for Reasoning Engine query.');
+  const result = await GcpReasoningEngineService.querySession(engineId, sessionId, input, queryParams);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine query completed.', data: result });
+});
+
+const reasoningEngineGetHistory = catchAsync(async (req, res) => {
+  const { engineId, sessionId } = req.params;
+  const result = await GcpReasoningEngineService.getSessionHistory(engineId, sessionId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine session history retrieved.', data: result });
+});
+
+const reasoningEngineRunOneShot = catchAsync(async (req, res) => {
+  const { engineId } = req.params;
+  const { input, cleanup, metadata } = req.body;
+  if (!input) throw new ApiError(httpStatus.BAD_REQUEST, 'Input text is required for one-shot query.');
+  const userMeta = { ...metadata, userId: req.user?._id?.toString(), workspaceId: req.user?.workspaceId?.toString() };
+  const result = await GcpReasoningEngineService.runOneShot(engineId, input, { cleanup: cleanup !== false, metadata: userMeta });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Reasoning Engine one-shot query completed.', data: result });
+});
+
+// ── Gemini Live API ──────────────────────────────────────────────────────────
+
+const geminiLiveGetConnectionInfo = catchAsync(async (req, res) => {
+  const result = await GcpGeminiLiveService.getLiveApiConnectionInfo();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Gemini Live API connection credentials generated.', data: result });
+});
+
+const geminiLiveGenerateText = catchAsync(async (req, res) => {
+  const { text, model, systemInstruction } = req.body;
+  if (!text) throw new ApiError(httpStatus.BAD_REQUEST, 'Text input is required for Gemini Live text generation.');
+  const result = await GcpGeminiLiveService.generateTextResponse(text, { model, systemInstruction });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Gemini Live text response generated.', data: result });
+});
+
+const geminiLiveBuildSetup = catchAsync(async (req, res) => {
+  const { model, voice, systemInstruction, responseModality, languageCode, tools } = req.body;
+  const setup = GcpGeminiLiveService.buildLiveSessionSetup({ model, voice, systemInstruction, responseModality, languageCode, tools });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Gemini Live session setup payload built.', data: { setup, models: GcpGeminiLiveService.LIVE_API_MODELS, voices: GcpGeminiLiveService.VOICE_OPTIONS } });
+});
+
+// ── Vertex AI Pipelines ───────────────────────────────────────────────────────
+
+const vertexPipelineList = catchAsync(async (req, res) => {
+  const { pageSize, pageToken, filter, orderBy } = req.query;
+  const result = await GcpVertexPipelineService.listPipelineJobs({ pageSize: parseInt(pageSize) || 20, pageToken, filter, orderBy });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Vertex AI Pipeline jobs listed.', data: result });
+});
+
+const vertexPipelineGet = catchAsync(async (req, res) => {
+  const { jobId } = req.params;
+  const result = await GcpVertexPipelineService.getPipelineJob(jobId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Vertex AI Pipeline job retrieved.', data: result });
+});
+
+const vertexPipelineCreate = catchAsync(async (req, res) => {
+  const { pipelineSpec, displayName, runtimeConfig, serviceAccount, enableCaching, labels, templateGcsUri, parameters } = req.body;
+  let result;
+  if (templateGcsUri) {
+    result = await GcpVertexPipelineService.submitPipelineFromTemplate(templateGcsUri, { displayName, parameters, labels });
+  } else {
+    if (!pipelineSpec) throw new ApiError(httpStatus.BAD_REQUEST, 'Either pipelineSpec or templateGcsUri is required.');
+    result = await GcpVertexPipelineService.createPipelineJob(pipelineSpec, { displayName, runtimeConfig, serviceAccount, enableCaching, labels });
+  }
+  sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Vertex AI Pipeline job created.', data: result });
+});
+
+const vertexPipelineCancel = catchAsync(async (req, res) => {
+  const { jobId } = req.params;
+  const result = await GcpVertexPipelineService.cancelPipelineJob(jobId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Vertex AI Pipeline job cancellation requested.', data: result });
+});
+
+const vertexPipelineDelete = catchAsync(async (req, res) => {
+  const { jobId } = req.params;
+  const result = await GcpVertexPipelineService.deletePipelineJob(jobId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Vertex AI Pipeline job deleted.', data: result });
+});
+
+const vertexPipelineWait = catchAsync(async (req, res) => {
+  const { jobId } = req.params;
+  const { maxWaitMs } = req.body;
+  const result = await GcpVertexPipelineService.waitForPipelineCompletion(jobId, { maxWaitMs: maxWaitMs || 300000 });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Vertex AI Pipeline job completed.', data: result });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1481,5 +1605,25 @@ export const GcpNativeController = {
   adkBootstrap,
   mcpExecuteQuery,
   mcpGetStatus,
-  mcpUpdateTools
+  mcpUpdateTools,
+  // Reasoning Engine
+  reasoningEngineList,
+  reasoningEngineGet,
+  reasoningEngineCreateSession,
+  reasoningEngineListSessions,
+  reasoningEngineDeleteSession,
+  reasoningEngineQuery,
+  reasoningEngineGetHistory,
+  reasoningEngineRunOneShot,
+  // Gemini Live
+  geminiLiveGetConnectionInfo,
+  geminiLiveGenerateText,
+  geminiLiveBuildSetup,
+  // Vertex Pipelines
+  vertexPipelineList,
+  vertexPipelineGet,
+  vertexPipelineCreate,
+  vertexPipelineCancel,
+  vertexPipelineDelete,
+  vertexPipelineWait
 };
