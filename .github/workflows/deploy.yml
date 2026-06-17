@@ -120,43 +120,43 @@ jobs:
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
             set -e
-            echo "=== Pre-deploy: reclaim disk space ==="
-            docker image prune -af --filter "until=24h" 2>/dev/null || true
-            docker container prune -f 2>/dev/null || true
-            df -h / | tail -1
 
-            echo "=== Waiting for Docker to be ready ==="
-            for i in {1..30}; do
-              if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
-                echo "Docker is ready!"
-                break
-              fi
-              echo "Waiting for Docker daemon... ($i/30)"
-              sleep 5
-            done
-
-            echo "=== Stopping existing containers ==="
+            echo "=== Step 1: Stop existing containers (release image locks) ==="
             docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
 
-            echo "=== Fix .env CRLF line endings (Docker env_file requires LF) ==="
+            echo "=== Step 2: Aggressive disk cleanup BEFORE pulling new image ==="
+            docker container prune -f 2>/dev/null || true
+            docker image prune -af 2>/dev/null || true
+            docker volume prune -f 2>/dev/null || true
+            docker builder prune -af 2>/dev/null || true
+            df -h / | tail -1
+
+            AVAIL=$(df / | awk 'NR==2 {print $4}')
+            if [ "$AVAIL" -lt 1048576 ]; then
+              echo "ERROR: Less than 1GB free after prune. Aborting."
+              exit 1
+            fi
+            echo "Disk OK: ${AVAIL}KB available"
+
+            echo "=== Step 3: Fix .env CRLF line endings (Docker env_file requires LF) ==="
             if [ -f ~/.env ]; then
               sed -i 's/\r//' ~/.env
               echo ".env CRLF stripped"
             fi
 
-            echo "=== Authenticating with Artifact Registry ==="
+            echo "=== Step 4: Authenticate with Artifact Registry ==="
             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet 2>/dev/null || true
 
-            echo "=== Pulling latest images ==="
+            echo "=== Step 5: Pull latest images ==="
             docker compose -f ~/docker-compose.yml pull
 
-            echo "=== Starting containers ==="
+            echo "=== Step 6: Start containers ==="
             docker compose -f ~/docker-compose.yml up -d
 
-            echo "=== Container status ==="
+            echo "=== Step 7: Container status ==="
             docker compose -f ~/docker-compose.yml ps
 
-            echo "=== Disk usage after deploy ==="
+            echo "=== Step 8: Disk usage after deploy ==="
             df -h /
 
             echo "=== Deployment completed successfully! ==="
