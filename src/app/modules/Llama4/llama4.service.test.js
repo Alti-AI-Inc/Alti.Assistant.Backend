@@ -3,36 +3,75 @@ import httpStatus from 'http-status';
 
 // Mock external dependencies
 const mockInMemoryChatMessageHistoryInstance = {
-  addMessage: vi.fn(),
-  getMessages: vi.fn().mockImplementation(() => []), // Added for completeness, though not directly used in service
+  addMessages: vi.fn(),
+  getMessages: vi.fn().mockImplementation(() => []),
+};
+
+const mockChatVertexAIInstance = {
+  model: 'gemini-1.5-flash',
+};
+
+const mockConversationChainInvoke = vi.fn();
+const mockConversationChainInstance = {
+  invoke: mockConversationChainInvoke,
+};
+
+const mockBufferMemoryInstance = {
+  chatHistory: mockInMemoryChatMessageHistoryInstance,
+  returnMessages: true,
+  memoryKey: 'history',
 };
 
 const {
   mockInMemoryChatMessageHistory,
   mockAIMessage,
   mockHumanMessage,
-  mockChatGoogleGenerativeAI,
+  mockChatVertexAI,
   mockConversationChain,
   mockBufferMemory,
   mockApiError,
   mockLogger,
   mockUserModel,
   mockChatHistory,
+  mockPlatformConfig,
   mockPaymentController
 } = vi.hoisted(() => {
-  const mockInMemoryChatMessageHistory = vi.fn().mockImplementation(() => mockInMemoryChatMessageHistoryInstance);
+  function mockInMemoryChatMessageHistory() {
+    return mockInMemoryChatMessageHistoryInstance;
+  }
 
-  const mockAIMessage = vi.fn().mockImplementation((content) => ({ type: 'ai', content }));
-  const mockHumanMessage = vi.fn().mockImplementation((content) => ({ type: 'human', content }));
-  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => mockChatGoogleGenerativeAIInstance);
-  const mockConversationChain = vi.fn().mockImplementation(() => mockConversationChainInstance);
-  const mockBufferMemory = vi.fn().mockImplementation(() => mockBufferMemoryInstance);
+  function mockAIMessage(content) {
+    this.type = 'ai';
+    this.content = content;
+  }
+  function mockHumanMessage(content) {
+    this.type = 'human';
+    this.content = content;
+  }
 
-  const mockApiError = vi.fn().mockImplementation((status, message) => {
-    const error = new Error(message);
-    error.statusCode = status;
-    return error;
-  });
+  function mockChatVertexAI(config) {
+    this.model = config?.model || 'gemini-1.5-flash';
+  }
+
+  function mockConversationChain() {
+    return mockConversationChainInstance;
+  }
+
+  function mockBufferMemory() {
+    return mockBufferMemoryInstance;
+  }
+
+  class mockApiError extends Error {
+    constructor(statusCode, message, stack = '') {
+      super(message);
+      this.statusCode = statusCode;
+      if (stack) {
+        this.stack = stack;
+      } else {
+        Error.captureStackTrace(this, this.constructor);
+      }
+    }
+  }
 
   const mockLogger = {
     info: vi.fn(),
@@ -40,11 +79,29 @@ const {
   };
 
   const mockUserModel = {
-    findByIdAndUpdate: vi.fn(),
+    findById: vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockImplementation(() => ({
+        lean: vi.fn().mockResolvedValue({ status: 'active', role: 'user' }),
+      })),
+    })),
+    updateOne: vi.fn().mockResolvedValue({}),
   };
+
   const mockChatHistory = {
-    findOne: vi.fn(),
+    findOne: vi.fn().mockImplementation(() => ({
+      lean: vi.fn(),
+    })),
     create: vi.fn(),
+    updateOne: vi.fn().mockResolvedValue({}),
+  };
+
+  const mockPlatformConfig = {
+    findOne: vi.fn().mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue({
+        service: { enabled: true },
+        ai: { defaultModel: 'gemini-1.5-flash', temperature: 0.7 },
+      }),
+    })),
   };
 
   const mockPaymentController = {
@@ -55,17 +112,19 @@ const {
     mockInMemoryChatMessageHistory,
     mockAIMessage,
     mockHumanMessage,
-    mockChatGoogleGenerativeAI,
+    mockChatVertexAI,
     mockConversationChain,
     mockBufferMemory,
     mockApiError,
     mockLogger,
     mockUserModel,
     mockChatHistory,
+    mockPlatformConfig,
     mockPaymentController
   };
 });
 
+// Setup vitest mocks
 vi.mock('@langchain/core/chat_history', () => ({
   InMemoryChatMessageHistory: mockInMemoryChatMessageHistory,
 }));
@@ -75,24 +134,26 @@ vi.mock('@langchain/core/messages', () => ({
   HumanMessage: mockHumanMessage,
 }));
 
-const mockChatGoogleGenerativeAIInstance = {}; // Simple instance
-vi.mock('@langchain/google-genai', () => ({
-  ChatGoogleGenerativeAI: mockChatGoogleGenerativeAI,
+vi.mock('@langchain/google-vertexai', () => ({
+  ChatVertexAI: mockChatVertexAI,
 }));
 
-const mockConversationChainInvoke = vi.fn();
-const mockConversationChainInstance = {
-  invoke: mockConversationChainInvoke,
-};
+vi.mock('@google-cloud/vertexai', () => ({
+  HarmCategory: {
+    HARM_CATEGORY_HATE_SPEECH: 'HARM_CATEGORY_HATE_SPEECH',
+    HARM_CATEGORY_DANGEROUS_CONTENT: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+    HARM_CATEGORY_HARASSMENT: 'HARM_CATEGORY_HARASSMENT',
+    HARM_CATEGORY_SEXUALLY_EXPLICIT: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+  },
+  HarmBlockThreshold: {
+    BLOCK_MEDIUM_AND_ABOVE: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+}));
+
 vi.mock('langchain/chains', () => ({
   ConversationChain: mockConversationChain,
 }));
 
-const mockBufferMemoryInstance = {
-  chatHistory: mockInMemoryChatMessageHistoryInstance, // Link to the mocked history instance
-  returnMessages: true,
-  memoryKey: 'history',
-};
 vi.mock('langchain/memory', () => ({
   BufferMemory: mockBufferMemory,
 }));
@@ -115,25 +176,20 @@ vi.mock('../auth/auth.model.js', () => ({
   default: mockUserModel,
 }));
 
-const mockChatHistorySave = vi.fn();
 vi.mock('../conversations/chatHistory.model.js', () => ({
   default: mockChatHistory,
+}));
+
+vi.mock('../platform/platformConfig.model.js', () => ({
+  default: mockPlatformConfig,
 }));
 
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: mockPaymentController,
 }));
 
-let Llama4AiGetResponseService;
-
-beforeEach(async () => {
-  vi.clearAllMocks();
-  vi.resetModules(); // Resets the module cache, ensuring sessionMemoryStore is cleared for each test
-
-  // Re-import the service to get a fresh module state
-  const serviceModule = await import('./llama4.service.js');
-  Llama4AiGetResponseService = serviceModule.Llama4AiServices.Llama4AiGetResponseService;
-});
+// Import the service
+import { Llama4AiServices } from './llama4.service.js';
 
 describe('Llama4AiGetResponseService', () => {
   const userId = 'user123';
@@ -145,193 +201,118 @@ describe('Llama4AiGetResponseService', () => {
 
   const mockChainInvokeResponse1 = {
     response: aiReply1,
-    usage: { total_time: 100 },
   };
   const mockChainInvokeResponse2 = {
     response: aiReply2,
-    usage: { total_time: 120 },
   };
 
-  // Helper to set up common mocks for a successful flow
   const setupSuccessfulMocks = (invokeResponse = mockChainInvokeResponse1) => {
-    mockChatGoogleGenerativeAI.mockReturnValue(mockChatGoogleGenerativeAIInstance);
-    mockConversationChain.mockReturnValue(mockConversationChainInstance);
     mockConversationChainInvoke.mockResolvedValue(invokeResponse);
     mockPaymentController.incrementPromptsUsed.mockResolvedValue({ success: true });
+    mockUserModel.findById.mockImplementation(() => ({
+      select: vi.fn().mockImplementation(() => ({
+        lean: vi.fn().mockResolvedValue({ status: 'active', role: 'user' }),
+      })),
+    }));
+    mockPlatformConfig.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue({
+        service: { enabled: true },
+        ai: { defaultModel: 'gemini-1.5-flash', temperature: 0.7 },
+      }),
+    }));
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should initialize new session memory and return AI response for a new session', async () => {
     setupSuccessfulMocks();
-    mockChatHistory.findOne.mockResolvedValue(null); // No existing session
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
     mockChatHistory.create.mockResolvedValue({
       _id: 'newChatHistoryId',
       user: userId,
       sessionId,
       responses: [],
-      save: mockChatHistorySave,
     });
-    mockUserModel.findByIdAndUpdate.mockResolvedValue({});
 
-    const result = await Llama4AiGetResponseService(prompt1, userId, sessionId);
+    const result = await Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId);
 
-    expect(mockBufferMemory).toHaveBeenCalledTimes(1); // BufferMemory initialized
-    expect(mockInMemoryChatMessageHistory).toHaveBeenCalledTimes(1); // InMemoryChatMessageHistory initialized
-
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(2);
-    expect(mockHumanMessage).toHaveBeenCalledWith(prompt1);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'human', content: prompt1 })
-    );
-    expect(mockAIMessage).toHaveBeenCalledWith(aiReply1);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'ai', content: aiReply1 })
-    );
-
-    expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash',
-      temperature: 0.7,
-      apiKey: 'test_gemini_key',
-    });
-    expect(mockConversationChain).toHaveBeenCalledWith(
-      expect.objectContaining({
-        llm: mockChatGoogleGenerativeAIInstance,
-        memory: mockBufferMemoryInstance,
-      })
-    );
     expect(mockConversationChainInvoke).toHaveBeenCalledWith({ input: prompt1 });
-
     expect(mockPaymentController.incrementPromptsUsed).toHaveBeenCalledWith(userId);
 
-    expect(mockChatHistory.findOne).toHaveBeenCalledWith({ user: userId, sessionId });
     expect(mockChatHistory.create).toHaveBeenCalledWith({
       user: userId,
       sessionId,
       responses: [
         {
           prompt: prompt1,
-          model: 'llama3-8b-8192',
+          model: 'gemini-1.5-flash',
           reply: aiReply1,
-          total_time: mockChainInvokeResponse1.usage.total_time,
         },
       ],
     });
-    expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith(userId, {
-      $push: { llamaAiSessions: 'newChatHistoryId' },
-    });
-    expect(mockChatHistorySave).not.toHaveBeenCalled(); // No save on new session, only create
+    expect(mockUserModel.updateOne).toHaveBeenCalledWith(
+      { _id: userId },
+      { $push: { llamaAiSessions: 'newChatHistoryId' } }
+    );
 
     expect(result).toEqual({ prompt: prompt1, sessionId, reply: aiReply1 });
-    expect(mockLogger.info).toHaveBeenCalledWith('Memory Initialized:', mockBufferMemoryInstance);
-    expect(mockLogger.info).toHaveBeenCalledWith('Model Response:', mockChainInvokeResponse1);
-    expect(mockLogger.info).toHaveBeenCalledWith('Creating New Session...');
-    expect(mockLogger.info).toHaveBeenCalledWith('New Session Created:', expect.any(Object));
   });
 
   it('should use existing session memory and update chat history for subsequent calls in the same session', async () => {
-    // First call: new session
-    setupSuccessfulMocks(mockChainInvokeResponse1);
+    setupSuccessfulMocks(mockChainInvokeResponse2);
+    
     const existingChatHistory = {
       _id: 'existingChatHistoryId',
       user: userId,
       sessionId,
-      responses: [],
-      save: mockChatHistorySave,
+      responses: [
+        {
+          prompt: prompt1,
+          model: 'gemini-1.5-flash',
+          reply: aiReply1,
+        }
+      ],
     };
-    mockChatHistory.findOne.mockResolvedValueOnce(null); // First call: no existing session
-    mockChatHistory.create.mockResolvedValueOnce(existingChatHistory);
-    mockUserModel.findByIdAndUpdate.mockResolvedValueOnce({});
 
-    await Llama4AiGetResponseService(prompt1, userId, sessionId);
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(existingChatHistory),
+    }));
 
-    // Assertions for first call (similar to the 'new session' test)
-    expect(mockBufferMemory).toHaveBeenCalledTimes(1);
-    expect(mockInMemoryChatMessageHistory).toHaveBeenCalledTimes(1);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(2);
-    expect(mockHumanMessage).toHaveBeenCalledWith(prompt1);
-    expect(mockAIMessage).toHaveBeenCalledWith(aiReply1);
-    expect(mockChatHistory.create).toHaveBeenCalledTimes(1);
-    expect(mockChatHistorySave).not.toHaveBeenCalled(); // No save on first create
+    const result = await Llama4AiServices.Llama4AiGetResponseService(prompt2, userId, sessionId);
 
-    // Clear mocks for the second call, but the `sessionMemoryStore` state persists
-    vi.clearAllMocks();
-
-    // Second call: existing session
-    setupSuccessfulMocks(mockChainInvokeResponse2);
-    mockChatHistory.findOne.mockResolvedValueOnce(existingChatHistory); // Second call: existing session found
-    mockChatHistorySave.mockResolvedValueOnce(existingChatHistory);
-
-    const result = await Llama4AiGetResponseService(prompt2, userId, sessionId);
-
-    // Expect BufferMemory and InMemoryChatMessageHistory constructors NOT to be called again
-    expect(mockBufferMemory).toHaveBeenCalledTimes(0); // Should not be called again for the same session
-    expect(mockInMemoryChatMessageHistory).toHaveBeenCalledTimes(0); // Should not be called again for the same session
-
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(2); // 2 new messages for this call
-    expect(mockHumanMessage).toHaveBeenCalledWith(prompt2);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'human', content: prompt2 })
-    );
-    expect(mockAIMessage).toHaveBeenCalledWith(aiReply2);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'ai', content: aiReply2 })
-    );
-
-    expect(mockChatGoogleGenerativeAI).toHaveBeenCalledTimes(0); // Not re-initialized
-    expect(mockConversationChain).toHaveBeenCalledTimes(0); // Not re-initialized
     expect(mockConversationChainInvoke).toHaveBeenCalledWith({ input: prompt2 });
-
     expect(mockPaymentController.incrementPromptsUsed).toHaveBeenCalledWith(userId);
 
-    expect(mockChatHistory.findOne).toHaveBeenCalledWith({ user: userId, sessionId });
-    expect(mockChatHistory.create).not.toHaveBeenCalled(); // Should not create a new session
-    expect(existingChatHistory.responses).toHaveLength(2); // Original (from first call) + new
-    expect(existingChatHistory.responses[0]).toEqual({
-      prompt: prompt1,
-      model: 'llama3-8b-8192',
-      reply: aiReply1,
-      total_time: mockChainInvokeResponse1.usage.total_time,
-    });
-    expect(existingChatHistory.responses[1]).toEqual({
-      prompt: prompt2,
-      model: 'llama3-8b-8192',
-      reply: aiReply2,
-      total_time: mockChainInvokeResponse2.usage.total_time,
-    });
-    expect(mockChatHistorySave).toHaveBeenCalledTimes(1); // Should save the existing session
-    expect(mockUserModel.findByIdAndUpdate).not.toHaveBeenCalled(); // No user update for existing session
+    expect(mockChatHistory.updateOne).toHaveBeenCalledWith(
+      { _id: 'existingChatHistoryId' },
+      {
+        $push: {
+          responses: {
+            prompt: prompt2,
+            model: 'gemini-1.5-flash',
+            reply: aiReply2,
+          }
+        }
+      }
+    );
 
     expect(result).toEqual({ prompt: prompt2, sessionId, reply: aiReply2 });
-    expect(mockLogger.info).toHaveBeenCalledWith('Existing Session Found:', existingChatHistory);
-    expect(mockLogger.info).toHaveBeenCalledWith('Updated Session:', existingChatHistory);
   });
 
   it('should throw ApiError if chain.invoke fails', async () => {
     setupSuccessfulMocks();
     const errorMessage = 'AI model failed';
     mockConversationChainInvoke.mockRejectedValue(new Error(errorMessage));
-    mockChatHistory.findOne.mockResolvedValue(null);
-    mockPaymentController.incrementPromptsUsed.mockResolvedValue({ success: true });
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
 
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: 'AI service failed.',
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      })
-    );
-
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Error in Llama4AiGetResponseService:',
-      expect.any(Error)
-    );
-    expect(mockApiError).toHaveBeenCalledWith(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'AI service failed.'
-    );
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'human', content: prompt1 })
-    );
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(1); // Only human message added
-    expect(mockPaymentController.incrementPromptsUsed).not.toHaveBeenCalled(); // Should not be called if invoke fails
+    await expect(Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow('AI service failed.');
+    expect(mockPaymentController.incrementPromptsUsed).not.toHaveBeenCalled();
     expect(mockChatHistory.create).not.toHaveBeenCalled();
   });
 
@@ -342,74 +323,49 @@ describe('Llama4AiGetResponseService', () => {
       success: false,
       message: paymentErrorMessage,
     });
-    mockChatHistory.findOne.mockResolvedValue(null);
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
 
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: paymentErrorMessage,
-        statusCode: httpStatus.BAD_REQUEST,
-      })
-    );
-
-    expect(mockPaymentController.incrementPromptsUsed).toHaveBeenCalledWith(userId);
-    expect(mockLogger.error).not.toHaveBeenCalledWith(
-      'Error in incrementPromptsUsed:',
-      expect.any(Error)
-    ); // This path is for thrown errors, not success: false
-    expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, paymentErrorMessage);
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(1); // Only human message added
-    expect(mockChatHistory.create).not.toHaveBeenCalled(); // Should not save chat history
+    await expect(Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(paymentErrorMessage);
+    expect(mockChatHistory.create).not.toHaveBeenCalled();
   });
 
   it('should throw ApiError if paymentController.incrementPromptsUsed throws an error', async () => {
     setupSuccessfulMocks();
     const paymentError = new Error('Database error during payment update');
     mockPaymentController.incrementPromptsUsed.mockRejectedValue(paymentError);
-    mockChatHistory.findOne.mockResolvedValue(null);
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
 
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: paymentError.message,
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      })
-    );
-
-    expect(mockPaymentController.incrementPromptsUsed).toHaveBeenCalledWith(userId);
-    expect(mockLogger.error).toHaveBeenCalledWith('Error in incrementPromptsUsed:', paymentError);
-    expect(mockApiError).toHaveBeenCalledWith(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      paymentError.message
-    );
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledTimes(1); // Only human message added
-    expect(mockChatHistory.create).not.toHaveBeenCalled(); // Should not save chat history
+    await expect(Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(paymentError.message);
+    expect(mockChatHistory.create).not.toHaveBeenCalled();
   });
 
   it('should handle "No reply generated" if model response is empty', async () => {
-    setupSuccessfulMocks();
-    mockConversationChainInvoke.mockResolvedValue({ response: null }); // No response
-    mockChatHistory.findOne.mockResolvedValue(null);
+    setupSuccessfulMocks({ response: null });
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
     mockChatHistory.create.mockResolvedValue({
       _id: 'newChatHistoryId',
       user: userId,
       sessionId,
       responses: [],
-      save: mockChatHistorySave,
     });
-    mockUserModel.findByIdAndUpdate.mockResolvedValue({});
 
-    const result = await Llama4AiGetResponseService(prompt1, userId, sessionId);
+    const result = await Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId);
 
-    expect(mockAIMessage).toHaveBeenCalledWith('No reply generated');
-    expect(mockInMemoryChatMessageHistoryInstance.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'ai', content: 'No reply generated' })
-    );
     expect(mockChatHistory.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        responses: expect.arrayContaining([
-          expect.objectContaining({
+        responses: [
+          {
+            prompt: prompt1,
+            model: 'gemini-1.5-flash',
             reply: 'No reply generated',
-          }),
-        ]),
+          },
+        ],
       })
     );
     expect(result).toEqual({ prompt: prompt1, sessionId, reply: 'No reply generated' });
@@ -418,105 +374,24 @@ describe('Llama4AiGetResponseService', () => {
   it('should throw ApiError if ChatHistory.create fails', async () => {
     setupSuccessfulMocks();
     const dbError = new Error('DB creation failed');
-    mockChatHistory.findOne.mockResolvedValue(null);
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
     mockChatHistory.create.mockRejectedValue(dbError);
 
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: 'AI service failed.',
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      })
-    );
-
-    expect(mockChatHistory.create).toHaveBeenCalled();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Error in Llama4AiGetResponseService:',
-      dbError
-    );
-    expect(mockApiError).toHaveBeenCalledWith(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'AI service failed.'
-    );
+    await expect(Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow('AI service failed.');
   });
 
   it('should throw ApiError if ChatHistory.findOne fails', async () => {
     setupSuccessfulMocks();
     const dbError = new Error('DB find failed');
-    mockChatHistory.findOne.mockRejectedValue(dbError);
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockResolvedValue(null),
+    }));
+    mockChatHistory.findOne.mockImplementation(() => ({
+      lean: vi.fn().mockRejectedValue(dbError),
+    }));
 
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: 'AI service failed.',
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      })
-    );
-
-    expect(mockChatHistory.findOne).toHaveBeenCalled();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Error in Llama4AiGetResponseService:',
-      dbError
-    );
-    expect(mockApiError).toHaveBeenCalledWith(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'AI service failed.'
-    );
-  });
-
-  it('should throw ApiError if UserModel.findByIdAndUpdate fails', async () => {
-    setupSuccessfulMocks();
-    const dbError = new Error('User update failed');
-    mockChatHistory.findOne.mockResolvedValue(null);
-    mockChatHistory.create.mockResolvedValue({
-      _id: 'newChatHistoryId',
-      user: userId,
-      sessionId,
-      responses: [],
-      save: mockChatHistorySave,
-    });
-    mockUserModel.findByIdAndUpdate.mockRejectedValue(dbError);
-
-    await expect(Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow(
-      expect.objectContaining({
-        message: 'AI service failed.',
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      })
-    );
-
-    expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalled();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Error in Llama4AiGetResponseService:',
-      dbError
-    );
-    expect(mockApiError).toHaveBeenCalledWith(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'AI service failed.'
-    );
-  });
-
-  it('should default total_time to 0 if not provided in model response', async () => {
-    setupSuccessfulMocks();
-    mockConversationChainInvoke.mockResolvedValue({ response: aiReply1, usage: null }); // No usage
-    mockChatHistory.findOne.mockResolvedValue(null);
-    mockChatHistory.create.mockResolvedValue({
-      _id: 'newChatHistoryId',
-      user: userId,
-      sessionId,
-      responses: [],
-      save: mockChatHistorySave,
-    });
-    mockUserModel.findByIdAndUpdate.mockResolvedValue({});
-
-    const result = await Llama4AiGetResponseService(prompt1, userId, sessionId);
-
-    expect(mockChatHistory.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        responses: expect.arrayContaining([
-          expect.objectContaining({
-            total_time: 0,
-          }),
-        ]),
-      })
-    );
-    expect(result).toEqual({ prompt: prompt1, sessionId, reply: aiReply1 });
+    await expect(Llama4AiServices.Llama4AiGetResponseService(prompt1, userId, sessionId)).rejects.toThrow('AI service failed.');
   });
 });

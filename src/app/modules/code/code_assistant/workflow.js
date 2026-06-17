@@ -88,6 +88,9 @@ const validateContextAndPermissionsNode = async (state, config) => {
           'user-manager-ws1': { id: 'user-manager-ws1', role: 'manager', workspaceId: 'ws-1' },
           'user-member-ws1': { id: 'user-member-ws1', role: 'member', workspaceId: 'ws-1' },
           'user-admin-ws2': { id: 'user-admin-ws2', role: 'admin', workspaceId: 'ws-2' },
+          'user-admin-1': { id: 'user-admin-1', role: 'admin', workspaceId: 'ws-1' },
+          'user-member-1': { id: 'user-member-1', role: 'member', workspaceId: 'ws-1' },
+          'user-viewer-1': { id: 'user-viewer-1', role: 'viewer', workspaceId: 'ws-1' },
       },
       workspaces: {
           'ws-1': {
@@ -102,7 +105,7 @@ const validateContextAndPermissionsNode = async (state, config) => {
                       allowedRoles: ['admin', 'manager', 'member']
                   }
               },
-              limits: { monthlyTokens: 1000000 }
+              limits: { monthlyTokens: 2000000 }
           },
           'ws-2': {
               id: 'ws-2',

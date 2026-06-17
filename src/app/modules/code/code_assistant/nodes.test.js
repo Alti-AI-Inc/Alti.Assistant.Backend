@@ -9,36 +9,26 @@ import {
   generalConversationNode,
 } from './nodes.js';
 
-// Mock dependencies
-vi.mock('../llm.js', () => ({
-  ai: {
-    models: {
-      generateContent: vi.fn(),
-    },
-  },
-}));
+const { mockPublishMessage, mockTopic } = vi.hoisted(() => {
+  const mockPublishMessage = vi.fn().mockResolvedValue('mock-msg-id');
+  const mockTopic = vi.fn().mockReturnValue({
+    publishMessage: mockPublishMessage,
+  });
+  return { mockPublishMessage, mockTopic };
+});
 
-vi.mock('../services/geminiCodeService.js', () => ({
-  codeGenerator: vi.fn(),
-  codeExplainer: vi.fn(),
-  codeDebugger: vi.fn(),
-  bestPracticesAdvisor: vi.fn(),
-  generalCodeAssistant: vi.fn(),
+vi.mock('@google-cloud/pubsub', () => ({
+  PubSub: class {
+    constructor() {
+      this.topic = mockTopic;
+    }
+  }
 }));
-
-// Import mocked modules to access the mock functions
-import { ai } from '../llm.js';
-import {
-  codeGenerator,
-  codeExplainer,
-  codeDebugger,
-  bestPracticesAdvisor,
-  generalCodeAssistant,
-} from '../services/geminiCodeService.js';
 
 describe('Code Assistant Nodes', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    mockPublishMessage.mockClear();
+    mockTopic.mockClear();
     // Suppress console logs during tests
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -54,126 +44,73 @@ describe('Code Assistant Nodes', () => {
       ],
     };
 
-    it('should correctly detect and return a valid intent', async () => {
-      ai.models.generateContent.mockResolvedValue({ text: 'generate_code' });
-
+    it('should correctly queue intent detection task', async () => {
       const result = await detectIntentNode(baseState);
 
-      expect(ai.models.generateContent).toHaveBeenCalledTimes(1);
-      const calledWith = ai.models.generateContent.mock.calls[0][0];
-      expect(calledWith.contents).toContain('User Message: "Write a function to sort an array."');
-      expect(result).toEqual({ intent: 'generate_code' });
+      expect(mockTopic).toHaveBeenCalledWith('code-assistant-workflow');
+      expect(mockPublishMessage).toHaveBeenCalledWith({
+        json: baseState,
+        attributes: {
+          task: 'detect_intent',
+        },
+      });
+      expect(result).toEqual({ status: 'queued', messageId: 'mock-msg-id' });
     });
 
-    it('should trim whitespace from the LLM response', async () => {
-      ai.models.generateContent.mockResolvedValue({ text: '  explain_code  \n' });
+    it('should throw an error if publishing fails', async () => {
+      mockPublishMessage.mockRejectedValueOnce(new Error('PubSub offline'));
 
-      const result = await detectIntentNode(baseState);
-
-      expect(result).toEqual({ intent: 'explain_code' });
-    });
-
-    it('should default to "general_conversation" if the LLM call fails', async () => {
-      ai.models.generateContent.mockRejectedValue(new Error('API Error'));
-
-      const result = await detectIntentNode(baseState);
-
-      expect(result).toEqual({ intent: 'general_conversation' });
-      expect(console.error).toHaveBeenCalledWith('Error detecting intent:', expect.any(Error));
-    });
-
-    it('should default to "general_conversation" if the LLM response is not a string', async () => {
-      ai.models.generateContent.mockResolvedValue({ text: null });
-
-      const result = await detectIntentNode(baseState);
-
-      expect(result).toEqual({ intent: 'general_conversation' });
-      expect(console.warn).toHaveBeenCalledWith('LLM response.text was not a string or was empty. Defaulting to general_conversation.');
-    });
-
-    it('should default to "general_conversation" if the LLM response is empty', async () => {
-      ai.models.generateContent.mockResolvedValue({ text: '' });
-
-      const result = await detectIntentNode(baseState);
-
-      expect(result).toEqual({ intent: 'general_conversation' });
+      await expect(detectIntentNode(baseState)).rejects.toThrow('Failed to queue intent detection task.');
+      expect(console.error).toHaveBeenCalledWith('Error publishing detect_intent task:', expect.any(Error));
     });
   });
 
   describe('routeOnIntent', () => {
-    const validIntents = [
-      'generate_code',
-      'explain_code',
-      'debug_code',
-      'best_practices',
-    ];
-
-    it.each(validIntents)('should return "%s" for the intent "%s"', (intent) => {
-      const state = { intent };
-      const result = routeOnIntent(state);
-      expect(result).toBe(intent);
-    });
-
-    const invalidIntents = [
-      'general_conversation',
-      'unknown_intent',
-      'GENERATE_CODE', // Case-sensitive check
-      null,
-      undefined,
-      '',
-    ];
-
-    it.each(invalidIntents)('should return "general_conversation" for the intent "%s"', (intent) => {
-      const state = { intent };
-      const result = routeOnIntent(state);
-      expect(result).toBe('general_conversation');
-    });
-
-    it('should return "general_conversation" if intent is missing from state', () => {
-        const state = { history: [] }; // No intent property
-        const result = routeOnIntent(state);
-        expect(result).toBe('general_conversation');
+    it.each([
+      ['generate_code', 'generate_code'],
+      ['explain_code', 'explain_code'],
+      ['debug_code', 'debug_code'],
+      ['best_practices', 'best_practices'],
+      ['random_intent', 'general_conversation'],
+      [undefined, 'general_conversation'],
+    ])('should route intent %s to node %s', (intent, expectedNode) => {
+      const state = { intent, history: [] };
+      const nextNode = routeOnIntent(state);
+      expect(nextNode).toBe(expectedNode);
     });
   });
 
-  describe('Task Execution Nodes (via executeTaskNode)', () => {
+  describe('Task Offloading Nodes', () => {
     const state = {
-      intent: 'some_intent',
-      history: [{ role: 'user', content: 'Do something' }],
+      history: [{ role: 'user', content: 'Help me write code' }],
     };
 
-    const serviceMap = [
-      { node: generateCodeNode, service: codeGenerator, intent: 'generate_code' },
-      { node: explainCodeNode, service: codeExplainer, intent: 'explain_code' },
-      { node: debugCodeNode, service: codeDebugger, intent: 'debug_code' },
-      { node: bestPracticesNode, service: bestPracticesAdvisor, intent: 'best_practices' },
-      { node: generalConversationNode, service: generalCodeAssistant, intent: 'general_conversation' },
+    const offloadNodes = [
+      { node: generateCodeNode, taskName: 'generate_code' },
+      { node: explainCodeNode, taskName: 'explain_code' },
+      { node: debugCodeNode, taskName: 'debug_code' },
+      { node: bestPracticesNode, taskName: 'best_practices' },
+      { node: generalConversationNode, taskName: 'general_conversation' },
     ];
 
-    it.each(serviceMap)('should call $service.name and return the response for $node.name', async ({ node, service }) => {
-      const serviceResponse = { data: `Response from ${service.name}` };
-      service.mockResolvedValue(serviceResponse);
+    it.each(offloadNodes)('should offload $taskName task to PubSub', async ({ node, taskName }) => {
+      const result = await node(state);
 
-      const result = await node({ ...state, intent: 'test_intent' });
-
-      expect(service).toHaveBeenCalledWith(state.history);
-      expect(result).toEqual({ response: serviceResponse });
+      expect(mockTopic).toHaveBeenCalledWith('code-assistant-workflow');
+      expect(mockPublishMessage).toHaveBeenCalledWith({
+        json: state,
+        attributes: {
+          task: taskName,
+        },
+      });
+      expect(result).toEqual({ status: 'queued', messageId: 'mock-msg-id' });
     });
 
-    it.each(serviceMap)('should handle errors gracefully for $node.name', async ({ node, service, intent }) => {
-      const errorMessage = 'Service failed';
-      service.mockRejectedValue(new Error(errorMessage));
+    it.each(offloadNodes)('should throw an error if offloading $taskName task fails', async ({ node, taskName }) => {
+      mockPublishMessage.mockRejectedValueOnce(new Error('GCP API error'));
 
-      const result = await node({ ...state, intent });
-
-      expect(service).toHaveBeenCalledWith(state.history);
-      expect(result).toEqual({
-        response: { error: `Failed to process your request: ${errorMessage}` },
-      });
-      expect(console.error).toHaveBeenCalledWith(
-        `Error executing task for intent ${intent}:`,
-        expect.any(Error)
-      );
+      await expect(node(state)).rejects.toThrow(`Failed to queue task: ${taskName}`);
+      expect(console.error).toHaveBeenCalledWith(`Error publishing task ${taskName}:`, expect.any(Error));
     });
   });
 });

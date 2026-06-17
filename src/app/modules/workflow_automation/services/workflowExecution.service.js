@@ -3,7 +3,7 @@ import WorkflowExecution from '../models/workflowExecution.model.js';
 import WorkflowApproval from '../models/workflowApproval.model.js';
 import { composioIntegrationService } from './composioIntegration.service.js';
 import { workflowResilienceService } from './workflowResilience.service.js';
-import { Composio } from '@composio/core';
+
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,10 +18,7 @@ import { SwarmService } from '../../swarm/swarm.service.js';
 import { DatasetsService } from '../../datasets/datasets.service.js';
 import { NotificationService } from '../../notification/notification.service.js';
 
-// Initialize Composio
-const composio = new Composio({
-  apiKey: config.composio.orgApiKey,
-});
+
 
 /**
  * Service for executing workflows and managing their lifecycle
@@ -2725,21 +2722,7 @@ class WorkflowExecutionService {
         );
       }
 
-      // Get Composio tools for execution
-      const composioTools = await composio.getTools(
-        {
-          apps: [step.app],
-        },
-        userId
-      );
-
-      const executableTool = composioTools.find(
-        (t) => t.name === tool.name || t.slug === tool.slug
-      );
-
-      if (!executableTool) {
-        throw new Error(`Executable tool not found for ${tool.name}`);
-      }
+      throw new Error(`External integration execution is disabled: Composio has been removed. Cannot execute ${tool.name || step.action}`);
 
       // Prepare parameters by merging step parameters with context
       const parameters = this.prepareParameters(step.parameters, context);

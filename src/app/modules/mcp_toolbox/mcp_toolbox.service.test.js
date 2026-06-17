@@ -73,12 +73,16 @@ describe('McpToolboxService', () => {
         containerId: 'container-for-tenant-2'
       });
 
-      const startPromise = mcpToolboxService.startMcpServer(tenantId, {});
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {});
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
 
       // Simulate handshake
       const initRequest = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initRequest.id, result: { capabilities: {} } }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listRequest = JSON.parse(mockProcess.stdin.write.mock.calls[2][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listRequest.id, result: { tools: [] } }));
 
@@ -93,27 +97,35 @@ describe('McpToolboxService', () => {
       const tenantA = 'tenant-A';
       dockerWorkspaceService.getOrCreateWorkspace.mockResolvedValue({ mode: 'local' });
       fs.existsSync.mockReturnValue(true); // local binary exists
-      const startPromiseA = mcpToolboxService.startMcpServer(tenantA, { type: 'postgres' });
+      const startPromiseA = mcpToolboxService.startMcpServer({ userTenantId: tenantA, userRole: 'admin' }, tenantA, { type: 'postgres' });
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
       const initReqA = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initReqA.id, result: { capabilities: {} } }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listReqA = JSON.parse(mockProcess.stdin.write.mock.calls[2][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listReqA.id, result: { tools: [] } }));
       await startPromiseA;
 
       // Start server for tenant B
       const tenantB = 'tenant-B';
-      const startPromiseB = mcpToolboxService.startMcpServer(tenantB, { type: 'mysql' });
+      const startPromiseB = mcpToolboxService.startMcpServer({ userTenantId: tenantB, userRole: 'admin' }, tenantB, { type: 'mysql' });
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
       const initReqB = JSON.parse(mockProcess.stdin.write.mock.calls[3][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initReqB.id, result: { capabilities: {} } }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listReqB = JSON.parse(mockProcess.stdin.write.mock.calls[5][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listReqB.id, result: { tools: [] } }));
       await startPromiseB;
 
       expect(mcpToolboxService.activeServers.size).toBe(2);
-      const statusA = mcpToolboxService.getStatus(tenantA);
-      const statusB = mcpToolboxService.getStatus(tenantB);
+      const statusA = mcpToolboxService.getStatus({ userTenantId: tenantA, userRole: 'admin' }, tenantA);
+      const statusB = mcpToolboxService.getStatus({ userTenantId: tenantB, userRole: 'admin' }, tenantB);
 
       expect(statusA.connected).toBe(true);
       expect(statusA.type).toBe('postgres');
@@ -121,10 +133,10 @@ describe('McpToolboxService', () => {
       expect(statusB.type).toBe('mysql');
 
       // Stop server for tenant A
-      await mcpToolboxService.stopMcpServer(tenantA);
+      await mcpToolboxService.stopMcpServer({ userTenantId: tenantA, userRole: 'admin' }, tenantA);
       expect(mcpToolboxService.activeServers.size).toBe(1);
-      expect(mcpToolboxService.getStatus(tenantA).connected).toBe(false);
-      expect(mcpToolboxService.getStatus(tenantB).connected).toBe(true);
+      expect(mcpToolboxService.getStatus({ userTenantId: tenantA, userRole: 'admin' }, tenantA).connected).toBe(false);
+      expect(mcpToolboxService.getStatus({ userTenantId: tenantB, userRole: 'admin' }, tenantB).connected).toBe(true);
     });
   });
 
@@ -181,13 +193,17 @@ describe('McpToolboxService', () => {
         containerId: 'test-container-id'
       });
 
-      const startPromise = mcpToolboxService.startMcpServer(tenantId, {});
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {});
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
 
       // Simulate successful handshake
       const initRequest = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       expect(initRequest.method).toBe('initialize');
       mockReadlineInterface.lineCb(JSON.stringify({ id: initRequest.id, result: { capabilities: { server: '1.0' } } }));
+      await Promise.resolve();
+      await Promise.resolve();
 
       const notification = JSON.parse(mockProcess.stdin.write.mock.calls[1][0]);
       expect(notification.method).toBe('notifications/initialized');
@@ -214,12 +230,16 @@ describe('McpToolboxService', () => {
       const binaryPath = process.platform === 'win32' ? path.resolve('bin/mcp-toolbox.exe') : path.resolve('bin/mcp-toolbox');
       fs.existsSync.mockImplementation((p) => p === binaryPath);
 
-      const startPromise = mcpToolboxService.startMcpServer(tenantId, {});
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {});
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
 
       // Simulate successful handshake
       const initRequest = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initRequest.id, result: { capabilities: {} } }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listRequest = JSON.parse(mockProcess.stdin.write.mock.calls[2][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listRequest.id, result: { tools: [] } }));
 
@@ -247,7 +267,13 @@ describe('McpToolboxService', () => {
         return p;
       });
 
-      const result = await mcpToolboxService.startMcpServer(tenantId, {});
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {});
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(50); // Trigger Docker spawn fail
+      await vi.advanceTimersByTimeAsync(3500); // Wait for local fallback timeout
+      await vi.advanceTimersByTimeAsync(50); // Trigger local spawn fail
+      const result = await startPromise;
 
       expect(result.success).toBe(true);
       expect(result.isMocked).toBe(true);
@@ -264,17 +290,21 @@ describe('McpToolboxService', () => {
       // Start a server first (mocked success)
       dockerWorkspaceService.getOrCreateWorkspace.mockResolvedValue({ mode: 'local' });
       fs.existsSync.mockReturnValue(true);
-      const startPromise = mcpToolboxService.startMcpServer(tenantId, {});
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {});
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
       const initReq = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initReq.id, result: {} }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listReq = JSON.parse(mockProcess.stdin.write.mock.calls[2][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listReq.id, result: { tools: [] } }));
       await startPromise;
 
       expect(mcpToolboxService.activeServers.has(tenantId)).toBe(true);
 
-      const result = await mcpToolboxService.stopMcpServer(tenantId);
+      const result = await mcpToolboxService.stopMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId);
 
       expect(result.success).toBe(true);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
@@ -282,7 +312,7 @@ describe('McpToolboxService', () => {
     });
 
     it('should return failure if no server is active for the tenant', async () => {
-      const result = await mcpToolboxService.stopMcpServer('non-existent-tenant');
+      const result = await mcpToolboxService.stopMcpServer({ userTenantId: 'non-existent-tenant', userRole: 'admin' }, 'non-existent-tenant');
       expect(result.success).toBe(false);
       expect(result.message).toContain('No active MCP Toolbox instance found');
     });
@@ -296,17 +326,21 @@ describe('McpToolboxService', () => {
       // Start a server with a real bridge for this tenant
       dockerWorkspaceService.getOrCreateWorkspace.mockResolvedValue({ mode: 'local' });
       fs.existsSync.mockReturnValue(true);
-      const startPromise = mcpToolboxService.startMcpServer(tenantId, {}, customTools);
+      const startPromise = mcpToolboxService.startMcpServer({ userTenantId: tenantId, userRole: 'admin' }, tenantId, {}, customTools);
+      await Promise.resolve();
+      await Promise.resolve();
       await vi.advanceTimersByTimeAsync(3500);
       const initReq = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: initReq.id, result: {} }));
+      await Promise.resolve();
+      await Promise.resolve();
       const listReq = JSON.parse(mockProcess.stdin.write.mock.calls[2][0]);
       mockReadlineInterface.lineCb(JSON.stringify({ id: listReq.id, result: { tools: [] } }));
       await startPromise;
     });
 
     it('should throw an error if the server is not connected', async () => {
-      await expect(mcpToolboxService.querySecureDatabase('unconnected-tenant', 'list tables'))
+      await expect(mcpToolboxService.querySecureDatabase({ userTenantId: 'unconnected-tenant', userRole: 'admin' }, 'unconnected-tenant', 'list tables'))
         .rejects.toThrow('Google MCP Database Toolbox is not connected for this workspace.');
     });
 
@@ -315,7 +349,7 @@ describe('McpToolboxService', () => {
       const mockResponse = { content: [{ text: 'users\nsubscriptions\n' }] };
       const sendRequestSpy = vi.spyOn(bridge, 'sendRequest').mockResolvedValue(mockResponse);
 
-      const result = await mcpToolboxService.querySecureDatabase(tenantId, 'list all tables');
+      const result = await mcpToolboxService.querySecureDatabase({ userTenantId: tenantId, userRole: 'admin' }, tenantId, 'list all tables');
 
       expect(sendRequestSpy).toHaveBeenCalledWith('tools/call', {
         name: 'list_tables',
@@ -332,7 +366,7 @@ describe('McpToolboxService', () => {
       const mockResponse = { content: [{ text: 'id: int\nemail: varchar\n' }] };
       const sendRequestSpy = vi.spyOn(bridge, 'sendRequest').mockResolvedValue(mockResponse);
 
-      const result = await mcpToolboxService.querySecureDatabase(tenantId, 'what is the schema for the users table?');
+      const result = await mcpToolboxService.querySecureDatabase({ userTenantId: tenantId, userRole: 'admin' }, tenantId, 'what is the schema for the users table?');
 
       expect(sendRequestSpy).toHaveBeenCalledWith('tools/call', {
         name: 'get_schema',
@@ -346,7 +380,7 @@ describe('McpToolboxService', () => {
       const bridge = mcpToolboxService.activeServers.get(tenantId).bridge;
       const sendRequestSpy = vi.spyOn(bridge, 'sendRequest').mockRejectedValue(new Error('Bridge connection lost'));
 
-      const result = await mcpToolboxService.querySecureDatabase(tenantId, 'list tables');
+      const result = await mcpToolboxService.querySecureDatabase({ userTenantId: tenantId, userRole: 'admin' }, tenantId, 'list tables');
 
       expect(sendRequestSpy).toHaveBeenCalled();
       expect(result.success).toBe(true);
@@ -366,7 +400,7 @@ describe('McpToolboxService', () => {
         terminalLogs: []
       });
 
-      const result = await mcpToolboxService.querySecureDatabase(mockTenant, 'show me find_expensive_subscriptions');
+      const result = await mcpToolboxService.querySecureDatabase({ userTenantId: mockTenant, userRole: 'admin' }, mockTenant, 'show me find_expensive_subscriptions');
       expect(result.success).toBe(true);
       expect(result.toolUsed).toBe('find_expensive_subscriptions');
       expect(result.statement).toBe('SELECT * FROM subs WHERE price > 100');
@@ -385,7 +419,7 @@ describe('McpToolboxService', () => {
         isMocked: true
       });
 
-      const status = mcpToolboxService.getStatus(tenantId);
+      const status = mcpToolboxService.getStatus({ userTenantId: tenantId, userRole: 'admin' }, tenantId);
       expect(status).toEqual({
         connected: true,
         type: 'mysql',
@@ -398,7 +432,7 @@ describe('McpToolboxService', () => {
     });
 
     it('should return not connected for an inactive tenant', () => {
-      const status = mcpToolboxService.getStatus('inactive-tenant');
+      const status = mcpToolboxService.getStatus({ userTenantId: 'inactive-tenant', userRole: 'admin' }, 'inactive-tenant');
       expect(status).toEqual({ connected: false });
     });
   });

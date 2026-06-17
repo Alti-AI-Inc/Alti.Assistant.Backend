@@ -1,18 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import { GcpErrorsService } from './gcp-errors.service.js';
 
-// Mock dependencies
-vi.mock('google-auth-library');
-vi.mock('../../../../config/index.js', () => ({
-  default: {
-    google: {
-      gcp_project_id: 'test-project-id'
+const { mockPublishMessage, mockTopic } = vi.hoisted(() => {
+  const mockPublishMessage = vi.fn().mockResolvedValue('pubsub-msg-id-123');
+  const mockTopic = vi.fn().mockReturnValue({
+    publishMessage: mockPublishMessage,
+    name: 'gcp-error-reporting-events',
+  });
+  return { mockPublishMessage, mockTopic };
+});
+
+vi.mock('@google-cloud/pubsub', () => ({
+  PubSub: class {
+    constructor() {
+      this.topic = mockTopic;
     }
   }
 }));
+
+vi.mock('../../../../config/index.js', () => ({
+  default: {
+    google: {
+      gcp_project_id: 'test-project-id',
+      error_reporting_topic: 'gcp-error-reporting-events'
+    }
+  }
+}));
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
@@ -20,23 +35,21 @@ vi.mock('../../../shared/logger.js', () => ({
   }
 }));
 
+// Import GcpErrorsService after the Pub/Sub mock is established
+import { GcpErrorsService } from './gcp-errors.service.js';
+
 describe('GcpErrorsService', () => {
-  let mockClient;
   let originalGcpProjectId;
 
   beforeEach(() => {
-    mockClient = {
-      request: vi.fn().mockResolvedValue({}),
-    };
-    GoogleAuth.prototype.getClient = vi.fn().mockResolvedValue(mockClient);
-
+    vi.clearAllMocks();
+    mockPublishMessage.mockResolvedValue('pubsub-msg-id-123');
     // Store original env var and clear it for tests
     originalGcpProjectId = process.env.GCP_PROJECT_ID;
     delete process.env.GCP_PROJECT_ID;
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
     // Restore original env var
     if (originalGcpProjectId) {
       process.env.GCP_PROJECT_ID = originalGcpProjectId;
@@ -44,29 +57,43 @@ describe('GcpErrorsService', () => {
   });
 
   describe('reportError', () => {
-    it('should throw an error if GCP_PROJECT_ID is not configured', async () => {
-      // Temporarily override the mock for this test
-      vi.spyOn(config.google, 'gcp_project_id', 'get').mockReturnValue(undefined);
+    it('should return success: false if GCP_PROJECT_ID is not configured', async () => {
+      // Temporarily override the config for this test
+      const originalProjectId = config.google.gcp_project_id;
+      config.google.gcp_project_id = undefined;
 
-      await expect(GcpErrorsService.reportError('test error')).rejects.toThrow(
-        'GCP Project ID is not configured.'
+      const result = await GcpErrorsService.reportError('test error');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to queue error report to Pub/Sub: GCP Project ID is not configured.'
+      });
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Pub/Sub queueing for error report failed:',
+        expect.any(Error)
       );
+      expect(mockPublishMessage).not.toHaveBeenCalled();
 
-      expect(logger.error).not.toHaveBeenCalled(); // Error is thrown before logging
-      expect(GoogleAuth.prototype.getClient).not.toHaveBeenCalled();
+      // Restore config
+      config.google.gcp_project_id = originalProjectId;
     });
 
     it('should use process.env.GCP_PROJECT_ID as a fallback', async () => {
-      const envProjectId = 'env-project-id';
-      process.env.GCP_PROJECT_ID = envProjectId;
-      vi.spyOn(config.google, 'gcp_project_id', 'get').mockReturnValue(undefined);
+      const originalProjectId = config.google.gcp_project_id;
+      config.google.gcp_project_id = undefined;
+      process.env.GCP_PROJECT_ID = 'env-project-id';
 
-      await GcpErrorsService.reportError('test error');
+      const result = await GcpErrorsService.reportError('test error');
 
-      const expectedEndpoint = `https://clouderrorreporting.googleapis.com/v1beta1/projects/${envProjectId}/events:report`;
-      expect(mockClient.request).toHaveBeenCalledWith(expect.objectContaining({
-        url: expectedEndpoint
-      }));
+      expect(result.success).toBe(true);
+      expect(mockPublishMessage).toHaveBeenCalledOnce();
+      
+      const publishedData = JSON.parse(mockPublishMessage.mock.calls[0][0].data.toString());
+      expect(publishedData.projectId).toBe('env-project-id');
+
+      // Restore config
+      config.google.gcp_project_id = originalProjectId;
     });
 
     it('should report an error with all parameters provided', async () => {
@@ -78,23 +105,21 @@ describe('GcpErrorsService', () => {
       const result = await GcpErrorsService.reportError(errorMessage, stackTrace, user, serviceName);
 
       expect(logger.info).toHaveBeenCalledWith(
-        `Stackdriver Errors: Dispatching error report into project "test-project-id" for service "${serviceName}"...`
+        `GCP Errors: Queuing error report for service "${serviceName}" to Pub/Sub topic "gcp-error-reporting-events"...`
       );
-      expect(GoogleAuth.prototype.getClient).toHaveBeenCalledOnce();
-      expect(mockClient.request).toHaveBeenCalledOnce();
+      expect(mockPublishMessage).toHaveBeenCalledOnce();
 
-      const requestCall = mockClient.request.mock.calls[0][0];
-      expect(requestCall.url).toBe('https://clouderrorreporting.googleapis.com/v1beta1/projects/test-project-id/events:report');
-      expect(requestCall.method).toBe('POST');
-      expect(requestCall.data.serviceContext.service).toBe(serviceName);
-      expect(requestCall.data.message).toBe(`${errorMessage}\n${stackTrace}`);
-      expect(requestCall.data.context.user).toBe(user);
-      expect(requestCall.data.eventTime).toBeDefined();
+      const publishedData = JSON.parse(mockPublishMessage.mock.calls[0][0].data.toString());
+      expect(publishedData.serviceContext.service).toBe(serviceName);
+      expect(publishedData.message).toBe(`${errorMessage}\n${stackTrace}`);
+      expect(publishedData.context.user).toBe(user);
+      expect(publishedData.projectId).toBe('test-project-id');
+      expect(publishedData.eventTime).toBeDefined();
 
       expect(result).toEqual({
         success: true,
+        messageId: 'pubsub-msg-id-123',
         serviceName,
-        errorMessage,
         user
       });
       expect(logger.error).not.toHaveBeenCalled();
@@ -106,52 +131,43 @@ describe('GcpErrorsService', () => {
       const result = await GcpErrorsService.reportError(errorMessage);
 
       expect(logger.info).toHaveBeenCalledWith(
-        'Stackdriver Errors: Dispatching error report into project "test-project-id" for service "alti-backend"...'
+        'GCP Errors: Queuing error report for service "alti-backend" to Pub/Sub topic "gcp-error-reporting-events"...'
       );
-      expect(mockClient.request).toHaveBeenCalledOnce();
+      expect(mockPublishMessage).toHaveBeenCalledOnce();
 
-      const requestCall = mockClient.request.mock.calls[0][0];
-      expect(requestCall.data.serviceContext.service).toBe('alti-backend');
-      expect(requestCall.data.message).toBe(errorMessage);
-      expect(requestCall.data.context.user).toBe('');
+      const publishedData = JSON.parse(mockPublishMessage.mock.calls[0][0].data.toString());
+      expect(publishedData.serviceContext.service).toBe('alti-backend');
+      expect(publishedData.message).toBe(errorMessage);
+      expect(publishedData.context.user).toBe('');
 
       expect(result).toEqual({
         success: true,
+        messageId: 'pubsub-msg-id-123',
         serviceName: 'alti-backend',
-        errorMessage,
         user: ''
       });
     });
 
-    it('should handle errors from getClient and re-throw a formatted error', async () => {
-      const authError = new Error('Authentication failed');
-      GoogleAuth.prototype.getClient.mockRejectedValue(authError);
+    it('should return success: false if Pub/Sub publishing fails', async () => {
+      const pubsubError = new Error('Pub/Sub connection timed out');
+      mockPublishMessage.mockRejectedValue(pubsubError);
 
-      await expect(GcpErrorsService.reportError('test error')).rejects.toThrow(
-        'Cloud Error Reporting failed: Authentication failed'
-      );
+      const result = await GcpErrorsService.reportError('test error');
 
-      expect(logger.error).toHaveBeenCalledWith('Stackdriver Error Reporting failed:', authError);
-      expect(mockClient.request).not.toHaveBeenCalled();
-    });
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to queue error report to Pub/Sub: Pub/Sub connection timed out'
+      });
 
-    it('should handle errors from client.request and re-throw a formatted error', async () => {
-      const requestError = new Error('API request failed');
-      mockClient.request.mockRejectedValue(requestError);
-
-      await expect(GcpErrorsService.reportError('test error')).rejects.toThrow(
-        'Cloud Error Reporting failed: API request failed'
-      );
-
-      expect(logger.error).toHaveBeenCalledWith('Stackdriver Error Reporting failed:', requestError);
+      expect(logger.error).toHaveBeenCalledWith('Pub/Sub queueing for error report failed:', pubsubError);
     });
 
     it('should correctly format the message when stackTrace is an empty string', async () => {
       const errorMessage = 'Error without stack';
       await GcpErrorsService.reportError(errorMessage, '');
 
-      const requestCall = mockClient.request.mock.calls[0][0];
-      expect(requestCall.data.message).toBe(errorMessage);
+      const publishedData = JSON.parse(mockPublishMessage.mock.calls[0][0].data.toString());
+      expect(publishedData.message).toBe(errorMessage);
     });
   });
 });

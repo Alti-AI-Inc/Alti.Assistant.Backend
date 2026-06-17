@@ -497,6 +497,10 @@ const queryNaturalLanguage = async (queryText, databaseContext = {}) => {
       // values: [someLimitValue]
     });
 
+    if (!mcpResult.success) {
+      throw new Error(mcpResult.error || 'Database query failed');
+    }
+
     // BUG FIX: Correctly extract records from mcpResult.result for live calls,
     // ensuring consistency with the mock output structure.
     let records = [];

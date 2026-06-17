@@ -435,7 +435,7 @@ describe('GcpMapsService', () => {
         internationalPhoneNumber: '+33 892 70 12 39',
         location: { lat: 48.85837009999999, lng: 2.2944813 },
         rating: 4.7,
-        user_ratings_total: 320000,
+        userRatingsTotal: 320000,
         website: 'https://www.toureiffel.paris/fr',
         priceLevel: 2,
         businessStatus: 'OPERATIONAL',

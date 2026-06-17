@@ -2,20 +2,20 @@ import express from 'express';
 import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
-import { groqAiRoutes } from '../modules/groq/groq.route.js';
+
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
 import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
 import { aiModelEndpointRoutes } from '../modules/aiModelServices/aiEndpoint.route.js';
-import { openAIAiRoutes } from '../modules/openAi/openAi.route.js';
+
 import { wishperAiRoutes } from '../modules/wishper/wishper.route.js';
 import { adminRoutes } from '../modules/admin/admin.route.js';
 import { llama4AiRoutes } from '../modules/Llama4/llama4.route.js';
 import { notificationRoutes } from '../modules/notification/notification.route.js';
 import { socialLoginRotes } from '../modules/social-login/social-login.route.js';
 import { supportRoutes } from '../modules/support/support.route.js';
-import { composioRoutes } from '../modules/composio/composio.route.js';
+
 import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
 import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
@@ -27,8 +27,7 @@ import { conversationRoutes } from '../modules/conversations/conversation.route.
 import { imageRoutes } from '../modules/image/image.route.js';
 import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
-import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
-import { composioSimpleRoutes } from '../modules/composio_simple/composio.route.js';
+
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
@@ -60,7 +59,7 @@ import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
 import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
 import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
 import { langchainRoutes } from '../modules/langchain/langchain.route.js';
-import { composioCatalogRoutes } from '../modules/composio/composio-catalog.route.js';
+
 import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 import { dockerRoutes } from './docker.route.js';
@@ -130,10 +129,7 @@ const moduleRoutes = [
     path: '/notification',
     route: notificationRoutes,
   },
-  {
-    path: '/groq',
-    route: groqAiRoutes,
-  },
+
   {
     path: '/google-search',
     route: googleSearchRoutes,
@@ -163,24 +159,8 @@ const moduleRoutes = [
     route: wishperAiRoutes,
   },
   {
-    path: '/openai',
-    route: openAIAiRoutes,
-  },
-  {
     path: '/api-endpoint',
     route: aiModelEndpointRoutes,
-  },
-  {
-    path: '/composio',
-    route: composioRoutes,
-  },
-  {
-    path: '/composio_v2',
-    route: composioV2Routes,
-  },
-  {
-    path: '/composio-simple',
-    route: composioSimpleRoutes,
   },
   {
     path: '/workflow-automation',
@@ -322,10 +302,7 @@ const moduleRoutes = [
     path: '/langchain',
     route: langchainRoutes,
   },
-  {
-    path: '/composio-catalog',
-    route: composioCatalogRoutes,
-  },
+
   {
     path: '/temporal',
     route: temporalRoutes,

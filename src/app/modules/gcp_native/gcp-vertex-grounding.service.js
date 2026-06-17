@@ -138,13 +138,18 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     try {
       const paymentResult = await paymentController.incrementPromptsUsed(userId);
       if (!paymentResult.success) {
-        throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
+        const err = new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
+        logger.error('Error incrementing prompts usage in grounding service:', err);
+        throw err;
       }
     } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
       logger.error('Error incrementing prompts usage in grounding service:', error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.'
+        'An error occurred while updating prompt usage.'
       );
     }
 
@@ -195,6 +200,9 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     return payload;
   } catch (err) {
     logger.error('GCP Vertex Grounding Service Error:', err);
+    if (err instanceof ApiError) {
+      throw err;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       `GCP Grounding Service failed: ${err.message}`

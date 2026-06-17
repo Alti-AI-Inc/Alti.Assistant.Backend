@@ -85,153 +85,170 @@ describe('Admin Routes', () => {
     expect(mockRouter.put).toHaveBeenCalledWith(
       '/update-user-role/:id',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.updateUserRole
     );
     expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /delete-user/:objectId DELETE route with ADMIN auth', () => {
+  it('should define the /delete-user/:objectId DELETE route with SUPER_ADMIN auth', () => {
     expect(mockRouter.delete).toHaveBeenCalledWith(
       '/delete-user/:objectId',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.deleteUser
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /buyer/all-user GET route with ADMIN auth', () => {
+  it('should define the /buyer/all-user GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/buyer/all-user',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getAllBuyer
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /all-user GET route with ADMIN auth', () => {
+  it('should define the /all-user GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/all-user',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getAllUsers
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /all-payment GET route with ADMIN auth', () => {
+  it('should define the /all-payment GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/all-payment',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getAllPayment
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /billing/audit-logs GET route with ADMIN auth', () => {
+  it('should define the /billing/audit-logs GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/billing/audit-logs',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getBillingAuditLogs
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /swarm-audits GET route with ADMIN auth', () => {
+  it('should define the /swarm-audits GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/swarm-audits',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getSwarmAudits
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /admin/:email GET route without auth middleware', () => {
+  it('should define the /admin/:email GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/admin/:email',
+      expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getAdmin
     );
-    // Ensure auth was NOT called for this specific route
-    // This is tricky because auth is called for other routes.
-    // We can check the number of calls to auth, or ensure this specific call doesn't involve auth.
-    // The previous tests already verified auth calls for other routes.
-    // We can check the arguments passed to router.get for this specific route.
-    const calls = mockRouter.get.mock.calls.filter(call => call[0] === '/admin/:email');
-    expect(calls.length).toBe(1);
-    expect(calls[0].length).toBe(2); // Only path and controller, no middleware
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /all-user/statistics GET route with ADMIN auth', () => {
+  it('should define the /all-user/statistics GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/all-user/statistics',
       expect.any(Function), // auth middleware
       mockAdminController.getUserStatisticsByMonth
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /tenants GET route with ADMIN auth', () => {
+  it('should define the /tenants GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/tenants',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getAllTenants
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /tenants/:tenantId GET route with ADMIN auth', () => {
+  it('should define the /tenants/:tenantId GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/tenants/:tenantId',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getTenantDetails
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /tenants/:tenantId/status PATCH route with ADMIN auth', () => {
+  it('should define the /tenants/:tenantId/status PATCH route with SUPER_ADMIN auth', () => {
     expect(mockRouter.patch).toHaveBeenCalledWith(
       '/tenants/:tenantId/status',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.updateTenantStatus
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /tenants/:tenantId/usage GET route with ADMIN auth', () => {
+  it('should define the /tenants/:tenantId/usage GET route with SUPER_ADMIN auth', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/tenants/:tenantId/usage',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.getTenantUsageAdmin
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
-  it('should define the /tenants/:tenantId/extend-trial POST route with ADMIN auth', () => {
+  it('should define the /tenants/:tenantId/extend-trial POST route with SUPER_ADMIN auth', () => {
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/tenants/:tenantId/extend-trial',
       expect.any(Function), // auth middleware
+      expect.any(Array),    // validation array
+      expect.any(Function), // validateRequest middleware
       mockAdminController.extendTenantTrial
     );
-    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.ADMIN);
+    expect(mockAuthMiddleware).toHaveBeenCalledWith(mockEnumUserRole.SUPER_ADMIN);
   });
 
   it('should call auth middleware with correct roles for all protected routes', () => {
-    // This test ensures that auth was called for all routes that should have it
-    // and with the correct roles.
-    // We already checked individual calls, this is a summary check.
     const expectedAuthCalls = [
       mockEnumUserRole.SUPER_ADMIN, // /update-user-role/:id
-      mockEnumUserRole.ADMIN,       // /delete-user/:objectId
-      mockEnumUserRole.ADMIN,       // /buyer/all-user
-      mockEnumUserRole.ADMIN,       // /all-user
-      mockEnumUserRole.ADMIN,       // /all-payment
-      mockEnumUserRole.ADMIN,       // /billing/audit-logs
-      mockEnumUserRole.ADMIN,       // /swarm-audits
-      // /admin/:email does NOT use auth
-      mockEnumUserRole.ADMIN,       // /all-user/statistics
-      mockEnumUserRole.ADMIN,       // /tenants
-      mockEnumUserRole.ADMIN,       // /tenants/:tenantId
-      mockEnumUserRole.ADMIN,       // /tenants/:tenantId/status
-      mockEnumUserRole.ADMIN,       // /tenants/:tenantId/usage
-      mockEnumUserRole.ADMIN,       // /tenants/:tenantId/extend-trial
+      mockEnumUserRole.SUPER_ADMIN, // /delete-user/:objectId
+      mockEnumUserRole.SUPER_ADMIN, // /buyer/all-user
+      mockEnumUserRole.SUPER_ADMIN, // /all-user
+      mockEnumUserRole.SUPER_ADMIN, // /all-payment
+      mockEnumUserRole.SUPER_ADMIN, // /billing/audit-logs
+      mockEnumUserRole.SUPER_ADMIN, // /swarm-audits
+      mockEnumUserRole.SUPER_ADMIN, // /admin/:email
+      mockEnumUserRole.SUPER_ADMIN, // /all-user/statistics
+      mockEnumUserRole.SUPER_ADMIN, // /tenants
+      mockEnumUserRole.SUPER_ADMIN, // /tenants/:tenantId
+      mockEnumUserRole.SUPER_ADMIN, // /tenants/:tenantId/status
+      mockEnumUserRole.SUPER_ADMIN, // /tenants/:tenantId/usage
+      mockEnumUserRole.SUPER_ADMIN, // /tenants/:tenantId/extend-trial
     ];
 
     expect(mockAuthMiddleware).toHaveBeenCalledTimes(expectedAuthCalls.length);

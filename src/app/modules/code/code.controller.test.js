@@ -7,24 +7,34 @@ const {
   mockLogger,
   mockSendResponse,
   mockCodeService,
-  mockCodeAssistantApp,
   mockSubscriptionModel,
   mockConversationHelpers,
-  mockCodeHelpers
+  mockCodeHelpers,
+  mockPublishMessage,
+  mockTopic,
+  mockNotificationService,
+  mockConversationModel,
 } = vi.hoisted(() => {
   // Mock external dependencies
   const mockCatchAsync = (fn) => async (req, res, next) => {
     try {
       await fn(req, res, next);
     } catch (error) {
-      // In a real scenario, catchAsync would pass to error middleware.
-      // For unit testing, we'll re-throw or handle as needed.
-      throw error;
+      if (next) {
+        next(error);
+      } else {
+        mockSendResponse(res, {
+          statusCode: error.statusCode || 500,
+          success: false,
+          message: error.message,
+        });
+      }
     }
   };
 
   const mockLogger = {
     info: vi.fn(),
+    warn: vi.fn(),
     error: vi.fn(),
   };
 
@@ -37,16 +47,14 @@ const {
     addCodeQueryMessage: vi.fn(),
     addCodeResultMessage: vi.fn(),
     addErrorMessage: vi.fn(),
-    getCodeStats: vi.fn(),
-  };
-
-  const mockCodeAssistantApp = {
-    invoke: vi.fn(),
+    getUserCodeStats: vi.fn(),
+    getWorkspaceCodeStats: vi.fn(),
+    getMonthlyMessageCountForWorkspace: vi.fn(),
+    getDefaultFreeTierLimit: vi.fn(),
   };
 
   const mockSubscriptionModel = {
-    findOne: vi.fn().mockReturnThis(), // Allows chaining .sort() and .lean()
-    sort: vi.fn().mockReturnThis(),
+    findOne: vi.fn().mockReturnThis(),
     lean: vi.fn(),
   };
 
@@ -59,15 +67,32 @@ const {
     formatErrorMessage: vi.fn(),
   };
 
+  const mockPublishMessage = vi.fn().mockResolvedValue('pubsub-msg-id-123');
+  const mockTopic = vi.fn().mockReturnValue({
+    publishMessage: mockPublishMessage,
+  });
+
+  const mockNotificationService = {
+    notifyAdminsOfLimitReached: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockConversationModel = {
+    findOne: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+  };
+
   return {
     mockCatchAsync,
     mockLogger,
     mockSendResponse,
     mockCodeService,
-    mockCodeAssistantApp,
     mockSubscriptionModel,
     mockConversationHelpers,
-    mockCodeHelpers
+    mockCodeHelpers,
+    mockPublishMessage,
+    mockTopic,
+    mockNotificationService,
+    mockConversationModel,
   };
 });
 
@@ -87,34 +112,49 @@ vi.mock('./code.service.js', () => ({
   codeService: mockCodeService,
 }));
 
-vi.mock('./code_assistant/workflow.js', () => ({
-  codeAssistantApp: mockCodeAssistantApp,
-}));
-
 vi.mock('../payment/payment.model.js', () => ({
   default: mockSubscriptionModel,
 }));
 
-vi.mock('../conversations/conversation.helpers.js', () => ({
-  conversationHelpers: mockConversationHelpers,
+vi.mock('../../helpers/conversationHelpers.js', () => ({
+  default: mockConversationHelpers,
 }));
 
 vi.mock('./code.helper.js', () => ({
   codeHelpers: mockCodeHelpers,
 }));
 
+vi.mock('@google-cloud/pubsub', () => ({
+  PubSub: class {
+    constructor() {
+      this.topic = mockTopic;
+    }
+  }
+}));
+
+vi.mock('../notification/notification.service.js', () => ({
+  notificationService: mockNotificationService,
+}));
+
+vi.mock('../conversations/conversation.model.js', () => ({
+  default: mockConversationModel,
+}));
+
 describe('codeController', () => {
-  let req, res;
+  let req;
+  let res;
 
   beforeEach(() => {
-    // Reset all mocks before each test
     vi.clearAllMocks();
 
     req = {
       body: {},
-      user: null,
+      params: {},
+      query: {},
       isGuest: false,
+      user: null,
     };
+
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -130,9 +170,10 @@ describe('codeController', () => {
     mockCodeService.addCodeQueryMessage.mockResolvedValue(null);
     mockCodeService.addCodeResultMessage.mockResolvedValue(null);
     mockCodeService.addErrorMessage.mockResolvedValue(null);
-    mockCodeService.getCodeStats.mockResolvedValue({ total: 5, used: 2 });
-
-    mockCodeAssistantApp.invoke.mockResolvedValue({ response: 'AI generated code' });
+    mockCodeService.getUserCodeStats.mockResolvedValue({ total: 5, used: 2 });
+    mockCodeService.getWorkspaceCodeStats.mockResolvedValue({ total: 20, used: 10 });
+    mockCodeService.getMonthlyMessageCountForWorkspace.mockResolvedValue(0);
+    mockCodeService.getDefaultFreeTierLimit.mockReturnValue(5);
 
     mockCodeHelpers.formatCodeResponse.mockReturnValue({
       code: 'formatted code',
@@ -141,9 +182,9 @@ describe('codeController', () => {
     });
     mockCodeHelpers.formatErrorMessage.mockReturnValue('formatted error message');
 
-    // Default subscription mock (no subscription)
     mockSubscriptionModel.lean.mockResolvedValue(null);
     mockConversationHelpers.getConversationById.mockResolvedValue(0);
+    mockConversationModel.lean.mockResolvedValue({});
   });
 
   describe('performCodeTask', () => {
@@ -166,60 +207,56 @@ describe('codeController', () => {
       await performCodeTask(req, res);
 
       expect(mockCodeService.generateGuestUserId).toHaveBeenCalled();
-      expect(mockSubscriptionModel.findOne).not.toHaveBeenCalled(); // No subscription check for guests
-      expect(mockConversationHelpers.getConversationById).not.toHaveBeenCalled(); // No conversation check for guests
+      expect(mockSubscriptionModel.findOne).not.toHaveBeenCalled();
+      expect(mockConversationHelpers.getConversationById).not.toHaveBeenCalled();
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'guest-123',
-        undefined, // No conversationId in req.body
+        null,
+        undefined,
         'guest query',
-        true,
-        req
+        true
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-123',
         'guest-123',
+        null,
         'guest query',
-        true,
-        req
+        true
       );
-      expect(mockCodeAssistantApp.invoke).toHaveBeenCalledWith(
-        { userInput: 'guest query', history: [{ role: 'user', content: 'guest query' }] },
-        { configurable: { thread_id: 'conv-123' } }
-      );
-      expect(mockCodeService.addCodeResultMessage).toHaveBeenCalledWith(
-        'conv-123',
-        'guest-123',
-        'AI generated code',
-        {},
-        true,
-        req
-      );
-      expect(mockCodeHelpers.formatCodeResponse).toHaveBeenCalledWith(
-        'AI generated code',
-        'conv-123',
-        2
-      );
+
+      const expectedPayload = {
+        conversationId: 'conv-123',
+        userId: 'guest-123',
+        workspaceId: null,
+        userRole: 'guest',
+        message: 'guest query',
+        isGuest: true,
+      };
+
+      expect(mockTopic).toHaveBeenCalledWith('code-assistant-requests');
+      expect(mockPublishMessage).toHaveBeenCalledWith({
+        data: Buffer.from(JSON.stringify(expectedPayload)),
+      });
+
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.OK,
+        statusCode: httpStatus.ACCEPTED,
         success: true,
-        message: 'Code task completed successfully',
+        message: 'Your request has been accepted and is being processed.',
         data: {
-          code: 'formatted code',
           conversationId: 'conv-123',
-          messageCount: 2,
           userType: 'guest',
           userId: 'guest-123',
         },
       });
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'Code Assistant Result for conversation: conv-123 (guest user)'
+        'Queued code assistant task pubsub-msg-id-123 for conversation: conv-123 in workspace: null'
       );
     });
 
     it('should handle authenticated user flow successfully with new conversation', async () => {
-      req.user = { userId: 'user-123' };
+      req.user = { userId: 'user-123', workspaceId: 'workspace-123', role: 'user' };
       req.body = { message: 'auth query' };
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 10, createdAt: new Date() }); // User has subscription
+      mockSubscriptionModel.lean.mockResolvedValue({ usageLimit: 10, createdAt: new Date() });
       mockCodeService.handleCodeConversation.mockResolvedValue({
         conversationId: 'conv-new-123',
         messageCount: 0,
@@ -228,67 +265,52 @@ describe('codeController', () => {
       await performCodeTask(req, res);
 
       expect(mockCodeService.generateGuestUserId).not.toHaveBeenCalled();
-      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ userId: 'user-123' });
-      expect(mockSubscriptionModel.sort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(mockSubscriptionModel.lean).toHaveBeenCalled();
-      expect(mockConversationHelpers.getConversationById).toHaveBeenCalledWith(
-        undefined, // No conversationId in req.body
-        'user-123',
-        req
-      );
-      expect(mockCodeService.generateCodeConversationId).toHaveBeenCalled();
+      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-123', status: 'active' });
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'user-123',
+        'workspace-123',
         undefined,
         'auth query',
-        false,
-        req
+        false
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-new-123',
         'user-123',
+        'workspace-123',
         'auth query',
-        false,
-        req
+        false
       );
-      expect(mockCodeAssistantApp.invoke).toHaveBeenCalledWith(
-        { userInput: 'auth query', history: [{ role: 'user', content: 'auth query' }] },
-        { configurable: { thread_id: 'conv-new-123' } }
-      );
-      expect(mockCodeService.addCodeResultMessage).toHaveBeenCalledWith(
-        'conv-new-123',
-        'user-123',
-        'AI generated code',
-        {},
-        false,
-        req
-      );
-      expect(mockCodeHelpers.formatCodeResponse).toHaveBeenCalledWith(
-        'AI generated code',
-        'conv-new-123',
-        2
-      );
+
+      const expectedPayload = {
+        conversationId: 'conv-new-123',
+        userId: 'user-123',
+        workspaceId: 'workspace-123',
+        userRole: 'user',
+        message: 'auth query',
+        isGuest: false,
+      };
+
+      expect(mockTopic).toHaveBeenCalledWith('code-assistant-requests');
+      expect(mockPublishMessage).toHaveBeenCalledWith({
+        data: Buffer.from(JSON.stringify(expectedPayload)),
+      });
+
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.OK,
+        statusCode: httpStatus.ACCEPTED,
         success: true,
-        message: 'Code task completed successfully',
+        message: 'Your request has been accepted and is being processed.',
         data: {
-          code: 'formatted code',
           conversationId: 'conv-new-123',
-          messageCount: 2,
           userType: 'authenticated',
           userId: undefined,
         },
       });
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Code Assistant Result for conversation: conv-new-123 (authenticated user)'
-      );
     });
 
     it('should handle authenticated user flow successfully with existing conversation', async () => {
-      req.user = { _id: 'user-456' }; // Test with _id
+      req.user = { userId: 'user-456', _id: 'user-456', workspaceId: 'workspace-456', role: 'user' };
       req.body = { message: 'existing conv query', conversationId: 'conv-existing-456' };
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 10, createdAt: new Date() });
+      mockSubscriptionModel.lean.mockResolvedValue({ usageLimit: 10, createdAt: new Date() });
       mockConversationHelpers.getConversationById.mockResolvedValue({ messageCount: 5 });
       mockCodeService.handleCodeConversation.mockResolvedValue({
         conversationId: 'conv-existing-456',
@@ -298,191 +320,56 @@ describe('codeController', () => {
       await performCodeTask(req, res);
 
       expect(mockCodeService.generateGuestUserId).not.toHaveBeenCalled();
-      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ userId: 'user-456' });
-      expect(mockConversationHelpers.getConversationById).toHaveBeenCalledWith(
-        'conv-existing-456',
-        'user-456',
-        req
-      );
-      expect(mockCodeService.generateCodeConversationId).not.toHaveBeenCalled(); // Existing conversationId provided
+      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-456', status: 'active' });
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'user-456',
+        'workspace-456',
         'conv-existing-456',
         'existing conv query',
-        false,
-        req
+        false
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-existing-456',
         'user-456',
+        'workspace-456',
         'existing conv query',
-        false,
-        req
+        false
       );
-      expect(mockCodeAssistantApp.invoke).toHaveBeenCalledWith(
-        {
-          userInput: 'existing conv query',
-          history: [{ role: 'user', content: 'existing conv query' }],
-        },
-        { configurable: { thread_id: 'conv-existing-456' } }
-      );
-      expect(mockCodeService.addCodeResultMessage).toHaveBeenCalledWith(
-        'conv-existing-456',
-        'user-456',
-        'AI generated code',
-        {},
-        false,
-        req
-      );
-      expect(mockCodeHelpers.formatCodeResponse).toHaveBeenCalledWith(
-        'AI generated code',
-        'conv-existing-456',
-        7 // 5 (existing) + 2 (user + assistant)
-      );
-      expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Code task completed successfully',
-        data: {
-          code: 'formatted code',
-          conversationId: 'conv-existing-456',
-          messageCount: 7,
-          userType: 'authenticated',
-          userId: undefined,
-        },
-      });
     });
 
     it('should return FORBIDDEN if authenticated user exceeds code assistance limit', async () => {
-      req.user = { userId: 'user-limit' };
+      req.user = { userId: 'user-limit', workspaceId: 'workspace-limit', role: 'user' };
       req.body = { message: 'limit query', conversationId: 'conv-limit' };
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 5, createdAt: new Date() }); // Limit is 5
-      mockConversationHelpers.getConversationById.mockResolvedValue({ messageCount: 5 }); // Already used 5
+      mockSubscriptionModel.lean.mockResolvedValue({ usageLimit: 5, createdAt: new Date() });
+      mockCodeService.getMonthlyMessageCountForWorkspace.mockResolvedValue(5); // already used 5, limit is 5
 
       await performCodeTask(req, res);
 
-      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ userId: 'user-limit' });
-      expect(mockConversationHelpers.getConversationById).toHaveBeenCalledWith(
-        'conv-limit',
-        'user-limit',
-        req
-      );
-      expect(mockCodeAssistantApp.invoke).not.toHaveBeenCalled(); // AI not invoked
+      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-limit', status: 'active' });
+      expect(mockPublishMessage).not.toHaveBeenCalled();
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
         message:
-          'You have reached your code assistance limit for this month. Please upgrade your plan to continue.',
+          'Your workspace has reached its code assistance limit for this month. Please contact your administrator to upgrade the plan.',
       });
     });
 
     it('should return FORBIDDEN if authenticated user has no subscription and tries to use code assistance', async () => {
-      req.user = { userId: 'user-no-sub' };
+      req.user = { userId: 'user-no-sub', workspaceId: 'workspace-no-sub', role: 'user' };
       req.body = { message: 'no sub query' };
-      mockSubscriptionModel.lean.mockResolvedValue(null); // No subscription found
-      mockConversationHelpers.getConversationById.mockResolvedValue(0); // No existing conversation
+      mockSubscriptionModel.lean.mockResolvedValue(null);
+      mockCodeService.getMonthlyMessageCountForWorkspace.mockResolvedValue(5); // free limit is 5
 
       await performCodeTask(req, res);
 
-      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ userId: 'user-no-sub' });
-      expect(mockConversationHelpers.getConversationById).toHaveBeenCalledWith(
-        undefined,
-        'user-no-sub',
-        req
-      );
-      expect(mockCodeAssistantApp.invoke).not.toHaveBeenCalled(); // AI not invoked
+      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-no-sub', status: 'active' });
+      expect(mockPublishMessage).not.toHaveBeenCalled();
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
         message:
-          'You have reached your code assistance limit for this month. Please upgrade your plan to continue.',
-      });
-    });
-
-    it('should handle internal server error during AI invocation', async () => {
-      req.user = { userId: 'user-error' };
-      req.body = { message: 'error query', conversationId: 'conv-error' };
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 10, createdAt: new Date() });
-      mockConversationHelpers.getConversationById.mockResolvedValue({ messageCount: 0 });
-      const aiError = new Error('AI service failed');
-      mockCodeAssistantApp.invoke.mockRejectedValue(aiError);
-
-      await performCodeTask(req, res);
-
-      expect(mockCodeAssistantApp.invoke).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith('Code Assistant Error:', aiError);
-      expect(mockCodeHelpers.formatErrorMessage).toHaveBeenCalledWith(aiError, 'error query');
-      expect(mockCodeService.addErrorMessage).toHaveBeenCalledWith(
-        'conv-error',
-        'user-error',
-        'formatted error message',
-        aiError,
-        req
-      );
-      expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        success: false,
-        message: 'An internal error occurred while processing your code request',
-        data: {
-          conversationId: 'conv-error',
-          userType: 'authenticated',
-        },
-      });
-    });
-
-    it('should handle internal server error during AI invocation and fail to save error to conversation', async () => {
-      req.user = { userId: 'user-error-conv' };
-      req.body = { message: 'error query', conversationId: 'conv-error-save' };
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 10, createdAt: new Date() });
-      mockConversationHelpers.getConversationById.mockResolvedValue({ messageCount: 0 });
-      const aiError = new Error('AI service failed');
-      mockCodeAssistantApp.invoke.mockRejectedValue(aiError);
-      const convError = new Error('Failed to save conversation');
-      mockCodeService.addErrorMessage.mockRejectedValue(convError);
-
-      await performCodeTask(req, res);
-
-      expect(mockCodeAssistantApp.invoke).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith('Code Assistant Error:', aiError);
-      expect(mockCodeService.addErrorMessage).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith('Failed to save error to conversation:', convError);
-      expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        success: false,
-        message: 'An internal error occurred while processing your code request',
-        data: {
-          conversationId: 'conv-error-save',
-          userType: 'authenticated',
-        },
-      });
-    });
-
-    it('should generate new conversationId for error if not provided in request', async () => {
-      req.user = { userId: 'user-error-new-conv' };
-      req.body = { message: 'error query' }; // No conversationId
-      mockSubscriptionModel.lean.mockResolvedValue({ usage: 10, createdAt: new Date() });
-      mockConversationHelpers.getConversationById.mockResolvedValue(0);
-      const aiError = new Error('AI service failed');
-      mockCodeAssistantApp.invoke.mockRejectedValue(aiError);
-
-      await performCodeTask(req, res);
-
-      expect(mockCodeService.generateCodeConversationId).toHaveBeenCalled();
-      expect(mockCodeService.addErrorMessage).toHaveBeenCalledWith(
-        'conv-new-123', // Generated ID
-        'user-error-new-conv',
-        expect.any(String),
-        aiError,
-        req
-      );
-      expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        success: false,
-        message: 'An internal error occurred while processing your code request',
-        data: {
-          conversationId: 'conv-new-123', // Generated ID
-          userType: 'authenticated',
-        },
+          'Your workspace has reached its code assistance limit for this month. Please contact your administrator to upgrade the plan.',
       });
     });
   });
@@ -493,7 +380,7 @@ describe('codeController', () => {
 
       await getCodeStats(req, res);
 
-      expect(mockCodeService.getCodeStats).not.toHaveBeenCalled();
+      expect(mockCodeService.getUserCodeStats).not.toHaveBeenCalled();
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.UNAUTHORIZED,
         success: false,
@@ -501,27 +388,39 @@ describe('codeController', () => {
       });
     });
 
-    it('should return UNAUTHORIZED if authenticated user has no userId', async () => {
-      req.user = {}; // Authenticated but no userId or _id
+    it('should return UNAUTHORIZED if authenticated user has incomplete credentials', async () => {
+      req.user = { userId: 'user-incomplete' }; // Incomplete credentials (no workspaceId)
+
+      await expect(getCodeStats(req, res, (err) => { throw err; })).rejects.toThrow('User authentication details are incomplete.');
+
+      expect(mockCodeService.getUserCodeStats).not.toHaveBeenCalled();
+      expect(mockCodeService.getWorkspaceCodeStats).not.toHaveBeenCalled();
+    });
+
+    it('should successfully retrieve code statistics for authenticated user (regular user role)', async () => {
+      req.user = { userId: 'user-stats', workspaceId: 'workspace-stats', role: 'user' };
+      const mockStats = { total: 10, used: 3, remaining: 7 };
+      mockCodeService.getUserCodeStats.mockResolvedValue(mockStats);
 
       await getCodeStats(req, res);
 
-      expect(mockCodeService.getCodeStats).not.toHaveBeenCalled();
+      expect(mockCodeService.getUserCodeStats).toHaveBeenCalledWith('user-stats');
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.UNAUTHORIZED,
-        success: false,
-        message: 'User authentication required',
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Code statistics retrieved successfully',
+        data: mockStats,
       });
     });
 
-    it('should successfully retrieve code statistics for authenticated user', async () => {
-      req.user = { userId: 'user-stats' };
-      const mockStats = { total: 10, used: 3, remaining: 7 };
-      mockCodeService.getCodeStats.mockResolvedValue(mockStats);
+    it('should successfully retrieve code statistics for workspace (admin role)', async () => {
+      req.user = { userId: 'admin-stats', workspaceId: 'workspace-stats', role: 'admin' };
+      const mockStats = { total: 50, used: 20, remaining: 30 };
+      mockCodeService.getWorkspaceCodeStats.mockResolvedValue(mockStats);
 
       await getCodeStats(req, res);
 
-      expect(mockCodeService.getCodeStats).toHaveBeenCalledWith('user-stats', req);
+      expect(mockCodeService.getWorkspaceCodeStats).toHaveBeenCalledWith('workspace-stats');
       expect(mockSendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -531,15 +430,13 @@ describe('codeController', () => {
     });
 
     it('should handle errors during statistics retrieval', async () => {
-      req.user = { userId: 'user-stats-error' };
+      req.user = { userId: 'user-stats-error', workspaceId: 'workspace-stats', role: 'user' };
       const serviceError = new Error('Failed to fetch stats');
-      mockCodeService.getCodeStats.mockRejectedValue(serviceError);
+      mockCodeService.getUserCodeStats.mockRejectedValue(serviceError);
 
-      // Since catchAsync is mocked to re-throw, we expect the test runner to catch it.
-      // In a real Express app, this would go to the error handling middleware.
-      await expect(getCodeStats(req, res)).rejects.toThrow(serviceError);
-      expect(mockCodeService.getCodeStats).toHaveBeenCalledWith('user-stats-error', req);
-      expect(mockSendResponse).not.toHaveBeenCalled(); // sendResponse is not called if an error is thrown before it.
+      await expect(getCodeStats(req, res, (err) => { throw err; })).rejects.toThrow(serviceError);
+      expect(mockCodeService.getUserCodeStats).toHaveBeenCalledWith('user-stats-error');
+      expect(mockSendResponse).not.toHaveBeenCalled();
     });
   });
 

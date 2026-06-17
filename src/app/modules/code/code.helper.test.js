@@ -7,9 +7,23 @@ import {
   formatErrorMessage,
 } from './code.helper.js';
 
-// Mock CODE_ASSISTANT_CONSTANTS
-const MOCK_MAX_LENGTH = 100;
-const MOCK_TITLE_MAX_LENGTH = 20;
+const {
+  mockLogger,
+  MOCK_MAX_LENGTH,
+  MOCK_TITLE_MAX_LENGTH
+} = vi.hoisted(() => {
+  // Mock logger
+  const mockLogger = {
+    warn: vi.fn(),
+    error: vi.fn(),
+  };
+
+  return {
+    mockLogger,
+    MOCK_MAX_LENGTH: 100,
+    MOCK_TITLE_MAX_LENGTH: 20,
+  };
+});
 
 vi.mock('./code.constant.js', () => ({
   CODE_ASSISTANT_CONSTANTS: {
@@ -22,19 +36,6 @@ vi.mock('./code.constant.js', () => ({
   },
 }));
 
-const {
-  mockLogger
-} = vi.hoisted(() => {
-  // Mock logger
-  const mockLogger = {
-    warn: vi.fn(),
-    error: vi.fn(),
-  };
-
-  return {
-    mockLogger
-  };
-});
 vi.mock('../../../shared/logger.js', () => ({
   logger: mockLogger,
 }));

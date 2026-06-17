@@ -2,23 +2,65 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GcpMcpService } from './gcp-mcp.service.js'; // Assuming the test file is in the same directory or adjust path
 
 // Mock external dependencies
+const {
+  mockPathResolve,
+  mockPathDirname,
+  mockOriginalResolve,
+  mockOriginalDirname
+} = vi.hoisted(() => {
+  class mockEventEmitter {
+    constructor() {
+      this.listeners = {};
+    }
+    on(event, cb) {
+      if (!this.listeners[event]) this.listeners[event] = [];
+      this.listeners[event].push(cb);
+      return this;
+    }
+    emit(event, ...args) {
+      if (this.listeners[event]) {
+        this.listeners[event].forEach(cb => cb(...args));
+      }
+      return this;
+    }
+  }
+  globalThis.mockEventEmitterClass = mockEventEmitter;
+  const actualPath = require('path');
+  const mockPathResolve = vi.fn().mockImplementation(actualPath.resolve);
+  const mockPathDirname = vi.fn().mockImplementation(actualPath.dirname);
+  return {
+    mockPathResolve,
+    mockPathDirname,
+    mockOriginalResolve: actualPath.resolve,
+    mockOriginalDirname: actualPath.dirname,
+  };
+});
+
 vi.mock('child_process', () => ({
   spawn: vi.fn().mockImplementation(() => {
-    const mockProcess = new (require('events').EventEmitter)();
-    mockProcess.stdout = new (require('events').EventEmitter)();
-    mockProcess.stderr = new (require('events').EventEmitter)();
-    mockProcess.kill = vi.fn();
+    const mockProcess = new globalThis.mockEventEmitterClass();
+    mockProcess.stdout = new globalThis.mockEventEmitterClass();
+    mockProcess.stderr = new globalThis.mockEventEmitterClass();
+    mockProcess.kill = vi.fn().mockImplementation(() => {
+      mockProcess.emit('close', 0);
+    });
     mockProcess.pid = 12345; // Assign a mock PID
     return mockProcess;
   }),
 }));
 
-vi.mock('path', () => ({
-  default: {
-    resolve: vi.fn().mockImplementation((...args) => args.join('/')), // Simple mock for path resolution
-    dirname: vi.fn().mockImplementation((p) => p.split('/').slice(0, -1).join('/')),
-  },
-}));
+vi.mock('path', async () => {
+  const actualPath = await vi.importActual('path');
+  const pathObj = {
+    ...actualPath,
+    resolve: mockPathResolve,
+    dirname: mockPathDirname,
+  };
+  return {
+    ...pathObj,
+    default: pathObj,
+  };
+});
 
 vi.mock('fs', () => ({
   default: {
@@ -37,6 +79,7 @@ vi.mock('../../../shared/logger.js', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -50,15 +93,18 @@ vi.mock('@toolbox-sdk/core', () => {
     })),
   };
   const mockClient = {
-    loadToolset: vi.fn().mockImplementation(async (toolsetName) => {
-      if (toolsetName === 'test-toolset') {
+    loadToolset: vi.fn().mockImplementation((toolsetName = 'test-toolset') => {
+      if (toolsetName === 'test-toolset' || toolsetName === 'alti-default-postgres') {
         return [mockTool];
       }
       return [];
     }),
   };
+  function ToolboxClientConstructor() {
+    return mockClient;
+  }
   return {
-    ToolboxClient: vi.fn().mockImplementation(() => mockClient),
+    ToolboxClient: vi.fn().mockImplementation(ToolboxClientConstructor),
   };
 });
 
@@ -74,14 +120,21 @@ describe('GcpMcpService', () => {
   let originalProcessPlatform;
   let originalProcessCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
+    // Reset mcpServerUrl to default 5000
+    process.env.OFFLINE_MODE = 'true';
+    await GcpMcpService.startMcpServer({ port: 5000 });
+    delete process.env.OFFLINE_MODE;
+
     // Ensure spawn returns a fresh mock process for each test
-    mockChildProcess = new (require('events').EventEmitter)();
-    mockChildProcess.stdout = new (require('events').EventEmitter)();
-    mockChildProcess.stderr = new (require('events').EventEmitter)();
-    mockChildProcess.kill = vi.fn();
+    mockChildProcess = new globalThis.mockEventEmitterClass();
+    mockChildProcess.stdout = new globalThis.mockEventEmitterClass();
+    mockChildProcess.stderr = new globalThis.mockEventEmitterClass();
+    mockChildProcess.kill = vi.fn().mockImplementation(() => {
+      mockChildProcess.emit('close', 0);
+    });
     mockChildProcess.pid = 54321;
     spawn.mockReturnValue(mockChildProcess);
 
@@ -95,11 +148,14 @@ describe('GcpMcpService', () => {
     originalProcessCwd = process.cwd;
 
     // Default mocks for path and fs
-    path.resolve.mockImplementation((...args) => args.join('/'));
+    path.resolve.mockImplementation(mockOriginalResolve);
+    path.dirname.mockImplementation(mockOriginalDirname);
     fs.existsSync.mockReturnValue(false); // Default to no binary found
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await GcpMcpService.stopMcpServer();
+
     // Clean up any environment variables set during tests
     delete process.env.OFFLINE_MODE;
     delete process.env.TEMPORAL_MOCK;
@@ -144,7 +200,7 @@ describe('GcpMcpService', () => {
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing local MCP Toolbox server'));
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['-y', '@toolbox-sdk/server', '--port', '5000', '--config', 'mcp-toolbox/tools.yaml'],
+        ['-y', '@toolbox-sdk/server', '--port', '5000', '--config', path.resolve(process.cwd(), 'mcp-toolbox', 'tools.yaml')],
         expect.any(Object)
       );
       expect(spawn).toHaveBeenCalledWith(
@@ -153,7 +209,7 @@ describe('GcpMcpService', () => {
         expect.objectContaining({
           cwd: process.cwd(),
           env: { ...process.env, PORT: '5000' },
-          shell: true,
+          shell: false,
         })
       );
       expect(GcpMcpService.getMcpServerStatus().serverUrl).toBe('http://127.0.0.1:5000');
@@ -170,7 +226,7 @@ describe('GcpMcpService', () => {
       expect(result).toBe(true);
       expect(spawn).toHaveBeenCalledWith(
         'npx',
-        ['-y', '@toolbox-sdk/server', '--port', '8080', '--config', '/custom/config/path/my-tools.yaml', '--stdio'],
+        ['-y', '@toolbox-sdk/server', '--port', '8080', '--config', path.resolve('/custom/config/path/my-tools.yaml'), '--stdio'],
         expect.any(Object)
       );
       expect(GcpMcpService.getMcpServerStatus().serverUrl).toBe('http://127.0.0.1:8080');
@@ -239,7 +295,7 @@ describe('GcpMcpService', () => {
 
       mockChildProcess.emit('close', 0);
 
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Server subprocess exited with code 0.'));
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Server subprocess exited unexpectedly with code 0.'));
       expect(GcpMcpService.getMcpServerStatus().activePid).toBeNull();
     });
 
@@ -277,7 +333,7 @@ describe('GcpMcpService', () => {
 
   describe('generateToolsConfig', () => {
     it('should generate default YAML config if no sources or tools are provided', () => {
-      fs.existsSync.mockReturnValue(true); // Directory exists
+      fs.existsSync.mockReturnValue(false); // Directory does not exist to trigger mkdirSync
       fs.mkdirSync.mockClear(); // Clear any previous calls
 
       const yaml = GcpMcpService.generateToolsConfig();
@@ -287,13 +343,14 @@ describe('GcpMcpService', () => {
       expect(yaml).toContain('name: alti-default-postgres');
       expect(yaml).toContain('kind: tool');
       expect(yaml).toContain('name: fetch-recent-alerts');
-      expect(fs.mkdirSync).toHaveBeenCalledWith('mcp-toolbox', { recursive: true });
-      expect(fs.writeFileSync).toHaveBeenCalledWith('mcp-toolbox/tools.yaml', expect.any(String), 'utf8');
+      const expectedPath = path.dirname(path.resolve(process.cwd(), 'mcp-toolbox', 'tools.yaml'));
+      expect(fs.mkdirSync).toHaveBeenCalledWith(expectedPath, { recursive: true });
+      expect(fs.writeFileSync).toHaveBeenCalledWith(path.resolve(expectedPath, 'tools.yaml'), expect.any(String), 'utf8');
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Successfully generated tools.yaml config at:'));
     });
 
     it('should generate YAML config with provided sources and tools', () => {
-      fs.existsSync.mockReturnValue(true);
+      fs.existsSync.mockReturnValue(false); // Directory does not exist to trigger mkdirSync
       fs.mkdirSync.mockClear();
 
       const customSources = [{
@@ -330,7 +387,7 @@ describe('GcpMcpService', () => {
 
       GcpMcpService.generateToolsConfig([], [], '/new/dir/tools.yaml');
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith('new/dir', { recursive: true });
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/new/dir', { recursive: true });
       expect(fs.writeFileSync).toHaveBeenCalled();
     });
 
@@ -398,7 +455,7 @@ describe('GcpMcpService', () => {
     });
 
     it('should return an error if the tool is not found', async () => {
-      ToolboxClient().loadToolset.mockResolvedValueOnce([]); // Simulate no tools found
+      ToolboxClient().loadToolset.mockReturnValueOnce([]); // Simulate no tools found
 
       const result = await GcpMcpService.executeMcpTool('non-existent-toolset', 'non-existent-tool');
 
@@ -442,45 +499,33 @@ describe('GcpMcpService', () => {
     });
 
     it('should call executeMcpTool and return results in production mode', async () => {
-      // Temporarily replace the actual executeMcpTool with our mock
-      const originalExecuteMcpTool = GcpMcpService.executeMcpTool;
-      GcpMcpService.executeMcpTool = vi.fn().mockImplementation(async (toolset, tool, params) => {
-        if (toolset === 'alti-default-postgres' && tool === 'execute_sql') {
-          return {
-            success: true,
-            rows: [[10, 'ACTIVE'], [5, 'INACTIVE']],
-            columns: ['count', 'status']
-          };
-        }
-        return { success: false, error: 'Mock error' };
+      const mockTool = ToolboxClient().loadToolset('alti-default-postgres')[0];
+      mockTool.getName.mockReturnValue('execute_sql');
+      mockTool.call.mockResolvedValue({
+        rows: [[10, 'ACTIVE'], [5, 'INACTIVE']],
+        columns: ['count', 'status']
       });
 
       const query = 'Summarize alert statuses.';
       const result = await GcpMcpService.queryNaturalLanguage(query);
 
-      expect(GcpMcpService.executeMcpTool).toHaveBeenCalledWith(
-        'alti-default-postgres',
-        'execute_sql',
-        { statement: 'SELECT COUNT(*), status FROM security_alerts GROUP BY status;' }
-      );
+      expect(ToolboxClient).toHaveBeenCalledWith('http://127.0.0.1:5000');
       expect(result).toEqual(expect.objectContaining({
         success: true,
         queryText: query,
         generatedSql: 'SELECT COUNT(*), status FROM security_alerts GROUP BY status;',
         analysis: 'Natural language analysis successfully mapped and resolved against database schemas.',
-        records: [[10, 'ACTIVE'], [5, 'INACTIVE']],
+        records: [
+          { count: 10, status: 'ACTIVE' },
+          { count: 5, status: 'INACTIVE' }
+        ],
       }));
-
-      // Restore original executeMcpTool
-      GcpMcpService.executeMcpTool = originalExecuteMcpTool;
     });
 
     it('should return an error if executeMcpTool fails in production mode', async () => {
-      const originalExecuteMcpTool = GcpMcpService.executeMcpTool;
-      GcpMcpService.executeMcpTool = vi.fn().mockImplementation(async () => ({
-        success: false,
-        error: 'Database query failed',
-      }));
+      const mockTool = ToolboxClient().loadToolset('alti-default-postgres')[0];
+      mockTool.getName.mockReturnValue('execute_sql');
+      mockTool.call.mockRejectedValueOnce(new Error('Database query failed'));
 
       const query = 'Show me something.';
       const result = await GcpMcpService.queryNaturalLanguage(query);
@@ -491,8 +536,6 @@ describe('GcpMcpService', () => {
         error: 'Database query failed',
       }));
       expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('GCP MCP Natural Language Query Error:'), expect.any(Error));
-
-      GcpMcpService.executeMcpTool = originalExecuteMcpTool;
     });
   });
 

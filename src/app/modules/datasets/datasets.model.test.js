@@ -2,20 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import Dataset from './datasets.model.js'; // We import this to get access to the schema
 
-// Mock the Google Cloud Pub/Sub client
-const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn().mockImplementation(() => ({
-  publishMessage: mockPublishMessage,
-}));
 const {
-  mockPubSub
+  mockPubSub,
+  mockTopic,
+  mockPublishMessage,
+  TEST_TOPIC_NAME
 } = vi.hoisted(() => {
-  const mockPubSub = vi.fn().mockImplementation(() => ({
-    topic: mockTopic,
-  }));
+  const TEST_TOPIC_NAME = 'test-dataset-processing-topic';
+  process.env.DATASET_PROCESSING_TOPIC = TEST_TOPIC_NAME;
+
+  const mockPublishMessage = vi.fn();
+  const mockTopic = vi.fn().mockImplementation(function() {
+    return {
+      publishMessage: mockPublishMessage,
+    };
+  });
+  const mockPubSub = vi.fn().mockImplementation(function() {
+    return {
+      topic: mockTopic,
+    };
+  });
 
   return {
-    mockPubSub
+    mockPubSub,
+    mockTopic,
+    mockPublishMessage,
+    TEST_TOPIC_NAME
   };
 });
 
@@ -23,18 +35,15 @@ vi.mock('@google-cloud/pubsub', () => ({
   PubSub: mockPubSub,
 }));
 
-// The model file uses process.env, so we can set it here for tests
-const TEST_TOPIC_NAME = 'test-dataset-processing-topic';
-process.env.DATASET_PROCESSING_TOPIC = TEST_TOPIC_NAME;
-
 describe('Dataset Model', () => {
   // Access the schema to test hooks directly
   const DatasetSchema = Dataset.schema;
-  const preSaveHook = DatasetSchema.get('pre').save[0].fn;
-  const postSaveHook = DatasetSchema.get('post').save[0].fn;
+  const preSaveHook = DatasetSchema.s.hooks._pres.get('save').find(hook => hook.fn.toString().includes('_wasNew')).fn;
+  const postSaveHook = DatasetSchema.s.hooks._posts.get('save').find(hook => hook.fn.toString().includes('pubSubClient')).fn;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockPublishMessage.mockClear();
+    mockTopic.mockClear();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -52,8 +61,8 @@ describe('Dataset Model', () => {
       expect(paths).toContain('status');
       expect(paths).toContain('gcsBucket');
       expect(paths).toContain('sizeBytes');
-      expect(DatasetSchema.paths.status.enum).toEqual(['pending', 'downloading', 'archived', 'indexing', 'indexed', 'failed']);
-      expect(DatasetSchema.paths.status.default).toBe('pending');
+      expect(DatasetSchema.paths.status.enumValues).toEqual(['pending', 'downloading', 'archived', 'indexing', 'indexed', 'failed']);
+      expect(DatasetSchema.paths.status.options.default).toBe('pending');
     });
 
     it('should have correct indexes defined', () => {

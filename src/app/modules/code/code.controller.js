@@ -123,7 +123,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
   // Establish user and workspace context early. Guests don't have a workspace.
   const userId = isGuest ? codeService.generateGuestUserId() : req.user?.userId;
   const workspaceId = isGuest ? null : req.user?.workspaceId;
-  const userRole = isGuest ? USER_ROLES.GUEST : req.user?.role;
+  const userRole = isGuest ? (USER_ROLES.GUEST || 'guest') : req.user?.role;
 
   if (!message) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'A code query is required');
@@ -311,7 +311,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
  * @param {import('express').Response} res - The Express response object used to send back the statistics or an error.
  * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
-const getCodeStats = catchAsync(async (req, res) => {
+export const getCodeStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
 
   if (isGuest) {

@@ -27,7 +27,7 @@ import auditLogger from '../../../shared/auditLogger.js';
 const escapeRegExp = (string) => {
   // SECURITY_FIX: Correctly escape special characters for RegExp.
   // The `{FILE_CONTENT}` replacement inserts the matched special character, which is the correct behavior.
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\{FILE_CONTENT}');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 // Recommended MongoDB Indexes for GoogleRepository model:

@@ -88,14 +88,14 @@ describe('mcpToolboxController', () => {
       expect(res.json).toHaveBeenCalledWith(mockResult);
     });
 
-    it('should use default_user if req.user is missing', async () => {
+    it('should return 401 if req.user is missing', async () => {
       delete req.user;
       req.body = { connectionDetails: { type: 'postgres' } };
-      mcpToolboxService.startMcpServer.mockResolvedValue({ success: true });
 
       await mcpToolboxController.connectController(req, res);
 
-      expect(mcpToolboxService.startMcpServer).toHaveBeenCalledWith('default_user', req.body.connectionDetails, []);
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Unauthorized: User not authenticated.' });
     });
 
     it('should return 500 if startMcpServer throws an error', async () => {
@@ -105,7 +105,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.connectController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Connection failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -114,7 +114,7 @@ describe('mcpToolboxController', () => {
       req.body = {};
       await mcpToolboxController.queryController(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'query prompt is required.' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'query prompt is required and must be a string.' });
     });
 
     it('should call querySecureDatabase and return 200 on success', async () => {
@@ -136,7 +136,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.queryController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Query failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -158,7 +158,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.disconnectController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Disconnect failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -180,7 +180,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.statusController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Status failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -211,7 +211,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.connectServerController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Start failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -242,7 +242,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.stopServerController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Stop failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -284,7 +284,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.listToolsController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Fetch failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -315,7 +315,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.callToolController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Execution failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -337,7 +337,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.dashboardStatusController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Dashboard failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -381,14 +381,15 @@ describe('mcpToolboxController', () => {
       expect(res.writeHead).toHaveBeenCalledWith(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
+        'Connection': 'keep-alive',
+        'X-Content-Type-Options': 'nosniff'
       });
       expect(res.write).toHaveBeenCalledWith(`event: endpoint\ndata: {"message":"SSE Connection Established."}\n\n`);
       expect(mockStdout.on).toHaveBeenCalledWith('data', expect.any(Function));
 
       const onDataCallback = mockStdout.on.mock.calls[0][1];
       onDataCallback(Buffer.from('test data'));
-      expect(res.write).toHaveBeenCalledWith(`event: message\ndata: test data\n\n`);
+      expect(res.write).toHaveBeenCalledWith(`event: message\ndata: "test data"\n\n`);
 
       closeCallback();
       expect(mockStdout.off).toHaveBeenCalledWith('data', onDataCallback);
@@ -402,7 +403,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.sseConnectionHandler(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'SSE setup failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -454,7 +455,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.mcpMessageHandler(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'RPC failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -485,7 +486,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.registerServerController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Registration failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -568,7 +569,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.installAppController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Installation failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -590,7 +591,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.listUnifiedToolsController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Fetch failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 
@@ -621,7 +622,7 @@ describe('mcpToolboxController', () => {
       await mcpToolboxController.callUnifiedToolController(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'Execution failed' });
+      expect(res.json).toHaveBeenCalledWith({ success: false, error: 'An internal server error occurred.' });
     });
   });
 });

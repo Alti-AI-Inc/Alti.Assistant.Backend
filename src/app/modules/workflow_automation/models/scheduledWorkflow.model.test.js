@@ -79,7 +79,6 @@ describe('ScheduledWorkflow Mongoose Model', () => {
       expect(err.errors.userId).toBeDefined();
       expect(err.errors.title).toBeDefined();
       expect(err.errors.workflowType).toBeDefined();
-      expect(err.errors.requiredApps).toBeDefined();
       expect(err.errors.totalSteps).toBeDefined();
       expect(err.errors.originalUserInput).toBeDefined();
     });

@@ -48,6 +48,13 @@ class LangsmithMiddleware {
   /**
    * @private
    * @type {string}
+   * @description The default project name.
+   */
+  projectName;
+
+  /**
+   * @private
+   * @type {string}
    * @description The default project name for system-level or untagged traces.
    */
   defaultProjectName;
@@ -76,10 +83,10 @@ class LangsmithMiddleware {
   constructor() {
     try {
       this.apiKey = process.env.LANGCHAIN_API_KEY || config.langchain?.apiKey;
-      // Global tracing is only considered active if an API key is present.
-      this.tracingActive = !!this.apiKey && (process.env.LANGCHAIN_TRACING_V2 === 'true' || config.langchain?.tracingActive === true);
+      this.tracingActive = process.env.LANGCHAIN_TRACING_V2 === 'true' || config.langchain?.tracingActive === 'true' || config.langchain?.tracingActive === true;
       this.platformPrefix = config.langchain?.projectPrefix || 'Alti-Assistant';
-      this.defaultProjectName = process.env.LANGCHAIN_PROJECT || config.langchain?.defaultProject || `${this.platformPrefix}-Global`;
+      this.projectName = process.env.LANGCHAIN_PROJECT || config.langchain?.project || 'Alti-Assistant-RAG';
+      this.defaultProjectName = this.projectName;
       this.endpoint = process.env.LANGCHAIN_ENDPOINT || config.langchain?.endpoint || 'https://api.smith.langchain.com';
       this.forceTraceForTenants = config.langchain?.forceTraceForTenants || [];
     } catch (error) {
@@ -178,6 +185,45 @@ class LangsmithMiddleware {
   }
 
   /**
+   * @method getTracingEnv
+   * @description
+   * Returns an environment variables object configuration for LangSmith.
+   * Used for passing environment variables dynamically.
+   * @returns {object} The environment variables or empty object.
+   */
+  getTracingEnv() {
+    if (!this.tracingActive || !this.apiKey) {
+      return {};
+    }
+    return {
+      LANGCHAIN_TRACING_V2: 'true',
+      LANGCHAIN_API_KEY: this.apiKey,
+      LANGCHAIN_PROJECT: this.defaultProjectName,
+      LANGCHAIN_ENDPOINT: this.endpoint,
+    };
+  }
+
+  /**
+   * @method getTraceCallbacks
+   * @description
+   * Returns trace callbacks containing a LangChainTracer instance.
+   * @param {string} [runName] - Optional name of the run.
+   * @returns {any[]} Array of trace callback handlers.
+   */
+  getTraceCallbacks(runName) {
+    if (!this.tracingActive || !this.apiKey) {
+      return [];
+    }
+    try {
+      const tracer = new LangChainTracer();
+      return [tracer];
+    } catch (error) {
+      logger.error('[LangSmith Middleware] Failed to create LangChainTracer for callback.', error);
+      return [];
+    }
+  }
+
+  /**
    * @method logDiagnostics
    * @description
    * Logs the current status of LangSmith tracing for the Platform Owner.
@@ -186,19 +232,12 @@ class LangsmithMiddleware {
    */
   logDiagnostics() {
     try {
-      // PATCH: Added a try-catch for robustness. If the logger itself fails,
-      // we fall back to console.error to ensure this critical startup information is not lost.
-      if (this.apiKey) {
-        logger.info(`[LangSmith Middleware] Initialized. Global Tracing: ${this.tracingActive ? 'ACTIVE' : 'INACTIVE'}.`);
-        logger.info(`[LangSmith Middleware] Default Project: "${this.defaultProjectName}". Tenant Project Prefix: "${this.platformPrefix}".`);
-        if (this.forceTraceForTenants.length > 0) {
-          logger.warn(`[LangSmith Middleware] Platform Owner Override: Tracing is FORCE-ENABLED for ${this.forceTraceForTenants.length} tenant(s): [${this.forceTraceForTenants.join(', ')}].`);
-        }
+      if (this.tracingActive && this.apiKey) {
+        logger.info(`[LangSmith Trace Middleware] Enterprise tracing active. Project Space: "${this.projectName}"`);
       } else {
-        logger.warn('[LangSmith Middleware] Tracing is globally DISABLED. LANGCHAIN_API_KEY is not configured.');
+        logger.info('[LangSmith Trace Middleware] Tracing inactive. Tracing dashboard can be activated by providing LANGCHAIN_TRACING_V2 and LANGCHAIN_API_KEY.');
       }
     } catch (error) {
-      // Fallback logger in case the primary Winston/GCP logger is misconfigured or fails.
       console.error('[LangSmith Middleware] CRITICAL: The logger failed while reporting diagnostic info.', error);
     }
   }

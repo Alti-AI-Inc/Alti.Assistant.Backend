@@ -46,16 +46,6 @@
         "storage/users/{{tenantId}}/workspace"
       ],
       "env": {}
-    },
-    "composio": {
-      "id": "composio",
-      "name": "Composio Universal Integrations",
-      "description": "Access 500+ external SaaS tools (Slack, GitHub, Gmail, Asana) natively via Model Context Protocol JSON-RPC.",
-      "command": "node",
-      "args": [
-        "src/app/modules/mcp_toolbox/servers/composio_mcp_server.js"
-      ],
-      "env": {}
     }
   }
 }

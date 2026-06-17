@@ -1,18 +1,15 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Mock external dependencies
-const mockClientRequest = vi.fn();
-const mockGetClient = vi.fn().mockImplementation(() => ({
-  request: mockClientRequest,
-}));
-
 const {
-  mockGoogleAuth,
+  mockClientRequest,
+  mockGetClient,
   mockConfig,
   mockLogger
 } = vi.hoisted(() => {
-  const mockGoogleAuth = vi.fn().mockImplementation(() => ({
-    getClient: mockGetClient,
+  const mockClientRequest = vi.fn();
+  const mockGetClient = vi.fn().mockImplementation(() => ({
+    request: mockClientRequest,
   }));
 
   const mockConfig = {
@@ -28,14 +25,18 @@ const {
   };
 
   return {
-    mockGoogleAuth,
+    mockClientRequest,
+    mockGetClient,
     mockConfig,
     mockLogger
   };
 });
 
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: mockGoogleAuth,
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
 }));
 
 vi.mock('../../../../config/index.js', () => ({

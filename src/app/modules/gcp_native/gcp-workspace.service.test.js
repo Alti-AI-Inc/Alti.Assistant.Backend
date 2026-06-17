@@ -37,7 +37,9 @@ const {
 vi.mock('googleapis', () => ({
   google: {
     auth: {
-      GoogleAuth: vi.fn().mockImplementation(() => ({})),
+      GoogleAuth: function() {
+        return {};
+      },
     },
     drive: vi.fn().mockImplementation(() => ({
       files: {

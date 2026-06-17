@@ -5,21 +5,29 @@ import { logger } from '../../../shared/logger.js';
 import { GoogleAuth } from 'google-auth-library';
 
 const {
-  mockGcpClient
+  mockGcpClient,
+  mockGetClient,
+  GoogleAuthSpy
 } = vi.hoisted(() => {
   // Mock dependencies
   const mockGcpClient = {
     request: vi.fn(),
   };
+  const mockGetClient = vi.fn().mockResolvedValue(mockGcpClient);
+  const GoogleAuthSpy = vi.fn().mockImplementation(function() {
+    return {
+      getClient: mockGetClient
+    };
+  });
 
   return {
-    mockGcpClient
+    mockGcpClient,
+    mockGetClient,
+    GoogleAuthSpy
   };
 });
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn().mockImplementation(() => ({
-    getClient: vi.fn().mockResolvedValue(mockGcpClient),
-  })),
+  GoogleAuth: GoogleAuthSpy
 }));
 
 vi.mock('../../../shared/logger.js', () => ({
@@ -44,7 +52,13 @@ describe('GcpSpeechService', () => {
   const userContext = { userId: 'user-123', tenantId: 'tenant-abc' };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockGcpClient.request.mockClear();
+    logger.info.mockClear();
+    logger.error.mockClear();
+    UsageService.checkLimit.mockClear();
+    UsageService.recordUsage.mockClear();
+    UsageService.checkLimit.mockResolvedValue(undefined);
+    UsageService.recordUsage.mockResolvedValue(undefined);
   });
 
   describe('synthesizeSpeech', () => {

@@ -3,12 +3,12 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import GoogleRepository from './gcp-repository.model.js';
 import { GcpNativeService } from './gcp-native.service.js';
+import path from 'path';
 
 // Mock dependencies
 vi.mock('./gcp-repository.model.js', () => ({
   default: {
-    find: vi.fn(),
-    countDocuments: vi.fn(),
+    aggregate: vi.fn(),
   },
 }));
 
@@ -16,10 +16,47 @@ vi.mock('child_process', () => ({
   spawn: vi.fn(),
 }));
 
-vi.mock('fs', () => ({
+vi.mock('fs', async () => {
+  const actualFs = await vi.importActual('fs');
+  const mockExistsSync = vi.fn();
+  const mockMkdirSync = vi.fn();
+  return {
+    ...actualFs,
+    existsSync: mockExistsSync,
+    mkdirSync: mockMkdirSync,
+    default: {
+      ...actualFs,
+      existsSync: mockExistsSync,
+      mkdirSync: mockMkdirSync,
+    },
+  };
+});
+
+vi.mock('../workspace/workspace.service.js', () => ({
+  WorkspaceService: {
+    findById: vi.fn().mockResolvedValue({
+      submoduleCount: 0,
+      submoduleLimit: 10,
+    }),
+    incrementSubmoduleCount: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+vi.mock('../notification/notification.service.js', () => ({
+  NotificationService: {
+    send: vi.fn(),
+    createForAdmins: vi.fn().mockResolvedValue(true),
+    sendNotificationService: vi.fn().mockResolvedValue(true),
+    sendNotification: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+vi.mock('../../../shared/auditLogger.js', () => ({
   default: {
-    existsSync: vi.fn(),
-    mkdirSync: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    log: vi.fn(),
   },
 }));
 
@@ -29,18 +66,20 @@ const mockRepoData = [
   { name: 'terraform-provider-google', description: 'Terraform Google Provider', license: 'MIT', language: 'Go', stars: 2000, clone_url: 'https://github.com/hashicorp/terraform-provider-google.git', org: 'hashicorp' },
 ];
 
-describe('GcpNativeService', () => {
-  let mockQueryBuilder;
+const mockUser = {
+  userId: 'usr_123',
+  workspaceId: 'ws_123',
+  role: 'admin',
+};
 
+describe('GcpNativeService', () => {
   beforeEach(() => {
-    mockQueryBuilder = {
-      sort: vi.fn().mockReturnThis(),
-      skip: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      lean: vi.fn().mockResolvedValue(mockRepoData),
-    };
-    GoogleRepository.find.mockReturnValue(mockQueryBuilder);
-    GoogleRepository.countDocuments.mockResolvedValue(mockRepoData.length);
+    GoogleRepository.aggregate.mockResolvedValue([
+      {
+        metadata: [{ total: mockRepoData.length }],
+        data: mockRepoData,
+      }
+    ]);
     fs.existsSync.mockReturnValue(true);
   });
 
@@ -50,12 +89,13 @@ describe('GcpNativeService', () => {
 
   describe('searchGcpCatalog', () => {
     it('should perform a search with default options', async () => {
-      const result = await GcpNativeService.searchGcpCatalog();
+      const result = await GcpNativeService.searchGcpCatalog('', {}, mockUser);
 
-      expect(GoogleRepository.find).toHaveBeenCalledWith({});
-      expect(mockQueryBuilder.sort).toHaveBeenCalledWith({ stars: -1 });
-      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
-      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(20);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        { $match: {} },
+        { $sort: { stars: -1 } },
+        { $facet: { metadata: [{ $count: 'total' }], data: [{ $skip: 0 }, { $limit: 20 }] } }
+      ]);
       expect(result.success).toBe(true);
       expect(result.total).toBe(mockRepoData.length);
       expect(result.results.length).toBe(mockRepoData.length);
@@ -65,98 +105,119 @@ describe('GcpNativeService', () => {
 
     it('should handle full-text search with stop words filtering', async () => {
       const query = 'show me the cloud sdk';
-      await GcpNativeService.searchGcpCatalog(query);
+      await GcpNativeService.searchGcpCatalog(query, {}, mockUser);
 
-      expect(GoogleRepository.find).toHaveBeenCalledWith(
-        { $text: { $search: 'cloud sdk' } },
-        { score: { $meta: 'textScore' } }
-      );
-      expect(mockQueryBuilder.sort).toHaveBeenCalledWith({ score: { $meta: 'textScore' }, stars: -1 });
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        expect.objectContaining({ $match: { $text: { $search: 'sdk' } } }),
+        expect.objectContaining({ $sort: { score: { $meta: 'textScore' }, stars: -1 } }),
+        expect.any(Object)
+      ]);
     });
 
     it('should fall back to regex search if query only contains stop words', async () => {
       const query = 'show me the';
-      await GcpNativeService.searchGcpCatalog(query);
+      await GcpNativeService.searchGcpCatalog(query, {}, mockUser);
 
-      const expectedRegex = new RegExp('show me the', 'i');
-      expect(GoogleRepository.find).toHaveBeenCalledWith({
-        $or: [
-          { name: { $regex: expectedRegex, $options: 'i' } },
-          { description: { $regex: expectedRegex, $options: 'i' } },
-        ],
-      });
-      expect(mockQueryBuilder.sort).toHaveBeenCalledWith({ stars: -1 });
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        expect.objectContaining({
+          $match: {
+            $or: [
+              { name: { $regex: 'show me the', $options: 'i' } },
+              { description: { $regex: 'show me the', $options: 'i' } },
+            ],
+          }
+        }),
+        expect.objectContaining({ $sort: { stars: -1 } }),
+        expect.any(Object)
+      ]);
     });
 
     it('should correctly escape special characters in regex search', async () => {
-        const query = 'sdk-(';
-        await GcpNativeService.searchGcpCatalog(query);
-  
-        const escapedQuery = 'sdk-\\(|)'; // Note: The logic escapes '(' but not ')'
-        const expectedRegex = new RegExp(escapedQuery, 'i');
-        expect(GoogleRepository.find).toHaveBeenCalledWith(
-          expect.objectContaining({
-            $or: [
-              { name: { $regex: expect.any(RegExp), $options: 'i' } },
-              { description: { $regex: expect.any(RegExp), $options: 'i' } },
-            ],
-          })
-        );
-        // Check the actual regex string passed
-        const findCall = GoogleRepository.find.mock.calls[0][0];
-        expect(findCall.$or[0].name.$regex.source).toContain('sdk-\\\(');
-      });
+      const query = 'show me the (';
+      await GcpNativeService.searchGcpCatalog(query, {}, mockUser);
+
+      const aggregateCall = GoogleRepository.aggregate.mock.calls[0][0];
+      expect(aggregateCall[0].$match.$or[0].name.$regex).toBe('show me the \\(');
+    });
 
     it('should filter by license', async () => {
-      await GcpNativeService.searchGcpCatalog('', { license: 'mit' });
-      expect(GoogleRepository.find).toHaveBeenCalledWith({ license: 'MIT' });
+      await GcpNativeService.searchGcpCatalog('', { license: 'mit' }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        { $match: { license: 'MIT' } },
+        expect.any(Object),
+        expect.any(Object)
+      ]);
 
-      await GcpNativeService.searchGcpCatalog('', { license: 'Apache 2.0' });
-      expect(GoogleRepository.find).toHaveBeenCalledWith({ license: 'Apache 2.0' });
+      await GcpNativeService.searchGcpCatalog('', { license: 'Apache 2.0' }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        { $match: { license: 'Apache 2.0' } },
+        expect.any(Object),
+        expect.any(Object)
+      ]);
     });
 
     it('should filter by language with a case-insensitive prefix regex', async () => {
-      await GcpNativeService.searchGcpCatalog('', { language: 'py' });
-      expect(GoogleRepository.find).toHaveBeenCalledWith({ language: /^py/i });
+      await GcpNativeService.searchGcpCatalog('', { language: 'py' }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        { $match: { language: /^py/i } },
+        expect.any(Object),
+        expect.any(Object)
+      ]);
     });
 
     it('should handle pagination correctly', async () => {
-      await GcpNativeService.searchGcpCatalog('', { page: 3, limit: 50 });
-      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(100); // (3 - 1) * 50
-      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50);
+      await GcpNativeService.searchGcpCatalog('', { page: 3, limit: 50 }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        expect.any(Object),
+        expect.any(Object),
+        { $facet: { metadata: [{ $count: 'total' }], data: [{ $skip: 100 }, { $limit: 50 }] } }
+      ]);
     });
 
     it('should sort by a specified valid field', async () => {
-      await GcpNativeService.searchGcpCatalog('', { sortBy: 'name' });
-      expect(mockQueryBuilder.sort).toHaveBeenCalledWith({ name: -1 });
+      await GcpNativeService.searchGcpCatalog('', { sortBy: 'name' }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        expect.any(Object),
+        { $sort: { name: -1 } },
+        expect.any(Object)
+      ]);
     });
 
     it('should default to sorting by stars if sortBy is invalid', async () => {
-      await GcpNativeService.searchGcpCatalog('', { sortBy: 'invalidField' });
-      expect(mockQueryBuilder.sort).toHaveBeenCalledWith({ stars: -1 });
+      await GcpNativeService.searchGcpCatalog('', { sortBy: 'invalidField' }, mockUser);
+      expect(GoogleRepository.aggregate).toHaveBeenCalledWith([
+        expect.any(Object),
+        { $sort: { stars: -1 } },
+        expect.any(Object)
+      ]);
     });
 
     it('should throw an error if the database query fails', async () => {
       const dbError = new Error('DB connection lost');
-      GoogleRepository.countDocuments.mockRejectedValue(dbError);
+      GoogleRepository.aggregate.mockRejectedValue(dbError);
 
-      await expect(GcpNativeService.searchGcpCatalog()).rejects.toThrow(
-        `Failed to query Google/GCP catalog in MongoDB: ${dbError.message}`
+      await expect(GcpNativeService.searchGcpCatalog('', {}, mockUser)).rejects.toThrow(
+        'Failed to query Google/GCP catalog.'
       );
     });
 
     it('should correctly map org and domain for results', async () => {
-        const customData = [
-            { name: 'repo1', org: 'google' },
-            { name: 'repo2', org: 'GoogleCloudPlatform' },
-            { name: 'repo3' } // org is undefined
-        ];
-        mockQueryBuilder.lean.mockResolvedValue(customData);
-        const result = await GcpNativeService.searchGcpCatalog();
+      const customData = [
+        { name: 'repo1', org: 'google' },
+        { name: 'repo2', org: 'GoogleCloudPlatform' },
+        { name: 'repo3' } // org is undefined
+      ];
+      GoogleRepository.aggregate.mockResolvedValueOnce([
+        {
+          metadata: [{ total: customData.length }],
+          data: customData
+        }
+      ]);
+      const result = await GcpNativeService.searchGcpCatalog('', {}, mockUser);
 
-        expect(result.results[0]).toEqual(expect.objectContaining({ org: 'google', domain: 'github.com/google' }));
-        expect(result.results[1]).toEqual(expect.objectContaining({ org: 'GoogleCloudPlatform', domain: 'github.com/GoogleCloudPlatform' }));
-        expect(result.results[2]).toEqual(expect.objectContaining({ org: 'GoogleCloudPlatform', domain: 'github.com/GoogleCloudPlatform' }));
+      expect(result.results[0]).toEqual(expect.objectContaining({ org: 'google', domain: 'github.com/google' }));
+      expect(result.results[1]).toEqual(expect.objectContaining({ org: 'GoogleCloudPlatform', domain: 'github.com/GoogleCloudPlatform' }));
+      expect(result.results[2]).toEqual(expect.objectContaining({ org: 'GoogleCloudPlatform', domain: 'github.com/GoogleCloudPlatform' }));
     });
   });
 
@@ -164,12 +225,6 @@ describe('GcpNativeService', () => {
     let mockSpawnInstance;
 
     beforeEach(() => {
-      // Mock the search function within the service to control its output for these tests
-      vi.spyOn(GcpNativeService, 'searchGcpCatalog').mockResolvedValue({
-        success: true,
-        results: [mockRepoData[0]],
-      });
-
       mockSpawnInstance = {
         stdout: { on: vi.fn() },
         stderr: { on: vi.fn() },
@@ -185,13 +240,12 @@ describe('GcpNativeService', () => {
         }
       });
 
-      const result = await GcpNativeService.importGcpSubmodule('cloud-sdk');
+      const result = await GcpNativeService.importGcpSubmodule('cloud-sdk', mockUser);
 
-      expect(GcpNativeService.searchGcpCatalog).toHaveBeenCalledWith('cloud-sdk');
       expect(spawn).toHaveBeenCalledWith(
         'git',
-        ['submodule', 'add', mockRepoData[0].clone_url, 'external/gcp/cloud-sdk'],
-        { cwd: expect.any(String) }
+        ['submodule', 'add', '--force', mockRepoData[0].clone_url, 'external/gcp/cloud-sdk'],
+        { cwd: expect.any(String), stdio: 'pipe' }
       );
       expect(result.success).toBe(true);
       expect(result.message).toContain('Successfully imported');
@@ -199,21 +253,23 @@ describe('GcpNativeService', () => {
     });
 
     it('should create the gcp directory if it does not exist', async () => {
-        fs.existsSync.mockReturnValue(false);
-        mockSpawnInstance.on.mockImplementation((event, callback) => {
-            if (event === 'close') callback(0);
-        });
+      fs.existsSync.mockReturnValue(false);
+      mockSpawnInstance.on.mockImplementation((event, callback) => {
+        if (event === 'close') callback(0);
+      });
 
-        await GcpNativeService.importGcpSubmodule('cloud-sdk');
+      await GcpNativeService.importGcpSubmodule('cloud-sdk', mockUser);
 
-        expect(fs.existsSync).toHaveBeenCalledWith(expect.stringContaining('external/gcp'));
-        expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining('external/gcp'), { recursive: true });
+      expect(fs.existsSync).toHaveBeenCalledWith(expect.stringContaining(path.join('external', 'gcp')));
+      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining(path.join('external', 'gcp')), { recursive: true });
     });
 
     it('should return failure if repository is not found in catalog', async () => {
-      GcpNativeService.searchGcpCatalog.mockResolvedValue({ success: true, results: [] });
+      GoogleRepository.aggregate.mockResolvedValueOnce([
+        { metadata: [{ total: 0 }], data: [] }
+      ]);
 
-      const result = await GcpNativeService.importGcpSubmodule('non-existent-repo');
+      const result = await GcpNativeService.importGcpSubmodule('non-existent-repo', mockUser);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Repository "non-existent-repo" was not found in the scanned GCP catalog.');
@@ -221,13 +277,11 @@ describe('GcpNativeService', () => {
     });
 
     it('should return failure and suggestions if no exact match is found', async () => {
-      GcpNativeService.searchGcpCatalog.mockResolvedValue({ success: true, results: [mockRepoData[0]] });
-
-      const result = await GcpNativeService.importGcpSubmodule('cloud-sd'); // Partial name
+      const result = await GcpNativeService.importGcpSubmodule('cloud-sd', mockUser); // Partial name
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Repository "cloud-sd" did not match exactly.');
-      expect(result.suggestions).toEqual([mockRepoData[0].name]);
+      expect(result.suggestions).toEqual(mockRepoData.map(r => r.name));
       expect(spawn).not.toHaveBeenCalled();
     });
 
@@ -240,55 +294,59 @@ describe('GcpNativeService', () => {
         if (event === 'data') callback(stderrMessage);
       });
 
-      const result = await GcpNativeService.importGcpSubmodule('cloud-sdk');
+      const result = await GcpNativeService.importGcpSubmodule('cloud-sdk', mockUser);
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('Git command failed with exit code 1');
+      expect(result.message).toContain('Git command failed with exit code 1');
       expect(result.details).toContain(stderrMessage);
     });
 
     it('should handle spawn process error', async () => {
-        const spawnError = new Error('spawn ENOENT');
-        mockSpawnInstance.on.mockImplementation((event, callback) => {
-            if (event === 'error') callback(spawnError);
-        });
+      const spawnError = new Error('spawn ENOENT');
+      mockSpawnInstance.on.mockImplementation((event, callback) => {
+        if (event === 'error') callback(spawnError);
+      });
 
-        const result = await GcpNativeService.importGcpSubmodule('cloud-sdk');
+      const result = await GcpNativeService.importGcpSubmodule('cloud-sdk', mockUser);
 
-        expect(result.success).toBe(false);
-        expect(result.message).toBe(`Failed to start git process: ${spawnError.message}`);
+      expect(result.success).toBe(false);
+      expect(result.message).toBe(`Failed to start git process: ${spawnError.message}`);
     });
 
     it('should throw an error if repoName is not provided', async () => {
-        await expect(GcpNativeService.importGcpSubmodule('')).rejects.toThrow('Repository name is required for import.');
-        await expect(GcpNativeService.importGcpSubmodule(null)).rejects.toThrow('Repository name is required for import.');
+      await expect(GcpNativeService.importGcpSubmodule('', mockUser)).rejects.toThrow('Repository name is required for import.');
+      await expect(GcpNativeService.importGcpSubmodule(null, mockUser)).rejects.toThrow('Repository name is required for import.');
     });
 
     it('should sanitize repository name to prevent path traversal', async () => {
-        const maliciousRepo = { name: '../../evil-repo', clone_url: 'some_url' };
-        GcpNativeService.searchGcpCatalog.mockResolvedValue({ success: true, results: [maliciousRepo] });
-        mockSpawnInstance.on.mockImplementation((event, callback) => {
-            if (event === 'close') callback(0);
-        });
+      const maliciousRepo = { name: '../../evil-repo', clone_url: 'some_url' };
+      GoogleRepository.aggregate.mockResolvedValueOnce([
+        { metadata: [{ total: 1 }], data: [maliciousRepo] }
+      ]);
+      mockSpawnInstance.on.mockImplementation((event, callback) => {
+        if (event === 'close') callback(0);
+      });
 
-        await GcpNativeService.importGcpSubmodule('../../evil-repo');
+      await GcpNativeService.importGcpSubmodule('../../evil-repo', mockUser);
 
-        expect(spawn).toHaveBeenCalledWith(
-            'git',
-            ['submodule', 'add', 'some_url', 'external/gcp/..evil-repo'], // Sanitized path
-            expect.any(Object)
-        );
+      expect(spawn).toHaveBeenCalledWith(
+        'git',
+        ['submodule', 'add', '--force', 'some_url', 'external/gcp/....evil-repo'],
+        expect.any(Object)
+      );
     });
 
     it('should return failure if sanitized repository name is empty', async () => {
-        const maliciousRepo = { name: '.././', clone_url: 'some_url' };
-        GcpNativeService.searchGcpCatalog.mockResolvedValue({ success: true, results: [maliciousRepo] });
+      const maliciousRepo = { name: '///', clone_url: 'some_url' };
+      GoogleRepository.aggregate.mockResolvedValueOnce([
+        { metadata: [{ total: 1 }], data: [maliciousRepo] }
+      ]);
 
-        const result = await GcpNativeService.importGcpSubmodule('.././');
+      const result = await GcpNativeService.importGcpSubmodule('///', mockUser);
 
-        expect(result.success).toBe(false);
-        expect(result.message).toBe('Sanitized repository name is empty after cleaning: ".././"');
-        expect(spawn).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Sanitized repository name is empty after cleaning: "///"');
+      expect(spawn).not.toHaveBeenCalled();
     });
   });
 });

@@ -17,6 +17,7 @@ describe('Google Passport Strategy', () => {
   beforeEach(async () => {
     // Reset modules to clear cache and allow re-evaluation of the strategy file
     vi.resetModules();
+    vi.clearAllMocks();
 
     // Backup and set environment variables for the test
     originalEnv = { ...process.env };
@@ -52,6 +53,7 @@ describe('Google Passport Strategy', () => {
         callbackURL: '/test/google/callback',
         scope: ['profile', 'email'],
         proxy: true,
+        passReqToCallback: true,
       });
     });
 
@@ -61,6 +63,7 @@ describe('Google Passport Strategy', () => {
 
       const passportGoogleMock = await import('passport-google-oauth20');
       const FreshGoogleStrategy = passportGoogleMock.Strategy;
+      FreshGoogleStrategy.mockClear();
 
       await import('./google.js');
 
@@ -94,11 +97,14 @@ describe('Google Passport Strategy', () => {
       const mockUser = { id: 'user-abc-123', email: 'google.user@example.com', role: 'user' };
       findOrCreateUserModel.mockResolvedValue(mockUser);
 
-      await verifyCallback(mockAccessToken, mockRefreshToken, mockProfile, mockDone);
+      const mockReq = { session: {}, ip: '127.0.0.1' };
+      await verifyCallback(mockReq, mockAccessToken, mockRefreshToken, mockProfile, mockDone);
 
       // Verify the context boundary: the strategy correctly calls our utility function
       expect(findOrCreateUserModel).toHaveBeenCalledTimes(1);
-      expect(findOrCreateUserModel).toHaveBeenCalledWith(mockProfile, 'google');
+      expect(findOrCreateUserModel).toHaveBeenCalledWith(mockProfile, 'google', expect.objectContaining({
+        ipAddress: '127.0.0.1',
+      }));
 
       // Verify the outcome: Passport's done callback is invoked with the user
       expect(mockDone).toHaveBeenCalledTimes(1);
@@ -109,11 +115,14 @@ describe('Google Passport Strategy', () => {
       const mockError = new Error('Database connection failed');
       findOrCreateUserModel.mockRejectedValue(mockError);
 
-      await verifyCallback(mockAccessToken, mockRefreshToken, mockProfile, mockDone);
+      const mockReq = { session: {}, ip: '127.0.0.1' };
+      await verifyCallback(mockReq, mockAccessToken, mockRefreshToken, mockProfile, mockDone);
 
       // Verify the context boundary: the strategy correctly calls our utility function
       expect(findOrCreateUserModel).toHaveBeenCalledTimes(1);
-      expect(findOrCreateUserModel).toHaveBeenCalledWith(mockProfile, 'google');
+      expect(findOrCreateUserModel).toHaveBeenCalledWith(mockProfile, 'google', expect.objectContaining({
+        ipAddress: '127.0.0.1',
+      }));
 
       // Verify the outcome: Passport's done callback is invoked with the error
       expect(mockDone).toHaveBeenCalledTimes(1);

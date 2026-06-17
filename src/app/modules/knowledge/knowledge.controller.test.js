@@ -32,6 +32,7 @@ vi.mock('http-status', () => ({
     BAD_REQUEST: 400,
     UNAUTHORIZED: 401,
     NOT_FOUND: 404,
+    CONFLICT: 409,
     INTERNAL_SERVER_ERROR: 500,
   },
 }));
@@ -233,14 +234,13 @@ describe('Knowledge Controller', () => {
     it('should return BAD_REQUEST if ownerType is bot but ownerId is missing', async () => {
       req.file = { originalname: 'test.pdf' };
       req.body = { ownerType: OWNER_TYPES.BOT, ownerId: undefined };
-      req.user = { userId: null, _id: null }; // Ensure no userId is picked up
 
       await uploadFile(req, res);
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: 'Owner ID is required for bot files',
+        message: 'Owner ID is required for the specified ownerType',
       });
       expect(knowledgeService.uploadFile).not.toHaveBeenCalled();
     });
@@ -430,7 +430,7 @@ describe('Knowledge Controller', () => {
     it('should retrieve files successfully with default filters', async () => {
       req.query = { ownerType: OWNER_TYPES.USER };
       const mockFiles = [{ id: 'file1' }, { id: 'file2' }];
-      knowledgeService.getFiles.mockResolvedValue(mockFiles);
+      knowledgeService.getFiles.mockResolvedValue({ files: mockFiles, totalCount: mockFiles.length });
 
       await getFiles(req, res);
 
@@ -477,7 +477,7 @@ describe('Knowledge Controller', () => {
         skip: '5',
       };
       const mockFiles = [{ id: 'file3' }];
-      knowledgeService.getFiles.mockResolvedValue(mockFiles);
+      knowledgeService.getFiles.mockResolvedValue({ files: mockFiles, totalCount: mockFiles.length });
 
       await getFiles(req, res);
 
@@ -519,7 +519,7 @@ describe('Knowledge Controller', () => {
         folderId: 'null',
       };
       const mockFiles = [];
-      knowledgeService.getFiles.mockResolvedValue(mockFiles);
+      knowledgeService.getFiles.mockResolvedValue({ files: mockFiles, totalCount: mockFiles.length });
 
       await getFiles(req, res);
 
@@ -580,14 +580,13 @@ describe('Knowledge Controller', () => {
 
     it('should return BAD_REQUEST if ownerType is bot but ownerId is missing', async () => {
       req.query = { ownerType: OWNER_TYPES.BOT, ownerId: undefined };
-      req.user = { userId: null, _id: null }; // Ensure no userId is picked up
 
       await getFiles(req, res);
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: 'Owner ID is required',
+        message: 'Owner ID is required for the specified ownerType',
       });
       expect(knowledgeService.getFiles).not.toHaveBeenCalled();
     });
@@ -953,7 +952,7 @@ describe('Knowledge Controller', () => {
     it('should retrieve folders successfully for root', async () => {
       req.query = { parentFolderId: 'root' };
       const mockFolders = [{ id: 'folder1' }, { id: 'folder2' }];
-      knowledgeService.getFolders.mockResolvedValue(mockFolders);
+      knowledgeService.getFolders.mockResolvedValue({ folders: mockFolders, totalCount: mockFolders.length });
 
       await getFolders(req, res);
 
@@ -976,7 +975,7 @@ describe('Knowledge Controller', () => {
     it('should retrieve folders successfully for a specific parentFolderId', async () => {
       req.query = { parentFolderId: 'parent123' };
       const mockFolders = [{ id: 'folder3' }];
-      knowledgeService.getFolders.mockResolvedValue(mockFolders);
+      knowledgeService.getFolders.mockResolvedValue({ folders: mockFolders, totalCount: mockFolders.length });
 
       await getFolders(req, res);
 
@@ -990,7 +989,7 @@ describe('Knowledge Controller', () => {
     it('should retrieve all folders if parentFolderId is not provided', async () => {
       req.query = {};
       const mockFolders = [{ id: 'folder1' }, { id: 'folder2' }];
-      knowledgeService.getFolders.mockResolvedValue(mockFolders);
+      knowledgeService.getFolders.mockResolvedValue({ folders: mockFolders, totalCount: mockFolders.length });
 
       await getFolders(req, res);
 
@@ -1480,14 +1479,13 @@ describe('Knowledge Controller', () => {
 
     it('should return BAD_REQUEST if ownerType is bot but ownerId is missing', async () => {
       req.body = { message: 'Hello', ownerType: OWNER_TYPES.BOT };
-      req.user = { userId: null, _id: null }; // Ensure no userId is picked up
 
       await conversationalQuery(req, res);
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: 'Owner ID is required',
+        message: 'Owner ID is required for the specified ownerType',
       });
       expect(
         knowledgeQueryService.conversationalQuery
@@ -1528,6 +1526,7 @@ describe('Knowledge Controller', () => {
       await queryKnowledge(req, res);
 
       expect(knowledgeQueryService.queryKnowledge).toHaveBeenCalledWith(
+        mockUserId,
         'What is the capital of France?',
         OWNER_TYPES.USER,
         mockUserId,
@@ -1596,14 +1595,13 @@ describe('Knowledge Controller', () => {
 
     it('should return BAD_REQUEST if ownerType is bot but ownerId is missing', async () => {
       req.body = { query: 'Test', ownerType: OWNER_TYPES.BOT };
-      req.user = { userId: null, _id: null }; // Ensure no userId is picked up
 
       await queryKnowledge(req, res);
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: 'Owner ID is required',
+        message: 'Owner ID is required for the specified ownerType',
       });
       expect(knowledgeQueryService.queryKnowledge).not.toHaveBeenCalled();
     });
@@ -1642,6 +1640,7 @@ describe('Knowledge Controller', () => {
       await semanticSearch(req, res);
 
       expect(knowledgeQueryService.semanticSearch).toHaveBeenCalledWith(
+        mockUserId,
         'Relevant documents about AI',
         OWNER_TYPES.USER,
         mockUserId,
@@ -1720,7 +1719,7 @@ describe('Knowledge Controller', () => {
       expect(sendResponse).toHaveBeenCalledWith(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        message: errorMessage,
+        message: 'An error occurred while searching',
       });
       expect(logger.error).toHaveBeenCalledWith(
         '[Knowledge] Semantic search error:',

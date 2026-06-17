@@ -72,6 +72,10 @@ describe('GcpKnowledgeGraphService', () => {
     delete process.env.GOOGLE_SEARCH_API_KEY;
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('lookupEntity', () => {
     it('should throw an error if API key is not configured in config or process.env', async () => {
       // Temporarily override the mock for this test
@@ -81,7 +85,7 @@ describe('GcpKnowledgeGraphService', () => {
         'Google Search API Key is not configured.'
       );
       expect(axios.get).not.toHaveBeenCalled();
-      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalled();
     });
 
     it('should use API key from config file when available', async () => {

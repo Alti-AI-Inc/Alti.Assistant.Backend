@@ -14,7 +14,7 @@ const {
   };
 });
 
-vi.mock('./streaming.controller', () => ({
+vi.mock('./streaming.controller.js', () => ({
   authStreamingController: mockAuthStreamingController,
 }));
 
@@ -25,12 +25,14 @@ const mockRouter = {
   route: mockRoute,
 };
 vi.mock('express', () => ({
+  default: { Router: mockExpressRouter },
   Router: mockExpressRouter,
 }));
 
 describe('Streaming Routes', () => {
   beforeEach(async () => {
-    // Reset mocks before each test to ensure a clean state and prevent test pollution.
+    // Reset modules and mocks before each test to ensure a clean state and prevent test pollution.
+    vi.resetModules();
     vi.clearAllMocks();
 
     // Dynamically import the router file. This executes the file's code,

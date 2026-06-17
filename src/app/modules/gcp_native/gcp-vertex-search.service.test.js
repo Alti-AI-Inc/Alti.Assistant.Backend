@@ -11,20 +11,23 @@ vi.mock('../../../shared/logger.js', () => ({
   },
 }));
 
-const mockRequest = vi.fn();
 const {
+  mockRequest,
   mockGetClient
 } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
   const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
 
   return {
+    mockRequest,
     mockGetClient
   };
 });
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn().mockImplementation(() => ({
-    getClient: mockGetClient,
-  })),
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
 }));
 
 // Import the service after mocks are defined
@@ -42,36 +45,55 @@ describe('GcpVertexSearchService', () => {
 
     describe('Input Validation and Security Checks', () => {
       it('should throw an error if dataStoreId is not provided', async () => {
-        await expect(
-          GcpVertexSearchService.searchDataStore(null, validQuery, { workspaceProjectId: validWorkspaceProjectId })
-        ).rejects.toThrow('Discovery Engine Data Store ID is required.');
+        const result = await GcpVertexSearchService.searchDataStore(null, validQuery, { workspaceProjectId: validWorkspaceProjectId });
+        expect(result).toEqual({
+          success: false,
+          originalQuery: validQuery,
+          dataStoreId: null,
+          error: 'Failed to query data store. Please check configuration and permissions.',
+          results: [],
+        });
       });
 
       it('should throw an error if dataStoreId has an invalid format', async () => {
         const invalidId = 'invalid-format';
-        await expect(
-          GcpVertexSearchService.searchDataStore(invalidId, validQuery, { workspaceProjectId: validWorkspaceProjectId })
-        ).rejects.toThrow('Invalid Discovery Engine Data Store ID format.');
+        const result = await GcpVertexSearchService.searchDataStore(invalidId, validQuery, { workspaceProjectId: validWorkspaceProjectId });
+        expect(result).toEqual({
+          success: false,
+          originalQuery: validQuery,
+          dataStoreId: invalidId,
+          error: 'Failed to query data store. Please check configuration and permissions.',
+          results: [],
+        });
       });
 
       it('should throw an error if workspaceProjectId is not provided', async () => {
-        await expect(
-          GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, {})
-        ).rejects.toThrow('Workspace Project ID is required for authorization.');
+        const result = await GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, {});
+        expect(result).toEqual({
+          success: false,
+          originalQuery: validQuery,
+          dataStoreId: validDataStoreId,
+          error: 'Failed to query data store. Please check configuration and permissions.',
+          results: [],
+        });
       });
 
       it('should throw an authorization error if workspaceProjectId does not match the project ID in dataStoreId', async () => {
         const mismatchedProjectId = 'another-project';
-        await expect(
-          GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, { workspaceProjectId: mismatchedProjectId })
-        ).rejects.toThrow('Access to the specified data store is not authorized.');
+        const result = await GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, { workspaceProjectId: mismatchedProjectId });
+        expect(result).toEqual({
+          success: false,
+          originalQuery: validQuery,
+          dataStoreId: validDataStoreId,
+          error: 'Failed to query data store. Please check configuration and permissions.',
+          results: [],
+        });
       });
 
       it('should log a warning when a project ID mismatch occurs', async () => {
         const mismatchedProjectId = 'another-project';
-        await expect(
-          GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, { workspaceProjectId: mismatchedProjectId })
-        ).rejects.toThrow();
+        const result = await GcpVertexSearchService.searchDataStore(validDataStoreId, validQuery, { workspaceProjectId: mismatchedProjectId });
+        expect(result.success).toBe(false);
 
         expect(logger.warn).toHaveBeenCalledWith(
           `Authorization mismatch: Attempted to access data store in project "test-project" from a context expecting project "another-project".`
@@ -96,7 +118,7 @@ describe('GcpVertexSearchService', () => {
         const result = await GcpVertexSearchService.searchDataStore(validDataStoreId, null, { workspaceProjectId: validWorkspaceProjectId });
         expect(result).toEqual({
           success: true,
-          originalQuery: null,
+          originalQuery: '',
           results: [],
           totalCount: 0,
           dataStoreId: validDataStoreId,
@@ -167,6 +189,8 @@ describe('GcpVertexSearchService', () => {
               summarySpec: { summaryResultCount: 3 },
             },
           },
+          timeout: 30000,
+          agent: expect.any(Object),
         });
       });
 

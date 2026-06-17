@@ -3,8 +3,20 @@ import { GcpNlpService } from './gcp-nlp.service.js';
 import { GoogleAuth } from 'google-auth-library';
 import { logger } from '../../../shared/logger.js';
 
-// Mock dependencies
-vi.mock('google-auth-library');
+const { mockGetClient, mockRequest } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
+  const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
+  return { mockGetClient, mockRequest };
+});
+
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: function() {
+    return {
+      getClient: mockGetClient
+    };
+  }
+}));
+
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
@@ -48,19 +60,11 @@ const mockClassificationResponse = {
   ]
 };
 
-// Mock client setup
-const mockRequest = vi.fn();
-const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
-
 describe('GcpNlpService', () => {
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
-
-    // Set up the mock for GoogleAuth
-    GoogleAuth.mockImplementation(() => ({
-      getClient: mockGetClient
-    }));
+    mockGetClient.mockResolvedValue({ request: mockRequest });
 
     // Default mock implementation for API requests
     mockRequest.mockImplementation(async ({ url }) => {

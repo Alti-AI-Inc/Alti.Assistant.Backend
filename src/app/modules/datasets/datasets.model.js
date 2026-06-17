@@ -76,18 +76,21 @@ if (!MONGO_URI) {
   };
 
   // GCP Agent AI: Establish the database connection.
-  mongoose.connect(MONGO_URI, mongooseOptions);
+  // Avoid auto-connecting in test environment to prevent concurrent multi-connection crashes in Vitest pool forks.
+  if (process.env.NODE_ENV !== 'test' && mongoose.connection.readyState === 0) {
+    mongoose.connect(MONGO_URI, mongooseOptions);
 
-  // GCP Agent AI: Listen for connection events to log status.
-  // Mongoose's underlying driver handles automatic reconnection by default.
-  // These event listeners provide visibility into the connection's lifecycle.
-  const dbConnection = mongoose.connection;
-  dbConnection.on('error', err => console.error('MongoDB runtime connection error:', err));
-  dbConnection.on('disconnected', () => console.log('MongoDB disconnected. Attempting to reconnect...'));
-  dbConnection.on('reconnected', () => console.log('MongoDB reconnected successfully.'));
-  dbConnection.once('open', () => {
-    console.log('MongoDB connection established successfully.');
-  });
+    // GCP Agent AI: Listen for connection events to log status.
+    // Mongoose's underlying driver handles automatic reconnection by default.
+    // These event listeners provide visibility into the connection's lifecycle.
+    const dbConnection = mongoose.connection;
+    dbConnection.on('error', err => console.error('MongoDB runtime connection error:', err));
+    dbConnection.on('disconnected', () => console.log('MongoDB disconnected. Attempting to reconnect...'));
+    dbConnection.on('reconnected', () => console.log('MongoDB reconnected successfully.'));
+    dbConnection.once('open', () => {
+      console.log('MongoDB connection established successfully.');
+    });
+  }
 }
 
 /**

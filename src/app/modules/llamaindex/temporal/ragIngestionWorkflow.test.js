@@ -6,7 +6,9 @@ const {
   mockParseToMarkdownActivity,
   mockChunkAndEmbedActivity,
   mockCommitToVectorStoreActivity,
-  mockCleanupFailedIngestionActivity
+  mockCleanupFailedIngestionActivity,
+  mockCheckUsageAndLimitsActivity,
+  mockUpdateUsageActivity
 } = vi.hoisted(() => {
   // Mock the activities module functions
   const mockDownloadAndLoadFileActivity = vi.fn();
@@ -14,28 +16,32 @@ const {
   const mockChunkAndEmbedActivity = vi.fn();
   const mockCommitToVectorStoreActivity = vi.fn();
   const mockCleanupFailedIngestionActivity = vi.fn();
+  const mockCheckUsageAndLimitsActivity = vi.fn();
+  const mockUpdateUsageActivity = vi.fn();
 
   return {
     mockDownloadAndLoadFileActivity,
     mockParseToMarkdownActivity,
     mockChunkAndEmbedActivity,
     mockCommitToVectorStoreActivity,
-    mockCleanupFailedIngestionActivity
+    mockCleanupFailedIngestionActivity,
+    mockCheckUsageAndLimitsActivity,
+    mockUpdateUsageActivity
   };
 });
 
 // Mock the dynamic import for ragIngestionActivities.js
-// Vitest will intercept this module path regardless of whether it's a static or dynamic import.
 vi.mock('./ragIngestionActivities.js', () => ({
   downloadAndLoadFileActivity: mockDownloadAndLoadFileActivity,
   parseToMarkdownActivity: mockParseToMarkdownActivity,
   chunkAndEmbedActivity: mockChunkAndEmbedActivity,
   commitToVectorStoreActivity: mockCommitToVectorStoreActivity,
   cleanupFailedIngestionActivity: mockCleanupFailedIngestionActivity,
+  checkUsageAndLimitsActivity: mockCheckUsageAndLimitsActivity,
+  updateUsageActivity: mockUpdateUsageActivity,
 }));
 
-// Mock @temporalio/workflow. This mock will be used when `isMock` is false.
-// The `proxyActivities` function will return an object containing our shared mock activity functions.
+// Mock @temporalio/workflow
 vi.mock('@temporalio/workflow', () => ({
   proxyActivities: vi.fn().mockImplementation(() => ({
     downloadAndLoadFileActivity: mockDownloadAndLoadFileActivity,
@@ -43,6 +49,8 @@ vi.mock('@temporalio/workflow', () => ({
     chunkAndEmbedActivity: mockChunkAndEmbedActivity,
     commitToVectorStoreActivity: mockCommitToVectorStoreActivity,
     cleanupFailedIngestionActivity: mockCleanupFailedIngestionActivity,
+    checkUsageAndLimitsActivity: mockCheckUsageAndLimitsActivity,
+    updateUsageActivity: mockUpdateUsageActivity,
   })),
 }));
 
@@ -51,6 +59,7 @@ describe('resilientRAGIngestionWorkflow', () => {
   const originalName = 'file.pdf';
   const userId = 'user123';
   const docId = 'doc456';
+  const workspaceId = 'workspace123';
 
   // Store original process.env values to restore them
   let originalTemporalMock;
@@ -63,9 +72,11 @@ describe('resilientRAGIngestionWorkflow', () => {
     // Set up default successful mock implementations
     mockDownloadAndLoadFileActivity.mockResolvedValue({ success: true });
     mockParseToMarkdownActivity.mockResolvedValue({ success: true });
-    mockChunkAndEmbedActivity.mockResolvedValue({ success: true });
+    mockChunkAndEmbedActivity.mockResolvedValue({ success: true, chunkCount: 5 });
     mockCommitToVectorStoreActivity.mockResolvedValue({ success: true });
     mockCleanupFailedIngestionActivity.mockResolvedValue({ success: true });
+    mockCheckUsageAndLimitsActivity.mockResolvedValue({ success: true });
+    mockUpdateUsageActivity.mockResolvedValue({ success: true });
 
     // Store original values before overriding for the test
     originalTemporalMock = process.env.TEMPORAL_MOCK;
@@ -91,12 +102,14 @@ describe('resilientRAGIngestionWorkflow', () => {
   });
 
   it('should successfully complete the ingestion workflow when all activities succeed (mock mode)', async () => {
-    const result = await resilientRAGIngestionWorkflow(filePath, originalName, userId, docId);
+    const result = await resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId);
 
-    expect(mockDownloadAndLoadFileActivity).toHaveBeenCalledWith(filePath, originalName, docId);
-    expect(mockParseToMarkdownActivity).toHaveBeenCalledWith(filePath, originalName, docId);
-    expect(mockChunkAndEmbedActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
-    expect(mockCommitToVectorStoreActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+    expect(mockCheckUsageAndLimitsActivity).toHaveBeenCalledWith(workspaceId, filePath);
+    expect(mockDownloadAndLoadFileActivity).toHaveBeenCalledWith(filePath, originalName, docId, workspaceId);
+    expect(mockParseToMarkdownActivity).toHaveBeenCalledWith(filePath, originalName, docId, workspaceId);
+    expect(mockChunkAndEmbedActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
+    expect(mockCommitToVectorStoreActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
+    expect(mockUpdateUsageActivity).toHaveBeenCalledWith(workspaceId, docId, 5);
     expect(mockCleanupFailedIngestionActivity).not.toHaveBeenCalled(); // Should not be called on success
 
     expect(result).toEqual({
@@ -117,10 +130,14 @@ describe('resilientRAGIngestionWorkflow', () => {
     delete process.env.TEMPORAL_MOCK;
     delete process.env.OFFLINE_MODE;
 
-    const result = await resilientRAGIngestionWorkflow(filePath, originalName, userId, docId);
+    const result = await resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId);
 
     // In non-mock mode, proxyActivities should be called
     const { proxyActivities } = await import('@temporalio/workflow'); // Import to access the mock
+    expect(proxyActivities).toHaveBeenCalledWith({
+      startToCloseTimeout: '1 minute',
+      retry: { maximumAttempts: 2 }
+    });
     expect(proxyActivities).toHaveBeenCalledWith({
       startToCloseTimeout: '60 minutes',
       retry: {
@@ -130,10 +147,13 @@ describe('resilientRAGIngestionWorkflow', () => {
         maximumAttempts: 3
       }
     });
-    expect(mockDownloadAndLoadFileActivity).toHaveBeenCalledWith(filePath, originalName, docId);
-    expect(mockParseToMarkdownActivity).toHaveBeenCalledWith(filePath, originalName, docId);
-    expect(mockChunkAndEmbedActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
-    expect(mockCommitToVectorStoreActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+
+    expect(mockCheckUsageAndLimitsActivity).toHaveBeenCalledWith(workspaceId, filePath);
+    expect(mockDownloadAndLoadFileActivity).toHaveBeenCalledWith(filePath, originalName, docId, workspaceId);
+    expect(mockParseToMarkdownActivity).toHaveBeenCalledWith(filePath, originalName, docId, workspaceId);
+    expect(mockChunkAndEmbedActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
+    expect(mockCommitToVectorStoreActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
+    expect(mockUpdateUsageActivity).toHaveBeenCalledWith(workspaceId, docId, 5);
     expect(mockCleanupFailedIngestionActivity).not.toHaveBeenCalled();
 
     expect(result).toEqual({
@@ -148,7 +168,7 @@ describe('resilientRAGIngestionWorkflow', () => {
   it('should throw an error and initiate rollback if downloadAndLoadFileActivity fails', async () => {
     mockDownloadAndLoadFileActivity.mockResolvedValueOnce({ success: false });
 
-    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId)).rejects.toThrow(
+    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId)).rejects.toThrow(
       'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during file loading step.'
     );
 
@@ -156,13 +176,13 @@ describe('resilientRAGIngestionWorkflow', () => {
     expect(mockParseToMarkdownActivity).not.toHaveBeenCalled();
     expect(mockChunkAndEmbedActivity).not.toHaveBeenCalled();
     expect(mockCommitToVectorStoreActivity).not.toHaveBeenCalled();
-    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
   });
 
   it('should throw an error and initiate rollback if parseToMarkdownActivity fails', async () => {
     mockParseToMarkdownActivity.mockResolvedValueOnce({ success: false });
 
-    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId)).rejects.toThrow(
+    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId)).rejects.toThrow(
       'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during high-fidelity HTML-to-Markdown parsing step.'
     );
 
@@ -170,27 +190,27 @@ describe('resilientRAGIngestionWorkflow', () => {
     expect(mockParseToMarkdownActivity).toHaveBeenCalledTimes(1);
     expect(mockChunkAndEmbedActivity).not.toHaveBeenCalled();
     expect(mockCommitToVectorStoreActivity).not.toHaveBeenCalled();
-    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
   });
 
   it('should throw an error and initiate rollback if chunkAndEmbedActivity fails', async () => {
     mockChunkAndEmbedActivity.mockResolvedValueOnce({ success: false });
 
-    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId)).rejects.toThrow(
-      'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during embedding generation step.'
+    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId)).rejects.toThrow(
+      'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during embedding generation step or did not return chunkCount.'
     );
 
     expect(mockDownloadAndLoadFileActivity).toHaveBeenCalledTimes(1);
     expect(mockParseToMarkdownActivity).toHaveBeenCalledTimes(1);
     expect(mockChunkAndEmbedActivity).toHaveBeenCalledTimes(1);
     expect(mockCommitToVectorStoreActivity).not.toHaveBeenCalled();
-    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
   });
 
   it('should throw an error and initiate rollback if commitToVectorStoreActivity fails', async () => {
     mockCommitToVectorStoreActivity.mockResolvedValueOnce({ success: false });
 
-    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId)).rejects.toThrow(
+    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId)).rejects.toThrow(
       'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during vector database commit step.'
     );
 
@@ -198,7 +218,7 @@ describe('resilientRAGIngestionWorkflow', () => {
     expect(mockParseToMarkdownActivity).toHaveBeenCalledTimes(1);
     expect(mockChunkAndEmbedActivity).toHaveBeenCalledTimes(1);
     expect(mockCommitToVectorStoreActivity).toHaveBeenCalledTimes(1);
-    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId);
+    expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledWith(filePath, originalName, docId, userId, workspaceId);
   });
 
   it('should still throw the original error if cleanupFailedIngestionActivity fails', async () => {
@@ -208,14 +228,14 @@ describe('resilientRAGIngestionWorkflow', () => {
     // Spy on console.error to ensure the cleanup failure is logged
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId)).rejects.toThrow(
+    await expect(resilientRAGIngestionWorkflow(filePath, originalName, userId, docId, workspaceId)).rejects.toThrow(
       'Resilient RAG Ingestion Workflow Failed: Temporal Ingestion failed during vector database commit step.'
     );
 
     expect(mockCommitToVectorStoreActivity).toHaveBeenCalledTimes(1);
     expect(mockCleanupFailedIngestionActivity).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[Temporal RAG Ingestion Orchestrator] Failed to execute compensating rollback activity: Cleanup failed!'
+      expect.stringContaining('[Temporal RAG Ingestion Orchestrator] FATAL: Failed to execute compensating rollback activity.')
     );
 
     consoleErrorSpy.mockRestore(); // Clean up the spy

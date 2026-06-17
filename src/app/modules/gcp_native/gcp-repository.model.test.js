@@ -54,9 +54,10 @@ describe('GoogleRepository Model', () => {
     expect(language).toEqual({ type: String, default: 'Unknown', index: true });
   });
 
-  it('should have the correct schema definition for "updated_at"', () => {
-    const updated_at = GoogleRepository.schema.obj.updated_at;
-    expect(updated_at).toEqual({ type: Date });
+  it('should have the correct schema definition for "updatedAt"', () => {
+    const updatedAt = GoogleRepository.schema.paths.updatedAt;
+    expect(updatedAt).toBeDefined();
+    expect(updatedAt.instance).toBe('Date');
   });
 
   it('should have timestamps enabled', () => {
@@ -78,10 +79,10 @@ describe('GoogleRepository Model', () => {
     );
     expect(textIndex).toBeDefined();
 
-    // Check for individual field indexes (Mongoose adds `unique: false` by default for `index: true`)
-    expect(indexes).toContainEqual([{ name: 1 }, { unique: false }]);
-    expect(indexes).toContainEqual([{ org: 1 }, { unique: false }]);
-    expect(indexes).toContainEqual([{ license: 1 }, { unique: false }]);
-    expect(indexes).toContainEqual([{ language: 1 }, { unique: false }]);
+    // Check for individual field indexes (Mongoose adds `background: true` by default for `index: true`)
+    expect(indexes).toContainEqual([{ name: 1 }, { background: true }]);
+    expect(indexes).toContainEqual([{ org: 1 }, { background: true }]);
+    expect(indexes).toContainEqual([{ license: 1 }, { background: true }]);
+    expect(indexes).toContainEqual([{ language: 1 }, { background: true }]);
   });
 });

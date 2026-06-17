@@ -266,7 +266,7 @@ ${query}`;
     });
     // PATCH: Instead of returning the original query (silent failure), throw a normalized ApiError.
     // This makes the failure explicit to the calling service/controller, allowing for better upstream error handling.
-    throw new ApiError(500, 'Failed to process and enrich query context.', err);
+    throw new ApiError(500, 'Failed to process and enrich query context.', err.stack || err.toString());
   }
 };
 
@@ -343,7 +343,7 @@ const getGlobalStats = async () => {
     });
     // PATCH: Re-throw a normalized ApiError instead of the raw database error.
     // This prevents leaking internal implementation details to the user-facing error handler.
-    throw new ApiError(500, 'Failed to retrieve global statistics.', err);
+    throw new ApiError(500, 'Failed to retrieve global statistics.', err.stack || err.toString());
   }
 };
 

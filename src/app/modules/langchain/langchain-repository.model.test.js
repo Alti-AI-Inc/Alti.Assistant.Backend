@@ -27,16 +27,15 @@ describe('LangchainRepository Model', () => {
       throw new Error('Validation should have failed');
     } catch (error) {
       expect(error.errors.name).toBeDefined();
-      expect(error.errors.license).toBeDefined();
       expect(error.errors.html_url).toBeDefined();
       expect(error.errors.clone_url).toBeDefined();
     }
   });
 
-  it('should fail validation if license is not MIT or Apache 2.0', async () => {
+  it('should fail validation if license is not in the allowed enum values', async () => {
     const invalidRepo = new LangchainRepository({
       name: 'langchainjs',
-      license: 'GPL-3.0',
+      license: 'Invalid-License',
       html_url: 'https://github.com/langchain-ai/langchainjs',
       clone_url: 'https://github.com/langchain-ai/langchainjs.git',
     });

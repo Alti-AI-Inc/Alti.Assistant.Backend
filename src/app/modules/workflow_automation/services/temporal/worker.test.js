@@ -7,7 +7,7 @@ import config from '../../../../../../config/index.js';
 import { temporalWorkerCoordinator } from './worker';
 
 const mockWorkerInstance = {
-  run: vi.fn().mockImplementation(() => Promise.resolve()),
+  run: vi.fn().mockImplementation(() => new Promise(() => {})),
   shutdown: vi.fn().mockImplementation(() => Promise.resolve()),
 };
 
@@ -138,13 +138,19 @@ describe('TemporalWorkerCoordinator', () => {
   });
 
   it('should successfully start a real Temporal worker', async () => {
+    let resolveRun;
+    const runPromise = new Promise((resolve) => {
+      resolveRun = resolve;
+    });
+    mockWorkerInstance.run.mockReturnValueOnce(runPromise);
+
     await coordinator.start();
 
     expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Initializing Worker connecting to cluster at test-temporal:7233...');
     expect(path.resolve).toHaveBeenCalledWith('/mock/dir', './workflows.js');
     expect(mockWorker.create).toHaveBeenCalledWith({
       workflowsPath: './workflows.js',
-      activities: {},
+      activities,
       taskQueue: 'alti-workflows-queue',
       connectionOptions: {
         address: 'test-temporal:7233',
@@ -156,6 +162,7 @@ describe('TemporalWorkerCoordinator', () => {
     expect(coordinator.isMock).toBe(false);
     expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Resilient Temporal Worker successfully started and polling: "alti-workflows-queue".');
 
+    resolveRun();
     await Promise.resolve();
 
     expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Worker run execution loop has cleanly exited.');
@@ -187,7 +194,7 @@ describe('TemporalWorkerCoordinator', () => {
     await Promise.resolve();
 
     expect(mockLogger.error).toHaveBeenCalledWith(`[Temporal Worker] Runtime error in execution loop: ${runtimeError.message}`);
-    expect(coordinator.isRunning).toBe(false);
+    expect(coordinator.isRunning).toBe(true);
     expect(coordinator.isMock).toBe(true);
     expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Safe Mock Standby Mode is active. Workflows will execute under client-side emulation.');
   });

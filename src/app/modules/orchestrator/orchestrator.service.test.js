@@ -4,9 +4,8 @@ import { orchestratorService } from './orchestrator.service.js'; // The file und
 // Mock external dependencies
 // -----------------------------------------------------------------------------
 // Mock @google/generative-ai
-const mockGenerateContent = vi.fn();
-
 const {
+  mockGenerateContent,
   mockGetGenerativeModel,
   mockLoggerInfo,
   mockLoggerWarn,
@@ -16,8 +15,13 @@ const {
   mockRandomUUID,
   mockProcessUserInputService,
   mockAsyncExtractFacts,
-  mockCaptureException
+  mockCaptureException,
+  mockAddMessage,
+  mockConversationSave,
+  mockConversationFindOne,
+  MockConversation,
 } = vi.hoisted(() => {
+  const mockGenerateContent = vi.fn();
   const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
     generateContent: mockGenerateContent,
   }));
@@ -45,7 +49,18 @@ const {
   // Mock sentry
   const mockCaptureException = vi.fn();
 
+  // Mock Conversation model
+  const mockAddMessage = vi.fn();
+  const mockConversationSave = vi.fn();
+  const mockConversationFindOne = vi.fn();
+  const MockConversation = vi.fn().mockImplementation(() => ({
+    addMessage: mockAddMessage,
+    save: mockConversationSave,
+  }));
+  MockConversation.findOne = mockConversationFindOne;
+
   return {
+    mockGenerateContent,
     mockGetGenerativeModel,
     mockLoggerInfo,
     mockLoggerWarn,
@@ -55,7 +70,11 @@ const {
     mockRandomUUID,
     mockProcessUserInputService,
     mockAsyncExtractFacts,
-    mockCaptureException
+    mockCaptureException,
+    mockAddMessage,
+    mockConversationSave,
+    mockConversationFindOne,
+    MockConversation,
   };
 });
 
@@ -92,15 +111,6 @@ vi.mock('../swarm/swarm.service.js', () => ({
   },
 }));
 
-// Mock Conversation model
-const mockAddMessage = vi.fn();
-const mockConversationSave = vi.fn();
-const mockConversationFindOne = vi.fn();
-const MockConversation = vi.fn().mockImplementation(() => ({
-  addMessage: mockAddMessage,
-  save: mockConversationSave,
-}));
-MockConversation.findOne = mockConversationFindOne;
 vi.mock('../conversations/conversation.model.js', () => ({
   default: MockConversation,
 }));
@@ -111,11 +121,7 @@ vi.mock('crypto', () => ({
   },
 }));
 
-vi.mock('../composio_v2/aiClassification.service.js', () => ({
-  aiClassificationService: {
-    processUserInputService: mockProcessUserInputService,
-  },
-}));
+// aiClassificationService mock removed since it is deleted
 
 vi.mock('../conversations/userMemory.service.js', () => ({
   userMemoryService: {
@@ -338,11 +344,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
 
     expect(result.orchestrator_decision).toBe('connected_apps');
     expect(result.classification.source).toBe('local-fallback');
-    expect(mockProcessUserInputService).toHaveBeenCalledWith(
-      prompt,
-      { userId, conversationId, isGuest: false },
-      null
-    );
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId);
   });
 
   it('should use local classifier for "web_search" keywords if LLM fails', async () => {
@@ -463,7 +465,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(mockProcessUserInputService).not.toHaveBeenCalled();
   });
 
-  it('should dispatch to aiClassificationService for connected_apps module', async () => {
+  it('should dispatch to SwarmService for connected_apps module (since Composio is disabled)', async () => {
     const prompt = 'Send an email to support.';
     mockGenerateContent.mockResolvedValueOnce({
       response: {
@@ -478,37 +480,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(result.orchestrator_decision).toBe('connected_apps');
-    expect(mockProcessUserInputService).toHaveBeenCalledWith(
-      prompt,
-      { userId, conversationId, isGuest: false },
-      null
-    );
-    expect(mockExecuteSwarmSync).not.toHaveBeenCalled(); // Should not call Swarm if Composio succeeds
-    expect(result.reply).toBe('Connected apps response');
-  });
-
-  it('should fall back to SwarmService if aiClassificationService fails', async () => {
-    const prompt = 'Create a Jira ticket.';
-    mockGenerateContent.mockResolvedValueOnce({
-      response: {
-        candidates: [{
-          content: {
-            parts: [{ text: JSON.stringify({ target_module: 'connected_apps', confidence: 0.9, parameters: { query: prompt } }) }]
-          }
-        }]
-      }
-    });
-    mockProcessUserInputService.mockResolvedValueOnce({
-      success: false,
-      error: 'Composio error',
-    });
-
-    const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
-
-    expect(result.orchestrator_decision).toBe('connected_apps');
-    expect(mockProcessUserInputService).toHaveBeenCalledTimes(1);
-    expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('Connected apps failed'));
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false }); // Fallback to Swarm
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId);
     expect(result.reply).toBe('Swarm response');
   });
 

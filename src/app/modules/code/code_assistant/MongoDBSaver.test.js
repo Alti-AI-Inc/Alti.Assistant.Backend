@@ -56,7 +56,7 @@ describe('MongoDBSaver', () => {
       const uri = 'mongodb://localhost:27017/test';
       const instance = await MongoDBSaver.fromUri(uri);
 
-      expect(mongoose.connect).toHaveBeenCalledWith(uri, { family: 4 });
+      expect(mongoose.connect).toHaveBeenCalledWith(uri, expect.objectContaining({ family: 4 }));
       expect(instance).toBeInstanceOf(MongoDBSaver);
     });
 

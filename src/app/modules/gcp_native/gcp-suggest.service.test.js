@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { GcpSuggestService } from './gcp-suggest.service';
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
+const { mockAxios } = vi.hoisted(() => {
+  const mock = {
     get: vi.fn(),
-  },
-  isAxiosError: vi.fn(), // Mock isAxiosError explicitly
-}));
+    isAxiosError: vi.fn(),
+  };
+  mock.default = mock;
+  return { mockAxios: mock };
+});
+
+vi.mock('axios', () => mockAxios);
 
 const {
   mockLogger

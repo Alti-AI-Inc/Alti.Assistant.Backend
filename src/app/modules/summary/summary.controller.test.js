@@ -11,14 +11,28 @@ const {
   mockLoggerError,
   mockSendResponse,
   mockSummaryService,
-  mockSummarizerAppInvoke
+  mockSummarizerAppInvoke,
+  mockStorageInstance
 } = vi.hoisted(() => {
   // Mock external dependencies
   const mockPDFParse = vi.fn();
 
   const mockMammothExtractRawText = vi.fn();
 
-  const mockCsvParse = vi.fn();
+  const mockCsvParse = vi.fn().mockImplementation(() => {
+    const emitter = {
+      on: vi.fn().mockImplementation((event, callback) => {
+        if (event === 'data') {
+          const records = mockCsvParse.mockRecords || [];
+          records.forEach(callback);
+        } else if (event === 'end') {
+          callback();
+        }
+        return emitter;
+      }),
+    };
+    return emitter;
+  });
 
   // Mock shared utilities
   const mockCatchAsync = (fn) => fn; // Directly execute the async function for testing
@@ -40,6 +54,17 @@ const {
   // Mock summarizerApp
   const mockSummarizerAppInvoke = vi.fn();
 
+  // Mock storage
+  const mockStorageInstance = {
+    bucket: vi.fn().mockImplementation(() => ({
+      file: vi.fn().mockImplementation((name) => ({
+        save: vi.fn().mockResolvedValue(undefined),
+        getSignedUrl: vi.fn().mockResolvedValue(['https://mock-gcs-signed-url.com']),
+        name: name,
+      })),
+    })),
+  };
+
   return {
     mockPDFParse,
     mockMammothExtractRawText,
@@ -49,14 +74,22 @@ const {
     mockLoggerError,
     mockSendResponse,
     mockSummaryService,
-    mockSummarizerAppInvoke
+    mockSummarizerAppInvoke,
+    mockStorageInstance
   };
 });
 
+vi.mock('@google-cloud/storage', () => {
+  class Storage {
+    constructor() {
+      return mockStorageInstance;
+    }
+  }
+  return { Storage };
+});
+
 vi.mock('pdf-parse', () => ({
-  PDFParse: vi.fn().mockImplementation(() => ({
-    getText: mockPDFParse,
-  })),
+  default: mockPDFParse,
 }));
 
 vi.mock('mammoth', () => ({
@@ -65,7 +98,7 @@ vi.mock('mammoth', () => ({
   },
 }));
 
-vi.mock('csv-parse/browser/esm', () => ({
+vi.mock('csv-parse', () => ({
   parse: mockCsvParse,
 }));
 
@@ -310,7 +343,7 @@ describe('summaryController', () => {
 
       await summaryController.summarizeContent(req, res);
 
-      expect(mockPDFParse).toHaveBeenCalledWith(); // Called on the instance
+      expect(mockPDFParse).toHaveBeenCalledWith(req.file.buffer);
       expect(mockSummaryService.addSummaryQueryMessage).toHaveBeenCalledWith(
         conversationId,
         userId,
@@ -331,11 +364,11 @@ describe('summaryController', () => {
         summaryResult,
         expect.objectContaining({
           summaryType: 'file',
-          fileMetadata: {
+          fileMetadata: expect.objectContaining({
             fileName: 'document.pdf',
             fileType: 'application/pdf',
             fileSize: 1024,
-          },
+          }),
         }),
         false,
         req
@@ -348,11 +381,11 @@ describe('summaryController', () => {
           responseMessage: {
             answer: summaryResult,
             summaryType: 'file',
-            fileMetadata: {
+            fileMetadata: expect.objectContaining({
               fileName: 'document.pdf',
               fileType: 'application/pdf',
               fileSize: 1024,
-            },
+            }),
             metadata: expect.any(Object),
           },
           conversationId: conversationId,
@@ -406,12 +439,12 @@ describe('summaryController', () => {
           responseMessage: expect.objectContaining({
             answer: summaryResult,
             summaryType: 'file',
-            fileMetadata: {
+            fileMetadata: expect.objectContaining({
               fileName: 'report.docx',
               fileType:
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               fileSize: 2048,
-            },
+            }),
           }),
         }),
       });
@@ -437,7 +470,7 @@ describe('summaryController', () => {
         messages: [],
         messageCount: 0,
       });
-      mockCsvParse.mockReturnValueOnce(csvData);
+      mockCsvParse.mockRecords = csvData;
       mockSummarizerAppInvoke.mockResolvedValueOnce({ summary: summaryResult });
 
       await summaryController.summarizeContent(req, res);
@@ -447,7 +480,7 @@ describe('summaryController', () => {
         skip_empty_lines: true,
       });
       expect(mockSummarizerAppInvoke).toHaveBeenCalledWith({
-        user_input: csvContent,
+        user_input: 'header1, header2\nvalue1, value2',
         history: [
           { role: 'user', content: 'Summarize the uploaded file: data.csv' },
         ],
@@ -461,11 +494,11 @@ describe('summaryController', () => {
           responseMessage: expect.objectContaining({
             answer: summaryResult,
             summaryType: 'file',
-            fileMetadata: {
+            fileMetadata: expect.objectContaining({
               fileName: 'data.csv',
               fileType: 'text/csv',
               fileSize: 50,
-            },
+            }),
           }),
         }),
       });
@@ -509,11 +542,11 @@ describe('summaryController', () => {
           responseMessage: expect.objectContaining({
             answer: summaryResult,
             summaryType: 'file',
-            fileMetadata: {
+            fileMetadata: expect.objectContaining({
               fileName: 'notes.txt',
               fileType: 'text/plain',
               fileSize: txtContent.length,
-            },
+            }),
           }),
         }),
       });
@@ -614,7 +647,7 @@ describe('summaryController', () => {
       req.isGuest = true;
       req.user = null;
       mockSummaryService.generateGuestUserId.mockReturnValueOnce(guestUserId);
-      mockSummaryService.generateSummaryConversationId.mockReturnValueOnce(
+      mockSummaryService.generateSummaryConversationId.mockReturnValue(
         generatedConversationId
       );
       // Simulate error before handleSummaryConversation can return a valid conversationId
@@ -710,23 +743,7 @@ describe('summaryController', () => {
         new Error(errorMessage)
       );
 
-      await summaryController.getSummaryStats(req, res);
-
-      expect(mockLoggerError).toHaveBeenCalledWith(
-        'Summarizer Assistant Error:',
-        expect.any(Error)
-      ); // catchAsync logs the error
-      expect(mockSendResponse).toHaveBeenCalledWith(res, {
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        success: false,
-        message:
-          'An internal error occurred while processing your summarization request',
-        data: {
-          conversationId: undefined, // No conversation ID context for stats
-          userType: 'authenticated',
-          error: errorMessage,
-        },
-      });
+      await expect(summaryController.getSummaryStats(req, res)).rejects.toThrow(errorMessage);
     });
   });
 });

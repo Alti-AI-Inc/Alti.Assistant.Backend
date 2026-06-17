@@ -3,27 +3,44 @@ import httpStatus from 'http-status';
 
 const {
   mockSendResponse,
-  mockLogger
+  mockLogger,
+  MockAccessToken,
+  mockAddGrant,
+  mockToJwt,
 } = vi.hoisted(() => {
-  // Mock dependencies BEFORE importing the controller
   const mockSendResponse = vi.fn();
-
   const mockLogger = {
     info: vi.fn(),
     error: vi.fn(),
   };
+  const mockAddGrant = vi.fn();
+  const mockToJwt = vi.fn();
+  const MockAccessToken = vi.fn().mockImplementation(function() {
+    return {
+      addGrant: mockAddGrant,
+      toJwt: mockToJwt,
+    };
+  });
 
   return {
     mockSendResponse,
-    mockLogger
+    mockLogger,
+    MockAccessToken,
+    mockAddGrant,
+    mockToJwt,
   };
 });
 
 vi.mock('../../../shared/sendResponse', () => ({
+  default: mockSendResponse,
   sendResponse: mockSendResponse,
 }));
 
-vi.mock('../../../../config', () => ({
+vi.mock('../../../../config/index.js', () => ({
+  default: {
+    livekit_api_key: 'test_api_key',
+    livekit_secret_key: 'test_secret_key',
+  },
   livekit_api_key: 'test_api_key',
   livekit_secret_key: 'test_secret_key',
 }));
@@ -32,20 +49,13 @@ vi.mock('../../../shared/logger', () => ({
   logger: mockLogger,
 }));
 
-// Mock the livekit-server-sdk, which is dynamically imported
-const mockAddGrant = vi.fn();
-const mockToJwt = vi.fn();
-const MockAccessToken = vi.fn().mockImplementation(() => ({
-  addGrant: mockAddGrant,
-  toJwt: mockToJwt,
-}));
-
 vi.mock('livekit-server-sdk', () => ({
   AccessToken: MockAccessToken,
 }));
 
 // Mock the catchAsync wrapper to return the raw function for easier testing
 vi.mock('../../../shared/catchAsync', () => ({
+  default: vi.fn().mockImplementation(fn => fn),
   catchAsync: vi.fn().mockImplementation(fn => fn),
 }));
 

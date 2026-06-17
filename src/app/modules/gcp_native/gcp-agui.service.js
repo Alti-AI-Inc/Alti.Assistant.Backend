@@ -142,10 +142,15 @@ const generateAguiSystemPrompt = (allowedComponents = null, includeExamples = tr
     }
   }
 
+  const showExamples = includeExamples && (!allowedComponents || allowedComponents.length > 0);
+
   let prompt = `
 === GOOGLE AGENT GRAPHICAL USER INTERFACE (AGUI) STANDARD ===
 You are equipped with Google AGUI graphical canvas rendering. When a user requires rich data layouts, metrics dashboard grids, charts, or event timelines, you must output a declarative JSON representation and enclose it in standard AGUI XML tags:
+`;
 
+  if (showExamples) {
+    prompt += `
 <agui-json>
 [
   {
@@ -180,7 +185,10 @@ You are equipped with Google AGUI graphical canvas rendering. When a user requir
   }
 ]
 </agui-json>
+`;
+  }
 
+  prompt += `
 === SECURITY AND VALIDATION RULES ===
 1. All component IDs in the "components" array must be unique.
 2. The layout graph must form a directed acyclic tree with no loops.
@@ -360,7 +368,7 @@ const fixAguiPayload = (rawJson) => {
   fixed = fixed.replace(/([{,]\s*)([a-zA-Z0-9_\-]+)\s*:/g, '$1"$2":');
 
   // Remove trailing commas
-  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+  fixed = fixed.replace(/,(\s*)([}\]])/g, '$1$2');
 
   // Match and close brackets/braces using stack matching
   const stack = [];

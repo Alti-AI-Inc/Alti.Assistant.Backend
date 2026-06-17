@@ -3,10 +3,11 @@ import { GoogleAuth } from 'google-auth-library';
 
 const {
   mockGoogleAuthInstance,
+  mockGoogleAuthCalls,
   mockConfig,
   mockLogger
 } = vi.hoisted(() => {
-  // Mock dependencies
+  const mockGoogleAuthCalls = [];
   const mockGoogleAuthInstance = {
     getClient: vi.fn(),
   };
@@ -22,6 +23,7 @@ const {
   };
 
   return {
+    mockGoogleAuthCalls,
     mockGoogleAuthInstance,
     mockConfig,
     mockLogger
@@ -29,7 +31,12 @@ const {
 });
 
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn().mockImplementation(() => mockGoogleAuthInstance),
+  GoogleAuth: class {
+    constructor(...args) {
+      mockGoogleAuthCalls.push(args);
+      return mockGoogleAuthInstance;
+    }
+  }
 }));
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig,
@@ -66,8 +73,8 @@ describe('GcpTasksService', () => {
   it('should initialize GoogleAuth with correct scopes', () => {
     // The module is imported once, so GoogleAuth constructor is called once.
     // We need to ensure it's called with the correct scope.
-    expect(GoogleAuth).toHaveBeenCalledTimes(1);
-    expect(GoogleAuth).toHaveBeenCalledWith({
+    expect(mockGoogleAuthCalls).toHaveLength(1);
+    expect(mockGoogleAuthCalls[0][0]).toEqual({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
   });

@@ -52,16 +52,13 @@ const getAllTenants = async (options = {}) => {
   if (options.status) {
     filter.status = options.status;
   }
-  const query = Tenant.find(filter);
+  let query = Tenant.find(filter);
   if (options.sortBy) {
-    query.sort(options.sortBy);
+    query = query.sort(options.sortBy);
   }
   const page = parseInt(options.page, 10) || 1;
   const limit = parseInt(options.limit, 10) || 20;
-  query.skip((page - 1) * limit).limit(limit);
-  // .lean() is correctly used here to return plain JavaScript objects instead of full Mongoose documents,
-  // which is faster and uses less memory.
-  return query.lean();
+  return query.skip((page - 1) * limit).limit(limit).lean();
 };
 
 /**

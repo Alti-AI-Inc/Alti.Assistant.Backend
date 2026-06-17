@@ -9,19 +9,19 @@ const workerPath = path.resolve(__dirname, './worker.js');
 // Define the 4 zones dividing the src/app/modules/
 const zones = {
   '1': [
-    'conversations', 'chatbots', 'forum', 'composio_v2', 'composio', 
-    'composio_simple', 'mcp_toolbox', 'auth', 'social-login', 'admin', 'tenant'
+    'conversations', 'chatbots', 'forum', 
+    'mcp_toolbox', 'auth', 'social-login', 'admin', 'tenant'
   ],
   '2': [
     'Llama4', 'aiModelServices', 'browserUse', 'cyberdesk', 
-    'gemini', 'groq', 'langchain', 'llamaindex', 'openAi', 'qwen', 
+    'gemini', 'langchain', 'llamaindex', 'qwen', 
     'togetherAi', 'swarm', 'orchestrator'
   ],
   '3': [
     'article_writer', 'brainstorm', 'plan_generator', 'document_drafting', 
     'writing', 'creative_writing', 'document_analysis', 'document_review', 
     'image', 'enhanced_image', 'video', 'transcription', 'wishper', 
-    'apisports', 'aviationstack', 'google_search', 'serper', 'tavily', 
+    'apisports', 'aviationstack', 'google_search', 'serper', 
     'realestate', 'presentation', 'report', 'summary', 'translation'
   ],
   '4': [

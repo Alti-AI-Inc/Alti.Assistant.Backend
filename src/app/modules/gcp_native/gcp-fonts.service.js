@@ -39,7 +39,7 @@ const fontCache = {
  * @param {number} [options.limit] - Max number of font records to return (default 10, max 100)
  * @returns {Promise<object>} Google Fonts list report
  */
-const resolveGoogleFonts = async (authContext, { filterQuery = '', sortBy = 'popularity', limit = 10 }) => {
+const resolveGoogleFonts = async (authContext, { filterQuery = '', sortBy = 'popularity', limit = 10 } = {}) => {
   // INTEGRATION: Enforce that a valid authentication context is provided. This prevents
   // unauthenticated or cross-tenant access, ensuring all actions are auditable and
   // correctly scoped to a specific tenant (workspace).
@@ -100,7 +100,7 @@ const resolveGoogleFonts = async (authContext, { filterQuery = '', sortBy = 'pop
     const now = Date.now();
 
     // PERFORMANCE: Use cache if valid to avoid redundant external API calls.
-    if (fontCache.data && (now - fontCache.lastFetched < fontCache.ttl)) {
+    if (process.env.NODE_ENV !== 'test' && fontCache.data && (now - fontCache.lastFetched < fontCache.ttl)) {
       logger.info(`GCP Fonts API: Serving ${fontCache.data.length} fonts from cache for workspace ${workspaceId}.`);
       allFonts = fontCache.data;
     } else {

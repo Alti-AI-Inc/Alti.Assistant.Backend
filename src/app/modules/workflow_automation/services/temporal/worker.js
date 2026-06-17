@@ -104,6 +104,7 @@ class TemporalWorkerCoordinator {
       logger.info('[Temporal Worker] Polling worker successfully shut down.');
     } catch (err) {
       logger.error(`[Temporal Worker] Error during worker shutdown: ${err.message}`);
+      this.isRunning = false;
     }
   }
 

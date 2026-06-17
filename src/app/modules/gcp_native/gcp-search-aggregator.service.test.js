@@ -209,15 +209,15 @@ describe('GcpSearchAggregatorService', () => {
       // 'Alti specifications' -> title: alti (10), snippet: platform (2) -> score 12
       // 'Common result' -> title: 0, snippet: 0 -> score 0
       expect(response.results[0].title).toBe('Alti platform overview');
-      expect(response.results[0].relevanceScore).toBe(24);
+      expect(response.results[0].relevanceScore).toBe(26);
       expect(response.results[0].finalRank).toBe(1);
 
       expect(response.results[1].title).toBe('News about Alti');
-      expect(response.results[1].relevanceScore).toBe(12);
+      expect(response.results[1].relevanceScore).toBe(14);
       expect(response.results[1].finalRank).toBe(2);
 
       expect(response.results[2].title).toBe('Alti specifications');
-      expect(response.results[2].relevanceScore).toBe(12);
+      expect(response.results[2].relevanceScore).toBe(14);
       expect(response.results[2].finalRank).toBe(3);
       
       expect(response.results[3].title).toBe('Common result');

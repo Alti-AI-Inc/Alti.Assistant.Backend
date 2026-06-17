@@ -23,15 +23,16 @@ const compileAdkManifest = (pluginConfig) => {
     throw new Error('Invalid plugin configuration provided. Expected a non-null object.');
   }
 
-  logger.info(`GCP ADK: Compiling developer manifest package for "${pluginConfig.name}"...`);
+  const resolvedName = pluginConfig.name || 'unnamed-plugin';
+  logger.info(`GCP ADK: Compiling developer manifest package for "${resolvedName}"...`);
 
   const manifest = {
-    name: pluginConfig.name || 'unnamed-plugin',
+    name: resolvedName,
     version: pluginConfig.version || '1.0.0',
     scope: pluginConfig.scope || 'gcp-mcp-extensions',
     permissions: pluginConfig.permissions || ['read_file'],
     entryPoints: {
-      routePrefix: `/api/v1/gcp-native/ext/${pluginConfig.name}`,
+      routePrefix: `/api/v1/gcp-native/ext/${resolvedName}`,
       toolBinding: pluginConfig.toolBinding || 'default_tool_executor',
       activities: pluginConfig.activities || []
     }
@@ -142,11 +143,11 @@ const validateAdkManifest = (rawText) => {
  * @throws {Error} If the provided manifest is invalid or missing critical information.
  */
 const bootstrapAdkExtension = (manifest) => {
-  logger.info(`GCP ADK: Bootstrapping extension "${manifest.name}" under scope "${manifest.scope}"...`);
-  
   if (!manifest || !manifest.name) {
     throw new Error('Valid ADK manifest configuration is required to bootstrap extensions.');
   }
+
+  logger.info(`GCP ADK: Bootstrapping extension "${manifest.name}" under scope "${manifest.scope}"...`);
 
   // Simulate registering endpoints and setting up dynamic toolbox bounds
   const runtimeStatus = {

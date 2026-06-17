@@ -37,7 +37,7 @@ async function runGeminiTask(systemPrompt, history) {
     const contents = history
       .filter((msg) => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'model')
       .map((msg) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user', // Map 'assistant' to 'model' for Gemini
+        role: (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user',
         parts: [{ text: msg.content }],
       }));
 

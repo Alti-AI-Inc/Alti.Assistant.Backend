@@ -1,31 +1,38 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock mongoose
-const mockSchemaInstance = {
-  index: vi.fn(),
-  virtual: vi.fn().mockImplementation((name) => ({
-    get: vi.fn().mockImplementation((getter) => {
-      mockSchemaInstance._virtuals = mockSchemaInstance._virtuals || {};
-      mockSchemaInstance._virtuals[name] = getter;
-    }),
-  })),
-  statics: vi.fn().mockImplementation((methods) => {
-    mockSchemaInstance._statics = { ...mockSchemaInstance._statics, ...methods };
-  }),
-  methods: vi.fn().mockImplementation((methods) => {
-    mockSchemaInstance._methods = { ...mockSchemaInstance._methods, ...methods };
-  }),
-  path: vi.fn().mockImplementation(() => ({
-    validate: vi.fn(),
-  })),
-  pre: vi.fn(),
-};
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 
 const {
-  mockMongoose
+  mockMongoose,
+  mockSchemaInstance
 } = vi.hoisted(() => {
+  const mockSchemaInstance = {
+    index: vi.fn(),
+    virtual: vi.fn().mockImplementation((name) => ({
+      get: vi.fn().mockImplementation((getter) => {
+        mockSchemaInstance._virtuals = mockSchemaInstance._virtuals || {};
+        mockSchemaInstance._virtuals[name] = getter;
+      }),
+    })),
+    statics: vi.fn().mockImplementation((methods) => {
+      mockSchemaInstance._statics = { ...mockSchemaInstance._statics, ...methods };
+    }),
+    methods: vi.fn().mockImplementation((methods) => {
+      mockSchemaInstance._methods = { ...mockSchemaInstance._methods, ...methods };
+    }),
+    path: vi.fn().mockImplementation(() => ({
+      validate: vi.fn(),
+    })),
+    pre: vi.fn(),
+  };
+
+  const SchemaMock = vi.fn().mockImplementation(function () {
+    return mockSchemaInstance;
+  });
+  SchemaMock.Types = {
+    Mixed: 'Mixed',
+  };
+
   const mockMongoose = {
-    Schema: vi.fn().mockImplementation(() => mockSchemaInstance),
+    Schema: SchemaMock,
     model: vi.fn().mockImplementation((name, schema) => {
       // This mock 'model' will act as the StoredWorkflow class
       const MockModel = function (data) {
@@ -34,13 +41,13 @@ const {
       };
 
       // Attach static methods
-      if (schema._statics) {
-        Object.assign(MockModel, schema._statics);
+      if (schema.statics) {
+        Object.assign(MockModel, schema.statics);
       }
 
       // Attach instance methods
-      if (schema._methods) {
-        Object.assign(MockModel.prototype, schema._methods);
+      if (schema.methods) {
+        Object.assign(MockModel.prototype, schema.methods);
       }
 
       // Attach virtuals as getters on the prototype
@@ -59,7 +66,16 @@ const {
           sort: vi.fn().mockReturnThis(),
           limit: vi.fn().mockReturnThis(),
           skip: vi.fn().mockReturnThis(),
+          lean: vi.fn().mockImplementation(() => Promise.resolve([])),
           exec: vi.fn().mockImplementation(() => Promise.resolve([])), // Default to empty array
+        };
+        return chainable;
+      });
+
+      MockModel.findOne = vi.fn().mockImplementation(() => {
+        const chainable = {
+          lean: vi.fn().mockImplementation(() => Promise.resolve(null)),
+          exec: vi.fn().mockImplementation(() => Promise.resolve(null)),
         };
         return chainable;
       });
@@ -72,34 +88,34 @@ const {
   };
 
   return {
-    mockMongoose
+    mockMongoose,
+    mockSchemaInstance
   };
 });
 
 // Replace the actual mongoose import with our mock
-vi.mock('mongoose', () => mockMongoose);
+vi.mock('mongoose', () => ({
+  default: mockMongoose,
+  ...mockMongoose,
+}));
 
-// Import the model AFTER mocking mongoose
-import StoredWorkflow from '../storedWorkflow.model';
+// Declare StoredWorkflow variable for dynamic import
+let StoredWorkflow;
 
 describe('StoredWorkflow Model', () => {
+  beforeAll(async () => {
+    vi.resetModules();
+    const module = await import('./storedWorkflow.model.js');
+    StoredWorkflow = module.default;
+  });
+
   beforeEach(() => {
-    // Clear all mocks before each test
-    vi.clearAllMocks();
-    // Re-initialize mockSchemaInstance properties for each test if needed,
-    // especially for _statics, _methods, _virtuals to ensure isolation.
-    mockSchemaInstance.index.mockClear();
-    mockSchemaInstance.virtual.mockClear();
-    mockSchemaInstance.statics.mockClear();
-    mockSchemaInstance.methods.mockClear();
-    mockSchemaInstance._statics = {};
-    mockSchemaInstance._methods = {};
-    mockSchemaInstance._virtuals = {};
-    mockMongoose.Schema.mockClear();
-    mockMongoose.model.mockClear();
-    // Ensure the static find method on the mocked StoredWorkflow is also cleared
-    if (StoredWorkflow.find) {
+    // Ensure the static find/findOne methods on the mocked StoredWorkflow are cleared to prevent test leakage
+    if (StoredWorkflow && StoredWorkflow.find) {
       StoredWorkflow.find.mockClear();
+    }
+    if (StoredWorkflow && StoredWorkflow.findOne) {
+      StoredWorkflow.findOne.mockClear();
     }
   });
 
@@ -125,7 +141,6 @@ describe('StoredWorkflow Model', () => {
     expect(schemaDefinition.userId).toEqual({
       type: String,
       required: true,
-      index: true,
     });
     expect(schemaDefinition.title).toEqual({
       type: String,
@@ -140,13 +155,11 @@ describe('StoredWorkflow Model', () => {
       type: String,
       enum: ['single_step', 'multi_step'],
       required: true,
-      index: true,
     });
     expect(schemaDefinition.status).toEqual({
       type: String,
       enum: ['draft', 'ready', 'archived'],
       default: 'draft',
-      index: true,
     });
     expect(schemaDefinition.requiredApps).toEqual([
       {
@@ -236,11 +249,18 @@ describe('StoredWorkflow Model', () => {
   it('should define schema indexes', () => {
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, status: 1 });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, workflowType: 1 });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, category: 1 });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, createdAt: -1 });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ requiredApps: 1 });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ tags: 1 });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith({ category: 1 });
-    expect(mockSchemaInstance.index).toHaveBeenCalledTimes(6);
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      title: 'text',
+      description: 'text',
+      originalUserInput: 'text',
+      tags: 'text',
+    });
+    expect(mockSchemaInstance.index).toHaveBeenCalledTimes(8);
   });
 
   describe('Virtuals', () => {
@@ -315,7 +335,7 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'mockId1' }])),
+        lean: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'mockId1' }])),
       };
 
       beforeEach(() => {
@@ -330,7 +350,7 @@ describe('StoredWorkflow Model', () => {
         expect(mockFindResult.sort).toHaveBeenCalledWith({ createdAt: -1 });
         expect(mockFindResult.limit).toHaveBeenCalledWith(50);
         expect(mockFindResult.skip).toHaveBeenCalledWith(0);
-        expect(mockFindResult.exec).toHaveBeenCalled();
+        expect(mockFindResult.lean).toHaveBeenCalled();
       });
 
       it('should apply status filter', async () => {
@@ -387,7 +407,7 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'execId1' }])),
+        lean: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'execId1' }])),
       };
 
       beforeEach(() => {
@@ -406,7 +426,7 @@ describe('StoredWorkflow Model', () => {
             { missingConnections: { $size: 0 } },
           ],
         });
-        expect(mockFindResult.exec).toHaveBeenCalled();
+        expect(mockFindResult.lean).toHaveBeenCalled();
       });
     });
 
@@ -415,41 +435,42 @@ describe('StoredWorkflow Model', () => {
         sort: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
-        exec: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'searchId1' }])),
+        lean: vi.fn().mockImplementation(() => Promise.resolve([{ _id: 'searchId1' }])),
       };
 
       beforeEach(() => {
         StoredWorkflow.find.mockReturnValue(mockFindResult);
       });
 
-      it('should search workflows by title, description, originalUserInput, or tags', async () => {
+      it('should search workflows using text search', async () => {
         const userId = 'user123';
         const searchTerm = 'test query';
         await StoredWorkflow.searchWorkflows(userId, searchTerm);
 
         expect(StoredWorkflow.find).toHaveBeenCalledWith({
           userId,
-          $or: [
-            { title: { $regex: searchTerm, $options: 'i' } },
-            { description: { $regex: searchTerm, $options: 'i' } },
-            { originalUserInput: { $regex: searchTerm, $options: 'i' } },
-            { tags: { $in: [new RegExp(searchTerm, 'i')] } },
-          ],
+          $text: { $search: searchTerm },
         });
         expect(mockFindResult.sort).toHaveBeenCalledWith({ createdAt: -1 });
         expect(mockFindResult.limit).toHaveBeenCalledWith(20);
         expect(mockFindResult.skip).toHaveBeenCalledWith(0);
-        expect(mockFindResult.exec).toHaveBeenCalled();
+        expect(mockFindResult.lean).toHaveBeenCalled();
       });
 
-      it('should apply custom limit and offset', async () => {
+      it('should apply custom limit and offset with text search', async () => {
         const userId = 'user123';
         const searchTerm = 'another query';
         const options = { limit: 5, offset: 10 };
         await StoredWorkflow.searchWorkflows(userId, searchTerm, options);
 
+        expect(StoredWorkflow.find).toHaveBeenCalledWith({
+          userId,
+          $text: { $search: searchTerm },
+        });
+        expect(mockFindResult.sort).toHaveBeenCalledWith({ createdAt: -1 });
         expect(mockFindResult.limit).toHaveBeenCalledWith(5);
         expect(mockFindResult.skip).toHaveBeenCalledWith(10);
+        expect(mockFindResult.lean).toHaveBeenCalled();
       });
     });
   });

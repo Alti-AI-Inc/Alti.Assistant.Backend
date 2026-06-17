@@ -1,6 +1,4 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { GcpBigqueryService } from './gcp-bigquery.service.js';
-
 const {
   mockInsertDataset,
   mockInsertTable,
@@ -30,21 +28,23 @@ vi.mock('googleapis', () => {
   return {
     google: {
       auth: {
-        GoogleAuth: vi.fn().mockImplementation(() => ({
-          // Mock GoogleAuth instance
-        }))
-      },
-      bigquery: vi.fn().mockImplementation(() => ({
-        datasets: {
-          insert: mockInsertDataset
-        },
-        tables: {
-          insert: mockInsertTable
-        },
-        jobs: {
-          insert: mockInsertJob
+        GoogleAuth: function () {
+          return {};
         }
-      }))
+      },
+      bigquery: function () {
+        return {
+          datasets: {
+            insert: mockInsertDataset
+          },
+          tables: {
+            insert: mockInsertTable
+          },
+          jobs: {
+            insert: mockInsertJob
+          }
+        };
+      }
     }
   };
 });
@@ -52,6 +52,9 @@ vi.mock('googleapis', () => {
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig
 }));
+
+// Import the service after mocks are set up
+import { GcpBigqueryService } from './gcp-bigquery.service.js';
 
 vi.mock('../../../shared/logger.js', () => ({
   logger: {

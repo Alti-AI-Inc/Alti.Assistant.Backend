@@ -3,12 +3,13 @@
  * It provides functionality to generate authentication tokens for LiveKit streaming sessions.
  */
 
-const httpStatus = require('http-status');
-const { sendResponse } = require('../../../shared/sendResponse');
-const { catchAsync } = require('../../../shared/catchAsync');
-// const { AccessToken } = require('livekit-server-sdk');
-const { livekit_secret_key, livekit_api_key } = require('../../../../config');
-const { logger } = require('../../../shared/logger');
+import httpStatus from 'http-status';
+import sendResponse from '../../../shared/sendResponse.js';
+import catchAsync from '../../../shared/catchAsync.js';
+import config from '../../../../config/index.js';
+import { logger } from '../../../shared/logger.js';
+
+const { livekit_secret_key, livekit_api_key } = config;
 
 /**
  * Generates a random participant name of a specified length using uppercase alphabets.
@@ -70,7 +71,7 @@ const generateRandomParticipantName = (length) => {
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-module.exports.authStreamingController = catchAsync(async (req, res) => {
+export const authStreamingController = catchAsync(async (req, res) => {
   const { AccessToken } = await import('livekit-server-sdk');
   // if this room doesn't exist, it'll be automatically created when the first client joins
   const roomName = 'alti-ai-room';

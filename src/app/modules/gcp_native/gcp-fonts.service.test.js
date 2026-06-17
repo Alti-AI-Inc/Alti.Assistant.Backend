@@ -5,10 +5,28 @@ import { logger } from '../../../shared/logger.js';
 import { GcpFontsService } from './gcp-fonts.service.js';
 
 vi.mock('axios');
+const { mockConfig } = vi.hoisted(() => ({
+  mockConfig: {
+    google_search_api_key: 'test-api-key',
+  },
+}));
+
 vi.mock('../../../../config/index.js', () => ({
-  default: {
-    google_search_api_key: 'test-api-key'
-  }
+  default: mockConfig,
+}));
+
+vi.mock('../usage/usage.service.js', () => ({
+  UsageService: {
+    trackUsage: vi.fn(),
+    hasExceededLimit: vi.fn().mockResolvedValue(false),
+    record: vi.fn(),
+  },
+}));
+vi.mock('../workspace/workspace.service.js', () => ({
+  WorkspaceService: {
+    getWorkspace: vi.fn(),
+    isFeatureEnabled: vi.fn().mockResolvedValue(true),
+  },
 }));
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
@@ -50,18 +68,35 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
     }
   };
 
+  const mockAuthContext = {
+    workspaceId: 'test-workspace-id',
+    user: {
+      id: 'test-user-id',
+      role: 'USER',
+    },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     config.google_search_api_key = 'test-api-key';
     delete process.env.GOOGLE_SEARCH_API_KEY;
   });
 
+  it('should throw an authentication error if authContext is missing or invalid', async () => {
+    await expect(GcpFontsService.resolveGoogleFonts(null)).rejects.toThrow(
+      'Authentication context is required.'
+    );
+    await expect(GcpFontsService.resolveGoogleFonts({})).rejects.toThrow(
+      'Authentication context is required.'
+    );
+  });
+
   it('should throw an error if Google Search/Fonts API Key is not configured', async () => {
     config.google_search_api_key = undefined;
     delete process.env.GOOGLE_SEARCH_API_KEY;
 
-    await expect(GcpFontsService.resolveGoogleFonts()).rejects.toThrow(
-      'Google Fonts resolution failed: Google Search/Fonts API Key is not configured.'
+    await expect(GcpFontsService.resolveGoogleFonts(mockAuthContext, {})).rejects.toThrow(
+      'Font service is currently unavailable due to a configuration issue.'
     );
   });
 
@@ -71,7 +106,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
 
     axios.get.mockResolvedValueOnce({ data: { items: [] } });
 
-    const result = await GcpFontsService.resolveGoogleFonts();
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, {});
     expect(result.success).toBe(true);
     expect(axios.get).toHaveBeenCalledWith(
       'https://www.googleapis.com/webfonts/v1/webfonts',
@@ -87,7 +122,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should resolve google fonts with default parameters successfully', async () => {
     axios.get.mockResolvedValueOnce(mockFontsData);
 
-    const result = await GcpFontsService.resolveGoogleFonts();
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, {});
 
     expect(result).toEqual({
       success: true,
@@ -138,11 +173,11 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should default to popularity and log warning if invalid sortBy parameter is provided', async () => {
     axios.get.mockResolvedValueOnce({ data: { items: [] } });
 
-    const result = await GcpFontsService.resolveGoogleFonts('', 'invalid-sort');
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, { sortBy: 'invalid-sort' });
 
     expect(result.sortBy).toBe('popularity');
     expect(logger.warn).toHaveBeenCalledWith(
-      'GCP Fonts API: Invalid sortBy parameter "invalid-sort" provided. Defaulting to "popularity".'
+      'GCP Fonts API: Invalid sortBy parameter "invalid-sort" provided for workspace test-workspace-id. Defaulting to "popularity".'
     );
     expect(axios.get).toHaveBeenCalledWith(
       'https://www.googleapis.com/webfonts/v1/webfonts',
@@ -158,7 +193,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should accept valid sortBy parameters', async () => {
     axios.get.mockResolvedValueOnce({ data: { items: [] } });
 
-    const result = await GcpFontsService.resolveGoogleFonts('', 'alpha');
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, { sortBy: 'alpha' });
 
     expect(result.sortBy).toBe('alpha');
     expect(logger.warn).not.toHaveBeenCalled();
@@ -176,7 +211,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should filter fonts by filterQuery (case-insensitive)', async () => {
     axios.get.mockResolvedValueOnce(mockFontsData);
 
-    const result = await GcpFontsService.resolveGoogleFonts('roboto');
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, { filterQuery: 'roboto' });
 
     expect(result.totalCount).toBe(1);
     expect(result.returnedCount).toBe(1);
@@ -186,7 +221,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should limit the returned results', async () => {
     axios.get.mockResolvedValueOnce(mockFontsData);
 
-    const result = await GcpFontsService.resolveGoogleFonts('', 'popularity', 2);
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, { sortBy: 'popularity', limit: 2 });
 
     expect(result.totalCount).toBe(3);
     expect(result.returnedCount).toBe(2);
@@ -207,7 +242,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
     };
     axios.get.mockResolvedValueOnce(incompleteData);
 
-    const result = await GcpFontsService.resolveGoogleFonts();
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, {});
 
     expect(result.fonts[0]).toEqual({
       family: 'Minimal Font',
@@ -222,7 +257,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
   it('should handle empty items array from API', async () => {
     axios.get.mockResolvedValueOnce({ data: {} });
 
-    const result = await GcpFontsService.resolveGoogleFonts();
+    const result = await GcpFontsService.resolveGoogleFonts(mockAuthContext, {});
 
     expect(result.totalCount).toBe(0);
     expect(result.returnedCount).toBe(0);
@@ -233,12 +268,12 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
     const apiError = new Error('Network Error');
     axios.get.mockRejectedValueOnce(apiError);
 
-    await expect(GcpFontsService.resolveGoogleFonts()).rejects.toThrow(
-      'Google Fonts resolution failed: Network Error'
+    await expect(GcpFontsService.resolveGoogleFonts(mockAuthContext, {})).rejects.toThrow(
+      'An unexpected error occurred while resolving Google Fonts.'
     );
 
     expect(logger.error).toHaveBeenCalledWith(
-      'GCP Fonts API Resolution Error:',
+      expect.stringContaining('GCP Fonts API Resolution Error for workspace'),
       apiError
     );
   });

@@ -1,12 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock express and its Router method
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
 const {
+  mockRouter,
   mockExpress,
   mockAuth,
   mockOptionalAuth,
@@ -15,26 +10,54 @@ const {
   mockCheckDailyRequestLimit,
   mockExtractTenantContext,
   mockCodeController,
-  mockCodeValidation
+  mockCodeValidation,
+  mockPerformCodeTask,
+  mockGetCodeStats,
+  mockCodeQuerySchema,
+  mockAuthMiddleware,
+  mockOptionalAuthMiddleware,
+  mockCreateRateLimiterMiddleware,
+  mockValidateRequestMiddleware,
 } = vi.hoisted(() => {
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+  };
   const mockExpress = {
     Router: vi.fn().mockImplementation(() => mockRouter),
   };
+
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockCreateRateLimiterMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+  const mockValidateRequestMiddleware = vi.fn().mockImplementation((req, res, next) => next());
+
   const mockAuth = vi.fn().mockImplementation((...roles) => mockAuthMiddleware);
-
   const mockOptionalAuth = vi.fn().mockImplementation(() => mockOptionalAuthMiddleware);
-
   const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => mockCreateRateLimiterMiddleware);
-
   const mockValidateRequest = vi.fn().mockImplementation((schema) => mockValidateRequestMiddleware);
 
   // Direct middleware functions
   const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
   const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
 
+  const mockPerformCodeTask = vi.fn();
+  const mockGetCodeStats = vi.fn();
   const mockCodeController = {
     performCodeTask: mockPerformCodeTask,
     getCodeStats: mockGetCodeStats,
+  };
+  
+  const mockCodeQuerySchema = {
+    body: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string' },
+        language: { type: 'string' },
+        context: { type: 'string' },
+      },
+      required: ['prompt'],
+    },
   };
   const mockCodeValidation = {
     CodeValidation: {
@@ -43,6 +66,7 @@ const {
   };
 
   return {
+    mockRouter,
     mockExpress,
     mockAuth,
     mockOptionalAuth,
@@ -51,21 +75,18 @@ const {
     mockCheckDailyRequestLimit,
     mockExtractTenantContext,
     mockCodeController,
-    mockCodeValidation
+    mockCodeValidation,
+    mockPerformCodeTask,
+    mockGetCodeStats,
+    mockCodeQuerySchema,
+    mockAuthMiddleware,
+    mockOptionalAuthMiddleware,
+    mockCreateRateLimiterMiddleware,
+    mockValidateRequestMiddleware,
   };
 });
 
 vi.mock('express', () => ({ default: mockExpress }));
-
-// Mock middleware functions
-// Middleware factories (return a middleware function)
-const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
-
-const mockOptionalAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
-
-const mockCreateRateLimiterMiddleware = vi.fn().mockImplementation((req, res, next) => next());
-
-const mockValidateRequestMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE: {
@@ -80,37 +101,17 @@ vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validat
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({ default: mockCheckDailyRequestLimit }));
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
 
-// Mock controller methods
-const mockPerformCodeTask = vi.fn();
-const mockGetCodeStats = vi.fn();
 vi.mock('./code.controller.js', () => ({ codeController: mockCodeController }));
-
-// Mock validation schema
-const mockCodeQuerySchema = {
-  body: {
-    type: 'object',
-    properties: {
-      prompt: { type: 'string' },
-      language: { type: 'string' },
-      context: { type: 'string' },
-    },
-    required: ['prompt'],
-  },
-};
 vi.mock('./code.validation.js', () => (mockCodeValidation));
 
-// Import the module under test AFTER all mocks are defined
-// This ensures that when code.route.js is imported, it uses our mocked dependencies.
-import { codeRoutes } from './code.route';
-
 describe('code.route', () => {
-  beforeEach(() => {
-    // Clear all mocks before each test
+  let codeRoutes;
+
+  beforeAll(async () => {
+    vi.resetModules();
     vi.clearAllMocks();
-    // Re-mock Router to ensure a fresh mockRouter instance for each test if needed,
-    // though in this setup, mockRouter is a single instance and clearing its calls is sufficient.
-    // If `express.Router()` was called inside a function, we'd need to re-mock `mockExpress.Router`
-    // to return a new `mockRouter` instance. Here, it's called once at module load.
+    const module = await import('./code.route.js');
+    codeRoutes = module.codeRoutes;
   });
 
   it('should initialize the router correctly', () => {

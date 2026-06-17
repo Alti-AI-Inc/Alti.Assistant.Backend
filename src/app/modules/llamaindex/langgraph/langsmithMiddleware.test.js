@@ -35,7 +35,7 @@ vi.mock('../../../../shared/logger.js', () => ({
 
 // Mock LangChainTracer
 const MockLangChainTracer = vi.fn();
-vi.mock('@langchain/core/tracers/langchain', () => ({
+vi.mock('@langchain/core/tracers/tracer_langchain', () => ({
   LangChainTracer: MockLangChainTracer,
 }));
 
@@ -51,12 +51,12 @@ const importLangsmithMiddlewareModule = async () => {
   vi.mock('../../../../shared/logger.js', () => ({
     logger: mockLogger,
   }));
-  vi.mock('@langchain/core/tracers/langchain', () => ({
+  vi.mock('@langchain/core/tracers/tracer_langchain', () => ({
     LangChainTracer: MockLangChainTracer,
   }));
 
   // Import the module under test
-  const { langsmithMiddleware } = await import('../langsmithMiddleware.js');
+  const { langsmithMiddleware } = await import('./langsmithMiddleware.js');
   return langsmithMiddleware;
 };
 

@@ -1,403 +1,79 @@
 import { workflowStorageService } from './workflowStorage.service.js';
-import { workflowService } from '../../composio_v2/services/workflow.service.js';
 import { logger } from '../../../../shared/logger.js';
 
 /**
- * Integration Service between Workflow Storage and Composio v2 Execution
+ * Integration Service between Workflow Storage and Execution (Stubbed)
  *
- * This service provides methods to execute stored workflows using the
- * existing Composio v2 workflow execution infrastructure.
+ * This service provides methods to handle stored workflow actions.
+ * Since Composio has been removed, execution and scheduling features
+ * report that execution is disabled.
  */
 class WorkflowExecutionIntegrationService {
   /**
-   * Execute a stored workflow using Composio v2
+   * Execute a stored workflow (Stubbed)
    * @param {string} workflowId - Stored workflow ID
    * @param {string} userId - User ID
    * @param {Object} options - Execution options
    * @returns {Object} Execution result
    */
   async executeStoredWorkflow(workflowId, userId, options = {}) {
-    try {
-      const {
-        triggerSource = 'user_click',
-        scheduleType = null,
-        executionMetadata = {},
-      } = options;
-
-      console.log(`Starting execution of stored workflow: ${workflowId}`);
-
-      // Step 1: Get stored workflow
-      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
-      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
-      // .lean() is not applied here because storedWorkflow.markAsExecuted()
-      // is an instance method that requires a Mongoose document.
-      const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId);
-
-      if (!storedWorkflowResult.success) {
-        return {
-          success: false,
-          error: 'Stored workflow not found',
-          details: storedWorkflowResult.error,
-        };
-      }
-
-      const storedWorkflow = storedWorkflowResult.data;
-
-      // Step 2: Check if workflow is executable
-      if (!storedWorkflow.isExecutable) {
-        return {
-          success: false,
-          error: 'Workflow is not executable',
-          details: {
-            status: storedWorkflow.status,
-            missingConnections: storedWorkflow.missingConnections,
-            requiredApps: storedWorkflow.requiredApps,
-          },
-        };
-      }
-
-      // Step 3: Prepare execution data in Composio v2 format
-      const executionData = {
-        userId,
-        title: storedWorkflow.title,
-        description: storedWorkflow.description,
-        executionPlan: storedWorkflow.executionPlan,
-        workflowType: storedWorkflow.workflowType,
-        requiredApps: storedWorkflow.requiredApps,
-        triggerType: 'manual', // Always manual for stored workflows
-        scheduleConfig: {
-          isActive: false, // Immediate execution
-          triggerSource,
-          executionMetadata: {
-            ...executionMetadata,
-            sourceWorkflowId: workflowId,
-            sourceModule: 'workflow_storage',
-            executionTime: new Date(),
-          },
-        },
-        originalUserInput: storedWorkflow.originalUserInput,
-        conversationId: storedWorkflow.conversationId,
-        conversationContext: storedWorkflow.conversationContext || {},
-      };
-
-      // Step 4: Create and execute workflow in Composio v2
-      console.log('Creating workflow in Composio v2...');
-      const composioWorkflowResult =
-        await workflowService.createWorkflow(executionData);
-
-      if (!composioWorkflowResult.success) {
-        return {
-          success: false,
-          error: 'Failed to create workflow in Composio v2',
-          details: composioWorkflowResult.error,
-        };
-      }
-
-      const composioWorkflow = composioWorkflowResult.data;
-
-      // Step 5: Trigger execution
-      console.log(
-        `Triggering execution for Composio v2 workflow: ${composioWorkflow.workflowId}`
-      );
-      const executionResult = await workflowService.triggerWorkflow(
-        composioWorkflow.workflowId,
-        userId,
-        triggerSource
-      );
-
-      // Step 6: Update stored workflow execution count
-      if (executionResult.success) {
-        await storedWorkflow.markAsExecuted();
-        console.log(`Marked stored workflow ${workflowId} as executed`);
-      }
-
-      return {
-        success: true,
-        data: {
-          storedWorkflowId: workflowId,
-          composioWorkflowId: composioWorkflow.workflowId,
-          executionId: executionResult.data?.executionId,
-          status: executionResult.success ? 'started' : 'failed',
-          executionResult: executionResult.data,
-          metadata: {
-            triggerSource,
-            executionTime: new Date(),
-            workflowTitle: storedWorkflow.title,
-            workflowType: storedWorkflow.workflowType,
-            totalSteps: storedWorkflow.totalSteps,
-          },
-        },
-        message: 'Stored workflow execution started successfully',
-      };
-    } catch (error) {
-      logger.error('Error executing stored workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-        details: {
-          stack: error.stack,
-          workflowId,
-          userId,
-        },
-      };
-    }
+    console.log(`Execution requested for stored workflow: ${workflowId} (disabled)`);
+    return {
+      success: false,
+      error: 'External execution is disabled: Composio has been removed.',
+      message: 'Workflow execution failed because the Composio integration has been removed.',
+    };
   }
 
   /**
-   * Execute multiple stored workflows in batch
+   * Execute multiple stored workflows in batch (Stubbed)
    * @param {string[]} workflowIds - Array of stored workflow IDs
    * @param {string} userId - User ID
    * @param {Object} options - Execution options
    * @returns {Object} Batch execution results
    */
   async executeBatchStoredWorkflows(workflowIds, userId, options = {}) {
-    try {
-      const {
-        concurrent = false,
-        maxConcurrency = 3,
-        continueOnError = true,
-      } = options;
-
-      console.log(
-        `Starting batch execution of ${workflowIds.length} stored workflows`
-      );
-
-      const results = [];
-      const errors = [];
-
-      if (concurrent) {
-        // Execute workflows concurrently
-        // Optimization: Consider using a library like 'p-limit' for more robust
-        // concurrency control if maxConcurrency is dynamic or more complex.
-        const promises = workflowIds.map(async (workflowId) => {
-          try {
-            const result = await this.executeStoredWorkflow(
-              workflowId,
-              userId,
-              options
-            );
-            return { workflowId, result };
-          } catch (error) {
-            return { workflowId, error: error.message };
-          }
-        });
-
-        // Execute in batches to respect maxConcurrency
-        // This loop structure already implements a form of batching for concurrency.
-        for (let i = 0; i < promises.length; i += maxConcurrency) {
-          const batch = promises.slice(i, i + maxConcurrency);
-          const batchResults = await Promise.all(batch);
-
-          batchResults.forEach(({ workflowId, result, error }) => {
-            if (error) {
-              errors.push({ workflowId, error });
-            } else {
-              results.push({ workflowId, result });
-            }
-          });
-        }
-      } else {
-        // Execute workflows sequentially
-        for (const workflowId of workflowIds) {
-          try {
-            const result = await this.executeStoredWorkflow(
-              workflowId,
-              userId,
-              options
-            );
-            results.push({ workflowId, result });
-
-            if (!result.success && !continueOnError) {
-              errors.push({ workflowId, error: result.error });
-              break;
-            }
-          } catch (error) {
-            errors.push({ workflowId, error: error.message });
-
-            if (!continueOnError) {
-              break;
-            }
-          }
-        }
-      }
-
-      const successCount = results.filter((r) => r.result.success).length;
-      const failureCount = results.length - successCount + errors.length;
-
-      return {
-        success: successCount > 0,
-        data: {
-          totalRequested: workflowIds.length,
-          successCount,
-          failureCount,
-          results,
-          errors,
-        },
-        message: `Batch execution completed: ${successCount} succeeded, ${failureCount} failed`,
-      };
-    } catch (error) {
-      logger.error('Error in batch execution:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    console.log(`Batch execution requested for ${workflowIds.length} workflows (disabled)`);
+    return {
+      success: false,
+      error: 'External execution is disabled: Composio has been removed.',
+      message: 'Batch workflow execution failed because the Composio integration has been removed.',
+    };
   }
 
   /**
-   * Schedule stored workflow for recurring execution
+   * Schedule stored workflow for recurring execution (Stubbed)
    * @param {string} workflowId - Stored workflow ID
    * @param {string} userId - User ID
    * @param {Object} scheduleConfig - Schedule configuration
    * @returns {Object} Scheduling result
    */
   async scheduleStoredWorkflow(workflowId, userId, scheduleConfig) {
-    try {
-      console.log(`Scheduling stored workflow: ${workflowId}`);
-
-      // Step 1: Get stored workflow
-      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
-      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
-      // Apply .lean() for performance as only properties are read and no instance methods are called.
-      const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
-
-      if (!storedWorkflowResult.success) {
-        return {
-          success: false,
-          error: 'Stored workflow not found',
-        };
-      }
-
-      const storedWorkflow = storedWorkflowResult.data;
-
-      // Step 2: Check if workflow is executable
-      if (!storedWorkflow.isExecutable) {
-        return {
-          success: false,
-          error: 'Workflow is not executable',
-          details: {
-            missingConnections: storedWorkflow.missingConnections,
-          },
-        };
-      }
-
-      // Step 3: Prepare scheduled workflow data
-      const scheduledWorkflowData = {
-        userId,
-        title: `${storedWorkflow.title} (Scheduled)`,
-        description: storedWorkflow.description,
-        executionPlan: storedWorkflow.executionPlan,
-        workflowType: storedWorkflow.workflowType,
-        requiredApps: storedWorkflow.requiredApps,
-        triggerType: 'scheduled',
-        scheduleConfig: {
-          ...scheduleConfig,
-          isActive: true,
-          sourceWorkflowId: workflowId,
-          sourceModule: 'workflow_storage',
-        },
-        originalUserInput: storedWorkflow.originalUserInput,
-        conversationId: storedWorkflow.conversationId,
-        conversationContext: storedWorkflow.conversationContext || {},
-      };
-
-      // Step 4: Create scheduled workflow in Composio v2
-      const scheduledResult = await workflowService.createWorkflow(
-        scheduledWorkflowData
-      );
-
-      if (scheduledResult.success) {
-        console.log(
-          `Successfully scheduled workflow: ${scheduledResult.data.workflowId}`
-        );
-      }
-
-      return {
-        success: scheduledResult.success,
-        data: {
-          storedWorkflowId: workflowId,
-          scheduledWorkflowId: scheduledResult.data?.workflowId,
-          scheduleConfig,
-          nextExecution: scheduledResult.data?.nextExecution,
-        },
-        error: scheduledResult.error,
-        message: scheduledResult.success
-          ? 'Workflow scheduled successfully'
-          : 'Failed to schedule workflow',
-      };
-    } catch (error) {
-      logger.error('Error scheduling stored workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    console.log(`Scheduling requested for stored workflow: ${workflowId} (disabled)`);
+    return {
+      success: false,
+      error: 'External execution scheduling is disabled: Composio has been removed.',
+      message: 'Scheduling failed because the Composio integration has been removed.',
+    };
   }
 
   /**
-   * Get execution history for a stored workflow
+   * Get execution history for a stored workflow (Stubbed)
    * @param {string} workflowId - Stored workflow ID
    * @param {string} userId - User ID
    * @param {Object} options - Query options
    * @returns {Object} Execution history
    */
   async getStoredWorkflowExecutionHistory(workflowId, userId, options = {}) {
-    try {
-      const { limit = 20, offset = 0 } = options;
-
-      // Get stored workflow to verify ownership
-      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
-      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
-      // Apply .lean() for performance as only 'success' is checked and no instance methods are called.
-      const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
-
-      if (!storedWorkflowResult.success) {
-        return {
-          success: false,
-          error: 'Stored workflow not found',
-        };
-      }
-
-      // Get execution history from Composio v2
-      // Optimization Recommendation: Ensure workflowService.getUserWorkflows
-      // uses indexes on 'userId' and 'scheduleConfig.executionMetadata.sourceWorkflowId'
-      // for efficient database-level filtering.
-      // The filter object passed to getUserWorkflows should be fully utilized by the service.
-      const historyResult = await workflowService.getUserWorkflows(
-        userId,
-        null,
-        limit,
-        offset,
-        { 'scheduleConfig.executionMetadata.sourceWorkflowId': workflowId }
-      );
-
-      if (historyResult.success) {
-        // Assuming workflowService.getUserWorkflows correctly applies the filter
-        // 'scheduleConfig.executionMetadata.sourceWorkflowId' at the database level,
-        // the in-memory filter is redundant and removed for efficiency.
-        const executions = historyResult.data.workflows;
-
-        return {
-          success: true,
-          data: {
-            storedWorkflowId: workflowId,
-            executions: executions,
-            totalExecutions: historyResult.data.totalWorkflows, // Use total from service if available
-          },
-        };
-      }
-
-      return historyResult;
-    } catch (error) {
-      logger.error('Error getting execution history:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    return {
+      success: true,
+      data: {
+        storedWorkflowId: workflowId,
+        executions: [],
+        totalExecutions: 0,
+      },
+      message: 'No execution history available (Composio integration removed).',
+    };
   }
 
   /**
@@ -421,9 +97,6 @@ class WorkflowExecutionIntegrationService {
       } = templateConfig;
 
       // Get stored workflow
-      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
-      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
-      // Apply .lean() for performance as the object is immediately used as a plain object.
       const storedWorkflowResult =
         await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
 
@@ -437,8 +110,6 @@ class WorkflowExecutionIntegrationService {
       const storedWorkflow = storedWorkflowResult.data;
 
       // Create template workflow data
-      // Since .lean() is used above, storedWorkflow is already a plain object.
-      // No need for .toObject() check.
       const templateData = {
         ...storedWorkflow,
         _id: undefined,

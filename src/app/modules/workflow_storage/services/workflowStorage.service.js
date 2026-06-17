@@ -1,6 +1,5 @@
 import StoredWorkflow from '../models/storedWorkflow.model.js';
-import { planWorkflowNode } from '../../composio_v2/ai_classification/nodes.js';
-import ComposioAuth from '../../composio_v2/composio.model.js';
+import { planWorkflowNode } from './aiPlanner.js';
 import { logger } from '../../../../shared/logger.js';
 import { withTenantPipeline } from '../../../helpers/tenantQuery.js';
 
@@ -646,13 +645,8 @@ class WorkflowStorageService {
    */
   async getUserConnectedAccounts(userId) {
     try {
-      // Optimization: Use .lean() for read-only queries to improve performance
-      const connectedAccounts = await ComposioAuth.find({
-        userId,
-        status: 'ACTIVE',
-      }).lean();
-
-      return connectedAccounts || [];
+      // Composio is removed, return empty array for connected accounts
+      return [];
     } catch (error) {
       console.error('Error getting user connected accounts:', error);
       return [];

@@ -43,11 +43,18 @@ const getTextEmbeddings = async (texts, taskType = 'RETRIEVAL_DOCUMENT') => {
     const predictions = response.data?.predictions || [];
     const embeddings = predictions.map(pred => pred.embeddings?.values || []);
 
+    const resultEmbeddings = Array.isArray(texts) ? embeddings : (embeddings[0] || []);
+    
+    let dimensions = 768;
+    if (predictions.length > 0) {
+      dimensions = predictions[0].embeddings?.values?.length || 0;
+    }
+
     return {
       success: true,
-      embeddings: Array.isArray(texts) ? embeddings : embeddings[0],
+      embeddings: resultEmbeddings,
       model: 'text-embedding-004',
-      dimensions: embeddings[0]?.length || 768
+      dimensions
     };
   } catch (err) {
     logger.error('GCP Embeddings Service Error:', err);

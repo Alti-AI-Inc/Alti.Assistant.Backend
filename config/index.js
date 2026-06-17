@@ -57,15 +57,7 @@ export default {
     namespace: process.env.TEMPORAL_NAMESPACE || 'default',
   },
 
-  composio: {
-    projectId: process.env.COMPOSIO_PROJECT_ID,
-    clientId: process.env.COMPOSIO_CLIENT_ID,
-    clientSecret: process.env.COMPOSIO_CLIENT_SECRET,
-    apiKey: process.env.COMPOSIO_API_KEY,
-    orgApiKey: process.env.COMPOSIO_ORG_API_KEY,
-    gmailAuthConfigId: process.env.COMPOSIO_GMAIL_AUTH_CONFIG_ID,
-    useSimplified: process.env.USE_SIMPLIFIED_COMPOSIO === 'true', // Feature flag to toggle between v2 and simple
-  },
+
   openMemory: {
     enabled: process.env.OPENMEMORY_ENABLED === 'true',
     baseUrl: process.env.OPENMEMORY_BASE_URL || 'http://localhost:8080',
@@ -74,8 +66,7 @@ export default {
     defaultTopK: Number(process.env.OPENMEMORY_TOP_K || 5),
     timeoutMs: Number(process.env.OPENMEMORY_TIMEOUT_MS || 8000),
   },
-  tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
-  serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
+
   gemini_secret_key: process.env.GEMINI_API_KEY,
   gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
@@ -139,9 +130,6 @@ export default {
     pubsub: {
       subscriptionTopic: process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC || 'stripe-subscription-updates',
       stripe_webhook_topic: process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhook-events',
-      topics: {
-        toolsSync: 'composio-tools-sync',
-      },
     },
     tasks_queue: process.env.GCP_TASKS_QUEUE || 'stripe-tasks-queue',
     tasks_worker_url: process.env.GCP_TASKS_WORKER_URL || 'https://alti-backend.onrender.com/api/v1/stripe/tasks-worker',

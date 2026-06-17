@@ -3,26 +3,25 @@ import { GcpSecretsService } from './gcp-secrets.service.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-const mockRequest = vi.fn();
 const {
+  mockRequest,
   mockGetClient
 } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
   const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
 
   return {
+    mockRequest,
     mockGetClient
   };
 });
 
-vi.mock('google-auth-library', () => {
-  return {
-    GoogleAuth: vi.fn().mockImplementation(() => {
-      return {
-        getClient: mockGetClient
-      };
-    })
-  };
-});
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
+}));
 
 vi.mock('../../../../config/index.js', () => ({
   default: {

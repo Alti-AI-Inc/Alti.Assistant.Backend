@@ -352,6 +352,7 @@ const downloadFromGCSToBuffer = async (gcsPath) => {
     };
   } catch (error) {
     logger.error('Error downloading file from GCS to buffer:', error);
+    if (error instanceof ApiError) throw error;
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to download file from GCS'

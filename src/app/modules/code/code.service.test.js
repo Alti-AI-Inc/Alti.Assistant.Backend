@@ -8,13 +8,17 @@ import { codeService } from './code.service.js';
 
 // Mock external dependencies
 vi.mock('http-status', () => ({ default: { INTERNAL_SERVER_ERROR: 500 } }));
-vi.mock('../../../errors/ApiError.js', () => ({
-  default: vi.fn().mockImplementation((status, message) => {
+vi.mock('../../../errors/ApiError.js', () => {
+  const ApiErrorMock = vi.fn().mockImplementation(function (status, message) {
     const error = new Error(message);
     error.statusCode = status;
     return error;
-  }),
-}));
+  });
+  Object.defineProperty(ApiErrorMock, Symbol.hasInstance, {
+    value: (instance) => instance && typeof instance.statusCode === 'number',
+  });
+  return { default: ApiErrorMock };
+});
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
@@ -176,7 +180,7 @@ describe('codeService', () => {
           },
           is_code_assistant: true,
         },
-        newConversationId,
+        conversationId,
         req
       );
       expect(result).toEqual(mockNewConversation);
@@ -357,7 +361,7 @@ describe('codeService', () => {
 
     it('should return success: false for guest user on internal error without throwing', async () => {
       const guestUserId = 'guest123';
-      logger.info.mockImplementation(() => {
+      logger.info.mockImplementationOnce(() => {
         throw new Error('Logging failed');
       });
 

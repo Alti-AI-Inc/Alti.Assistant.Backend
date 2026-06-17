@@ -389,7 +389,7 @@ describe('GcpAguiService', () => {
 
   describe('parseAguiStreamChunk', () => {
     it('should parse stream chunk statelessly and return updated state', () => {
-      const initialState = { buffer: 'Intro. <agui-json>', insideTag: true };
+      const initialState = { buffer: '', insideTag: true };
       const chunk = '{ "id": "1" } </agui-json> Outro.';
 
       const result = GcpAguiService.parseAguiStreamChunk(chunk, initialState);

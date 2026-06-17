@@ -10,9 +10,10 @@ const {
   mockValidateRequest,
   mockAnalyzeDocument,
   mockGetConversationHistory,
+  mockGenerateUploadUrl,
   mockAnalyzeRequestSchema,
   mockGetConversationHistorySchema,
-  mockUploadDocumentAnalysis
+  mockGenerateUploadUrlSchema,
 } = vi.hoisted(() => {
   // Mock all dependencies
   // Middleware functions that are directly imported and used
@@ -29,15 +30,12 @@ const {
   // Controller methods
   const mockAnalyzeDocument = vi.fn();
   const mockGetConversationHistory = vi.fn();
+  const mockGenerateUploadUrl = vi.fn();
 
   // Validation schemas
-  const mockAnalyzeRequestSchema = { type: 'object', properties: { /* ... */ }, _isJoi: true }; // Add _isJoi for potential Joi validation checks
-  const mockGetConversationHistorySchema = { type: 'object', properties: { /* ... */ }, _isJoi: true };
-
-  // Upload middleware object
-  const mockUploadDocumentAnalysis = {
-    single: vi.fn().mockImplementation((fieldName) => (req, res, next) => next()),
-  };
+  const mockAnalyzeRequestSchema = { type: 'object', properties: {}, _isJoi: true };
+  const mockGetConversationHistorySchema = { type: 'object', properties: {}, _isJoi: true };
+  const mockGenerateUploadUrlSchema = { type: 'object', properties: {}, _isJoi: true };
 
   return {
     mockExtractTenantContext,
@@ -49,9 +47,10 @@ const {
     mockValidateRequest,
     mockAnalyzeDocument,
     mockGetConversationHistory,
+    mockGenerateUploadUrl,
     mockAnalyzeRequestSchema,
     mockGetConversationHistorySchema,
-    mockUploadDocumentAnalysis
+    mockGenerateUploadUrlSchema,
   };
 });
 
@@ -115,6 +114,7 @@ vi.mock('./document_analysis.controller.js', () => ({
   documentAnalysisController: {
     analyzeDocument: mockAnalyzeDocument,
     getConversationHistory: mockGetConversationHistory,
+    generateUploadUrl: mockGenerateUploadUrl,
   },
 }));
 
@@ -122,11 +122,8 @@ vi.mock('./document_analysis.validation.js', () => ({
   DocumentAnalysisValidation: {
     analyzeRequestSchema: mockAnalyzeRequestSchema,
     getConversationHistorySchema: mockGetConversationHistorySchema,
+    generateUploadUrlSchema: mockGenerateUploadUrlSchema,
   },
-}));
-
-vi.mock('./middlewares/uploadDocumentAnalysis.js', () => ({
-  uploadDocumentAnalysis: mockUploadDocumentAnalysis,
 }));
 
 let documentAnalysisRoutes;
@@ -137,7 +134,6 @@ describe('documentAnalysisRoutes', () => {
     vi.clearAllMocks();
 
     // Reset modules to ensure express.Router() is called again, creating a new currentMockRouter
-    // This is crucial for router files where the router instance is created at module load time.
     await vi.importActual('express'); // Ensure 'express' itself is not fully mocked away from resetModules
     vi.resetModules();
 
@@ -150,43 +146,67 @@ describe('documentAnalysisRoutes', () => {
     expect(documentAnalysisRoutes).toBe(currentMockRouter);
   });
 
-  describe('POST /analyze', () => {
-    it('should define the POST /analyze route with correct middleware in order', () => {
-      expect(currentMockRouter.post).toHaveBeenCalledTimes(1);
-      const [path, ...middlewares] = currentMockRouter.post.mock.calls[0];
+  describe('POST /generate-upload-url', () => {
+    it('should define the POST /generate-upload-url route with correct middleware in order', () => {
+      expect(currentMockRouter.post).toHaveBeenCalledTimes(2); // generate-upload-url and analyze
+      const uploadUrlCall = currentMockRouter.post.mock.calls.find(call => call[0] === '/generate-upload-url');
+      expect(uploadUrlCall).toBeDefined();
 
-      expect(path).toBe('/analyze');
-      expect(middlewares).toHaveLength(8); // Total number of middleware functions
+      const [path, ...middlewares] = uploadUrlCall;
+      expect(path).toBe('/generate-upload-url');
+      expect(middlewares).toHaveLength(5); // auth, extractTenantContext, checkStorageLimit, validateRequest, generateUploadUrl
 
-      // Verify specific middleware calls and arguments
-      // 1. optionalAuth()
-      expect(mockOptionalAuth).toHaveBeenCalledTimes(1);
-      expect(middlewares[0]).toBeInstanceOf(Function); // The actual middleware returned by optionalAuth()
+      // 1. auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN)
+      expect(mockAuth).toHaveBeenCalledWith('user', 'admin');
+      expect(middlewares[0]).toBeInstanceOf(Function);
 
       // 2. extractTenantContext
       expect(middlewares[1]).toBe(mockExtractTenantContext);
 
-      // 3. checkDailyRequestLimit
-      expect(middlewares[2]).toBe(mockCheckDailyRequestLimit);
+      // 3. checkStorageLimit
+      expect(middlewares[2]).toBe(mockCheckStorageLimit);
 
-      // 4. checkStorageLimit
-      expect(middlewares[3]).toBe(mockCheckStorageLimit);
+      // 4. validateRequest(DocumentAnalysisValidation.generateUploadUrlSchema)
+      expect(mockValidateRequest).toHaveBeenCalledWith(mockGenerateUploadUrlSchema);
+      expect(middlewares[3]).toBeInstanceOf(Function);
 
-      // 5. uploadDocumentAnalysis.single('file')
-      expect(mockUploadDocumentAnalysis.single).toHaveBeenCalledTimes(1);
-      expect(mockUploadDocumentAnalysis.single).toHaveBeenCalledWith('file');
-      expect(middlewares[4]).toBeInstanceOf(Function); // The actual middleware returned by uploadDocumentAnalysis.single()
+      // 5. generateUploadUrl
+      expect(middlewares[4]).toBe(mockGenerateUploadUrl);
+    });
+  });
 
-      // 6. checkRAGFeature
-      expect(middlewares[5]).toBe(mockCheckRAGFeature);
+  describe('POST /analyze', () => {
+    it('should define the POST /analyze route with correct middleware in order', () => {
+      expect(currentMockRouter.post).toHaveBeenCalledTimes(2);
+      const analyzeCall = currentMockRouter.post.mock.calls.find(call => call[0] === '/analyze');
+      expect(analyzeCall).toBeDefined();
 
-      // 7. validateRequest(DocumentAnalysisValidation.analyzeRequestSchema)
-      expect(mockValidateRequest).toHaveBeenCalledTimes(1);
+      const [path, ...middlewares] = analyzeCall;
+      expect(path).toBe('/analyze');
+      expect(middlewares).toHaveLength(7); // optionalAuth, conditionalAnalyzeLimiter, extractTenantContext, checkDailyRequestLimit, checkRAGFeature, validateRequest, analyzeDocument
+
+      // 1. optionalAuth()
+      expect(mockOptionalAuth).toHaveBeenCalledTimes(1);
+      expect(middlewares[0]).toBeInstanceOf(Function);
+
+      // 2. conditionalAnalyzeLimiter
+      expect(middlewares[1]).toBeInstanceOf(Function);
+
+      // 3. extractTenantContext
+      expect(middlewares[2]).toBe(mockExtractTenantContext);
+
+      // 4. checkDailyRequestLimit
+      expect(middlewares[3]).toBe(mockCheckDailyRequestLimit);
+
+      // 5. checkRAGFeature
+      expect(middlewares[4]).toBe(mockCheckRAGFeature);
+
+      // 6. validateRequest(DocumentAnalysisValidation.analyzeRequestSchema)
       expect(mockValidateRequest).toHaveBeenCalledWith(mockAnalyzeRequestSchema);
-      expect(middlewares[6]).toBeInstanceOf(Function); // The actual middleware returned by validateRequest()
+      expect(middlewares[5]).toBeInstanceOf(Function);
 
-      // 8. documentAnalysisController.analyzeDocument
-      expect(middlewares[7]).toBe(mockAnalyzeDocument);
+      // 7. documentAnalysisController.analyzeDocument
+      expect(middlewares[6]).toBe(mockAnalyzeDocument);
     });
   });
 
@@ -196,25 +216,24 @@ describe('documentAnalysisRoutes', () => {
       const [path, ...middlewares] = currentMockRouter.get.mock.calls[0];
 
       expect(path).toBe('/conversation/:conversationId');
-      expect(middlewares).toHaveLength(4); // Total number of middleware functions
+      expect(middlewares).toHaveLength(5); // auth, getConversationLimiter, extractTenantContext, validateRequest, getConversationHistory
 
-      // Verify specific middleware calls and arguments
       // 1. auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN)
-      expect(mockAuth).toHaveBeenCalledTimes(1);
-      expect(mockAuth).toHaveBeenCalledWith('user', 'admin'); // Using mocked ENUM_USER_ROLE
-      expect(middlewares[0]).toBeInstanceOf(Function); // The actual middleware returned by auth()
+      expect(mockAuth).toHaveBeenCalledWith('user', 'admin');
+      expect(middlewares[0]).toBeInstanceOf(Function);
 
-      // 2. extractTenantContext
-      expect(middlewares[1]).toBe(mockExtractTenantContext);
+      // 2. getConversationLimiter
+      expect(middlewares[1]).toBeInstanceOf(Function);
 
-      // 3. validateRequest(DocumentAnalysisValidation.getConversationHistorySchema)
-      // Note: mockValidateRequest will have been called once for POST /analyze and once for this GET route.
-      expect(mockValidateRequest).toHaveBeenCalledTimes(2); // Total calls across all routes in this test run
+      // 3. extractTenantContext
+      expect(middlewares[2]).toBe(mockExtractTenantContext);
+
+      // 4. validateRequest(DocumentAnalysisValidation.getConversationHistorySchema)
       expect(mockValidateRequest).toHaveBeenCalledWith(mockGetConversationHistorySchema);
-      expect(middlewares[2]).toBeInstanceOf(Function); // The actual middleware returned by validateRequest()
+      expect(middlewares[3]).toBeInstanceOf(Function);
 
-      // 4. documentAnalysisController.getConversationHistory
-      expect(middlewares[3]).toBe(mockGetConversationHistory);
+      // 5. documentAnalysisController.getConversationHistory
+      expect(middlewares[4]).toBe(mockGetConversationHistory);
     });
   });
 });

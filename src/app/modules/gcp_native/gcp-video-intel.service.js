@@ -282,7 +282,7 @@ const pollVideoAnalysis = async (operationName, context, operationTenantId = nul
     attempts++;
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
-  throw new Error(`Video Analysis polling timed out after ${attempts * (intervalMs / 1000)} seconds.`);
+  throw new Error(`Video Analysis polling timed out after ${(attempts * intervalMs) / 1000} seconds.`);
 };
 
 /**

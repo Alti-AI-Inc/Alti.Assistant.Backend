@@ -1,12 +1,12 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-const mockRequest = vi.fn();
-
 const {
+  mockRequest,
   mockGetClient,
   mockConfig,
   mockLogger
 } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
   const mockGetClient = vi.fn().mockResolvedValue({
     request: mockRequest
   });
@@ -20,25 +20,24 @@ const {
 
   const mockLogger = {
     info: vi.fn(),
+    warn: vi.fn(),
     error: vi.fn()
   };
 
   return {
+    mockRequest,
     mockGetClient,
     mockConfig,
     mockLogger
   };
 });
 
-vi.mock('google-auth-library', () => {
-  return {
-    GoogleAuth: vi.fn().mockImplementation(() => {
-      return {
-        getClient: mockGetClient
-      };
-    })
-  };
-});
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
+}));
 
 vi.mock('../../../../config/index.js', () => ({
   default: mockConfig
@@ -54,10 +53,14 @@ describe('GcpLoggingService', () => {
   const originalEnvProjectId = process.env.GCP_PROJECT_ID;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockRequest.mockClear();
+    mockGetClient.mockClear();
+    mockLogger.info.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.error.mockClear();
     mockConfig.google.gcp_project_id = 'test-project-id';
     mockConfig.env = 'test-env';
-    process.env.GCP_PROJECT_ID = undefined;
+    delete process.env.GCP_PROJECT_ID;
     mockRequest.mockResolvedValue({ data: {} });
   });
 
@@ -66,7 +69,7 @@ describe('GcpLoggingService', () => {
   });
 
   it('should write a log entry successfully with default parameters', async () => {
-    const result = await GcpLoggingService.writeLogEntry('test-log', 'test message');
+    const result = await GcpLoggingService.writeLogEntry('test-log', 'INFO', { message: 'test message' });
 
     expect(mockGetClient).toHaveBeenCalled();
     expect(mockRequest).toHaveBeenCalledWith({
@@ -76,8 +79,8 @@ describe('GcpLoggingService', () => {
         entries: [
           {
             logName: 'projects/test-project-id/logs/test-log',
-            resource: { type: 'global' },
-            textPayload: 'test message',
+            resource: { type: 'global', labels: {} },
+            jsonPayload: { message: 'test message' },
             severity: 'INFO',
             labels: { environment: 'test-env' },
             timestamp: expect.any(String)
@@ -90,8 +93,7 @@ describe('GcpLoggingService', () => {
       success: true,
       logName: 'projects/test-project-id/logs/test-log',
       severity: 'INFO',
-      message: 'test message',
-      labels: {}
+      payload: { message: 'test message' }
     });
 
     expect(mockLogger.info).toHaveBeenCalledWith(
@@ -102,9 +104,9 @@ describe('GcpLoggingService', () => {
   it('should write a log entry with custom severity and labels', async () => {
     const result = await GcpLoggingService.writeLogEntry(
       'custom-log',
-      'warning message',
       'WARNING',
-      { userId: '12345', action: 'login' }
+      { message: 'warning message', userId: '12345', action: 'login' },
+      'trace-123'
     );
 
     expect(mockRequest).toHaveBeenCalledWith({
@@ -114,14 +116,14 @@ describe('GcpLoggingService', () => {
         entries: [
           {
             logName: 'projects/test-project-id/logs/custom-log',
-            resource: { type: 'global' },
-            textPayload: 'warning message',
+            resource: { type: 'global', labels: {} },
+            jsonPayload: { message: 'warning message', userId: '12345', action: 'login' },
             severity: 'WARNING',
             labels: {
               environment: 'test-env',
-              userId: '12345',
               action: 'login'
             },
+            trace: 'projects/test-project-id/traces/trace-123',
             timestamp: expect.any(String)
           }
         ]
@@ -132,8 +134,7 @@ describe('GcpLoggingService', () => {
       success: true,
       logName: 'projects/test-project-id/logs/custom-log',
       severity: 'WARNING',
-      message: 'warning message',
-      labels: { userId: '12345', action: 'login' }
+      payload: { message: 'warning message', userId: '12345', action: 'login' }
     });
   });
 
@@ -141,7 +142,7 @@ describe('GcpLoggingService', () => {
     mockConfig.google.gcp_project_id = undefined;
     process.env.GCP_PROJECT_ID = 'env-project-id';
 
-    const result = await GcpLoggingService.writeLogEntry('env-log', 'env message');
+    const result = await GcpLoggingService.writeLogEntry('env-log', 'INFO', { message: 'env message' });
 
     expect(result.logName).toBe('projects/env-project-id/logs/env-log');
     expect(mockRequest).toHaveBeenCalledWith(
@@ -160,7 +161,7 @@ describe('GcpLoggingService', () => {
   it('should fallback to default environment "development" if config.env is missing', async () => {
     mockConfig.env = undefined;
 
-    await GcpLoggingService.writeLogEntry('dev-log', 'dev message');
+    await GcpLoggingService.writeLogEntry('dev-log', 'INFO', { message: 'dev message' });
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -175,14 +176,17 @@ describe('GcpLoggingService', () => {
     );
   });
 
-  it('should throw an error if GCP Project ID is missing', async () => {
+  it('should return failure reason if GCP Project ID is missing', async () => {
     mockConfig.google.gcp_project_id = undefined;
-    process.env.GCP_PROJECT_ID = undefined;
+    delete process.env.GCP_PROJECT_ID;
 
-    await expect(
-      GcpLoggingService.writeLogEntry('test-log', 'test message')
-    ).rejects.toThrow('GCP Project ID is not configured.');
+    const result = await GcpLoggingService.writeLogEntry('test-log', 'INFO', { message: 'test message' });
 
+    expect(result).toEqual({
+      success: false,
+      reason: 'GCP_PROJECT_ID_MISSING',
+      details: 'GCP Project ID is not configured.'
+    });
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
@@ -191,9 +195,11 @@ describe('GcpLoggingService', () => {
     mockRequest.mockRejectedValueOnce(apiError);
 
     await expect(
-      GcpLoggingService.writeLogEntry('test-log', 'test message')
+      GcpLoggingService.writeLogEntry('test-log', 'INFO', { message: 'test message' })
     ).rejects.toThrow('Cloud Logging failed: API connection timeout');
 
-    expect(mockLogger.error).toHaveBeenCalledWith('Stackdriver Logging Error:', apiError);
+    expect(mockLogger.error).toHaveBeenCalledWith('Stackdriver Logging Error:', expect.objectContaining({
+      message: 'API connection timeout'
+    }));
   });
 });

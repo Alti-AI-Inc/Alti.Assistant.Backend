@@ -101,7 +101,7 @@ const executeParallelSearch = async (query, searchType = 'web', numResults = 10,
     logger.info(`GCP Search Aggregator: Generated sub-queries: ${JSON.stringify(subQueries)}`);
 
     // Execute all three searches in parallel using Promise.all
-    const searchPromises = subQueries.map(subQ => executeRawSearch(subQ, searchType, 10, 1, safe));
+    const searchPromises = subQueries.map(subQ => GcpSearchAggregatorService.executeRawSearch(subQ, searchType, 10, 1, safe));
     const resultsArrays = await Promise.all(searchPromises);
 
     // Merge all results

@@ -6,18 +6,14 @@
  * @requires ../../modules/streaming/streaming.controller
  */
 
-const express = require('express');
+import express from 'express';
+import { authStreamingController } from './streaming.controller.js';
+
 /**
  * Express router to handle streaming-related API routes.
  * @type {express.Router}
  */
 const router = express.Router();
-/**
- * Controller for handling streaming-related business logic.
- * @type {object}
- * @property {function(express.Request, express.Response, express.NextFunction): Promise<void>} authStreamingController - Handles authentication for streaming.
- */
-const streamingController = require('./streaming.controller');
 
 /**
  * @swagger
@@ -73,10 +69,10 @@ const streamingController = require('./streaming.controller');
  *                   type: string
  *                   example: "Failed to generate streaming token"
  */
-router.route('/get-token').get(streamingController.authStreamingController);
+router.route('/get-token').get(authStreamingController);
 
 /**
  * Exports the Express router configured with streaming routes.
  * @type {express.Router}
  */
-module.exports = router;
+export default router;

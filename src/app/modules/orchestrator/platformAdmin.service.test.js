@@ -45,10 +45,10 @@ describe('platformAdminService', () => {
     const mockSort = vi.fn().mockReturnValue({ skip: mockSkip, limit: mockLimit }); // sort can be skipped
 
     beforeEach(() => {
-        mockLean.mockClear();
-        mockLimit.mockClear();
-        mockSkip.mockClear();
-        mockSort.mockClear();
+        mockLean.mockReset();
+        mockLimit.mockReset().mockReturnValue({ lean: mockLean });
+        mockSkip.mockReset().mockReturnValue({ limit: mockLimit });
+        mockSort.mockReset().mockReturnValue({ skip: mockSkip, limit: mockLimit });
         Tenant.find.mockReturnValue({ sort: mockSort, skip: mockSkip, limit: mockLimit });
     });
 
@@ -150,30 +150,20 @@ describe('platformAdminService', () => {
   });
 
   describe('getSystemConfiguration', () => {
-    it('should return existing configuration if found', async () => {
+    it('should return the system configuration', async () => {
       const mockConfig = { settingA: 'valueA' };
       const mockLean = vi.fn().mockResolvedValue(mockConfig);
-      PlatformConfig.findOne.mockReturnValue({ lean: mockLean });
+      PlatformConfig.findOneAndUpdate.mockReturnValue({ lean: mockLean });
 
       const result = await platformAdminService.getSystemConfiguration();
 
-      expect(PlatformConfig.findOne).toHaveBeenCalledWith({});
+      expect(PlatformConfig.findOneAndUpdate).toHaveBeenCalledWith(
+        {},
+        { $setOnInsert: {} },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
       expect(mockLean).toHaveBeenCalledOnce();
-      expect(PlatformConfig.create).not.toHaveBeenCalled();
       expect(result).toEqual(mockConfig);
-    });
-
-    it('should create and return a new configuration if none exists', async () => {
-      const newConfig = { _id: 'newConfigId' };
-      const mockLean = vi.fn().mockResolvedValue(null);
-      PlatformConfig.findOne.mockReturnValue({ lean: mockLean });
-      PlatformConfig.create.mockResolvedValue(newConfig);
-
-      const result = await platformAdminService.getSystemConfiguration();
-
-      expect(PlatformConfig.findOne).toHaveBeenCalledWith({});
-      expect(PlatformConfig.create).toHaveBeenCalledWith({});
-      expect(result).toEqual(newConfig);
     });
   });
 

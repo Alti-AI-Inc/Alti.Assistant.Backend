@@ -32,7 +32,7 @@ import { logger } from '../../../shared/logger.js';
  */
 const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) => {
   try {
-    const apiKey = config.google_search_api_key || process.env.GOOGLE_SEARCH_API_KEY;
+    const apiKey = process.env.GOOGLE_SEARCH_API_KEY || config.google_search_api_key;
 
     if (!apiKey) {
       throw new Error('Google Search API Key is not configured.');
@@ -40,7 +40,8 @@ const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) =>
 
     // Ensure limit is a number and within acceptable range (Google API default 20, max 500).
     // Default to 5 if parsing fails or if the value is out of bounds.
-    const effectiveLimit = Math.max(1, Math.min(500, parseInt(limit, 10) || 5));
+    const parsedLimit = parseInt(limit, 10);
+    const effectiveLimit = Math.max(1, Math.min(500, isNaN(parsedLimit) ? 5 : parsedLimit));
 
     // Ensure types is an array to prevent errors with .join() if a non-array is passed.
     const effectiveTypes = Array.isArray(types) ? types : [];

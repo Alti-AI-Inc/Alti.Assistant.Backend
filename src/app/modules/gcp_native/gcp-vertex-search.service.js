@@ -80,7 +80,7 @@ const searchDataStore = async (dataStoreId, query, options = {}) => {
     // SECURITY_ENHANCEMENT: Validate the format of the dataStoreId to prevent malformed requests
     // and ensure it's a valid resource path. This is a first line of defense.
     // GCP Project IDs can be names, not just numbers.
-    const dataStoreIdRegex = /^projects\/[a-zA-Z0-9-]+\/locations\/[a-zA-Z0-9-]+\/(collections\/[a-zA-Z0-9-]+)?\/dataStores\/[a-zA-Z0-9-]+$/;
+    const dataStoreIdRegex = /^projects\/[a-zA-Z0-9-]+\/locations\/[a-zA-Z0-9-]+(\/collections\/[a-zA-Z0-9-]+)?\/dataStores\/[a-zA-Z0-9-]+$/;
     if (!dataStoreIdRegex.test(dataStoreId)) {
       throw new Error('Invalid Discovery Engine Data Store ID format. Expected: projects/PROJECT_ID/locations/LOCATION/dataStores/DATA_STORE_ID');
     }

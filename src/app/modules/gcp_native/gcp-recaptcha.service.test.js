@@ -31,7 +31,11 @@ const {
 });
 
 vi.mock('google-auth-library', () => ({
-  GoogleAuth: vi.fn().mockImplementation(() => mockGoogleAuth),
+  GoogleAuth: class {
+    constructor() {
+      return mockGoogleAuth;
+    }
+  }
 }));
 
 vi.mock('../../../../config/index.js', () => ({
@@ -232,9 +236,10 @@ describe('GcpRecaptchaService', () => {
       delete process.env.GCP_PROJECT_ID;
 
       await expect(GcpRecaptchaService.verifyRecaptchaToken(MOCK_TOKEN, MOCK_EXPECTED_ACTION)).rejects.toThrow(
-        'GCP Project ID is not configured.'
+        'reCAPTCHA Enterprise validation failed: GCP Project ID is not configured.'
       );
-      expect(mockLogger.error).not.toHaveBeenCalled(); // Error is thrown before API call
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).toHaveBeenCalledWith('reCAPTCHA Enterprise Verification failed:', expect.any(Error));
       expect(mockGoogleAuth.getClient).not.toHaveBeenCalled();
       expect(mockClientRequest).not.toHaveBeenCalled();
     });

@@ -5,8 +5,27 @@ import { TenantUsageService } from '../tenant/tenant-usage.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { logger } from '../../../shared/logger.js';
 
+const {
+  mockGcpClient,
+  mockGetClient
+} = vi.hoisted(() => {
+  const mockGcpClient = {
+    request: vi.fn(),
+  };
+  const mockGetClient = vi.fn().mockResolvedValue(mockGcpClient);
+  return {
+    mockGcpClient,
+    mockGetClient
+  };
+});
+
 // Mock dependencies
-vi.mock('google-auth-library');
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
+}));
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
@@ -25,14 +44,6 @@ vi.mock('../notification/notification.service.js', () => ({
     notifyTenantAdmins: vi.fn(),
     notifyPlatformOwners: vi.fn(),
   },
-}));
-
-// Mock GoogleAuth client
-const mockGcpClient = {
-  request: vi.fn(),
-};
-GoogleAuth.mockImplementation(() => ({
-  getClient: vi.fn().mockResolvedValue(mockGcpClient),
 }));
 
 // Reusable user contexts
@@ -359,11 +370,16 @@ describe('GcpVideoIntelService', () => {
 
       const pollPromise = GcpVideoIntelService.pollVideoAnalysis(operationName, adminContext, 'tenant-A', 100, 3);
 
-      // Advance timers to exhaust attempts
-      await vi.advanceTimersByTimeAsync(100); // attempt 2
-      await vi.advanceTimersByTimeAsync(100); // attempt 3
+      const advancePromise = (async () => {
+        await vi.advanceTimersByTimeAsync(100); // attempt 2
+        await vi.advanceTimersByTimeAsync(100); // attempt 3
+        await vi.advanceTimersByTimeAsync(100); // attempt 4 (exit loop)
+      })();
 
-      await expect(pollPromise).rejects.toThrow('Video Analysis polling timed out after 0.3 seconds.');
+      await Promise.all([
+        expect(pollPromise).rejects.toThrow('Video Analysis polling timed out after 0.3 seconds.'),
+        advancePromise
+      ]);
       expect(mockGcpClient.request).toHaveBeenCalledTimes(3);
     });
 

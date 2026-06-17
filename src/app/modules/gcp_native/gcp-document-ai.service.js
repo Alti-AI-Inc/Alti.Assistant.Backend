@@ -52,6 +52,20 @@ const processDocument = async (fileBuffer, mimeType, processorId, location = 'us
     // 1. Extract Full Text
     const fullText = document.text || '';
 
+    if (!fullText) {
+      return {
+        success: true,
+        text: '',
+        paragraphs: [],
+        tables: [],
+        keyValues: [],
+        metadata: {
+          pageCount: document.pages?.length || 0,
+          mimeType: document.mimeType,
+        }
+      };
+    }
+
     // 2. Extract Structural Pages & Paragraphs
     const paragraphs = [];
     if (document.pages) {
@@ -59,7 +73,9 @@ const processDocument = async (fileBuffer, mimeType, processorId, location = 'us
         if (page.paragraphs) {
           for (const paragraph of page.paragraphs) {
             const paragraphText = getTextFromLayout(paragraph.layout, fullText);
-            paragraphs.push(paragraphText);
+            if (paragraphText) {
+              paragraphs.push(paragraphText);
+            }
           }
         }
       }

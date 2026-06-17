@@ -5,7 +5,7 @@ import { paymentController } from '../payment/payment.controller.js';
 import { SwarmService } from '../swarm/swarm.service.js';
 import Conversation from '../conversations/conversation.model.js'; // OPTIMIZATION: For efficient lookups, ensure 'conversationId' and 'userId' are indexed in the Conversation model. A compound index { conversationId: 1, userId: 1 } is highly recommended.
 import crypto from 'crypto';
-import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
+
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { captureException } from '../../../shared/sentry.js';
 
@@ -477,29 +477,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
 
     try {
       if (dispatchConfig.dispatch === 'composio') {
-        // Connected apps path
-        // GCP Logging: Use structured JSON for logs.
-        logger.info({ message: 'Dispatching to connected apps', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
-        try {
-          const composioResult = await aiClassificationService.processUserInputService(
-            prompt,
-            { userId, conversationId, isGuest: false },
-            null
-          );
-          if (composioResult.success) {
-            finalResponse = {
-              reply: composioResult.data?.responseMessage?.message || 'Action completed successfully.',
-              executionResult: composioResult.data?.executionResult,
-              toolResults: composioResult.data?.responseMessage?.toolResults || [],
-            };
-          } else {
-            throw new Error(composioResult.error || 'Connected apps execution failed');
-          }
-        } catch (composioErr) {
-          // GCP Logging: Use structured JSON for logs.
-          logger.error({ message: 'Connected apps failed, falling back to Swarm', component: 'Orchestrator', error: { message: composioErr.message, stack: composioErr.stack } });
-          finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
-        }
+        // Connected apps path — Composio has been removed, fall back to Swarm
+        logger.info({ message: 'Dispatching to connected apps, but Composio is disabled. Falling back to Swarm.', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
+        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
       } else {
         // Swarm path — for all other modules
         finalResponse = await SwarmService.executeSwarmSync(

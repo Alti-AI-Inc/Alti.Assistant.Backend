@@ -4,24 +4,25 @@ import { logger } from '../../../shared/logger.js';
 import { GcpMapsService } from './gcp-maps.service.js';
 import { GcpBusinessService } from './gcp-business.service.js';
 
-// Mock dependencies
-const mockRequest = vi.fn();
 const {
+  mockRequest,
   mockGetClient
 } = vi.hoisted(() => {
+  const mockRequest = vi.fn();
   const mockGetClient = vi.fn().mockResolvedValue({ request: mockRequest });
 
   return {
+    mockRequest,
     mockGetClient
   };
 });
 
-vi.mock('google-auth-library', () => {
-  const GoogleAuth = vi.fn().mockImplementation(() => ({
-    getClient: mockGetClient,
-  }));
-  return { GoogleAuth };
-});
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: class {
+    constructor() {}
+    getClient = mockGetClient;
+  }
+}));
 
 vi.mock('../../../shared/logger.js', () => ({
   logger: {
@@ -272,7 +273,11 @@ describe('GcpBusinessService', () => {
       };
 
     it('should aggregate geocode and place details into a unified report', async () => {
-      vi.spyOn(global, 'Date').mockImplementation(() => new Date('2023-01-01T00:00:00.000Z'));
+      const OriginalDate = global.Date;
+      vi.spyOn(global, 'Date').mockImplementation(function(...args) {
+        if (args.length === 0) return new OriginalDate('2023-01-01T00:00:00.000Z');
+        return new OriginalDate(...args);
+      });
       GcpMapsService.geocodeAddress.mockResolvedValue(mockGeocodeResponse);
       GcpMapsService.getPlaceDetails.mockResolvedValue(mockPlaceDetailsResponse);
 

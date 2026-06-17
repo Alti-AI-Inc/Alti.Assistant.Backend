@@ -22,16 +22,16 @@ import { logger } from '../../../shared/logger.js';
  * @throws {Error} If the Google Search/Safe Browsing API Key is not configured or if the target URL is not provided.
  */
 const lookupUrlSafety = async (url) => {
+  const apiKey = config.google_search_api_key || process.env.GOOGLE_SEARCH_API_KEY;
+  if (!apiKey) {
+    throw new Error('Google Search/Safe Browsing API Key is not configured.');
+  }
+
+  if (url === null || url === undefined || url === '') {
+    throw new Error('Target URL to check is required.');
+  }
+
   try {
-    const apiKey = config.google_search_api_key || process.env.GOOGLE_SEARCH_API_KEY;
-    if (!apiKey) {
-      throw new Error('Google Search/Safe Browsing API Key is not configured.');
-    }
-
-    if (!url) {
-      throw new Error('Target URL to check is required.');
-    }
-
     logger.info(`GCP Safe Browsing: Evaluating security threat status for URL "${url}"...`);
 
     const endpoint = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`;

@@ -28,6 +28,6 @@ const platformConfigSchema = new mongoose.Schema(
   }
 );
 
-const PlatformConfig = mongoose.model('PlatformConfig', platformConfigSchema);
+const PlatformConfig = mongoose.models.PlatformConfig || mongoose.model('PlatformConfig', platformConfigSchema);
 
 export default PlatformConfig;

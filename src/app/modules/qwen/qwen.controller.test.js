@@ -1,12 +1,69 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { QwenAiController } from './qwen.controller.js';
-import { QwenAiServices } from './qwen.service.js';
+import httpStatus from 'http-status';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
-import httpStatus from 'http-status';
 
-// Mock dependencies
+const {
+  mockSendMessage,
+  mockStartChat,
+  mockGetGenerativeModel,
+} = vi.hoisted(() => {
+  const mockSendMessage = vi.fn().mockResolvedValue({
+    response: {
+      candidates: [
+        {
+          content: {
+            parts: [
+              { text: 'Mocked Gemini response text' }
+            ]
+          }
+        }
+      ]
+    }
+  });
+
+  const mockStartChat = vi.fn().mockReturnValue({
+    sendMessage: mockSendMessage,
+  });
+
+  const mockGetGenerativeModel = vi.fn().mockReturnValue({
+    startChat: mockStartChat,
+  });
+
+  return {
+    mockSendMessage,
+    mockStartChat,
+    mockGetGenerativeModel,
+  };
+});
+
+vi.mock('@google-cloud/vertexai', () => ({
+  VertexAI: class {
+    constructor() {
+      this.getGenerativeModel = mockGetGenerativeModel;
+    }
+  },
+  HarmCategory: {
+    HARM_CATEGORY_HATE_SPEECH: 'HARM_CATEGORY_HATE_SPEECH',
+    HARM_CATEGORY_DANGEROUS_CONTENT: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+    HARM_CATEGORY_HARASSMENT: 'HARM_CATEGORY_HARASSMENT',
+    HARM_CATEGORY_SEXUALLY_EXPLICIT: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+  },
+  HarmBlockThreshold: {
+    BLOCK_MEDIUM_AND_ABOVE: 'BLOCK_MEDIUM_AND_ABOVE',
+  },
+}));
+
+vi.mock('../../../../config/index.js', () => ({
+  default: {
+    gcp: {
+      projectId: 'test-project',
+      location: 'us-central1',
+    },
+  },
+}));
+
 vi.mock('../../../shared/catchAsync.js', () => ({
   default: (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next),
 }));
@@ -26,14 +83,10 @@ vi.mock('../../../shared/validatePromptRequest.js', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('./qwen.service.js', () => ({
-  QwenAiServices: {
-    QwenAiGetResponseService: vi.fn(),
-    QwenQWQAiGetResponseService: vi.fn(),
-  },
-}));
+// Import controllers AFTER mocking dependencies
+import { QwenAiController } from './qwen.controller.js';
 
-describe('QwenAiController', () => {
+describe('QwenAiController (Vertex AI under the hood)', () => {
   let req;
   let res;
   let next;
@@ -43,138 +96,86 @@ describe('QwenAiController', () => {
     req = {
       body: {},
       headers: {},
-      user: null, // Will be populated in role-based tests
+      user: { id: 'user-123', role: 'user' },
     };
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
     };
     next = vi.fn();
+
+    validatePromptRequest.mockResolvedValue({
+      prompt: 'Hello world',
+      sessionId: 'session-123',
+    });
   });
 
-  const roles = ['super_admin', 'admin', 'manager', 'user'];
-
-  describe('QwenAiGetResponse', () => {
-    it('should successfully process prompt and return response for all roles', async () => {
-      const mockPromptRequest = {
-        prompt: 'Hello Qwen',
-        userId: 'user-123',
+  describe('QwenAiGetResponse (VertexAiGetResponse shim)', () => {
+    it('should process prompt successfully and mask PII', async () => {
+      validatePromptRequest.mockResolvedValue({
+        prompt: 'My email is test@example.com and phone is 123-456-7890.',
         sessionId: 'session-123',
-      };
-      const mockServiceResult = { response: 'Hello! How can I help you today?' };
-
-      validatePromptRequest.mockResolvedValue(mockPromptRequest);
-      QwenAiServices.QwenAiGetResponseService.mockResolvedValue(mockServiceResult);
-
-      for (const role of roles) {
-        req.user = { id: 'user-123', role };
-
-        await QwenAiController.QwenAiGetResponse(req, res, next);
-
-        expect(validatePromptRequest).toHaveBeenCalledWith(req);
-        expect(QwenAiServices.QwenAiGetResponseService).toHaveBeenCalledWith(
-          mockPromptRequest.prompt,
-          mockPromptRequest.userId,
-          mockPromptRequest.sessionId
-        );
-        expect(logger.info).toHaveBeenCalledWith('✅ Service result:', mockServiceResult);
-        expect(sendResponse).toHaveBeenCalledWith(res, {
-          statusCode: httpStatus.OK,
-          success: true,
-          message: 'Response processed successfully.',
-          data: mockServiceResult,
-        });
-      }
-    });
-
-    it('should call next middleware with error if validatePromptRequest fails', async () => {
-      const validationError = new Error('Invalid prompt request');
-      validatePromptRequest.mockRejectedValue(validationError);
+      });
 
       await QwenAiController.QwenAiGetResponse(req, res, next);
 
-      expect(next).toHaveBeenCalledWith(validationError);
-      expect(QwenAiServices.QwenAiGetResponseService).not.toHaveBeenCalled();
+      expect(validatePromptRequest).toHaveBeenCalledWith(req);
+      expect(mockStartChat).toHaveBeenCalled();
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        'My email is [EMAIL_REDACTED] and phone is [PHONE_REDACTED].'
+      );
+      expect(sendResponse).toHaveBeenCalledWith(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Response processed successfully.',
+        data: { response: 'Mocked Gemini response text' },
+      });
+    });
+
+    it('should call next with error if validation fails', async () => {
+      const valError = new Error('Validation error');
+      validatePromptRequest.mockRejectedValue(valError);
+
+      await QwenAiController.QwenAiGetResponse(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(valError);
+      expect(mockSendMessage).not.toHaveBeenCalled();
       expect(sendResponse).not.toHaveBeenCalled();
     });
 
-    it('should call next middleware with error if QwenAiGetResponseService fails', async () => {
-      const mockPromptRequest = {
-        prompt: 'Hello Qwen',
-        userId: 'user-123',
-        sessionId: 'session-123',
-      };
-      const serviceError = new Error('Service unavailable');
-
-      validatePromptRequest.mockResolvedValue(mockPromptRequest);
-      QwenAiServices.QwenAiGetResponseService.mockRejectedValue(serviceError);
+    it('should call next with error if Vertex AI call fails', async () => {
+      const apiError = new Error('Vertex AI Timeout');
+      mockSendMessage.mockRejectedValueOnce(apiError);
 
       await QwenAiController.QwenAiGetResponse(req, res, next);
 
-      expect(next).toHaveBeenCalledWith(serviceError);
+      expect(next).toHaveBeenCalledWith(apiError);
       expect(sendResponse).not.toHaveBeenCalled();
     });
   });
 
-  describe('QwenQWQAiGetResponse', () => {
-    it('should successfully process prompt and return response for all roles', async () => {
-      const mockPromptRequest = {
-        prompt: 'Solve this math problem',
-        userId: 'user-456',
-        sessionId: 'session-456',
-      };
-      const mockServiceResult = { response: 'The answer is 42.' };
+  describe('QwenQWQAiGetResponse (VertexAiSpecializedGetResponse shim)', () => {
+    it('should process specialized prompt successfully', async () => {
+      await QwenAiController.QwenQWQAiGetResponse(req, res, next);
 
-      validatePromptRequest.mockResolvedValue(mockPromptRequest);
-      QwenAiServices.QwenQWQAiGetResponseService.mockResolvedValue(mockServiceResult);
-
-      for (const role of roles) {
-        req.user = { id: 'user-456', role };
-
-        await QwenAiController.QwenQWQAiGetResponse(req, res, next);
-
-        expect(validatePromptRequest).toHaveBeenCalledWith(req);
-        expect(QwenAiServices.QwenQWQAiGetResponseService).toHaveBeenCalledWith(
-          mockPromptRequest.prompt,
-          mockPromptRequest.userId,
-          mockPromptRequest.sessionId
-        );
-        expect(logger.info).toHaveBeenCalledWith('✅ Service result:', mockServiceResult);
-        expect(sendResponse).toHaveBeenCalledWith(res, {
-          statusCode: httpStatus.OK,
-          success: true,
-          message: 'Response processed successfully.',
-          data: mockServiceResult,
-        });
-      }
+      expect(validatePromptRequest).toHaveBeenCalledWith(req);
+      expect(mockStartChat).toHaveBeenCalled();
+      expect(mockSendMessage).toHaveBeenCalledWith('Hello world');
+      expect(sendResponse).toHaveBeenCalledWith(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Response processed successfully.',
+        data: { response: 'Mocked Gemini response text' },
+      });
     });
 
-    it('should call next middleware with error if validatePromptRequest fails', async () => {
-      const validationError = new Error('Invalid prompt request');
-      validatePromptRequest.mockRejectedValue(validationError);
+    it('should call next with error if validation fails', async () => {
+      const valError = new Error('Validation error');
+      validatePromptRequest.mockRejectedValue(valError);
 
       await QwenAiController.QwenQWQAiGetResponse(req, res, next);
 
-      expect(next).toHaveBeenCalledWith(validationError);
-      expect(QwenAiServices.QwenQWQAiGetResponseService).not.toHaveBeenCalled();
-      expect(sendResponse).not.toHaveBeenCalled();
-    });
-
-    it('should call next middleware with error if QwenQWQAiGetResponseService fails', async () => {
-      const mockPromptRequest = {
-        prompt: 'Solve this math problem',
-        userId: 'user-456',
-        sessionId: 'session-456',
-      };
-      const serviceError = new Error('Service unavailable');
-
-      validatePromptRequest.mockResolvedValue(mockPromptRequest);
-      QwenAiServices.QwenQWQAiGetResponseService.mockRejectedValue(serviceError);
-
-      await QwenAiController.QwenQWQAiGetResponse(req, res, next);
-
-      expect(next).toHaveBeenCalledWith(serviceError);
-      expect(sendResponse).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(valError);
     });
   });
 });

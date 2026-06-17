@@ -33,12 +33,16 @@ describe('GcpSafeBrowsingService', () => {
     // Ensure config has a key by default for most tests
     config.google_search_api_key = mockConfigApiKey;
     // Ensure process.env is undefined by default for most tests, to test config preference
-    process.env.GOOGLE_SEARCH_API_KEY = undefined;
+    delete process.env.GOOGLE_SEARCH_API_KEY;
   });
 
   afterEach(() => {
     // Restore original process.env.GOOGLE_SEARCH_API_KEY
-    process.env.GOOGLE_SEARCH_API_KEY = originalProcessEnvApiKey;
+    if (originalProcessEnvApiKey === undefined) {
+      delete process.env.GOOGLE_SEARCH_API_KEY;
+    } else {
+      process.env.GOOGLE_SEARCH_API_KEY = originalProcessEnvApiKey;
+    }
   });
 
   describe('lookupUrlSafety', () => {
@@ -106,7 +110,7 @@ describe('GcpSafeBrowsingService', () => {
 
     it('should throw an error if no API key is configured (config and env)', async () => {
       config.google_search_api_key = undefined; // Unset config key
-      process.env.GOOGLE_SEARCH_API_KEY = undefined; // Unset env key
+      delete process.env.GOOGLE_SEARCH_API_KEY; // Unset env key
 
       await expect(GcpSafeBrowsingService.lookupUrlSafety(testUrl)).rejects.toThrow(
         'Google Search/Safe Browsing API Key is not configured.'
@@ -145,7 +149,7 @@ describe('GcpSafeBrowsingService', () => {
       expect(logger.error).not.toHaveBeenCalled();
     });
 
-    it('should handle API errors gracefully and return a fallback secure status', async () => {
+    it('should handle API errors gracefully and return a fallback insecure status', async () => {
       const errorMessage = 'Network error';
       axios.post.mockRejectedValueOnce(new Error(errorMessage));
 
@@ -154,7 +158,7 @@ describe('GcpSafeBrowsingService', () => {
       expect(result).toEqual({
         success: false,
         url: testUrl,
-        isSecure: true, // Fallback to secure
+        isSecure: false, // Fallback to insecure for safety
         error: errorMessage,
         threatCount: 0,
         threats: [],

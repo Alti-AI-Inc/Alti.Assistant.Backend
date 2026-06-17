@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import Tenant from '../../tenant/tenant.model.js';
 import User from '../../auth/auth.model.js';
-import ScheduledWorkflow from '../../composio_v2/models/scheduledWorkflow.model.js';
+import ScheduledWorkflow from '../../workflow_automation/models/scheduledWorkflow.model.js';
 
 const planLimitsConfig = {
   free: {

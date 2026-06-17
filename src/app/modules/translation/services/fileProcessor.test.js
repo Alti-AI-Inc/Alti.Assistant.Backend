@@ -1,18 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 
+// Define and export all mock dependencies via vi.hoisted
 const {
   mockFsPromises,
   mockFsSync,
   mockStorageConstructor,
+  mockStorage,
+  mockBucket,
+  mockFile,
+  mockWriteStream,
   mockMammoth,
   mockPdfParseConstructor,
   mockXLSX,
   mockLogger,
   mockApiError,
-  mockTranslationConstants
+  mockTranslationConstants,
+  mockExtname
 } = vi.hoisted(() => {
-  // Mock external dependencies
   // Mock fs/promises
   const mockFsPromises = {
     readFile: vi.fn(),
@@ -23,17 +28,71 @@ const {
   const mockFsSync = {
     existsSync: vi.fn(),
   };
-  const mockStorageConstructor = vi.fn().mockImplementation(() => mockStorage);
+
+  // Mock write stream
+  const mockWriteStream = {
+    on: vi.fn().mockImplementation(function(event, callback) {
+      if (event === 'finish') {
+        this._finishCallback = callback;
+      } else if (event === 'error') {
+        this._errorCallback = callback;
+      }
+      return this;
+    }),
+    end: vi.fn().mockImplementation(function(buffer) {
+      if (this._shouldFail) {
+        if (this._errorCallback) this._errorCallback(new Error('Stream error'));
+      } else {
+        if (this._finishCallback) this._finishCallback();
+      }
+    })
+  };
+
+  // Mock file
+  const mockFile = {
+    getSignedUrl: vi.fn(),
+    download: vi.fn(),
+    delete: vi.fn(),
+    createWriteStream: vi.fn().mockImplementation(() => mockWriteStream),
+  };
+
+  // Mock bucket
+  const mockBucket = {
+    upload: vi.fn(),
+    file: vi.fn().mockImplementation(() => mockFile),
+  };
+
+  // Mock storage
+  const mockStorage = {
+    bucket: vi.fn().mockImplementation(() => mockBucket),
+  };
+
+  // Simulate Google Cloud Storage client behavior where calling new Storage() 
+  // without config throws a credentials error if local environment variables are not set.
+  const mockStorageConstructor = vi.fn().mockImplementation(function(config) {
+    if (!config && !process.env.GCS_KEY_FILE && !process.env.GCP_PROJECT_ID) {
+      throw new Error('Could not load the default credentials.');
+    }
+    return mockStorage;
+  });
 
   // Mock mammoth
   const mockMammoth = {
     extractRawText: vi.fn(),
   };
-  const mockPdfParseConstructor = vi.fn().mockImplementation(() => mockPdfParseInstance);
+
+  // Mock pdf-parse
+  const mockPdfParseInstance = {
+    getText: vi.fn(),
+  };
+  const mockPdfParseConstructor = vi.fn().mockImplementation(function() {
+    return mockPdfParseInstance;
+  });
 
   // Mock xlsx (dynamic import)
   const mockXLSX = {
     readFile: vi.fn(),
+    read: vi.fn(),
     utils: {
       sheet_to_csv: vi.fn(),
     },
@@ -47,11 +106,13 @@ const {
   };
 
   // Mock ApiError
-  const mockApiError = vi.fn().mockImplementation((status, message) => {
+  const mockApiError = vi.fn().mockImplementation(function(status, message) {
     const error = new Error(message);
     error.statusCode = status;
+    Object.setPrototypeOf(error, mockApiError.prototype);
     return error;
   });
+  Object.setPrototypeOf(mockApiError.prototype, Error.prototype);
 
   // Mock translation.constant.js (constants)
   const mockTranslationConstants = {
@@ -64,55 +125,51 @@ const {
     },
   };
 
+  // Mock path.extname
+  const mockExtname = vi.fn();
+
   return {
     mockFsPromises,
     mockFsSync,
     mockStorageConstructor,
+    mockStorage,
+    mockBucket,
+    mockFile,
+    mockWriteStream,
     mockMammoth,
     mockPdfParseConstructor,
     mockXLSX,
     mockLogger,
     mockApiError,
-    mockTranslationConstants
+    mockTranslationConstants,
+    mockExtname
   };
 });
 
 vi.mock('fs/promises', () => mockFsPromises);
-
 vi.mock('fs', () => mockFsSync);
 
 // Mock path (only extname is used, default to actual behavior)
 vi.mock('path', async (importActual) => {
   const actual = await importActual();
   return {
+    default: {
+      ...actual,
+      extname: mockExtname,
+    },
     ...actual,
-    extname: vi.fn().mockImplementation((p) => actual.extname(p)), // Default to actual behavior
+    extname: mockExtname,
   };
 });
 
-// Mock @google-cloud/storage
-const mockFile = {
-  getSignedUrl: vi.fn(),
-  download: vi.fn(),
-  delete: vi.fn(),
-};
-const mockBucket = {
-  upload: vi.fn(),
-  file: vi.fn().mockImplementation(() => mockFile),
-};
-const mockStorage = {
-  bucket: vi.fn().mockImplementation(() => mockBucket),
-};
 vi.mock('@google-cloud/storage', () => ({
   Storage: mockStorageConstructor,
 }));
 
-vi.mock('mammoth', () => mockMammoth);
+vi.mock('mammoth', () => ({
+  default: mockMammoth,
+}));
 
-// Mock pdf-parse
-const mockPdfParseInstance = {
-  getText: vi.fn(),
-};
 vi.mock('pdf-parse', () => ({
   PDFParse: mockPdfParseConstructor,
 }));
@@ -144,23 +201,39 @@ describe('fileProcessor', () => {
     // Reset environment variables for each test
     vi.unstubAllEnvs();
 
-    // Default mocks for GCS functions (assuming configured for most tests, overridden in specific blocks)
-    mockStorageConstructor.mockReturnValue(mockStorage);
+    // Default mocks for GCS functions - use mockImplementation for constructor mocks
+    mockStorageConstructor.mockImplementation(function(config) {
+      if (!config && !process.env.GCS_KEY_FILE && !process.env.GCP_PROJECT_ID) {
+        throw new Error('Could not load the default credentials.');
+      }
+      return mockStorage;
+    });
     mockStorage.bucket.mockReturnValue(mockBucket);
     mockBucket.file.mockReturnValue(mockFile);
     mockFile.getSignedUrl.mockResolvedValue(['http://signed.url']);
-    mockFile.download.mockResolvedValue(undefined);
+    mockFile.download.mockResolvedValue([Buffer.from('downloaded content')]);
     mockFile.delete.mockResolvedValue(undefined);
     mockBucket.upload.mockResolvedValue(undefined);
+    
+    // Reset write stream mock state
+    mockWriteStream._shouldFail = false;
+    mockWriteStream._finishCallback = null;
+    mockWriteStream._errorCallback = null;
 
     // Default mocks for text extraction
     mockFsPromises.readFile.mockResolvedValue('file content');
     mockMammoth.extractRawText.mockResolvedValue({ value: 'docx content' });
-    mockPdfParseInstance.getText.mockResolvedValue({ text: 'pdf content' });
-    mockPdfParseConstructor.mockReturnValue(mockPdfParseInstance);
+    
+    // We must reset pdf parse instance mock setup using mockImplementation for Vitest constructor compatibility
+    const mockPdfParseInstance = {
+      getText: vi.fn().mockResolvedValue({ text: 'pdf content' }),
+    };
+    mockPdfParseConstructor.mockImplementation(function() {
+      return mockPdfParseInstance;
+    });
 
     // Default mocks for xlsx
-    mockXLSX.readFile.mockReturnValue({
+    mockXLSX.read.mockReturnValue({
       SheetNames: ['Sheet1'],
       Sheets: {
         Sheet1: { A1: { v: 'Header' }, A2: { v: 'Data' } },
@@ -173,8 +246,8 @@ describe('fileProcessor', () => {
     mockLogger.warn.mockImplementation(() => {});
     mockLogger.error.mockImplementation(() => {});
 
-    // Default fsSync.existsSync behavior
-    mockFsSync.existsSync.mockReturnValue(true); // Assume key file exists by default for GCS init
+    // Default fsSync.existsSync.
+    mockFsSync.existsSync.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -183,7 +256,6 @@ describe('fileProcessor', () => {
 
   // ============================================
   // TEXT EXTRACTION FUNCTIONS & UTILITIES
-  // (These don't depend on GCS init, so we can import once for them)
   // ============================================
   describe('Text Extraction Functions and Utilities', () => {
     beforeEach(async () => {
@@ -193,77 +265,78 @@ describe('fileProcessor', () => {
       vi.stubEnv('GCS_BUCKET_NAME', 'test-bucket');
       mockFsSync.existsSync.mockReturnValue(true);
 
-      // Import the module once for these tests
-      const module = await import('../fileProcessor.js');
+      // Import the module once for these tests - use v1 static path dynamic import
+      const module = await import('./fileProcessor.js?v=1');
       fileProcessor = module.fileProcessor;
     });
 
     describe('extractTextFromPDF', () => {
-      it('should extract text from a PDF file successfully', async () => {
-        const filePath = 'test.pdf';
-        mockFsPromises.readFile.mockResolvedValue(Buffer.from('pdf data'));
-        mockPdfParseInstance.getText.mockResolvedValue({ text: 'Extracted PDF Text' });
+      it('should extract text from a PDF buffer successfully', async () => {
+        const fileBuffer = Buffer.from('pdf data');
+        const mockPdfInstance = {
+          getText: vi.fn().mockResolvedValue({ text: 'Extracted PDF Text' }),
+        };
+        mockPdfParseConstructor.mockImplementation(function() {
+          return mockPdfInstance;
+        });
 
-        const result = await fileProcessor.extractTextFromPDF(filePath);
+        const result = await fileProcessor.extractTextFromPDF(fileBuffer);
         expect(result).toBe('Extracted PDF Text');
-        expect(mockFsPromises.readFile).toHaveBeenCalledWith(filePath);
-        expect(mockPdfParseConstructor).toHaveBeenCalledWith({ data: Buffer.from('pdf data') });
-        expect(mockPdfParseInstance.getText).toHaveBeenCalled();
+        expect(mockPdfParseConstructor).toHaveBeenCalledWith({ data: fileBuffer });
+        expect(mockPdfInstance.getText).toHaveBeenCalled();
       });
 
       it('should throw ApiError if PDF extraction fails', async () => {
-        const filePath = 'bad.pdf';
-        mockFsPromises.readFile.mockRejectedValue(new Error('File read error'));
+        const fileBuffer = Buffer.from('bad pdf data');
+        mockPdfParseConstructor.mockImplementationOnce(function() {
+          throw new Error('PDF parse error');
+        });
 
-        await expect(fileProcessor.extractTextFromPDF(filePath)).rejects.toThrow(mockApiError);
-        expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, 'Failed to extract text from PDF');
-        expect(mockLogger.error).toHaveBeenCalledWith('Error extracting text from PDF:', expect.any(Error));
+        await expect(fileProcessor.extractTextFromPDF(fileBuffer)).rejects.toThrow('Failed to extract text from PDF');
+        expect(mockLogger.error).toHaveBeenCalledWith('Error extracting text from PDF buffer:', expect.any(Error));
       });
     });
 
     describe('extractTextFromDOCX', () => {
-      it('should extract text from a DOCX file successfully', async () => {
-        const filePath = 'test.docx';
+      it('should extract text from a DOCX buffer successfully', async () => {
+        const fileBuffer = Buffer.from('docx data');
         mockMammoth.extractRawText.mockResolvedValue({ value: 'Extracted DOCX Text' });
 
-        const result = await fileProcessor.extractTextFromDOCX(filePath);
+        const result = await fileProcessor.extractTextFromDOCX(fileBuffer);
         expect(result).toBe('Extracted DOCX Text');
-        expect(mockMammoth.extractRawText).toHaveBeenCalledWith({ path: filePath });
+        expect(mockMammoth.extractRawText).toHaveBeenCalledWith({ buffer: fileBuffer });
       });
 
       it('should throw ApiError if DOCX extraction fails', async () => {
-        const filePath = 'bad.docx';
+        const fileBuffer = Buffer.from('bad docx');
         mockMammoth.extractRawText.mockRejectedValue(new Error('Mammoth error'));
 
-        await expect(fileProcessor.extractTextFromDOCX(filePath)).rejects.toThrow(mockApiError);
-        expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, 'Failed to extract text from DOCX');
-        expect(mockLogger.error).toHaveBeenCalledWith('Error extracting text from DOCX:', expect.any(Error));
+        await expect(fileProcessor.extractTextFromDOCX(fileBuffer)).rejects.toThrow('Failed to extract text from DOCX');
+        expect(mockLogger.error).toHaveBeenCalledWith('Error extracting text from DOCX buffer:', expect.any(Error));
       });
     });
 
     describe('extractTextFromTXT', () => {
-      it('should extract text from a TXT file successfully', async () => {
-        const filePath = 'test.txt';
-        mockFsPromises.readFile.mockResolvedValue('Extracted TXT Text');
+      it('should extract text from a TXT buffer successfully', async () => {
+        const fileBuffer = Buffer.from('Extracted TXT Text');
 
-        const result = await fileProcessor.extractTextFromTXT(filePath);
+        const result = await fileProcessor.extractTextFromTXT(fileBuffer);
         expect(result).toBe('Extracted TXT Text');
-        expect(mockFsPromises.readFile).toHaveBeenCalledWith(filePath, 'utf-8');
       });
 
       it('should throw ApiError if TXT extraction fails', async () => {
-        const filePath = 'bad.txt';
-        mockFsPromises.readFile.mockRejectedValue(new Error('File read error'));
+        const fileBuffer = {
+          toString: () => { throw new Error('toString error'); }
+        };
 
-        await expect(fileProcessor.extractTextFromTXT(filePath)).rejects.toThrow(mockApiError);
-        expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, 'Failed to read text file');
-        expect(mockLogger.error).toHaveBeenCalledWith('Error reading text file:', expect.any(Error));
+        await expect(fileProcessor.extractTextFromTXT(fileBuffer)).rejects.toThrow('Failed to read text file');
+        expect(mockLogger.error).toHaveBeenCalledWith('Error reading text file from buffer:', expect.any(Error));
       });
     });
 
     describe('extractTextFromXLSX', () => {
-      it('should extract text from an XLSX file successfully', async () => {
-        const filePath = 'test.xlsx';
+      it('should extract text from an XLSX buffer successfully', async () => {
+        const fileBuffer = Buffer.from('xlsx data');
         const mockWorkbook = {
           SheetNames: ['Sheet1', 'Sheet2'],
           Sheets: {
@@ -271,200 +344,137 @@ describe('fileProcessor', () => {
             Sheet2: { A1: { v: 'Header2' }, B1: { v: 'Value2' } },
           },
         };
-        mockXLSX.readFile.mockReturnValue(mockWorkbook);
+        mockXLSX.read.mockReturnValue(mockWorkbook);
         mockXLSX.utils.sheet_to_csv
           .mockReturnValueOnce('Header1,Value1')
           .mockReturnValueOnce('Header2,Value2');
 
-        const result = await fileProcessor.extractTextFromXLSX(filePath);
-        expect(result).toBe('Header1,Value1\n\nHeader2,Value2\n\n');
-        expect(mockXLSX.readFile).toHaveBeenCalledWith(filePath);
+        const result = await fileProcessor.extractTextFromXLSX(fileBuffer);
+        expect(result).toBe('Header1,Value1\n\nHeader2,Value2');
+        expect(mockXLSX.read).toHaveBeenCalledWith(fileBuffer, { type: 'buffer' });
         expect(mockXLSX.utils.sheet_to_csv).toHaveBeenCalledTimes(2);
         expect(mockXLSX.utils.sheet_to_csv).toHaveBeenCalledWith(mockWorkbook.Sheets.Sheet1);
         expect(mockXLSX.utils.sheet_to_csv).toHaveBeenCalledWith(mockWorkbook.Sheets.Sheet2);
       });
 
       it('should throw ApiError if XLSX extraction fails', async () => {
-        const filePath = 'bad.xlsx';
-        mockXLSX.readFile.mockImplementation(() => {
+        const fileBuffer = Buffer.from('bad xlsx');
+        mockXLSX.read.mockImplementation(() => {
           throw new Error('XLSX read error');
         });
 
-        await expect(fileProcessor.extractTextFromXLSX(filePath)).rejects.toThrow(mockApiError);
-        expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, 'Failed to extract text from XLSX file');
-        expect(mockLogger.error).toHaveBeenCalledWith('XLSX extraction error:', expect.any(Error));
+        await expect(fileProcessor.extractTextFromXLSX(fileBuffer)).rejects.toThrow('Failed to extract text from XLSX file');
+        expect(mockLogger.error).toHaveBeenCalledWith('XLSX extraction error from buffer:', expect.any(Error));
       });
     });
 
     describe('extractTextFromFile', () => {
       it('should call extractTextFromPDF for .pdf files', async () => {
-        const fileInfo = { path: 'test.pdf', originalName: 'document.pdf' };
-        vi.mocked(path.extname).mockReturnValue('.pdf');
-        const pdfText = 'PDF Content';
-        vi.spyOn(fileProcessor, 'extractTextFromPDF').mockResolvedValue(pdfText);
+        const fileInfo = { buffer: Buffer.from('pdf data'), originalname: 'document.pdf' };
+        mockExtname.mockReturnValue('.pdf');
+
+        const mockPdfInstance = {
+          getText: vi.fn().mockResolvedValue({ text: 'PDF Content' }),
+        };
+        mockPdfParseConstructor.mockImplementation(function() {
+          return mockPdfInstance;
+        });
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(pdfText);
-        expect(fileProcessor.extractTextFromPDF).toHaveBeenCalledWith(fileInfo.path);
-        expect(mockLogger.info).toHaveBeenCalledWith(`Extracting text from file: ${fileInfo.originalName} (.pdf)`);
-        expect(mockLogger.info).toHaveBeenCalledWith(`Successfully extracted ${pdfText.length} characters from ${fileInfo.originalName}`);
+        expect(result).toBe('PDF Content');
+        expect(mockLogger.info).toHaveBeenCalledWith(`Extracting text from in-memory file: ${fileInfo.originalname} (.pdf)`);
+        expect(mockLogger.info).toHaveBeenCalledWith(`Successfully extracted 11 characters from ${fileInfo.originalname}`);
       });
 
       it('should call extractTextFromDOCX for .docx files', async () => {
-        const fileInfo = { path: 'test.docx', originalName: 'document.docx' };
-        vi.mocked(path.extname).mockReturnValue('.docx');
-        const docxText = 'DOCX Content';
-        vi.spyOn(fileProcessor, 'extractTextFromDOCX').mockResolvedValue(docxText);
+        const fileInfo = { buffer: Buffer.from('docx data'), originalname: 'document.docx' };
+        mockExtname.mockReturnValue('.docx');
+        mockMammoth.extractRawText.mockResolvedValue({ value: 'DOCX Content' });
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(docxText);
-        expect(fileProcessor.extractTextFromDOCX).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('DOCX Content');
       });
 
       it('should call extractTextFromDOCX for .doc files', async () => {
-        const fileInfo = { path: 'test.doc', originalName: 'document.doc' };
-        vi.mocked(path.extname).mockReturnValue('.doc');
-        const docText = 'DOC Content';
-        vi.spyOn(fileProcessor, 'extractTextFromDOCX').mockResolvedValue(docText);
+        const fileInfo = { buffer: Buffer.from('doc data'), originalname: 'document.doc' };
+        mockExtname.mockReturnValue('.doc');
+        mockMammoth.extractRawText.mockResolvedValue({ value: 'DOC Content' });
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(docText);
-        expect(fileProcessor.extractTextFromDOCX).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('DOC Content');
       });
 
       it('should call extractTextFromTXT for .txt files', async () => {
-        const fileInfo = { path: 'test.txt', originalName: 'document.txt' };
-        vi.mocked(path.extname).mockReturnValue('.txt');
-        const txtText = 'TXT Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(txtText);
+        const fileInfo = { buffer: Buffer.from('TXT Content'), originalname: 'document.txt' };
+        mockExtname.mockReturnValue('.txt');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(txtText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('TXT Content');
       });
 
       it('should call extractTextFromTXT for .md files', async () => {
-        const fileInfo = { path: 'test.md', originalName: 'document.md' };
-        vi.mocked(path.extname).mockReturnValue('.md');
-        const mdText = 'MD Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(mdText);
+        const fileInfo = { buffer: Buffer.from('MD Content'), originalname: 'document.md' };
+        mockExtname.mockReturnValue('.md');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(mdText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('MD Content');
       });
 
       it('should call extractTextFromTXT for .html files', async () => {
-        const fileInfo = { path: 'test.html', originalName: 'document.html' };
-        vi.mocked(path.extname).mockReturnValue('.html');
-        const htmlText = 'HTML Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(htmlText);
+        const fileInfo = { buffer: Buffer.from('HTML Content'), originalname: 'document.html' };
+        mockExtname.mockReturnValue('.html');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(htmlText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('HTML Content');
       });
 
       it('should call extractTextFromTXT for .json files', async () => {
-        const fileInfo = { path: 'test.json', originalName: 'document.json' };
-        vi.mocked(path.extname).mockReturnValue('.json');
-        const jsonText = 'JSON Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(jsonText);
+        const fileInfo = { buffer: Buffer.from('JSON Content'), originalname: 'document.json' };
+        mockExtname.mockReturnValue('.json');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(jsonText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('JSON Content');
       });
 
       it('should call extractTextFromTXT for .csv files', async () => {
-        const fileInfo = { path: 'test.csv', originalName: 'document.csv' };
-        vi.mocked(path.extname).mockReturnValue('.csv');
-        const csvText = 'CSV Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(csvText);
+        const fileInfo = { buffer: Buffer.from('CSV Content'), originalname: 'document.csv' };
+        mockExtname.mockReturnValue('.csv');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(csvText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('CSV Content');
       });
 
       it('should call extractTextFromXLSX for .xlsx files', async () => {
-        const fileInfo = { path: 'test.xlsx', originalName: 'document.xlsx' };
-        vi.mocked(path.extname).mockReturnValue('.xlsx');
-        const xlsxText = 'XLSX Content';
-        vi.spyOn(fileProcessor, 'extractTextFromXLSX').mockResolvedValue(xlsxText);
+        const fileInfo = { buffer: Buffer.from('xlsx data'), originalname: 'document.xlsx' };
+        mockExtname.mockReturnValue('.xlsx');
+        mockXLSX.read.mockReturnValue({
+          SheetNames: ['Sheet1'],
+          Sheets: { Sheet1: {} }
+        });
+        mockXLSX.utils.sheet_to_csv.mockReturnValue('XLSX Content');
 
         const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(xlsxText);
-        expect(fileProcessor.extractTextFromXLSX).toHaveBeenCalledWith(fileInfo.path);
+        expect(result).toBe('XLSX Content');
       });
 
       it('should throw ApiError for unsupported file formats', async () => {
-        const fileInfo = { path: 'test.zip', originalName: 'document.zip' };
-        vi.mocked(path.extname).mockReturnValue('.zip');
+        const fileInfo = { buffer: Buffer.from('zip data'), originalname: 'document.zip' };
+        mockExtname.mockReturnValue('.zip');
 
-        await expect(fileProcessor.extractTextFromFile(fileInfo)).rejects.toThrow(mockApiError);
-        expect(mockApiError).toHaveBeenCalledWith(httpStatus.BAD_REQUEST, mockTranslationConstants.ERROR_MESSAGES.UNSUPPORTED_FORMAT);
+        await expect(fileProcessor.extractTextFromFile(fileInfo)).rejects.toThrow('Unsupported document format.');
         expect(mockLogger.error).toHaveBeenCalledWith('Error in extractTextFromFile:', expect.any(Error));
       });
 
       it('should re-throw error from sub-extraction functions', async () => {
-        const fileInfo = { path: 'test.pdf', originalName: 'document.pdf' };
-        vi.mocked(path.extname).mockReturnValue('.pdf');
-        const extractionError = new Error('PDF extraction failed');
-        vi.spyOn(fileProcessor, 'extractTextFromPDF').mockRejectedValue(extractionError);
+        const fileInfo = { buffer: Buffer.from('pdf data'), originalname: 'document.pdf' };
+        mockExtname.mockReturnValue('.pdf');
+        
+        mockPdfParseConstructor.mockImplementationOnce(function() {
+          throw new Error('PDF extraction failed');
+        });
 
-        await expect(fileProcessor.extractTextFromFile(fileInfo)).rejects.toThrow(extractionError);
-        expect(mockLogger.error).toHaveBeenCalledWith('Error in extractTextFromFile:', extractionError);
-      });
-
-      it('should handle fileInfo.originalname fallback', async () => {
-        const fileInfo = { path: 'test.txt', originalname: 'document_old.txt' }; // Note: originalname instead of originalName
-        vi.mocked(path.extname).mockReturnValue('.txt');
-        const txtText = 'TXT Content';
-        vi.spyOn(fileProcessor, 'extractTextFromTXT').mockResolvedValue(txtText);
-
-        const result = await fileProcessor.extractTextFromFile(fileInfo);
-        expect(result).toBe(txtText);
-        expect(fileProcessor.extractTextFromTXT).toHaveBeenCalledWith(fileInfo.path);
-        expect(mockLogger.info).toHaveBeenCalledWith(`Extracting text from file: ${fileInfo.originalname} (.txt)`);
-      });
-    });
-
-    describe('cleanupFile', () => {
-      it('should delete the file if it exists', async () => {
-        const filePath = '/tmp/temp_file.txt';
-        mockFsSync.existsSync.mockReturnValue(true);
-        mockFsPromises.unlink.mockResolvedValue(undefined);
-
-        await fileProcessor.cleanupFile(filePath);
-
-        expect(mockFsSync.existsSync).toHaveBeenCalledWith(filePath);
-        expect(mockFsPromises.unlink).toHaveBeenCalledWith(filePath);
-        expect(mockLogger.info).toHaveBeenCalledWith(`Cleaned up temporary file: ${filePath}`);
-      });
-
-      it('should do nothing if the file does not exist', async () => {
-        const filePath = '/tmp/non_existent_file.txt';
-        mockFsSync.existsSync.mockReturnValue(false);
-
-        await fileProcessor.cleanupFile(filePath);
-
-        expect(mockFsSync.existsSync).toHaveBeenCalledWith(filePath);
-        expect(mockFsPromises.unlink).not.toHaveBeenCalled();
-        expect(mockLogger.info).not.toHaveBeenCalled();
-      });
-
-      it('should log a warning if file cleanup fails', async () => {
-        const filePath = '/tmp/temp_file.txt';
-        const cleanupError = new Error('Permission denied');
-        mockFsSync.existsSync.mockReturnValue(true);
-        mockFsPromises.unlink.mockRejectedValue(cleanupError);
-
-        await fileProcessor.cleanupFile(filePath);
-
-        expect(mockFsSync.existsSync).toHaveBeenCalledWith(filePath);
-        expect(mockFsPromises.unlink).toHaveBeenCalledWith(filePath);
-        expect(mockLogger.warn).toHaveBeenCalledWith(`Failed to cleanup file ${filePath}:`, cleanupError);
+        await expect(fileProcessor.extractTextFromFile(fileInfo)).rejects.toThrow('Failed to extract text from PDF');
+        expect(mockLogger.error).toHaveBeenCalledWith('Error in extractTextFromFile:', expect.any(Error));
       });
     });
 
@@ -521,7 +531,6 @@ describe('fileProcessor', () => {
     });
   });
 
-
   // ============================================
   // GOOGLE CLOUD STORAGE FUNCTIONS
   // ============================================
@@ -531,16 +540,48 @@ describe('fileProcessor', () => {
       vi.stubEnv('GCS_KEY_FILE', '/path/to/key.json');
       vi.stubEnv('GCP_PROJECT_ID', 'test-project');
       vi.stubEnv('GCS_BUCKET_NAME', 'test-bucket');
-      mockFsSync.existsSync.mockReturnValue(true); // Key file exists
+      mockFsSync.existsSync.mockReturnValue(true);
 
-      // Import the module under test AFTER setting up the environment and mocks
-      // This import will trigger the module-level GCS initialization with configured values.
-      const module = await import('../fileProcessor.js');
+      // Import fresh GCS configured module instance via v2 static path dynamic import
+      const module = await import('./fileProcessor.js?v=2');
       fileProcessor = module.fileProcessor;
     });
 
-    it('should upload file to GCS and return signed URL when GCS is configured', async () => {
-      const localFilePath = '/tmp/local/file.pdf';
+    it('should generate v4 signed URL for upload', async () => {
+      const filename = 'document.pdf';
+      const contentType = 'application/pdf';
+      const documentMetadata = {
+        userId: 'user123',
+        documentType: 'translation',
+        originalName: 'original.pdf',
+        targetLanguage: 'es',
+        sourceLanguage: 'en',
+      };
+
+      const result = await fileProcessor.generateV4UploadSignedUrl(filename, contentType, documentMetadata);
+
+      expect(mockStorageConstructor).toHaveBeenCalledWith({
+        keyFilename: '/path/to/key.json',
+        projectId: 'test-project',
+      });
+      expect(mockStorage.bucket).toHaveBeenCalledWith('test-bucket');
+      expect(mockBucket.file).toHaveBeenCalledWith(expect.stringContaining(`${mockTranslationConstants.STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId}/`));
+      expect(mockFile.getSignedUrl).toHaveBeenCalledWith(expect.objectContaining({
+        version: 'v4',
+        action: 'write',
+        contentType: 'application/pdf',
+      }));
+
+      expect(result).toEqual(expect.objectContaining({
+        success: true,
+        url: 'http://signed.url',
+        gcsPath: expect.stringContaining('gs://test-bucket/'),
+        destination: expect.any(String),
+      }));
+    });
+
+    it('should stream upload to GCS successfully', async () => {
+      const fileBuffer = Buffer.from('pdf data');
       const filename = 'document.pdf';
       const documentMetadata = {
         userId: 'user123',
@@ -550,89 +591,62 @@ describe('fileProcessor', () => {
         sourceLanguage: 'en',
       };
 
-      const result = await fileProcessor.uploadToGCS(localFilePath, filename, documentMetadata);
+      const result = await fileProcessor.streamUploadToGCS(fileBuffer, filename, documentMetadata);
 
-      expect(mockStorageConstructor).toHaveBeenCalledTimes(1);
       expect(mockStorageConstructor).toHaveBeenCalledWith({
         keyFilename: '/path/to/key.json',
         projectId: 'test-project',
       });
       expect(mockStorage.bucket).toHaveBeenCalledWith('test-bucket');
-
-      expect(mockBucket.upload).toHaveBeenCalledTimes(1);
-      const uploadArgs = mockBucket.upload.mock.calls[0];
-      expect(uploadArgs[0]).toBe(localFilePath);
-      expect(uploadArgs[1].destination).toMatch(new RegExp(`^${mockTranslationConstants.STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId}/\\d+_document.pdf$`));
-      expect(uploadArgs[1].metadata.contentType).toBe('application/pdf');
-      expect(uploadArgs[1].metadata.metadata).toEqual(expect.objectContaining({
-        documentType: documentMetadata.documentType,
-        userId: documentMetadata.userId,
-        originalName: documentMetadata.originalName,
-        targetLanguage: documentMetadata.targetLanguage,
-        sourceLanguage: documentMetadata.sourceLanguage,
+      expect(mockBucket.file).toHaveBeenCalledWith(expect.stringContaining(`${mockTranslationConstants.STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId}/`));
+      expect(mockFile.createWriteStream).toHaveBeenCalledWith(expect.objectContaining({
+        resumable: false,
+        metadata: expect.objectContaining({
+          contentType: 'application/pdf',
+        }),
       }));
-
-      expect(mockBucket.file).toHaveBeenCalledWith(uploadArgs[1].destination);
       expect(mockFile.getSignedUrl).toHaveBeenCalledWith(expect.objectContaining({
         version: 'v4',
         action: 'read',
-        expires: expect.any(Number),
       }));
 
       expect(result).toEqual(expect.objectContaining({
         success: true,
-        gcsPath: `gs://test-bucket/${uploadArgs[1].destination}`,
+        gcsPath: expect.stringContaining('gs://test-bucket/'),
         publicUrl: 'http://signed.url',
         fileName: filename,
-        destination: uploadArgs[1].destination,
         storageType: 'gcs',
       }));
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Uploading translation file to GCS:'));
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Translation file uploaded successfully to GCS:'));
     });
 
-    it('should handle upload errors gracefully and return local path fallback', async () => {
-      const localFilePath = '/tmp/local/file.pdf';
+    it('should handle stream upload GCS errors', async () => {
+      const fileBuffer = Buffer.from('pdf data');
       const filename = 'document.pdf';
       const documentMetadata = { userId: 'user123' };
-      const uploadError = new Error('GCS upload failed');
-      mockBucket.upload.mockRejectedValue(uploadError);
 
-      const result = await fileProcessor.uploadToGCS(localFilePath, filename, documentMetadata);
+      mockWriteStream._shouldFail = true;
 
-      expect(mockBucket.upload).toHaveBeenCalledTimes(1);
-      expect(mockLogger.error).toHaveBeenCalledWith('Error uploading translation file to GCS:', uploadError);
-      expect(result).toEqual({
-        success: true, // Note: success is true even on error, as it provides a fallback
-        localPath: localFilePath,
-        fileName: filename,
-        storageType: 'local',
-        error: uploadError.message,
-      });
+      await expect(fileProcessor.streamUploadToGCS(fileBuffer, filename, documentMetadata)).rejects.toThrow('Failed to upload file to GCS');
     });
 
-    it('should download file from GCS successfully', async () => {
+    it('should download file from GCS successfully to buffer', async () => {
       const gcsPath = 'gs://test-bucket/translation-uploads/user123/12345_document.pdf';
-      const tempLocalPath = '/tmp/downloaded_file.pdf';
+      const mockBuffer = Buffer.from('gcs file content');
+      mockFile.download.mockResolvedValue([mockBuffer]);
 
-      const result = await fileProcessor.downloadFromGCS(gcsPath, tempLocalPath);
+      const result = await fileProcessor.downloadFromGCSToBuffer(gcsPath);
 
       expect(mockBucket.file).toHaveBeenCalledWith('translation-uploads/user123/12345_document.pdf');
-      expect(mockFile.download).toHaveBeenCalledWith({ destination: tempLocalPath });
-      expect(result).toEqual({ success: true, localPath: tempLocalPath });
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Downloading file from GCS:'));
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('File downloaded successfully from GCS to:'));
+      expect(mockFile.download).toHaveBeenCalledWith();
+      expect(result).toEqual({ success: true, buffer: mockBuffer });
     });
 
-    it('should throw ApiError if GCS download fails', async () => {
+    it('should throw ApiError if GCS download to buffer fails', async () => {
       const gcsPath = 'gs://test-bucket/bad/path.pdf';
-      const tempLocalPath = '/tmp/downloaded_file.pdf';
       const downloadError = new Error('GCS download error');
       mockFile.download.mockRejectedValue(downloadError);
 
-      await expect(fileProcessor.downloadFromGCS(gcsPath, tempLocalPath)).rejects.toThrow(mockApiError);
-      expect(mockApiError).toHaveBeenCalledWith(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to download file from GCS');
-      expect(mockLogger.error).toHaveBeenCalledWith('Error downloading file from GCS:', downloadError);
+      await expect(fileProcessor.downloadFromGCSToBuffer(gcsPath)).rejects.toThrow('Failed to download file from GCS');
     });
 
     it('should delete file from GCS successfully', async () => {
@@ -643,7 +657,6 @@ describe('fileProcessor', () => {
       expect(mockBucket.file).toHaveBeenCalledWith('translation-uploads/user123/12345_document.pdf');
       expect(mockFile.delete).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ success: true, message: 'File deleted successfully from GCS' });
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Translation file deleted from GCS:'));
     });
 
     it('should return failure message if GCS delete fails', async () => {
@@ -654,49 +667,34 @@ describe('fileProcessor', () => {
       const result = await fileProcessor.deleteFromGCS(gcsPath);
 
       expect(mockFile.delete).toHaveBeenCalledTimes(1);
-      expect(mockLogger.error).toHaveBeenCalledWith('Error deleting translation file from GCS:', deleteError);
       expect(result).toEqual({ success: false, message: deleteError.message });
     });
   });
 
   describe('GCS Not Configured Scenario', () => {
     beforeEach(async () => {
-      vi.stubEnv('GCS_KEY_FILE', ''); // No key file
-      vi.stubEnv('GCP_PROJECT_ID', ''); // No project ID
-      vi.stubEnv('GCS_BUCKET_NAME', ''); // No bucket name
-      mockFsSync.existsSync.mockReturnValue(false); // Key file does not exist
+      vi.stubEnv('GCS_KEY_FILE', '');
+      vi.stubEnv('GCP_PROJECT_ID', '');
+      vi.stubEnv('GCS_BUCKET_NAME', '');
+      mockFsSync.existsSync.mockReturnValue(false);
 
-      // Import the module under test AFTER setting up the environment and mocks
-      // This import will trigger the module-level GCS initialization with unconfigured values.
-      const module = await import('../fileProcessor.js');
+      // Import unconfigured GCS module instance via v3 static path dynamic import
+      const module = await import('./fileProcessor.js?v=3');
       fileProcessor = module.fileProcessor;
     });
 
-    it('should return local path info for upload if GCS is not configured', async () => {
-      const localFilePath = '/tmp/local/file.pdf';
-      const filename = 'document.pdf';
-      const documentMetadata = { userId: 'user123' };
-
-      const result = await fileProcessor.uploadToGCS(localFilePath, filename, documentMetadata);
-
-      expect(mockStorageConstructor).not.toHaveBeenCalled(); // Storage should not be initialized
-      expect(mockLogger.warn).toHaveBeenCalledWith('GCS credentials not configured. Translation file uploads will be stored locally only.');
-      expect(mockLogger.warn).toHaveBeenCalledWith('GCS not configured. Returning local file path.');
-      expect(result).toEqual({
-        success: true,
-        localPath: localFilePath,
-        fileName: filename,
-        storageType: 'local',
-      });
+    it('should throw ApiError for generateV4UploadSignedUrl if GCS is not configured', async () => {
+      await expect(fileProcessor.generateV4UploadSignedUrl('file.pdf', 'application/pdf', { userId: '123' })).rejects.toThrow('GCS not configured');
     });
 
-    it('should throw ApiError for download if GCS is not configured', async () => {
-      const gcsPath = 'gs://test-bucket/path.pdf';
-      const tempLocalPath = '/tmp/downloaded_file.pdf';
+    it('should throw ApiError for streamUploadToGCS if GCS is not configured', async () => {
+      await expect(fileProcessor.streamUploadToGCS(Buffer.from('pdf data'), 'file.pdf', { userId: '123' })).rejects.toThrow('GCS not configured');
+    });
 
-      await expect(fileProcessor.downloadFromGCS(gcsPath, tempLocalPath)).rejects.toThrow(mockApiError);
-      expect(mockApiError).toHaveBeenCalledWith(httpStatus.INTERNAL_SERVER_ERROR, 'GCS not configured');
-      expect(mockLogger.error).toHaveBeenCalledWith('Error downloading file from GCS:', expect.any(Error));
+    it('should throw ApiError for downloadFromGCSToBuffer if GCS is not configured', async () => {
+      const gcsPath = 'gs://test-bucket/path.pdf';
+
+      await expect(fileProcessor.downloadFromGCSToBuffer(gcsPath)).rejects.toThrow('GCS not configured');
     });
 
     it('should return failure message for delete if GCS is not configured', async () => {

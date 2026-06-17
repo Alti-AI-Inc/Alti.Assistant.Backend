@@ -1,24 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 
-const mockPublishMessage = vi.fn();
-const mockTopic = vi.fn().mockImplementation(() => ({
-  publishMessage: mockPublishMessage,
-}));
 const {
-  mockPubSubClient
+  mockPubSubClient,
+  mockPublishMessage,
+  mockTopic,
 } = vi.hoisted(() => {
+  const mockPublishMessage = vi.fn();
+  const mockTopic = vi.fn().mockImplementation(() => ({
+    publishMessage: mockPublishMessage,
+  }));
   const mockPubSubClient = {
     topic: mockTopic,
   };
 
   return {
-    mockPubSubClient
+    mockPubSubClient,
+    mockPublishMessage,
+    mockTopic,
   };
 });
 
 vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn().mockImplementation(() => mockPubSubClient),
+  PubSub: vi.fn(function () {
+    return mockPubSubClient;
+  }),
 }));
 
 const postSaveCallbacks = [];
@@ -97,8 +103,6 @@ describe('WorkflowExecution Model', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    postSaveCallbacks.length = 0;
-    preSaveCallbacks.length = 0;
     
     // Set env var for topic name
     process.env.WORKFLOW_EXECUTION_TOPIC = 'test-workflow-execution-topic';

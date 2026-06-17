@@ -35,15 +35,26 @@ vi.mock('../../helpers/paginationHelpers.js', () => ({
 
 // Mock Mongoose models and their chainable methods
 const mockExec = vi.fn();
-const mockSelect = vi.fn().mockImplementation(() => ({ exec: mockExec }));
-const mockSort = vi.fn().mockImplementation(() => ({ select: mockSelect, exec: mockExec }));
-const mockSkip = vi.fn().mockImplementation(() => ({ sort: mockSort, select: mockSelect, exec: mockExec }));
-const mockLimit = vi.fn().mockImplementation(
-  () => ({ skip: mockSkip, sort: mockSort, select: mockSelect, exec: mockExec })
-);
-const mockPopulate = vi.fn().mockImplementation(
-  () => ({ sort: mockSort, skip: mockSkip, limit: mockLimit, exec: mockExec })
-);
+const mockQueryObj = {};
+const mockSelect = vi.fn().mockReturnValue(mockQueryObj);
+const mockSort = vi.fn().mockReturnValue(mockQueryObj);
+const mockSkip = vi.fn().mockReturnValue(mockQueryObj);
+const mockLimit = vi.fn().mockReturnValue(mockQueryObj);
+const mockPopulate = vi.fn().mockReturnValue(mockQueryObj);
+const mockLean = vi.fn().mockReturnValue(mockQueryObj);
+
+Object.assign(mockQueryObj, {
+  select: mockSelect,
+  sort: mockSort,
+  skip: mockSkip,
+  limit: mockLimit,
+  populate: mockPopulate,
+  lean: mockLean,
+  exec: mockExec,
+  then: (resolve, reject) => {
+    return Promise.resolve(mockExec()).then(resolve, reject);
+  },
+});
 
 const {
   mockFind,
@@ -110,16 +121,23 @@ vi.mock('../payment/payment.model.js', () => ({
   },
 }));
 
-vi.mock('mongoose', async (importOriginal) => {
-  const actualMongoose = await importOriginal();
+vi.mock('mongoose', () => {
+  const mockObjectId = vi.fn().mockImplementation(function (id) {
+    this._id = id;
+    this.toString = () => id;
+    this.equals = (other) => id === (other ? other.toString() : '');
+    return this;
+  });
+  mockObjectId.isValid = vi.fn().mockReturnValue(true);
+
   return {
-    ...actualMongoose,
+    default: {
+      Types: {
+        ObjectId: mockObjectId,
+      },
+    },
     Types: {
-      ObjectId: vi.fn().mockImplementation((id) => ({
-        _id: id,
-        toString: () => id,
-        equals: (other) => id === other.toString(),
-      })),
+      ObjectId: mockObjectId,
     },
   };
 });
@@ -158,22 +176,24 @@ vi.mock('../tenant/tenant.service.js', () => ({
 
 describe('AdminService', () => {
   beforeEach(() => {
+    mockExec.mockReset();
     vi.clearAllMocks();
     // Reset mock chainable methods for each test
     mockExec.mockResolvedValue([]);
-    mockSelect.mockReturnThis();
-    mockSort.mockReturnThis();
-    mockSkip.mockReturnThis();
-    mockLimit.mockReturnThis();
-    mockPopulate.mockReturnThis();
-    mockFind.mockReturnThis();
-    mockFindOne.mockReturnThis();
-    mockCountDocuments.mockReturnThis();
-    mockUpdateOne.mockReturnThis();
-    mockDeleteOne.mockReturnThis();
-    mockAggregate.mockReturnThis();
-    mockFindById.mockReturnThis();
-    mockFindByIdAndUpdate.mockReturnThis();
+    mockSelect.mockReturnValue(mockQueryObj);
+    mockSort.mockReturnValue(mockQueryObj);
+    mockSkip.mockReturnValue(mockQueryObj);
+    mockLimit.mockReturnValue(mockQueryObj);
+    mockPopulate.mockReturnValue(mockQueryObj);
+    mockLean.mockReturnValue(mockQueryObj);
+    mockFind.mockReturnValue(mockQueryObj);
+    mockFindOne.mockReturnValue(mockQueryObj);
+    mockCountDocuments.mockReturnValue(mockQueryObj);
+    mockUpdateOne.mockReturnValue(mockQueryObj);
+    mockDeleteOne.mockReturnValue(mockQueryObj);
+    mockAggregate.mockReturnValue(mockQueryObj);
+    mockFindById.mockReturnValue(mockQueryObj);
+    mockFindByIdAndUpdate.mockReturnValue(mockQueryObj);
     mockSave.mockResolvedValue(true);
     mockToObject.mockImplementation(function () { return { ...this }; }); // Simulate Mongoose .toObject()
     mongoose.Types.ObjectId.isValid = vi.fn().mockImplementation(() => true); // Default to valid ObjectId
@@ -186,8 +206,8 @@ describe('AdminService', () => {
 
       const result = await AdminService.getAllUsersService({}, {});
 
-      expect(UserModel.find).toHaveBeenCalledWith({ $and: [{}] });
-      expect(UserModel.countDocuments).toHaveBeenCalledWith({ $and: [{}] });
+      expect(UserModel.find).toHaveBeenCalledWith({});
+      expect(UserModel.countDocuments).toHaveBeenCalledWith({});
       expect(UserModel.countDocuments).toHaveBeenCalledWith({ isSubscribed: true });
       expect(UserModel.countDocuments).toHaveBeenCalledWith({ isSubscribed: { $ne: true } });
       expect(UserModel.countDocuments).toHaveBeenCalledWith({ role: 'unauthorized' });
@@ -215,7 +235,6 @@ describe('AdminService', () => {
 
       expect(UserModel.find).toHaveBeenCalledWith({
         $and: [
-          {},
           {
             $or: [
               { email: { $regex: 'search', $options: 'i' } },
@@ -263,7 +282,7 @@ describe('AdminService', () => {
       const result = await AdminService.getSellerServiceById('someId');
 
       expect(UserModel.findOne).toHaveBeenCalledWith({ _id: 'someId' });
-      expect(logger.info).toHaveBeenCalledWith(mockUser);
+      expect(logger.info).toHaveBeenCalledWith('Retrieved user with ID: someId. Found: true');
       expect(result).toEqual(mockUser);
     });
 
@@ -273,7 +292,7 @@ describe('AdminService', () => {
       const result = await AdminService.getSellerServiceById('nonExistentId');
 
       expect(UserModel.findOne).toHaveBeenCalledWith({ _id: 'nonExistentId' });
-      expect(logger.info).toHaveBeenCalledWith(null);
+      expect(logger.info).toHaveBeenCalledWith('Retrieved user with ID: nonExistentId. Found: false');
       expect(result).toBeNull();
     });
   });
@@ -462,8 +481,8 @@ describe('AdminService', () => {
 
       const result = await AdminService.getAllPaymentService({}, {});
 
-      expect(SubscriptionModel.find).toHaveBeenCalledWith({ $and: [{}] });
-      expect(SubscriptionModel.countDocuments).toHaveBeenCalledWith({ $and: [{}] });
+      expect(SubscriptionModel.find).toHaveBeenCalledWith({});
+      expect(SubscriptionModel.countDocuments).toHaveBeenCalledWith({});
       expect(SubscriptionModel.countDocuments).toHaveBeenCalledWith({ paymentStatus: 'paid' });
       expect(SubscriptionModel.countDocuments).toHaveBeenCalledWith({ plan_name: 'free' });
       expect(SubscriptionModel.countDocuments).toHaveBeenCalledWith({ plan_name: 'professional' });
@@ -495,7 +514,6 @@ describe('AdminService', () => {
 
       expect(SubscriptionModel.find).toHaveBeenCalledWith({
         $and: [
-          {},
           {
             $or: [
               { price: { $regex: 'searchTx', $options: 'i' } },
@@ -543,7 +561,7 @@ describe('AdminService', () => {
               { slug: { $regex: 'search', $options: 'i' } },
             ],
           },
-          { $and: [{ status: 'active' }] },
+          { status: 'active' },
         ],
       });
     });
@@ -551,18 +569,17 @@ describe('AdminService', () => {
 
   describe('getTenantDetailsService', () => {
     it('should return tenant details with member count', async () => {
-      const mockTenant = { _id: 'tenantId1', name: 'Test Tenant', ownerId: 'ownerId1', toObject: mockToObject };
       const mockOwner = { _id: 'ownerId1', name: 'Owner Name', email: 'owner@example.com' };
+      const mockTenant = { _id: 'tenantId1', name: 'Test Tenant', ownerId: mockOwner };
       mockExec.mockResolvedValueOnce(mockTenant); // For findById
       mockExec.mockResolvedValueOnce(5); // For countDocuments
-      mockToObject.mockReturnValue({ ...mockTenant, ownerId: mockOwner });
 
       const result = await AdminService.getTenantDetailsService('tenantId1');
 
       expect(mockFindById).toHaveBeenCalledWith('tenantId1');
       expect(mockPopulate).toHaveBeenCalledWith('ownerId', 'name email');
       expect(UserModel.countDocuments).toHaveBeenCalledWith({ tenantId: 'tenantId1' });
-      expect(result).toEqual({ ...mockTenant, ownerId: mockOwner, memberCount: 5 });
+      expect(result).toEqual({ ...mockTenant, memberCount: 5 });
     });
 
     it('should throw an error if tenant not found', async () => {
@@ -613,40 +630,55 @@ describe('AdminService', () => {
       const mockTenant = {
         _id: 'tenantId1',
         trialEndsAt: initialTrialEnd,
-        save: mockSave,
       };
-      mockExec.mockResolvedValue(mockTenant);
+      const expectedNewTrialEnd = new Date(initialTrialEnd);
+      expectedNewTrialEnd.setDate(expectedNewTrialEnd.getDate() + 7);
+      
+      const mockUpdatedTenant = {
+        ...mockTenant,
+        trialEndsAt: expectedNewTrialEnd,
+      };
+
+      mockExec.mockResolvedValueOnce(mockTenant).mockResolvedValueOnce(mockUpdatedTenant);
 
       const daysToExtend = 7;
       const result = await AdminService.extendTenantTrialService('tenantId1', daysToExtend);
 
-      const expectedNewTrialEnd = new Date(initialTrialEnd);
-      expectedNewTrialEnd.setDate(expectedNewTrialEnd.getDate() + daysToExtend);
-
       expect(mockFindById).toHaveBeenCalledWith('tenantId1');
-      expect(mockTenant.trialEndsAt.toDateString()).toEqual(expectedNewTrialEnd.toDateString());
-      expect(mockSave).toHaveBeenCalled();
-      expect(result).toEqual(mockTenant);
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
+        'tenantId1',
+        { trialEndsAt: expectedNewTrialEnd },
+        { new: true, runValidators: true }
+      );
+      expect(result).toEqual(mockUpdatedTenant);
     });
 
     it('should set trial end from current date if not existing', async () => {
       const mockTenant = {
         _id: 'tenantId1',
         trialEndsAt: null,
-        save: mockSave,
       };
-      mockExec.mockResolvedValue(mockTenant);
+      const expectedNewTrialEnd = new Date();
+      expectedNewTrialEnd.setDate(expectedNewTrialEnd.getDate() + 5);
+
+      const mockUpdatedTenant = {
+        ...mockTenant,
+        trialEndsAt: expectedNewTrialEnd,
+      };
+
+      mockExec.mockResolvedValueOnce(mockTenant).mockResolvedValueOnce(mockUpdatedTenant);
 
       const daysToExtend = 5;
       const result = await AdminService.extendTenantTrialService('tenantId1', daysToExtend);
 
-      const expectedNewTrialEnd = new Date();
-      expectedNewTrialEnd.setDate(expectedNewTrialEnd.getDate() + daysToExtend);
-
       expect(mockFindById).toHaveBeenCalledWith('tenantId1');
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
+        'tenantId1',
+        expect.objectContaining({ trialEndsAt: expect.any(Date) }),
+        { new: true, runValidators: true }
+      );
       expect(result.trialEndsAt.toDateString()).toEqual(expectedNewTrialEnd.toDateString());
-      expect(mockSave).toHaveBeenCalled();
-      expect(result).toEqual(mockTenant);
+      expect(result).toEqual(mockUpdatedTenant);
     });
 
     it('should throw an error if tenant not found', async () => {
@@ -666,7 +698,7 @@ describe('AdminService', () => {
       expect(mockFind).toHaveBeenCalledWith({});
       expect(mockCountDocuments).toHaveBeenCalledWith({});
       expect(paginationHelpers.calculatePagination).toHaveBeenCalledWith({});
-      expect(mockSort).toHaveBeenCalledWith({ createdAt: -1 }); // Default sort
+      expect(mockSort).toHaveBeenCalledWith({ createdAt: 'desc' }); // Default sort
       expect(mockPopulate).toHaveBeenCalledWith('tenantId', 'name slug');
       expect(mockPopulate).toHaveBeenCalledWith('userId', 'email role firstName lastName');
       expect(result).toEqual({
@@ -708,7 +740,7 @@ describe('AdminService', () => {
       expect(mockFind).toHaveBeenCalledWith({});
       expect(mockCountDocuments).toHaveBeenCalledWith({});
       expect(paginationHelpers.calculatePagination).toHaveBeenCalledWith({});
-      expect(mockSort).toHaveBeenCalledWith({ createdAt: -1 }); // Default sort
+      expect(mockSort).toHaveBeenCalledWith({ createdAt: 'desc' }); // Default sort
       expect(result).toEqual({
         meta: { page: 1, limit: 10, total: 1 },
         data: mockAudits,

@@ -28,9 +28,13 @@ const {
 });
 
 vi.mock('@google-cloud/documentai', () => ({
-  DocumentProcessorServiceClient: vi.fn().mockImplementation(() => ({
-    processDocument: mockProcessDocument,
-  })),
+  DocumentProcessorServiceClient: class {
+    constructor() {
+      return {
+        processDocument: mockProcessDocument,
+      };
+    }
+  },
 }));
 
 vi.mock('../../../../config/index.js', () => ({
@@ -76,14 +80,14 @@ describe('GcpDocumentAiService', () => {
               {
                 layout: {
                   textAnchor: {
-                    textSegments: [{ startIndex: '30', endIndex: '43' }], // "Paragraph one"
+                    textSegments: [{ startIndex: '32', endIndex: '45' }], // "Paragraph one"
                   },
                 },
               },
               {
                 layout: {
                   textAnchor: {
-                    textSegments: [{ startIndex: '45', endIndex: '58' }], // "Paragraph two"
+                    textSegments: [{ startIndex: '47', endIndex: '60' }], // "Paragraph two"
                   },
                 },
               },
@@ -93,22 +97,22 @@ describe('GcpDocumentAiService', () => {
                 headerRows: [
                   {
                     cells: [
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '60', endIndex: '68' }] } } }, // "Header 1"
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '69', endIndex: '77' }] } } }, // "Header 2"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '62', endIndex: '70' }] } } }, // "Header 1"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '71', endIndex: '79' }] } } }, // "Header 2"
                     ],
                   },
                 ],
                 bodyRows: [
                   {
                     cells: [
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '78', endIndex: '86' }] } } }, // "Cell 1A"
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '87', endIndex: '95' }] } } }, // "Cell 1B"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '80', endIndex: '87' }] } } }, // "Cell 1A"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '88', endIndex: '95' }] } } }, // "Cell 1B"
                     ],
                   },
                   {
                     cells: [
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '96', endIndex: '104' }] } } }, // "Cell 2A"
-                      { layout: { textAnchor: { textSegments: [{ startIndex: '105', endIndex: '113' }] } } }, // "Cell 2B"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '96', endIndex: '103' }] } } }, // "Cell 2A"
+                      { layout: { textAnchor: { textSegments: [{ startIndex: '104', endIndex: '111' }] } } }, // "Cell 2B"
                     ],
                   },
                 ],
@@ -116,11 +120,11 @@ describe('GcpDocumentAiService', () => {
             ],
             formFields: [
               {
-                fieldName: { layout: { textAnchor: { textSegments: [{ startIndex: '115', endIndex: '119' }] } } }, // "Key:"
-                fieldValue: { layout: { textAnchor: { textSegments: [{ startIndex: '120', endIndex: '125' }] } } }, // "Value"
+                fieldName: { layout: { textAnchor: { textSegments: [{ startIndex: '113', endIndex: '117' }] } } }, // "Key:"
+                fieldValue: { layout: { textAnchor: { textSegments: [{ startIndex: '118', endIndex: '123' }] } } }, // "Value"
               },
               {
-                fieldName: { layout: { textAnchor: { textSegments: [{ startIndex: '115', endIndex: '119' }] } } }, // "Key:"
+                fieldName: { layout: { textAnchor: { textSegments: [{ startIndex: '113', endIndex: '117' }] } } }, // "Key:"
                 fieldValue: null, // Missing field value
               },
             ],

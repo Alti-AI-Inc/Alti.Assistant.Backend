@@ -97,7 +97,7 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
     if (err instanceof ApiError) {
       throw err;
     }
-    throw new ApiError(500, 'Failed to create chain snapshot.', err);
+    throw new ApiError(500, 'Failed to create chain snapshot.', err.stack || err.toString());
   }
 };
 
@@ -179,7 +179,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     if (err instanceof ApiError) {
       throw err;
     }
-    throw new ApiError(500, `Failed to rollback chain to version ${versionNumber}.`, err);
+    throw new ApiError(500, `Failed to rollback chain to version ${versionNumber}.`, err.stack || err.toString());
   }
 };
 
@@ -224,7 +224,7 @@ const getVersionHistory = async (chainId, userId) => {
       },
     });
     // Wrap the unexpected error in a generic 500 ApiError to prevent leaking implementation details.
-    throw new ApiError(500, 'Failed to retrieve version history.', err);
+    throw new ApiError(500, 'Failed to retrieve version history.', err.stack || err.toString());
   }
 };
 

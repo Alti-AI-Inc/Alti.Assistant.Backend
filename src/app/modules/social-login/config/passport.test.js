@@ -190,7 +190,9 @@ describe('Passport Configuration', () => {
       const deserializeCallback = mockPassport.deserializeUser.mock.calls[0][0];
       const done = vi.fn();
 
-      UserModel.findById.mockResolvedValue(mockUser);
+      UserModel.findById.mockImplementation(() => ({
+        lean: vi.fn().mockResolvedValue(mockUser),
+      }));
 
       await deserializeCallback(mockUser.id, done);
 
@@ -204,7 +206,9 @@ describe('Passport Configuration', () => {
       const done = vi.fn();
       const error = new Error('User not found');
 
-      UserModel.findById.mockRejectedValue(error);
+      UserModel.findById.mockImplementation(() => ({
+        lean: vi.fn().mockRejectedValue(error),
+      }));
 
       await deserializeCallback('nonExistentId', done);
 

@@ -3,7 +3,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import readline from 'readline';
 import config from '../../../../config/index.js';
-import ComposioAuth from '../composio_v2/composio.model.js';
+
 import { promises as fsPromises } from 'fs'; // Import fs.promises for asynchronous file operations
 
 /**
@@ -668,23 +668,7 @@ class McpOrchestratorService {
 
     const instance = new McpGenericServerInstance(serverId, definition, tenantId, appendLog);
 
-    // Inject active connected toolkits and API keys dynamically for Composio
-    if (serverId === 'composio') {
-      try {
-        // Optimization: Consider adding a compound index on { userId: 1, status: 1 } to the ComposioAuth model
-        // for faster lookups, especially if there are many documents or frequent queries.
-        const activeAuths = await ComposioAuth.find({ userId: tenantId, status: 'ACTIVE' }).lean();
-        const toolkits = activeAuths.map(auth => auth.toolkit?.slug).filter(Boolean);
-        const toolkitsString = toolkits.join(',');
 
-        instance.resolvedEnv['COMPOSIO_API_KEY'] = config.composio.orgApiKey;
-        instance.resolvedEnv['TENANT_ID'] = tenantId;
-        instance.resolvedEnv['COMPOSIO_TOOLKITS'] = toolkitsString;
-        await appendLog(`[Composio] Injected env: COMPOSIO_TOOLKITS=${toolkitsString}`); // Await appendLog
-      } catch (dbError) {
-        await appendLog(`[ERROR] Failed to query active Composio toolkits: ${dbError.message}`); // Await appendLog
-      }
-    }
 
     userServers.set(serverId, instance);
 

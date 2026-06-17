@@ -195,7 +195,7 @@ describe('GcpAdkService', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('GCP ADK Parsing Exception:', expect.any(Error));
       expect(result.success).toBe(false);
       expect(result.containsManifest).toBe(true);
-      expect(result.errors[0]).toMatch(/Unexpected token } in JSON at position/);
+      expect(result.errors[0]).toMatch(/(Unexpected token|Expected double-quoted property name)/);
       expect(result.manifest).toBeNull();
     });
 

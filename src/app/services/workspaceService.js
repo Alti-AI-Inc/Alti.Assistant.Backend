@@ -1,6 +1,6 @@
 import Tenant from '../modules/tenant/tenant.model.js';
 import User from '../modules/auth/auth.model.js';
-import WorkflowExecution from '../modules/composio_v2/models/workflowExecution.model.js';
+import WorkflowExecution from '../modules/workflow_automation/models/workflowExecution.model.js';
 
 const planLimitsConfig = {
   free: {

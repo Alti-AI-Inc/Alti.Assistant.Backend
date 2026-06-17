@@ -14,7 +14,8 @@ import { codeAssistantState } from './state.js';
 import config from '../../../../../config/index.js';
 
 const {
-  mockWorkflowInstance
+  mockWorkflowInstance,
+  fromUriMock,
 } = vi.hoisted(() => {
   // --- Mocks ---
 
@@ -25,12 +26,15 @@ const {
     compile: vi.fn().mockImplementation((config) => ({
       ...config,
       compiled: true,
-      checkpointerType: config.checkpointer?.constructor.name || 'unknown'
+      checkpointerType: config.checkpointer?.type || config.checkpointer?.constructor.name || 'unknown'
     })),
   };
 
+  const fromUriMock = vi.fn();
+  
   return {
-    mockWorkflowInstance
+    mockWorkflowInstance,
+    fromUriMock,
   };
 });
 
@@ -38,8 +42,8 @@ vi.mock('@langchain/langgraph', async (importOriginal) => {
   const original = await importOriginal();
   return {
     ...original,
-    StateGraph: vi.fn().mockImplementation(() => mockWorkflowInstance),
-    MemorySaver: vi.fn().mockImplementation(() => ({ type: 'MemorySaver' })),
+    StateGraph: vi.fn().mockImplementation(function () { return mockWorkflowInstance; }),
+    MemorySaver: vi.fn().mockImplementation(function () { return { type: 'MemorySaver' }; }),
     START: 'START',
     END: 'END',
   };
@@ -60,7 +64,6 @@ vi.mock('./nodes.js', () => ({
 }));
 
 const mockMongoCheckpointer = { type: 'MongoDBSaver' };
-const fromUriMock = vi.fn();
 vi.mock('./MongoDBSaver.js', () => ({
   MongoDBSaver: {
     fromUri: fromUriMock,
@@ -80,7 +83,6 @@ describe('Code Assistant Workflow', () => {
   let warnSpy;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
@@ -93,12 +95,17 @@ describe('Code Assistant Workflow', () => {
   // Import the module to trigger its execution and mock population
   let workflowModule;
   beforeAll(async () => {
+    vi.resetModules();
     fromUriMock.mockResolvedValue(mockMongoCheckpointer); // Default to success
     workflowModule = await import('./workflow.js');
   });
 
   describe('validateContextAndPermissionsNode', () => {
     let validateNode;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
 
     beforeAll(() => {
       // Extract the node function from the mock calls
@@ -116,29 +123,29 @@ describe('Code Assistant Workflow', () => {
     });
 
     it('should succeed for an admin user with valid context', async () => {
-      const config = { configurable: { userId: 'user-admin-1', workspaceId: 'ws-1' } };
+      const config = { metadata: { userId: 'user-admin-1', workspaceId: 'ws-1' } };
       const state = {};
       const result = await validateNode(state, config);
 
       expect(result).toEqual({
         user: { id: 'user-admin-1', role: 'admin' },
-        workspace: { id: 'ws-1', ownerId: 'user-admin-1' },
+        workspace: { id: 'ws-1', ownerId: 'user-admin-ws1' },
       });
     });
 
     it('should succeed for a member user with valid context', async () => {
-      const config = { configurable: { userId: 'user-member-1', workspaceId: 'ws-1' } };
+      const config = { metadata: { userId: 'user-member-1', workspaceId: 'ws-1' } };
       const state = {};
       const result = await validateNode(state, config);
 
       expect(result).toEqual({
         user: { id: 'user-member-1', role: 'member' },
-        workspace: { id: 'ws-1', ownerId: 'user-admin-1' },
+        workspace: { id: 'ws-1', ownerId: 'user-admin-ws1' },
       });
     });
 
     it('should throw an error if userId is missing', async () => {
-      const config = { configurable: { workspaceId: 'ws-1' } };
+      const config = { metadata: { workspaceId: 'ws-1' } };
       const state = {};
       await expect(validateNode(state, config)).rejects.toThrow(
         'Authorization Error: User ID and Workspace ID are required.'
@@ -146,7 +153,7 @@ describe('Code Assistant Workflow', () => {
     });
 
     it('should throw an error if workspaceId is missing', async () => {
-      const config = { configurable: { userId: 'user-admin-1' } };
+      const config = { metadata: { userId: 'user-admin-1' } };
       const state = {};
       await expect(validateNode(state, config)).rejects.toThrow(
         'Authorization Error: User ID and Workspace ID are required.'
@@ -154,7 +161,7 @@ describe('Code Assistant Workflow', () => {
     });
 
     it('should throw an error for a non-existent user', async () => {
-      const config = { configurable: { userId: 'non-existent-user', workspaceId: 'ws-1' } };
+      const config = { metadata: { userId: 'non-existent-user', workspaceId: 'ws-1' } };
       const state = {};
       await expect(validateNode(state, config)).rejects.toThrow(
         'Authorization Error: User is not authorized for this workspace.'
@@ -162,7 +169,7 @@ describe('Code Assistant Workflow', () => {
     });
 
     it('should throw an error for a non-existent workspace', async () => {
-      const config = { configurable: { userId: 'user-admin-1', workspaceId: 'non-existent-ws' } };
+      const config = { metadata: { userId: 'user-admin-1', workspaceId: 'non-existent-ws' } };
       const state = {};
       await expect(validateNode(state, config)).rejects.toThrow(
         'Authorization Error: User is not authorized for this workspace.'
@@ -170,7 +177,7 @@ describe('Code Assistant Workflow', () => {
     });
 
     it('should throw an error for a user with an unauthorized role (RBAC)', async () => {
-      const config = { configurable: { userId: 'user-viewer-1', workspaceId: 'ws-1' } };
+      const config = { metadata: { userId: 'user-viewer-1', workspaceId: 'ws-1' } };
       const state = {};
       await expect(validateNode(state, config)).rejects.toThrow(
         "Access Denied: Your role ('viewer') does not have permission to use the Code Assistant."
@@ -179,6 +186,12 @@ describe('Code Assistant Workflow', () => {
   });
 
   describe('Workflow Graph Construction', () => {
+    beforeAll(async () => {
+      vi.resetModules();
+      vi.clearAllMocks();
+      await import('./workflow.js');
+    });
+
     it('should initialize StateGraph with the correct state channels', () => {
       expect(StateGraph).toHaveBeenCalledWith({ channels: codeAssistantState });
     });
@@ -222,6 +235,13 @@ describe('Code Assistant Workflow', () => {
   });
 
   describe('Checkpointer Initialization', () => {
+    beforeAll(async () => {
+      fromUriMock.mockRejectedValue(new Error('Connection failed'));
+      vi.resetModules();
+      vi.clearAllMocks();
+      await import('./workflow.js');
+    });
+
     it('should initially compile the app with a MemorySaver', () => {
       // This check is based on the first compilation that happens during module import
       expect(mockWorkflowInstance.compile).toHaveBeenCalledTimes(1);

@@ -3,34 +3,46 @@ import { GcpStorageService } from './gcp-storage.service.js';
 import { logger } from '../../../shared/logger.js';
 
 // Mock the entire @google-cloud/storage module
-const mockGetSignedUrl = vi.fn();
-const mockFile = vi.fn().mockImplementation(() => ({
-  getSignedUrl: mockGetSignedUrl,
-}));
-
-const mockGetFiles = vi.fn();
-const mockBucketInstance = {
-  file: mockFile,
-  getFiles: mockGetFiles,
-};
-const mockBucket = vi.fn().mockImplementation(() => mockBucketInstance);
-
-const mockCreateBucket = vi.fn();
 const {
+  mockGetSignedUrl,
+  mockFile,
+  mockGetFiles,
+  mockBucket,
+  mockCreateBucket,
   mockStorageInstance
 } = vi.hoisted(() => {
+  const mockGetSignedUrl = vi.fn();
+  const mockFile = vi.fn().mockImplementation(() => ({
+    getSignedUrl: mockGetSignedUrl,
+  }));
+  const mockGetFiles = vi.fn();
+  const mockBucketInstance = {
+    file: mockFile,
+    getFiles: mockGetFiles,
+  };
+  const mockBucket = vi.fn().mockImplementation(() => mockBucketInstance);
+  const mockCreateBucket = vi.fn();
   const mockStorageInstance = {
     createBucket: mockCreateBucket,
     bucket: mockBucket,
   };
 
   return {
+    mockGetSignedUrl,
+    mockFile,
+    mockGetFiles,
+    mockBucket,
+    mockCreateBucket,
     mockStorageInstance
   };
 });
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn().mockImplementation(() => mockStorageInstance),
+  Storage: class {
+    constructor() {
+      return mockStorageInstance;
+    }
+  }
 }));
 
 // Mock the logger to prevent console output and allow spying
