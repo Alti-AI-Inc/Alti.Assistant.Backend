@@ -8,7 +8,7 @@ import { body, param, validationResult } from 'express-validator';
 import helmet from 'helmet';
 import { chatbotController } from './chatbot.controller.js';
 import auth from '../../middlewares/auth/auth.js';
-import { checkPlanLimits } from '../../middlewares/subscription/planLimits.js';
+import { planLimitMiddleware } from '../billing/planLimit.middleware.js';
 import { requireWorkspace } from '../../middlewares/workspace/requireWorkspace.js';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
@@ -115,7 +115,7 @@ router
   .route('/')
   .post(
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.MANAGER, ENUM_USER_ROLE.SUPER_ADMIN),
-    checkPlanLimits('chatbot'), // Middleware to verify the workspace plan allows creating another chatbot.
+    planLimitMiddleware('chatbot'), // Middleware to verify the workspace plan allows creating another chatbot.
     // SECURITY-PATCH: Apply validation and error handling middleware before the controller.
     createChatbotValidation,
     handleValidationErrors,
@@ -476,7 +476,7 @@ const inviteMemberValidation = [
  */
 managerRouter.post(
   '/team/invitations',
-  checkPlanLimits('user'),
+  planLimitMiddleware('members'),
   // SECURITY-PATCH: Apply body validation and error handling.
   inviteMemberValidation,
   handleValidationErrors,

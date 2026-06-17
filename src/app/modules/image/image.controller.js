@@ -197,6 +197,15 @@ export const generateImage = catchAsync(async (req, res) => {
       // If images were generated
       fullResponse = result.response || 'Image generated successfully';
       imageData = result.imageUrl;
+
+      // Increment monthly usage for image overages
+      if (!isGuest) {
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'image').catch((err) => {
+          logger.error('Error incrementing image monthly usage:', err);
+        });
+      }
     } else if (result.responseMessage) {
       // If it's a clarification or question
       fullResponse = result.responseMessage;

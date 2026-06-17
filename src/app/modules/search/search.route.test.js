@@ -3,39 +3,39 @@ import { vi, describe, it, expect } from 'vitest';
 const {
   mockRouter,
   mockAuthMiddleware,
+  mockAuthMiddlewareInstance,
   mockOptionalAuthMiddleware,
+  mockOptionalAuthMiddlewareInstance,
   mockCheckDailyRequestLimit,
   mockValidateRequest,
+  mockValidateRequestInstance,
   mockExtractTenantContext,
-  mockCheckWebSearchLimit,
+  mockPlanLimitMiddleware,
+  mockPlanLimitMiddlewareInstance,
   mockSearchController,
   mockSearchQuerySchema
 } = vi.hoisted(() => {
-  // Mock express to capture router calls
   const mockRouter = {
     post: vi.fn(),
     get: vi.fn(),
   };
 
-  // Mock all middleware functions
-  const mockAuthMiddleware = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockAuthMiddlewareInstance = vi.fn().mockImplementation((req, res, next) => next());
+  const mockAuthMiddleware = vi.fn().mockImplementation(() => mockAuthMiddlewareInstance);
 
-  const mockOptionalAuthMiddleware = vi.fn().mockImplementation(() => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockOptionalAuthMiddlewareInstance = vi.fn().mockImplementation((req, res, next) => next());
+  const mockOptionalAuthMiddleware = vi.fn().mockImplementation(() => mockOptionalAuthMiddlewareInstance);
 
   const mockCheckDailyRequestLimit = vi.fn().mockImplementation((req, res, next) => next());
 
-  // createRateLimiter is commented out in the source file, so we won't mock it.
-  // If it were active, it would be mocked as:
-  // const mockCreateRateLimiter = vi.fn((limit, window) => vi.fn((req, res, next) => next()));
-  // vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({ default: mockCreateRateLimiter }));
-
-  const mockValidateRequest = vi.fn().mockImplementation((schema) => vi.fn().mockImplementation((req, res, next) => next()));
+  const mockValidateRequestInstance = vi.fn().mockImplementation((req, res, next) => next());
+  const mockValidateRequest = vi.fn().mockImplementation(() => mockValidateRequestInstance);
 
   const mockExtractTenantContext = vi.fn().mockImplementation((req, res, next) => next());
 
-  const mockCheckWebSearchLimit = vi.fn().mockImplementation((req, res, next) => next());
+  const mockPlanLimitMiddlewareInstance = vi.fn().mockImplementation((req, res, next) => next());
+  const mockPlanLimitMiddleware = vi.fn().mockImplementation(() => mockPlanLimitMiddlewareInstance);
 
-  // Mock searchController methods
   const mockSearchController = {
     performSearch: vi.fn(),
     generateCode: vi.fn(),
@@ -45,9 +45,7 @@ const {
     performStreamingSearch: vi.fn(),
   };
 
-  // Mock SearchValidation schema
   const mockSearchQuerySchema = {
-    // A simple mock object representing the schema that validateRequest expects
     body: {
       type: 'object',
       properties: {
@@ -59,11 +57,15 @@ const {
   return {
     mockRouter,
     mockAuthMiddleware,
+    mockAuthMiddlewareInstance,
     mockOptionalAuthMiddleware,
+    mockOptionalAuthMiddlewareInstance,
     mockCheckDailyRequestLimit,
     mockValidateRequest,
+    mockValidateRequestInstance,
     mockExtractTenantContext,
-    mockCheckWebSearchLimit,
+    mockPlanLimitMiddleware,
+    mockPlanLimitMiddlewareInstance,
     mockSearchController,
     mockSearchQuerySchema
   };
@@ -75,7 +77,6 @@ vi.mock('express', () => ({
   },
 }));
 
-// Mock ENUM_USER_ROLE
 vi.mock('../../../shared/enum.js', () => ({
   ENUM_USER_ROLE: {
     ADMIN: 'admin',
@@ -84,107 +85,93 @@ vi.mock('../../../shared/enum.js', () => ({
 }));
 
 vi.mock('../../middlewares/auth/auth.js', () => ({ default: mockAuthMiddleware }));
-
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({ default: mockOptionalAuthMiddleware }));
-
 vi.mock('../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js', () => ({ default: mockCheckDailyRequestLimit }));
-
 vi.mock('../../middlewares/validateRequest/validateRequest.js', () => ({ validateRequest: mockValidateRequest }));
-
 vi.mock('../../middlewares/tenant/tenantContext.js', () => ({ extractTenantContext: mockExtractTenantContext }));
-
-vi.mock('../../middlewares/checkSubscriptionLimits.js', () => ({ checkWebSearchLimit: mockCheckWebSearchLimit }));
-
+vi.mock('../billing/planLimit.middleware.js', () => ({ planLimitMiddleware: mockPlanLimitMiddleware }));
 vi.mock('./search.controller.js', () => ({ searchController: mockSearchController }));
-
 vi.mock('./search.validation.js', () => ({ SearchValidation: { searchQuerySchema: mockSearchQuerySchema } }));
 
-// Import the router after all mocks are set up.
-// This will execute the route definitions and populate mockRouter.post/get calls.
 import { searchRoute } from './search.route.js';
 
 describe('Search Routes', () => {
-  // Ensure the router instance exported is the one we mocked
   it('should export the mocked router instance', () => {
     expect(searchRoute).toBe(mockRouter);
   });
 
-  // Test /assistant_v2 POST route
   it('should define the /assistant_v2 POST route with optionalAuth, tenant context, limits, validation, and performSearch controller', () => {
+    expect(mockPlanLimitMiddleware).toHaveBeenCalledWith('search');
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/assistant_v2',
-      mockOptionalAuthMiddleware(), // This is the middleware function returned by optionalAuth()
+      mockOptionalAuthMiddlewareInstance,
       mockExtractTenantContext,
-      mockCheckWebSearchLimit,
+      mockPlanLimitMiddlewareInstance,
       mockCheckDailyRequestLimit,
-      mockValidateRequest(mockSearchQuerySchema), // This is the middleware function returned by validateRequest()
+      mockValidateRequestInstance,
       mockSearchController.performSearch
     );
   });
 
-  // Test /code POST route
   it('should define the /code POST route with optionalAuth, tenant context, limits, validation, and generateCode controller', () => {
+    expect(mockPlanLimitMiddleware).toHaveBeenCalledWith('code');
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/code',
-      mockOptionalAuthMiddleware(),
+      mockOptionalAuthMiddlewareInstance,
       mockExtractTenantContext,
-      mockCheckWebSearchLimit,
+      mockPlanLimitMiddlewareInstance,
       mockCheckDailyRequestLimit,
-      mockValidateRequest(mockSearchQuerySchema),
+      mockValidateRequestInstance,
       mockSearchController.generateCode
     );
   });
 
-  // Test /writing POST route
   it('should define the /writing POST route with optionalAuth, tenant context, limits, validation, and generateWriting controller', () => {
+    expect(mockPlanLimitMiddleware).toHaveBeenCalledWith('write');
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/writing',
-      mockOptionalAuthMiddleware(),
+      mockOptionalAuthMiddlewareInstance,
       mockExtractTenantContext,
-      mockCheckWebSearchLimit,
+      mockPlanLimitMiddlewareInstance,
       mockCheckDailyRequestLimit,
-      mockValidateRequest(mockSearchQuerySchema),
+      mockValidateRequestInstance,
       mockSearchController.generateWriting
     );
   });
 
-  // Test /stats GET route
   it('should define the /stats GET route with auth for ADMIN/USER, tenant context, and getSearchStats controller', () => {
     expect(mockRouter.get).toHaveBeenCalledWith(
       '/stats',
-      mockAuthMiddleware('admin', 'user'), // ENUM_USER_ROLE values are mocked to 'admin' and 'user'
+      mockAuthMiddlewareInstance,
       mockExtractTenantContext,
       mockSearchController.getSearchStats
     );
   });
 
-  // Test /assistant POST route (native grounding)
   it('should define the /assistant POST route with optionalAuth, tenant context, web search limit, validation, and performNativeGroundingSearch controller', () => {
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/assistant',
-      mockOptionalAuthMiddleware(),
+      mockOptionalAuthMiddlewareInstance,
       mockExtractTenantContext,
-      mockCheckWebSearchLimit,
-      mockValidateRequest(mockSearchQuerySchema),
+      mockPlanLimitMiddlewareInstance,
+      mockValidateRequestInstance,
       mockSearchController.performNativeGroundingSearch
     );
   });
 
-  // Test /stream POST route
   it('should define the /stream POST route with optionalAuth, tenant context, web search limit, validation, and performStreamingSearch controller', () => {
     expect(mockRouter.post).toHaveBeenCalledWith(
       '/stream',
-      mockOptionalAuthMiddleware(),
+      mockOptionalAuthMiddlewareInstance,
       mockExtractTenantContext,
-      mockCheckWebSearchLimit,
-      mockValidateRequest(mockSearchQuerySchema),
+      mockPlanLimitMiddlewareInstance,
+      mockValidateRequestInstance,
       mockSearchController.performStreamingSearch
     );
   });
 
-  // Verify total calls to post and get methods on the router
-  it('should have defined 6 POST routes and 1 GET route', () => {
-    expect(mockRouter.post).toHaveBeenCalledTimes(6);
+  it('should have defined 5 POST routes and 1 GET route', () => {
+    expect(mockRouter.post).toHaveBeenCalledTimes(5);
     expect(mockRouter.get).toHaveBeenCalledTimes(1);
   });
 });

@@ -35,6 +35,9 @@ const getDomainFromUrl = (urlStr) => {
   if (!urlStr || typeof urlStr !== 'string') return 'Web Source';
   try {
     const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return 'Web Source';
+    }
     return parsed.hostname.replace(/^www\./i, '');
   } catch {
     return 'Web Source';
@@ -251,6 +254,32 @@ Query: "${query}"`
             };
           });
 
+          const metadata = geminiResult.candidates?.[0]?.groundingMetadata;
+          if (metadata?.groundingChunks) {
+            for (const chunk of metadata.groundingChunks) {
+              if (chunk.web) {
+                queryCandidates.push({
+                  title: sanitizeTitle(chunk.web.title),
+                  url: chunk.web.uri,
+                  snippet: chunk.web.snippet || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || 'Google search grounding context segment.',
+                  source: 'native_grounding'
+                });
+              }
+            }
+          }
+          if (metadata?.groundingAttributions) {
+            for (const attr of metadata.groundingAttributions) {
+              if (attr.web) {
+                queryCandidates.push({
+                  title: sanitizeTitle(attr.web.title),
+                  url: attr.web.uri,
+                  snippet: attr.web.snippet || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || 'Google search grounding context segment.',
+                  source: 'native_grounding'
+                });
+              }
+            }
+          }
+
           const toolCalls = geminiResult.candidates?.[0]?.content?.parts?.filter(p => p.toolCall) || [];
           for (const toolCall of toolCalls) {
             if (toolCall.googleSearch?.results) {
@@ -258,7 +287,7 @@ Query: "${query}"`
                 queryCandidates.push({
                   title: sanitizeTitle(result.title),
                   url: result.uri,
-                  snippet: result.snippet || 'Google search grounding context segment.',
+                  snippet: result.snippet || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || 'Google search grounding context segment.',
                   source: 'native_grounding'
                 });
               }
@@ -282,6 +311,9 @@ Query: "${query}"`
           const url = new URL(u);
           url.hash = ''; // Remove fragment
           url.searchParams.sort(); // Normalize query params
+          if (url.hostname.startsWith('www.')) {
+            url.hostname = url.hostname.slice(4);
+          }
           let c = url.toString().toLowerCase().trim();
           if (c.endsWith('/')) c = c.slice(0, -1);
           return c;
@@ -449,3 +481,4 @@ Rules:
  * @type {typeof GoogleSearchGroundingTool}
  */
 export const TavilySearchTool = GoogleSearchGroundingTool;
+export { sanitizeTitle, getDomainFromUrl, callGeminiWithResilience };

@@ -38,8 +38,23 @@ import WorkspaceModel from '../workspace/workspace.model.js';
  * @throws {Error} Throws an error if the user's email is already linked to a different social provider.
  * @throws {Error} Throws an error if the user and workspace creation transaction fails.
  */
-export async function findOrCreateUserModel(profile, provider) {
+export async function findOrCreateUserModel(profile, provider, contextOrReq) {
   try {
+    // Extract invitation token from context or request object
+    let invitationToken;
+    if (contextOrReq) {
+      if (typeof contextOrReq === 'string') {
+        invitationToken = contextOrReq;
+      } else if (typeof contextOrReq === 'object') {
+        invitationToken =
+          contextOrReq.invitationToken ||
+          contextOrReq.session?.invitationToken ||
+          contextOrReq.query?.inviteToken ||
+          contextOrReq.body?.inviteToken ||
+          contextOrReq.body?.invitationToken;
+      }
+    }
+
     // --- Step 1: Find the user by their unique provider ID ---
     // PERFORMANCE: Use .lean() for faster read-only queries. This converts the Mongoose document
     // to a plain JavaScript object, reducing memory overhead and improving query speed as the user
@@ -106,47 +121,141 @@ export async function findOrCreateUserModel(profile, provider) {
       }
     }
 
-    // --- Step 3: If no user exists, create a new user and their own workspace ---
+    // --- Step 3: If no user exists, create a new user and join/create a workspace ---
     // HIERARCHY & INTEGRATION FIX: A new user signing up via social login should not be left in a "limbo" state.
-    // They are made the 'admin' of a new, personal workspace, establishing the correct tenant context from the start.
+    // They are made the 'admin' of a new, personal workspace or join an invited workspace.
     // This entire operation is performed in a transaction to ensure atomicity.
     const session = await UserModel.startSession();
     let newUser;
 
     try {
       await session.withTransaction(async (session) => {
-        // The user document is created first to get its _id.
-        const userToCreate = new UserModel({
-          provider: provider,
-          providerId: profile.id,
-          email: email ?? `${provider}_${profile.id}@noemail.social`,
-          // New users signing up for the first time become an 'admin' of their own workspace.
-          // This is the correct role for a workspace owner.
-          role: 'admin',
-          name: profile.displayName ?? profile.username ?? 'Unnamed User',
-          avatar: profile.photos?.[0]?.value ?? '',
-          workspaces: [], // Will be populated with the new workspace ID.
-        });
+        // Find invitation if token provided
+        let invitation = null;
+        if (invitationToken) {
+          const { default: TenantInvitation } = await import('../tenant/tenantInvitation.model.js');
+          invitation = await TenantInvitation.findOne({
+            token: invitationToken,
+            status: 'pending',
+          }).session(session);
 
-        // Create a new workspace for this user.
-        const newWorkspace = new WorkspaceModel({
-          name: `${userToCreate.name}'s Workspace`,
-          owner: userToCreate._id,
-          // Add the user as the first member with an 'admin' role within the workspace context.
-          members: [{ user: userToCreate._id, role: 'admin' }],
-        });
+          // Verify email matches if invitation is found
+          if (invitation && email && invitation.email.toLowerCase() !== email.toLowerCase()) {
+            invitation = null;
+          }
+        }
 
-        // Link the workspace to the user.
-        userToCreate.workspaces.push(newWorkspace._id);
+        if (invitation) {
+          // ─── USER REGISTRATION VIA INVITATION LINK ───
+          const userToCreate = new UserModel({
+            provider: provider,
+            providerId: profile.id,
+            email: email ?? `${provider}_${profile.id}@noemail.social`,
+            role: 'user', // Global role is 'user' for invited members
+            name: profile.displayName ?? profile.username ?? 'Unnamed User',
+            avatar: profile.photos?.[0]?.value ?? '',
+            workspaces: [{
+              workspaceId: invitation.tenantId,
+              role: invitation.role === 'admin' ? 'admin' : invitation.role === 'manager' ? 'manager' : 'member',
+            }],
+            tenantId: invitation.tenantId,
+            tenantRole: invitation.role,
+            tenantPermissions:
+              invitation.role === 'admin' || invitation.role === 'manager'
+                ? ['manage_members', 'manage_content']
+                : ['view_content'],
+            activeTenantId: invitation.tenantId,
+          });
 
-        // Save both documents within the transaction.
-        await newWorkspace.save({ session });
-        await userToCreate.save({ session });
+          // Create TenantMember record
+          const { default: TenantMember } = await import('../tenant/tenantMember.model.js');
+          const newMember = new TenantMember({
+            userId: userToCreate._id,
+            tenantId: invitation.tenantId,
+            role: invitation.role,
+            permissions:
+              invitation.role === 'admin' || invitation.role === 'manager'
+                ? ['manage_members', 'manage_content']
+                : ['view_content'],
+            status: 'active',
+            invitedBy: invitation.invitedBy,
+            joinedAt: new Date(),
+          });
 
-        // Assign the created user to the outer scope variable to be returned.
-        // We need to manually populate the workspace data for the returned object for consistency.
-        newUser = userToCreate.toObject(); // Use toObject() for a plain object, consistent with .lean()
-        newUser.workspaces = [newWorkspace.toObject()];
+          // Update tenant user count
+          await WorkspaceModel.findByIdAndUpdate(
+            invitation.tenantId,
+            { $inc: { 'usage.usersCount': 1 } },
+            { session }
+          );
+
+          // Mark invitation as accepted
+          invitation.status = 'accepted';
+          invitation.acceptedAt = new Date();
+          invitation.acceptedBy = userToCreate._id;
+          await invitation.save({ session });
+
+          await newMember.save({ session });
+          await userToCreate.save({ session });
+
+          newUser = userToCreate.toObject();
+          // Populate workspace details for consistency
+          const ws = await WorkspaceModel.findById(invitation.tenantId).session(session).lean();
+          newUser.workspaces = [{
+            ...ws,
+            role: invitation.role === 'admin' ? 'admin' : invitation.role === 'manager' ? 'manager' : 'member',
+          }];
+        } else {
+          // ─── INDEPENDENT USER SIGNUP (CREATE DEFAULT WORKSPACE) ───
+          const userToCreate = new UserModel({
+            provider: provider,
+            providerId: profile.id,
+            email: email ?? `${provider}_${profile.id}@noemail.social`,
+            role: 'admin',
+            name: profile.displayName ?? profile.username ?? 'Unnamed User',
+            avatar: profile.photos?.[0]?.value ?? '',
+            workspaces: [], // Will be populated below
+          });
+
+          // Create a new workspace/tenant for this user.
+          const newWorkspace = new WorkspaceModel({
+            name: `${userToCreate.name}'s Workspace`,
+            owner: userToCreate._id,
+            members: [{ user: userToCreate._id, role: 'admin' }],
+          });
+
+          // Link the workspace using the correct subdocument structure
+          userToCreate.workspaces.push({
+            workspaceId: newWorkspace._id,
+            role: 'admin',
+          });
+          userToCreate.tenantId = newWorkspace._id;
+          userToCreate.tenantRole = 'admin';
+          userToCreate.tenantPermissions = ['*'];
+          userToCreate.activeTenantId = newWorkspace._id;
+
+          // Create TenantMember record for consistency
+          const { default: TenantMember } = await import('../tenant/tenantMember.model.js');
+          const newMember = new TenantMember({
+            userId: userToCreate._id,
+            tenantId: newWorkspace._id,
+            role: 'admin',
+            permissions: ['*'],
+            status: 'active',
+            joinedAt: new Date(),
+          });
+
+          // Save both documents within the transaction.
+          await newWorkspace.save({ session });
+          await newMember.save({ session });
+          await userToCreate.save({ session });
+
+          newUser = userToCreate.toObject(); // Use toObject() for a plain object, consistent with .lean()
+          newUser.workspaces = [{
+            ...newWorkspace.toObject(),
+            role: 'admin',
+          }];
+        }
       });
     } finally {
       // End the session after the transaction is complete.

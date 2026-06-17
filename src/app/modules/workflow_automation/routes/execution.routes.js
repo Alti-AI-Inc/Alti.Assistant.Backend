@@ -1,6 +1,7 @@
 import express from 'express';
 import { executionController } from '../controllers/execution.controller.js';
 import auth from '../../../middlewares/auth/auth.js';
+import { planLimitMiddleware } from '../../billing/planLimit.middleware.js';
 
 /**
  * @file This file defines the API routes for workflow execution, connection health,
@@ -82,6 +83,7 @@ router.post(
 router.post(
   '/:workflowId/execute',
   auth(),
+  planLimitMiddleware('workflow'),
   catchAsync(executionController.executeWorkflowController)
 );
 

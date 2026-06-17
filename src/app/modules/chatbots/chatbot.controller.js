@@ -106,6 +106,20 @@ const createChatbot = catchAsync(async (req, res) => {
     });
   }
 
+  const isGuest = req.isGuest || req.user?.isGuest;
+  if (!isGuest) {
+    try {
+      const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+      const tenantId = req.user?.tenantId || req.tenantId || null;
+      const resourceType = result.isShared ? 'models' : 'projects';
+      subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, resourceType).catch((err) => {
+        logger.error(`Failed to increment monthly usage for chatbot (${resourceType}):`, err);
+      });
+    } catch (err) {
+      logger.error('Failed to increment chatbot usage:', err);
+    }
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,

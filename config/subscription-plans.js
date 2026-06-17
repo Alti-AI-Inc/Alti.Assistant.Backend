@@ -40,7 +40,21 @@ stripeProducts.plans.forEach((plan) => {
       dailyDeepResearchLimit: plan.features.dailyDeepResearchLimit,
       canInviteTeam: plan.features.canInviteTeam,
       unlimitedSeats: plan.features.unlimitedSeats,
+      researchLimit: plan.features.researchLimit,
+      imageLimit: plan.features.imageLimit,
+      videoLimit: plan.features.videoLimit,
+      taskLimit: plan.features.taskLimit,
+      workflowLimit: plan.features.workflowLimit,
+      searchLimit: plan.features.searchLimit,
+      writeLimit: plan.features.writeLimit,
+      codeLimit: plan.features.codeLimit,
+      projectsLimit: plan.features.projectsLimit,
+      modelsLimit: plan.features.modelsLimit,
+      knowledgeLimit: plan.features.knowledgeLimit,
     },
+
+    // Metered overage prices in Stripe
+    meteredPrices: plan.meteredPrices || null,
 
     // Display information
     displayName: plan.name,

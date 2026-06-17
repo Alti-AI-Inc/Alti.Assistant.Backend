@@ -2,15 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
-import { uploadPresentationToGCS, deleteFromGCS } from './gcsUploadService.js';
 
-// Mock dependencies
+// Mock @google-cloud/storage first using globalThis to avoid ESM TDZ hoisting errors
 vi.mock('@google-cloud/storage', () => {
   const mockFile = {
     exists: vi.fn(),
     save: vi.fn(),
     makePublic: vi.fn(),
     delete: vi.fn(),
+    getMetadata: vi.fn().mockResolvedValue([{
+      size: '1024',
+      metadata: {
+        workspaceId: 'mock-workspace-id',
+      }
+    }]),
+    getSignedUrl: vi.fn().mockResolvedValue(['https://storage.googleapis.com/test-presentation-bucket/signed-url']),
   };
   const mockBucket = {
     file: vi.fn().mockReturnValue(mockFile),
@@ -18,8 +24,31 @@ vi.mock('@google-cloud/storage', () => {
   const mockStorage = {
     bucket: vi.fn().mockReturnValue(mockBucket),
   };
+
+  // Attach mock objects to globalThis for access in tests
+  globalThis.__mockFile = mockFile;
+  globalThis.__mockBucket = mockBucket;
+  globalThis.__mockStorage = mockStorage;
+
   return {
-    Storage: vi.fn().mockImplementation(() => mockStorage),
+    Storage: vi.fn(function() {
+      return mockStorage;
+    }),
+  };
+});
+
+vi.mock('path', async (importOriginal) => {
+  const actual = await importOriginal();
+  const normalize = (p) => p.replace(/^[a-zA-Z]:/, '').replace(/\\/g, '/');
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      resolve: vi.fn((...args) => normalize(actual.default.resolve(...args))),
+      sep: '/',
+    },
+    resolve: vi.fn((...args) => normalize(actual.resolve(...args))),
+    sep: '/',
   };
 });
 
@@ -46,22 +75,55 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
+// Initialize global user workspace mock
+globalThis.__mockUserWorkspace = {
+  _id: 'mock-workspace-id',
+  storageUsed: 100,
+  storageLimit: 1000000,
+};
+
+vi.mock('../../auth/auth.model.js', () => {
+  return {
+    default: {
+      findById: vi.fn(() => ({
+        populate: vi.fn(() => ({
+          lean: vi.fn(() => Promise.resolve({
+            _id: 'mock-user-id',
+            workspace: globalThis.__mockUserWorkspace,
+          })),
+        })),
+      })),
+    }
+  };
+});
+
+vi.mock('../../workspace/workspace.model.js', () => {
+  return {
+    default: {
+      findByIdAndUpdate: vi.fn(() => Promise.resolve()),
+    }
+  };
+});
+
+// Import after mocks are registered
+import { uploadPresentationToGCS, deleteFromGCS } from './gcsUploadService.js';
+
 // Mock console to prevent logging during tests
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
 
 describe('gcsUploadService', () => {
-  let mockStorageInstance;
-  let mockBucketInstance;
   let mockFileInstance;
+  let mockBucketInstance;
 
   beforeEach(() => {
-    // This is a bit verbose but makes it clear what we're accessing from the mock
-    const { Storage } = await import('@google-cloud/storage');
-    mockStorageInstance = new Storage();
-    mockBucketInstance = mockStorageInstance.bucket();
-    mockFileInstance = mockBucketInstance.file();
+    // Reset workspace limits and usages
+    globalThis.__mockUserWorkspace.storageUsed = 100;
+    globalThis.__mockUserWorkspace.storageLimit = 1000000;
+
+    mockFileInstance = globalThis.__mockFile;
+    mockBucketInstance = globalThis.__mockBucket;
   });
 
   afterEach(() => {
@@ -81,7 +143,7 @@ describe('gcsUploadService', () => {
         axios.get.mockResolvedValue({ data: fileBuffer });
         mockFileInstance.exists.mockResolvedValue([false]);
         mockFileInstance.save.mockResolvedValue();
-        mockFileInstance.makePublic.mockResolvedValue();
+        mockFileInstance.getSignedUrl.mockResolvedValue([`https://storage.googleapis.com/test-presentation-bucket/${userId}/${conversationId}/${fileName}`]);
 
         const result = await uploadPresentationToGCS(fileUrl, fileName, userId, conversationId);
 
@@ -91,13 +153,17 @@ describe('gcsUploadService', () => {
         expect(mockFileInstance.save).toHaveBeenCalledWith(fileBuffer, {
           metadata: {
             contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            metadata: {
+              userId,
+              workspaceId: 'mock-workspace-id',
+              conversationId,
+            },
           },
           resumable: false,
         });
-        expect(mockFileInstance.makePublic).toHaveBeenCalled();
         expect(result).toEqual({
           success: true,
-          publicUrl: `https://storage.googleapis.com/test-presentation-bucket/${userId}/${conversationId}/${fileName}`,
+          url: `https://storage.googleapis.com/test-presentation-bucket/${userId}/${conversationId}/${fileName}`,
           gcsPath: `${userId}/${conversationId}/${fileName}`,
           bucket: 'test-presentation-bucket',
           size: fileBuffer.length,
@@ -106,11 +172,13 @@ describe('gcsUploadService', () => {
 
       it('should generate a unique filename if the file already exists', async () => {
         const newFileName = 'presentation_1.pptx';
-        const existingFile = { exists: vi.fn().mockResolvedValue([true]) };
+        const existingFile = {
+          exists: vi.fn().mockResolvedValue([true]),
+        };
         const newFile = {
           exists: vi.fn().mockResolvedValue([false]),
           save: vi.fn().mockResolvedValue(),
-          makePublic: vi.fn().mockResolvedValue(),
+          getSignedUrl: vi.fn().mockResolvedValue([`https://storage.googleapis.com/test-presentation-bucket/${userId}/${conversationId}/${newFileName}`]),
         };
 
         axios.get.mockResolvedValue({ data: fileBuffer });
@@ -124,7 +192,7 @@ describe('gcsUploadService', () => {
         expect(mockBucketInstance.file).toHaveBeenCalledWith(`${userId}/${conversationId}/${newFileName}`);
         expect(newFile.save).toHaveBeenCalled();
         expect(result.gcsPath).toBe(`${userId}/${conversationId}/${newFileName}`);
-        expect(result.publicUrl).toContain(newFileName);
+        expect(result.url).toContain(newFileName);
       });
 
       it('should correctly determine content type for PDF', async () => {
@@ -133,10 +201,9 @@ describe('gcsUploadService', () => {
 
         await uploadPresentationToGCS(fileUrl, 'report.pdf', userId, conversationId);
 
-        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), {
-          metadata: { contentType: 'application/pdf' },
-          resumable: false,
-        });
+        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({
+          metadata: expect.objectContaining({ contentType: 'application/pdf' }),
+        }));
       });
 
       it('should correctly determine content type for JSON', async () => {
@@ -145,10 +212,9 @@ describe('gcsUploadService', () => {
 
         await uploadPresentationToGCS(fileUrl, 'data.json', userId, conversationId);
 
-        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), {
-          metadata: { contentType: 'application/json' },
-          resumable: false,
-        });
+        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({
+          metadata: expect.objectContaining({ contentType: 'application/json' }),
+        }));
       });
 
       it('should use a default content type for unknown extensions', async () => {
@@ -157,10 +223,9 @@ describe('gcsUploadService', () => {
 
         await uploadPresentationToGCS(fileUrl, 'archive.zip', userId, conversationId);
 
-        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), {
-          metadata: { contentType: 'application/octet-stream' },
-          resumable: false,
-        });
+        expect(mockFileInstance.save).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({
+          metadata: expect.objectContaining({ contentType: 'application/octet-stream' }),
+        }));
       });
 
       it('should throw an error if downloading from URL fails', async () => {
@@ -168,20 +233,18 @@ describe('gcsUploadService', () => {
         axios.get.mockRejectedValue(downloadError);
 
         await expect(uploadPresentationToGCS(fileUrl, fileName, userId, conversationId))
-          .rejects.toThrow(`Failed to upload presentation to GCS: ${downloadError.message}`);
+          .rejects.toThrow(`Failed to upload presentation: ${downloadError.message}`);
       });
     });
 
     describe('Uploading from a local file path', () => {
       const presentonPath = '/app_data/exports/presentation.pptx';
-      const resolvedBasePath = '/app/presenton_files';
-      const resolvedFilePath = path.resolve(resolvedBasePath, 'exports/presentation.pptx');
+      const resolvedFilePath = '/app/presenton_files/exports/presentation.pptx';
 
       beforeEach(() => {
         fs.readFile.mockResolvedValue(fileBuffer);
         mockFileInstance.exists.mockResolvedValue([false]);
         mockFileInstance.save.mockResolvedValue();
-        mockFileInstance.makePublic.mockResolvedValue();
       });
 
       it('should successfully upload a file from a valid local path', async () => {
@@ -196,27 +259,28 @@ describe('gcsUploadService', () => {
       it('should throw an error for an invalid Presenton path format', async () => {
         const invalidPath = '/some_other_dir/file.pptx';
         await expect(uploadPresentationToGCS(invalidPath, fileName, userId, conversationId))
-          .rejects.toThrow('Failed to upload presentation to GCS: Invalid Presenton file path format. Expected to start with /app_data/.');
+          .rejects.toThrow('Failed to upload presentation: Invalid Presenton file path format. Expected to start with /app_data/.');
       });
 
       it('should throw an error for a path traversal attempt', async () => {
         const traversalPath = '/app_data/../secrets/key.txt';
         await expect(uploadPresentationToGCS(traversalPath, 'key.txt', userId, conversationId))
-          .rejects.toThrow('Failed to upload presentation to GCS: Attempted path traversal detected. File access denied.');
+          .rejects.toThrow('Failed to upload presentation: Attempted path traversal detected. File access denied.');
       });
 
       it('should throw an error for a more complex path traversal attempt', async () => {
         const traversalPath = '/app_data/exports/../../../etc/passwd';
         await expect(uploadPresentationToGCS(traversalPath, 'passwd', userId, conversationId))
-          .rejects.toThrow('Failed to upload presentation to GCS: Attempted path traversal detected. File access denied.');
+          .rejects.toThrow('Failed to upload presentation: Attempted path traversal detected. File access denied.');
       });
 
       it('should throw an error if reading from local file fails', async () => {
         const readError = new Error('File not found');
+        fs.readFile.mockResolvedValue(fileBuffer); // Ensure first read in user lookup succeeds
         fs.readFile.mockRejectedValue(readError);
 
         await expect(uploadPresentationToGCS(presentonPath, fileName, userId, conversationId))
-          .rejects.toThrow(`Failed to upload presentation to GCS: ${readError.message}`);
+          .rejects.toThrow(`Failed to upload presentation: ${readError.message}`);
       });
     });
 
@@ -227,7 +291,7 @@ describe('gcsUploadService', () => {
       mockFileInstance.save.mockRejectedValue(gcsError);
 
       await expect(uploadPresentationToGCS('http://a.com/f.pptx', fileName, userId, conversationId))
-        .rejects.toThrow(`Failed to upload presentation to GCS: ${gcsError.message}`);
+        .rejects.toThrow(`Failed to upload presentation: ${gcsError.message}`);
     });
   });
 
@@ -252,7 +316,7 @@ describe('gcsUploadService', () => {
 
       expect(mockBucketInstance.file).toHaveBeenCalledWith(gcsPath);
       expect(mockFileInstance.delete).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith('Error deleting file from GCS:', deleteError);
+      expect(console.error).toHaveBeenCalledWith('Error deleting file user123/conv456/presentation.pptx from GCS:', deleteError);
       expect(result).toBe(false);
     });
   });

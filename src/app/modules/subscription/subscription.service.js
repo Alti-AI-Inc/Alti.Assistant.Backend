@@ -7,6 +7,7 @@ import TenantModel from '../tenant/tenant.model.js';
 import {
   getPlanDetails,
   getPlanLimits,
+  getPlanByPriceId,
 } from '../../../../config/subscription-plans.js';
 import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
@@ -170,12 +171,7 @@ const createFreeSubscription = async (userId, tenantId = null) => {
         used: 1,
         available: 0,
       },
-      limits: {
-        dailyWebSearchLimit: freePlan.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: freePlan.features.dailyDeepResearchLimit,
-        canInviteTeam: freePlan.features.canInviteTeam,
-        unlimitedSeats: freePlan.features.unlimitedSeats,
-      },
+      limits: getLimitsFromPlan(freePlan),
       usage: {
         webSearchUsedToday: 0,
         deepResearchUsedToday: 0,
@@ -409,12 +405,7 @@ const changePlan = async (existingSubscription, newPlan, seats = null, actorInfo
         'seats.total': seatCount,
         'seats.used': seatCount,
         'seats.available': 0,
-        limits: {
-          dailyWebSearchLimit: newPlan.features.dailyWebSearchLimit,
-          dailyDeepResearchLimit: newPlan.features.dailyDeepResearchLimit,
-          canInviteTeam: newPlan.features.canInviteTeam,
-          unlimitedSeats: newPlan.features.unlimitedSeats,
-        },
+        limits: getLimitsFromPlan(newPlan),
         'billingCycle.currentPeriodStart': new Date(
           updatedStripeSubscription.current_period_start * 1000
         ),
@@ -487,14 +478,24 @@ const createSubscriptionDirectly = async (
     // Create subscription in Stripe
     const stripeSubscription = await executeStripeOperation(
       async () => {
+        const items = [
+          {
+            price: plan.stripePriceId,
+            quantity: seats,
+          },
+        ];
+
+        // Fetch plan details from subscription-plans config to get meteredPrices
+        const planConfig = getPlanDetails(plan.plan);
+        if (planConfig && planConfig.meteredPrices) {
+          Object.values(planConfig.meteredPrices).forEach((priceId) => {
+            items.push({ price: priceId });
+          });
+        }
+
         return await stripe.subscriptions.create({
           customer: customerId,
-          items: [
-            {
-              price: plan.stripePriceId,
-              quantity: seats,
-            },
-          ],
+          items,
           default_payment_method: paymentMethodId,
           metadata: {
             userId: userId.toString(),
@@ -552,6 +553,33 @@ const createSubscriptionDirectly = async (
     // Get subscription item ID
     const subscriptionItem = stripeSubscription.items.data[0];
 
+    // Resolve metered items
+    const planConfig = getPlanDetails(plan.plan);
+    const stripeMeteredItems = {
+      researchItemId: null,
+      imageItemId: null,
+      videoItemId: null,
+      taskItemId: null,
+      workflowItemId: null,
+      searchItemId: null,
+      writeItemId: null,
+      codeItemId: null,
+      projectsItemId: null,
+      modelsItemId: null,
+      knowledgeItemId: null,
+    };
+
+    if (planConfig && planConfig.meteredPrices) {
+      stripeSubscription.items.data.forEach((item) => {
+        const priceId = item.price.id;
+        Object.keys(planConfig.meteredPrices).forEach((key) => {
+          if (priceId === planConfig.meteredPrices[key]) {
+            stripeMeteredItems[`${key}ItemId`] = item.id;
+          }
+        });
+      });
+    }
+
     // Create new subscription in database
     const subscription = await SubscriptionModel.create({
       userId,
@@ -563,22 +591,30 @@ const createSubscriptionDirectly = async (
       stripeSubscriptionItemId: subscriptionItem.id,
       stripePriceId: subscriptionItem.price.id,
       stripeProductId: plan.stripeProductId,
+      stripeMeteredItems,
       seats: {
         total: seats,
         used: seats,
         available: 0,
       },
       pricePerSeat: plan.price,
-      limits: {
-        dailyWebSearchLimit: plan.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: plan.features.dailyDeepResearchLimit,
-        canInviteTeam: plan.features.canInviteTeam,
-        unlimitedSeats: plan.features.unlimitedSeats,
-      },
+      limits: getLimitsFromPlan(plan),
       usage: {
         webSearchUsedToday: 0,
         deepResearchUsedToday: 0,
         lastResetAt: new Date(),
+        researchMonthlyUsed: 0,
+        imageMonthlyUsed: 0,
+        videoMonthlyUsed: 0,
+        taskMonthlyUsed: 0,
+        workflowMonthlyUsed: 0,
+        searchMonthlyUsed: 0,
+        writeMonthlyUsed: 0,
+        codeMonthlyUsed: 0,
+        projectsMonthlyUsed: 0,
+        modelsMonthlyUsed: 0,
+        knowledgeMonthlyUsed: 0,
+        cycleStartedAt: new Date(),
       },
       billingCycle: {
         currentPeriodStart: new Date(
@@ -668,12 +704,21 @@ const createCheckoutSession = async (
         return await stripe.checkout.sessions.create({
           customer: customerId,
           payment_method_types: ['card'],
-          line_items: [
-            {
-              price: plan.stripePriceId,
-              quantity: seats,
-            },
-          ],
+          line_items: (() => {
+            const items = [
+              {
+                price: plan.stripePriceId,
+                quantity: seats,
+              },
+            ];
+            const planConfig = getPlanDetails(plan.plan);
+            if (planConfig && planConfig.meteredPrices) {
+              Object.values(planConfig.meteredPrices).forEach((priceId) => {
+                items.push({ price: priceId });
+              });
+            }
+            return items;
+          })(),
           mode: 'subscription',
           success_url: `${config.client_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${config.client_url}/subscription/cancel`,
@@ -758,6 +803,34 @@ const processStripeCheckout = async (sessionId) => {
     );
 
     // Create new paid subscription
+    // Resolve metered items
+    const planConfig = getPlanDetails(planName);
+    const stripeMeteredItems = {
+      researchItemId: null,
+      imageItemId: null,
+      videoItemId: null,
+      taskItemId: null,
+      workflowItemId: null,
+      searchItemId: null,
+      writeItemId: null,
+      codeItemId: null,
+      projectsItemId: null,
+      modelsItemId: null,
+      knowledgeItemId: null,
+    };
+
+    if (planConfig && planConfig.meteredPrices) {
+      stripeSubscription.items.data.forEach((item) => {
+        const priceId = item.price.id;
+        Object.keys(planConfig.meteredPrices).forEach((key) => {
+          if (priceId === planConfig.meteredPrices[key]) {
+            stripeMeteredItems[`${key}ItemId`] = item.id;
+          }
+        });
+      });
+    }
+
+    // Create new paid subscription
     const subscription = await SubscriptionModel.create({
       userId,
       tenantId: tenantId || null,
@@ -768,22 +841,30 @@ const processStripeCheckout = async (sessionId) => {
       stripeSubscriptionItemId: subscriptionItem.id,
       stripePriceId: subscriptionItem.price.id,
       stripeProductId: plan.stripeProductId,
+      stripeMeteredItems,
       seats: {
         total: quantity,
         used: quantity,
         available: 0,
       },
       pricePerSeat: plan.price,
-      limits: {
-        dailyWebSearchLimit: plan.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: plan.features.dailyDeepResearchLimit,
-        canInviteTeam: plan.features.canInviteTeam,
-        unlimitedSeats: plan.features.unlimitedSeats,
-      },
+      limits: getLimitsFromPlan(plan),
       usage: {
         webSearchUsedToday: 0,
         deepResearchUsedToday: 0,
         lastResetAt: new Date(),
+        researchMonthlyUsed: 0,
+        imageMonthlyUsed: 0,
+        videoMonthlyUsed: 0,
+        taskMonthlyUsed: 0,
+        workflowMonthlyUsed: 0,
+        searchMonthlyUsed: 0,
+        writeMonthlyUsed: 0,
+        codeMonthlyUsed: 0,
+        projectsMonthlyUsed: 0,
+        modelsMonthlyUsed: 0,
+        knowledgeMonthlyUsed: 0,
+        cycleStartedAt: new Date(),
       },
       billingCycle: {
         currentPeriodStart: new Date(
@@ -891,12 +972,7 @@ const cancelSubscription = async (subscriptionId, immediate = false, actorInfo =
       updateData.plan = 'free';
       updateData.seats = { total: 1, used: 1, available: 0 };
       updateData.pricePerSeat = 0;
-      updateData.limits = {
-        dailyWebSearchLimit: freePlan.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: freePlan.features.dailyDeepResearchLimit,
-        canInviteTeam: false,
-        unlimitedSeats: false,
-      };
+      updateData.limits = getLimitsFromPlan(freePlan);
     }
 
     const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
@@ -1310,6 +1386,37 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
     const subscriptionItem = stripeSubscription.items.data[0];
     const quantity = subscriptionItem.quantity || subscription.seats.used;
 
+    // Resolve metered items and limits in case plan changed
+    const plan = getPlanByPriceId(subscriptionItem.price.id);
+    const stripeMeteredItems = {
+      researchItemId: null,
+      imageItemId: null,
+      videoItemId: null,
+      taskItemId: null,
+      workflowItemId: null,
+      searchItemId: null,
+      writeItemId: null,
+      codeItemId: null,
+      projectsItemId: null,
+      modelsItemId: null,
+      knowledgeItemId: null,
+    };
+
+    let limits = {};
+    if (plan) {
+      if (plan.meteredPrices) {
+        stripeSubscription.items.data.forEach((item) => {
+          const priceId = item.price.id;
+          Object.keys(plan.meteredPrices).forEach((key) => {
+            if (priceId === plan.meteredPrices[key]) {
+              stripeMeteredItems[`${key}ItemId`] = item.id;
+            }
+          });
+        });
+      }
+      limits = getLimitsFromPlan(plan);
+    }
+
     // Update subscription
     const updateData = {
       status,
@@ -1322,6 +1429,14 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
         stripeSubscription.current_period_end * 1000
       ),
     };
+
+    if (plan) {
+      updateData.plan = plan.planKey;
+      updateData.stripePriceId = subscriptionItem.price.id;
+      updateData.stripeProductId = plan.stripeProductId;
+      updateData.stripeMeteredItems = stripeMeteredItems;
+      updateData.limits = limits;
+    }
 
     if (stripeSubscription.cancel_at) {
       updateData['billingCycle.cancelAt'] = new Date(
@@ -1429,12 +1544,7 @@ const confirmSubscriptionPayment = async (
         available: 0,
       },
       pricePerSeat: plan.price,
-      limits: {
-        dailyWebSearchLimit: plan.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: plan.features.dailyDeepResearchLimit,
-        canInviteTeam: plan.features.canInviteTeam,
-        unlimitedSeats: plan.features.unlimitedSeats,
-      },
+      limits: getLimitsFromPlan(plan),
       usage: {
         webSearchUsedToday: 0,
         deepResearchUsedToday: 0,
@@ -1609,12 +1719,7 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
           available: 0,
         },
         pricePerSeat: plan.price || invoice.amount_paid / 100 / quantity,
-        limits: {
-          dailyWebSearchLimit: plan.features?.dailyWebSearchLimit || 100,
-          dailyDeepResearchLimit: plan.features?.dailyDeepResearchLimit || 10,
-          canInviteTeam: plan.features?.canInviteTeam || true,
-          unlimitedSeats: plan.features?.unlimitedSeats || false,
-        },
+        limits: getLimitsFromPlan(plan),
         usage: {
           webSearchUsedToday: 0,
           deepResearchUsedToday: 0,
@@ -1935,6 +2040,181 @@ const createBillingPortalSession = async (userId, tenantId, context) => {
   return session;
 };
 
+/**
+ * Helper to extract limits from plan features or config.
+ */
+const getLimitsFromPlan = (plan) => {
+  const features = plan.features || plan.limits || {};
+  return {
+    dailyWebSearchLimit: features.dailyWebSearchLimit || 10,
+    dailyDeepResearchLimit: features.dailyDeepResearchLimit || 0,
+    canInviteTeam: features.canInviteTeam || false,
+    unlimitedSeats: features.unlimitedSeats || false,
+    researchLimit: features.researchLimit || 0,
+    imageLimit: features.imageLimit || 0,
+    videoLimit: features.videoLimit || 0,
+    taskLimit: features.taskLimit || 0,
+    workflowLimit: features.workflowLimit || 0,
+    searchLimit: features.searchLimit || 0,
+    writeLimit: features.writeLimit || 0,
+    codeLimit: features.codeLimit || 0,
+    projectsLimit: features.projectsLimit || 0,
+    modelsLimit: features.modelsLimit || 0,
+    knowledgeLimit: features.knowledgeLimit || features.storagePerUser || 0,
+  };
+};
+
+/**
+ * Report usage overage to Stripe for a metered price ID.
+ */
+const reportOverageToStripe = async (subscription, resourceType, quantity = 1) => {
+  try {
+    const meteredItemId = subscription.stripeMeteredItems[`${resourceType}ItemId`];
+    if (!meteredItemId) {
+      logger.warn(`No Stripe metered item ID found for ${resourceType} in subscription ${subscription._id}`);
+      return;
+    }
+
+    await stripe.subscriptionItems.createUsageRecord(meteredItemId, {
+      quantity,
+      action: 'increment',
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+    logger.info(`Reported ${quantity} units of ${resourceType} overage to Stripe for subscription ${subscription._id}`);
+  } catch (error) {
+    logger.error(`Error reporting ${resourceType} overage to Stripe:`, error);
+    await BillingAuditLog.create({
+      tenantId: subscription.tenantId,
+      userId: subscription.userId,
+      action: 'report_overage_failed',
+      newState: { resourceType, error: error.message },
+    });
+  }
+};
+
+/**
+ * Increments the monthly usage counter for a feature and reports overage if exceeded.
+ */
+const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, quantity = 1) => {
+  try {
+    const query = tenantId
+      ? { tenantId, status: 'active' }
+      : { userId, tenantId: null, status: 'active' };
+    const subscription = await SubscriptionModel.findOne(query);
+
+    if (!subscription) {
+      logger.warn(`No active subscription found to track usage for user ${userId} / tenant ${tenantId}`);
+      return { allowed: false, isOverage: false, message: 'No active subscription found.' };
+    }
+
+    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
+      return { allowed: false, isOverage: false, message: 'Subscription is suspended or unpaid.' };
+    }
+
+    const seats = subscription.seats.total || 1;
+    const limit = (subscription.limits[`${resourceType}Limit`] || 0) * seats;
+    const now = new Date();
+
+    // Check if we need to reset the monthly cycle
+    const cycleStart = subscription.usage.cycleStartedAt
+      ? new Date(subscription.usage.cycleStartedAt)
+      : new Date(subscription.createdAt);
+    const monthsDiff = (now.getFullYear() - cycleStart.getFullYear()) * 12 + now.getMonth() - cycleStart.getMonth();
+
+    if (monthsDiff >= 1) {
+      subscription.usage.researchMonthlyUsed = 0;
+      subscription.usage.imageMonthlyUsed = 0;
+      subscription.usage.videoMonthlyUsed = 0;
+      subscription.usage.taskMonthlyUsed = 0;
+      subscription.usage.workflowMonthlyUsed = 0;
+      subscription.usage.searchMonthlyUsed = 0;
+      subscription.usage.writeMonthlyUsed = 0;
+      subscription.usage.codeMonthlyUsed = 0;
+      subscription.usage.projectsMonthlyUsed = 0;
+      subscription.usage.modelsMonthlyUsed = 0;
+      subscription.usage.knowledgeMonthlyUsed = 0;
+      subscription.usage.cycleStartedAt = now;
+      logger.info(`Reset monthly usage counters for subscription ${subscription._id}`);
+    }
+
+    // Increment usage
+    const fieldName = `${resourceType}MonthlyUsed`;
+    const oldUsed = subscription.usage[fieldName] || 0;
+    subscription.usage[fieldName] = oldUsed + quantity;
+    await subscription.save();
+
+    const isOverage = subscription.usage[fieldName] > limit;
+
+    if (isOverage) {
+      if (subscription.plan === 'free') {
+        return { allowed: false, isOverage: true, message: `Monthly ${resourceType} limit reached. Please upgrade.` };
+      }
+      
+      // Calculate overage quantity
+      let overageQuantity = quantity;
+      if (oldUsed < limit) {
+        overageQuantity = (oldUsed + quantity) - limit;
+      }
+      
+      let stripeQuantity = overageQuantity;
+      if (resourceType === 'knowledge') {
+        // Convert knowledge bytes to MB for Stripe billing
+        stripeQuantity = Math.ceil(overageQuantity / (1024 * 1024));
+      }
+      
+      if (stripeQuantity > 0) {
+        reportOverageToStripe(subscription, resourceType, stripeQuantity).catch(() => {});
+      }
+    }
+
+    return { allowed: true, isOverage, message: 'Usage tracked successfully.' };
+  } catch (error) {
+    logger.error(`Error in trackAndIncrementMonthlyUsage for ${resourceType}:`, error);
+    return { allowed: true, isOverage: false, message: 'Tracking failed, failing open.' };
+  }
+};
+
+/**
+ * Checks if a user or tenant is within quota for a feature.
+ */
+const checkMonthlyUsageLimit = async (userId, tenantId, resourceType) => {
+  try {
+    const query = tenantId
+      ? { tenantId, status: 'active' }
+      : { userId, tenantId: null, status: 'active' };
+    const subscription = await SubscriptionModel.findOne(query);
+
+    if (!subscription) {
+      return { allowed: false, remaining: 0, limit: 0, used: 0, isOverage: true, message: 'No active subscription.' };
+    }
+
+    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
+      return { allowed: false, remaining: 0, limit: 0, used: 0, isOverage: true, message: 'Subscription is suspended.' };
+    }
+
+    const seats = subscription.seats.total || 1;
+    const limit = (subscription.limits[`${resourceType}Limit`] || 0) * seats;
+    const fieldName = `${resourceType}MonthlyUsed`;
+    const used = subscription.usage[fieldName] || 0;
+    const remaining = Math.max(0, limit - used);
+
+    const allowed = subscription.plan !== 'free' || remaining > 0;
+
+    return {
+      allowed,
+      remaining,
+      limit,
+      used,
+      isOverage: used >= limit,
+      plan: subscription.plan,
+      message: used >= limit ? 'Usage limit exceeded. Overage rates apply.' : 'Usage allowed.',
+    };
+  } catch (error) {
+    logger.error(`Error checking monthly usage limit for ${resourceType}:`, error);
+    return { allowed: true, remaining: 0, limit: 0, used: 0, isOverage: false, message: 'Failed checking limit, failing open.' };
+  }
+};
+
 export default {
   createFreeSubscription,
   upgradeSubscription,
@@ -1958,4 +2238,7 @@ export default {
   handleDisputeCreated,
   handleDisputeClosed,
   createBillingPortalSession,
+  trackAndIncrementMonthlyUsage,
+  checkMonthlyUsageLimit,
+  reportOverageToStripe,
 };

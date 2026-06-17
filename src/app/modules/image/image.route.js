@@ -15,6 +15,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { imageController } from './image.controller.js';
 import { ImageValidation } from './image.validation.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import { planLimitMiddleware } from '../billing/planLimit.middleware.js';
 
 /**
  * Express router for image-related routes.
@@ -149,6 +150,7 @@ router.post(
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
   checkDailyRequestLimit,
+  planLimitMiddleware('image'),
   createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(ImageValidation.imageGenerationSchema),
   imageController.generateImage

@@ -1,10 +1,23 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { GoogleGenAI } from '@google/genai';
 import { GcpSearchAggregatorService } from '../../gcp_native/gcp-search-aggregator.service.js';
 import { logger } from '../../../../shared/logger.js';
 
+const { mockGenerateContent } = vi.hoisted(() => ({
+  mockGenerateContent: vi.fn(),
+}));
+
 // Mock external dependencies
-vi.mock('@google/genai');
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: class {
+    constructor() {
+      this.models = {
+        generateContent: mockGenerateContent,
+      };
+    }
+  },
+}));
+
 vi.mock('../../../../../config/index.js', () => ({
   default: {
     gemini_secret_key: 'mock-gemini-key',
@@ -23,25 +36,10 @@ vi.mock('../../../../shared/logger.js', () => ({
 const { GoogleSearchGroundingTool, TavilySearchTool } = await import('./tavily-utils.js');
 
 describe('tavily-utils', () => {
-  let mockGenerateContent;
-
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
-
-    // Mock GoogleGenAI's generateContent method
-    mockGenerateContent = vi.fn();
-    GoogleGenAI.mockImplementation(() => ({
-      models: {
-        generateContent: mockGenerateContent,
-      },
-    }));
-
-    // Ensure the 'ai' instance is re-initialized with the mock
-    // This requires re-importing or ensuring the module's top-level execution runs again.
-    // For simplicity, we'll assume the mock is in place before the module is first loaded.
-    // If the 'ai' instance was created before mocks, we'd need a more complex setup like `vi.doMock` and dynamic import.
-    // Given the current setup, the initial `await import` should pick up the mocks.
+    mockGenerateContent.mockReset();
   });
 
   // Helper functions are not exported, but they are used internally.
@@ -50,12 +48,14 @@ describe('tavily-utils', () => {
   // However, if they were exported, they would be tested like this:
 
   describe('Internal Helper Functions (simulated export for testing)', () => {
-    // To test internal functions, we'd typically export them for testing purposes
-    // or test them via the public API that uses them.
-    // For this exercise, I'll simulate their testing as if they were exported.
-    // In a real scenario, if not exported, these tests would be part of the GoogleSearchGroundingTool tests.
+    let sanitizeTitle, getDomainFromUrl, callGeminiWithResilience;
 
-    const { sanitizeTitle, getDomainFromUrl, callGeminiWithResilience } = await import('./tavily-utils.js');
+    beforeAll(async () => {
+      const module = await import('./tavily-utils.js');
+      sanitizeTitle = module.sanitizeTitle;
+      getDomainFromUrl = module.getDomainFromUrl;
+      callGeminiWithResilience = module.callGeminiWithResilience;
+    });
 
     describe('sanitizeTitle', () => {
       it('should strip HTML tags', () => {
@@ -138,6 +138,7 @@ describe('tavily-utils', () => {
         ];
 
         for (const msg of errorMessages) {
+          mockGenerateContent.mockClear(); // Reset mock call counts
           mockGenerateContent.mockRejectedValueOnce(new Error(msg));
           mockFallback.mockClear(); // Clear for each iteration
 
@@ -297,8 +298,9 @@ describe('tavily-utils', () => {
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('CSE search failed for sub-query "query 1": CSE failed'));
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Native search grounding failed for sub-query "query 1": Native grounding failed'));
-        expect(result.results).toHaveLength(1); // Only one successful source from the second sub-query
+        expect(result.results).toHaveLength(2); // Collected from both CSE and Native Grounding on second sub-query
         expect(result.results[0].title).toBe('CSE Result Title');
+        expect(result.results[1].title).toBe('Gemini Grounding Title');
       });
 
       it('should return "No web search results" if no results are found and includeAnswer is true', async () => {
@@ -340,7 +342,13 @@ describe('tavily-utils', () => {
 
       it('should use fallback for Gemini grounding when billing/API error occurs', async () => {
         mockGenerateContent
-          .mockResolvedValueOnce(mockGeminiDeconstructResponse) // Deconstruct
+          .mockResolvedValueOnce({
+            candidates: [{
+              content: {
+                parts: [{ text: JSON.stringify(['NVIDIA Blackwell GPU', 'Blackwell release date']) }]
+              }
+            }]
+          }) // Deconstruct with nvidia/blackwell query terms
           .mockRejectedValueOnce(new Error('403 Forbidden')) // First grounding fails with billing error
           .mockResolvedValueOnce(mockGeminiGroundingResult) // Second grounding succeeds
           .mockResolvedValueOnce(mockGeminiSynthesisResponse); // Synthesis
@@ -353,7 +361,7 @@ describe('tavily-utils', () => {
         const result = await tool.invoke({ query });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('[GoogleSearchGroundingTool] Gemini call failed: "403 Forbidden". Activating Cognitive Sandbox Fallback.'));
-        expect(result.results).toHaveLength(2); // One from fallback, one from successful grounding
+        expect(result.results).toHaveLength(3); // One fallback (NVIDIA), one CSE 1, one CSE 2/Gemini Grounding (unique)
         expect(result.results[0].title).toBe('NVIDIA Newsroom - Blackwell Architecture Updates');
         expect(result.results[0].domain).toBe('nvidianews.nvidia.com');
       });
@@ -373,11 +381,19 @@ describe('tavily-utils', () => {
         const result = await tool.invoke({ query });
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('[GoogleSearchGroundingTool] Gemini call failed: "API key invalid". Activating Cognitive Sandbox Fallback.'));
-        expect(result.answer).toBe('Apple (AAPL) is trading at approximately $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air lines.');
+        expect(result.answer).toBe('Apple (AAPL) is trading at approximately $210. Recent announcements feature Apple Intelligence integrations across iOS 18, iPadOS 18, and macOS Sequoia.');
       });
 
       it('should throw an error if a critical failure occurs', async () => {
-        mockGenerateContent.mockRejectedValueOnce(new Error('Critical network error')); // Deconstruction fails critically
+        mockGenerateContent
+          .mockResolvedValueOnce(mockGeminiDeconstructResponse) // Deconstruct succeeds
+          .mockResolvedValueOnce(mockGeminiGroundingResult) // Grounding 1 succeeds
+          .mockResolvedValueOnce(mockGeminiGroundingResult) // Grounding 2 succeeds
+          .mockRejectedValueOnce(new Error('Critical network error')); // Synthesis fails critically
+
+        GcpSearchAggregatorService.executeRawSearch
+          .mockResolvedValueOnce(mockCseResult)
+          .mockResolvedValueOnce(mockCseResult);
 
         const query = 'test query';
         await expect(tool.invoke({ query })).rejects.toThrow('Failed to search with advanced Google Search Grounding: Critical network error');

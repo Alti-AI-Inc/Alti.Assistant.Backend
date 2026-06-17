@@ -13,6 +13,10 @@ import Tenant from '../tenant/tenant.model.js';
 export const planLimitMiddleware = (limitType) => {
   return async (req, res, next) => {
     try {
+      if (req.isGuest || req.user?.isGuest || !req.user) {
+        return next();
+      }
+
       const userId = req.user?._id || req.user?.id;
 
       if (!userId) {
@@ -81,14 +85,6 @@ export const planLimitMiddleware = (limitType) => {
 
       // 3. Handle 'action' limit type
       if (limitType === 'action') {
-        // Under our subscription model:
-        // Free plan has daily limits (we can check if we want to restrict actions for free plan).
-        // Let's assume actions are allowed for paid plans, or if on free plan, they are metered / restricted.
-        // For a fail-safe starting implementation, let's check:
-        // If they are not on free plan (e.g. explore, execute, command), they are allowed.
-        // If they don't have a subscription or are on free, we check if they exceeded free limits.
-        // As a default standard, if they have an active paid subscription, let's allow it.
-        // If they are on free plan or no subscription, let's restrict it or return 402 if we enforce payment.
         if (!subscription || subscription.plan === 'free') {
           return next(
             new ApiError(
@@ -108,8 +104,39 @@ export const planLimitMiddleware = (limitType) => {
           );
         }
 
-        // If we want to increment metered action limits in future, we can do that here.
-        // For now, having an active paid subscription is sufficient.
+        return next();
+      }
+
+      // 4. Handle monthly metered features: research, image, video, task, workflow, search, write, code, projects, models, knowledge
+      let resolvedLimitType = limitType;
+      if (limitType === 'chatbot') {
+        const isShared = req.body?.isShared === true || req.body?.isShared === 'true' || req.query?.isShared === 'true' || req.query?.isShared === true;
+        resolvedLimitType = isShared ? 'models' : 'projects';
+      } else if (limitType === 'search' && (req.body?.deepSearch === true || req.body?.deepSearch === 'true')) {
+        resolvedLimitType = 'research';
+      }
+
+      const meteredFeatures = [
+        'research', 'image', 'video', 'task', 'workflow',
+        'search', 'write', 'code', 'projects', 'models', 'knowledge'
+      ];
+
+      if (meteredFeatures.includes(resolvedLimitType)) {
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        
+        // Dynamic import to avoid circular dependency
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const check = await subscriptionService.checkMonthlyUsageLimit(userId, tenantId, resolvedLimitType);
+
+        if (!check.allowed) {
+          return next(
+            new ApiError(
+              httpStatus.PAYMENT_REQUIRED,
+              check.message || `Monthly ${resolvedLimitType} limit reached. Please upgrade to continue.`
+            )
+          );
+        }
+
         return next();
       }
 

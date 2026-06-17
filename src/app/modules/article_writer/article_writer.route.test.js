@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
 // Mock Express Router
 const mockGet = vi.fn();
@@ -30,6 +30,7 @@ const mockArticleWriterController = {
 
 const mockArticleWriterValidation = {
   conversationalRequestSchema: { name: 'conversationalRequestSchema' },
+  conversationalRequestWithGcsSchema: { name: 'conversationalRequestWithGcsSchema' },
   getConversationHistorySchema: { name: 'getConversationHistorySchema' },
 };
 
@@ -58,41 +59,39 @@ describe('article_writer.route.js', () => {
   let ENUM_USER_ROLE;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
     // Dynamically import to get the mocked enum values
     const enumModule = await import('../../../shared/enum.js');
     ENUM_USER_ROLE = enumModule.ENUM_USER_ROLE;
   });
 
-  // Import the router file to execute its code and apply routes to the mocked router
-  await import('./article_writer.route.js');
+  beforeAll(async () => {
+    // Import the router file to execute its code and apply routes to the mocked router
+    await import('./article_writer.route.js');
+  });
 
   describe('POST /assistant', () => {
     it('should register the route with the correct path and method', () => {
-      expect(mockPost).toHaveBeenCalledOnce();
-      expect(mockPost.mock.calls[0][0]).toBe('/assistant');
+      const assistantCall = mockPost.mock.calls.find(call => call[0] === '/assistant');
+      expect(assistantCall).toBeDefined();
     });
 
     it('should use the correct middleware stack in the correct order', () => {
-      const middlewareStack = mockPost.mock.calls[0].slice(1);
+      const assistantCall = mockPost.mock.calls.find(call => call[0] === '/assistant');
+      const middlewareStack = assistantCall.slice(1);
 
       expect(middlewareStack).toEqual([
-        mockOptionalAuth(),
+        'optionalAuthMiddleware',
         mockExtractTenantContext,
-        mockCreateRateLimiter(),
-        mockValidateRequest(),
+        'rateLimiterMiddleware',
+        'validateRequestMiddleware',
         mockCheckDailyRequestLimit,
-        mockUploadArticleFile.single(),
-        mockCheckStorageLimit,
-        mockCheckRAGFeature,
         mockArticleWriterController.conversationalAssistant,
       ]);
 
       // Verify that middlewares with arguments were called correctly
       expect(mockOptionalAuth).toHaveBeenCalledOnce();
       expect(mockCreateRateLimiter).toHaveBeenCalledWith(30, 15);
-      expect(mockValidateRequest).toHaveBeenCalledWith(mockArticleWriterValidation.conversationalRequestSchema);
-      expect(mockUploadArticleFile.single).toHaveBeenCalledWith('file');
+      expect(mockValidateRequest).toHaveBeenCalledWith(mockArticleWriterValidation.conversationalRequestWithGcsSchema);
     });
   });
 
@@ -117,7 +116,7 @@ describe('article_writer.route.js', () => {
     });
 
     it('should protect the route with auth middleware for USER and ADMIN roles', () => {
-      expect(mockAuth).toHaveBeenCalledOnce();
+      expect(mockAuth).toHaveBeenCalled();
       expect(mockAuth).toHaveBeenCalledWith(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN);
     });
   });

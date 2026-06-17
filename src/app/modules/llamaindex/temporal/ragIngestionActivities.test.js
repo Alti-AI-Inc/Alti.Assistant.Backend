@@ -2,19 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock external dependencies
 // Using vi.doMock and then re-importing the module under test in beforeEach
-// to ensure module-level state (activityTransitiveState) is reset for each test.
+// to ensure module-level state is reset for each test.
 
 let downloadAndLoadFileActivity, parseToMarkdownActivity, chunkAndEmbedActivity, commitToVectorStoreActivity, cleanupFailedIngestionActivity;
 let mockExtractTextAndBuildDocuments, mockSaveManifest, mockLoadManifest, mockNodeToMetadata, mockSettings, mockLlm, mockEmbedModel;
 let mockTitleExtractor, mockKeywordExtractor, mockIngestionPipeline, mockMarkdownNodeParser, mockSentenceWindowNodeParser;
-let mockFsPromisesStat, mockFsPromisesMkdir, mockFsPromisesReadFile, mockFsPromisesWriteFile;
+let mockFsPromisesStat, mockFsPromisesMkdir, mockFsPromisesReadFile, mockFsPromisesWriteFile, mockFsPromisesUnlink, mockFsPromisesRename, mockFsPromisesAccess;
 let mockExistsSync;
 let mockPathResolve, mockPathJoin;
 let mockLoggerInfo, mockLoggerError, mockLoggerWarn;
 
+let mockWriteStream, mockReadlineInterface, mockPipelineRun;
+
 beforeEach(async () => {
   vi.resetAllMocks(); // Reset all mock calls and instances
-  vi.resetModules(); // Reset the module cache, ensuring a fresh `activityTransitiveState`
+  vi.resetModules(); // Reset the module cache
 
   // Re-mock all dependencies using vi.doMock
   mockExtractTextAndBuildDocuments = vi.fn();
@@ -26,12 +28,13 @@ beforeEach(async () => {
     call: vi.fn(() => 'mock-llm-response'),
   };
   mockEmbedModel = {
-    get and embed() { return vi.fn(() => ({ embedding: [0.1, 0.2, 0.3] })); },
+    getTextEmbedding: vi.fn(() => Promise.resolve([0.1, 0.2, 0.3])),
+    getQueryEmbedding: vi.fn(() => Promise.resolve([0.1, 0.2, 0.3])),
     transform: vi.fn((nodes) => nodes.map(node => ({ ...node, embedding: [0.1, 0.2, 0.3] }))),
   };
   mockSettings = { llm: mockLlm, embedModel: mockEmbedModel };
 
-  vi.doMock('../llamaindex/llamaindex.indexer.js', () => ({
+  vi.doMock('../llamaindex.indexer.js', () => ({
     extractTextAndBuildDocuments: mockExtractTextAndBuildDocuments,
     saveManifest: mockSaveManifest,
     loadManifest: mockLoadManifest,
@@ -39,7 +42,7 @@ beforeEach(async () => {
     Settings: mockSettings,
   }));
 
-  const mockPipelineRun = vi.fn(async ({ documents }) => {
+  mockPipelineRun = vi.fn(async ({ documents }) => {
     if (documents.length === 0) return [];
     return documents.map((doc, i) => ({
       id: `node-${i}`,
@@ -48,46 +51,122 @@ beforeEach(async () => {
       embedding: [0.1, 0.2, 0.3],
     }));
   });
-  mockTitleExtractor = vi.fn(() => ({ transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, title: 'Mock Title' } }))) }));
-  mockKeywordExtractor = vi.fn(() => ({ transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, keywords: ['mock', 'keywords'] } }))) }));
-  mockIngestionPipeline = vi.fn(() => ({ run: mockPipelineRun }));
-  mockMarkdownNodeParser = vi.fn(() => ({ transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, parsedBy: 'Markdown' } }))) }));
-  mockSentenceWindowNodeParser = vi.fn(() => ({ transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, parsedBy: 'SentenceWindow' } }))) }));
+  mockTitleExtractor = vi.fn(function() {
+    return { transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, title: 'Mock Title' } }))) };
+  });
+  mockKeywordExtractor = vi.fn(function() {
+    return { transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, keywords: ['mock', 'keywords'] } }))) };
+  });
+  mockIngestionPipeline = vi.fn(function() {
+    return { run: mockPipelineRun };
+  });
+  mockMarkdownNodeParser = vi.fn(function() {
+    return { transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, parsedBy: 'Markdown' } }))) };
+  });
+  mockSentenceWindowNodeParser = vi.fn(function() {
+    return { transform: vi.fn((nodes) => nodes.map(n => ({ ...n, metadata: { ...n.metadata, parsedBy: 'SentenceWindow' } }))) };
+  });
 
-  vi.doMock('llamaindex', () => ({
-    TitleExtractor: mockTitleExtractor,
-    KeywordExtractor: mockKeywordExtractor,
-    IngestionPipeline: mockIngestionPipeline,
-    MarkdownNodeParser: mockMarkdownNodeParser,
-    SentenceWindowNodeParser: mockSentenceWindowNodeParser,
-  }));
+  vi.doMock('llamaindex', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      TitleExtractor: mockTitleExtractor,
+      KeywordExtractor: mockKeywordExtractor,
+      IngestionPipeline: mockIngestionPipeline,
+      MarkdownNodeParser: mockMarkdownNodeParser,
+      SentenceWindowNodeParser: mockSentenceWindowNodeParser,
+    };
+  });
 
   mockFsPromisesStat = vi.fn();
   mockFsPromisesMkdir = vi.fn();
   mockFsPromisesReadFile = vi.fn();
   mockFsPromisesWriteFile = vi.fn();
+  mockFsPromisesUnlink = vi.fn().mockResolvedValue(undefined);
+  mockFsPromisesRename = vi.fn().mockResolvedValue(undefined);
+  mockFsPromisesAccess = vi.fn().mockResolvedValue(undefined);
   vi.doMock('node:fs/promises', () => ({
     default: {
       stat: mockFsPromisesStat,
       mkdir: mockFsPromisesMkdir,
       readFile: mockFsPromisesReadFile,
       writeFile: mockFsPromisesWriteFile,
+      unlink: mockFsPromisesUnlink,
+      rename: mockFsPromisesRename,
+      access: mockFsPromisesAccess,
     },
   }));
 
   mockExistsSync = vi.fn();
-  vi.doMock('node:fs', () => ({
-    existsSync: mockExistsSync,
-  }));
+  mockWriteStream = {
+    write: vi.fn(),
+    end: vi.fn(function() {
+      process.nextTick(() => {
+        if (this.onFinish) this.onFinish();
+      });
+    }),
+    on: vi.fn(function(event, cb) {
+      if (event === 'finish') this.onFinish = cb;
+      if (event === 'error') this.onError = cb;
+    })
+  };
+
+  vi.doMock('node:fs', () => {
+    const fsMock = {
+      existsSync: mockExistsSync,
+      createWriteStream: vi.fn(() => mockWriteStream),
+      createReadStream: vi.fn(() => ({})),
+      constants: {
+        R_OK: 4,
+        W_OK: 2,
+      }
+    };
+    return {
+      default: fsMock,
+      ...fsMock
+    };
+  });
+
+  mockReadlineInterface = {
+    [Symbol.asyncIterator]: vi.fn(() => {
+      return {
+        async next() {
+          return { done: true };
+        }
+      };
+    })
+  };
+
+  vi.doMock('node:readline', () => {
+    const readlineMock = {
+      createInterface: vi.fn(() => mockReadlineInterface),
+    };
+    return {
+      default: readlineMock,
+      ...readlineMock
+    };
+  });
 
   mockPathResolve = vi.fn((p) => p);
   mockPathJoin = vi.fn((...args) => args.join('/'));
-  vi.doMock('node:path', () => ({
-    default: {
+  
+  const mockPathFactory = async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      default: {
+        ...actual.default,
+        resolve: mockPathResolve,
+        join: mockPathJoin,
+      },
       resolve: mockPathResolve,
       join: mockPathJoin,
-    },
-  }));
+    };
+  };
+
+  vi.doMock('node:path', mockPathFactory);
+  vi.doMock('path', mockPathFactory);
 
   vi.doMock('node:crypto', () => ({
     default: {
@@ -110,6 +189,14 @@ beforeEach(async () => {
     default: {},
   }));
 
+  vi.doMock('./ragIngestionActivities.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      activityTransitiveState: new Map(),
+    };
+  });
+
   // Dynamically import the module under test AFTER all mocks are set up
   const module = await import('./ragIngestionActivities.js');
   downloadAndLoadFileActivity = module.downloadAndLoadFileActivity;
@@ -127,10 +214,9 @@ describe('ragIngestionActivities', () => {
 
   describe('downloadAndLoadFileActivity', () => {
     it('should successfully load a file if it exists', async () => {
-      mockExistsSync.mockReturnValue(true);
       mockFsPromisesStat.mockResolvedValue({ size: 1024 });
 
-      const result = await downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId);
+      const result = await downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId, 'tenant-123');
 
       expect(result).toEqual({
         success: true,
@@ -138,53 +224,56 @@ describe('ragIngestionActivities', () => {
         filePath: mockFilePath,
         originalName: mockOriginalName,
       });
-      expect(mockExistsSync).toHaveBeenCalledWith(mockFilePath);
       expect(mockFsPromisesStat).toHaveBeenCalledWith(mockFilePath);
-      expect(mockLoggerInfo).toHaveBeenCalledWith(`[Temporal Activity] Loading document: ${mockOriginalName} (ID: ${mockDocId})`);
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Starting document load and validation'
+      }));
     });
 
     it('should throw an error if the file does not exist', async () => {
-      mockExistsSync.mockReturnValue(false);
+      const statError = new Error('ENOENT: no such file or directory');
+      statError.code = 'ENOENT';
+      mockFsPromisesStat.mockRejectedValue(statError);
 
-      await expect(downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId)).rejects.toThrow(
-        `Document file path does not exist on disk: ${mockFilePath}`
+      await expect(downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId, 'tenant-123')).rejects.toThrow(
+        statError
       );
-      expect(mockExistsSync).toHaveBeenCalledWith(mockFilePath);
-      expect(mockFsPromisesStat).not.toHaveBeenCalled();
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('downloadAndLoadFileActivity failed'));
+      expect(mockFsPromisesStat).toHaveBeenCalledWith(mockFilePath);
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('downloadAndLoadFileActivity failed')
+      }));
     });
 
-    it('should throw an error if fsPromises.stat fails', async () => {
-      mockExistsSync.mockReturnValue(true);
+    it('should propagate stat errors', async () => {
       const statError = new Error('Stat failed');
       mockFsPromisesStat.mockRejectedValue(statError);
 
-      await expect(downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId)).rejects.toThrow(statError);
-      expect(mockExistsSync).toHaveBeenCalledWith(mockFilePath);
+      await expect(downloadAndLoadFileActivity(mockFilePath, mockOriginalName, mockDocId, 'tenant-123')).rejects.toThrow(statError);
       expect(mockFsPromisesStat).toHaveBeenCalledWith(mockFilePath);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('downloadAndLoadFileActivity failed'));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('downloadAndLoadFileActivity failed')
+      }));
     });
   });
 
   describe('parseToMarkdownActivity', () => {
     const mockDocuments = [{ text: 'doc1', metadata: {} }, { text: 'doc2', metadata: { useMarkdownParser: true } }];
 
-    it('should successfully parse documents and store them in transitive state', async () => {
+    it('should successfully parse documents and return them', async () => {
       mockExtractTextAndBuildDocuments.mockResolvedValue(mockDocuments);
 
       const result = await parseToMarkdownActivity(mockFilePath, mockOriginalName, mockDocId);
 
       expect(result).toEqual({
         success: true,
+        documents: mockDocuments,
         documentCount: 2,
         isMarkdown: true,
       });
       expect(mockExtractTextAndBuildDocuments).toHaveBeenCalledWith(mockFilePath, mockOriginalName, mockDocId);
-      expect(mockLoggerInfo).toHaveBeenCalledWith(`[Temporal Activity] High-fidelity parsing document: ${mockOriginalName}`);
-
-      // Verify internal state by re-importing the module to get its current state
-      const module = await import('./ragIngestionActivities.js');
-      expect(module.activityTransitiveState.get(`${mockDocId}_documents`)).toEqual(mockDocuments);
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'High-fidelity parsing document'
+      }));
     });
 
     it('should return isMarkdown: false if no documents have useMarkdownParser', async () => {
@@ -202,7 +291,9 @@ describe('ragIngestionActivities', () => {
       await expect(parseToMarkdownActivity(mockFilePath, mockOriginalName, mockDocId)).rejects.toThrow(
         'Parsing produced no document instances.'
       );
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('parseToMarkdownActivity failed'));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('parseToMarkdownActivity failed')
+      }));
     });
 
     it('should throw an error if extractTextAndBuildDocuments fails', async () => {
@@ -210,7 +301,9 @@ describe('ragIngestionActivities', () => {
       mockExtractTextAndBuildDocuments.mockRejectedValue(parseError);
 
       await expect(parseToMarkdownActivity(mockFilePath, mockOriginalName, mockDocId)).rejects.toThrow(parseError);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('parseToMarkdownActivity failed'));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('parseToMarkdownActivity failed')
+      }));
     });
   });
 
@@ -219,24 +312,19 @@ describe('ragIngestionActivities', () => {
     const mockDocumentsPlain = [{ text: 'doc1', metadata: {} }];
     const mockNodes = [{ id: 'node-0', text: 'chunk of doc1', metadata: { chunked: true }, embedding: [0.1, 0.2, 0.3] }];
 
-    beforeEach(async () => {
-      // Ensure activityTransitiveState is set up for this test block
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.clear(); // Clear any state from previous tests
-    });
-
     it('should successfully chunk and embed documents using MarkdownNodeParser', async () => {
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.set(`${mockDocId}_documents`, mockDocumentsMarkdown);
-      mockIngestionPipeline.mock.results[0].value.run.mockResolvedValue(mockNodes);
+      mockPipelineRun.mockResolvedValue(mockNodes);
 
-      const result = await chunkAndEmbedActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      const result = await chunkAndEmbedActivity(mockDocumentsMarkdown, mockOriginalName, mockDocId, mockUserId);
 
       expect(result).toEqual({
         success: true,
+        nodes: mockNodes,
         nodeCount: mockNodes.length,
       });
-      expect(mockLoggerInfo).toHaveBeenCalledWith(`[Temporal Activity] Segmenting and generating vector embeddings for: ${mockOriginalName} (User: ${mockUserId})`);
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Segmenting and generating vector embeddings'
+      }));
       expect(mockMarkdownNodeParser).toHaveBeenCalled();
       expect(mockSentenceWindowNodeParser).not.toHaveBeenCalled();
       expect(mockTitleExtractor).toHaveBeenCalledWith({ llm: mockSettings.llm, nodes: 3 });
@@ -249,19 +337,17 @@ describe('ragIngestionActivities', () => {
           mockSettings.embedModel,
         ],
       });
-      expect(mockIngestionPipeline.mock.results[0].value.run).toHaveBeenCalledWith({ documents: mockDocumentsMarkdown });
-      expect(module.activityTransitiveState.get(`${mockDocId}_nodes`)).toEqual(mockNodes);
+      expect(mockPipelineRun).toHaveBeenCalledWith({ documents: mockDocumentsMarkdown });
     });
 
     it('should successfully chunk and embed documents using SentenceWindowNodeParser', async () => {
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.set(`${mockDocId}_documents`, mockDocumentsPlain);
-      mockIngestionPipeline.mock.results[0].value.run.mockResolvedValue(mockNodes);
+      mockPipelineRun.mockResolvedValue(mockNodes);
 
-      const result = await chunkAndEmbedActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      const result = await chunkAndEmbedActivity(mockDocumentsPlain, mockOriginalName, mockDocId, mockUserId);
 
       expect(result).toEqual({
         success: true,
+        nodes: mockNodes,
         nodeCount: mockNodes.length,
       });
       expect(mockSentenceWindowNodeParser).toHaveBeenCalledWith({
@@ -270,44 +356,41 @@ describe('ragIngestionActivities', () => {
         originalTextMetadataKey: '_original_text',
       });
       expect(mockMarkdownNodeParser).not.toHaveBeenCalled();
-      expect(mockIngestionPipeline.mock.results[0].value.run).toHaveBeenCalledWith({ documents: mockDocumentsPlain });
-      expect(module.activityTransitiveState.get(`${mockDocId}_nodes`)).toEqual(mockNodes);
+      expect(mockPipelineRun).toHaveBeenCalledWith({ documents: mockDocumentsPlain });
     });
 
-    it('should throw an error if transitive document states are not found', async () => {
-      // Ensure activityTransitiveState is empty
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.clear();
-
-      await expect(chunkAndEmbedActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(
-        'Transitive document states not found. Ensure activities are run sequentially.'
+    it('should throw an error if input documents are not provided', async () => {
+      await expect(chunkAndEmbedActivity(null, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(
+        'Input documents not provided.'
       );
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('chunkAndEmbedActivity failed'));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('chunkAndEmbedActivity failed')
+      }));
     });
 
     it('should throw an error if IngestionPipeline.run fails', async () => {
       const pipelineError = new Error('Pipeline failed');
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.set(`${mockDocId}_documents`, mockDocumentsPlain);
-      mockIngestionPipeline.mock.results[0].value.run.mockRejectedValue(pipelineError);
+      mockPipelineRun.mockRejectedValue(pipelineError);
 
-      await expect(chunkAndEmbedActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(pipelineError);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('chunkAndEmbedActivity failed'));
+      await expect(chunkAndEmbedActivity(mockDocumentsPlain, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(pipelineError);
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('chunkAndEmbedActivity failed')
+      }));
     });
 
     it('should log a warning if metadata extractors fail to configure but continue', async () => {
       // Simulate TitleExtractor constructor throwing an error
-      mockTitleExtractor.mockImplementation(() => { throw new Error('LLM not configured'); });
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.set(`${mockDocId}_documents`, mockDocumentsPlain);
-      mockIngestionPipeline.mock.results[0].value.run.mockResolvedValue(mockNodes);
+      mockTitleExtractor.mockImplementation(function() { throw new Error('LLM not configured'); });
+      mockPipelineRun.mockResolvedValue(mockNodes);
 
-      const result = await chunkAndEmbedActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      const result = await chunkAndEmbedActivity(mockDocumentsPlain, mockOriginalName, mockDocId, mockUserId);
 
       expect(result.success).toBe(true);
-      expect(mockLoggerWarn).toHaveBeenCalledWith(expect.stringContaining('Metadata extractors configuration warning: LLM not configured'));
-      // Ensure the pipeline still runs with other transformations
-      expect(mockIngestionPipeline.mock.results[0].value.run).toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Metadata extractors configuration warning',
+        error: 'LLM not configured'
+      }));
+      expect(mockPipelineRun).toHaveBeenCalled();
     });
   });
 
@@ -327,10 +410,6 @@ describe('ragIngestionActivities', () => {
     ], null, 2);
 
     beforeEach(async () => {
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.clear();
-      module.activityTransitiveState.set(`${mockDocId}_nodes`, mockNodes);
-
       mockPathResolve.mockReturnValue(`storage/ragsystem/${mockUserId}`);
       mockPathJoin.mockImplementation((...args) => args.join('/'));
       mockFsPromisesMkdir.mockResolvedValue(undefined);
@@ -341,23 +420,27 @@ describe('ragIngestionActivities', () => {
 
     it('should successfully commit nodes to a new vector store and update manifest', async () => {
       mockExistsSync.mockReturnValue(false); // No existing vector store
-      mockFsPromisesReadFile.mockRejectedValue(new Error('File not found')); // Ensure readFile is not called or fails gracefully
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' }); // access throws ENOENT
 
-      const result = await commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      const result = await commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId);
 
       expect(result).toEqual({
         success: true,
-        vectorStorePath: `storage/ragsystem/${mockUserId}/vector_store.json`,
+        vectorStorePath: `storage/ragsystem/${mockUserId}/vector_store.jsonl`,
         docId: mockDocId,
       });
       expect(mockFsPromisesMkdir).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}`, { recursive: true });
-      expect(mockExistsSync).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}/vector_store.json`);
-      expect(mockFsPromisesReadFile).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}/vector_store.json`, 'utf-8');
-      expect(mockFsPromisesWriteFile).toHaveBeenCalledWith(
-        `storage/ragsystem/${mockUserId}/vector_store.json`,
-        JSON.stringify(mockNodes.map(mockNodeToMetadata), null, 2),
-        'utf-8'
+      
+      const expectedNewNodes = mockNodes.map(mockNodeToMetadata);
+      for (const nodeMeta of expectedNewNodes) {
+        expect(mockWriteStream.write).toHaveBeenCalledWith(JSON.stringify(nodeMeta) + '\n');
+      }
+
+      expect(mockFsPromisesRename).toHaveBeenCalledWith(
+        "storage/ragsystem/user-456/vector_store_mock-uuid.tmp",
+        `storage/ragsystem/${mockUserId}/vector_store.jsonl`
       );
+
       expect(mockLoadManifest).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}`);
       expect(mockSaveManifest).toHaveBeenCalledWith(
         `storage/ragsystem/${mockUserId}`,
@@ -368,28 +451,47 @@ describe('ragIngestionActivities', () => {
           ]),
         })
       );
-
-      const module = await import('./ragIngestionActivities.js');
-      expect(module.activityTransitiveState.get(`${mockDocId}_documents`)).toBeUndefined();
-      expect(module.activityTransitiveState.get(`${mockDocId}_nodes`)).toBeUndefined();
-      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Ingestion committed successfully. Manifest registered.'));
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Ingestion committed successfully. Manifest registered.'
+      }));
     });
 
     it('should upsert nodes into an existing vector store and update manifest', async () => {
       mockExistsSync.mockReturnValue(true); // Existing vector store
-      mockFsPromisesReadFile.mockResolvedValue(mockExistingVectorStoreContent);
+      mockFsPromisesAccess.mockResolvedValue(undefined);
 
-      const result = await commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      mockReadlineInterface[Symbol.asyncIterator].mockImplementation(() => {
+        const parsed = JSON.parse(mockExistingVectorStoreContent);
+        const lines = parsed.map(item => JSON.stringify(item));
+        let index = 0;
+        return {
+          async next() {
+            if (index < lines.length) {
+              return { value: lines[index++], done: false };
+            }
+            return { done: true };
+          }
+        };
+      });
+
+      const result = await commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId);
 
       expect(result.success).toBe(true);
-      const expectedFinalNodes = [
-        { id: 'node-old', metadata: { fileName: 'old-doc.pdf', converted: true } }, // Existing node not matching originalName
-        ...mockNodes.map(mockNodeToMetadata), // New nodes
-      ];
-      expect(mockFsPromisesWriteFile).toHaveBeenCalledWith(
-        `storage/ragsystem/${mockUserId}/vector_store.json`,
-        JSON.stringify(expectedFinalNodes, null, 2),
-        'utf-8'
+      
+      // new nodes should be written
+      const expectedNewNodes = mockNodes.map(mockNodeToMetadata);
+      for (const nodeMeta of expectedNewNodes) {
+        expect(mockWriteStream.write).toHaveBeenCalledWith(JSON.stringify(nodeMeta) + '\n');
+      }
+
+      // the old node not matching originalName should be written
+      expect(mockWriteStream.write).toHaveBeenCalledWith(JSON.stringify({ id: 'node-old', metadata: { fileName: 'old-doc.pdf' } }) + '\n');
+      // the node matching originalName (test-doc.pdf) should NOT be written (it's filtered out to replace it)
+      expect(mockWriteStream.write).not.toHaveBeenCalledWith(expect.stringContaining('node-to-replace'));
+
+      expect(mockFsPromisesRename).toHaveBeenCalledWith(
+        "storage/ragsystem/user-456/vector_store_mock-uuid.tmp",
+        `storage/ragsystem/${mockUserId}/vector_store.jsonl`
       );
       expect(mockLoadManifest).toHaveBeenCalled();
       expect(mockSaveManifest).toHaveBeenCalled();
@@ -403,9 +505,9 @@ describe('ragIngestionActivities', () => {
       };
       mockLoadManifest.mockResolvedValue(existingDocManifest);
       mockExistsSync.mockReturnValue(false);
-      mockFsPromisesReadFile.mockRejectedValue(new Error('File not found'));
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
 
-      await commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      await commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId);
 
       expect(mockSaveManifest).toHaveBeenCalledWith(
         expect.any(String),
@@ -421,49 +523,53 @@ describe('ragIngestionActivities', () => {
           ]),
         })
       );
-      expect(existingDocManifest.documents.length).toBe(1); // Ensure it was updated, not added
     });
 
-    it('should throw an error if transitive vector nodes state not found', async () => {
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.clear(); // Clear nodes
-
-      await expect(commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(
-        'Transitive vector nodes state not found.'
+    it('should throw an error if input vector nodes not provided', async () => {
+      await expect(commitToVectorStoreActivity(null, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(
+        'Input vector nodes not provided.'
       );
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('commitToVectorStoreActivity failed'));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'commitToVectorStoreActivity failed'
+      }));
     });
 
-    it('should handle fsPromises.readFile error for vector store gracefully', async () => {
+    it('should handle fsPromises.access error code other than ENOENT gracefully', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockFsPromisesReadFile.mockRejectedValue(new Error('Corrupt JSON')); // Simulate file read error
+      mockFsPromisesAccess.mockRejectedValue(new Error('Permission denied')); // Simulate permission error
 
-      await commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
-
-      expect(mockFsPromisesWriteFile).toHaveBeenCalledWith(
-        expect.any(String),
-        JSON.stringify(mockNodes.map(mockNodeToMetadata), null, 2), // Should write only new nodes
-        'utf-8'
-      );
-      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Ingestion committed successfully. Manifest registered.'));
+      await expect(commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow('Permission denied');
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'commitToVectorStoreActivity failed'
+      }));
     });
 
-    it('should throw an error if fsPromises.writeFile fails', async () => {
+    it('should throw an error if writeStream fails', async () => {
       mockExistsSync.mockReturnValue(false);
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
+      
       const writeError = new Error('Disk full');
-      mockFsPromisesWriteFile.mockRejectedValue(writeError);
+      // Mock writeStream to fail immediately
+      mockWriteStream.write.mockImplementation(() => {
+        throw writeError;
+      });
 
-      await expect(commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(writeError);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('commitToVectorStoreActivity failed'));
+      await expect(commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(writeError);
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'commitToVectorStoreActivity failed'
+      }));
     });
 
     it('should throw an error if saveManifest fails', async () => {
       mockExistsSync.mockReturnValue(false);
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
       const manifestError = new Error('Manifest save failed');
       mockSaveManifest.mockRejectedValue(manifestError);
 
-      await expect(commitToVectorStoreActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(manifestError);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('commitToVectorStoreActivity failed'));
+      await expect(commitToVectorStoreActivity(mockNodes, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(manifestError);
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'commitToVectorStoreActivity failed'
+      }));
     });
   });
 
@@ -482,39 +588,52 @@ describe('ragIngestionActivities', () => {
     };
 
     beforeEach(async () => {
-      const module = await import('./ragIngestionActivities.js');
-      module.activityTransitiveState.clear();
-      module.activityTransitiveState.set(`${mockDocId}_documents`, [{ text: 'doc' }]);
-      module.activityTransitiveState.set(`${mockDocId}_nodes`, [{ text: 'node' }]);
-
       mockPathResolve.mockReturnValue(`storage/ragsystem/${mockUserId}`);
       mockPathJoin.mockImplementation((...args) => args.join('/'));
-      mockFsPromisesReadFile.mockResolvedValue(mockExistingVectorStoreContent);
-      mockFsPromisesWriteFile.mockResolvedValue(undefined);
       mockLoadManifest.mockResolvedValue(JSON.parse(JSON.stringify(mockManifestWithDoc))); // Deep copy
       mockSaveManifest.mockResolvedValue(undefined);
     });
 
-    it('should successfully clean up vector store and manifest, and clear transitive state', async () => {
+    it('should successfully clean up vector store and manifest', async () => {
       mockExistsSync.mockReturnValue(true);
+      mockFsPromisesAccess.mockResolvedValue(undefined);
 
-      const result = await cleanupFailedIngestionActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      mockReadlineInterface[Symbol.asyncIterator].mockImplementation(() => {
+        const parsed = JSON.parse(mockExistingVectorStoreContent);
+        const lines = parsed.map(item => JSON.stringify(item));
+        let index = 0;
+        return {
+          async next() {
+            if (index < lines.length) {
+              return { value: lines[index++], done: false };
+            }
+            return { done: true };
+          }
+        };
+      });
+
+      const result = await cleanupFailedIngestionActivity(mockOriginalName, mockDocId, mockUserId);
 
       expect(result).toEqual({
         success: true,
         docId: mockDocId,
         reverted: true,
       });
-      expect(mockExistsSync).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}/vector_store.json`);
-      expect(mockFsPromisesReadFile).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}/vector_store.json`, 'utf-8');
-      expect(mockFsPromisesWriteFile).toHaveBeenCalledWith(
-        `storage/ragsystem/${mockUserId}/vector_store.json`,
-        JSON.stringify([
-          { id: 'node-old', metadata: { fileName: 'old-doc.pdf', docId: 'doc-old' } },
-          { id: 'node-other-doc', metadata: { fileName: 'other-doc.pdf', docId: 'doc-456' } },
-        ], null, 2),
-        'utf-8'
+      expect(mockFsPromisesAccess).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}/vector_store.jsonl`, 4);
+      
+      // it should write node-old and node-other-doc
+      expect(mockWriteStream.write).toHaveBeenCalledWith(JSON.stringify({ id: 'node-old', metadata: { fileName: 'old-doc.pdf', docId: 'doc-old' } }) + '\n');
+      expect(mockWriteStream.write).toHaveBeenCalledWith(JSON.stringify({ id: 'node-other-doc', metadata: { fileName: 'other-doc.pdf', docId: 'doc-456' } }) + '\n');
+
+      // it should NOT write nodes to purge
+      expect(mockWriteStream.write).not.toHaveBeenCalledWith(expect.stringContaining('node-to-purge-1'));
+      expect(mockWriteStream.write).not.toHaveBeenCalledWith(expect.stringContaining('node-to-purge-2'));
+
+      expect(mockFsPromisesRename).toHaveBeenCalledWith(
+        "storage/ragsystem/user-456/vector_store_cleanup_mock-uuid.tmp",
+        `storage/ragsystem/${mockUserId}/vector_store.jsonl`
       );
+
       expect(mockLoadManifest).toHaveBeenCalledWith(`storage/ragsystem/${mockUserId}`);
       expect(mockSaveManifest).toHaveBeenCalledWith(
         `storage/ragsystem/${mockUserId}`,
@@ -531,59 +650,66 @@ describe('ragIngestionActivities', () => {
           ]),
         })
       );
-
-      const module = await import('./ragIngestionActivities.js');
-      expect(module.activityTransitiveState.get(`${mockDocId}_documents`)).toBeUndefined();
-      expect(module.activityTransitiveState.get(`${mockDocId}_nodes`)).toBeUndefined();
-      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Successfully purged transaction records from vector store.'));
-      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Reverted document index manifest registers to failed state.'));
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Successfully purged transaction records from vector store.'
+      }));
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Reverted document index manifest registers to failed state.'
+      }));
     });
 
     it('should do nothing to vector store if it does not exist', async () => {
       mockExistsSync.mockReturnValue(false);
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
 
-      await cleanupFailedIngestionActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      await cleanupFailedIngestionActivity(mockOriginalName, mockDocId, mockUserId);
 
-      expect(mockFsPromisesReadFile).not.toHaveBeenCalled();
-      expect(mockFsPromisesWriteFile).not.toHaveBeenCalled();
-      expect(mockLoggerWarn).not.toHaveBeenCalledWith(expect.stringContaining('Could not revert vector store database records'));
+      expect(mockReadlineInterface[Symbol.asyncIterator]).not.toHaveBeenCalled();
+      expect(mockWriteStream.write).not.toHaveBeenCalled();
     });
 
-    it('should log a warning if vector store readFile fails but continue with manifest cleanup', async () => {
+    it('should log a warning and throw if vector store access or reading fails', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockFsPromisesReadFile.mockRejectedValue(new Error('Corrupt vector store'));
+      const accessError = new Error('Permission denied');
+      mockFsPromisesAccess.mockRejectedValue(accessError);
 
-      await cleanupFailedIngestionActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      await expect(cleanupFailedIngestionActivity(mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(accessError);
 
-      expect(mockLoggerWarn).toHaveBeenCalledWith(expect.stringContaining('Could not revert vector store database records: Corrupt vector store'));
-      expect(mockSaveManifest).toHaveBeenCalled(); // Manifest cleanup should still happen
+      expect(mockLoggerWarn).toHaveBeenCalledWith(expect.objectContaining({
+        severity: 'WARNING',
+        message: 'Could not revert vector store database records.',
+        error: 'Permission denied'
+      }));
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        severity: 'ERROR',
+        message: 'Compensating transaction failed',
+        error: 'Permission denied'
+      }));
+      expect(mockSaveManifest).not.toHaveBeenCalled(); // Manifest cleanup should NOT happen because it threw
     });
 
     it('should handle manifest not containing the document gracefully', async () => {
       mockLoadManifest.mockResolvedValue({ documents: [{ docId: 'other-doc', fileName: 'other.pdf' }] });
       mockExistsSync.mockReturnValue(false); // No vector store for simplicity
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
 
-      await cleanupFailedIngestionActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId);
+      await cleanupFailedIngestionActivity(mockOriginalName, mockDocId, mockUserId);
 
-      expect(mockSaveManifest).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          documents: expect.arrayContaining([
-            expect.objectContaining({ docId: 'other-doc' }),
-          ]),
-        })
-      );
+      expect(mockSaveManifest).not.toHaveBeenCalled();
       // No specific log for "reverted document index manifest" if doc not found
       expect(mockLoggerInfo).not.toHaveBeenCalledWith(expect.stringContaining('Reverted document index manifest registers to failed state.'));
     });
 
     it('should throw an error if saveManifest fails', async () => {
       mockExistsSync.mockReturnValue(false);
+      mockFsPromisesAccess.mockRejectedValue({ code: 'ENOENT' });
       const manifestError = new Error('Manifest save failed');
       mockSaveManifest.mockRejectedValue(manifestError);
 
-      await expect(cleanupFailedIngestionActivity(mockFilePath, mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(manifestError);
-      expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('Compensating transaction failed'));
+      await expect(cleanupFailedIngestionActivity(mockOriginalName, mockDocId, mockUserId)).rejects.toThrow(manifestError);
+      expect(mockLoggerError).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Compensating transaction failed'
+      }));
     });
   });
 });

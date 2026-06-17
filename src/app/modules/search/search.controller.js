@@ -135,6 +135,19 @@ export const performSearch = catchAsync(async (req, res) => {
     );
     console.log('Full response:', fullResponse);
 
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        const resourceType = (deepSearch === true || deepSearch === 'true') ? 'research' : 'search';
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, resourceType).catch((err) => {
+          logger.error(`Failed to increment monthly usage for ${resourceType}:`, err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment monthly usage:', err);
+      }
+    }
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -356,6 +369,18 @@ const generateCode = catchAsync(async (req, res) => {
       req
     );
 
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'code').catch((err) => {
+          logger.error('Failed to increment monthly usage for code:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment monthly usage:', err);
+      }
+    }
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -525,6 +550,18 @@ const generateWriting = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'write').catch((err) => {
+          logger.error('Failed to increment monthly usage for write:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment monthly usage:', err);
+      }
+    }
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -701,6 +738,18 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'search').catch((err) => {
+          logger.error('Failed to increment monthly usage for search:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment monthly usage:', err);
+      }
+    }
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -927,6 +976,18 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'search').catch((err) => {
+          logger.error('Failed to increment monthly usage for search (streaming):', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment monthly usage:', err);
+      }
+    }
 
     // Send completion event
     res.write(

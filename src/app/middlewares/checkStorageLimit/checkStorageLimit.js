@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
-import SubscriptionModel from '../../modules/payment/payment.model.js';
+import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 import UserUsageModel from '../../modules/usage/userUsage.model.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -11,7 +11,7 @@ import { logger } from '../../../shared/logger.js';
 /** Bytes per GB (for human-readable messages) */
 const BYTES_PER_GB = 1024 * 1024 * 1024;
 
-const FREE_PLAN_STORAGE_LIMIT_BYTES = 10 * BYTES_PER_GB;
+const FREE_PLAN_STORAGE_LIMIT_BYTES = 0;
 
 /**
  * Format a byte count into a human-readable string (e.g. "10 GB", "512 MB").
@@ -148,13 +148,15 @@ const checkStorageLimit = async (req, res, next) => {
     // ── 1. Get the active subscription for the right context ──────────────────
     const subscription = await SubscriptionModel.findOne(
       tenantId
-        ? { tenantId, paymentStatus: 'paid' }
-        : { userId, tenantId: null, paymentStatus: 'paid' }
+        ? { tenantId, status: 'active' }
+        : { userId, tenantId: null, status: 'active' }
     );
 
     const storageLimit =
-      subscription?.limits?.storagePerUser ?? FREE_PLAN_STORAGE_LIMIT_BYTES;
-    const planName = subscription?.plan_name ?? 'free';
+      subscription?.limits?.knowledgeLimit ??
+      subscription?.limits?.storagePerUser ??
+      FREE_PLAN_STORAGE_LIMIT_BYTES;
+    const planName = subscription?.plan ?? 'free';
 
     // ── 2. Free plan — no storage at all ─────────────────────────────────────
     if (storageLimit === 0) {

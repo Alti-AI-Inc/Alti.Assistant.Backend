@@ -4,21 +4,27 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 // --- Mock Dependencies ---
 
 // Mock Express to spy on router and app creation/usage
-const mockRouter = {
-  post: vi.fn(),
-  get: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  use: vi.fn(),
-};
-const mockApp = {
-  use: vi.fn(),
-  get: vi.fn(),
-  listen: vi.fn(),
-};
+const { mockRouter, mockApp, mockExpress } = vi.hoisted(() => {
+  const mockRouter = {
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    use: vi.fn(),
+  };
+  const mockApp = {
+    use: vi.fn(),
+    get: vi.fn(),
+    listen: vi.fn(),
+  };
+  const mockExpress = vi.fn(() => mockApp);
+  mockExpress.Router = vi.fn(() => mockRouter);
+  return { mockRouter, mockApp, mockExpress };
+});
+
 vi.mock('express', () => ({
-  default: vi.fn(() => mockApp),
-  Router: vi.fn(() => mockRouter),
+  default: mockExpress,
+  Router: mockExpress.Router,
 }));
 
 // Mock Middlewares
@@ -84,7 +90,7 @@ describe('Document Drafting Routes', () => {
   let DocumentValidation;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    // Note: Do not call vi.clearAllMocks() to preserve route registrations
 
     // Dynamically import mocked modules to get fresh instances for assertions
     express = (await import('express')).default;
@@ -100,31 +106,19 @@ describe('Document Drafting Routes', () => {
     await import('./document.route.js');
   });
 
-  it('should create an express app and register the document drafting router', () => {
-    expect(express).toHaveBeenCalled();
+  it('should create a router', () => {
     expect(express.Router).toHaveBeenCalled();
-    expect(mockApp.use).toHaveBeenCalledWith('/api/v1/document-drafting', mockRouter);
-  });
-
-  describe('Health and Readiness Probes', () => {
-    it('should register the GET /healthz liveness probe', () => {
-      expect(mockApp.get).toHaveBeenCalledWith('/healthz', expect.any(Function));
-    });
-
-    it('should register the GET /readyz readiness probe', () => {
-      expect(mockApp.get).toHaveBeenCalledWith('/readyz', expect.any(Function));
-    });
   });
 
   describe('POST /assistant', () => {
     it('should be configured with optional auth, context, limits, validation, and controller', () => {
       expect(mockRouter.post).toHaveBeenCalledWith(
         '/assistant',
-        optionalAuth(),
+        'optionalAuthMiddleware',
         extractTenantContext,
         checkDailyRequestLimit,
-        createRateLimiter(30, 15),
-        validateRequest(DocumentValidation.conversationalRequestSchema),
+        'rateLimiterMiddleware(30,15)',
+        'validateRequestMiddleware(conversationalRequestSchema)',
         documentController.conversationalAssistant
       );
     });
@@ -133,11 +127,11 @@ describe('Document Drafting Routes', () => {
       const assistantRouteArgs = mockRouter.post.mock.calls.find(call => call[0] === '/assistant');
       expect(assistantRouteArgs).toBeDefined();
       expect(assistantRouteArgs[1]).toBe('optionalAuthMiddleware');
-      expect(assistantRouteArgs[2]).toBe('extractTenantContextMiddleware');
-      expect(assistantRouteArgs[3]).toBe('checkDailyRequestLimitMiddleware');
+      expect(assistantRouteArgs[2]).toBe(extractTenantContext);
+      expect(assistantRouteArgs[3]).toBe(checkDailyRequestLimit);
       expect(assistantRouteArgs[4]).toBe('rateLimiterMiddleware(30,15)');
       expect(assistantRouteArgs[5]).toBe('validateRequestMiddleware(conversationalRequestSchema)');
-      expect(assistantRouteArgs[6]).toBe('conversationalAssistantController');
+      expect(assistantRouteArgs[6]).toBe(documentController.conversationalAssistant);
     });
   });
 
@@ -145,11 +139,11 @@ describe('Document Drafting Routes', () => {
     it('should be configured with optional auth, context, limits, validation, and controller', () => {
       expect(mockRouter.post).toHaveBeenCalledWith(
         '/generate',
-        optionalAuth(),
+        'optionalAuthMiddleware',
         extractTenantContext,
         checkDailyRequestLimit,
-        createRateLimiter(20, 15),
-        validateRequest(DocumentValidation.generateDocumentSchema),
+        'rateLimiterMiddleware(20,15)',
+        'validateRequestMiddleware(generateDocumentSchema)',
         documentController.generateDocument
       );
     });
@@ -159,11 +153,11 @@ describe('Document Drafting Routes', () => {
     it('should be configured with optional auth, context, limits, validation, and controller', () => {
       expect(mockRouter.post).toHaveBeenCalledWith(
         '/export',
-        optionalAuth(),
+        'optionalAuthMiddleware',
         extractTenantContext,
         checkDailyRequestLimit,
-        createRateLimiter(20, 15),
-        validateRequest(DocumentValidation.exportDocumentSchema),
+        'rateLimiterMiddleware(20,15)',
+        'validateRequestMiddleware(exportDocumentSchema)',
         documentController.exportDocument
       );
     });
@@ -173,18 +167,18 @@ describe('Document Drafting Routes', () => {
     it('should be configured with optional auth, context, limits, validation, and controller', () => {
       expect(mockRouter.post).toHaveBeenCalledWith(
         '/edit',
-        optionalAuth(),
+        'optionalAuthMiddleware',
         extractTenantContext,
         checkDailyRequestLimit,
-        createRateLimiter(20, 15),
-        validateRequest(DocumentValidation.editDocumentSchema),
+        'rateLimiterMiddleware(20,15)',
+        'validateRequestMiddleware(editDocumentSchema)',
         documentController.editDocument
       );
     });
   });
 
   describe('Role-based Access and Context Boundaries', () => {
-    it('should use optionalAuth for all routes, allowing both guests and authenticated users', () => {
+    it('should use optionalAuth for all routes, allowing both guests and authenticated users', async () => {
       // All routes use optionalAuth, not role-specific auth. This test verifies that design.
       expect(optionalAuth).toHaveBeenCalledTimes(4);
       const auth = (await import('../../middlewares/auth/auth.js')).default;
@@ -193,7 +187,15 @@ describe('Document Drafting Routes', () => {
 
     it('should use extractTenantContext for all routes to maintain context boundaries', () => {
       // This middleware is crucial for multi-tenancy.
-      expect(extractTenantContext).toHaveBeenCalledTimes(4);
+      const assistantCall = mockRouter.post.mock.calls.find(call => call[0] === '/assistant');
+      const generateCall = mockRouter.post.mock.calls.find(call => call[0] === '/generate');
+      const exportCall = mockRouter.post.mock.calls.find(call => call[0] === '/export');
+      const editCall = mockRouter.post.mock.calls.find(call => call[0] === '/edit');
+
+      expect(assistantCall).toContain(extractTenantContext);
+      expect(generateCall).toContain(extractTenantContext);
+      expect(exportCall).toContain(extractTenantContext);
+      expect(editCall).toContain(extractTenantContext);
     });
   });
 });

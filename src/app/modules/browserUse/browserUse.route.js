@@ -4,6 +4,7 @@ import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { requireRole } from '../../middlewares/auth/requireRole.js'; // Middleware to enforce role-based access
 import catchAsync from '../../utils/catchAsync.js'; // Utility to catch errors from async express handlers
+import { planLimitMiddleware } from '../billing/planLimit.middleware.js';
 
 /**
  * @constant {express.Router} router - Express router instance for browser use AI routes.
@@ -90,6 +91,7 @@ router.post(
   '/task',
   auth(),
   extractTenantContext,
+  planLimitMiddleware('task'),
   // FIX: The controller must verify user/tenant usage limits before initiating a task.
   catchAsync(BrowserUseController.runTaskController)
 );

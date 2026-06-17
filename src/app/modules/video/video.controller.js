@@ -183,6 +183,15 @@ export const generateVideo = catchAsync(async (req, res) => {
       // If video was generated
       fullResponse = result.response || 'Video generated successfully';
       videoData = result.videoUrl;
+
+      // Increment monthly usage for video overages
+      if (!isGuest) {
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'video').catch((err) => {
+          logger.error('Error incrementing video monthly usage:', err);
+        });
+      }
     } else if (result.responseMessage) {
       // If it's a clarification or question
       fullResponse = result.responseMessage;

@@ -262,6 +262,19 @@ const uploadFile = catchAsync(async (req, res) => {
         );
     }
 
+    // Increment metered knowledge storage usage
+    const isGuest = req.isGuest || req.user?.isGuest;
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'knowledge', uploadedFile.size).catch((err) => {
+          logger.error('[KnowledgeBank] Failed to increment monthly usage for knowledge:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment knowledge usage:', err);
+      }
+    }
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

@@ -138,6 +138,18 @@ const productSchema = new mongoose.Schema(
        * @required
        */
       canInviteTeam: { type: Boolean, required: true },
+      // Monthly allowances (pool-based)
+      researchLimit: { type: Number, default: 0 },
+      imageLimit: { type: Number, default: 0 },
+      videoLimit: { type: Number, default: 0 },
+      taskLimit: { type: Number, default: 0 },
+      workflowLimit: { type: Number, default: 0 },
+      searchLimit: { type: Number, default: 0 },
+      writeLimit: { type: Number, default: 0 },
+      codeLimit: { type: Number, default: 0 },
+      projectsLimit: { type: Number, default: 0 },
+      modelsLimit: { type: Number, default: 0 },
+      knowledgeLimit: { type: Number, default: 0 },
     },
 
     // Feature List for Display

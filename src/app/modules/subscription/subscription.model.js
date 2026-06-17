@@ -166,6 +166,19 @@ const SubscriptionSchema = new mongoose.Schema(
     stripeProductId: {
       type: String,
     },
+    stripeMeteredItems: {
+      researchItemId: { type: String, default: null },
+      imageItemId: { type: String, default: null },
+      videoItemId: { type: String, default: null },
+      taskItemId: { type: String, default: null },
+      workflowItemId: { type: String, default: null },
+      searchItemId: { type: String, default: null },
+      writeItemId: { type: String, default: null },
+      codeItemId: { type: String, default: null },
+      projectsItemId: { type: String, default: null },
+      modelsItemId: { type: String, default: null },
+      knowledgeItemId: { type: String, default: null },
+    },
 
     // Seat Management (for team subscriptions)
     /**
@@ -266,11 +279,23 @@ const SubscriptionSchema = new mongoose.Schema(
         required: true,
         default: false,
       },
+      // Monthly allowances (pool-based)
+      researchLimit: { type: Number, default: 0 },
+      imageLimit: { type: Number, default: 0 },
+      videoLimit: { type: Number, default: 0 },
+      taskLimit: { type: Number, default: 0 },
+      workflowLimit: { type: Number, default: 0 },
+      searchLimit: { type: Number, default: 0 },
+      writeLimit: { type: Number, default: 0 },
+      codeLimit: { type: Number, default: 0 },
+      projectsLimit: { type: Number, default: 0 },
+      modelsLimit: { type: Number, default: 0 },
+      knowledgeLimit: { type: Number, default: 0 },
     },
 
-    // Daily Usage Tracking
+    // Daily & Monthly Usage Tracking
     /**
-     * Tracks the daily consumption of limited resources.
+     * Tracks the consumption of limited resources.
      * @type {object}
      */
     usage: {
@@ -303,6 +328,20 @@ const SubscriptionSchema = new mongoose.Schema(
         type: Date,
         default: Date.now,
       },
+      // Monthly consumption counters
+      researchMonthlyUsed: { type: Number, default: 0, min: 0 },
+      imageMonthlyUsed: { type: Number, default: 0, min: 0 },
+      videoMonthlyUsed: { type: Number, default: 0, min: 0 },
+      taskMonthlyUsed: { type: Number, default: 0, min: 0 },
+      workflowMonthlyUsed: { type: Number, default: 0, min: 0 },
+      searchMonthlyUsed: { type: Number, default: 0, min: 0 },
+      writeMonthlyUsed: { type: Number, default: 0, min: 0 },
+      codeMonthlyUsed: { type: Number, default: 0, min: 0 },
+      projectsMonthlyUsed: { type: Number, default: 0, min: 0 },
+      modelsMonthlyUsed: { type: Number, default: 0, min: 0 },
+      knowledgeMonthlyUsed: { type: Number, default: 0, min: 0 },
+      cycleStartedAt: { type: Date, default: Date.now },
+
       // Legacy fields (from old payment model)
       promptsUsed: {
         type: Number,

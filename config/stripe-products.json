@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-06-08T20:09:02.154Z",
+  "createdAt": "2026-06-17T20:09:02.154Z",
   "environment": "development",
   "plans": [
     {
@@ -14,8 +14,20 @@
         "dailyRequestLimit": 10,
         "ragType": "none",
         "storagePerUser": 0,
-        "canInviteTeam": false
-      }
+        "canInviteTeam": false,
+        "researchLimit": 0,
+        "imageLimit": 0,
+        "videoLimit": 0,
+        "taskLimit": 0,
+        "workflowLimit": 0,
+        "searchLimit": 0,
+        "writeLimit": 0,
+        "codeLimit": 0,
+        "projectsLimit": 0,
+        "modelsLimit": 0,
+        "knowledgeLimit": 0
+      },
+      "meteredPrices": null
     },
     {
       "plan": "explore",
@@ -29,7 +41,31 @@
         "dailyRequestLimit": 1000,
         "ragType": "basic_text",
         "storagePerUser": 10737418240,
-        "canInviteTeam": true
+        "canInviteTeam": true,
+        "researchLimit": 100,
+        "imageLimit": 20,
+        "videoLimit": 2,
+        "taskLimit": 100,
+        "workflowLimit": 5,
+        "searchLimit": 1000,
+        "writeLimit": 500,
+        "codeLimit": 200,
+        "projectsLimit": 5,
+        "modelsLimit": 2,
+        "knowledgeLimit": 10737418240
+      },
+      "meteredPrices": {
+        "research": "price_explore_research_overage",
+        "image": "price_explore_image_overage",
+        "video": "price_explore_video_overage",
+        "task": "price_explore_task_overage",
+        "workflow": "price_explore_workflow_overage",
+        "search": "price_explore_search_overage",
+        "write": "price_explore_write_overage",
+        "code": "price_explore_code_overage",
+        "projects": "price_explore_projects_overage",
+        "models": "price_explore_models_overage",
+        "knowledge": "price_explore_knowledge_overage"
       }
     },
     {
@@ -44,7 +80,31 @@
         "dailyRequestLimit": 5000,
         "ragType": "advanced_multimodal",
         "storagePerUser": 53687091200,
-        "canInviteTeam": true
+        "canInviteTeam": true,
+        "researchLimit": 500,
+        "imageLimit": 100,
+        "videoLimit": 10,
+        "taskLimit": 500,
+        "workflowLimit": 25,
+        "searchLimit": 5000,
+        "writeLimit": 2500,
+        "codeLimit": 1000,
+        "projectsLimit": 25,
+        "modelsLimit": 10,
+        "knowledgeLimit": 53687091200
+      },
+      "meteredPrices": {
+        "research": "price_execute_research_overage",
+        "image": "price_execute_image_overage",
+        "video": "price_execute_video_overage",
+        "task": "price_execute_task_overage",
+        "workflow": "price_execute_workflow_overage",
+        "search": "price_execute_search_overage",
+        "write": "price_execute_write_overage",
+        "code": "price_execute_code_overage",
+        "projects": "price_execute_projects_overage",
+        "models": "price_execute_models_overage",
+        "knowledge": "price_execute_knowledge_overage"
       }
     },
     {
@@ -59,7 +119,31 @@
         "dailyRequestLimit": 15000,
         "ragType": "premium_agentic",
         "storagePerUser": 107374182400,
-        "canInviteTeam": true
+        "canInviteTeam": true,
+        "researchLimit": 2000,
+        "imageLimit": 500,
+        "videoLimit": 50,
+        "taskLimit": 2500,
+        "workflowLimit": 100,
+        "searchLimit": 20000,
+        "writeLimit": 10000,
+        "codeLimit": 4000,
+        "projectsLimit": 100,
+        "modelsLimit": 50,
+        "knowledgeLimit": 107374182400
+      },
+      "meteredPrices": {
+        "research": "price_command_research_overage",
+        "image": "price_command_image_overage",
+        "video": "price_command_video_overage",
+        "task": "price_command_task_overage",
+        "workflow": "price_command_workflow_overage",
+        "search": "price_command_search_overage",
+        "write": "price_command_write_overage",
+        "code": "price_command_code_overage",
+        "projects": "price_command_projects_overage",
+        "models": "price_command_models_overage",
+        "knowledge": "price_command_knowledge_overage"
       }
     }
   ]

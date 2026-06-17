@@ -150,6 +150,18 @@ const executeWorkflowController = catchAsync(async (req, res) => {
       `Workflow execution ${result.success ? 'completed' : 'failed'} for ${workflowId}`
     );
 
+    if (result.success && !(req.isGuest || req.user?.isGuest)) {
+      try {
+        const subscriptionService = (await import('../../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'workflow').catch((err) => {
+          logger.error('Failed to increment monthly usage for workflow:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment workflow usage:', err);
+      }
+    }
+
     return sendResponse(res, {
       statusCode: result.success ? httpStatus.OK : httpStatus.BAD_REQUEST,
       success: result.success,

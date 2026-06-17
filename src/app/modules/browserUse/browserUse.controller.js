@@ -158,6 +158,19 @@ const runTaskController = catchAsync(async (req, res) => {
       req // Pass the full request so the service layer can use actor context for validation
     );
 
+    const isGuest = req.isGuest || actor?.isGuest;
+    if (!isGuest) {
+      try {
+        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const tenantId = req.user?.tenantId || req.tenantId || null;
+        subscriptionService.trackAndIncrementMonthlyUsage(effectiveUserId, tenantId, 'task').catch((err) => {
+          logger.error('Failed to increment monthly usage for task:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to increment task usage:', err);
+      }
+    }
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

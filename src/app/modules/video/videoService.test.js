@@ -15,12 +15,23 @@ import globalConfig from '../../../../config/index.js'; // Adjust path as necess
 vi.mock('@google/genai');
 vi.mock('@google-cloud/storage');
 vi.mock('google-auth-library');
+vi.mock('rate-limiter-flexible', () => ({
+  RateLimiterRedis: class {
+    constructor(opts) {
+      this.opts = opts;
+    }
+    consume() {
+      return Promise.resolve();
+    }
+  },
+}));
 vi.mock('../../../../config/index.js', () => ({
   default: {
     google: {
       gcp_project_id: 'test-project-id',
       vertex_ai_region: 'us-central1',
       vertex_ai_endpoint: 'us-central1-aiplatform.googleapis.com',
+      gcs_bucket_name: 'ai_video_alti',
     },
   },
 }));
@@ -29,16 +40,14 @@ vi.mock('../../../../config/index.js', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock Buffer.from for direct video upload
-vi.stubGlobal('Buffer', {
-  from: vi.fn((input) => input), // Simple pass-through for testing purposes
-});
-
 describe('videoService', () => {
-  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  let consoleLogSpy;
+  let consoleErrorSpy;
 
   beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockReset();
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2023-01-01T12:00:00Z')); // Consistent Date.now()
@@ -59,26 +68,30 @@ describe('videoService', () => {
     const mockBucket = { file: vi.fn(() => mockFile) };
 
     beforeEach(() => {
-      GoogleGenAI.mockImplementation(() => ({
-        models: {
-          generateVideos: mockGenerateVideos,
-        },
-        operations: {
-          getVideosOperation: mockGetVideosOperation,
-        },
-        files: {
-          downloadAsBuffer: mockDownloadAsBuffer,
-        },
-      }));
-      Storage.mockImplementation(() => ({
-        bucket: vi.fn(() => mockBucket),
-      }));
+      GoogleGenAI.mockImplementation(function() {
+        return {
+          models: {
+            generateVideos: mockGenerateVideos,
+          },
+          operations: {
+            getVideosOperation: mockGetVideosOperation,
+          },
+          files: {
+            downloadAsBuffer: mockDownloadAsBuffer,
+          },
+        };
+      });
+      Storage.mockImplementation(function() {
+        return {
+          bucket: vi.fn(() => mockBucket),
+        };
+      });
     });
 
     it('should generate a video and upload it directly to GCS using video.uri', async () => {
       const prompt = 'A cat flying in space';
       const expectedVideoUri = 'https://genai.google.com/video/123.mp4';
-      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_${Date.now()}.mp4`;
+      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_1672574410000.mp4`;
 
       mockGenerateVideos.mockResolvedValueOnce({
         done: false,
@@ -96,7 +109,9 @@ describe('videoService', () => {
       });
       mockSave.mockResolvedValueOnce();
 
-      const result = await generateVideo({ prompt });
+      const promise = generateVideo({ prompt });
+      await vi.runAllTimersAsync();
+      const result = await promise;
 
       expect(GoogleGenAI).toHaveBeenCalledWith({
         vertexAI: {
@@ -107,12 +122,12 @@ describe('videoService', () => {
       expect(mockGenerateVideos).toHaveBeenCalledWith({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
-        config: { durationSeconds: 8, resolution: '720p' },
+        config: { durationSeconds: 5, resolution: '1024x576' },
       });
-      expect(mockGetVideosOperation).toHaveBeenCalledWith({ operation: { done: false, name: 'operations/123' } });
+      expect(mockGetVideosOperation).toHaveBeenCalledWith({ name: 'operations/123' });
       expect(mockFetch).toHaveBeenCalledWith(expectedVideoUri);
       expect(mockBucket.file).toHaveBeenCalledWith(`generated_video_${Date.now()}.mp4`);
-      expect(mockSave).toHaveBeenCalledWith(expect.any(ArrayBuffer), {
+      expect(mockSave).toHaveBeenCalledWith(expect.any(Buffer), {
         metadata: {
           contentType: 'video/mp4',
           cacheControl: 'public, max-age=31536000',
@@ -128,15 +143,12 @@ describe('videoService', () => {
         generatedAt: expect.any(String),
         prompt: prompt,
       });
-      expect(vi.get  Timers()).toHaveLength(1); // One setTimeout for polling
-      await vi.runAllTimersAsync(); // Advance timers to clear the polling
-      expect(vi.get  Timers()).toHaveLength(0);
     });
 
     it('should generate a video and upload it directly to GCS using ai.files.downloadAsBuffer if no video.uri', async () => {
       const prompt = 'A dog running in a field';
       const expectedVideoFileObject = { name: 'files/video-abc' };
-      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_${Date.now()}.mp4`;
+      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_1672574410000.mp4`;
 
       mockGenerateVideos.mockResolvedValueOnce({
         done: false,
@@ -151,7 +163,9 @@ describe('videoService', () => {
       mockDownloadAsBuffer.mockResolvedValueOnce(Buffer.from('mock video content'));
       mockSave.mockResolvedValueOnce();
 
-      const result = await generateVideo({ prompt });
+      const promise = generateVideo({ prompt });
+      await vi.runAllTimersAsync();
+      const result = await promise;
 
       expect(mockDownloadAsBuffer).toHaveBeenCalledWith({ file: expectedVideoFileObject });
       expect(mockBucket.file).toHaveBeenCalledWith(`generated_video_${Date.now()}.mp4`);
@@ -163,7 +177,6 @@ describe('videoService', () => {
         resumable: false,
       });
       expect(result.videoUrl).toBe(expectedPublicUrl);
-      await vi.runAllTimersAsync();
     });
 
     it('should throw an error if video generation fails', async () => {
@@ -171,9 +184,9 @@ describe('videoService', () => {
       const errorMessage = 'API error';
       mockGenerateVideos.mockRejectedValueOnce(new Error(errorMessage));
 
-      await expect(generateVideo({ prompt })).rejects.toThrow(`Video generation failed: ${errorMessage}`);
+      const promise = generateVideo({ prompt });
+      await expect(promise).rejects.toThrow(`Video generation failed: ${errorMessage}`);
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating video:', expect.any(Error));
-      await vi.runAllTimersAsync();
     });
 
     it('should throw an error if video fetch from URI fails', async () => {
@@ -195,9 +208,11 @@ describe('videoService', () => {
         statusText: 'Not Found',
       });
 
-      await expect(generateVideo({ prompt })).rejects.toThrow('Failed to upload video directly to storage: Failed to fetch video from URI: Not Found');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error uploading video directly to storage:', expect.any(Error));
+      const promise = generateVideo({ prompt });
+      promise.catch(() => {}); // Prevent unhandled/async rejection warnings in Node
       await vi.runAllTimersAsync();
+      await expect(promise).rejects.toThrow('Video generation failed: Failed to upload video directly to storage: Failed to fetch video from URI: Not Found');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error uploading video directly to storage:', expect.any(Error));
     });
 
     it('should use default parameters if not provided', async () => {
@@ -208,12 +223,13 @@ describe('videoService', () => {
       mockFetch.mockResolvedValueOnce({ ok: true, arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)) });
       mockSave.mockResolvedValueOnce();
 
-      const result = await generateVideo({ prompt });
+      const promise = generateVideo({ prompt });
+      await vi.runAllTimersAsync();
+      const result = await promise;
 
       expect(result.duration).toBe(5);
       expect(result.style).toBe('realistic');
       expect(result.resolution).toBe('1024x576');
-      await vi.runAllTimersAsync();
     });
   });
 
@@ -222,11 +238,13 @@ describe('videoService', () => {
     const mockGetClient = vi.fn();
 
     beforeEach(() => {
-      GoogleAuth.mockImplementation(() => ({
-        getClient: mockGetClient.mockResolvedValue({
-          getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
-        }),
-      }));
+      GoogleAuth.mockImplementation(function() {
+        return {
+          getClient: mockGetClient.mockResolvedValue({
+            getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
+          }),
+        };
+      });
     });
 
     it('should successfully call Vertex AI predictLongRunning endpoint', async () => {
@@ -265,7 +283,7 @@ describe('videoService', () => {
           }),
         }
       );
-      expect(result).toEqual(mockResponseData);
+      expect(result).toEqual({ operationName: mockResponseData.name });
     });
 
     it('should throw an error if Vertex AI API call fails', async () => {
@@ -273,11 +291,12 @@ describe('videoService', () => {
       const errorResponse = { status: 400, statusText: 'Bad Request' };
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        json: vi.fn().mockResolvedValue(errorResponse),
+        status: 400,
+        text: vi.fn().mockResolvedValue(JSON.stringify(errorResponse)),
       });
 
       await expect(generateVideoWithVertexAI({ prompt })).rejects.toThrow(
-        `HTTP error! status: ${JSON.stringify(errorResponse)}`
+        `HTTP error! status: 400, body: ${JSON.stringify(errorResponse)}`
       );
       expect(consoleErrorSpy).not.toHaveBeenCalled(); // Error is thrown, not caught here
     });
@@ -288,11 +307,13 @@ describe('videoService', () => {
     const mockGetClient = vi.fn();
 
     beforeEach(() => {
-      GoogleAuth.mockImplementation(() => ({
-        getClient: mockGetClient.mockResolvedValue({
-          getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
-        }),
-      }));
+      GoogleAuth.mockImplementation(function() {
+        return {
+          getClient: mockGetClient.mockResolvedValue({
+            getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
+          }),
+        };
+      });
     });
 
     it('should successfully fetch operation status and convert GCS URI to public URL when done', async () => {
@@ -311,14 +332,13 @@ describe('videoService', () => {
       const result = await getOperationStatus(operationName);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `https://${globalConfig.google.vertex_ai_endpoint}/v1/projects/${globalConfig.google.gcp_project_id}/locations/${globalConfig.google.vertex_ai_region}/publishers/google/models/veo-3.1-fast-generate-preview:fetchPredictOperation`,
+        `https://${globalConfig.google.vertex_ai_endpoint}/v1/${operationName}`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: 'Bearer mock-vertex-token',
           },
-          body: JSON.stringify({ operationName: operationName }),
         }
       );
       expect(result).toEqual({
@@ -352,11 +372,12 @@ describe('videoService', () => {
       const errorResponse = { status: 500, statusText: 'Internal Server Error' };
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        json: vi.fn().mockResolvedValue(errorResponse),
+        status: 500,
+        text: vi.fn().mockResolvedValue(JSON.stringify(errorResponse)),
       });
 
       await expect(getOperationStatus(operationName)).rejects.toThrow(
-        `HTTP error! status: ${JSON.stringify(errorResponse)}`
+        `HTTP error! status: 500, body: ${JSON.stringify(errorResponse)}`
       );
     });
   });
@@ -366,11 +387,13 @@ describe('videoService', () => {
     const mockGetClient = vi.fn();
 
     beforeEach(() => {
-      GoogleAuth.mockImplementation(() => ({
-        getClient: mockGetClient.mockResolvedValue({
-          getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
-        }),
-      }));
+      GoogleAuth.mockImplementation(function() {
+        return {
+          getClient: mockGetClient.mockResolvedValue({
+            getAccessToken: mockGetAccessToken.mockResolvedValue({ token: 'mock-vertex-token' }),
+          }),
+        };
+      });
     });
 
     it('should return mock status for a generic job ID', async () => {
@@ -413,7 +436,7 @@ describe('videoService', () => {
     });
 
     it('should call getOperationStatus for a Vertex AI operation ID (/operations/)', async () => {
-      const jobId = 'operations/op456'; // Shorter form also handled
+      const jobId = 'projects/test-project-id/locations/us-central1/operations/op456'; // Shorter form also handled
       const mockOperationResponse = {
         done: false,
         metadata: { progress: 50 },

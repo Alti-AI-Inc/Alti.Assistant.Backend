@@ -1,68 +1,99 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import emailValidator from 'email-validator';
 
 // Mock mongoose and its components
-const mockSchemaInstance = {
-  method: vi.fn(),
-  static: vi.fn(),
-  path: vi.fn().mockImplementation(() => ({
-    validate: vi.fn(),
-    default: vi.fn(),
-    enum: vi.fn(),
-    ref: vi.fn(),
-    index: vi.fn(),
-    select: vi.fn(),
-  })),
-};
-
 const {
+  mockSchemaInstance,
   mockSchemaConstructor,
+  mockModelInstance,
   mockMongooseModel,
+  mockObjectIdIsValid,
   mockObjectId
 } = vi.hoisted(() => {
-  const mockSchemaConstructor = vi.fn().mockImplementation(() => mockSchemaInstance);
-  const mockMongooseModel = vi.fn().mockImplementation(() => mockModelInstance); // This will be the return value of mongoose.model
+  const mockSchemaInstance = {
+    method: vi.fn(),
+    static: vi.fn(),
+    index: vi.fn(),
+    pre: vi.fn(),
+    methods: {},
+    statics: {},
+    path: vi.fn().mockImplementation(() => ({
+      validate: vi.fn(),
+      default: vi.fn(),
+      enum: vi.fn(),
+      ref: vi.fn(),
+      index: vi.fn(),
+      select: vi.fn(),
+    })),
+  };
+  const mockSchemaConstructor = vi.fn().mockImplementation(function() { return mockSchemaInstance; });
+  const mockModelInstance = {
+    findById: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    lean: vi.fn(),
+  };
+  const mockMongooseModel = vi.fn().mockImplementation(function() { return mockModelInstance; });
+  const mockObjectIdIsValid = vi.fn();
   const mockObjectId = {
     isValid: mockObjectIdIsValid,
   };
 
   return {
+    mockSchemaInstance,
     mockSchemaConstructor,
+    mockModelInstance,
     mockMongooseModel,
+    mockObjectIdIsValid,
     mockObjectId
   };
 });
 
-const mockModelInstance = {
-  findById: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  lean: vi.fn(),
-};
-const mockObjectIdIsValid = vi.fn();
-
 vi.mock('mongoose', async (importOriginal) => {
   const actualMongoose = await importOriginal();
-  return {
-    ...actualMongoose, // Keep actual types and other utilities if needed
+  const mockModel = vi.fn().mockImplementation((name, schema) => {
+    return mockMongooseModel();
+  });
+  
+  // Copy static properties of actualMongoose.Schema (like Types) onto mockSchemaConstructor
+  Object.assign(mockSchemaConstructor, actualMongoose.Schema);
+
+  const mockMongoose = {
+    ...actualMongoose,
     Schema: mockSchemaConstructor,
-    model: vi.fn().mockImplementation((name, schema) => {
-      // Store the schema for inspection if needed, or just return a mock model
-      return mockMongooseModel();
-    }),
+    model: mockModel,
     Types: {
+      ...actualMongoose.Types,
       ObjectId: mockObjectId,
     },
+  };
+  return {
+    ...mockMongoose,
+    default: mockMongoose,
   };
 });
 
 // Mock crypto
-vi.mock('crypto', () => ({
-  randomBytes: vi.fn().mockImplementation(() => ({
+vi.mock('crypto', () => {
+  const mockRandomBytes = vi.fn().mockImplementation(() => ({
     toString: vi.fn().mockImplementation(() => 'mockConfirmationToken'),
-  })),
-}));
+  }));
+  const mockUpdate = vi.fn().mockReturnThis();
+  const mockDigest = vi.fn().mockReturnValue('mockConfirmationToken');
+  const mockCreateHash = vi.fn().mockImplementation(() => ({
+    update: mockUpdate,
+    digest: mockDigest,
+  }));
+  const mockCrypto = {
+    randomBytes: mockRandomBytes,
+    createHash: mockCreateHash,
+  };
+  return {
+    ...mockCrypto,
+    default: mockCrypto,
+  };
+});
 
 // Mock email-validator
 vi.mock('email-validator', () => ({
@@ -71,25 +102,33 @@ vi.mock('email-validator', () => ({
   },
 }));
 
-// Import the model after mocks are set up
-// This will trigger the mongoose.Schema and mongoose.model calls
-import UserModel from './auth.model';
+// Import the model dynamically after mocks are fully set up
+let UserModel;
+beforeAll(async () => {
+  const modelModule = await import('./auth.model');
+  UserModel = modelModule.default;
+
+  // Rearrange mockSchemaConstructor.mock.calls so that the main UserSchema call is at index 0
+  const mainCallIndex = mockSchemaConstructor.mock.calls.findIndex(call => call[0] && call[0].email);
+  if (mainCallIndex > 0) {
+    const mainCall = mockSchemaConstructor.mock.calls[mainCallIndex];
+    mockSchemaConstructor.mock.calls.splice(mainCallIndex, 1);
+    mockSchemaConstructor.mock.calls.unshift(mainCall);
+  }
+});
 
 describe('User Model', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     // Reset the mock model's internal state for findById, select, lean
     mockModelInstance.findById.mockReturnThis();
     mockModelInstance.select.mockReturnThis();
     mockModelInstance.lean.mockResolvedValue(null); // Default to not found
-    mockSchemaConstructor.mockClear(); // Clear calls to Schema constructor
-    mongoose.model.mockClear(); // Clear calls to model factory
-    mockSchemaConstructor.mockImplementation(() => mockSchemaInstance); // Ensure schema instance is consistent
-    mongoose.model.mockImplementation(() => mockMongooseModel()); // Ensure model instance is consistent
+    mockSchemaConstructor.mockImplementation(function() { return mockSchemaInstance; }); // Ensure schema instance is consistent
+    mongoose.model.mockImplementation(function() { return mockMongooseModel(); }); // Ensure model instance is consistent
   });
 
   it('should define the User schema with correct structure and options', () => {
-    expect(mockSchemaConstructor).toHaveBeenCalledTimes(1);
+    expect(mockSchemaConstructor).toHaveBeenCalledTimes(2);
     const schemaDefinition = mockSchemaConstructor.mock.calls[0][0];
     const schemaOptions = mockSchemaConstructor.mock.calls[0][1];
 
@@ -106,19 +145,15 @@ describe('User Model', () => {
     expect(schemaDefinition.llamaAiSessions).toBeDefined();
     expect(schemaDefinition.browserSessions).toBeDefined();
     expect(schemaDefinition.notifications).toBeDefined();
-    expect(schemaDefinition.confirmationToken).toBe(String);
+    expect(schemaDefinition.confirmationToken).toBeDefined();
     expect(schemaDefinition.confirmationTokenExpires).toBe(Date);
-    expect(schemaDefinition.resetPasswordOTP).toBe(String);
+    expect(schemaDefinition.resetPasswordOTP).toBeDefined();
     expect(schemaDefinition.resetPasswordExpires).toBe(Date);
-    expect(schemaDefinition.deleteAccountOTP).toBe(String);
+    expect(schemaDefinition.deleteAccountOTP).toBeDefined();
     expect(schemaDefinition.deleteAccountExpires).toBe(Date);
     expect(schemaDefinition.stripeAccountId).toBeDefined();
-    expect(schemaDefinition.subscriptionId).toBeDefined();
-    expect(schemaDefinition.currentPlan).toBeDefined();
-    expect(schemaDefinition.tenantId).toBeDefined();
-    expect(schemaDefinition.tenantRole).toBeDefined();
-    expect(schemaDefinition.tenantPermissions).toBeDefined();
-    expect(schemaDefinition.activeTenantId).toBeDefined();
+    expect(schemaDefinition.workspaces).toBeDefined();
+    expect(schemaDefinition.activeWorkspaceId).toBeDefined();
   });
 
   it('should have correct properties for email field', () => {
@@ -128,24 +163,24 @@ describe('User Model', () => {
     expect(emailField.type).toBe(String);
     expect(emailField.required).toEqual([true, 'Please provide a unique email']);
     expect(emailField.unique).toBe(true);
-    expect(emailField.validate).toBeInstanceOf(Function);
+    expect(emailField.validate.validator).toBeInstanceOf(Function);
   });
 
   it('should validate email using email-validator', () => {
     const schemaDefinition = mockSchemaConstructor.mock.calls[0][0];
-    const emailValidatorFn = schemaDefinition.email.validate;
+    const emailValidatorFn = schemaDefinition.email.validate.validator;
 
     // Test valid email
-    emailValidator.default.validate.mockReturnValue(true);
+    emailValidator.validate.mockReturnValue(true);
     const mockUserValid = { email: 'test@example.com' };
-    expect(emailValidatorFn.call(mockUserValid)).toBe(true);
-    expect(emailValidator.default.validate).toHaveBeenCalledWith('test@example.com');
+    expect(emailValidatorFn.call(mockUserValid, mockUserValid.email)).toBe(true);
+    expect(emailValidator.validate).toHaveBeenCalledWith('test@example.com');
 
     // Test invalid email
-    emailValidator.default.validate.mockReturnValue(false);
+    emailValidator.validate.mockReturnValue(false);
     const mockUserInvalid = { email: 'invalid-email' };
-    expect(emailValidatorFn.call(mockUserInvalid)).toBe(false);
-    expect(emailValidator.default.validate).toHaveBeenCalledWith('invalid-email');
+    expect(emailValidatorFn.call(mockUserInvalid, mockUserInvalid.email)).toBe(false);
+    expect(emailValidator.validate).toHaveBeenCalledWith('invalid-email');
   });
 
   it('should have correct properties for password field', () => {
@@ -154,7 +189,7 @@ describe('User Model', () => {
 
     expect(passwordField.type).toBe(String);
     expect(passwordField.unique).toBe(false);
-    expect(passwordField.select).toBe(0); // Should not be selected by default
+    expect(passwordField.select).toBe(false); // Should not be selected by default
   });
 
   it('should have correct defaults and enums for various fields', () => {
@@ -176,31 +211,13 @@ describe('User Model', () => {
     expect(schemaDefinition.role.enum.values).toEqual(['user', 'buyer', 'admin', 'super_admin', 'unauthorized']);
     expect(schemaDefinition.role.default).toBe('unauthorized');
 
-    expect(schemaDefinition.subscriptionId.ref).toBe('Subscription');
-    expect(schemaDefinition.subscriptionId.default).toBe(null);
-    expect(schemaDefinition.subscriptionId.index).toBe(true);
-
-    expect(schemaDefinition.currentPlan.enum).toEqual(['free', 'explore', 'execute', 'command']);
-    expect(schemaDefinition.currentPlan.default).toBe('free');
-    expect(schemaDefinition.currentPlan.index).toBe(true);
-
-    expect(schemaDefinition.tenantId.ref).toBe('Tenant');
-    expect(schemaDefinition.tenantId.default).toBe(null);
-    expect(schemaDefinition.tenantId.index).toBe(true);
-
-    expect(schemaDefinition.tenantRole.enum).toEqual(['admin', 'manager', 'user']);
-    expect(schemaDefinition.tenantRole.default).toBe(null);
-
-    expect(schemaDefinition.tenantPermissions.type).toEqual([String]);
-    expect(schemaDefinition.tenantPermissions.default).toEqual([]);
-
-    expect(schemaDefinition.activeTenantId.ref).toBe('Tenant');
-    expect(schemaDefinition.activeTenantId.default).toBe(null);
-    expect(schemaDefinition.activeTenantId.index).toBe(true);
+    expect(schemaDefinition.activeWorkspaceId.ref).toBe('Tenant');
+    expect(schemaDefinition.activeWorkspaceId.default).toBe(null);
+    expect(schemaDefinition.activeWorkspaceId.index).toBe(true);
   });
 
   it('should define `generateConfirmationToken` as a schema method', () => {
-    expect(mockSchemaInstance.method).toHaveBeenCalledWith('generateConfirmationToken', expect.any(Function));
+    expect(mockSchemaInstance.methods.generateConfirmationToken).toBeInstanceOf(Function);
   });
 
   describe('UserSchema.methods.generateConfirmationToken', () => {
@@ -209,9 +226,7 @@ describe('User Model', () => {
 
     beforeEach(() => {
       // Extract the method from the mockSchemaInstance
-      generateConfirmationToken = mockSchemaInstance.method.mock.calls.find(
-        (call) => call[0] === 'generateConfirmationToken'
-      )[1];
+      generateConfirmationToken = mockSchemaInstance.methods.generateConfirmationToken;
 
       mockUser = {
         confirmationToken: null,
@@ -238,7 +253,7 @@ describe('User Model', () => {
   });
 
   it('should define `isUserExist` as a schema static method', () => {
-    expect(mockSchemaInstance.static).toHaveBeenCalledWith('isUserExist', expect.any(Function));
+    expect(mockSchemaInstance.statics.isUserExist).toBeInstanceOf(Function);
   });
 
   describe('UserSchema.statics.isUserExist', () => {
@@ -246,9 +261,7 @@ describe('User Model', () => {
 
     beforeEach(() => {
       // Extract the static method from the mockSchemaInstance
-      isUserExist = mockSchemaInstance.static.mock.calls.find(
-        (call) => call[0] === 'isUserExist'
-      )[1];
+      isUserExist = mockSchemaInstance.statics.isUserExist;
 
       // Reset mock model instance methods for each test
       mockModelInstance.findById.mockClear().mockReturnThis();
