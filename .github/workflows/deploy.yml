@@ -7,12 +7,15 @@ on:
 
 permissions:
   contents: read
+
 env:
   REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
   IMAGE_NAME: alti-assistant-backend
   VM_USER: alti_deployer
   COMPOSE_DIR: '~'
   COMPOSE_FILE: docker-compose.yml
+  # Opt into Node.js 24 for all actions (Node 20 deprecated June 2026)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-deploy:
@@ -85,7 +88,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
@@ -117,32 +120,54 @@ jobs:
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
             set -e
-            echo "Waiting for Docker to be ready..."
+            echo "=== Pre-deploy: reclaim disk space ==="
+            docker image prune -af --filter "until=24h" 2>/dev/null || true
+            docker container prune -f 2>/dev/null || true
+            df -h / | tail -1
+
+            echo "=== Waiting for Docker to be ready ==="
             for i in {1..30}; do
-              if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+              if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then
                 echo "Docker is ready!"
                 break
               fi
               echo "Waiting for Docker daemon... ($i/30)"
               sleep 5
             done
-            echo "Navigating to compose directory..."
-            cd ${{ env.COMPOSE_DIR }}
-            echo "Stopping existing containers..."
-            docker compose -f ${{ env.COMPOSE_FILE }} down
-            echo "Pulling latest images..."
-            docker compose -f ${{ env.COMPOSE_FILE }} pull
-            echo "Starting containers..."
-            docker compose -f ${{ env.COMPOSE_FILE }} up -d
-            echo "Checking container status..."
-            docker compose -f ${{ env.COMPOSE_FILE }} ps
-            echo "Deployment completed successfully!"
+
+            echo "=== Stopping existing containers ==="
+            docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
+
+            echo "=== Authenticating with Artifact Registry ==="
+            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet 2>/dev/null || true
+
+            echo "=== Pulling latest images ==="
+            docker compose -f ~/docker-compose.yml pull
+
+            echo "=== Starting containers ==="
+            docker compose -f ~/docker-compose.yml up -d
+
+            echo "=== Container status ==="
+            docker compose -f ~/docker-compose.yml ps
+
+            echo "=== Disk usage after deploy ==="
+            df -h /
+
+            echo "=== Deployment completed successfully! ==="
           EOF
 
+      - name: Health check
+        run: |
+          echo "Waiting 30s for backend to start..."
+          sleep 30
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+            "curl -sf http://localhost:3000/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
+
       - name: Fetch recent logs
+        if: always()
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
-            "cd ${{ env.COMPOSE_DIR }} && docker compose -f ${{ env.COMPOSE_FILE }} logs --tail=20"
+            "docker compose -f ~/docker-compose.yml logs --tail=30 2>/dev/null || true"
 
       - name: Clean up SSH key
         if: always()

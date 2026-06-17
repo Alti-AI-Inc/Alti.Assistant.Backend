@@ -1,144 +1,55 @@
-version: '3.9'
+# Alti Assistant — Production Docker Compose
+# Lean 2-service stack: Backend + Redis only
+# MongoDB: Atlas (cloud-hosted, no local container needed)
+# Everything else: managed GCP services (Vertex AI, Cloud Storage, Pub/Sub)
+#
+# Cost: ~$0 extra (Redis is already required, backend is the product)
+# Disk: ~800MB total vs 8GB+ with the old full-stack
 
 services:
-  alti:
-    build: .
-    container_name: alti
-    restart: always
+  redis:
+    image: redis/redis-stack:7.4.0-v3
+    container_name: alti-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"   # Redis
+      - "8001:8001"   # Redis Insight UI
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_ARGS=--save 900 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
+    networks:
+      - alti-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest
+    container_name: alti-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
     env_file:
       - .env
-    ports:
-      - '5100:5100'
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:5100/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      start_period: 15s
-      retries: 3
-    volumes:
-      - ../ALTI-CORE-SERVICE:/app/alti-core-service
-    networks:
-      - alti-network
-    # depends_on:
-    # - mongodb
-    # - redis-stack
-    # - elasticsearch
-    # - kibana
-    # - rabbitmq
     depends_on:
-      mongodb:
-        condition: service_started
-      redis-stack:
-        condition: service_started
-      elasticsearch:
+      redis:
         condition: service_healthy
-      kibana:
-        condition: service_started
-
-
-  elasticsearch:
-    image: elasticsearch:8.18.1
-    container_name: elasticsearch
-    restart: always
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - xpack.security.http.ssl.enabled=false
-      - xpack.security.transport.ssl.enabled=false
-      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
-    ports:
-      - '9200:9200'
-      - '9300:9300'
     networks:
       - alti-network
-
-  kibana:
-    image: kibana:8.18.1
-    container_name: kibana
-    restart: always
-    environment:
-      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
-    ports:
-      - '5601:5601'
-    depends_on:
-      - elasticsearch
-    networks:
-      - alti-network
-
-  redis-stack:
-    image: redis/redis-stack:7.4.0-v3
-    container_name: redis-stack
-    ports:
-      - '6379:6379'
-      - '8001:8001'
-    volumes:
-      - redis_data:/var/lib/redis
-    environment:
-      - REDIS_ARGS= --save 900 1
-    networks:
-      - alti-network
-
-
-
-  mongodb:
-    image: mongo:7.0
-    container_name: mongodb
-    ports:
-      - '27017:27017'
-    networks:
-      - alti-network
-    volumes:
-      - mongodb_data:/data/db
-    command: ['--replSet', 'rs0']
-
-  mongodb-express:
-    image: mongo-express:latest
-    container_name: mongodb-express
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASIC_AUTH_USERNAME:-admin}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASIC_AUTH_PASSWORD:-changeme}
-    ports:
-      - '8081:8081'
-    networks:
-      - alti-network
-    depends_on:
-      - mongodb
-
-  postgresql:
-    image: postgres:latest
-    container_name: postgresql
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: alti_db
-    ports:
-      - '5432:5432'
-    networks:
-      - alti-network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
-    ports:
-      - '5050:80'
-    networks:
-      - alti-network
-    depends_on:
-      - postgresql
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   alti-network:
     driver: bridge
 
 volumes:
-  mongodb_data:
-  postgres_data:
   redis_data:
-# end
+    driver: local
