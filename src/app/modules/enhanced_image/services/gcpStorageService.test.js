@@ -1,32 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GCPStorageService } from '../gcpStorageService'; // Adjust path as needed
-
-// Mock the @google-cloud/storage module
-const mockFile = {
-  save: vi.fn(),
-  delete: vi.fn(),
-};
-
-const mockBucket = {
-  upload: vi.fn(),
-  file: vi.fn().mockImplementation(() => mockFile),
-  exists: vi.fn(),
-};
+import { Storage } from '@google-cloud/storage';
+import { GCPStorageService } from './gcpStorageService.js';
 
 const {
-  mockStorage
+  mockFile,
+  mockBucket,
+  mockStorage,
+  mockStorageConstructor
 } = vi.hoisted(() => {
+  const mockFile = {
+    save: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  const mockBucket = {
+    upload: vi.fn(),
+    file: vi.fn().mockImplementation(() => mockFile),
+    exists: vi.fn(),
+  };
+
   const mockStorage = {
     bucket: vi.fn().mockImplementation(() => mockBucket),
   };
 
+  const mockStorageConstructor = vi.fn().mockImplementation(function() {
+    return mockStorage;
+  });
+
   return {
-    mockStorage
+    mockFile,
+    mockBucket,
+    mockStorage,
+    mockStorageConstructor
   };
 });
 
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn().mockImplementation(() => mockStorage),
+  Storage: mockStorageConstructor,
 }));
 
 describe('GCPStorageService', () => {

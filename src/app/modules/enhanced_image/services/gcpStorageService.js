@@ -90,6 +90,29 @@ export class GCPStorageService {
   }
 
   /**
+   * Uploads a local file directly to a GCS bucket.
+   * @param {string} localFilePath - Path to the local file to upload.
+   * @param {string} destinationFileName - Destination file name in the bucket.
+   * @returns {Promise<string>} A promise that resolves to the public URL of the uploaded file.
+   */
+  async uploadFile(localFilePath, destinationFileName) {
+    try {
+      await this.bucket.upload(localFilePath, {
+        destination: destinationFileName,
+        metadata: {
+          cacheControl: 'public, max-age=31536000',
+        },
+      });
+
+      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${destinationFileName}`;
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading to GCP:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Uploads a buffer directly to a GCS bucket.
    * This is efficient for handling file data held in memory.
    * The caller is responsible for ensuring the destinationFileName is unique and,
