@@ -130,6 +130,9 @@ cd ~COMPOSE_DIR~
 echo 'Stopping existing containers...'
 docker-compose -f ~COMPOSE_FILE~ down
 
+echo 'Removing old image to prevent containerd lease issues...'
+docker image rm us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+
 echo 'Pulling latest images...'
 docker-compose -f ~COMPOSE_FILE~ pull
 
