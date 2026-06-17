@@ -45,6 +45,8 @@ export default {
     url: process.env.REDIS_URL,
     expires_in: process.env.REDIS_TOKEN_EXPIRES_IN,
   },
+  // Top-level alias for backwards-compat with modules using config.redis_url
+  redis_url: process.env.REDIS_URL,
   alloydb: {
     host: process.env.ALLOYDB_HOST || '34.135.175.69',
     port: parseInt(process.env.ALLOYDB_PORT || '5432'),
