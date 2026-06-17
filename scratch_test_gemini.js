@@ -16,7 +16,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 async function run() {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const result = await model.generateContent('Hello! Respond with a single word.');
     console.log('Response:', result.response.text());
   } catch (err) {

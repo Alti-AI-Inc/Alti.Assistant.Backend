@@ -88,7 +88,7 @@ describe('conversationAnalyzer', () => {
       );
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3.1-pro',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 2048,
@@ -237,7 +237,7 @@ describe('conversationAnalyzer', () => {
       );
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3.1-pro',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 1024,

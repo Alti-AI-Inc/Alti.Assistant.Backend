@@ -19,8 +19,8 @@
  * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions for files that can be processed by the plan generator.
  */
 export const PLAN_GENERATOR_CONFIG = {
-  MODEL: 'gemini-2.5-pro',
-  FALLBACK_MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.1-pro',
+  FALLBACK_MODEL: 'gemini-3.5-flash',
   TEMPERATURE_BRAINSTORM: 0.8,
   TEMPERATURE_PLANNING: 0.6,
   MAX_OUTPUT_TOKENS: 8192,
@@ -301,7 +301,7 @@ export const CONVERSATION_CATEGORY = 'plan_generation';
  * @constant
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 /**
  * Defines default parameters for plan generation requests.

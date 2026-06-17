@@ -30,7 +30,7 @@ const embeddings = new SafeGoogleGenerativeAIEmbeddings({
 
 const llm = new ChatGoogleGenerativeAI({
   temperature: 0.2,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   apiKey: config?.gemini_secret_key,
   thinkingConfig: {
     includeThoughts: false,

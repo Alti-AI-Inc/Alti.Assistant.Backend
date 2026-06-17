@@ -20,7 +20,7 @@ class ClaudeService {
      * The name of the Gemini model to use.
      * @type {string}
      */
-    this.modelName = 'gemini-2.5-flash';
+    this.modelName = 'gemini-3.5-flash';
     /**
      * The GoogleGenerativeAI client instance.
      * @type {GoogleGenerativeAI|null}
@@ -79,7 +79,7 @@ class ClaudeService {
    * @returns {string} return.id - A unique identifier for the message.
    * @returns {string} return.type - The type of the response, typically 'message'.
    * @returns {string} return.role - The role of the assistant, 'assistant'.
-   * @returns {string} return.model - The name of the model used (e.g., 'gemini-2.5-flash').
+   * @returns {string} return.model - The name of the model used (e.g., 'gemini-3.5-flash').
    * @returns {Array<Object>} return.content - An array of content blocks.
    * @returns {string} return.content[].type - The type of content, typically 'text'.
    * @returns {string} return.content[].text - The generated text content.

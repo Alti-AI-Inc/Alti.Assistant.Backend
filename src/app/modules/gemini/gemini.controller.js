@@ -437,7 +437,7 @@ const getGlobalLogs = catchAsync(async (req, res) => {
  *                   type: array
  *                   items:
  *                     type: string
- *                   example: ["gemini-pro", "gemini-2.5-preview"]
+ *                   example: ["gemini-pro", "gemini-3.5-flash"]
  *                 globalSafetySettings:
  *                   type: object
  *                   example: { "HARM_CATEGORY_HARASSMENT": "BLOCK_MEDIUM_AND_ABOVE" }

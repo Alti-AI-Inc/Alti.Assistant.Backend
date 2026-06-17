@@ -77,13 +77,13 @@ describe('TranslationAPIClient', () => {
     it('should initialize Gemini models and log success', () => {
       expect(mockChatGoogleGenerativeAI).toHaveBeenCalledTimes(2);
       expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         apiKey: 'test-api-key',
         temperature: 0.3,
         maxOutputTokens: 32000,
       });
       expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         apiKey: 'test-api-key',
         temperature: 0.1,
         maxOutputTokens: 200,

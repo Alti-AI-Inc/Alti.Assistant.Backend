@@ -177,7 +177,7 @@ describe('LangchainExecutionService', () => {
 
       await executeSteps(steps, inputs, userId);
 
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.5-flash' });
+      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-3.5-flash' });
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
           generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },

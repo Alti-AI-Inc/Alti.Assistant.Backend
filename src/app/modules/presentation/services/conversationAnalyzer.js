@@ -60,7 +60,7 @@ class ConversationAnalyzer {
      * @type {ChatGoogleGenerativeAI}
      */
     this.model = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: apiKey || 'dummy-key-to-prevent-crash',
       temperature: 0.3, // Lower temperature for more consistent parameter extraction
       maxOutputTokens: 2048,
@@ -71,7 +71,7 @@ class ConversationAnalyzer {
      * @type {ChatGoogleGenerativeAI}
      */
     this.summarizerModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: apiKey || 'dummy-key-to-prevent-crash',
       temperature: 0.5,
       maxOutputTokens: 1000,

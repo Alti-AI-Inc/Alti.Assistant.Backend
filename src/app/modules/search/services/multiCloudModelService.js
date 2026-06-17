@@ -99,14 +99,14 @@ function createBillingCallbackHandler(tenantId, providerName) {
 // 1. Google Cloud Platform (Gemini) standard configurations
 // BUG FIX: Removed callbacks from global instances. Callbacks will be applied per-request via .withConfig().
 const gcpFlash = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
 });
 
 const gcpPro = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

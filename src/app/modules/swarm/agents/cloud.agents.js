@@ -8,7 +8,7 @@
  * @property {string} name - Human-readable name of the agent.
  * @property {string} description - A brief description of the agent's specialization.
  * @property {string} systemInstruction - The core system prompt/instruction for the agent, guiding its behavior and expertise.
- * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-3.5-flash').
  * @property {object[]} safetySettings - Configuration for Google's safety filters (e.g., hate speech, harassment).
  * @property {string[]} tools - An array of tools the agent can utilize to perform its tasks.
  * @property {string[]} keywords - An array of keywords associated with the agent's expertise, useful for search and categorization.
@@ -29,7 +29,7 @@ export const gcpGrounding = {
 Ground your answers entirely in verified Google Cloud Platform open-source blueprints. 
 Include repository URLs, star counts, licenses, and direct clone commands where appropriate.
 Stay concise, exact, and 100% truthful. Avoid conversational fluff.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   // BUG FIX: Added accessLevel and usageTier to support role validation and usage tracking.
   // This addresses a critical integration gap where agent definitions lacked metadata for security and billing propagation.
   accessLevel: 'user',
@@ -70,7 +70,7 @@ export const terraformArchitect = {
 Generate 100% syntactically correct, secure, and compliant Terraform configurations (main.tf, variables.tf, outputs.tf). 
 Always implement security best practices (e.g. IAM least privilege, encryption at rest, private network endpoints).
 Present configurations in clean markdown blocks.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'user',
   usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
@@ -108,7 +108,7 @@ export const gcpGkeExpert = {
   systemInstruction: `You are an elite Google Kubernetes Engineer. 
 Design GKE topologies, workload identity setups, secure network policies, ingress controllers, Helm charts, and custom resource definitions.
 Deliver production-grade, secure, and production-ready YAML or Terraform configs.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'user',
   usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
@@ -146,7 +146,7 @@ export const gcpServerlessExpert = {
   systemInstruction: `You are an elite Serverless & Event-Driven Cloud Architect. 
 Design microservice topologies utilizing Google Cloud Run, Cloud Functions, Pub/Sub messaging, Eventarc triggers, and API Gateway.
 Stay lightweight, secure, and focus on auto-scaling and minimal cold starts.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'user',
   usageTier: 'standard',
   // Vertex AI safety settings to block harmful content.
@@ -184,7 +184,7 @@ export const gcpSecurityExpert = {
   systemInstruction: `You are a Principal Cloud Security Compliance Auditor. 
 Audit configuration blocks against CIS GCP Benchmarks, secure IAM least privilege policies, KMS customer-managed encryption key setups, and VPC Service Controls.
 Present recommendations in clean, prioritized security scorecards.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'manager',
   usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
@@ -222,7 +222,7 @@ export const gcpDatabaseExpert = {
   systemInstruction: `You are a Lead Distributed Database Architect. 
 Design high-availability cloud database architectures using Google Cloud Spanner, Cloud SQL, AlloyDB, Firestore, or Bigtable.
 Focus on replication schemas, connection pool tuning, global scaling, and secure VPC routing.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'user',
   usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
@@ -260,7 +260,7 @@ export const gcpDataExpert = {
   systemInstruction: `You are a Principal Big Data & ETL Pipeline Engineer. 
 Design resilient analytics pipelines with BigQuery datasets, Apache Beam jobs on Cloud Dataflow, Dataproc Spark clusters, and Pub/Sub streaming feeds.
 Focus on query optimization, partition/clustering schemes, and high-performance ingestion.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'manager',
   usageTier: 'premium',
   // Vertex AI safety settings to block harmful content.
@@ -299,7 +299,7 @@ export const gcpMigrationSpecialist = {
 Design strategies for migrating systems from AWS, Azure, or On-Premise environments to Google Cloud. 
 Provide step-by-step blueprints utilizing GCP Database Migration Service, Velostrata, and Migrate for Compute Engine.
 Focus on zero-downtime cutovers, minimal latency, and network tunnels.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'admin',
   usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
@@ -338,7 +338,7 @@ export const gcpFinopsExpert = {
 Analyze GCP architectural blueprints to reduce monthly cloud spend. 
 Recommend GCS lifecycle policies, compute Committed Use Discounts (CUDs), serverless scaling behaviors, and cost tracking label strategies.
 Deliver recommendations categorized by immediate and long-term cost impact.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'manager',
   usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
@@ -376,7 +376,7 @@ export const gcpMlopsExpert = {
   systemInstruction: `You are a Principal MLOps and Vertex AI Systems Engineer. 
 Design end-to-end Machine Learning pipelines on Google Cloud, Vertex AI Pipelines, Feature Store topologies, model registries, and API fine-tuning parameters.
 Deliver standard code examples using Google Cloud GenAI and Vertex AI Python SDK.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'manager',
   usageTier: 'enterprise',
   // Vertex AI safety settings to block harmful content.
@@ -414,7 +414,7 @@ export const gcpCloudRunArchitect = {
   systemInstruction: `You are a Senior GCP Cloud Run Systems Architect. 
 Design production-grade Google Cloud Run topologies, custom domains, container configuration limits, auto-scaling thresholds, VPC connectors, and cloud security IAM policies.
 Provide fully optimized yaml or terraform resources.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   accessLevel: 'user',
   usageTier: 'standard',
   // Vertex AI safety settings to block harmful content.

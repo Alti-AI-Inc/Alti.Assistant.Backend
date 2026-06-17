@@ -103,12 +103,12 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
-    // Call modern Gemini AI with active search grounding and gemini-2.5-pro reasoning engine
-    logger.info(`Sending prompt with live Google Search Grounding using gemini-2.5-pro: "${prompt.slice(0, 50)}..."`);
+    // Call modern Gemini AI with active search grounding and gemini-3.1-pro reasoning engine
+    logger.info(`Sending prompt with live Google Search Grounding using gemini-3.1-pro: "${prompt.slice(0, 50)}..."`);
     
     /** @type {GenerateContentResult} */
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-pro',
       contents: enhancedPrompt,
       config: {
         temperature: 0.1,
@@ -157,7 +157,7 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-2.5-pro-grounded',
+      model: 'gemini-3.1-pro-grounded',
       reply,
       groundingMetadata,
       // Bug Fix: Renamed 'total_time' to 'output_tokens' as it reflects token count, not time.

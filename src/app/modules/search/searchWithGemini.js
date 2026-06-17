@@ -24,7 +24,7 @@ export const searchWithGemini = async (query) => {
     // Wrap the asynchronous call in a try-catch block to gracefully handle API errors,
     // network issues, or other exceptions, preventing the Node.js process from crashing.
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: query,
       config,
     });

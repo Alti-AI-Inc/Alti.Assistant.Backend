@@ -14,7 +14,7 @@
  */
 export const TRANSCRIPTION_CONSTANTS = {
   CATEGORY: 'transcription',
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TYPE: 'audio_understanding',
 };
 

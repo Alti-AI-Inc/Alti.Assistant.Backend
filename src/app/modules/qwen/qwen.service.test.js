@@ -79,7 +79,7 @@ describe('QwenAiServices', () => {
     ConversationChain.mockImplementation(() => mockConversationChainInstance);
 
     ChatGoogleGenerativeAI.mockImplementation(() => ({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       temperature: 0.7,
       apiKey: 'mock_gemini_key',
     }));
@@ -93,7 +93,7 @@ describe('QwenAiServices', () => {
       _id: 'newChatSessionId',
       user: userId,
       sessionId,
-      responses: [{ prompt, reply: aiReply, model: 'gemini-2.5-flash-thinking', total_time: totalTime }],
+      responses: [{ prompt, reply: aiReply, model: 'gemini-3.5-flash-thinking', total_time: totalTime }],
     });
     UserModel.findByIdAndUpdate.mockResolvedValue({});
     paymentController.incrementPromptsUsed.mockResolvedValue({ success: true, message: 'Usage updated' });
@@ -119,7 +119,7 @@ describe('QwenAiServices', () => {
         chatHistory: mockInMemoryChatMessageHistoryInstance,
       });
       expect(ChatGoogleGenerativeAI).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         temperature: 0.7,
         apiKey: 'mock_gemini_key',
       });
@@ -137,7 +137,7 @@ describe('QwenAiServices', () => {
           $push: {
             responses: {
               prompt,
-              model: 'gemini-2.5-flash-thinking',
+              model: 'gemini-3.5-flash-thinking',
               reply: aiReply,
               total_time: totalTime,
             },
@@ -174,7 +174,7 @@ describe('QwenAiServices', () => {
         _id: 'existingChatSessionId',
         user: userId,
         sessionId,
-        responses: [...existingResponses, { prompt, reply: aiReply, model: 'gemini-2.5-flash-thinking', total_time: totalTime }],
+        responses: [...existingResponses, { prompt, reply: aiReply, model: 'gemini-3.5-flash-thinking', total_time: totalTime }],
       });
       UserModel.findByIdAndUpdate.mockClear(); // Ensure it's not called
 

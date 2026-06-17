@@ -68,11 +68,16 @@ export default {
   },
 
   gemini_secret_key: process.env.GEMINI_API_KEY,
-  gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
+
+  // ── Gemini Model Config (single source of truth — update here only) ──────
+  // Flash: fastest & cheapest — use for 90% of requests
+  // Pro:   deep reasoning, complex tasks, document review, agentic workflows
+  gemini_model:     process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
+  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro',
   gemini: {
-    model_name: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-    temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
+    model_name:   process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
+    pro_model:    process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro',
+    temperature:  parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
   },
   realestate_api_key: process.env.REALESTATE_API_KEY,
 

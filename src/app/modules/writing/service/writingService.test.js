@@ -183,7 +183,7 @@ describe('writingService', () => {
 
       expect(mockGoogleGenerativeAI).toHaveBeenCalledWith('TEST_GEMINI_API_KEY');
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         systemInstruction: systemPromptBase,
       });
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);

@@ -75,7 +75,7 @@ describe('Data Agents Configuration', () => {
 
   it('should have correct specific configurations for OmniData Synthesizer', () => {
     expect(dataProcessorAgent.id).toBe('data_processor_agent');
-    expect(dataProcessorAgent.model).toBe('gemini-2.5-flash');
+    expect(dataProcessorAgent.model).toBe('gemini-3.5-flash');
     expect(dataProcessorAgent.keywords).toContain('process data');
     expect(dataProcessorAgent.systemInstruction).toContain('CRITICAL LAWS:');
   });

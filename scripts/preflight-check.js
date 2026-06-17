@@ -105,9 +105,9 @@ async function runPreflightChecks() {
 
     const ai = new GoogleGenAI({ apiKey });
     
-    console.log(`  ${YELLOW}Sending test query to gemini-2.5-flash...${RESET}`);
+    console.log(`  ${YELLOW}Sending test query to gemini-3.5-flash...${RESET}`);
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: 'Respond with only "SUCCESS" to confirm connection.',
     });
 

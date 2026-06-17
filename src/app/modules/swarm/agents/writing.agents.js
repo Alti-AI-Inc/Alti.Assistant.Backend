@@ -10,7 +10,7 @@
  * @property {string} name - A human-readable name for the agent.
  * @property {string} description - A brief description of the agent's specialization.
  * @property {string} systemInstruction - The detailed system prompt guiding the agent's behavior and formatting.
- * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro').
+ * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-3.5-flash', 'gemini-3.1-pro').
  * @property {Array<string>} tools - A list of tools (if any) available to this agent. Currently empty.
  * @property {Array<string>} keywords - A list of keywords associated with the agent's domain, useful for search or categorization.
  */
@@ -24,7 +24,7 @@
  * @property {string} name - 'Email Correspondence Specialist'
  * @property {string} description - 'Specializes in professional, casual, sales outreach, and transactional emails with optimal subject lines and formatting.'
  * @property {string} systemInstruction - Detailed instructions for writing various types of emails, including formatting guidelines for subject lines, spacing, and tone.
- * @property {string} model - 'gemini-2.5-flash'
+ * @property {string} model - 'gemini-3.5-flash'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['email', 'mail', 'cold outreach', 'gmail', 'newsletter', 'outbox', 'inbox message', 'subject line']
  */
@@ -40,7 +40,7 @@ Formatting Guidelines:
 - Use bullet points for readability when listing items.
 - Tailor the tone exactly to the user's intent (formal, casual, persuasive, transactional).
 Avoid generic openings like "I hope this email finds you well." Keep it fresh, direct, and action-oriented.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['email', 'mail', 'cold outreach', 'gmail', 'newsletter', 'outbox', 'inbox message', 'subject line']
 };
@@ -54,7 +54,7 @@ Avoid generic openings like "I hope this email finds you well." Keep it fresh, d
  * @property {string} name - 'Formal & Business Letter Architect'
  * @property {string} description - 'Drafts structured business correspondence, formal applications, cover letters, and reference letters.'
  * @property {string} systemInstruction - Detailed instructions for writing formal letters, including layout, logical paragraph organization, and maintaining a professional tone.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['letter', 'cover letter', 'recommendation letter', 'formal letter', 'business letter', 'official memo']
  */
@@ -71,7 +71,7 @@ Formatting Guidelines:
   2. Body: Support the purpose with structured, evidence-based paragraphs.
   3. Conclusion: Restate the desired outcome, next steps, and express appreciation.
 - Maintain an authoritative, polite, and professional tone throughout.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['letter', 'cover letter', 'recommendation letter', 'formal letter', 'business letter', 'official memo']
 };
@@ -85,7 +85,7 @@ Formatting Guidelines:
  * @property {string} name - 'Lyricist & Creative Songwriter'
  * @property {string} description - 'Composes song lyrics, poetry, rhyming couplets, and rhythmic prose across multiple musical genres.'
  * @property {string} systemInstruction - Detailed instructions for writing song lyrics and poetry, focusing on musical structures, rhythm, imagery, and adherence to genre/mood.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['song', 'lyrics', 'poem', 'poetry', 'rhyme', 'verse', 'chorus', 'ballad', 'rap', 'sonnet']
  */
@@ -100,7 +100,7 @@ Formatting Guidelines:
 - Focus on rhythm, cadence, flow, and emotional resonance.
 - Inject sensory details, creative metaphors, and strong imagery.
 - Adhere strictly to the requested rhyme scheme, mood, and genre.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['song', 'lyrics', 'poem', 'poetry', 'rhyme', 'verse', 'chorus', 'ballad', 'rap', 'sonnet']
 };
@@ -114,7 +114,7 @@ Formatting Guidelines:
  * @property {string} name - 'Academic Essayist & Researcher'
  * @property {string} description - 'Specializes in analytical, argumentative, and expository essays, research papers, and literature reviews.'
  * @property {string} systemInstruction - Detailed instructions for writing academic essays, including thesis statements, PEEL paragraph structure, tone, and citation placeholders.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['essay', 'thesis', 'research paper', 'argumentative', 'literature review', 'academic writing', 'dissertation']
  */
@@ -131,7 +131,7 @@ Formatting Guidelines:
 - Use transitional words and phrases to connect paragraphs.
 - Avoid informal language, contractions, and first-person pronouns unless explicitly requested.
 - Cite placeholders (e.g., "[Author, Year]") where claims require evidence.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['essay', 'thesis', 'research paper', 'argumentative', 'literature review', 'academic writing', 'dissertation']
 };
@@ -145,7 +145,7 @@ Formatting Guidelines:
  * @property {string} name - 'SEO Blog & Article Creator'
  * @property {string} description - 'Writes engaging, SEO-optimized blog posts, news articles, and digital content with structured headings.'
  * @property {string} systemInstruction - Detailed instructions for writing SEO-optimized blog posts and articles, including hooks, heading structure, paragraph length, and calls to action.
- * @property {string} model - 'gemini-2.5-flash'
+ * @property {string} model - 'gemini-3.5-flash'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['blog', 'article', 'news', 'seo content', 'listicle', 'medium post', 'substack']
  */
@@ -162,7 +162,7 @@ Formatting Guidelines:
 - Use bold keywords and bulleted/numbered lists to make the content skimmable.
 - End with a compelling conclusion and a Call to Action (CTA) or discussion prompt.
 - Incorporate SEO best practices (high value, searcher intent matching, informative metadata structure).`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['blog', 'article', 'news', 'seo content', 'listicle', 'medium post', 'substack']
 };
@@ -176,7 +176,7 @@ Formatting Guidelines:
  * @property {string} name - 'Conversion Copywriting Specialist'
  * @property {string} description - 'Drafts high-converting ad copy, landing page sections, value propositions, and sales pitches.'
  * @property {string} systemInstruction - Detailed instructions for writing persuasive copy, utilizing frameworks like AIDA or PAS, focusing on benefits, and strong calls to action.
- * @property {string} model - 'gemini-2.5-flash'
+ * @property {string} model - 'gemini-3.5-flash'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['copywrite', 'ad copy', 'landing page', 'pitch', 'sales copy', 'value proposition', 'tagline']
  */
@@ -192,7 +192,7 @@ Formatting Guidelines:
 - Focus on benefits over features (explain "what it does for you," not just "what it is").
 - Write short, punchy sentences in an active voice.
 - Ensure the Call to Action (CTA) is strong, clear, and urgent.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['copywrite', 'ad copy', 'landing page', 'pitch', 'sales copy', 'value proposition', 'tagline']
 };
@@ -206,7 +206,7 @@ Formatting Guidelines:
  * @property {string} name - 'Technical Writer & Documenter'
  * @property {string} description - 'Specializes in clear software documentation, API references, READMEs, and technical manuals.'
  * @property {string} systemInstruction - Detailed instructions for writing technical documentation, including markdown layout, step-by-step explanations, structured tables, and an objective tone.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['technical documentation', 'readme', 'api reference', 'manual', 'software spec', 'developer guide']
  */
@@ -222,7 +222,7 @@ Formatting Guidelines:
 - Use structured tables for API parameters, responses, configurations, or options.
 - Maintain a clear, concise, and objective tone.
 - Avoid ambiguity; verify that all command examples and syntax blocks are accurate and clean.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['technical documentation', 'readme', 'api reference', 'manual', 'software spec', 'developer guide']
 };
@@ -236,7 +236,7 @@ Formatting Guidelines:
  * @property {string} name - 'Business Proposal & RFP Architect'
  * @property {string} description - 'Structures formal project proposals, business bids, grant applications, and request for proposals.'
  * @property {string} systemInstruction - Detailed instructions for drafting professional proposals, including a structured flow (Executive Summary, Problem Statement, Solution, etc.) and a persuasive tone.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['proposal', 'rfp', 'business proposal', 'grant proposal', 'project pitch', 'rfp response']
  */
@@ -255,7 +255,7 @@ Formatting Guidelines:
   5. Pricing/Budget: Clear cost breakdown.
   6. Call to Action / Next Steps: How to get started.
 - Maintain a highly professional, persuasive, and authoritative tone. Use tables for timelines and costs.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['proposal', 'rfp', 'business proposal', 'grant proposal', 'project pitch', 'rfp response']
 };
@@ -269,7 +269,7 @@ Formatting Guidelines:
  * @property {string} name - 'Speechwriter & Public Speaker Coach'
  * @property {string} description - 'Composes speeches, keynote scripts, wedding toasts, and presentation voiceovers.'
  * @property {string} systemInstruction - Detailed instructions for writing engaging speeches, focusing on auditory flow, rhetorical devices, narrative arc, and delivery notes.
- * @property {string} model - 'gemini-2.5-pro'
+ * @property {string} model - 'gemini-3.1-pro'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['speech', 'toast', 'keynote', 'script', 'voiceover', 'presentation script', 'monologue']
  */
@@ -284,7 +284,7 @@ Formatting Guidelines:
 - Inject rhetorical devices (rule of three, anaphora, contrasting pairs) to make key points memorable.
 - Build a clear narrative arc: hook -> core message -> supporting stories/data -> emotional climax -> call to action.
 - Add delivery notes in brackets (e.g., "[Pause for effect]", "[Speak slowly]") to guide the speaker.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['speech', 'toast', 'keynote', 'script', 'voiceover', 'presentation script', 'monologue']
 };
@@ -298,7 +298,7 @@ Formatting Guidelines:
  * @property {string} name - 'Social Media Writer'
  * @property {string} description - 'Specializes in high-engagement Twitter/X threads, LinkedIn posts, and viral social copy.'
  * @property {string} systemInstruction - Detailed instructions for writing high-engagement social media posts across platforms like Twitter/X, LinkedIn, and Instagram, including hooks, formatting, and platform-specific strategies.
- * @property {string} model - 'gemini-2.5-flash'
+ * @property {string} model - 'gemini-3.5-flash'
  * @property {Array<string>} tools - []
  * @property {Array<string>} keywords - ['tweet', 'twitter thread', 'linkedin post', 'social copy', 'instagram caption', 'viral post']
  */
@@ -315,7 +315,7 @@ Formatting Guidelines:
 - LinkedIn: Focus on professional insights, personal growth stories, and networking value.
 - Twitter/X: Format threads using numbering (e.g., "1/5", "2/5") and ensure each tweet fits the character limit.
 - End with a question or a call-to-action to spark discussion in the comments.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['tweet', 'twitter thread', 'linkedin post', 'social copy', 'instagram caption', 'viral post']
 };

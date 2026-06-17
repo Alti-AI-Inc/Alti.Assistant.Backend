@@ -52,7 +52,7 @@ class VertexAiService {
    * @returns {string} return.citations[].title - The title of the citation.
    * @returns {Object} return.citationMetadata - Metadata about the search operation.
    * @returns {string} return.citationMetadata.searchTimestamp - ISO timestamp of when the search was performed.
-   * @returns {string} return.citationMetadata.model - The model used for the search (e.g., 'gemini-2.5-flash').
+   * @returns {string} return.citationMetadata.model - The model used for the search (e.g., 'gemini-3.5-flash').
    * @returns {number} return.citationMetadata.totalSources - The total number of grounding chunks found.
    * @returns {string} return.citationMetadata.searchMethod - The method used for search (e.g., 'vertex_ai_search').
    * @throws {Error} If the Vertex AI Search grounding fails due to API errors or misconfiguration.
@@ -70,7 +70,7 @@ class VertexAiService {
 
     try {
       const result = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: query,
         config: {
           temperature: 0.2,
@@ -130,7 +130,7 @@ class VertexAiService {
       const citationMetadata = groundingMetadata
         ? {
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: 'vertex_ai_search',
           }

@@ -46,7 +46,7 @@ describe('Development Agents Definitions', () => {
         expect(agent.systemInstruction.length).toBeGreaterThan(0);
 
         expect(typeof agent.model).toBe('string');
-        expect(agent.model).toBe('gemini-2.5-flash');
+        expect(agent.model).toBe('gemini-3.5-flash');
 
         expect(Array.isArray(agent.tools)).toBe(true);
 

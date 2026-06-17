@@ -150,7 +150,7 @@ APPS: app1, app2`,
       const result = await conversationSummaryService.__get__('generateSummaryWithGemini')(messages);
 
       expect(mockGoogleGenerativeAI).toHaveBeenCalledWith('mock-gemini-key');
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.5-flash' });
+      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-3.5-flash' });
       expect(mockGenerateContent).toHaveBeenCalledOnce();
       expect(mockGenerateContent.mock.calls[0][0]).toContain('SUMMARY: [summary text]');
       expect(mockGenerateContent.mock.calls[0][0]).toContain('CONVERSATION:\n[Message 1] USER: Hi, I need help with my account.\n\n[Message 2] ASSISTANT: Sure, what seems to be the problem?');

@@ -7,12 +7,12 @@
  * Configuration for the AI model used in report generation.
  * @constant
  * @type {{MODEL: string, TEMPERATURE: number, MAX_TOKENS: number}}
- * @property {string} MODEL - The identifier of the AI model to use (e.g., 'gemini-2.5-flash'). Defaults to `process.env.REPORT_AI_MODEL`.
+ * @property {string} MODEL - The identifier of the AI model to use (e.g., 'gemini-3.5-flash'). Defaults to `process.env.REPORT_AI_MODEL`.
  * @property {number} TEMPERATURE - The creativity/randomness of the AI's output (0.0 to 1.0).
  * @property {number} MAX_TOKENS - The maximum number of tokens (words/subwords) in the generated report.
  */
 export const REPORT_CONFIG = {
-  MODEL: process.env.REPORT_AI_MODEL || 'gemini-2.5-flash',
+  MODEL: process.env.REPORT_AI_MODEL || 'gemini-3.5-flash',
   TEMPERATURE: 0.7,
   MAX_TOKENS: 8192,
 };

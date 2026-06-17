@@ -110,7 +110,7 @@ describe('VertexAiService', () => {
       await service.searchVertexStore(mockQuery);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents: mockQuery,
         })
       );
@@ -193,7 +193,7 @@ describe('VertexAiService', () => {
       ]);
       expect(result.citationMetadata).toEqual(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           totalSources: 6, // All chunks are counted for totalSources
           searchMethod: 'vertex_ai_search',
         })

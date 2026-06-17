@@ -60,7 +60,7 @@ describe('Gemini Research Service', () => {
     // We can check the arguments passed to the constructor mock.
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledTimes(1);
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: 'mock_gemini_key', // From our config mock
       temperature: 0,
       maxRetries: 2,

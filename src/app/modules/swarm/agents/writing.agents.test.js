@@ -71,7 +71,7 @@ describe('Writing Agents Configuration (writing.agents.js)', () => {
     });
 
     it('should use a valid Gemini model from the allowed list', () => {
-      const validModels = ['gemini-2.5-flash', 'gemini-2.5-pro'];
+      const validModels = ['gemini-3.5-flash', 'gemini-3.1-pro'];
       expect(typeof agent.model).toBe('string');
       expect(validModels).toContain(agent.model);
     });

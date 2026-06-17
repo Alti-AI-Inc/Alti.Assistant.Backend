@@ -15,12 +15,12 @@ import config from '../../../../config/index.js';
  *
  * @type {ChatGoogleGenerativeAI}
  * @property {string} apiKey - The API key for authenticating with the Google Generative AI service, sourced from application configuration.
- * @property {string} model - The specific Gemini model to be used, set to 'gemini-2.5-flash'.
+ * @property {string} model - The specific Gemini model to be used, set to 'gemini-3.5-flash'.
  * @property {number} temperature - The sampling temperature for the model's responses, controlling creativity (0.7).
  */
 export const llm = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   temperature: 0.7,
 });
 

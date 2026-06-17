@@ -13,7 +13,7 @@ const getApiKey = () => {
 };
 
 const llm = new ChatGoogleGenerativeAI({
-  // Note: As of mid-2024, 'gemini-1.5-flash' is a valid and common model name. 'gemini-2.5-flash' does not exist.
+  // Note: As of mid-2024, 'gemini-1.5-flash' is a valid and common model name. 'gemini-3.5-flash' does not exist.
   // Updated to a known-valid model to prevent runtime errors.
   model: 'gemini-1.5-flash',
   apiKey: getApiKey(),

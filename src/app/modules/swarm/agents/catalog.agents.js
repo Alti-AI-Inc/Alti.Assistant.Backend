@@ -15,7 +15,7 @@ When analyzing a file:
    - Frontmatter containing type, title, description, resource, tags, and timestamp.
    - Markdown body containing detailed documentation, schemas, and inter-concept links.
 4. Auto-generate relationships: link to other related concepts using relative markdown links (e.g., [users](./users.md)).`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   safetySettings: [
     {
       category: 'HARM_CATEGORY_HATE_SPEECH',
@@ -49,7 +49,7 @@ When scanning a system (e.g., BigQuery, Postgres, external API):
 2. Create an OKF-compliant concept representing the asset.
 3. Document data columns, data types, description, API paths, query examples.
 4. Set appropriate tags (e.g., "BQ", "finance", "schema") and resource URIs.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   safetySettings: [
     {
       category: 'HARM_CATEGORY_HATE_SPEECH',

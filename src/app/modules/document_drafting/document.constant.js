@@ -15,8 +15,8 @@
  * }}
  */
 export const DOCUMENT_CONFIG = {
-  /** The specific AI model to use for generation (e.g., 'gemini-2.5-flash'). */
-  MODEL: 'gemini-2.5-flash',
+  /** The specific AI model to use for generation (e.g., 'gemini-3.5-flash'). */
+  MODEL: 'gemini-3.5-flash',
   /** The maximum number of tokens to be included in the model's context window. */
   MAX_CONTEXT_TOKENS: 50000,
   /** The maximum number of tokens the model can generate in a single response. */
@@ -167,7 +167,7 @@ export const CONVERSATION_CATEGORY = 'document_drafting';
  * The AI model used specifically for conversational aspects of document drafting.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * An enumeration of predefined document templates that provide a starting structure.

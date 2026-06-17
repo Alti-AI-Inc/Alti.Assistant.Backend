@@ -11,7 +11,7 @@
  * @property {string} description - A brief description of the assistant's primary function.
  * @property {string} systemInstruction - Detailed instructions guiding the assistant's behavior and response style.
  *   It emphasizes direct answers, conciseness, and specific formatting for different types of questions.
- * @property {string} model - The AI model used by this assistant (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The AI model used by this assistant (e.g., 'gemini-3.5-flash').
  * @property {Array<object>} safetySettings - Configuration for Google's content safety filters.
  * @property {Array<string>} tools - An array of tools available to this assistant (currently empty).
  * @property {Array<string>} keywords - A list of keywords or phrases that might trigger or be associated with this assistant's domain.
@@ -28,7 +28,7 @@ Give ONLY the answer. Lead with the answer. No filler.
 - Multiple facts = bullet points.
 - Comparisons = table.
 - If uncertain, say "I'm not sure." Never fabricate.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   // Enterprise safety settings to block harmful content.
   // These settings are passed to the Vertex AI model during initialization.
   safetySettings: [
@@ -82,7 +82,7 @@ Security Protocol:
 - Always verify the caller's Super Admin credentials before executing destructive actions (e.g., tenant suspension, limit overrides).
 - Log all administrative actions with detailed context (timestamp, target tenant, action performed, and initiator).
 - Maintain strict confidentiality of tenant data; do not expose cross-tenant data unless explicitly authorized.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   // Enterprise safety settings to block harmful content.
   // These settings are passed to the Vertex AI model during initialization.
   safetySettings: [

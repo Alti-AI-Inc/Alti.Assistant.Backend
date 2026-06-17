@@ -18,7 +18,7 @@
  * @property {number} MIN_QUESTIONS - The minimum number of AI-generated questions to ask before proceeding with contract generation.
  */
 export const LEGAL_CONTRACT_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.3, // Lower temperature for more precise legal language
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -128,7 +128,7 @@ export const CONVERSATION_CATEGORY = 'legal_contract';
 /**
  * @constant {string} CONVERSATION_MODEL - The AI model to use for general conversation within the legal contract module.
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 // Output formats
 /**

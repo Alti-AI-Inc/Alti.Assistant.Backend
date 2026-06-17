@@ -153,7 +153,7 @@ describe('GoogleSearchController', () => {
     expect(generateSessionId).toHaveBeenCalledWith(24);
     expect(mockUserModel.findById).toHaveBeenCalledWith('user123');
     expect(mockGenerateContent).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: 'Test prompt',
       config: {
         temperature: 0.1,
@@ -169,7 +169,7 @@ describe('GoogleSearchController', () => {
       sessionId: 'newGeneratedSessionId',
       responses: [{
         prompt: 'Test prompt',
-        model: 'gemini-2.5-flash-grounded',
+        model: 'gemini-3.5-flash-grounded',
         reply: 'AI generated reply',
         total_time: 100,
       }],
@@ -193,7 +193,7 @@ describe('GoogleSearchController', () => {
       sessionId: 'session456',
       responses: [{
         prompt: 'Previous prompt',
-        model: 'gemini-2.5-flash-grounded',
+        model: 'gemini-3.5-flash-grounded',
         reply: 'Previous reply',
         total_time: 50,
       }],
@@ -214,7 +214,7 @@ describe('GoogleSearchController', () => {
     expect(mockExistingSession.responses).toHaveLength(2);
     expect(mockExistingSession.responses[1]).toEqual({
       prompt: 'Test prompt',
-      model: 'gemini-2.5-flash-grounded',
+      model: 'gemini-3.5-flash-grounded',
       reply: 'AI generated reply',
       total_time: 100,
     });

@@ -144,7 +144,7 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     ];
 
     const model = new ChatVertexAI({
-      // The model name 'gemini-2.5-flash' is not a valid Vertex AI model identifier.
+      // The model name 'gemini-3.5-flash' is not a valid Vertex AI model identifier.
       // Switched to a valid, comparable model 'gemini-1.5-flash-001'.
       model: 'gemini-1.5-flash-001',
       temperature: 0.7,

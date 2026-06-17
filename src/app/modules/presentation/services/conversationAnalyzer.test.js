@@ -55,13 +55,13 @@ describe('ConversationAnalyzer', () => {
   it('should initialize ChatGoogleGenerativeAI models with correct parameters', () => {
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledTimes(2);
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: 'mock-gemini-key',
       temperature: 0.3,
       maxOutputTokens: 2048,
     });
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledWith({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: 'mock-gemini-key',
       temperature: 0.5,
       maxOutputTokens: 1000,

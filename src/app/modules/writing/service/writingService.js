@@ -15,7 +15,7 @@ import config from '../../../../../config/index.js';
  */
 async function runGenerativeTask(systemPrompt, message, stream = false, user = null) {
   // TODO: Implement input/output token usage tracking for the user.
-  // e.g., const usage = await usageService.recordUsage(user.id, 'gemini-2.5-flash', { inputTokens, outputTokens });
+  // e.g., const usage = await usageService.recordUsage(user.id, 'gemini-3.5-flash', { inputTokens, outputTokens });
   try {
     const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -23,7 +23,7 @@ async function runGenerativeTask(systemPrompt, message, stream = false, user = n
     }
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       systemInstruction: systemPrompt
     });
 

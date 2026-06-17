@@ -14,14 +14,14 @@
 
 /**
  * @typedef {Object} ModelAnalysisResult
- * @property {string} recommendedModel - The identifier of the recommended Gemini model (e.g., 'gemini-2.5-flash', 'gemini-2.5-pro').
+ * @property {string} recommendedModel - The identifier of the recommended Gemini model (e.g., 'gemini-3.5-flash', 'gemini-3.1-pro').
  * @property {string} modelName - A human-readable name for the recommended model (e.g., 'Gemini 3.5 Flash', 'Gemini 3.1 Pro').
  * @property {QueryCategory} category - The primary category identified for the user query.
  * @property {number} complexityScore - A numerical score indicating the estimated complexity of the query, higher means more complex.
  * @property {Array<string>} reasoning - A list of factors that contributed to the model selection decision.
  * @property {string} modelReason - A concise explanation for why the specific model was chosen.
- * @property {boolean} useFlash - True if 'gemini-2.5-flash' is recommended.
- * @property {boolean} usePro - True if 'gemini-2.5-pro' is recommended.
+ * @property {boolean} useFlash - True if 'gemini-3.5-flash' is recommended.
+ * @property {boolean} usePro - True if 'gemini-3.1-pro' is recommended.
  * @property {Object} analysis - Detailed breakdown of query characteristics.
  * @property {number} analysis.queryLength - The word count of the input query.
  * @property {number} analysis.conversationLength - The number of turns in the conversation history.
@@ -291,28 +291,28 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // === MODEL RECOMMENDATION ===
 
-  let recommendedModel = 'gemini-2.5-flash';
+  let recommendedModel = 'gemini-3.5-flash';
   let modelName = 'Gemini 3.5 Flash';
   let modelReason = '';
 
   // Use Gemini 3.1 Pro for complex scenarios
   if (complexityScore >= 6) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 3.1 Pro';
     modelReason = 'High complexity requires advanced reasoning';
   } else if (
     complexityScore >= 4 &&
     category === QueryCategory.COMPLEX_ANALYTICAL
   ) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 3.1 Pro';
     modelReason = 'Analytical query requires deeper reasoning';
   } else if (category === QueryCategory.MULTI_STEP_RESEARCH) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 3.1 Pro';
     modelReason = 'Multi-step research benefits from advanced capabilities';
   } else if (searchDepth === 'deep') {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 3.1 Pro';
     modelReason = 'Deep search mode requires comprehensive analysis';
   } else {
@@ -326,8 +326,8 @@ export const analyzeQueryForModel = (query, context = {}) => {
     complexityScore,
     reasoning,
     modelReason,
-    useFlash: recommendedModel === 'gemini-2.5-flash',
-    usePro: recommendedModel === 'gemini-2.5-pro',
+    useFlash: recommendedModel === 'gemini-3.5-flash',
+    usePro: recommendedModel === 'gemini-3.1-pro',
     analysis: {
       queryLength: wordCount,
       conversationLength: conversationHistory.length,
@@ -347,7 +347,7 @@ export const analyzeQueryForModel = (query, context = {}) => {
  *
  * @param {string} query - The user's input query string.
  * @param {QueryContext} [context={}] - An object containing additional contextual information.
- * @returns {string} The identifier of the recommended Gemini model (e.g., 'gemini-2.5-flash' or 'gemini-2.5-pro').
+ * @returns {string} The identifier of the recommended Gemini model (e.g., 'gemini-3.5-flash' or 'gemini-3.1-pro').
  */
 export const selectOptimalModel = (query, context = {}) => {
   const analysis = analyzeQueryForModel(query, context);

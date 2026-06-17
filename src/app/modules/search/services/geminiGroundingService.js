@@ -160,10 +160,10 @@ const formatGeminiContents = (conversationHistory, finalPrompt) => {
 
 /**
  * Create a grounded Gemini model with native Google Search
- * @param {string} modelName - Model to use (default: gemini-2.5-flash)
+ * @param {string} modelName - Model to use (default: gemini-3.5-flash)
  * @returns {GenerativeModel} Configured model instance
  */
-export function createGroundedModel(modelName = 'gemini-2.5-flash') {
+export function createGroundedModel(modelName = 'gemini-3.5-flash') {
   console.log(`[createGroundedModel] Legacy helper called. Standardizing on GoogleGenAI client.`);
   return {
     model: modelName,
@@ -205,7 +205,7 @@ async function estimateTokens(messages) {
   );
   const totalToken = await countingModel.models.countTokens({
     contents: makeASingleMessage,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
   });
 
   // Rough estimate: 1 token ≈ 4 characters
@@ -250,7 +250,7 @@ ${conversationText}
 Compressed History (in the same format, clear and highly dense):`;
 
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
@@ -882,7 +882,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
       const contents = formatGeminiContents(processedHistory, finalQuery);
 
       const stream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -977,7 +977,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         ? {
             searchQueries: groundingMetadata.webSearchQueries || [],
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
@@ -1539,7 +1539,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
       const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -1645,7 +1645,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         ? {
             searchQueries: groundingMetadata.webSearchQueries || [],
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
@@ -1709,7 +1709,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
 export async function executeGroundedSearchWithModel(
   query,
   conversationHistory = [],
-  modelName = 'gemini-2.5-flash'
+  modelName = 'gemini-3.5-flash'
 ) {
   console.log(`🔍 Executing grounded search with ${modelName}: "${query}"`);
 

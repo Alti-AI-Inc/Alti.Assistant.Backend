@@ -12,16 +12,16 @@ import config from '../../../../config/index.js';
  * @constant {ChatGoogleGenerativeAI} sharedGeminiClient
  * @description An instantiated client for interacting with the Google Gemini LLM.
  * This instance is created once to avoid redundant object creation and ensure
- * consistent configuration. It uses the 'gemini-2.5-flash' model with a
+ * consistent configuration. It uses the 'gemini-3.5-flash' model with a
  * temperature of 0.7, configured with an API key from the application's
  * configuration.
  * @property {string} apiKey - The API key for Google Gemini, retrieved from `config.gemini_secret_key`.
- * @property {string} model - The specific Gemini model to use, set to 'gemini-2.5-flash'.
+ * @property {string} model - The specific Gemini model to use, set to 'gemini-3.5-flash'.
  * @property {number} temperature - The sampling temperature for text generation, set to 0.7.
  */
 const sharedGeminiClient = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   temperature: 0.7,
 });
 

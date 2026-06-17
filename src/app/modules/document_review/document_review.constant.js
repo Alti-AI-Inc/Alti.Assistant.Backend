@@ -20,7 +20,7 @@
  * @type {DocumentReviewConfig}
  */
 export const DOCUMENT_REVIEW_CONFIG = {
-  MODEL: 'gemini-2.5-pro',
+  MODEL: 'gemini-3.1-pro',
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -164,7 +164,7 @@ export const CONVERSATION_CATEGORY = 'document_review';
  * The AI model specifically designated for handling conversation flows within the document review module.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 /**
  * @typedef {object} RequiredParams

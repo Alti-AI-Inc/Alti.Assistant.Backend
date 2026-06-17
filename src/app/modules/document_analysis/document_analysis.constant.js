@@ -15,7 +15,7 @@
  * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions supported for document analysis.
  */
 export const DOCUMENT_ANALYSIS_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 4096,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -90,7 +90,7 @@ export const CONVERSATION_CATEGORY = 'document_analysis';
 /**
  * @constant {string} CONVERSATION_MODEL - The AI model to use for document analysis related conversations.
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * @constant {object} SYSTEM_PROMPTS - A collection of system prompts tailored for different analysis types.

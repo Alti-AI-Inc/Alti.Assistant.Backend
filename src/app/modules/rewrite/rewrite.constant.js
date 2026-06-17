@@ -7,7 +7,7 @@
 
 /**
  * @typedef {object} RewriteConfig
- * @property {string} MODEL The AI model to be used for rewrite operations (e.g., 'gemini-2.5-flash').
+ * @property {string} MODEL The AI model to be used for rewrite operations (e.g., 'gemini-3.5-flash').
  * @property {number} TEMPERATURE The creativity/randomness of the AI model's output (0.0 to 1.0).
  * @property {number} MAX_OUTPUT_TOKENS The maximum number of tokens the AI model should generate in its response.
  * @property {number} MAX_FILE_SIZE The maximum allowed size for input files in bytes (e.g., 10MB).
@@ -20,7 +20,7 @@
  * @type {RewriteConfig}
  */
 export const REWRITE_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -199,7 +199,7 @@ export const CONVERSATION_CATEGORY = 'rewrite';
  * The AI model to be used for general conversation related to rewrite operations.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * @typedef {object} DefaultParams

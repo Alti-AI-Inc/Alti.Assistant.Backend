@@ -63,7 +63,7 @@ describe('Cloud Agents Static Definitions', () => {
         expect(agentData.systemInstruction.length).toBeGreaterThan(0);
 
         expect(agentData.model).toBeTypeOf('string');
-        expect(agentData.model).toBe('gemini-2.5-flash');
+        expect(agentData.model).toBe('gemini-3.5-flash');
 
         expect(Array.isArray(agentData.tools)).toBe(true);
         agentData.tools.forEach((tool) => {

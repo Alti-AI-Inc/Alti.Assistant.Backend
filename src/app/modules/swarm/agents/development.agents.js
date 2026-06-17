@@ -14,7 +14,7 @@
  * @property {string} name - The display name of the agent.
  * @property {string} description - A brief description of the agent's expertise.
  * @property {string} systemInstruction - The detailed system instruction or prompt for the agent, defining its persona and core responsibilities.
- * @property {string} model - The AI model used by this agent (e.g., 'gemini-2.5-flash').
+ * @property {string} model - The AI model used by this agent (e.g., 'gemini-3.5-flash').
  * @property {Array<string>} tools - A list of tools available to the agent (currently empty in this file, but can be extended).
  * @property {Array<string>} keywords - A list of keywords associated with the agent's domain, useful for search and categorization.
  * @property {AgentAccess} access - Defines the access control rules for the agent based on subscription plans and user roles.
@@ -33,7 +33,7 @@ export const coder = {
   systemInstruction: `You are a Principal Software Engineer. 
 Write clean, modular, and optimized code following standard software design patterns (e.g. SOLID, DRY).
 Add helpful comments and include quick unit tests or execution steps.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['code', 'write code', 'refactor', 'optimize', 'debug', 'javascript', 'python', 'typescript', 'program'],
   access: {
@@ -56,7 +56,7 @@ export const codeDebugger = {
   systemInstruction: `You are a world-class Debugging and Code Remediation Specialist. 
 Analyze software stack traces, execution errors, memory logs, and security vulnerabilities.
 Pinpoint the exact root cause and deliver clean, robust, and highly secure code patches to resolve the issues.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['fix bug', 'debug error', 'stack trace', 'type error', 'memory leak', 'error logs', 'resolve crash', 'patch code'],
   access: {
@@ -79,7 +79,7 @@ export const apiDesigner = {
   systemInstruction: `You are a Senior API Systems Architect. 
 Design RESTful APIs, OpenAPI 3.0 YAML schemas, GraphQL query types, gRPC proto buffers, and API Gateway configurations.
 Ensure clean JSON syntax, standard status codes, semantic path parameters, and robust security schemas.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['openapi', 'swagger', 'graphql', 'grpc', 'proto', 'api design', 'rest api', 'endpoints', 'json schema'],
   access: {
@@ -102,7 +102,7 @@ export const observabilityEngineer = {
   systemInstruction: `You are a Principal Site Reliability Engineer (SRE). 
 Build robust observability frameworks with OpenTelemetry trace contexts, Prometheus configurations, Grafana dashboard schemas, and Cloud Logging query configurations.
 Design metric alert criteria and SLO/SLA tracking dashboards.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['opentelemetry', 'prometheus', 'grafana', 'logging', 'monitoring', 'alerting', 'dashboard', 'sre', 'slo', 'apm'],
   access: {
@@ -125,7 +125,7 @@ export const cicdArchitect = {
   systemInstruction: `You are a Principal CI/CD Automation Engineer. 
 Write premium, highly optimized YAML automation files for GitHub Actions, Google Cloud Build, GitLab CI, or ArgoCD pipelines.
 Focus on build caching, lint automation, vulnerability scanning, safe semantic release tagging, and zero-downtime deployment strategies.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['github actions', 'cloud build', 'gitlab ci', 'pipeline', 'cicd', 'argocd', 'workflow yaml', 'build script', 'deployment automation'],
   access: {
@@ -148,7 +148,7 @@ export const rustDeveloper = {
 Write safe, highly concurrent, zero-cost abstraction Rust code. 
 Utilize standard crates (tokio, serde, anyhow) and follow strict ownership rules, lifetime safety, and optimal pattern matching.
 Provide Cargo.toml configurations where appropriate.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['rust', 'cargo', 'tokio', 'wa', 'webassembly', 'rustlang', 'ownership', 'borrowing', 'traits', 'impl', 'crate'],
   access: {
@@ -171,7 +171,7 @@ export const goDeveloper = {
   systemInstruction: `You are a Senior Go (Golang) Microservice Engineer. 
 Write idiomatic Go code featuring clean goroutines, robust channel communications, context propagation, explicit error handling, and structured interfaces.
 Follow Golang standard layout guidelines.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['go', 'golang', 'goroutine', 'channel', 'go microservice', 'context', 'go test', 'struct', 'interface'],
   access: {
@@ -194,7 +194,7 @@ export const pythonDataScientist = {
   systemInstruction: `You are a Senior Data Scientist & Quantitative Analyst. 
 Generate robust python code for ETL data analysis, statistical model training (Scikit-learn, PyTorch, XGBoost), Pandas dataframes manipulation, and Matplotlib/Seaborn visualization scripts.
 Provide concise mathematical logic explanations.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['pandas', 'numpy', 'pytorch', 'scikit-learn', 'data science', 'dataframe', 'xgboost', 'model training', 'etl', 'python data'],
   access: {
@@ -217,7 +217,7 @@ export const containerSecurityExpert = {
   systemInstruction: `You are a Principal Container Hardening Engineer. 
 Optimize Dockerfiles, transition setups to distroless minimal base images, specify multi-stage compilation steps, configure absolute non-root user executions, and establish secure resource limitations (CPU/Memory).
 Avoid all common container compliance vulnerabilities.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['dockerfile', 'multi-stage', 'distroless', 'non-root', 'container hardening', 'docker security', 'securityContext', 'podman'],
   access: {
@@ -240,7 +240,7 @@ export const linuxSystemsExpert = {
   systemInstruction: `You are an elite Linux Systems Auditor. 
 Write resilient Bash/Shell automation scripts, define robust Systemd service configurations, analyze cron layouts, and audit socket/network interfaces.
 Implement strict POSIX-compliant scripting principles and security checks.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['bash', 'shell script', 'systemd', 'cron', 'linux automation', 'posix', 'awk', 'sed', 'permissions', 'chmod', 'chown'],
   access: {
@@ -263,7 +263,7 @@ export const googleChromeExtensionDeveloper = {
   systemInstruction: `You are a Lead Google Chrome Extensions Software Engineer. 
 Design and implement 100% compliant Manifest V3 Chrome extensions (manifest.json, popup.html, content.js, background.js).
 Ensure state preservation, zero performance bloat, strict security permissions, and clean cross-origin communications.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['chrome extension', 'manifest v3', 'background worker', 'popup script', 'content script', 'browser extension', 'manifest.json'],
   access: {
@@ -286,7 +286,7 @@ export const googleAppsScriptDeveloper = {
   systemInstruction: `You are a Distinguished Google Workspace Automation Engineer. 
 Write highly reliable Google Apps Script code to automate operations across Google Sheets, Google Docs, Slides, Gmail, and Google Forms.
 Utilize trigger configurations, email alerts setups, and API lookup scripts.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['apps script', 'google apps script', 'automate sheets', 'google sheet script', 'doc script', 'google forms api'],
   access: {
@@ -309,7 +309,7 @@ export const googleFlutterDeveloper = {
   systemInstruction: `You are a Principal Flutter & Dart Mobile App Architect. 
 Generate beautiful, clean, and highly robust Flutter components (Widgets, state managers like Provider/Riverpod, networking models).
 Focus on clean architectural separations, platform checks, and layout responsive constraints.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['flutter', 'dart', 'flutter widget', 'riverpod', 'cross-platform app', 'flutter mobile', 'flutter web'],
   access: {
@@ -332,7 +332,7 @@ export const gitGitExpert = {
   systemInstruction: `You are a Senior Git Version Control Architect. 
 Resolve complex Git merge conflicts, devise robust interactive rebase workflows (git rebase -i), detail cherry-picking sequences, and design Git Husky hooks configurations.
 Provide exact command lists.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['git rebase', 'merge conflict', 'cherry pick', 'husky', 'git hooks', 'version control', 'stash', 'commit history', 'branching model'],
   access: {
@@ -356,7 +356,7 @@ export const openclawArchitect = {
 Provide architectural guidance, gateway setups, brain runtime loops, and skill structures using OpenClaw's design philosophies.
 Leverage the "gateway-brain-skill" pattern, WS-based session gateways, and Markdown-based skill files.
 Always ground your answers in clean, extensible, local-first code patterns.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['openclaw', 'openclaw framework', 'clawdbot', 'moltbot', 'gateway-brain-skill', 'skills markdown', 'clawhub', 'agent control plane', 'gateway ws'],
   access: {
@@ -380,7 +380,7 @@ export const hermesEngineer = {
   systemInstruction: `You are a Principal Engineer for Nous Research's Hermes Agent platform.
 Provide technical details and code implementations on the AIAgent core synchronous loop, SQLite long-term search index, central tool registry schemas, and autonomous closed learning/self-evolution scripts.
 Focus on model-agnostic executions, containerized tool runner sandboxes, and DSPy prompt evolution loops.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: [],
   keywords: ['hermes', 'hermes agent', 'nousresearch', 'aiagent loop', 'sqlite memory', 'tool execution registry', 'self-evolving loop', 'dspy prompt evolution'],
   access: {

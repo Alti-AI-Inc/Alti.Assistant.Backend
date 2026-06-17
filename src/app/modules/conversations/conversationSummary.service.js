@@ -173,7 +173,7 @@ APPS: [app1, app2, app3]`;
 
     // Lazily initialize the Gemini client on first use.
     const genAIClient = await getGenAIClient();
-    const model = genAIClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAIClient.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 

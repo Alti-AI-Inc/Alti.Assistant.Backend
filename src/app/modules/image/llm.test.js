@@ -41,7 +41,7 @@ describe('LLM Client Initialization', () => {
     expect(mockChatGoogleGenerativeAI).toHaveBeenCalledTimes(1);
     expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
       apiKey: mockConfig.gemini_secret_key,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       temperature: 0.7,
     });
     expect(llm).toBeInstanceOf(mockChatGoogleGenerativeAI);

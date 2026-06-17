@@ -46,7 +46,7 @@ const {
     answer: 'Mock RAG answer',
     sources: [{ url: 'http://source.com', title: 'Source' }],
     confidence: 0.9,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     tokensUsed: 100,
     chatHistory: [],
     sessionId: 'conv-123',
@@ -218,7 +218,7 @@ describe('KnowledgebaseService', () => {
       answer: 'Mock RAG answer',
       sources: [{ url: 'http://source.com', title: 'Source' }],
       confidence: 0.9,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       tokensUsed: 100,
       chatHistory: [],
       sessionId: 'conv-123',
@@ -249,7 +249,7 @@ describe('KnowledgebaseService', () => {
       const result = await knowledgebaseService.summarizeContext(longContext);
 
       expect(logger.info).toHaveBeenCalledWith('Summarizing conversation context due to token limit');
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.5-flash' });
+      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-3.5-flash' });
       expect(mockGenerateContent).toHaveBeenCalledWith(expect.stringContaining(longContext));
       expect(result).toBe(summarizedText);
       expect(logger.info).toHaveBeenCalledWith(
@@ -421,7 +421,7 @@ describe('KnowledgebaseService', () => {
       expect(mockUploadFile).toHaveBeenCalledWith(mockFilePath, { mimeType: mockMimeType });
       expect(mockGetFile).toHaveBeenCalledWith('files/mock-file-id'); // Check for processing state
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3.1-pro',
         generationConfig: { responseMimeType: 'application/json' },
       });
       expect(mockGenerateContent).toHaveBeenCalledWith([
@@ -748,7 +748,7 @@ describe('KnowledgebaseService', () => {
         answer: 'Mock RAG answer',
         sources: [{ url: 'http://source.com', title: 'Source' }],
         confidence: 0.9,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         tokensUsed: 100,
         chatHistory: [],
         sessionId: 'conv-123',
@@ -1133,7 +1133,7 @@ describe('KnowledgebaseService', () => {
         answer: 'Mock RAG answer',
         sources: [{ url: 'http://source.com', title: 'Source' }],
         confidence: 0.9,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         tokensUsed: 100,
         chatHistory: conversationHistory, // Should return the provided history if RAG doesn't modify it
         sessionId: conversationId,
@@ -1145,7 +1145,7 @@ describe('KnowledgebaseService', () => {
         answer: '',
         sources: [],
         confidence: 0,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         tokensUsed: 0,
         chatHistory: [],
         sessionId: 'conv-chat-id',

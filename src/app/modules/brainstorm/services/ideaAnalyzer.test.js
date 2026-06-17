@@ -83,7 +83,7 @@ describe('ideaAnalyzer', () => {
       const result = await ideaAnalyzer.analyzeIntent(userMessage);
 
       expect(_mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 2048,
@@ -258,7 +258,7 @@ describe('ideaAnalyzer', () => {
       const result = await ideaAnalyzer.analyzeIdea(ideaText);
 
       expect(_mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         generationConfig: {
           temperature: 0.4,
           maxOutputTokens: 2048,
@@ -346,7 +346,7 @@ describe('ideaAnalyzer', () => {
       const result = await ideaAnalyzer.extractIdea(userMessage);
 
       expect(_mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: 512,

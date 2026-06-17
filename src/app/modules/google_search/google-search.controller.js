@@ -112,7 +112,7 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
   try {
     // Use Gemini with Google Search Grounding
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: prompt,
       config: {
         temperature: 0.1,
@@ -142,7 +142,7 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-2.5-flash-grounded',
+      model: 'gemini-3.5-flash-grounded',
       reply,
       // Bug Fix: Renamed 'total_time' to 'total_tokens' as it uses totalTokenCount, not time.
       total_tokens: result.usageMetadata?.totalTokenCount || 0,

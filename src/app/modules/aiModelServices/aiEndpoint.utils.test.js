@@ -70,8 +70,8 @@ describe('AI Endpoint Configuration (aiEndpoint.utils.js)', () => {
     });
   });
 
-  describe('Specific Model Configuration: gemini-2.5-flash', () => {
-    const geminiEndpoint = aiEndpoints.find(e => e.title === 'gemini-2.5-flash');
+  describe('Specific Model Configuration: gemini-3.5-flash', () => {
+    const geminiEndpoint = aiEndpoints.find(e => e.title === 'gemini-3.5-flash');
 
     it('should be defined in the configuration array', () => {
       expect(geminiEndpoint).toBeDefined();

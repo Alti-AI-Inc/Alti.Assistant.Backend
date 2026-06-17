@@ -136,7 +136,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         if (onProgressUpdate) onProgressUpdate('Deconstructing query into multi-turn search strategies...');
         
         const deconstructResponse = await callGeminiWithResilience({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents: `Analyze the user's search query and deconstruct it into exactly 2-3 distinct, highly targeted, and non-overlapping search engine queries to gather complete, multi-turn factual details. Respond strictly with a valid JSON array of strings. Do not use markdown blocks.
           Query: "${query}"`,
           config: {
@@ -194,7 +194,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         // Route B: Native Google Search Grounding (Gemini native tools)
         try {
           const geminiResult = await callGeminiWithResilience({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             contents: `Search the web and retrieve precise, factual details about: ${subQ}`,
             config: {
               temperature: 0.1,
@@ -336,7 +336,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         const snippetsBlock = finalResults.map(r => `[Source #${r.index}] Title: ${r.title}\nDomain: ${r.domain}\nURL: ${r.url}\nSnippet: ${r.content}`).join('\n\n');
         
         const synthesisResponse = await callGeminiWithResilience({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents: `Answer the user's question using ONLY the provided sources. Be extremely concise.
           
           User Query: "${query}"

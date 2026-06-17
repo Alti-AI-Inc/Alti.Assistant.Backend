@@ -8,7 +8,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 // to enable per-user rate limiting and abuse monitoring provided by the model host.
 export const llm = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
-  // Corrected to a valid, high-performance model. 'gemini-2.5-flash' is not a recognized model name.
+  // Corrected to a valid, high-performance model. 'gemini-3.5-flash' is not a recognized model name.
   model: 'gemini-1.5-flash-latest',
   temperature: 0.7,
   // Added default safety settings to protect the end-user experience from harmful content.
