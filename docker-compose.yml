@@ -39,12 +39,14 @@ services:
         condition: service_healthy
     networks:
       - alti-network
+    environment:
+      - PORT=5100
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5100/health"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5100/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
-      start_period: 40s
+      start_period: 120s
 
 networks:
   alti-network:
