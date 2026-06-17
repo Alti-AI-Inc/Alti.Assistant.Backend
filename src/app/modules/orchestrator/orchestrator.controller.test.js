@@ -71,7 +71,8 @@ describe('orchestratorController', () => {
         mockMessage,
         mockSessionId,
         mockUserId,
-        mockConversationId
+        mockConversationId,
+        undefined
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -106,7 +107,8 @@ describe('orchestratorController', () => {
         mockPrompt,
         mockSessionId,
         mockUserId,
-        mockConversationId
+        mockConversationId,
+        undefined
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -141,7 +143,8 @@ describe('orchestratorController', () => {
         mockMessage,
         mockSessionId,
         mockUserId,
-        mockConversationId
+        mockConversationId,
+        undefined
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -173,7 +176,8 @@ describe('orchestratorController', () => {
         mockMessage,
         undefined, // Expect undefined for missing sessionId
         mockUserId,
-        undefined  // Expect undefined for missing conversationId
+        undefined,  // Expect undefined for missing conversationId
+        undefined
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -185,11 +189,10 @@ describe('orchestratorController', () => {
       });
     });
 
-    it('should pass undefined for userId if req.user is empty or does not contain id, _id, or userId', async () => {
+    it('should return 403 Forbidden if req.user is empty or does not contain id, _id, or userId', async () => {
       const mockMessage = 'Test message with no user ID.';
       const mockSessionId = 'session_no_user';
       const mockConversationId = 'conv_no_user';
-      const mockServiceResult = { response: 'Processed without user ID' };
 
       mockReq.body = {
         message: mockMessage,
@@ -198,24 +201,14 @@ describe('orchestratorController', () => {
       };
       mockReq.user = {}; // Empty user object
 
-      orchestratorService.classifyAndDispatch.mockResolvedValue(mockServiceResult);
-
       await orchestratorController.routePrompt(mockReq, mockRes, next);
 
-      expect(orchestratorService.classifyAndDispatch).toHaveBeenCalledTimes(1);
-      expect(orchestratorService.classifyAndDispatch).toHaveBeenCalledWith(
-        mockMessage,
-        mockSessionId,
-        undefined, // Expect undefined for missing userId
-        mockConversationId
-      );
-
+      expect(orchestratorService.classifyAndDispatch).not.toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledTimes(1);
       expect(sendResponse).toHaveBeenCalledWith(mockRes, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Prompt successfully routed and processed.',
-        data: mockServiceResult,
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'User ID is missing or invalid. Authentication required.',
       });
     });
 
@@ -244,7 +237,8 @@ describe('orchestratorController', () => {
         mockMessage, // Should use message
         mockSessionId,
         mockUserId,
-        mockConversationId
+        mockConversationId,
+        undefined
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -256,11 +250,10 @@ describe('orchestratorController', () => {
       });
     });
 
-    it('should pass undefined for userPrompt if neither message nor prompt are present', async () => {
+    it('should return 400 Bad Request if neither message nor prompt are present', async () => {
       const mockSessionId = 'session_no_prompt';
       const mockUserId = 'user_no_prompt';
       const mockConversationId = 'conv_no_prompt';
-      const mockServiceResult = { response: 'Processed without prompt' };
 
       mockReq.body = {
         // message and prompt are intentionally missing
@@ -269,24 +262,14 @@ describe('orchestratorController', () => {
       };
       mockReq.user = { id: mockUserId };
 
-      orchestratorService.classifyAndDispatch.mockResolvedValue(mockServiceResult);
-
       await orchestratorController.routePrompt(mockReq, mockRes, next);
 
-      expect(orchestratorService.classifyAndDispatch).toHaveBeenCalledTimes(1);
-      expect(orchestratorService.classifyAndDispatch).toHaveBeenCalledWith(
-        undefined, // Expect undefined for userPrompt
-        mockSessionId,
-        mockUserId,
-        mockConversationId
-      );
-
+      expect(orchestratorService.classifyAndDispatch).not.toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledTimes(1);
       expect(sendResponse).toHaveBeenCalledWith(mockRes, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Prompt successfully routed and processed.',
-        data: mockServiceResult,
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Prompt message is required and cannot be empty.',
       });
     });
   });

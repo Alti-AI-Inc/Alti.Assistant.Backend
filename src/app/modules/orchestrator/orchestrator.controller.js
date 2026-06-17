@@ -59,7 +59,8 @@ const routePrompt = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, effectiveUserId, conversationId);
+  const tenantId = req.headers?.['x-tenant-id'] || req.headers?.['x-workspace-id'] || req.query?.tenantId || req.query?.workspaceId;
+  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, effectiveUserId, conversationId, tenantId);
 
   logger.info('Prompt successfully routed and processed', {
     severity: 'INFO',

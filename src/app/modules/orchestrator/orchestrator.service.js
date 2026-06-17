@@ -8,6 +8,7 @@ import crypto from 'crypto';
 
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { captureException } from '../../../shared/sentry.js';
+import { withTenantFilter, withTenantContext } from '../../helpers/tenantQuery.js';
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -353,7 +354,7 @@ const localClassifyIntent = (prompt) => {
  * @property {Array} [webSearchQueries] Optional list of queries used for web search.
  * @property {Array} [relatedQuestions] Optional list of suggested follow-up questions.
  */
-const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) => {
+const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, tenantId = null) => {
   const startTime = Date.now();
   let classificationSource = 'unknown';
   let classificationMs = 0;
@@ -391,8 +392,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         try {
           // OPTIMIZATION: Use .lean() for read-only queries to return plain JavaScript objects, improving performance.
           // This query only fetches data for context and does not modify the Mongoose document.
+          const query = { conversationId, userId };
           const conversation = await Conversation.findOne(
-            { conversationId, userId },
+            tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query,
             { messages: { $slice: -6 } } // Last 3 exchanges (user+assistant each)
           ).lean();
           if (conversation?.messages?.length > 0) {
@@ -509,7 +511,10 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         if (finalConversationId && finalConversationId !== 'new-chat') {
           // This findOne is for updating an existing document, so .lean() should NOT be used here.
           // Ensure a compound index { conversationId: 1, userId: 1 } exists on the Conversation model for efficient lookups.
-          conversation = await Conversation.findOne({ conversationId: finalConversationId, userId });
+          const query = { conversationId: finalConversationId, userId };
+          conversation = await Conversation.findOne(
+            tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
+          );
         }
         
         const assistantMetadata = {
@@ -547,9 +552,10 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
             title: cleanTitle,
             messages: [
               { role: 'user', content: prompt, timestamp: new Date() },
-              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new D }
+              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new Date() }
             ],
-            status: 'active'
+            status: 'active',
+            tenantId: tenantId || null
           });
           await conversation.save();
         }
