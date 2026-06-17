@@ -138,6 +138,12 @@ jobs:
             echo "=== Stopping existing containers ==="
             docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
 
+            echo "=== Fix .env CRLF line endings (Docker env_file requires LF) ==="
+            if [ -f ~/.env ]; then
+              sed -i 's/\r//' ~/.env
+              echo ".env CRLF stripped"
+            fi
+
             echo "=== Authenticating with Artifact Registry ==="
             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet 2>/dev/null || true
 
@@ -161,7 +167,7 @@ jobs:
           echo "Waiting 30s for backend to start..."
           sleep 30
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
-            "curl -sf http://localhost:3000/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
+            "curl -sf http://localhost:5100/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
 
       - name: Fetch recent logs
         if: always()
