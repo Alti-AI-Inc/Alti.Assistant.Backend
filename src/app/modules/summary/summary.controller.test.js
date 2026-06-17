@@ -4,6 +4,8 @@ import { summaryController } from './summary.controller.js';
 
 const {
   mockPDFParse,
+  mockPDFParseGetText,
+  mockPDFParseConstructor,
   mockMammothExtractRawText,
   mockCsvParse,
   mockCatchAsync,
@@ -15,7 +17,16 @@ const {
   mockStorageInstance
 } = vi.hoisted(() => {
   // Mock external dependencies
-  const mockPDFParse = vi.fn();
+  const mockPDFParseGetText = vi.fn();
+  const mockPDFParseConstructor = vi.fn();
+  class mockPDFParse {
+    constructor(options) {
+      mockPDFParseConstructor(options);
+    }
+    getText() {
+      return mockPDFParseGetText();
+    }
+  }
 
   const mockMammothExtractRawText = vi.fn();
 
@@ -67,6 +78,8 @@ const {
 
   return {
     mockPDFParse,
+    mockPDFParseGetText,
+    mockPDFParseConstructor,
     mockMammothExtractRawText,
     mockCsvParse,
     mockCatchAsync,
@@ -89,7 +102,7 @@ vi.mock('@google-cloud/storage', () => {
 });
 
 vi.mock('pdf-parse', () => ({
-  default: mockPDFParse,
+  PDFParse: mockPDFParse,
 }));
 
 vi.mock('mammoth', () => ({
@@ -338,12 +351,12 @@ describe('summaryController', () => {
         messages: [],
         messageCount: 0,
       });
-      mockPDFParse.mockResolvedValueOnce({ text: pdfContent });
+      mockPDFParseGetText.mockResolvedValueOnce({ text: pdfContent });
       mockSummarizerAppInvoke.mockResolvedValueOnce({ summary: summaryResult });
 
       await summaryController.summarizeContent(req, res);
 
-      expect(mockPDFParse).toHaveBeenCalledWith(req.file.buffer);
+      expect(mockPDFParseConstructor).toHaveBeenCalledWith({ data: req.file.buffer });
       expect(mockSummaryService.addSummaryQueryMessage).toHaveBeenCalledWith(
         conversationId,
         userId,

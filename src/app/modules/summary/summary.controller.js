@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 
 import httpStatus from 'http-status';
-import pdf from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 // Fix: Correct import path for csv-parse in a Node.js environment.
 import { parse } from 'csv-parse';
@@ -295,9 +295,8 @@ const summarizeContent = catchAsync(async (req, res) => {
       // which is efficient as the file is already loaded in memory for the GCS upload.
       switch (req.file.mimetype) {
         case 'application/pdf':
-          // Bug Fix: Correct usage of pdf-parse. It's a function that takes a buffer
-          // and returns a promise resolving with the parsed data.
-          const pdfData = await pdf(req.file.buffer);
+          const parsedData = new PDFParse({ data: req.file.buffer });
+          const pdfData = await parsedData.getText();
           contentToSummarize = pdfData.text;
           console.log(
             `Extracted text from PDF: ${contentToSummarize.substring(0, 100)}...`
