@@ -281,7 +281,7 @@ describe('conversationHelpers', () => {
       const options = { page: 2, limit: 2 };
       const result = await conversationHelpers.getConversationMessages('conv123', 'user1', options);
 
-      expect(result.messages).toEqual([mockMessages[2], mockMessages[3]]); // Should be oldest first
+      expect(result.messages).toEqual([mockMessages[0], mockMessages[1]]); // Should be oldest first
       expect(result.pagination).toEqual({
         page: 2,
         limit: 2,

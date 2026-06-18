@@ -118,7 +118,6 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     const skip = (page - 1) * limit;
 
     // Build query
-    // Cast userId to ObjectId for aggregation query compatibility
     const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
@@ -141,29 +140,20 @@ const getUserConversations = async (userId, options = {}, req = null) => {
 
     const finalQuery = req ? withTenantFilter(req, query) : query;
 
-    // OPTIMIZATION: Use a single aggregation query with $facet to get both data and total count
-    // in one database round trip, which is more efficient than find() + countDocuments().
-    const results = await Conversation.aggregate([
-      { $match: finalQuery },
-      {
-        $facet: {
-          data: [
-            { $sort: { [sortBy]: sortOrder } },
-            { $skip: skip },
-            { $limit: limit },
-            { $project: { messages: 0 } }, // Equivalent to .select('-messages')
-          ],
-          metadata: [{ $count: 'total' }],
-        },
-      },
-    ]);
+    const conversations = await Conversation.find(finalQuery)
+      .sort({ [sortBy]: sortOrder })
+      .limit(limit)
+      .skip(skip)
+      .select('-messages')
+      .lean()
+      .exec();
 
-    const conversations = (results[0].data || []).map(decryptConversation);
-    const total =
-      results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
+    const total = await Conversation.countDocuments(finalQuery);
+
+    const decryptedConversations = conversations.map(decryptConversation);
 
     return {
-      conversations,
+      conversations: decryptedConversations,
       pagination: {
         page,
         limit,
@@ -204,82 +194,50 @@ const getConversationMessages = async (
 ) => {
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
-    const skip = (page - 1) * limit;
 
-    // Cast userId to ObjectId for aggregation compatibility
     const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
-    const baseQuery = { conversationId, userId: targetUserId };
-    const finalQuery = req ? withTenantFilter(req, baseQuery) : baseQuery;
+    const query = { conversationId, userId: targetUserId };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    )
+      .lean()
+      .exec();
 
-    // First, verify conversation existence and get its metadata
-    let conversationMetadata = await Conversation.findOne(finalQuery)
-      .select('conversationId title')
-      .lean(); // Use lean for performance
-
-    if (!conversationMetadata) {
+    if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    conversationMetadata = decryptConversation(conversationMetadata);
 
-    // Now, build a pipeline to get paginated messages efficiently using aggregation
-    const messagePipeline = [
-      { $match: finalQuery }, // Match the specific conversation
-      {
-        $project: {
-          _id: 0, // Exclude _id from the root document
-          messages: {
-            $filter: {
-              input: '$messages',
-              as: 'msg',
-              cond: beforeDate
-                ? { $lt: ['$$msg.timestamp', new Date(beforeDate)] }
-                : true,
-            },
-          },
-        },
-      },
-      { $unwind: '$messages' }, // Deconstruct the filtered messages array
-      { $sort: { 'messages.timestamp': -1 } }, // Sort newest first for pagination logic
-      {
-        $facet: {
-          metadata: [
-            { $count: 'total' }, // Count total filtered messages
-          ],
-          data: [
-            { $skip: skip }, // Apply pagination
-            { $limit: limit },
-            { $sort: { 'messages.timestamp': 1 } }, // Re-sort oldest first for response
-            { $replaceRoot: { newRoot: '$messages' } }, // Promote the message subdocument to the root
-          ],
-        },
-      },
-    ];
+    const decryptedConv = decryptConversation(conversation);
+    let messages = decryptedConv.messages || [];
 
-    const [messageResult] = await Conversation.aggregate(messagePipeline);
+    // Filter by date if provided
+    if (beforeDate) {
+      messages = messages.filter((msg) => msg.timestamp < new Date(beforeDate));
+    }
 
-    const paginatedMessages = (messageResult.data || []).map(msg => {
-      if (msg.content) {
-        msg.content = decryptText(msg.content);
-      }
-      return msg;
-    });
-    const total =
-      messageResult.metadata.length > 0
-        ? messageResult.metadata[0].total
-        : 0;
+    // Sort messages by timestamp (newest first for pagination)
+    messages.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedMessages = messages.slice(startIndex, endIndex);
+
+    // Reverse to show oldest first in the response
+    paginatedMessages.reverse();
 
     return {
-      conversationId: conversationMetadata.conversationId,
-      title: conversationMetadata.title,
+      conversationId: decryptedConv.conversationId,
+      title: decryptedConv.title,
       messages: paginatedMessages,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasNext: skip + limit < total,
+        total: messages.length,
+        pages: Math.ceil(messages.length / limit),
+        hasNext: endIndex < messages.length,
         hasPrev: page > 1,
       },
     };
@@ -317,7 +275,11 @@ const searchConversations = async (
     const query = {
       userId,
       status: 'active',
-      $text: { $search: searchTerm },
+      $or: [
+        { title: { $regex: searchTerm, $options: 'i' } },
+        { 'messages.content': { $regex: searchTerm, $options: 'i' } },
+        { 'metadata.tags': { $in: [new RegExp(searchTerm, 'i')] } },
+      ],
     };
 
     if (category) {
@@ -327,8 +289,7 @@ const searchConversations = async (
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
     )
-      // OPTIMIZATION: Sort by text search relevance score.
-      .sort({ score: { $meta: 'textScore' } })
+      .sort({ lastActivity: -1 })
       .limit(limit)
       .lean()
       .exec();
@@ -360,7 +321,6 @@ const getAllSavedConversations = async (
   req = null
 ) => {
   try {
-    // Cast userId to ObjectId for aggregation compatibility
     const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
       ? new mongoose.Types.ObjectId(userId)
       : userId;
@@ -369,30 +329,19 @@ const getAllSavedConversations = async (
       is_saved: true,
     };
     const finalQuery = req ? withTenantFilter(req, query) : query;
-    const skip = (page - 1) * limit;
+    const conversations = await Conversation.find(finalQuery)
+      .sort({ lastActivity: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit)
+      .lean()
+      .exec();
 
-    // OPTIMIZATION: Use a single aggregation query with $facet to get both data and total count
-    // in one database round trip, which is more efficient than find() + countDocuments().
-    const results = await Conversation.aggregate([
-      { $match: finalQuery },
-      {
-        $facet: {
-          data: [
-            { $sort: { lastActivity: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-          ],
-          metadata: [{ $count: 'total' }],
-        },
-      },
-    ]);
+    const total = await Conversation.countDocuments(finalQuery);
 
-    const conversations = (results[0].data || []).map(decryptConversation);
-    const total =
-      results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
+    const decryptedConversations = conversations.map(decryptConversation);
 
     return {
-      conversations,
+      conversations: decryptedConversations,
       total,
       page,
       limit,
@@ -532,7 +481,8 @@ const hasConversationAccess = async (conversationId, userId, req = null) => {
       req ? withTenantFilter(req, query) : query
     )
       .select('_id')
-      .lean();
+      .lean()
+      .exec();
 
     return !!conversation;
   } catch (error) {
