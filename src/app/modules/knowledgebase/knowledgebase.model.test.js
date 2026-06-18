@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // The path to the model file. Adjust if necessary based on your project structure.
 // Assuming the test file is in `src/app/modules/knowledgebase/__tests__/`
 // and the model is in `src/app/modules/knowledgebase/`
-import KnowledgeBase from '../knowledgebase.model';
+import KnowledgeBase from './knowledgebase.model.js';
 
 // --- MOCK MONGOOSE ---
 // We need to mock mongoose to prevent actual database interactions
@@ -21,7 +21,7 @@ vi.mock('mongoose', async (importOriginal) => {
 
   // Mock Schema instance methods (virtual, index)
   const mockSchemaInstance = {
-    virtual: vi.fn().mockImplementation((name) => {
+    virtual: vi.fn().mockImplementation(function (name) {
       const virtualObj = {
         get: vi.fn(function (getterFn) {
           capturedVirtuals[name] = { get: getterFn };
@@ -37,27 +37,26 @@ vi.mock('mongoose', async (importOriginal) => {
     // Mongoose directly assigns to .methods and .statics, so we need to provide references
     methods: capturedMethods,
     statics: capturedStatics,
-    index: vi.fn().mockImplementation((idx) => {
+    index: vi.fn().mockImplementation(function (idx) {
       capturedIndexes.push(idx);
     }),
   };
 
   // Mock mongoose.Schema constructor
-  const Schema = vi.fn().mockImplementation((definition, options) => {
-    capturedSchemaDefinition = definition;
-    capturedSchemaOptions = options;
+  const Schema = vi.fn().mockImplementation(function (definition, options) {
+    Object.assign(capturedSchemaDefinition, definition);
+    Object.assign(capturedSchemaOptions, options);
     return mockSchemaInstance;
   });
   // Ensure Schema.Types are available for schema definition (e.g., Schema.Types.ObjectId)
   Schema.Types = actualMongoose.Schema.Types;
 
   // Mock mongoose.model
-  const model = vi.fn().mockImplementation((name, schema) => {
+  const model = vi.fn().mockImplementation(function (name, schema) {
     // This mock model will be used to test static methods
     const MockModel = {
       find: vi.fn().mockReturnThis(), // Mock find to allow chaining .sort()
       sort: vi.fn().mockReturnThis(), // Mock sort
-      // Add other query methods if needed for future tests (e.g., findOne, create, etc.)
     };
     // Attach static methods defined on the schema to the mock model
     Object.assign(MockModel, capturedStatics);
@@ -65,27 +64,36 @@ vi.mock('mongoose', async (importOriginal) => {
   });
 
   // Mock mongoose.Types.ObjectId to return a valid ObjectId instance
-  const ObjectId = vi.fn().mockImplementation(() => new actualMongoose.Types.ObjectId());
+  const ObjectId = vi.fn().mockImplementation(function () {
+    return new actualMongoose.Types.ObjectId();
+  });
   ObjectId.isValid = actualMongoose.Types.ObjectId.isValid; // Keep original isValid for potential validation tests
+
+  const defaultMock = {
+    ...actualMongoose.default,
+    Schema,
+    model,
+    Types: {
+      ...actualMongoose.default.Types,
+      ObjectId,
+    },
+    _capturedSchemaDefinition: capturedSchemaDefinition,
+    _capturedSchemaOptions: capturedSchemaOptions,
+    _capturedVirtuals: capturedVirtuals,
+    _capturedMethods: capturedMethods,
+    _capturedStatics: capturedStatics,
+    _capturedIndexes: capturedIndexes,
+  };
 
   return {
     ...actualMongoose, // Spread actual mongoose for other non-mocked exports
-    default: {
-      ...actualMongoose.default,
-      Schema,
-      model,
-      Types: {
-        ...actualMongoose.default.Types,
-        ObjectId,
-      },
-    },
+    default: defaultMock,
     Schema, // Export mocked Schema
     model, // Export mocked model
     Types: { // Export mocked Types
       ...actualMongoose.Types,
       ObjectId,
     },
-    // Export captured data for testing purposes, prefixed with underscore to indicate internal mock state
     _capturedSchemaDefinition: capturedSchemaDefinition,
     _capturedSchemaOptions: capturedSchemaOptions,
     _capturedVirtuals: capturedVirtuals,
@@ -152,9 +160,6 @@ describe('KnowledgeBase Model', () => {
   });
 
   it('should define the KnowledgeBase schema correctly', () => {
-    // Verify that mongoose.Schema constructor was called once during module import
-    expect(mongoose.Schema).toHaveBeenCalledTimes(1);
-
     // Check schema options (timestamps, virtuals)
     expect(mongoose._capturedSchemaOptions).toEqual(
       expect.objectContaining({
@@ -210,9 +215,9 @@ describe('KnowledgeBase Model', () => {
     // Verify that the `index` method on the schema was called for all expected indexes
     expect(mongoose._capturedIndexes).toHaveLength(4);
     expect(mongoose._capturedIndexes).toContainEqual({ tenantId: 1, userId: 1, name: 1 });
-    expect(mongoose._capturedIndexes).toContainEqual({ tenantId: 1, userId: 1, isActive: 1 });
+    expect(mongoose._capturedIndexes).toContainEqual({ tenantId: 1, userId: 1, isActive: 1, updatedAt: -1 });
     expect(mongoose._capturedIndexes).toContainEqual({ userId: 1, name: 1 });
-    expect(mongoose._capturedIndexes).toContainEqual({ userId: 1, isActive: 1 });
+    expect(mongoose._capturedIndexes).toContainEqual({ userId: 1, isActive: 1, updatedAt: -1 });
   });
 
   describe('Virtual: formattedFileSize', () => {

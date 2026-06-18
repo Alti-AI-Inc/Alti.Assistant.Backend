@@ -4,7 +4,7 @@
  * @module modules/conversations/userMemory.service
  */
 
-import UserMemory from './userMemory.model.js';
+import UserMemory, { decryptText } from './userMemory.model.js';
 // AUDIT: Replaced '@google/generative-ai' with '@google-cloud/vertexai' to use Application Default Credentials (ADC).
 import { VertexAI } from '@google-cloud/vertexai';
 import sanitizeHtml from 'sanitize-html'; // Security Patch: Import library to sanitize input and prevent Stored XSS.
@@ -74,8 +74,10 @@ const getProfileBlock = async (userId) => {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       
-      // Note: The 'mem.value' is now sanitized on write, protecting against Stored XSS if this block were ever rendered as HTML.
-      block += `- ${prettyKey}: ${mem.value}\n`;
+      // Decrypt the value since .lean() queries bypass schema getters
+      const decryptedValue = decryptText(mem.value);
+      // Note: The value is now sanitized on write, protecting against Stored XSS if this block were ever rendered as HTML.
+      block += `- ${prettyKey}: ${decryptedValue}\n`;
     });
     
     block += `========================================\n\n`;
@@ -122,7 +124,7 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       let existingSummary = 'None';
       if (existingMemories && existingMemories.length > 0) {
         existingSummary = existingMemories
-          .map((m) => `- key: "${m.key}", value: "${m.value}", category: "${m.category}"`)
+          .map((m) => `- key: "${m.key}", value: "${decryptText(m.value)}", category: "${m.category}"`)
           .join('\n');
       }
 

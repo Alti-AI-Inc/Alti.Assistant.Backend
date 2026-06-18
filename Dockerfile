@@ -9,12 +9,8 @@ WORKDIR /app/alti-core-service
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including devDependencies for build)
-# Native addons are compiled here where build tools are available
-RUN npm ci --legacy-peer-deps && npm cache clean --force
-
-# Prune devDependencies so we can copy a production-only node_modules
-RUN npm prune --production --legacy-peer-deps
+# Install production dependencies directly (omitting devDependencies since there is no compile/transpile build step)
+RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Copy application code
 COPY . .

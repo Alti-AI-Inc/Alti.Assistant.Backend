@@ -80,9 +80,7 @@ const registerService = async (req) => {
     }
 
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 12);
-
-      const userData = { email, password: hashedPassword };
+      const userData = { email, password };
 
       // If tenantId provided (from invitation), add it to user data
       if (tenantId) {

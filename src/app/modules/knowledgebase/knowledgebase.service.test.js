@@ -33,7 +33,8 @@ const {
   mockUploadFile,
   mockGetFile,
   mockDeleteFile,
-  mockStorageBucket
+  mockStorageBucket,
+  mockChatbotFindOne
 } = vi.hoisted(() => {
   const mockRagInitialize = vi.fn();
   const mockRagAddDocumentFromBuffer = vi.fn().mockImplementation(() => ({
@@ -88,6 +89,8 @@ const {
     file: mockBucketFile,
   }));
 
+  const mockChatbotFindOne = vi.fn();
+
   return {
     mockRagInitialize,
     mockRagAddDocumentFromBuffer,
@@ -104,41 +107,67 @@ const {
     mockUploadFile,
     mockGetFile,
     mockDeleteFile,
-    mockStorageBucket
+    mockStorageBucket,
+    mockChatbotFindOne
   };
 });
 
 vi.mock('rag-system-pgvector', () => ({
-  RAGSystem: vi.fn().mockImplementation(() => ({
-    initialize: mockRagInitialize,
-    addDocumentFromBuffer: mockRagAddDocumentFromBuffer,
-    query: mockRagQuery,
-  })),
+  RAGSystem: vi.fn().mockImplementation(function () {
+    return {
+      initialize: mockRagInitialize,
+      addDocumentFromBuffer: mockRagAddDocumentFromBuffer,
+      query: mockRagQuery,
+    };
+  }),
 }));
 
 vi.mock('../../../shared/hybridSearch.js', () => ({
   enableHybridSearch: vi.fn(),
 }));
 
-vi.mock('./knowledgebase.model.js', () => ({
-  default: vi.fn(function (data) {
+vi.mock('./knowledgebase.model.js', () => {
+  const MockModel = vi.fn(function (data) {
     Object.assign(this, data);
     this.save = mockKnowledgeBaseSave;
-  }),
-  find: mockKnowledgeBaseFind,
-  findOne: mockKnowledgeBaseFindOne,
-  deleteOne: mockKnowledgeBaseDeleteOne,
-}));
+  });
+  MockModel.find = mockKnowledgeBaseFind;
+  MockModel.findOne = mockKnowledgeBaseFindOne;
+  MockModel.deleteOne = mockKnowledgeBaseDeleteOne;
+  return {
+    default: MockModel,
+    find: mockKnowledgeBaseFind,
+    findOne: mockKnowledgeBaseFindOne,
+    deleteOne: mockKnowledgeBaseDeleteOne,
+  };
+});
 
-vi.mock('./knowledgebase.files.model.js', () => ({
-  default: vi.fn(function (data) {
+vi.mock('./knowledgebase.files.model.js', () => {
+  const MockModel = vi.fn(function (data) {
     Object.assign(this, data);
     this.save = mockKnowledgebaseFileSave;
-  }),
-  find: mockKnowledgebaseFileFind,
-  findOne: mockKnowledgebaseFileFindOne,
-  deleteOne: mockKnowledgebaseFileDeleteOne,
-}));
+  });
+  MockModel.find = mockKnowledgebaseFileFind;
+  MockModel.findOne = mockKnowledgebaseFileFindOne;
+  MockModel.deleteOne = mockKnowledgebaseFileDeleteOne;
+  return {
+    default: MockModel,
+    find: mockKnowledgebaseFileFind,
+    findOne: mockKnowledgebaseFileFindOne,
+    deleteOne: mockKnowledgebaseFileDeleteOne,
+  };
+});
+
+vi.mock('../chatbots/chatbot.model.js', () => {
+  const MockModel = vi.fn(function (data) {
+    Object.assign(this, data);
+  });
+  MockModel.findOne = mockChatbotFindOne;
+  return {
+    default: MockModel,
+    findOne: mockChatbotFindOne,
+  };
+});
 
 vi.mock('@langchain/google-genai', () => ({
   ChatGoogleGenerativeAI: vi.fn(),
@@ -153,17 +182,21 @@ const mockGenerateContent = vi.fn().mockImplementation(() => ({
   },
 }));
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
-  })),
+  GoogleGenerativeAI: vi.fn().mockImplementation(function () {
+    return {
+      getGenerativeModel: mockGetGenerativeModel,
+    };
+  }),
 }));
 
 vi.mock('@google/generative-ai/server', () => ({
-  GoogleAIFileManager: vi.fn().mockImplementation(() => ({
-    uploadFile: mockUploadFile,
-    getFile: mockGetFile,
-    deleteFile: mockDeleteFile,
-  })),
+  GoogleAIFileManager: vi.fn().mockImplementation(function () {
+    return {
+      uploadFile: mockUploadFile,
+      getFile: mockGetFile,
+      deleteFile: mockDeleteFile,
+    };
+  }),
 }));
 
 const mockFileSave = vi.fn();
@@ -171,9 +204,11 @@ const mockBucketFile = vi.fn().mockImplementation(() => ({
   save: mockFileSave,
 }));
 vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn().mockImplementation(() => ({
-    bucket: mockStorageBucket,
-  })),
+  Storage: vi.fn().mockImplementation(function() {
+    return {
+      bucket: mockStorageBucket,
+    };
+  }),
 }));
 
 vi.mock('fs/promises', () => ({
@@ -205,6 +240,19 @@ describe('KnowledgebaseService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset all mock functions to clear once-resolved queues
+    mockGetFile.mockReset();
+    mockGenerateContent.mockReset();
+    mockUploadFile.mockReset();
+    mockDeleteFile.mockReset();
+    mockRagAddDocumentFromBuffer.mockReset();
+    mockRagQuery.mockReset();
+    mockFileSave.mockReset();
+    mockChatbotFindOne.mockReset();
+    fsPromises.readFile.mockReset();
+    fsPromises.unlink.mockReset();
+
     // Reset specific mock implementations if they change during tests
     mockGetGenerativeModel.mockReturnValue({ generateContent: mockGenerateContent });
     mockGenerateContent.mockResolvedValue({ response: { text: vi.fn().mockImplementation(() => 'Mock summarized context') } });
@@ -227,6 +275,7 @@ describe('KnowledgebaseService', () => {
     mockKnowledgeBaseFindOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
     mockKnowledgebaseFileFind.mockReturnValue({ lean: vi.fn().mockResolvedValue([]) });
     mockKnowledgebaseFileFindOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+    mockChatbotFindOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
     mockFileSave.mockResolvedValue(undefined);
     mockUploadFile.mockResolvedValue({
       file: { name: 'files/mock-file-id', mimeType: 'image/png', uri: 'gs://mock-bucket/mock-file' },
@@ -361,7 +410,7 @@ describe('KnowledgebaseService', () => {
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining(`File uploaded successfully to GCS: `)
       );
-      expect(result).toMatch(expectedPublicUrl);
+      expect(result).toEqual(expectedPublicUrl);
     });
 
     it('should determine correct content type for docx', async () => {
@@ -407,6 +456,14 @@ describe('KnowledgebaseService', () => {
       tags: ['test', 'image'],
       language: 'en',
     };
+
+    beforeEach(() => {
+      vi.stubGlobal('setTimeout', (cb) => cb());
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
 
     it('should extract media content successfully for image', async () => {
       mockGenerateContent.mockResolvedValueOnce({
@@ -1106,6 +1163,16 @@ describe('KnowledgebaseService', () => {
     const conversationHistory = [{ role: 'user', content: 'Hello' }];
 
     it('should initialize RAG and query with provided parameters', async () => {
+      mockRagQuery.mockResolvedValueOnce({
+        answer: 'Mock RAG answer',
+        sources: [{ url: 'http://source.com', title: 'Source' }],
+        confidence: 0.9,
+        model: 'gemini-3.5-flash',
+        tokensUsed: 100,
+        chatHistory: conversationHistory,
+        sessionId: conversationId,
+      });
+
       const result = await knowledgebaseService.chatWithKnowledgeBase(
         message,
         knowledgebaseId,

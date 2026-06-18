@@ -211,17 +211,17 @@ describe('codeController', () => {
       expect(mockConversationHelpers.getConversationById).not.toHaveBeenCalled();
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'guest-123',
-        null,
         undefined,
         'guest query',
-        true
+        true,
+        req
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-123',
         'guest-123',
-        null,
         'guest query',
-        true
+        true,
+        req
       );
 
       const expectedPayload = {
@@ -268,17 +268,17 @@ describe('codeController', () => {
       expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-123', status: 'active' });
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'user-123',
-        'workspace-123',
         undefined,
         'auth query',
-        false
+        false,
+        req
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-new-123',
         'user-123',
-        'workspace-123',
         'auth query',
-        false
+        false,
+        req
       );
 
       const expectedPayload = {
@@ -323,17 +323,17 @@ describe('codeController', () => {
       expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ workspaceId: 'workspace-456', status: 'active' });
       expect(mockCodeService.handleCodeConversation).toHaveBeenCalledWith(
         'user-456',
-        'workspace-456',
         'conv-existing-456',
         'existing conv query',
-        false
+        false,
+        req
       );
       expect(mockCodeService.addCodeQueryMessage).toHaveBeenCalledWith(
         'conv-existing-456',
         'user-456',
-        'workspace-456',
         'existing conv query',
-        false
+        false,
+        req
       );
     });
 

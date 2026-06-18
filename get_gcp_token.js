@@ -23,7 +23,6 @@ async function main() {
 
   const payload = {
     iss: credentials.client_email,
-    sub: credentials.client_email,
     aud: tokenUrl,
     scope: 'https://www.googleapis.com/auth/cloud-platform',
     iat: nowInSeconds - 10, // give 10s grace

@@ -1,18 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 
-// These objects will be populated by the model file when it's imported,
-// because our mock of mongoose.Schema captures the definitions.
-const schemaDefinition = {};
-const schemaOptions = {};
-const statics = {};
-const methods = {};
-const virtuals = {};
-const indexes = [];
-
 const {
-  mockSchemaInstance
+  mockSchemaInstance,
+  schemaDefinition,
+  schemaOptions,
+  statics,
+  methods,
+  virtuals,
+  indexes
 } = vi.hoisted(() => {
+  const schemaDefinition = {};
+  const schemaOptions = {};
+  const statics = {};
+  const methods = {};
+  const virtuals = {};
+  const indexes = [];
+
   const mockSchemaInstance = {
     index: vi.fn().mockImplementation((indexDef) => indexes.push(indexDef)),
     virtual: vi.fn().mockImplementation((name) => ({
@@ -25,28 +29,35 @@ const {
   };
 
   return {
-    mockSchemaInstance
+    mockSchemaInstance,
+    schemaDefinition,
+    schemaOptions,
+    statics,
+    methods,
+    virtuals,
+    indexes
   };
 });
 
 // Mock the mongoose module before importing the model file
-vi.mock('mongoose', () => ({
-  default: {
-    Schema: vi.fn().mockImplementation((def, opt) => {
-      // Capture the schema definition and options for later assertions
-      Object.assign(schemaDefinition, def);
-      Object.assign(schemaOptions, opt);
-      return mockSchemaInstance;
-    }),
-    model: vi.fn().mockReturnValue({}), // Return a dummy object for the model
-    Schema: {
-      Types: {
-        ObjectId: String, // Treat ObjectId as a String for simplicity
-        Mixed: Object,    // Treat Mixed as an Object
-      },
+vi.mock('mongoose', () => {
+  const MockSchema = vi.fn().mockImplementation(function (def, opt) {
+    Object.assign(schemaDefinition, def);
+    Object.assign(schemaOptions, opt);
+    return mockSchemaInstance;
+  });
+  MockSchema.Types = {
+    ObjectId: String,
+    Mixed: Object,
+  };
+  return {
+    default: {
+      Schema: MockSchema,
+      model: vi.fn().mockReturnValue({}),
     },
-  },
-}));
+    Schema: MockSchema,
+  };
+});
 
 // Import the model file AFTER setting up the mocks.
 // This will execute the file's code, calling our mocked mongoose.Schema()
@@ -217,7 +228,7 @@ describe('KnowledgebaseFile Model', () => {
       it('should set isActive to false and save the document', async () => {
         const mockDoc = {
           isActive: true,
-          save: vi.fn().mockResolvedValueThis(),
+          save: vi.fn().mockImplementation(function () { return Promise.resolve(this); }),
         };
 
         await mockSchemaInstance.methods.softDelete.call(mockDoc);

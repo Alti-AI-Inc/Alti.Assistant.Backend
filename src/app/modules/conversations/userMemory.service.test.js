@@ -11,6 +11,7 @@ vi.mock('./userMemory.model.js', () => ({
     deleteMany: vi.fn(),
     bulkWrite: vi.fn(),
   },
+  decryptText: vi.fn().mockImplementation((text) => text),
 }));
 
 const mockGenerateContent = vi.fn();

@@ -199,10 +199,10 @@ export const performCodeTask = catchAsync(async (req, res) => {
   // Pass workspace context to service layer for correct data scoping and usage tracking.
   const conversation = await codeService.handleCodeConversation(
     userId,
-    workspaceId, // Pass workspaceId
     conversationId,
     message,
-    isGuest
+    isGuest,
+    req
   );
   actualConversationId = conversation.conversationId || thread_id;
 
@@ -210,9 +210,9 @@ export const performCodeTask = catchAsync(async (req, res) => {
   await codeService.addCodeQueryMessage(
     actualConversationId,
     userId,
-    workspaceId, // Pass workspaceId
     message,
-    isGuest
+    isGuest,
+    req
   );
 
   // Offload to Worker with Full Context

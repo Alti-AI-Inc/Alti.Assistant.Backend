@@ -14,9 +14,18 @@ export const extractTenantContext = async (req, res, next) => {
       return next();
     }
 
-    const userId = req.user.id || req.user._id;
-    const tenantId = req.user.currentTenantId || req.user.tenantId;
-    const tenantRole = req.user.tenantRole;
+    const userId = req.user.id || req.user._id || req.user.userId;
+    let tenantId = req.user.currentTenantId || req.user.tenantId || req.headers['x-tenant-id'] || req.headers['x-workspace-id'] || req.query.tenantId || req.query.workspaceId;
+    let tenantRole = req.user.tenantRole;
+
+    if (tenantId && req.user.tenants) {
+      const membership = req.user.tenants.find(
+        (t) => String(t.tenantId) === String(tenantId)
+      );
+      if (membership) {
+        tenantRole = membership.role;
+      }
+    }
 
     // If user has tenant, attach tenant context
     if (tenantId) {

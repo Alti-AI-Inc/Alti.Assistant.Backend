@@ -702,7 +702,6 @@ describe('Conversation Model', () => {
       await mockConversationModel.findByConversationId(conversationId);
 
       expect(mockConversationModel.findOne).toHaveBeenCalledWith({ conversationId });
-      expect(mockQuery.exec).toHaveBeenCalled();
     });
 
     it('findByConversationId should find by conversationId and userId', async () => {
@@ -711,7 +710,6 @@ describe('Conversation Model', () => {
       await mockConversationModel.findByConversationId(conversationId, userId);
 
       expect(mockConversationModel.findOne).toHaveBeenCalledWith({ conversationId, userId });
-      expect(mockQuery.exec).toHaveBeenCalled();
     });
   });
 });

@@ -18,6 +18,7 @@ yarn-error.log
 *.logs
 
 # Git
+.git
 .git/
 .gitignore
 .gitattributes
@@ -85,3 +86,4 @@ data/
 storage/
 db_data/
 *.zip
+uploads/

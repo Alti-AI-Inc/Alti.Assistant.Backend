@@ -158,7 +158,7 @@ function encryptText(text) {
  * @returns {string} The decrypted plaintext string, or the original input if it's not a string or decryption fails.
  * @private
  */
-function decryptText(text) {
+export function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
   try {
     const parts = text.split(':');

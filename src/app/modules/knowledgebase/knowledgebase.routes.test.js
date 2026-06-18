@@ -47,18 +47,22 @@ vi.mock('../../middlewares/checkStorageLimit/checkStorageLimit.js', () => ({
 
 const multerAnyMiddleware = vi.fn();
 const {
-  mockUpload
+  mockUpload,
+  mockMulter
 } = vi.hoisted(() => {
   const mockUpload = {
     any: vi.fn().mockImplementation(() => multerAnyMiddleware),
   };
+  const mockMulter = vi.fn().mockImplementation(() => mockUpload);
+  mockMulter.diskStorage = vi.fn();
 
   return {
-    mockUpload
+    mockUpload,
+    mockMulter
   };
 });
 vi.mock('multer', () => ({
-  default: vi.fn().mockImplementation(() => mockUpload),
+  default: mockMulter,
   diskStorage: vi.fn(),
 }));
 
@@ -78,9 +82,8 @@ vi.mock('path', () => ({
 const { default: router } = await import('./knowledgebase.routes.js');
 
 describe('KnowledgeBase Routes', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  // Route configuration and middleware invocation occur once during module import
+  // so we preserve call history for authentication middleware assertions.
 
   const findRoute = (path, method) => {
     return router.stack.find(

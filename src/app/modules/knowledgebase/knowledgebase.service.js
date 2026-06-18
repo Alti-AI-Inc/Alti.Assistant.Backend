@@ -212,6 +212,7 @@ User: Please summarize the following conversation history, keeping it under 2500
    * @returns {Promise<string>} - Extracted JSON text
    */
   async extractMediaContent(filePath, mimeType) {
+    let uploadResult;
     try {
       logger.info(`Extracting media content using Gemini 1.5 Pro File API for mimeType: ${mimeType}`);
       const model = genAI.getGenerativeModel({
@@ -228,7 +229,7 @@ User: Please summarize the following conversation history, keeping it under 2500
       }`;
 
       // Upload using File API to handle up to 2GB files
-      const uploadResult = await fileManager.uploadFile(filePath, {
+      uploadResult = await fileManager.uploadFile(filePath, {
         mimeType: mimeType,
       });
       logger.info(`File uploaded to AI Studio: ${uploadResult.file.name}`);
@@ -251,13 +252,16 @@ User: Please summarize the following conversation history, keeping it under 2500
 
       const textResult = result.response.text() || '{}';
 
-      // Clean up from Google AI Studio
-      await fileManager.deleteFile(uploadResult.file.name).catch(e => logger.warn(`Failed to delete AI file ${uploadResult.file.name}: ${e.message}`));
-
       return textResult;
     } catch (error) {
       logger.error('Error extracting media content with Gemini:', error);
       throw new Error(`Media extraction failed: ${error.message}`);
+    } finally {
+      if (uploadResult && uploadResult.file && uploadResult.file.name) {
+        await fileManager.deleteFile(uploadResult.file.name).catch(e => 
+          logger.warn(`Failed to delete AI file ${uploadResult.file.name}: ${e.message}`)
+        );
+      }
     }
   }
 
@@ -355,11 +359,8 @@ User: Please summarize the following conversation history, keeping it under 2500
           );
         }
 
-        // Clean up the local temp file if it's from multer
-        if (file.path) {
-          await fsPromises.unlink(filePath).catch(e => logger.warn(`Failed to delete local temp file ${filePath}: ${e.message}`));
-        }
-
+        // Clean up the local temp file if it's from multer (moved to finally block)
+        
         logger.info(
           `Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`
         );
@@ -409,6 +410,10 @@ User: Please summarize the following conversation history, keeping it under 2500
     } catch (error) {
       logger.error('Error processing uploaded file:', error);
       throw error;
+    } finally {
+      if (file && file.path) {
+        await fsPromises.unlink(file.path).catch(e => logger.warn(`Failed to delete local temp file ${file.path}: ${e.message}`));
+      }
     }
   }
 
