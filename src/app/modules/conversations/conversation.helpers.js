@@ -23,14 +23,35 @@
  * 6. For user statistics aggregation:
  *    db.conversations.createIndex({ tenantId: 1, userId: 1, status: 1 })
  */
+import mongoose from 'mongoose';
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
-import Conversation from './conversation.model.js';
+import Conversation, { decryptText } from './conversation.model.js';
 import {
   withTenantFilter,
   withTenantPipeline,
 } from '../../helpers/tenantQuery.js'; // Added withTenantPipeline
+
+/**
+ * Helper to decrypt sensitive fields (title, messages content) on raw conversation objects.
+ * Useful because Mongoose .lean() and aggregation queries bypass schema getters.
+ */
+export const decryptConversation = (conv) => {
+  if (!conv) return conv;
+  if (conv.title) {
+    conv.title = decryptText(conv.title);
+  }
+  if (conv.messages && Array.isArray(conv.messages)) {
+    conv.messages = conv.messages.map(msg => {
+      if (msg.content) {
+        msg.content = decryptText(msg.content);
+      }
+      return msg;
+    });
+  }
+  return conv;
+};
 
 /**
  * Retrieves a single conversation by its ID, ensuring it belongs to the specified user
@@ -52,12 +73,12 @@ const getConversationById = async (
     const query = { conversationId, userId };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
-    ).lean(); // OPTIMIZATION: Use .lean() for faster read-only queries as Mongoose objects are not needed.
+    ).lean().exec(); // OPTIMIZATION: Use .lean().exec() for faster read-only queries as Mongoose objects are not needed.
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    return conversation;
+    return decryptConversation(conversation);
   } catch (error) {
     logger.error('Error fetching conversation by ID:', error);
     throw error;
@@ -97,7 +118,11 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     const skip = (page - 1) * limit;
 
     // Build query
-    const query = { userId, status };
+    // Cast userId to ObjectId for aggregation query compatibility
+    const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
+    const query = { userId: targetUserId, status };
 
     if (search) {
       query.$or = [
@@ -133,7 +158,7 @@ const getUserConversations = async (userId, options = {}, req = null) => {
       },
     ]);
 
-    const conversations = results[0].data;
+    const conversations = (results[0].data || []).map(decryptConversation);
     const total =
       results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
 
@@ -181,17 +206,22 @@ const getConversationMessages = async (
     const { page = 1, limit = 50, beforeDate = null } = options;
     const skip = (page - 1) * limit;
 
-    const baseQuery = { conversationId, userId };
+    // Cast userId to ObjectId for aggregation compatibility
+    const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
+    const baseQuery = { conversationId, userId: targetUserId };
     const finalQuery = req ? withTenantFilter(req, baseQuery) : baseQuery;
 
     // First, verify conversation existence and get its metadata
-    const conversationMetadata = await Conversation.findOne(finalQuery)
+    let conversationMetadata = await Conversation.findOne(finalQuery)
       .select('conversationId title')
       .lean(); // Use lean for performance
 
     if (!conversationMetadata) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
+    conversationMetadata = decryptConversation(conversationMetadata);
 
     // Now, build a pipeline to get paginated messages efficiently using aggregation
     const messagePipeline = [
@@ -229,7 +259,12 @@ const getConversationMessages = async (
 
     const [messageResult] = await Conversation.aggregate(messagePipeline);
 
-    const paginatedMessages = messageResult.data || [];
+    const paginatedMessages = (messageResult.data || []).map(msg => {
+      if (msg.content) {
+        msg.content = decryptText(msg.content);
+      }
+      return msg;
+    });
     const total =
       messageResult.metadata.length > 0
         ? messageResult.metadata[0].total
@@ -295,9 +330,10 @@ const searchConversations = async (
       // OPTIMIZATION: Sort by text search relevance score.
       .sort({ score: { $meta: 'textScore' } })
       .limit(limit)
-      .lean();
+      .lean()
+      .exec();
 
-    return conversations;
+    return conversations.map(decryptConversation);
   } catch (error) {
     logger.error('Error searching conversations:', error);
     throw new ApiError(
@@ -324,8 +360,12 @@ const getAllSavedConversations = async (
   req = null
 ) => {
   try {
+    // Cast userId to ObjectId for aggregation compatibility
+    const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
     const query = {
-      userId,
+      userId: targetUserId,
       is_saved: true,
     };
     const finalQuery = req ? withTenantFilter(req, query) : query;
@@ -347,7 +387,7 @@ const getAllSavedConversations = async (
       },
     ]);
 
-    const conversations = results[0].data;
+    const conversations = (results[0].data || []).map(decryptConversation);
     const total =
       results[0].metadata.length > 0 ? results[0].metadata[0].total : 0;
 
@@ -379,8 +419,12 @@ const getAllSavedConversations = async (
  */
 const getConversationStats = async (userId, req = null) => {
   try {
+    // Cast userId to ObjectId for aggregation compatibility
+    const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
     const pipeline = [
-      { $match: { userId: userId } },
+      { $match: { userId: targetUserId } },
       {
         $group: {
           _id: '$status',
@@ -456,9 +500,10 @@ const getConversationsByCategory = async (
       .sort({ [sortBy]: sortOrder })
       .limit(limit)
       .select('-messages')
-      .lean();
+      .lean()
+      .exec();
 
-    return conversations;
+    return conversations.map(decryptConversation);
   } catch (error) {
     logger.error('Error fetching conversations by category:', error);
     throw new ApiError(
@@ -517,9 +562,10 @@ const getRecentConversations = async (userId, limit = 5, req = null) => {
       .sort({ lastActivity: -1 })
       .limit(limit)
       .select('conversationId title lastActivity messageCount')
-      .lean(); // OPTIMIZATION: Use .lean() for faster read-only queries.
+      .lean()
+      .exec(); // OPTIMIZATION: Use .lean().exec() for faster read-only queries.
 
-    return conversations;
+    return conversations.map(decryptConversation);
   } catch (error) {
     logger.error('Error fetching recent conversations:', error);
     throw new ApiError(

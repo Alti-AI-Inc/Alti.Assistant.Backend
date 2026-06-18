@@ -105,7 +105,7 @@ function encryptText(text) {
  * @returns {string} The decrypted plain text, or the original text if decryption fails or is not encrypted.
  * @throws {Error} If the encryption key is not initialized.
  */
-function decryptText(text) {
+export function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
 
   // Safeguard check, similar to encryptText.
