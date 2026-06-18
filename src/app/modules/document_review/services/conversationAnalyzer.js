@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { createClient } from 'redis';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { REVIEW_INTENTS } from '../document_review.constant.js';
+import { RedisClient, redisClient } from '../../../../shared/redis.js';
 
 // --- Enterprise Rate Limiting & DDOS Guard Agent AI: BEGIN CHANGES ---
 
@@ -17,55 +17,34 @@ class RateLimitExceededError extends Error {
 }
 
 // Setup Redis client for the rate limiter.
-// Connection details should be provided in the application config.
-const redisClient = createClient({
-  url: config.redis_url || 'redis://127.0.0.1:6379',
-  // It's recommended to set a password in production environments.
-  // password: config.redis_password,
-});
-
-redisClient.on('error', (err) =>
-  logger.error('Rate Limiter Redis Client Error', err)
-);
-
-// Asynchronously connect to Redis. The redis v4 client handles auto-reconnection.
-// The rate limiter will not function until this connection is established.
-(async () => {
-  try {
-    await redisClient.connect();
-    logger.info('Connected to Redis for service-level rate limiting.');
-  } catch (err) {
-    logger.error('Failed to connect to Redis for rate limiting.', {
-      error: err,
-    });
-    // In a production scenario, you might want to exit the process
-    // if a Redis connection is critical for preventing abuse.
-    // process.exit(1);
-  }
-})();
+// Reuse the shared client if enabled.
 
 // Rate limiter for the 'analyzeIntent' function.
 // This is a costly AI operation, so we limit it per user/IP.
 // Configuration should be externalized for different environments.
-const intentAnalysisLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rate_limit:intent_analysis',
-  points: config.rate_limits?.intent_analysis?.points || 30, // Max requests
-  duration: config.rate_limits?.intent_analysis?.duration || 60, // Per 60 seconds
-  blockDuration: config.rate_limits?.intent_analysis?.blockDuration || 60 * 5, // Block for 5 minutes
-});
+const intentAnalysisLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rate_limit:intent_analysis',
+      points: config.rate_limits?.intent_analysis?.points || 30, // Max requests
+      duration: config.rate_limits?.intent_analysis?.duration || 60, // Per 60 seconds
+      blockDuration: config.rate_limits?.intent_analysis?.blockDuration || 60 * 5, // Block for 5 minutes
+    })
+  : null;
 
 // Rate limiter for the 'summarizeConversation' function.
 // This is also a costly AI operation.
 // Configuration should be externalized for different environments.
-const conversationSummaryLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rate_limit:conversation_summary',
-  points: config.rate_limits?.conversation_summary?.points || 15, // Max requests
-  duration: config.rate_limits?.conversation_summary?.duration || 60, // Per 60 seconds
-  blockDuration:
-    config.rate_limits?.conversation_summary?.blockDuration || 60 * 5, // Block for 5 minutes
-});
+const conversationSummaryLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rate_limit:conversation_summary',
+      points: config.rate_limits?.conversation_summary?.points || 15, // Max requests
+      duration: config.rate_limits?.conversation_summary?.duration || 60, // Per 60 seconds
+      blockDuration:
+        config.rate_limits?.conversation_summary?.blockDuration || 60 * 5, // Block for 5 minutes
+    })
+  : null;
 
 // --- Enterprise Rate Limiting & DDOS Guard Agent AI: END CHANGES ---
 
@@ -111,7 +90,9 @@ const analyzeIntent = async (
 ) => {
   try {
     // Consume a point for this identifier. If the limit is exceeded, this will throw.
-    await intentAnalysisLimiter.consume(identifier);
+    if (intentAnalysisLimiter && RedisClient.isReady) {
+      await intentAnalysisLimiter.consume(identifier);
+    }
 
     const model = genAI.getGenerativeModel({
       // Use a fast, cost-effective model for structured tasks like intent analysis.
@@ -277,7 +258,9 @@ const summarizeConversation = async (
 ) => {
   try {
     // Consume a point for this identifier. If the limit is exceeded, this will throw.
-    await conversationSummaryLimiter.consume(identifier);
+    if (conversationSummaryLimiter && RedisClient.isReady) {
+      await conversationSummaryLimiter.consume(identifier);
+    }
 
     const model = genAI.getGenerativeModel({
       // Use a powerful model for nuanced summarization tasks.

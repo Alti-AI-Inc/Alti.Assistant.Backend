@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import redisClient from '../../../shared/redis.js'; // Assuming a shared Redis client instance
+import { RedisClient } from '../../../shared/redis.js'; // Assuming a shared Redis client instance
 
 // ===================================================================================
 // Rate Limiting & DDOS Protection
@@ -17,10 +17,11 @@ import redisClient from '../../../shared/redis.js'; // Assuming a shared Redis c
 // Helper to create a unique Redis store for each rate limiter if a client is available.
 // This ensures that rate limits are shared across all server instances in a cluster without store sharing crashes.
 const createRateLimitStore = (prefix) => {
-  return (redisClient && redisClient.isOpen)
+  return RedisClient.isEnabled
     ? new RedisStore({
-        // @ts-ignore - Known issue with rate-limit-redis types and ioredis/node-redis v4.
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
         prefix: `rl:article:${prefix}:`,
       })
     : undefined;

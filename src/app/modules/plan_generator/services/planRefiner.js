@@ -1,8 +1,8 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { createClient } from 'redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
+import { RedisClient, redisClient } from '../../../../shared/redis.js';
 import {
   SYSTEM_PROMPTS,
   PLAN_GENERATOR_CONFIG,
@@ -17,30 +17,17 @@ import {
   ServiceError,
 } from '../../../../shared/errors.js';
 
-// -- Rate Limiting & DDOS Protection Setup --
-
-// Initialize Redis client. Assumes `redis_url` is present in the config.
-const redisClient = createClient({
-  url: config.redis_url,
-  enable_offline_queue: false,
-});
-
-redisClient.on('error', (err) => {
-  logger.error('Redis Client Error for Rate Limiting', err);
-});
-
-// Asynchronously connect to Redis. The rate limiter library handles connection readiness.
-redisClient.connect().catch((err) => logger.error('Failed to connect to Redis:', err));
-
 // Rate limiter for expensive AI generation/refinement tasks.
 // Limits are applied per user ID or IP address to prevent abuse and cost overruns.
-const aiApiLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_plan_refiner', // Unique prefix for this set of limiters
-  points: 20, // Max 20 requests
-  duration: 60, // per 60 seconds (1 minute)
-  blockDuration: 60 * 5, // Block for 5 minutes if the limit is exceeded
-});
+const aiApiLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_plan_refiner', // Unique prefix for this set of limiters
+      points: 20, // Max 20 requests
+      duration: 60, // per 60 seconds (1 minute)
+      blockDuration: 60 * 5, // Block for 5 minutes if the limit is exceeded
+    })
+  : null;
 
 /**
  * Middleware-like function to consume a point from the rate limiter for a given user/IP.
@@ -57,14 +44,20 @@ const applyRateLimit = async (context) => {
     logger.error('Rate limit check failed: No user.id or ip in context.');
     throw new ServiceError('Cannot process request without a user or IP identifier for rate limiting.');
   }
-  try {
-    await aiApiLimiter.consume(key);
-  } catch (rejRes) {
-    // This block executes when the user has consumed all their points.
-    logger.warn('Rate limit exceeded for plan refinement', { key });
-    const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000);
-    // BUG FIX: Use a specific error type for rate limiting.
-    throw new RateLimitError(`Too many requests. Please try again in ${retryAfter} seconds.`);
+  if (aiApiLimiter && RedisClient.isReady) {
+    try {
+      await aiApiLimiter.consume(key);
+    } catch (rejRes) {
+      if (rejRes instanceof Error) {
+        logger.error('Rate limiter Redis failure in planRefiner, bypassing:', rejRes);
+        return; // Fail open
+      }
+      // This block executes when the user has consumed all their points.
+      logger.warn('Rate limit exceeded for plan refinement', { key });
+      const retryAfter = Math.ceil((rejRes.msBeforeNext || 0) / 1000);
+      // BUG FIX: Use a specific error type for rate limiting.
+      throw new RateLimitError(`Too many requests. Please try again in ${retryAfter} seconds.`);
+    }
   }
 };
 

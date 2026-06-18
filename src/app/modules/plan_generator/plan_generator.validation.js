@@ -9,7 +9,7 @@
 import * as zod from 'zod';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { createClient } from 'redis';
+import { RedisClient } from '../../../shared/redis.js';
 
 const { z } = zod;
 
@@ -309,39 +309,6 @@ const brainstormSchema = z.object({
 // OPTIMIZATION: Centralized Redis client management for rate limiting.
 // This IIFE (Immediately Invoked Function Expression) creates a single, managed Redis client instance
 // and connects it, making the module more robust and self-contained.
-const redisClient = (() => {
-  // VERIFICATION: Ensure Redis URL is configured, otherwise rate limiting will gracefully degrade.
-  if (!process.env.REDIS_URL) {
-    console.warn(
-      'WARNING: REDIS_URL is not set. Rate limiting will use in-memory store, which is not suitable for production clusters. Please configure it in your environment variables.'
-    );
-    // Fallback to allow express-rate-limit to use its default MemoryStore.
-    return null;
-  }
-
-  const client = createClient({
-    url: process.env.REDIS_URL,
-  });
-
-  client.on('error', (err) =>
-    console.error('Rate Limiter Redis Client Error:', err)
-  );
-  client.on('connect', () =>
-    console.log('Rate Limiter Redis Client connected.')
-  );
-  client.on('reconnecting', () =>
-    console.log('Rate Limiter Redis Client reconnecting...')
-  );
-
-  // Asynchronously connect the client. The rate-limiter will queue commands until the connection is ready.
-  client.connect().catch((err) => {
-    console.error('Failed to connect to Redis for rate limiting:', err);
-    // The application will continue, but rate limiting may be impaired until reconnection.
-  });
-
-  return client;
-})();
-
 /**
  * Helper to create a unique Redis store for each rate limiter if a client is available.
  * This allows for distributed rate limiting across multiple server instances without store sharing crashes.
@@ -350,10 +317,11 @@ const redisClient = (() => {
  * @returns {RedisStore|undefined} The RedisStore instance or undefined.
  */
 const createRateLimitStore = (prefix) => {
-  return (redisClient && redisClient.isOpen)
+  return RedisClient.isEnabled
     ? new RedisStore({
-        // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
         prefix: `rl:plan:${prefix}:`,
       })
     : undefined;

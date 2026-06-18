@@ -1,6 +1,6 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { createClient } from 'redis';
 import { GoogleGenAI } from '@google/genai';
+import { RedisClient, redisClient } from '../../../../shared/redis.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'url';
@@ -8,24 +8,9 @@ import { GCPStorageService } from '../services/gcpStorageService.js';
 
 // --- Rate Limiting & DDOS Guard Setup ---
 
-// Initialize Redis Client for Rate Limiting.
-// It's recommended to use environment variables for the Redis URL in a production environment.
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-  enable_offline_queue: false, // Prevents commands from queuing up if the connection is lost.
-});
-
-redisClient.on('error', (err) => {
-  console.error('Rate Limiter Redis Client Error:', err);
-  // In a production environment, consider adding monitoring or a fallback mechanism.
-});
-
-// Asynchronously connect to Redis. The rate-limiter-flexible library will await the connection.
-redisClient.connect().catch(console.error);
-
 // Define common Rate Limiting options.
 const rateLimiterOptions = {
-  storeClient: redisClient,
+  storeClient: RedisClient.isEnabled ? redisClient : undefined,
   points: 10, // Default points, will be overridden.
   duration: 1, // Default duration, will be overridden.
 };
@@ -33,22 +18,26 @@ const rateLimiterOptions = {
 // Rate Limiter for Authenticated Users (more generous).
 // This protects against API abuse from authenticated users and controls costs.
 // Limit: 30 image operations per hour per user ID.
-const authRateLimiter = new RateLimiterRedis({
-  ...rateLimiterOptions,
-  keyPrefix: 'rate_limit_image_auth_user',
-  points: 30,
-  duration: 60 * 60, // 1 hour in seconds
-});
+const authRateLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      ...rateLimiterOptions,
+      keyPrefix: 'rate_limit_image_auth_user',
+      points: 30,
+      duration: 60 * 60, // 1 hour in seconds
+    })
+  : null;
 
 // Rate Limiter for Public/Unauthenticated Users (stricter).
 // This protects against DDOS attempts and anonymous API abuse.
 // Limit: 5 image operations per hour per IP address.
-const publicRateLimiter = new RateLimiterRedis({
-  ...rateLimiterOptions,
-  keyPrefix: 'rate_limit_image_public_ip',
-  points: 5,
-  duration: 60 * 60, // 1 hour in seconds
-});
+const publicRateLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      ...rateLimiterOptions,
+      keyPrefix: 'rate_limit_image_public_ip',
+      points: 5,
+      duration: 60 * 60, // 1 hour in seconds
+    })
+  : null;
 
 // --- End of Rate Limiting Setup ---
 
@@ -100,12 +89,18 @@ export async function editImageWithImagen3(
 ) {
   // Apply rate limiting before calling the expensive AI service.
   const limiter = isAuth ? authRateLimiter : publicRateLimiter;
-  try {
-    await limiter.consume(limiterKey);
-  } catch (rateLimiterRes) {
-    // The rate-limiter-flexible library throws an error when the limit is exceeded.
-    // This error should be caught by the controller to send a 429 Too Many Requests response.
-    throw new Error(`Rate limit exceeded. Please try again later.`);
+  if (limiter && RedisClient.isReady) {
+    try {
+      await limiter.consume(limiterKey);
+    } catch (rateLimiterRes) {
+      if (rateLimiterRes instanceof Error) {
+        console.error('Rate limiter Redis error in editImageWithImagen3:', rateLimiterRes);
+      } else {
+        // The rate-limiter-flexible library throws a rejection when the limit is exceeded.
+        // This error should be caught by the controller to send a 429 Too Many Requests response.
+        throw new Error(`Rate limit exceeded. Please try again later.`);
+      }
+    }
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -200,12 +195,18 @@ export async function generateImageWithImagen3(
 ) {
   // Apply rate limiting before calling the expensive AI service.
   const limiter = isAuth ? authRateLimiter : publicRateLimiter;
-  try {
-    await limiter.consume(limiterKey);
-  } catch (rateLimiterRes) {
-    // The rate-limiter-flexible library throws an error when the limit is exceeded.
-    // This error should be caught by the controller to send a 429 Too Many Requests response.
-    throw new Error(`Rate limit exceeded. Please try again later.`);
+  if (limiter && RedisClient.isReady) {
+    try {
+      await limiter.consume(limiterKey);
+    } catch (rateLimiterRes) {
+      if (rateLimiterRes instanceof Error) {
+        console.error('Rate limiter Redis error in generateImageWithImagen3:', rateLimiterRes);
+      } else {
+        // The rate-limiter-flexible library throws a rejection when the limit is exceeded.
+        // This error should be caught by the controller to send a 429 Too Many Requests response.
+        throw new Error(`Rate limit exceeded. Please try again later.`);
+      }
+    }
   }
 
   const ai = new GoogleGenAI({ apiKey });

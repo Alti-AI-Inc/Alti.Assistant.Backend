@@ -2,7 +2,7 @@ import fs from 'fs';
 import httpStatus from 'http-status';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import redisClient from '../../../shared/redis.js'; // Assumes a configured ioredis client is exported from here
+import { RedisClient } from '../../../shared/redis.js'; // Assumes a configured ioredis client is exported from here
 import { whisperTranscribeService } from './wishper.service.js';
 
 // const WishperAiGetResponse = catchAsync(async (req, res) => {
@@ -143,10 +143,11 @@ import { whisperTranscribeService } from './wishper.service.js';
 const transcribeAudioLimiter = rateLimit({
   // Use Redis for distributed rate limiting.
   // Falls back to in-memory store if Redis is not connected yet.
-  store: (redisClient && redisClient.isOpen)
+  store: RedisClient.isEnabled
     ? new RedisStore({
-        // @ts-expect-error - ioredis types can be incompatible with express-rate-limit
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
       })
     : undefined,
   windowMs: 1 * 60 * 1000, // 1 minute window.

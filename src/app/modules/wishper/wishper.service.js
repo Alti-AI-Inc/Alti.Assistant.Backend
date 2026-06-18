@@ -5,31 +5,10 @@ import { GoogleAuth } from 'google-auth-library';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import { createClient } from 'redis';
 import config from '../../../../config/index.js';
+import { RedisClient, redisClient } from '../../../shared/redis.js';
 
 // --- Rate Limiting & DDOS Protection Setup ---
-
-// Initialize Redis client for rate limiting.
-// Using a persistent store like Redis is crucial for rate limiting in a distributed/multi-process environment.
-// This client will attempt to connect to Redis using the REDIS_URL environment variable or default to localhost.
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-
-redisClient.on('error', (err) => console.error('🔴 Redis Client Error for Rate Limiting:', err));
-
-// Asynchronously connect to Redis. This IIFE (Immediately Invoked Function Expression)
-// allows us to use top-level await for the connection process.
-(async () => {
-  try {
-    await redisClient.connect();
-    console.log('🟢 Redis client connected for rate limiting.');
-  } catch (err) {
-    console.error('🔴 Failed to connect to Redis for rate limiting. Rate limiting will not be effective.', err);
-  }
-})();
-
 
 // Define the rate limiter middleware for the expensive audio transcription endpoint.
 // This protects against API abuse, DDOS attacks, and excessive costs from Google Cloud services.
@@ -37,10 +16,12 @@ redisClient.on('error', (err) => console.error('🔴 Redis Client Error for Rate
 export const transcriptionLimiter = rateLimit({
   // Store request counts in Redis, making the limiter effective across multiple server instances or containers.
   // Falls back to in-memory store if Redis is not connected yet.
-  store: (redisClient && redisClient.isOpen)
+  store: RedisClient.isEnabled
     ? new RedisStore({
         // The 'sendCommand' method is used by the Redis store to execute Redis commands.
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
       })
     : undefined,
   // The time window for which requests are checked, in milliseconds. Here, it's 15 minutes.

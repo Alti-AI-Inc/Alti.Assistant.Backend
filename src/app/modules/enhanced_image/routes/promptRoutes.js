@@ -2,6 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { createPromptController } from '../controllers/promptController.js';
+import { RedisClient } from '../../../../shared/redis.js';
 
 // Utility to wrap async route handlers to catch errors and pass them to Express's error handling middleware.
 // This prevents unhandled promise rejections from crashing the application or leading to silent failures,
@@ -20,11 +21,11 @@ export const createPromptRoutes = (sessionManager, promptService, redisClient) =
   // It uses a Redis store to ensure limits are applied consistently across a distributed system.
   const promptApiLimiter = rateLimit({
     // Falls back to in-memory store if Redis client is not connected yet.
-    store: (redisClient && redisClient.isOpen)
+    store: RedisClient.isEnabled
       ? new RedisStore({
-          // The `rate-limit-redis` library needs a function that can send commands to Redis.
-          // `redisClient.sendCommand` is the recommended approach for `node-redis` v4+.
-          sendCommand: (...args) => redisClient.sendCommand(args),
+          sendCommand: async (...args) => {
+            return await RedisClient.rateLimitSendCommand(args);
+          },
         })
       : undefined,
     windowMs: 60 * 1000, // 1 minute window

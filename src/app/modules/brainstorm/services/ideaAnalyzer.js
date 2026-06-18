@@ -11,7 +11,7 @@ import {
 } from '../brainstorm.constant.js';
 import { rateLimit } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../../../../shared/redis.js'; // Assuming a shared Redis client is available
+import { RedisClient } from '../../../../shared/redis.js'; // Assuming a shared Redis client is available
 import express from 'express';
 import http from 'http';
 
@@ -24,9 +24,11 @@ import http from 'http';
  * for accurate limiting in a scaled environment.
  * @type {RedisStore}
  */
-const rateLimitStoreAnalysis = (redisClient && redisClient.isOpen)
+const rateLimitStoreAnalysis = RedisClient.isEnabled
   ? new RedisStore({
-      sendCommand: (...args) => redisClient.sendCommand(args),
+      sendCommand: async (...args) => {
+        return await RedisClient.rateLimitSendCommand(args);
+      },
       prefix: 'rl:brainstorm:analysis:',
     })
   : undefined;
@@ -37,9 +39,11 @@ const rateLimitStoreAnalysis = (redisClient && redisClient.isOpen)
  * and shared across multiple server instances or processes.
  * @type {RedisStore}
  */
-const rateLimitStoreExtraction = (redisClient && redisClient.isOpen)
+const rateLimitStoreExtraction = RedisClient.isEnabled
   ? new RedisStore({
-      sendCommand: (...args) => redisClient.sendCommand(args),
+      sendCommand: async (...args) => {
+        return await RedisClient.rateLimitSendCommand(args);
+      },
       prefix: 'rl:brainstorm:extraction:',
     })
   : undefined;

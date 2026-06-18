@@ -6,48 +6,58 @@ import Redis from 'ioredis';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
+import { RedisClient } from '../../../../shared/redis.js';
 
 dotenv.config();
 
 // --- Enterprise Rate Limiting & DDOS Guard ---
 // Establish a connection to the Redis server for rate limiting.
 // It's configured to fail fast if Redis is unavailable, preventing requests from hanging.
-const redisClient = new Redis(config.redis.url, {
-  enableOfflineQueue: false,
-});
-redisClient.on('error', err => console.error('Redis client error in imagegen4:', err));
+const redisClient = RedisClient.isEnabled
+  ? new Redis(config.redis.url, { enableOfflineQueue: false })
+  : null;
+
+if (redisClient) {
+  redisClient.on('error', err => console.error('Redis client error in imagegen4:', err));
+}
 
 // Rate limiter for authenticated users, identified by their unique userId.
 // This is a generous limit for legitimate users, allowing 20 image generations per hour.
 // It protects against abuse from a single compromised account.
-const userRateLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rate_limit_imagegen_user',
-  points: 20, // 20 requests
-  duration: 3600, // per 1 hour
-  blockDuration: 3600, // Block for 1 hour if limit is exceeded
-});
+const userRateLimiter = redisClient
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rate_limit_imagegen_user',
+      points: 20, // 20 requests
+      duration: 3600, // per 1 hour
+      blockDuration: 3600, // Block for 1 hour if limit is exceeded
+    })
+  : null;
 
 // A much stricter rate limiter for unauthenticated (public) users, identified by their IP address.
 // This is a critical defense against anonymous DDOS and cost-runaway attacks.
 // It allows only 5 image generations per day from a single IP.
-const ipRateLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rate_limit_imagegen_ip',
-  points: 5, // 5 requests
-  duration: 86400, // per 1 day (24 * 60 * 60)
-  blockDuration: 86400, // Block for 1 day if limit is exceeded
-});
+const ipRateLimiter = redisClient
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rate_limit_imagegen_ip',
+      points: 5, // 5 requests
+      duration: 86400, // per 1 day (24 * 60 * 60)
+      blockDuration: 86400, // Block for 1 day if limit is exceeded
+    })
+  : null;
 
 // A global burst limiter to protect the overall system from sudden traffic spikes.
 // It ensures that the service can't be overwhelmed by a flood of requests, even from many different users/IPs.
 // It allows a maximum of 10 requests to be processed every 10 seconds across the entire service.
-const globalBurstLimiter = new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rate_limit_imagegen_global_burst',
-    points: 10, // 10 requests
-    duration: 10, // per 10 seconds
-});
+const globalBurstLimiter = redisClient
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rate_limit_imagegen_global_burst',
+      points: 10, // 10 requests
+      duration: 10, // per 10 seconds
+    })
+  : null;
 // --- End of Rate Limiting Setup ---
 
 /**
@@ -91,16 +101,32 @@ const gcpStorage = new GCPStorageService(
 export async function imagegen_4(prompt, outputFilename, { ip, userId }) {
   try {
     // --- DDOS Guard & Rate Limiting Enforcement ---
-    // 1. Apply the global burst limiter first to handle sudden traffic spikes.
-    await globalBurstLimiter.consume('global');
+    if (redisClient && redisClient.status === 'ready') {
+      try {
+        // 1. Apply the global burst limiter first to handle sudden traffic spikes.
+        if (globalBurstLimiter) {
+          await globalBurstLimiter.consume('global');
+        }
 
-    // 2. Apply user-specific or IP-specific limits based on authentication status.
-    if (userId) {
-      // If a user is authenticated, consume from their personal rate limit bucket.
-      await userRateLimiter.consume(userId);
-    } else {
-      // For anonymous requests, consume from the much stricter IP-based rate limit bucket.
-      await ipRateLimiter.consume(ip);
+        // 2. Apply user-specific or IP-specific limits based on authentication status.
+        if (userId && userRateLimiter) {
+          // If a user is authenticated, consume from their personal rate limit bucket.
+          await userRateLimiter.consume(userId);
+        } else if (ipRateLimiter) {
+          // For anonymous requests, consume from the much stricter IP-based rate limit bucket.
+          await ipRateLimiter.consume(ip);
+        }
+      } catch (rateLimitError) {
+        if (rateLimitError instanceof Error) {
+          console.error('Redis connection or execution error in rate limiter:', rateLimitError);
+          // Fail open on connection errors
+        } else {
+          // Actual rate limit exceeded
+          const err = new Error('Rate limit exceeded. Please try again later.');
+          err.statusCode = 429;
+          throw err;
+        }
+      }
     }
     // --- End of DDOS Guard ---
 

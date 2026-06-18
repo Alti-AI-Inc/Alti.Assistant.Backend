@@ -316,15 +316,17 @@ app.get('/health', async (req, res) => {
 
   // Check Redis
   try {
-    if (RedisClient.isEnabled) {
+    if (RedisClient.isReady) {
       await RedisClient.set('health:ping', 'pong', { EX: 10 });
       const pong = await RedisClient.get('health:ping');
       checks.redis = pong === 'pong' ? 'connected' : 'degraded';
+    } else if (RedisClient.isEnabled) {
+      checks.redis = 'disconnected';
     } else {
       checks.redis = 'disabled (in-memory fallback active)';
     }
-  } catch {
-    checks.redis = 'error';
+  } catch (err) {
+    checks.redis = `error: ${err.message}`;
   }
 
   const allHealthy = checks.mongodb === 'connected';
@@ -346,13 +348,17 @@ app.get('/readiness', async (req, res) => {
     mongodb: mongoose.connection.readyState === 1,
   };
 
-  if (RedisClient.isEnabled) {
+  if (RedisClient.isReady) {
     try {
       await RedisClient.set('readiness:ping', 'pong', { EX: 5 });
       ready.redis = true;
     } catch {
       ready.redis = false;
     }
+  } else if (RedisClient.isEnabled) {
+    ready.redis = false;
+  } else {
+    ready.redis = true;
   }
 
   const isReady = ready.mongodb; // MongoDB is required, Redis is optional

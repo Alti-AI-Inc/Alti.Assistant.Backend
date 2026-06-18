@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 // Assuming a shared Redis client is available for the application
-import redisClient from '../../../../shared/redis.js';
+import { RedisClient } from '../../../../shared/redis.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -104,9 +104,11 @@ const fileFilter = (req, file, cb) => {
 const documentUploadLimiter = rateLimit({
   // Store session data in Redis, essential for distributed/clustered environments.
   // Falls back to in-memory store if Redis is not connected yet.
-  store: (redisClient && redisClient.isOpen)
+  store: RedisClient.isEnabled
     ? new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
       })
     : undefined,
   // 1-hour window for the rate limit.

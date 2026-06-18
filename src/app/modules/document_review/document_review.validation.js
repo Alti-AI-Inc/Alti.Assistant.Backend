@@ -1,47 +1,28 @@
 import * as zod from 'zod';
 import { rateLimit } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import { createClient } from 'redis';
+import { RedisClient, redisClient } from '../../../shared/redis.js';
 
 const { z } = zod;
 
 // --- Enterprise Rate Limiting & DDOS Guard ---
-// In a production environment, the Redis client should be initialized
-// and managed as part of the application's core infrastructure (e.g., in a dedicated db.js or redis.js).
-// It's placed here to be self-contained as per the request.
-const redisClient = createClient({
-  // url: process.env.REDIS_URL || 'redis://localhost:6379'
-  // Add production-ready options like socket timeouts, password, etc.
-});
 
-// The client must be connected before the server starts listening.
-// It's recommended to handle the connection promise at the application's entry point.
-redisClient.connect().catch(console.error);
+const createSafeStore = (prefix) => {
+  if (!RedisClient.isEnabled) return undefined;
+  return new RedisStore({
+    sendCommand: async (...args) => {
+      return await RedisClient.rateLimitSendCommand(args);
+    },
+    prefix,
+  });
+};
 
 // Create a Redis store for rate-limit-redis.
-const redisStoreConversational = (redisClient && redisClient.isOpen)
-  ? new RedisStore({
-      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-      sendCommand: (...args) => redisClient.sendCommand(args),
-      prefix: 'rl:doc_review:conv:',
-    })
-  : undefined;
+const redisStoreConversational = createSafeStore('rl:doc_review:conv:');
 
-const redisStoreReview = (redisClient && redisClient.isOpen)
-  ? new RedisStore({
-      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-      sendCommand: (...args) => redisClient.sendCommand(args),
-      prefix: 'rl:doc_review:rev:',
-    })
-  : undefined;
+const redisStoreReview = createSafeStore('rl:doc_review:rev:');
 
-const redisStoreHistory = (redisClient && redisClient.isOpen)
-  ? new RedisStore({
-      // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
-      sendCommand: (...args) => redisClient.sendCommand(args),
-      prefix: 'rl:doc_review:hist:',
-    })
-  : undefined;
+const redisStoreHistory = createSafeStore('rl:doc_review:hist:');
 
 // Generic key generator to identify clients.
 // Prioritizes authenticated user ID, then a guest user ID from the body, and finally falls back to IP.

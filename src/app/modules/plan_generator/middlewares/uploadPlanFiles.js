@@ -14,7 +14,7 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import ApiError from '../../../../errors/ApiError.js';
 import { PLAN_GENERATOR_CONFIG } from '../plan_generator.constant.js';
-import redisClient from '../../../../shared/redis.js';
+import { RedisClient } from '../../../../shared/redis.js';
 
 /**
  * @description Rate limiter for the file upload endpoint.
@@ -40,9 +40,11 @@ export const uploadPlanRateLimiter = rateLimit({
   legacyHeaders: false, // Disable the non-standard `X-RateLimit-*` headers.
   // Store rate limit data in Redis to ensure consistency across multiple server instances.
   // Falls back to in-memory store if Redis is not connected yet.
-  store: (redisClient && redisClient.isOpen)
+  store: RedisClient.isEnabled
     ? new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
       })
     : undefined,
   // Key requests by the authenticated user's ID for fairness. Fallback to IP if unauthenticated.

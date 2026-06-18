@@ -15,6 +15,7 @@ import mammoth from 'mammoth';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import Redis from 'ioredis';
 import { logger } from '../../../../shared/logger.js';
+import { RedisClient } from '../../../../shared/redis.js';
 import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { STORAGE_CONFIG } from '../document_review.constant.js';
@@ -27,25 +28,27 @@ import { STORAGE_CONFIG } from '../document_review.constant.js';
  * Rate limiting will be bypassed if the connection fails, ensuring service availability.
  */
 let redisClient;
-try {
-  redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1, // Don't retry on connection errors
-    connectTimeout: 5000, // 5 second timeout
-  });
+if (RedisClient.isEnabled) {
+  try {
+    redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 1, // Don't retry on connection errors
+      connectTimeout: 5000, // 5 second timeout
+    });
 
-  redisClient.on('error', err => {
+    redisClient.on('error', err => {
+      logger.error(
+        'Redis connection error for rate limiting. Rate limiting will be disabled.',
+        err
+      );
+    });
+    logger.info('Rate limiting Redis client connected.');
+  } catch (error) {
     logger.error(
-      'Redis connection error for rate limiting. Rate limiting will be disabled.',
-      err
+      'Failed to initialize Redis client for rate limiting. Rate limiting will be disabled.',
+      error
     );
-  });
-  logger.info('Rate limiting Redis client connected.');
-} catch (error) {
-  logger.error(
-    'Failed to initialize Redis client for rate limiting. Rate limiting will be disabled.',
-    error
-  );
+  }
 }
 
 /**
@@ -103,7 +106,7 @@ const fileDeletionLimiter = redisClient
  * @throws {ApiError} If the rate limit is exceeded.
  */
 const handleRateLimit = async (limiter, key) => {
-  if (!limiter || !redisClient || !redisClient.isReady) {
+  if (!limiter || !redisClient || redisClient.status !== 'ready') {
     // Fail open: If Redis is not available, bypass rate limiting.
     return;
   }

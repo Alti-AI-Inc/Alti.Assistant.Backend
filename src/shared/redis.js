@@ -50,9 +50,9 @@ const socketOptions = {
 };
 
 if (redisEnabled) {
-  redisClient    = createClient({ url: rawRedisUrl, socket: socketOptions });
-  redisPubClient = createClient({ url: rawRedisUrl, socket: socketOptions });
-  redisSubClient = createClient({ url: rawRedisUrl, socket: socketOptions });
+  redisClient    = createClient({ url: rawRedisUrl, socket: socketOptions, disableOfflineQueue: true });
+  redisPubClient = createClient({ url: rawRedisUrl, socket: socketOptions, disableOfflineQueue: true });
+  redisSubClient = createClient({ url: rawRedisUrl, socket: socketOptions, disableOfflineQueue: true });
 
   redisClient.on('error',        (err) => logger.error('Redis client error:', err.message));
   redisClient.on('connect',      ()    => logger.info('Redis: Connected'));
@@ -69,7 +69,7 @@ const connect = async () => {
 };
 
 const set = async (key, value, options) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       await redisClient.set(key, value, options);
       return;
@@ -85,7 +85,7 @@ const set = async (key, value, options) => {
 };
 
 const get = async (key) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.get(key);
     } catch (err) {
@@ -102,7 +102,7 @@ const get = async (key) => {
 };
 
 const del = async (key) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       await redisClient.del(key);
       return;
@@ -114,7 +114,7 @@ const del = async (key) => {
 };
 
 const mget = async (keys) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.mGet(keys);
     } catch (err) {
@@ -133,7 +133,7 @@ const mget = async (keys) => {
 };
 
 const mset = async (keyValuePairs, ttlSecs) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       const pipeline = redisClient.multi();
       for (const [key, value] of keyValuePairs) {
@@ -156,7 +156,7 @@ const mset = async (keyValuePairs, ttlSecs) => {
 };
 
 const lpush = async (key, value) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.lPush(key, value);
     } catch (err) {
@@ -171,7 +171,7 @@ const lpush = async (key, value) => {
 };
 
 const ltrim = async (key, start, stop) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.lTrim(key, start, stop);
     } catch (err) {
@@ -185,7 +185,7 @@ const ltrim = async (key, start, stop) => {
 };
 
 const lrange = async (key, start, stop) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.lRange(key, start, stop);
     } catch (err) {
@@ -203,7 +203,7 @@ const lrange = async (key, start, stop) => {
 };
 
 const expire = async (key, seconds) => {
-  if (redisEnabled && redisClient && redisClient.isOpen) {
+  if (redisEnabled && redisClient && redisClient.isReady) {
     try {
       return await redisClient.expire(key, seconds);
     } catch (err) {
@@ -240,12 +240,49 @@ const disconnect = async () => {
 };
 
 export const RedisClient = {
+  rateLimitSendCommand: async (args) => {
+    const cmd = String(args[0]).toUpperCase();
+    const isScriptLoad = cmd === 'SCRIPT' && String(args[1]).toUpperCase() === 'LOAD';
+    const isEvalSha = cmd === 'EVALSHA';
+
+    if (redisEnabled && redisClient && redisClient.isReady) {
+      try {
+        return await redisClient.sendCommand(args);
+      } catch (err) {
+        // If Redis is online but doesn't have the script, we must propagate the NOSCRIPT error
+        // so that rate-limit-redis can catch it and reload the script.
+        if (err && err.message && err.message.toUpperCase().includes('NOSCRIPT')) {
+          throw err;
+        }
+        logger.warn(`Redis rate limit command failed, failing open: ${err.message}`);
+        // Fall through to fail-open
+      }
+    }
+
+    // Fail-open behavior when Redis is disabled or not ready/errored
+    if (isScriptLoad) {
+      return '0000000000000000000000000000000000000000';
+    }
+    if (isEvalSha) {
+      // Return a mock response indicating 1 hit, expires in 60s.
+      // rate-limit-redis expects [totalHits, timeToExpire]
+      return [1, 60000];
+    }
+    return null;
+  },
   isEnabled: redisEnabled,
+  get isReady() {
+    return !!(redisEnabled && redisClient && redisClient.isReady);
+  },
   connect,
   publish: async (channel, message) => {
-    if (!redisEnabled) return;
-    if (!redisPubClient.isOpen) await redisPubClient.connect();
-    return redisPubClient.publish(channel, message);
+    if (redisEnabled && redisPubClient && redisPubClient.isReady) {
+      try {
+        return await redisPubClient.publish(channel, message);
+      } catch (err) {
+        logger.error('Redis publish failed:', err);
+      }
+    }
   },
   subscribe: redisEnabled
     ? redisSubClient.subscribe.bind(redisSubClient)

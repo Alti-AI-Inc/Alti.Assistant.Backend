@@ -6,7 +6,7 @@ import config from '../../../../config/index.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import generateSessionId from '../../../shared/sessionGenerate.js';
-import redisClient from '../../../shared/redis.js'; // Enterprise-grade rate limiting requires a distributed store like Redis.
+import { RedisClient } from '../../../shared/redis.js'; // Enterprise-grade rate limiting requires a distributed store like Redis.
 import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
 
@@ -17,27 +17,23 @@ import ChatHistory from '../conversations/chatHistory.model.js';
 
 // Assumes a shared Redis client is available for a distributed, scalable rate-limiting state.
 // Falls back to in-memory rate limiting when Redis is unavailable or not connected.
-let storeMinute, storeDaily;
-if (redisClient && redisClient.isOpen) {
-  try {
-    storeMinute = new RedisStore({
-      sendCommand: (...args) => redisClient.sendCommand(args),
+const storeMinute = RedisClient.isEnabled
+  ? new RedisStore({
+      sendCommand: async (...args) => {
+        return await RedisClient.rateLimitSendCommand(args);
+      },
       prefix: 'rl:google-search:minute:',
-    });
-    storeDaily = new RedisStore({
-      sendCommand: (...args) => redisClient.sendCommand(args),
+    })
+  : undefined;
+
+const storeDaily = RedisClient.isEnabled
+  ? new RedisStore({
+      sendCommand: async (...args) => {
+        return await RedisClient.rateLimitSendCommand(args);
+      },
       prefix: 'rl:google-search:daily:',
-    });
-  } catch (err) {
-    console.warn('Failed to initialize Redis rate limit store, using in-memory:', err.message);
-    storeMinute = undefined;
-    storeDaily = undefined;
-  }
-} else {
-  console.warn('Redis client not connected for rate limiting. Using in-memory store.');
-  storeMinute = undefined;
-  storeDaily = undefined;
-}
+    })
+  : undefined;
 
 // LAYER 1: Strict Per-Minute Limiter
 // Protects against short-term, high-frequency burst attacks and API abuse.

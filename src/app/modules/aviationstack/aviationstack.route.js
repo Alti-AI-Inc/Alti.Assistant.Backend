@@ -11,7 +11,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import { createClient } from 'redis';
+import { RedisClient } from '../../../shared/redis.js';
 import {
   /**
    * @function getFlightsService
@@ -51,31 +51,16 @@ import {
 } from './aviationstack.service.js';
 
 
-
-/// Initialize Redis client for rate limiting.
-const redisClient = (() => {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    console.warn('WARNING: REDIS_URL not set. AviationStack rate limiting will use in-memory store.');
-    return null;
-  }
-  const client = createClient({ url: redisUrl });
-  client.on('error', (err) => console.error('AviationStack Rate Limiter Redis Client Error:', err));
-  return client;
-})();
-
-// Create a Redis store for the rate limiter.
-const redisStore = (redisClient && redisClient.isOpen)
-  ? new RedisStore({
-      // @ts-expect-error - Known issue with rate-limit-redis types and redis v4
-      sendCommand: (...args) => redisClient.sendCommand(args),
-    })
-  : undefined;
-
 // Define a rate limiter for the AviationStack API endpoints.
 // The limit is set to 100 requests per 15 minutes per IP address.
 const aviationStackApiLimiter = rateLimit({
-  store: redisStore,
+  store: RedisClient.isEnabled
+    ? new RedisStore({
+        sendCommand: async (...args) => {
+          return await RedisClient.rateLimitSendCommand(args);
+        },
+      })
+    : undefined,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per `windowMs`
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers

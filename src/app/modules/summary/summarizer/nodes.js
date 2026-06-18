@@ -1,6 +1,6 @@
 import express from 'express';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { createClient } from 'redis';
+import { RedisClient, redisClient } from '../../../../shared/redis.js';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
 import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
 import { promises as dns } from 'dns';
@@ -8,77 +8,69 @@ import { isIP } from 'net';
 import { getUrlFromUserInputUsingAi } from '../openAIService.js';
 import { generateSummary } from '../summarizerService.js';
 
-// --- Enterprise Rate Limiting & DDOS Guard ---
-
-/**
- * Redis client instance for connecting to the Redis server.
- * Used as the backing store for all rate limiters.
- * The `enable_offline_queue: false` option ensures that if the connection is lost,
- * commands don't buffer in memory, failing fast instead.
- * @type {import('redis').RedisClientType}
- */
-const redisClient = createClient({
-  // url: process.env.REDIS_URL, // Example for production
-  enable_offline_queue: false,
-});
-
-redisClient.on('error', (err) => console.error('Redis Client Error for Rate Limiting:', err));
-
 // --- Rate Limiter Definitions ---
 
 /**
  * Rate limiter for unauthenticated (public) users performing content fetch operations.
  * Limits are based on the client's IP address.
  * Allows 20 fetches per hour per IP. If exceeded, the IP is blocked for 15 minutes.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const publicFetchLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_fetch_ip',
-  points: 20,
-  duration: 60 * 60,
-  blockDuration: 60 * 15,
-});
+const publicFetchLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_fetch_ip',
+      points: 20,
+      duration: 60 * 60,
+      blockDuration: 60 * 15,
+    })
+  : null;
 
 /**
  * Rate limiter for unauthenticated (public) users performing summary operations.
  * Limits are based on the client's IP address.
  * Allows 10 summaries per hour per IP. If exceeded, the IP is blocked for 30 minutes.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const publicSummarizeLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_summarize_ip',
-  points: 10,
-  duration: 60 * 60,
-  blockDuration: 60 * 30,
-});
+const publicSummarizeLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_summarize_ip',
+      points: 10,
+      duration: 60 * 60,
+      blockDuration: 60 * 30,
+    })
+  : null;
 
 /**
  * Rate limiter for authenticated users performing content fetch operations.
  * Limits are based on the user's unique ID.
  * Allows 200 fetches per hour per user.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const authenticatedFetchLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_fetch_user',
-  points: 200,
-  duration: 60 * 60,
-});
+const authenticatedFetchLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_fetch_user',
+      points: 200,
+      duration: 60 * 60,
+    })
+  : null;
 
 /**
  * Rate limiter for authenticated users performing summary operations.
  * Limits are based on the user's unique ID.
  * Allows 100 summaries per hour per user.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const authenticatedSummarizeLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_summarize_user',
-  points: 100,
-  duration: 60 * 60,
-});
+const authenticatedSummarizeLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_summarize_user',
+      points: 100,
+      duration: 60 * 60,
+    })
+  : null;
 
 // BUGFIX/INTEGRATION: Added workspace-level limiters to enforce tenant-wide quotas.
 // This ensures that the collective actions of all users in a workspace do not
@@ -88,28 +80,32 @@ const authenticatedSummarizeLimiter = new RateLimiterRedis({
  * Enforces a collective quota for all users within a single workspace.
  * This is crucial for multi-tenant plan enforcement.
  * Allows 1000 fetches per hour for the entire workspace.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const workspaceFetchLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_fetch_workspace',
-  points: 1000, // 1000 fetch operations per hour for the entire workspace
-  duration: 60 * 60,
-});
+const workspaceFetchLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_fetch_workspace',
+      points: 1000, // 1000 fetch operations per hour for the entire workspace
+      duration: 60 * 60,
+    })
+  : null;
 
 /**
  * Tenant-level (workspace) rate limiter for summary operations.
  * Enforces a collective quota for all users within a single workspace.
  * This is crucial for multi-tenant plan enforcement.
  * Allows 500 summaries per hour for the entire workspace.
- * @type {RateLimiterRedis}
+ * @type {RateLimiterRedis | null}
  */
-const workspaceSummarizeLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rl_summarize_workspace',
-  points: 500, // 500 summary operations per hour for the entire workspace
-  duration: 60 * 60,
-});
+const workspaceSummarizeLimiter = RedisClient.isEnabled
+  ? new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_summarize_workspace',
+      points: 500, // 500 summary operations per hour for the entire workspace
+      duration: 60 * 60,
+    })
+  : null;
 // --- End of Rate Limiting Setup ---
 
 // --- Security Helper Functions ---
@@ -187,48 +183,61 @@ const validateUrl = async (urlString) => {
  * @throws {Error} If rate limits are exceeded or context is invalid.
  */
 const consumeHierarchicalRateLimit = async (user, ip, limiters) => {
-  // In a production system, this function would also integrate with a billing/usage service
-  // to check and update monthly quotas (e.g., "1000 summaries per month").
+  if (!RedisClient.isReady || !redisClient) {
+    // Fail open: if Redis is not enabled or not ready, bypass rate limiting.
+    return;
+  }
   const { userLimiter, workspaceLimiter, publicLimiter } = limiters;
 
-  if (user) {
-    // Authenticated user flow
-    const { id, role, workspaceId } = user;
+  try {
+    if (user) {
+      // Authenticated user flow
+      const { id, role, workspaceId } = user;
 
-    // A super_admin can bypass limits for administrative or debugging purposes.
-    if (role === 'super_admin') {
-      console.log(`Bypassing rate limit for super_admin ${id}`);
-      return;
+      // A super_admin can bypass limits for administrative or debugging purposes.
+      if (role === 'super_admin') {
+        console.log(`Bypassing rate limit for super_admin ${id}`);
+        return;
+      }
+
+      if (!workspaceId) {
+        throw new Error('User context is missing a workspaceId, cannot enforce tenant limits.');
+      }
+
+      // For all other roles (admin, manager, user), consume points from both the individual
+      // user's limit and the overall workspace's limit. This ensures fairness and
+      // adherence to the workspace's subscription plan.
+      // Using Promise.all ensures that if one limit is exceeded, the other is not consumed.
+      // For true atomicity, a Redis Lua script would be the most robust solution.
+      await Promise.all([
+        workspaceLimiter && workspaceLimiter.consume(workspaceId),
+        userLimiter && userLimiter.consume(id),
+      ]);
+
+      // INTEGRATION POINT: After successful consumption, increment usage counters in a database.
+      // This is critical for tracking against monthly/billing quotas.
+      // e.g., await usageService.increment(workspaceId, 'summaries', 1);
+
+      // INTEGRATION POINT: Trigger notifications to managers/admins if usage thresholds are met.
+      // e.g., if (await usageService.isNearLimit(workspaceId)) {
+      //   await notificationService.notifyAdmins(workspaceId, 'Usage limit approaching');
+      // }
+    } else {
+      // Unauthenticated (public) user flow
+      if (!ip) {
+        throw new Error('IP address is required for public rate limiting.');
+      }
+      if (publicLimiter) {
+        await publicLimiter.consume(ip);
+      }
     }
-
-    if (!workspaceId) {
-      throw new Error('User context is missing a workspaceId, cannot enforce tenant limits.');
+  } catch (rejRes) {
+    if (rejRes instanceof Error) {
+      console.error('Rate limiter Redis failure in summarizer, bypassing:', rejRes);
+      return; // Fail open on Redis error
     }
-
-    // For all other roles (admin, manager, user), consume points from both the individual
-    // user's limit and the overall workspace's limit. This ensures fairness and
-    // adherence to the workspace's subscription plan.
-    // Using Promise.all ensures that if one limit is exceeded, the other is not consumed.
-    // For true atomicity, a Redis Lua script would be the most robust solution.
-    await Promise.all([
-      workspaceLimiter.consume(workspaceId),
-      userLimiter.consume(id),
-    ]);
-
-    // INTEGRATION POINT: After successful consumption, increment usage counters in a database.
-    // This is critical for tracking against monthly/billing quotas.
-    // e.g., await usageService.increment(workspaceId, 'summaries', 1);
-
-    // INTEGRATION POINT: Trigger notifications to managers/admins if usage thresholds are met.
-    // e.g., if (await usageService.isNearLimit(workspaceId)) {
-    //   await notificationService.notifyAdmins(workspaceId, 'Usage limit approaching');
-    // }
-  } else {
-    // Unauthenticated (public) user flow
-    if (!ip) {
-      throw new Error('IP address is required for public rate limiting.');
-    }
-    await publicLimiter.consume(ip);
+    // Limit exceeded
+    throw new Error('Too many requests. Please try again later.');
   }
 };
 
