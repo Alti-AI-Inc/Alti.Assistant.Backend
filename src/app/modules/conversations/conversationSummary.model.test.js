@@ -15,6 +15,7 @@ describe('ConversationSummary Model', () => {
       const doc = new ConversationSummary({
         conversationId: 'conv-123',
         userId: 'user-456',
+        workspaceId: 'workspace-123',
         summary: plainSummary,
         context: plainContext,
         messageRange: {
@@ -44,6 +45,7 @@ describe('ConversationSummary Model', () => {
       const doc = new ConversationSummary({
         conversationId: 'conv-123',
         userId: 'user-456',
+        workspaceId: 'workspace-123',
         summary: fakeEncryptedText,
         messageRange: { startIndex: 0, endIndex: 1, totalMessages: 2 },
         tokenCount: 50,
@@ -86,6 +88,7 @@ describe('ConversationSummary Model', () => {
       const doc = new ConversationSummary({
         conversationId: 'conv-123',
         userId: 'user-456',
+        workspaceId: 'workspace-123',
         summary: 'Valid summary',
         messageRange: {
           startIndex: 0,
@@ -120,6 +123,7 @@ describe('ConversationSummary Model', () => {
       const doc = new ConversationSummary({
         conversationId: 'conv-123',
         userId: 'user-456',
+        workspaceId: 'workspace-123',
         summary: 'Valid summary',
         messageRange: { startIndex: 0, endIndex: 5, totalMessages: 6 },
         tokenCount: 100,
@@ -134,6 +138,7 @@ describe('ConversationSummary Model', () => {
     it('should enforce strict context boundaries by requiring both conversationId and userId', () => {
       const docWithoutUser = new ConversationSummary({
         conversationId: 'conv-123',
+        workspaceId: 'workspace-123',
         summary: 'Valid summary',
         messageRange: { startIndex: 0, endIndex: 5, totalMessages: 6 },
         tokenCount: 100,
@@ -143,6 +148,7 @@ describe('ConversationSummary Model', () => {
 
       const docWithoutConv = new ConversationSummary({
         userId: 'user-456',
+        workspaceId: 'workspace-123',
         summary: 'Valid summary',
         messageRange: { startIndex: 0, endIndex: 5, totalMessages: 6 },
         tokenCount: 100,
@@ -159,12 +165,13 @@ describe('ConversationSummary Model', () => {
       };
       const findOneSpy = vi.spyOn(ConversationSummary, 'findOne').mockReturnValue(mockQuery);
 
-      ConversationSummary.findActiveForConversation('conv-123', 'user-456');
+      ConversationSummary.findActiveForConversation('workspace-123', 'conv-123', 'user-456');
 
       expect(findOneSpy).toHaveBeenCalledWith({
         conversationId: 'conv-123',
         userId: 'user-456',
         status: 'active',
+        workspaceId: 'workspace-123',
       });
       expect(mockQuery.sort).toHaveBeenCalledWith({ createdAt: -1 });
     });
@@ -175,11 +182,12 @@ describe('ConversationSummary Model', () => {
       };
       const findSpy = vi.spyOn(ConversationSummary, 'find').mockReturnValue(mockQuery);
 
-      ConversationSummary.getAllForConversation('conv-123', 'user-456');
+      ConversationSummary.getAllForConversation('workspace-123', 'conv-123', 'user-456');
 
       expect(findSpy).toHaveBeenCalledWith({
         conversationId: 'conv-123',
         userId: 'user-456',
+        workspaceId: 'workspace-123',
       });
       expect(mockQuery.sort).toHaveBeenCalledWith({ 'messageRange.startIndex': 1 });
     });
@@ -196,7 +204,7 @@ describe('ConversationSummary Model', () => {
       const targetUserId = 'user-regular';
       const targetConvId = 'conv-abc';
 
-      ConversationSummary.getAllForConversation(targetConvId, targetUserId);
+      ConversationSummary.getAllForConversation('workspace-123', targetConvId, targetUserId);
 
       // Verify that the query is strictly bound to the requesting user's ID
       const callArgs = findSpy.mock.calls[0][0];

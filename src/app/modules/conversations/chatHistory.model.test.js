@@ -9,7 +9,7 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
       const paths = ChatHistory.schema.paths;
 
       expect(paths.user).toBeDefined();
-      expect(paths.user.instance).toBe('ObjectID');
+      expect(paths.user.instance).toBe('ObjectId');
       expect(paths.user.options.ref).toBe('User');
 
       expect(paths.sessionId).toBeDefined();
@@ -20,9 +20,14 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
       expect(paths.createdAt.options.default).toBeDefined();
 
       expect(paths.tenantId).toBeDefined();
-      expect(paths.tenantId.instance).toBe('ObjectID');
+      expect(paths.tenantId.instance).toBe('ObjectId');
       expect(paths.tenantId.options.ref).toBe('Tenant');
       expect(paths.tenantId.options.index).toBe(true);
+
+      expect(paths.workspaceId).toBeDefined();
+      expect(paths.workspaceId.instance).toBe('ObjectId');
+      expect(paths.workspaceId.options.ref).toBe('Workspace');
+      expect(paths.workspaceId.options.index).toBe(true);
     });
 
     it('should have the correct nested structure for responses', () => {
@@ -45,7 +50,7 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
 
       expect(subPaths.total_time).toBeDefined();
       expect(subPaths.total_time.options.required).toBe(true);
-      expect(subPaths.total_time.instance).toBe('String');
+      expect(subPaths.total_time.instance).toBe('Number');
     });
 
     it('should have the correct nested structure for search_results within responses', () => {
@@ -80,19 +85,15 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
     it('should define the correct compound and single indexes', () => {
       const indexes = ChatHistory.schema.indexes();
 
-      const hasTenantUserCreatedIndex = indexes.some(index => 
-        index[0].tenantId === 1 && index[0].user === 1 && index[0].createdAt === -1
+      const hasTenantWorkspaceUserCreatedIndex = indexes.some(index => 
+        index[0].tenantId === 1 && index[0].workspaceId === 1 && index[0].user === 1 && index[0].createdAt === -1
       );
-      const hasTenantSessionIndex = indexes.some(index => 
-        index[0].tenantId === 1 && index[0].sessionId === 1
-      );
-      const hasUserCreatedIndex = indexes.some(index => 
-        index[0].user === 1 && index[0].createdAt === -1
+      const hasTenantWorkspaceSessionIndex = indexes.some(index => 
+        index[0].tenantId === 1 && index[0].workspaceId === 1 && index[0].sessionId === 1
       );
 
-      expect(hasTenantUserCreatedIndex).toBe(true);
-      expect(hasTenantSessionIndex).toBe(true);
-      expect(hasUserCreatedIndex).toBe(true);
+      expect(hasTenantWorkspaceUserCreatedIndex).toBe(true);
+      expect(hasTenantWorkspaceSessionIndex).toBe(true);
     });
   });
 
@@ -203,12 +204,13 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
     });
   });
 
-  // 4. Document Validation Tests
   describe('Document Validation', () => {
     it('should fail validation if required fields in responses are missing', () => {
       const chatHistory = new ChatHistory({
         user: new mongoose.Types.ObjectId(),
         sessionId: 'session-123',
+        tenantId: new mongoose.Types.ObjectId(),
+        workspaceId: new mongoose.Types.ObjectId(),
         responses: [
           {
             // Missing prompt, model, and total_time
@@ -228,11 +230,13 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
       const chatHistory = new ChatHistory({
         user: new mongoose.Types.ObjectId(),
         sessionId: 'session-123',
+        tenantId: new mongoose.Types.ObjectId(),
+        workspaceId: new mongoose.Types.ObjectId(),
         responses: [
           {
             prompt: 'What is Vitest?',
             model: 'gpt-4',
-            total_time: '1.2s',
+            total_time: 1.2,
             search_results: [
               {
                 // Missing title, link, snippet, position
@@ -255,12 +259,13 @@ describe('ChatHistory Model Schema & Context Boundaries', () => {
         user: new mongoose.Types.ObjectId(),
         sessionId: 'session-123',
         tenantId: new mongoose.Types.ObjectId(),
+        workspaceId: new mongoose.Types.ObjectId(),
         responses: [
           {
             prompt: 'What is Vitest?',
             model: 'gpt-4',
             reply: 'Vitest is a fast unit test framework.',
-            total_time: '0.8s',
+            total_time: 0.8,
             search_results: [
               {
                 title: 'Vitest Guide',

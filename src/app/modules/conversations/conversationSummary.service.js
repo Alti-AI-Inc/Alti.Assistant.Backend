@@ -1,7 +1,8 @@
-import ConversationSummary from './conversationSummary.model.js';
+import ConversationSummary, { decryptText } from './conversationSummary.model.js';
 import Conversation from './conversation.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { decryptConversation } from './conversation.helpers.js';
 
 /**
  * @module conversationSummaryService
@@ -143,7 +144,7 @@ const calculateConversationTokens = (messages) => {
  * @property {Array<string>} detectedApps - Apps/services used or discussed, as an array of strings.
  * @throws {Error} If there's an error communicating with the Gemini API or parsing its response.
  */
-const generateSummaryWithGemini = async (messages) => {
+export const generateSummaryWithGemini = async (messages) => {
   try {
     const conversationText = messages
       .map(
@@ -230,7 +231,7 @@ APPS: [app1, app2, app3]`;
  * @param {string} userId - The ID of the user associated with the conversation.
  * @returns {Promise<ConversationSummaryDocument|null>} A promise that resolves to the newly created or existing active ConversationSummary document if a summary was generated or found, otherwise `null`.
  */
-export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
+export const checkAndSummarizeIfNeeded = async (workspaceId, conversationId, userId) => {
   try {
     // Optimization: Use .lean() as the conversation document is only read from, not modified.
     // Indexing Recommendation: Ensure a compound index on { conversationId, userId } exists on the Conversation model for efficient lookups.
@@ -260,6 +261,7 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
     // Note: .lean() is NOT used here because existingSummary might be updated and saved later.
     // Indexing Recommendation: Ensure a compound index on { conversationId, userId, status } exists on the ConversationSummary model for efficient lookups.
     const existingSummary = await ConversationSummary.findActiveForConversation(
+      workspaceId,
       conversationId,
       userId
     );
@@ -287,6 +289,7 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
 
     // Create new summary
     const newSummary = new ConversationSummary({
+      workspaceId,
       conversationId,
       userId,
       summary,
@@ -333,10 +336,11 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
  * @property {number} totalTokens - The total token count of the conversation as per the summary, or 0 if no summary.
  */
 export const getConversationContext = async (
-  conversationId,
-  userId,
-  recentMessageLimit = 5
-) => {
+    workspaceId,
+    conversationId,
+    userId,
+    recentMessageLimit = 5
+  ) => {
   try {
     // Optimization: Use Promise.all to fetch summary and conversation data in parallel,
     // reducing total I/O wait time. Both queries use .lean() for read-only performance.
@@ -344,28 +348,36 @@ export const getConversationContext = async (
     // Indexing Recommendation: Ensure a compound index on { conversationId, userId } for Conversation.
     const [summary, conversation] = await Promise.all([
       ConversationSummary.findActiveForConversation(
+        workspaceId,
         conversationId,
         userId
       ).lean(),
       Conversation.findByConversationId(conversationId, userId).lean(),
     ]);
 
+    const decryptedConv = decryptConversation(conversation);
+    const decryptedSummary = summary ? {
+      ...summary,
+      summary: decryptText(summary.summary),
+      context: decryptText(summary.context),
+    } : null;
+
     const recentMessages =
-      conversation?.messages?.slice(-recentMessageLimit) || [];
+      decryptedConv?.messages?.slice(-recentMessageLimit) || [];
 
     return {
-      hasSummary: !!summary,
-      summary: summary?.summary || null,
-      context: summary?.context || null,
-      keyTopics: summary?.metadata?.keyTopics || [],
-      entities: summary?.metadata?.entities || [],
-      detectedApps: summary?.metadata?.detectedApps || [],
+      hasSummary: !!decryptedSummary,
+      summary: decryptedSummary?.summary || null,
+      context: decryptedSummary?.context || null,
+      keyTopics: decryptedSummary?.metadata?.keyTopics || [],
+      entities: decryptedSummary?.metadata?.entities || [],
+      detectedApps: decryptedSummary?.metadata?.detectedApps || [],
       recentMessages: recentMessages.map((msg) => ({
         role: msg.role,
         content: msg.content,
         timestamp: msg.timestamp,
       })),
-      totalTokens: summary?.tokenCount || 0,
+      totalTokens: decryptedSummary?.tokenCount || 0,
     };
   } catch (error) {
     console.error('Error getting conversation context:', error);
@@ -389,8 +401,8 @@ export const getConversationContext = async (
  * @param {string} userId - The ID of the user associated with the conversation.
  * @returns {Promise<string>} A promise that resolves to a formatted string of the conversation summary and context, or an empty string if no summary exists.
  */
-export const getFormattedContextForLLM = async (conversationId, userId) => {
-  const context = await getConversationContext(conversationId, userId);
+export const getFormattedContextForLLM = async (workspaceId, conversationId, userId) => {
+  const context = await getConversationContext(workspaceId, conversationId, userId);
 
   if (!context.hasSummary) {
     return '';

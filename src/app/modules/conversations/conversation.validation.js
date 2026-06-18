@@ -8,6 +8,27 @@
 import * as zod from 'zod';
 const { z } = zod;
 
+const parseQueryNumber = (val) => {
+  if (val === undefined || val === null || val === '') return undefined;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const num = Number(val);
+    return isNaN(num) ? val : num;
+  }
+  return val;
+};
+
+const queryPageSchema = z.preprocess(parseQueryNumber, z.number({ invalid_type_error: 'Page must be a number' }).int().positive()).optional();
+const queryLimitSchema = z.preprocess(parseQueryNumber, z.number({ invalid_type_error: 'Limit must be a number' }).int().positive()).optional();
+
+const queryDeepSearchSchema = z.preprocess((val) => {
+  if (val === undefined || val === null || val === '') return undefined;
+  if (val === true || val === 'true') return true;
+  if (val === false || val === 'false') return false;
+  return 'invalid';
+}, z.boolean({ invalid_type_error: 'is_deep_search must be true or false' }).optional());
+
+
 /**
  * @typedef {object} Message
  * @property {'user'|'assistant'|'system'} role - The role of the message sender.
@@ -21,8 +42,12 @@ const { z } = zod;
  */
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system'], {
-    required_error: 'Message role is required',
-    invalid_type_error: 'Role must be user, assistant, or system',
+    errorMap: (issue, ctx) => {
+      if (issue.code === 'invalid_type' && issue.received === 'undefined') {
+        return { message: 'Message role is required' };
+      }
+      return { message: 'Role must be user, assistant, or system' };
+    }
   }),
   content: z
     .string({
@@ -219,8 +244,8 @@ const conversationParamsSchema = z.object({
 const getUserConversationsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    page: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().positive().optional(),
+    page: queryPageSchema,
+    limit: queryLimitSchema,
     status: z.enum(['active', 'archived', 'deleted']).optional(),
     // SECURITY PATCH: Whitelist allowed `sortBy` fields to prevent NoSQL/SQL injection
     // where an attacker could control the sort key in a database query.
@@ -236,7 +261,7 @@ const getUserConversationsSchema = z.object({
     // SECURITY PATCH: Add a maximum length to category filter.
     category: z.string().max(100, 'Category must be 100 characters or less').optional(),
     // BUG FIX: Coerce string query parameters to booleans for proper type handling downstream.
-    is_deep_search: z.coerce.boolean().optional(),
+    is_deep_search: queryDeepSearchSchema,
   }),
 });
 
@@ -265,8 +290,8 @@ const getConversationMessagesSchema = z.object({
   }),
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    page: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().positive().optional(),
+    page: queryPageSchema,
+    limit: queryLimitSchema,
     beforeDate: z.string().datetime().optional(),
   }),
 });
@@ -293,7 +318,7 @@ const searchConversationsSchema = z.object({
       // SECURITY PATCH: Add a maximum length to search queries to prevent resource exhaustion.
       .max(200, 'Search term must be 200 characters or less'),
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    limit: z.coerce.number().int().positive().optional(),
+    limit: queryLimitSchema,
     // SECURITY PATCH: Add a maximum length to category filter.
     category: z.string().max(100, 'Category must be 100 characters or less').optional(),
   }),
@@ -377,7 +402,7 @@ const getCategoryConversationsSchema = z.object({
   }),
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    limit: z.coerce.number().int().positive().optional(),
+    limit: queryLimitSchema,
     // SECURITY PATCH: Whitelist allowed `sortBy` fields to prevent injection.
     sortBy: z.enum(['createdAt', 'updatedAt', 'title'], {
       invalid_type_error: 'Invalid sort field. Must be one of: createdAt, updatedAt, title',
@@ -402,7 +427,7 @@ const getCategoryConversationsSchema = z.object({
 const getRecentConversationsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    limit: z.coerce.number().int().positive().optional(),
+    limit: queryLimitSchema,
   }),
 });
 
@@ -509,8 +534,8 @@ const getSharedChatSchema = z.object({
 const getUserSharedChatsSchema = z.object({
   query: z.object({
     // BUG FIX: Coerce string query parameters to numbers for proper type handling downstream.
-    page: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().positive().optional(),
+    page: queryPageSchema,
+    limit: queryLimitSchema,
     status: z.enum(['active', 'expired', 'revoked']).optional(),
   }),
 });

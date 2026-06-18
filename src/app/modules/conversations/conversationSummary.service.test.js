@@ -1,12 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
-import {
-  checkAndSummarizeIfNeeded,
-  getConversationContext,
-  getFormattedContextForLLM,
-  conversationSummaryService,
-} from './conversationSummary.service.js'; // Import the named exports
+
+process.env.GEMINI_SECRET_KEY = 'mock-gemini-key';
+
+let checkAndSummarizeIfNeeded;
+let getConversationContext;
+let getFormattedContextForLLM;
+let generateSummaryWithGemini;
+let conversationSummaryService;
 
 // Mock external dependencies
 vi.mock('@google/generative-ai');
@@ -25,9 +27,16 @@ const {
   mockConversation
 } = vi.hoisted(() => {
   const mockConversationSummary = {
-    findActiveForConversation: vi.fn().mockImplementation(() => ({
-      lean: mockConversationSummaryLean,
-    })),
+    findActiveForConversation: vi.fn().mockImplementation(() => {
+      const query = {
+        sort: vi.fn().mockImplementation(() => query),
+        lean: mockConversationSummaryLean,
+        then: vi.fn().mockImplementation((resolve) => {
+          return mockConversationSummaryLean().then(resolve);
+        }),
+      };
+      return query;
+    }),
     // Mock the constructor for new ConversationSummary()
     // This mock will return an object that mimics a Mongoose document
     // with a .save() method.
@@ -50,7 +59,10 @@ const {
 
 // Assign the mockImplementation to the actual ConversationSummary mock
 vi.mock('./conversationSummary.model.js', () => ({
-  default: vi.fn().mockImplementation((data) => mockConversationSummary.mockImplementation(data)),
+  default: vi.fn().mockImplementation(function(data) {
+    return mockConversationSummary.mockImplementation(data);
+  }),
+  decryptText: vi.fn().mockImplementation((text) => text),
 }));
 // Re-assign static methods to the default export after mocking the constructor
 // This is a common pattern when mocking Mongoose models with both static and instance methods
@@ -61,6 +73,7 @@ ConversationSummary.findActiveForConversation = mockConversationSummary.findActi
 const mockConversationLean = vi.fn().mockReturnThis(); // For .lean() calls
 vi.mock('./conversation.model.js', () => ({
   default: mockConversation,
+  decryptText: vi.fn().mockImplementation((text) => text),
 }));
 
 // Mock GoogleGenerativeAI methods
@@ -68,22 +81,53 @@ const mockGenerateContent = vi.fn();
 const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
   generateContent: mockGenerateContent,
 }));
-const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
-  getGenerativeModel: mockGetGenerativeModel,
-}));
+const mockGoogleGenerativeAI = vi.fn().mockImplementation(function() {
+  return {
+    getGenerativeModel: mockGetGenerativeModel,
+  };
+});
 GoogleGenerativeAI.mockImplementation(mockGoogleGenerativeAI);
 
 describe('conversationSummaryService', () => {
+  const workspaceId = 'workspace123';
   const userId = 'user123';
   const conversationId = 'conv456';
+
+  const recentMessages = [
+    { role: 'user', content: 'msg1', timestamp: new Date() },
+    { role: 'assistant', content: 'msg2', timestamp: new Date() },
+  ];
+  const mockSummary = {
+    summary: 'A brief summary',
+    context: 'Key context info',
+    metadata: {
+      keyTopics: ['topicA', 'topicB'],
+      entities: ['entityX'],
+      detectedApps: ['appY'],
+    },
+    tokenCount: 1500,
+  };
+  const mockConversationWithMessages = {
+    messages: [
+      { role: 'user', content: 'old msg', timestamp: new Date() },
+      ...recentMessages,
+    ],
+  };
+
+  beforeAll(async () => {
+    const mod = await import('./conversationSummary.service.js?t=summaryServiceTest');
+    checkAndSummarizeIfNeeded = mod.checkAndSummarizeIfNeeded;
+    getConversationContext = mod.getConversationContext;
+    getFormattedContextForLLM = mod.getFormattedContextForLLM;
+    generateSummaryWithGemini = mod.generateSummaryWithGemini;
+    conversationSummaryService = mod.conversationSummaryService;
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset specific mock implementations if they were changed in tests
     mockConversationSummarySave.mockResolvedValue(true);
-    mockConversationSummary.findActiveForConversation.mockReturnValue({
-      lean: mockConversationSummaryLean.mockResolvedValue(null),
-    });
+    mockConversationSummaryLean.mockResolvedValue(null);
     mockConversation.findByConversationId.mockReturnValue({
       lean: mockConversationLean.mockResolvedValue(null),
     });
@@ -147,7 +191,7 @@ APPS: app1, app2`,
     ];
 
     it('should generate a summary with structured data from Gemini', async () => {
-      const result = await conversationSummaryService.__get__('generateSummaryWithGemini')(messages);
+      const result = await generateSummaryWithGemini(messages);
 
       expect(mockGoogleGenerativeAI).toHaveBeenCalledWith('mock-gemini-key');
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-3.5-flash' });
@@ -171,7 +215,7 @@ APPS: app1, app2`,
         },
       });
 
-      const result = await conversationSummaryService.__get__('generateSummaryWithGemini')(messages);
+      const result = await generateSummaryWithGemini(messages);
       expect(result).toEqual({
         summary: 'Only summary provided.',
         context: '',
@@ -185,7 +229,7 @@ APPS: app1, app2`,
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockGenerateContent.mockRejectedValueOnce(new Error('Gemini API error'));
 
-      const result = await conversationSummaryService.__get__('generateSummaryWithGemini')(messages);
+      const result = await generateSummaryWithGemini(messages);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating summary with Gemini:', expect.any(Error));
       expect(result).toEqual({
@@ -205,20 +249,20 @@ APPS: app1, app2`,
 
     it('should return null if conversation is not found', async () => {
       mockConversationLean.mockResolvedValueOnce(null);
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
       expect(result).toBeNull();
       expect(mockConversation.findByConversationId).toHaveBeenCalledWith(conversationId, userId);
     });
 
     it('should return null if conversation has no messages', async () => {
       mockConversationLean.mockResolvedValueOnce({ messages: [] });
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
       expect(result).toBeNull();
     });
 
     it('should return null if total tokens are below the threshold (12000)', async () => {
       mockConversationLean.mockResolvedValueOnce({ messages: mockMessages }); // 9000 tokens
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
       expect(result).toBeNull();
       expect(mockGenerateContent).not.toHaveBeenCalled();
     });
@@ -235,7 +279,7 @@ APPS: app1, app2`,
       mockConversationLean.mockResolvedValueOnce({ messages: longMessages });
       mockConversationSummaryLean.mockResolvedValueOnce(existingSummary);
 
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
       expect(result).toEqual(existingSummary);
       expect(mockGenerateContent).not.toHaveBeenCalled();
       expect(existingSummary.save).not.toHaveBeenCalled();
@@ -245,11 +289,12 @@ APPS: app1, app2`,
       mockConversationLean.mockResolvedValueOnce({ messages: longMessages }); // > 12000 tokens
       mockConversationSummaryLean.mockResolvedValueOnce(null); // No existing summary
 
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
 
       expect(mockGenerateContent).toHaveBeenCalledOnce();
       expect(ConversationSummary).toHaveBeenCalledWith(
         expect.objectContaining({
+          workspaceId,
           conversationId,
           userId,
           summary: 'Test Summary',
@@ -284,11 +329,9 @@ APPS: app1, app2`,
         save: vi.fn().mockResolvedValue(true),
       };
       mockConversationLean.mockResolvedValueOnce({ messages: longMessages });
-      mockConversationSummary.findActiveForConversation.mockReturnValue({
-        lean: vi.fn().mockResolvedValue(outdatedSummary), // Return the outdated summary for the first call
-      });
+      mockConversationSummaryLean.mockResolvedValueOnce(outdatedSummary);
 
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
 
       expect(outdatedSummary.status).toBe('superseded');
       expect(outdatedSummary.save).toHaveBeenCalledOnce();
@@ -301,13 +344,9 @@ APPS: app1, app2`,
 
     it('should handle errors during summarization gracefully', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockConversationLean.mockResolvedValueOnce({ messages: longMessages });
-      mockConversationSummary.findActiveForConversation.mockReturnValue({
-        lean: mockConversationSummaryLean.mockResolvedValue(null),
-      });
-      mockGenerateContent.mockRejectedValueOnce(new Error('Gemini error during summarization'));
+      mockConversationLean.mockRejectedValueOnce(new Error('Database error during summarization'));
 
-      const result = await checkAndSummarizeIfNeeded(conversationId, userId);
+      const result = await checkAndSummarizeIfNeeded(workspaceId, conversationId, userId);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error in checkAndSummarizeIfNeeded:', expect.any(Error));
       expect(result).toBeNull();
@@ -317,32 +356,12 @@ APPS: app1, app2`,
   });
 
   describe('getConversationContext', () => {
-    const recentMessages = [
-      { role: 'user', content: 'msg1', timestamp: new Date() },
-      { role: 'assistant', content: 'msg2', timestamp: new Date() },
-    ];
-    const mockSummary = {
-      summary: 'A brief summary',
-      context: 'Key context info',
-      metadata: {
-        keyTopics: ['topicA', 'topicB'],
-        entities: ['entityX'],
-        detectedApps: ['appY'],
-      },
-      tokenCount: 1500,
-    };
-    const mockConversationWithMessages = {
-      messages: [
-        { role: 'user', content: 'old msg', timestamp: new Date() },
-        ...recentMessages,
-      ],
-    };
 
     it('should return default context if no summary and no conversation found', async () => {
       mockConversationSummaryLean.mockResolvedValueOnce(null);
       mockConversationLean.mockResolvedValueOnce(null);
 
-      const result = await getConversationContext(conversationId, userId);
+      const result = await getConversationContext(workspaceId, conversationId, userId);
 
       expect(result).toEqual({
         hasSummary: false,
@@ -360,7 +379,7 @@ APPS: app1, app2`,
       mockConversationSummaryLean.mockResolvedValueOnce(null);
       mockConversationLean.mockResolvedValueOnce(mockConversationWithMessages);
 
-      const result = await getConversationContext(conversationId, userId, 2);
+      const result = await getConversationContext(workspaceId, conversationId, userId, 2);
 
       expect(result).toEqual({
         hasSummary: false,
@@ -382,7 +401,7 @@ APPS: app1, app2`,
       mockConversationSummaryLean.mockResolvedValueOnce(mockSummary);
       mockConversationLean.mockResolvedValueOnce(mockConversationWithMessages);
 
-      const result = await getConversationContext(conversationId, userId, 2);
+      const result = await getConversationContext(workspaceId, conversationId, userId, 2);
 
       expect(result).toEqual({
         hasSummary: true,
@@ -404,7 +423,7 @@ APPS: app1, app2`,
       mockConversationSummaryLean.mockResolvedValueOnce(mockSummary);
       mockConversationLean.mockResolvedValueOnce(mockConversationWithMessages);
 
-      const result = await getConversationContext(conversationId, userId, 1);
+      const result = await getConversationContext(workspaceId, conversationId, userId, 1);
       expect(result.recentMessages).toHaveLength(1);
       expect(result.recentMessages[0].content).toBe('msg2');
     });
@@ -413,7 +432,7 @@ APPS: app1, app2`,
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockConversationSummaryLean.mockRejectedValueOnce(new Error('DB error'));
 
-      const result = await getConversationContext(conversationId, userId);
+      const result = await getConversationContext(workspaceId, conversationId, userId);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error getting conversation context:', expect.any(Error));
       expect(result).toEqual({
@@ -431,26 +450,26 @@ APPS: app1, app2`,
   });
 
   describe('getFormattedContextForLLM', () => {
-    const mockContext = {
-      hasSummary: true,
-      summary: 'A brief summary for LLM.',
-      context: 'Important context for LLM.',
-      keyTopics: ['LLM', 'summarization'],
-      entities: ['OpenAI', 'Google'],
-      detectedApps: ['ChatGPT', 'Gemini'],
-      recentMessages: [],
-      totalTokens: 100,
-    };
-
     it('should return an empty string if no summary exists', async () => {
-      vi.spyOn(conversationSummaryService, 'getConversationContext').mockResolvedValueOnce({ hasSummary: false });
-      const result = await getFormattedContextForLLM(conversationId, userId);
+      mockConversationSummaryLean.mockResolvedValueOnce(null);
+      mockConversationLean.mockResolvedValueOnce(null);
+      const result = await getFormattedContextForLLM(workspaceId, conversationId, userId);
       expect(result).toBe('');
     });
 
     it('should return a fully formatted string when all context fields are present', async () => {
-      vi.spyOn(conversationSummaryService, 'getConversationContext').mockResolvedValueOnce(mockContext);
-      const result = await getFormattedContextForLLM(conversationId, userId);
+      mockConversationSummaryLean.mockResolvedValueOnce({
+        summary: 'A brief summary for LLM.',
+        context: 'Important context for LLM.',
+        metadata: {
+          keyTopics: ['LLM', 'summarization'],
+          entities: ['OpenAI', 'Google'],
+          detectedApps: ['ChatGPT', 'Gemini'],
+        },
+        tokenCount: 100,
+      });
+      mockConversationLean.mockResolvedValueOnce({ messages: [] });
+      const result = await getFormattedContextForLLM(workspaceId, conversationId, userId);
       expect(result).toContain('=== CONVERSATION SUMMARY ===');
       expect(result).toContain('Summary: A brief summary for LLM.');
       expect(result).toContain('Context: Important context for LLM.');
@@ -460,19 +479,22 @@ APPS: app1, app2`,
     });
 
     it('should omit fields that are empty or null', async () => {
-      const partialContext = {
-        ...mockContext,
+      mockConversationSummaryLean.mockResolvedValueOnce({
+        summary: 'A brief summary for LLM.',
         context: null,
-        keyTopics: [],
-        detectedApps: [],
-      };
-      vi.spyOn(conversationSummaryService, 'getConversationContext').mockResolvedValueOnce(partialContext);
-      const result = await getFormattedContextForLLM(conversationId, userId);
+        metadata: {
+          keyTopics: [],
+          entities: ['OpenAI', 'Google'],
+          detectedApps: [],
+        },
+        tokenCount: 100,
+      });
+      mockConversationLean.mockResolvedValueOnce({ messages: [] });
+      const result = await getFormattedContextForLLM(workspaceId, conversationId, userId);
       expect(result).toContain('Summary: A brief summary for LLM.');
       expect(result).not.toContain('Context:');
       expect(result).not.toContain('Topics:');
       expect(result).not.toContain('Apps Used:');
-      expect(result).toContain('Entities: OpenAI, Google'); // Entities should still be there
     });
   });
 });

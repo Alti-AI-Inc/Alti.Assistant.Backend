@@ -20,14 +20,20 @@ describe('ChatShare Model', () => {
   describe('Schema Validation and Defaults', () => {
     it('should create a ChatShare instance with default values', () => {
       const userId = new mongoose.Types.ObjectId();
+      const organizationId = new mongoose.Types.ObjectId();
+      const workspaceId = new mongoose.Types.ObjectId();
       const share = new ChatShare({
-        conversationId: 'conv-123',
+        conversationId: new mongoose.Types.ObjectId(),
         userId,
+        organizationId,
+        workspaceId,
       });
 
       expect(share.shareId).toBe('mocked-uuid-v4');
-      expect(share.conversationId).toBe('conv-123');
+      expect(share.conversationId).toBeInstanceOf(mongoose.Types.ObjectId);
       expect(share.userId).toEqual(userId);
+      expect(share.organizationId).toEqual(organizationId);
+      expect(share.workspaceId).toEqual(workspaceId);
       expect(share.shareType).toBe('public');
       expect(share.isActive).toBe(true);
       expect(share.allowComments).toBe(false);
@@ -42,12 +48,16 @@ describe('ChatShare Model', () => {
       const err = share.validateSync();
       expect(err.errors.conversationId).toBeDefined();
       expect(err.errors.userId).toBeDefined();
+      expect(err.errors.organizationId).toBeDefined();
+      expect(err.errors.workspaceId).toBeDefined();
     });
 
     it('should fail validation if shareType is not in enum', () => {
       const share = new ChatShare({
-        conversationId: 'conv-123',
+        conversationId: new mongoose.Types.ObjectId(),
         userId: new mongoose.Types.ObjectId(),
+        organizationId: new mongoose.Types.ObjectId(),
+        workspaceId: new mongoose.Types.ObjectId(),
         shareType: 'invalid-type',
       });
       const err = share.validateSync();
@@ -101,8 +111,10 @@ describe('ChatShare Model', () => {
   describe('Instance Method: incrementViewCount', () => {
     it('should atomically increment viewCount and update lastViewedAt', async () => {
       const share = new ChatShare({
-        conversationId: 'conv-123',
+        conversationId: new mongoose.Types.ObjectId(),
         userId: new mongoose.Types.ObjectId(),
+        organizationId: new mongoose.Types.ObjectId(),
+        workspaceId: new mongoose.Types.ObjectId(),
         viewCount: 5,
       });
 
@@ -125,7 +137,8 @@ describe('ChatShare Model', () => {
   describe('Static Method: findActiveShare', () => {
     it('should query active and non-expired share and populate conversationId', async () => {
       const mockQuery = {
-        populate: vi.fn().mockResolvedValue({ shareId: 'mocked-uuid-v4' }),
+        populate: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue({ shareId: 'mocked-uuid-v4' }),
       };
       const findOneSpy = vi.spyOn(ChatShare, 'findOne').mockReturnValue(mockQuery);
 
@@ -140,6 +153,7 @@ describe('ChatShare Model', () => {
         ],
       });
       expect(mockQuery.populate).toHaveBeenCalledWith('conversationId');
+      expect(mockQuery.lean).toHaveBeenCalled();
       expect(result).toEqual({ shareId: 'mocked-uuid-v4' });
     });
   });
@@ -152,6 +166,7 @@ describe('ChatShare Model', () => {
     let mockPopulate;
     let findSpy;
     const userId = new mongoose.Types.ObjectId();
+    const workspaceId = new mongoose.Types.ObjectId();
 
     beforeEach(() => {
       mockLean = vi.fn().mockResolvedValue([{ shareId: 'share-1' }]);
@@ -163,9 +178,10 @@ describe('ChatShare Model', () => {
     });
 
     it('should query user shares with default options (active status, page 1, limit 20)', async () => {
-      const result = await ChatShare.findUserShares(userId);
+      const result = await ChatShare.findUserShares({ userId, workspaceId });
 
       expect(findSpy).toHaveBeenCalledWith({
+        workspaceId,
         userId,
         isActive: true,
         $or: [
@@ -175,7 +191,7 @@ describe('ChatShare Model', () => {
       });
       expect(mockPopulate).toHaveBeenCalledWith(
         'conversationId',
-        'title conversationId lastActivity messageCount'
+        'title lastActivity messageCount'
       );
       expect(mockSort).toHaveBeenCalledWith({ createdAt: -1 });
       expect(mockSkip).toHaveBeenCalledWith(0);
@@ -184,37 +200,41 @@ describe('ChatShare Model', () => {
     });
 
     it('should query user shares with expired status and custom pagination', async () => {
-      await ChatShare.findUserShares(userId, {
+      await ChatShare.findUserShares({ userId, workspaceId }, {
         page: 3,
         limit: 10,
         status: 'expired',
       });
 
       expect(findSpy).toHaveBeenCalledWith({
+        workspaceId,
         userId,
-        expiresAt: { $lte: new Date('2023-10-27T12:00:00.000Z') },
+        isActive: true,
+        expiresAt: { $ne: null, $lte: new Date('2023-10-27T12:00:00.000Z') },
       });
       expect(mockSkip).toHaveBeenCalledWith(20);
       expect(mockLimit).toHaveBeenCalledWith(10);
     });
 
     it('should query user shares with revoked status', async () => {
-      await ChatShare.findUserShares(userId, {
+      await ChatShare.findUserShares({ userId, workspaceId }, {
         status: 'revoked',
       });
 
       expect(findSpy).toHaveBeenCalledWith({
+        workspaceId,
         userId,
         isActive: false,
       });
     });
 
     it('should query user shares with all status', async () => {
-      await ChatShare.findUserShares(userId, {
+      await ChatShare.findUserShares({ userId, workspaceId }, {
         status: 'all',
       });
 
       expect(findSpy).toHaveBeenCalledWith({
+        workspaceId,
         userId,
       });
     });

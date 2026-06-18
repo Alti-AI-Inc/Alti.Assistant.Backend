@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { ConversationValidation } from './conversation.validation';
 
+const VALID_UUID = '10a97bfb-12a4-44b4-82a1-6a2d1e2e92c2';
+const ANOTHER_UUID = '10a97bfb-12a4-44b4-82a1-6a2d1e2e92c3';
+const VALID_SHARE_UUID = '10a97bfb-12a4-44b4-82a1-6a2d1e2e92c4';
+
 // Helper function to validate and expect success
 const expectValid = (schema, data) => {
   const result = schema.safeParse(data);
@@ -64,14 +68,13 @@ describe('ConversationValidation', () => {
     const schema = ConversationValidation.createConversationSchema;
 
     it('should validate a minimal valid create conversation request', () => {
-      const data = { body: { conversationId: 'conv-123' } };
+      const data = { body: {} };
       expectValid(schema, data);
     });
 
     it('should validate a full valid create conversation request', () => {
       const data = {
         body: {
-          conversationId: 'conv-123',
           title: 'My New Chat',
           initialMessage: { role: 'user', content: 'First message' },
           metadata: { model: 'gpt-4', temperature: 0.5, maxTokens: 1000, tags: ['test'], category: 'coding', customData: { a: 1 } },
@@ -81,43 +84,33 @@ describe('ConversationValidation', () => {
       expectValid(schema, data);
     });
 
-    it('should invalidate if conversationId is missing', () => {
-      const data = { body: { title: 'Test' } };
-      expectInvalid(schema, data, [{ path: ['body', 'conversationId'], message: 'Conversation ID is required' }]);
-    });
-
-    it('should invalidate if conversationId is empty', () => {
-      const data = { body: { conversationId: '' } };
-      expectInvalid(schema, data, [{ path: ['body', 'conversationId'], message: 'Conversation ID cannot be empty' }]);
-    });
-
     it('should invalidate if title is too long', () => {
-      const data = { body: { conversationId: 'conv-123', title: 'a'.repeat(256) } };
+      const data = { body: { title: 'a'.repeat(256) } };
       expectInvalid(schema, data, [{ path: ['body', 'title'], message: 'Title must be less than 255 characters' }]);
     });
 
     it('should invalidate if initialMessage is invalid (e.g., missing role)', () => {
-      const data = { body: { conversationId: 'conv-123', initialMessage: { content: 'test' } } };
+      const data = { body: { initialMessage: { content: 'test' } } };
       expectInvalid(schema, data, [{ path: ['body', 'initialMessage', 'role'], message: 'Message role is required' }]);
     });
 
     it('should invalidate if metadata temperature is out of range (too high)', () => {
-      const data = { body: { conversationId: 'conv-123', metadata: { temperature: 3 } } };
+      const data = { body: { metadata: { temperature: 3 } } };
       expectInvalid(schema, data, [{ path: ['body', 'metadata', 'temperature'], message: 'Number must be less than or equal to 2' }]);
     });
 
     it('should invalidate if metadata temperature is out of range (too low)', () => {
-      const data = { body: { conversationId: 'conv-123', metadata: { temperature: -0.1 } } };
+      const data = { body: { metadata: { temperature: -0.1 } } };
       expectInvalid(schema, data, [{ path: ['body', 'metadata', 'temperature'], message: 'Number must be greater than or equal to 0' }]);
     });
 
     it('should invalidate if metadata maxTokens is not positive', () => {
-      const data = { body: { conversationId: 'conv-123', metadata: { maxTokens: 0 } } };
+      const data = { body: { metadata: { maxTokens: 0 } } };
       expectInvalid(schema, data, [{ path: ['body', 'metadata', 'maxTokens'], message: 'Number must be greater than 0' }]);
     });
 
     it('should invalidate if is_deep_search is not a boolean', () => {
-      const data = { body: { conversationId: 'conv-123', is_deep_search: 'true' } };
+      const data = { body: { is_deep_search: 'true' } };
       expectInvalid(schema, data, [{ path: ['body', 'is_deep_search'], message: 'Expected boolean, received string' }]);
     });
   });
@@ -129,7 +122,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid add message request', () => {
       const data = {
         body: { role: 'user', content: 'New message' },
-        params: { conversationId: 'conv-456' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -145,7 +138,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if message body is invalid (e.g., missing content)', () => {
       const data = {
         body: { role: 'assistant' },
-        params: { conversationId: 'conv-456' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'content'], message: 'Message content is required' }]);
     });
@@ -158,7 +151,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid update title request', () => {
       const data = {
         body: { title: 'Updated Title' },
-        params: { conversationId: 'conv-789' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -166,7 +159,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if title is missing', () => {
       const data = {
         body: {},
-        params: { conversationId: 'conv-789' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'title'], message: 'Title is required' }]);
     });
@@ -174,7 +167,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if title is empty', () => {
       const data = {
         body: { title: '' },
-        params: { conversationId: 'conv-789' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'title'], message: 'Title cannot be empty' }]);
     });
@@ -182,7 +175,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if title is too long', () => {
       const data = {
         body: { title: 'b'.repeat(256) },
-        params: { conversationId: 'conv-789' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'title'], message: 'Title must be less than 255 characters' }]);
     });
@@ -203,7 +196,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid update metadata request', () => {
       const data = {
         body: { metadata: { model: 'gpt-3.5', temperature: 1.0 } },
-        params: { conversationId: 'conv-abc' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -211,7 +204,7 @@ describe('ConversationValidation', () => {
     it('should validate with partial metadata updates', () => {
       const data = {
         body: { metadata: { tags: ['new-tag'] } },
-        params: { conversationId: 'conv-abc' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -219,7 +212,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if metadata temperature is out of range', () => {
       const data = {
         body: { metadata: { temperature: -0.5 } },
-        params: { conversationId: 'conv-abc' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'metadata', 'temperature'], message: 'Number must be greater than or equal to 0' }]);
     });
@@ -227,7 +220,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if metadata maxTokens is not positive', () => {
       const data = {
         body: { metadata: { maxTokens: -100 } },
-        params: { conversationId: 'conv-abc' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'metadata', 'maxTokens'], message: 'Number must be greater than 0' }]);
     });
@@ -246,7 +239,7 @@ describe('ConversationValidation', () => {
     const schema = ConversationValidation.conversationParamsSchema;
 
     it('should validate a valid conversation params request', () => {
-      const data = { params: { conversationId: 'conv-def' } };
+      const data = { params: { conversationId: VALID_UUID } };
       expectValid(schema, data);
     });
 
@@ -313,7 +306,7 @@ describe('ConversationValidation', () => {
 
     it('should validate a valid get conversation messages request', () => {
       const data = {
-        params: { conversationId: 'conv-ghi' },
+        params: { conversationId: VALID_UUID },
         query: { page: '1', limit: '5' },
       };
       expectValid(schema, data);
@@ -321,7 +314,7 @@ describe('ConversationValidation', () => {
 
     it('should validate with beforeDate', () => {
       const data = {
-        params: { conversationId: 'conv-ghi' },
+        params: { conversationId: VALID_UUID },
         query: { beforeDate: '2023-01-01T00:00:00.000Z' },
       };
       expectValid(schema, data);
@@ -337,7 +330,7 @@ describe('ConversationValidation', () => {
 
     it('should invalidate if page is not a number string', () => {
       const data = {
-        params: { conversationId: 'conv-ghi' },
+        params: { conversationId: VALID_UUID },
         query: { page: 'invalid' },
       };
       expectInvalid(schema, data, [{ path: ['query', 'page'], message: 'Page must be a number' }]);
@@ -345,7 +338,7 @@ describe('ConversationValidation', () => {
 
     it('should invalidate if beforeDate is not a valid datetime string', () => {
       const data = {
-        params: { conversationId: 'conv-ghi' },
+        params: { conversationId: VALID_UUID },
         query: { beforeDate: 'not-a-date' },
       };
       expectInvalid(schema, data, [{ path: ['query', 'beforeDate'], message: 'Invalid datetime' }]);
@@ -382,7 +375,7 @@ describe('ConversationValidation', () => {
     const schema = ConversationValidation.bulkOperationSchema;
 
     it('should validate a valid bulk operation request', () => {
-      const data = { body: { conversationIds: ['id1', 'id2'] } };
+      const data = { body: { conversationIds: [VALID_UUID, ANOTHER_UUID] } };
       expectValid(schema, data);
     });
 
@@ -397,7 +390,7 @@ describe('ConversationValidation', () => {
     });
 
     it('should invalidate if an item in conversationIds is not a string', () => {
-      const data = { body: { conversationIds: ['id1', 123] } };
+      const data = { body: { conversationIds: [VALID_UUID, 123] } };
       expectInvalid(schema, data, [{ path: ['body', 'conversationIds', 1], message: 'Expected string, received number' }]);
     });
   });
@@ -409,7 +402,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid add tags request', () => {
       const data = {
         body: { tags: ['tag1', 'tag2'] },
-        params: { conversationId: 'conv-jkl' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -417,7 +410,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if tags array is empty', () => {
       const data = {
         body: { tags: [] },
-        params: { conversationId: 'conv-jkl' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'tags'], message: 'At least one tag is required' }]);
     });
@@ -425,7 +418,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if a tag string is empty', () => {
       const data = {
         body: { tags: ['tag1', ''] },
-        params: { conversationId: 'conv-jkl' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'tags', 1], message: 'Tag cannot be empty' }]);
     });
@@ -503,7 +496,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid share chat request with default shareType', () => {
       const data = {
         body: {},
-        params: { conversationId: 'conv-share1' },
+        params: { conversationId: VALID_UUID },
       };
       const parsed = expectValid(schema, data);
       expect(parsed.body.shareType).toBe('public'); // Check default value
@@ -513,7 +506,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid share chat request with explicit public shareType', () => {
       const data = {
         body: { shareType: 'public', allowComments: true },
-        params: { conversationId: 'conv-share1' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -521,7 +514,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid share chat request with private shareType and expiresAt', () => {
       const data = {
         body: { shareType: 'private', expiresAt: '2024-12-31T23:59:59.000Z' },
-        params: { conversationId: 'conv-share2' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -529,7 +522,7 @@ describe('ConversationValidation', () => {
     it('should validate with expiresAt as null', () => {
       const data = {
         body: { expiresAt: null },
-        params: { conversationId: 'conv-share2' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -545,7 +538,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if shareType is invalid', () => {
       const data = {
         body: { shareType: 'invalid' },
-        params: { conversationId: 'conv-share1' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'shareType'], message: "Invalid enum value. Expected 'public' | 'private', received 'invalid'" }]);
     });
@@ -553,7 +546,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if expiresAt is not a valid datetime string', () => {
       const data = {
         body: { expiresAt: 'not-a-date' },
-        params: { conversationId: 'conv-share1' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'expiresAt'], message: 'Invalid datetime' }]);
     });
@@ -566,7 +559,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid update share settings request with one field', () => {
       const data = {
         body: { shareType: 'private' },
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -574,7 +567,7 @@ describe('ConversationValidation', () => {
     it('should validate a valid update share settings request with multiple fields', () => {
       const data = {
         body: { expiresAt: '2025-01-01T00:00:00.000Z', allowComments: true, isActive: false },
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -582,7 +575,7 @@ describe('ConversationValidation', () => {
     it('should validate with expiresAt as null', () => {
       const data = {
         body: { expiresAt: null },
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectValid(schema, data);
     });
@@ -590,7 +583,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if body is empty (no fields provided)', () => {
       const data = {
         body: {},
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body'], message: 'At least one field must be provided' }]);
     });
@@ -606,7 +599,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if shareType is invalid', () => {
       const data = {
         body: { shareType: 'invalid' },
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'shareType'], message: "Invalid enum value. Expected 'public' | 'private', received 'invalid'" }]);
     });
@@ -614,7 +607,7 @@ describe('ConversationValidation', () => {
     it('should invalidate if expiresAt is not a valid datetime string', () => {
       const data = {
         body: { expiresAt: 'not-a-date' },
-        params: { conversationId: 'conv-share3' },
+        params: { conversationId: VALID_UUID },
       };
       expectInvalid(schema, data, [{ path: ['body', 'expiresAt'], message: 'Invalid datetime' }]);
     });
@@ -625,7 +618,7 @@ describe('ConversationValidation', () => {
     const schema = ConversationValidation.getSharedChatSchema;
 
     it('should validate a valid get shared chat request', () => {
-      const data = { params: { shareId: 'share-123' } };
+      const data = { params: { shareId: VALID_SHARE_UUID } };
       expectValid(schema, data);
     });
 

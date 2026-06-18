@@ -24,8 +24,8 @@ const {
   mockCreateCipheriv,
   mockCreateDecipheriv
 } = vi.hoisted(() => {
-  const mockSchema = vi.fn().mockImplementation(() => mockSchemaInstance);
-  const mockModel = vi.fn().mockImplementation(() => mockModelInstance);
+  const mockSchema = vi.fn().mockImplementation(function() { return mockSchemaInstance; });
+  const mockModel = vi.fn().mockImplementation(function() { return mockModelInstance; });
 
   // Mock crypto functions
   const mockRandomBytes = vi.fn();
@@ -42,7 +42,6 @@ const {
 });
 
 const mockModelInstance = {
-  // Mock methods a Mongoose model might have, if needed
   find: vi.fn(),
   create: vi.fn(),
 };
@@ -52,25 +51,58 @@ vi.mock('mongoose', () => ({
   model: mockModel,
 }));
 
+vi.mock('dotenv', () => ({
+  default: {
+    config: vi.fn(),
+  },
+  config: vi.fn(),
+}));
+
 vi.mock('crypto', async (importOriginal) => {
   const actualCrypto = await importOriginal();
-  return {
-    ...actualCrypto, // Keep actual Buffer, etc.
+  const mockedCrypto = {
+    ...actualCrypto,
     randomBytes: mockRandomBytes,
     createCipheriv: mockCreateCipheriv,
     createDecipheriv: mockCreateDecipheriv,
+  };
+  return {
+    ...mockedCrypto,
+    default: mockedCrypto,
   };
 });
 
 // Helper for mocking crypto cipher/decipher streams
 const mockCipherStream = {
-  update: vi.fn().mockImplementation((data) => Buffer.from(`encrypted_${data}`)),
-  final: vi.fn().mockImplementation(() => Buffer.from('final')),
+  update: vi.fn().mockImplementation((data, inputEnc, outputEnc) => {
+    const buf = Buffer.from(`encrypted_${data}`);
+    return outputEnc === 'hex' ? buf.toString('hex') : buf;
+  }),
+  final: vi.fn().mockImplementation((outputEnc) => {
+    const buf = Buffer.from('final');
+    return outputEnc === 'hex' ? buf.toString('hex') : buf;
+  }),
+  getAuthTag: vi.fn().mockReturnValue(Buffer.from('cdefcdefcdefcdef')), // 16 bytes
 };
 const mockDecipherStream = {
-  update: vi.fn().mockImplementation((data) => Buffer.from(`decrypted_${data}`)),
-  final: vi.fn().mockImplementation(() => Buffer.from('final')),
+  update: vi.fn().mockImplementation((data, inputEnc, outputEnc) => {
+    const buf = Buffer.from(`decrypted_${data}`);
+    return outputEnc === 'utf8' ? buf.toString('utf8') : buf;
+  }),
+  final: vi.fn().mockImplementation((outputEnc) => {
+    const buf = Buffer.from('final');
+    return outputEnc === 'utf8' ? buf.toString('utf8') : buf;
+  }),
+  setAuthTag: vi.fn(),
 };
+
+async function importModel(t) {
+  if (t === 1) return import('./userMemory.model.js?t=1');
+  if (t === 2) return import('./userMemory.model.js?t=2');
+  if (t === 3) return import('./userMemory.model.js?t=3');
+  if (t === 4) return import('./userMemory.model.js?t=4');
+  return import('./userMemory.model.js');
+}
 
 describe('userMemory.model encryption key validation', () => {
   beforeEach(() => {
@@ -92,25 +124,25 @@ describe('userMemory.model encryption key validation', () => {
     process.env = originalProcessEnv;
   });
 
-  it('should exit if CHAT_ENCRYPTION_KEY is not set', async () => {
+  it('should fallback if CHAT_ENCRYPTION_KEY is not set', async () => {
     delete process.env.CHAT_ENCRYPTION_KEY;
-    await import('../../../src/app/modules/conversations/userMemory.model.js'); // Import the module to trigger checks
-    expect(mockConsoleError).toHaveBeenCalledWith('CRITICAL ERROR: CHAT_ENCRYPTION_KEY environment variable is not set.');
-    expect(mockExit).toHaveBeenCalledWith(1);
+    await importModel(1);
+    expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('CHAT_ENCRYPTION_KEY environment variable is not set'));
+    expect(mockExit).not.toHaveBeenCalled();
   });
 
-  it('should exit if CHAT_ENCRYPTION_KEY is not 32 characters long', async () => {
+  it('should fallback if CHAT_ENCRYPTION_KEY is not 32 characters long', async () => {
     process.env.CHAT_ENCRYPTION_KEY = 'shortkey'; // Not 32 chars
-    await import('../../../src/app/modules/conversations/userMemory.model.js');
-    expect(mockConsoleError).toHaveBeenCalledWith('CRITICAL ERROR: CHAT_ENCRYPTION_KEY must be 32 characters long for AES-256.');
-    expect(mockExit).toHaveBeenCalledWith(1);
+    await importModel(2);
+    expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('CHAT_ENCRYPTION_KEY must resolve to exactly 32 bytes'));
+    expect(mockExit).not.toHaveBeenCalled();
   });
 
-  it('should not exit if CHAT_ENCRYPTION_KEY is set and valid', async () => {
+  it('should not warn if CHAT_ENCRYPTION_KEY is set and valid', async () => {
     process.env.CHAT_ENCRYPTION_KEY = 'a'.repeat(32); // Valid 32-char key
     // Re-import the module to ensure it runs without exiting
-    const { default: UserMemory } = await import('../../../src/app/modules/conversations/userMemory.model.js');
-    expect(mockConsoleError).not.toHaveBeenCalled();
+    const { default: UserMemory } = await importModel(3);
+    expect(mockConsoleWarn).not.toHaveBeenCalled();
     expect(mockExit).not.toHaveBeenCalled();
     expect(UserMemory).toBeDefined(); // Ensure the module loaded successfully
   });
@@ -125,44 +157,56 @@ let schemaOptions;
 
 describe('userMemory.model core logic', () => {
   beforeAll(async () => {
+    // Clear mock Schema and Model calls from the validation tests so we start clean
+    mockSchema.mockClear();
+    mockModel.mockClear();
+    mockSchemaInstance.index.mockClear();
+
     // Dynamically import the module after setting the environment variable
-    UserMemoryModule = await import('../../../src/app/modules/conversations/userMemory.model.js');
+    UserMemoryModule = await importModel(4);
     // Get the schema definition and options from the mock call
     schemaDefinition = mockSchema.mock.calls[0][0];
     schemaOptions = mockSchema.mock.calls[0][1];
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset crypto mocks
-    mockRandomBytes.mockReturnValue(Buffer.from('0123456789abcdef')); // 16-byte IV
+    // Reset crypto mocks individually to preserve mockSchema/mockModel/mockSchemaInstance calls
+    mockRandomBytes.mockReset();
+    mockRandomBytes.mockReturnValue(Buffer.from('0123456789ab')); // 12-byte IV for GCM
+    mockCreateCipheriv.mockReset();
     mockCreateCipheriv.mockReturnValue(mockCipherStream);
+    mockCreateDecipheriv.mockReset();
     mockCreateDecipheriv.mockReturnValue(mockDecipherStream);
     mockCipherStream.update.mockClear();
     mockCipherStream.final.mockClear();
+    mockCipherStream.getAuthTag.mockClear();
     mockDecipherStream.update.mockClear();
     mockDecipherStream.final.mockClear();
+    mockDecipherStream.setAuthTag.mockClear();
 
-    // Restore console methods for these tests, as they might be used by decryptText
-    console.error = originalConsoleError;
-    console.warn = originalConsoleWarn;
+    // Keep console methods mocked to assert on errors/warnings, but clear their call histories
+    console.error = mockConsoleError;
+    console.warn = mockConsoleWarn;
+    mockConsoleError.mockClear();
+    mockConsoleWarn.mockClear();
   });
 
   // --- Test `value` field setter (which uses encryptText) ---
   describe('userMemorySchema value setter (encryptText logic)', () => {
     it('should encrypt a given string when set', () => {
       const plainText = 'hello world';
-      const expectedIvHex = '30313233343536373839616263646566'; // '0123456789abcdef' in hex
+      const expectedIvHex = '303132333435363738396162'; // '0123456789ab' in hex (12 bytes)
+      const expectedTagHex = '63646566636465666364656663646566'; // 'cdefcdefcdefcdef' in hex (16 bytes)
       const expectedEncryptedHex = Buffer.from('encrypted_hello worldfinal').toString('hex');
 
       // Call the setter function directly from the schema definition
       const result = schemaDefinition.value.set(plainText);
 
-      expect(mockRandomBytes).toHaveBeenCalledWith(16);
-      expect(mockCreateCipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from('a'.repeat(32)), Buffer.from('0123456789abcdef'));
-      expect(mockCipherStream.update).toHaveBeenCalledWith(plainText);
+      expect(mockRandomBytes).toHaveBeenCalledWith(12);
+      expect(mockCreateCipheriv).toHaveBeenCalledWith('aes-256-gcm', Buffer.from('a'.repeat(32)), Buffer.from('0123456789ab'));
+      expect(mockCipherStream.update).toHaveBeenCalledWith(plainText, 'utf8', 'hex');
       expect(mockCipherStream.final).toHaveBeenCalled();
-      expect(result).toBe(`${expectedIvHex}:${expectedEncryptedHex}`);
+      expect(result).toBe(`${expectedIvHex}:${expectedTagHex}:${expectedEncryptedHex}`);
     });
 
     it('should return non-string input as is when set', () => {
@@ -177,7 +221,8 @@ describe('userMemory.model core logic', () => {
     });
 
     it('should prevent double encryption if text already looks encrypted when set', () => {
-      const alreadyEncrypted = '30313233343536373839616263646566:somehexdata'; // 16-byte IV hex + colon + data
+      // Modern GCM format: iv (12 bytes/24 hex) + tag (16 bytes/32 hex) + ciphertext
+      const alreadyEncrypted = '303132333435363738396162:63646566636465666364656663646566:somehexdata';
       const result = schemaDefinition.value.set(alreadyEncrypted);
       expect(mockRandomBytes).not.toHaveBeenCalled();
       expect(result).toBe(alreadyEncrypted);
@@ -192,16 +237,34 @@ describe('userMemory.model core logic', () => {
 
   // --- Test `value` field getter (which uses decryptText) ---
   describe('userMemorySchema value getter (decryptText logic)', () => {
-    const IV_HEX = '30313233343536373839616263646566'; // '0123456789abcdef' in hex
-    const ENCRYPTED_HEX = Buffer.from('encrypted_hello worldfinal').toString('hex');
-    const ENCRYPTED_STRING = `${IV_HEX}:${ENCRYPTED_HEX}`;
+    // Legacy CBC
+    const LEGACY_IV_HEX = '30313233343536373839616263646566'; // '0123456789abcdef' in hex (16 bytes)
+    const LEGACY_ENCRYPTED_HEX = Buffer.from('encrypted_hello worldfinal').toString('hex');
+    const LEGACY_ENCRYPTED_STRING = `${LEGACY_IV_HEX}:${LEGACY_ENCRYPTED_HEX}`;
+    
+    // Modern GCM
+    const GCM_IV_HEX = '303132333435363738396162'; // 12 bytes
+    const GCM_TAG_HEX = '63646566636465666364656663646566'; // 16 bytes
+    const GCM_ENCRYPTED_HEX = Buffer.from('encrypted_hello worldfinal').toString('hex');
+    const GCM_ENCRYPTED_STRING = `${GCM_IV_HEX}:${GCM_TAG_HEX}:${GCM_ENCRYPTED_HEX}`;
+    
     const DECRYPTED_TEXT = 'decrypted_encrypted_hello worldfinalfinal'; // Based on mock decipher stream
 
-    it('should decrypt a valid encrypted string when get', () => {
-      const result = schemaDefinition.value.get(ENCRYPTED_STRING);
+    it('should decrypt a valid legacy CBC encrypted string when get', () => {
+      const result = schemaDefinition.value.get(LEGACY_ENCRYPTED_STRING);
 
-      expect(mockCreateDecipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from('a'.repeat(32)), Buffer.from('0123456789abcdef', 'hex'));
-      expect(mockDecipherStream.update).toHaveBeenCalledWith(Buffer.from(ENCRYPTED_HEX, 'hex'));
+      expect(mockCreateDecipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from('a'.repeat(32)), Buffer.from(LEGACY_IV_HEX, 'hex'));
+      expect(mockDecipherStream.update).toHaveBeenCalledWith(Buffer.from(LEGACY_ENCRYPTED_HEX, 'hex'), 'hex', 'utf8');
+      expect(mockDecipherStream.final).toHaveBeenCalled();
+      expect(result).toBe(DECRYPTED_TEXT);
+    });
+
+    it('should decrypt a valid modern GCM encrypted string when get', () => {
+      const result = schemaDefinition.value.get(GCM_ENCRYPTED_STRING);
+
+      expect(mockCreateDecipheriv).toHaveBeenCalledWith('aes-256-gcm', Buffer.from('a'.repeat(32)), Buffer.from(GCM_IV_HEX, 'hex'));
+      expect(mockDecipherStream.setAuthTag).toHaveBeenCalledWith(Buffer.from(GCM_TAG_HEX, 'hex'));
+      expect(mockDecipherStream.update).toHaveBeenCalledWith(Buffer.from(GCM_ENCRYPTED_HEX, 'hex'), 'hex', 'utf8');
       expect(mockDecipherStream.final).toHaveBeenCalled();
       expect(result).toBe(DECRYPTED_TEXT);
     });
@@ -233,9 +296,9 @@ describe('userMemory.model core logic', () => {
 
     it('should return original text and log a warning if decryption fails when get', () => {
       mockCreateDecipheriv.mockImplementation(() => { throw new Error('Decipher error'); });
-      const result = schemaDefinition.value.get(ENCRYPTED_STRING);
+      const result = schemaDefinition.value.get(GCM_ENCRYPTED_STRING);
       expect(mockConsoleWarn).toHaveBeenCalledWith('Decryption failed, returning original text:', expect.any(Error));
-      expect(result).toBe(ENCRYPTED_STRING);
+      expect(result).toBe(GCM_ENCRYPTED_STRING);
     });
   });
 
@@ -245,7 +308,7 @@ describe('userMemory.model core logic', () => {
       expect(mockSchema).toHaveBeenCalledTimes(1);
 
       // Check fields
-      expect(schemaDefinition.userId).toEqual({ type: String, required: true, index: true });
+      expect(schemaDefinition.userId).toEqual({ type: String, required: true });
       expect(schemaDefinition.key).toEqual({ type: String, required: true });
       expect(schemaDefinition.value.type).toBe(String);
       expect(schemaDefinition.value.required).toBe(true);

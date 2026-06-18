@@ -11,8 +11,19 @@ vi.mock('mongoose', async (importOriginal) => {
     options: {},     // To store schema options
     pre: vi.fn(),
     virtual: vi.fn(function(name, options) {
-      this.virtuals[name] = options.get; // Store virtual getter
-      return this; // Chainable
+      const self = this;
+      if (options && options.get) {
+        self.virtuals[name] = options.get;
+      }
+      return {
+        get: vi.fn(function(fn) {
+          self.virtuals[name] = fn;
+          return this;
+        }),
+        set: vi.fn(function(fn) {
+          return this;
+        }),
+      };
     }),
     methods: {}, // To store instance methods
     statics: {}, // To store static methods
@@ -35,12 +46,18 @@ vi.mock('mongoose', async (importOriginal) => {
     this.virtuals = {};
   });
 
+  mockSchemaConstructor.Types = {
+    Mixed: vi.fn(),
+    ObjectId: vi.fn(),
+  };
+
   // Mock query chain for static methods
   const mockQuery = {
     sort: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     skip: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockReturnThis(),
     exec: vi.fn().mockImplementation(() => Promise.resolve([])), // Default to resolve empty array
     then: vi.fn().mockImplementation((cb) => cb([])), // Make it thenable for direct promise resolution
   };
@@ -55,8 +72,10 @@ vi.mock('mongoose', async (importOriginal) => {
     default: {
       Schema: mockSchemaConstructor,
       model: vi.fn().mockImplementation((name, schema) => {
-        // Attach static methods from the schema to the mock model
-        Object.assign(mockModel, schema.statics);
+        // Attach static methods from the schema to the mock model if provided
+        if (schema) {
+          Object.assign(mockModel, schema.statics);
+        }
         return mockModel;
       }),
       Types: {
@@ -70,7 +89,7 @@ vi.mock('mongoose', async (importOriginal) => {
 
 vi.mock('crypto', () => {
   const IV_LENGTH = 16;
-  const MOCK_IV = Buffer.from('0123456789abcdef', 'hex'); // 16 bytes
+  const MOCK_IV = Buffer.from('0123456789abcdef0123456789abcdef', 'hex'); // 16 bytes
   const MOCK_ENCRYPTED_PREFIX = 'mock_encrypted_';
 
   return {
@@ -95,7 +114,7 @@ vi.mock('crypto', () => {
 });
 
 // Now import the module under test
-import Conversation from '../conversation.model';
+import Conversation from './conversation.model.js';
 
 // Get the mocked Schema constructor
 const MockMongooseSchema = mongoose.Schema;
@@ -109,11 +128,10 @@ describe('Conversation Model', () => {
 
   beforeEach(() => {
     process.env.CHAT_ENCRYPTION_KEY = 'testkey123456789012345678901234'; // 32 chars
-    vi.clearAllMocks();
-    // Re-initialize schema instances to clear internal state for each test
-    // This ensures that MockMongooseSchema.mock.calls and instances are fresh
-    new MockMongooseSchema(); // For MessageSchema
-    new MockMongooseSchema(); // For ConversationSchema
+    crypto.randomBytes.mockClear();
+    crypto.createCipheriv.mockClear();
+    crypto.createDecipheriv.mockClear();
+    mongoose.model.mockClear();
   });
 
   afterEach(() => {
@@ -143,7 +161,7 @@ describe('Conversation Model', () => {
     if (!text || typeof text !== 'string') return text;
     try {
       const textParts = text.split(':');
-      if (textParts.length !== 2) return text;
+      if (textParts.length !== 2 || textParts[0].length !== 32) return text;
       const iv = Buffer.from(textParts[0], 'hex');
       const encryptedText = Buffer.from(textParts[1], 'hex');
       const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(getEncryptionKey()), iv);
@@ -162,7 +180,7 @@ describe('Conversation Model', () => {
       const expectedEncryptedHex = MOCK_ENCRYPTED_PREFIX_HEX + Buffer.from(text).toString('hex');
       expect(encrypted).toBe(`${MOCK_IV_HEX}:${expectedEncryptedHex}`);
       expect(crypto.randomBytes).toHaveBeenCalledWith(IV_LENGTH);
-      expect(crypto.createCipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from(getEncryptionKey()), Buffer.from('0123456789abcdef', 'hex'));
+      expect(crypto.createCipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from(getEncryptionKey()), Buffer.from('0123456789abcdef0123456789abcdef', 'hex'));
     });
 
     it('should decrypt text correctly', () => {
@@ -170,7 +188,7 @@ describe('Conversation Model', () => {
       const encryptedText = `${MOCK_IV_HEX}:${MOCK_ENCRYPTED_PREFIX_HEX}${Buffer.from(originalText).toString('hex')}`;
       const decrypted = testDecryptText(encryptedText);
       expect(decrypted).toBe(originalText);
-      expect(crypto.createDecipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from(getEncryptionKey()), Buffer.from('0123456789abcdef', 'hex'));
+      expect(crypto.createDecipheriv).toHaveBeenCalledWith('aes-256-cbc', Buffer.from(getEncryptionKey()), Buffer.from('0123456789abcdef0123456789abcdef', 'hex'));
     });
 
     it('should return original text if encryption fails', () => {
@@ -445,12 +463,9 @@ describe('Conversation Model', () => {
     });
 
     it('should define indexes', () => {
-      // Total indexes: 4 from field definitions + 13 explicit calls = 17
-      // However, the mock `index` method is called for each `index: true` in the schema definition
-      // and then again for explicit `ConversationSchema.index` calls.
-      // Let's count the explicit calls only, as field-level indexes are implicitly handled by Mongoose.
-      // The explicit calls are 13.
-      expect(conversationSchemaInstance.index).toHaveBeenCalledTimes(13);
+      // Total indexes: 4 from field definitions + 16 explicit calls = 20
+      // Let's count the explicit calls only, which is 16.
+      expect(conversationSchemaInstance.index).toHaveBeenCalledTimes(16);
 
       // Custom indexes
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, userId: 1, createdAt: -1 });
@@ -460,6 +475,8 @@ describe('Conversation Model', () => {
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, 'metadata.category': 1 });
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, lastActivity: -1 });
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, userId: 1, is_deep_search: 1 });
+      expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, userId: 1, status: 1, lastActivity: -1 });
+      expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, status: 1, lastActivity: -1 });
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, createdAt: -1 });
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, status: 1 });
       expect(conversationSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, knowledgebaseId: 1 });
@@ -518,7 +535,7 @@ describe('Conversation Model', () => {
     });
 
     it('should define a virtual for url', () => {
-      expect(conversationSchemaInstance.virtual).toHaveBeenCalledWith('url', expect.any(Object));
+      expect(conversationSchemaInstance.virtual).toHaveBeenCalledWith('url');
       expect(conversationSchemaInstance.virtuals.url).toBeInstanceOf(Function);
     });
 
@@ -634,6 +651,7 @@ describe('Conversation Model', () => {
         limit: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockReturnThis(),
         exec: vi.fn().mockImplementation(() => Promise.resolve([])),
         then: vi.fn().mockImplementation((cb) => cb([])),
       };

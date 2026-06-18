@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { captureException } from '../../../shared/sentry.js';
 import { withTenantFilter, withTenantContext } from '../../helpers/tenantQuery.js';
+import { decryptConversation } from '../conversations/conversation.helpers.js';
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -397,9 +398,10 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
             tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query,
             { messages: { $slice: -6 } } // Last 3 exchanges (user+assistant each)
           ).lean();
-          if (conversation?.messages?.length > 0) {
+          const decryptedConversation = decryptConversation(conversation);
+          if (decryptedConversation?.messages?.length > 0) {
             conversationContext = '\n\nRecent conversation context:\n' +
-              conversation.messages
+              decryptedConversation.messages
                 .map(m => `${m.role}: ${(m.content || '').substring(0, 200)}`)
                 .join('\n');
           }

@@ -1,9 +1,9 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
-import Conversation from './conversation.model.js';
+import Conversation, { decryptText } from './conversation.model.js';
 import ChatShare from './chatShare.model.js';
-import { conversationHelpers } from './conversation.helpers.js';
+import { conversationHelpers, decryptConversation } from './conversation.helpers.js';
 import mongoose from 'mongoose';
 import {
   withTenantContext,
@@ -741,6 +741,8 @@ const getSharedChatConversation = async (shareId, req = null) => {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
+    const decryptedConversation = decryptConversation(conversation);
+
     // Increment view count
     await chatShare.incrementViewCount();
 
@@ -749,16 +751,16 @@ const getSharedChatConversation = async (shareId, req = null) => {
     return {
       shareId: chatShare.shareId,
       conversation: {
-        conversationId: conversation.conversationId,
-        title: conversation.title,
-        messages: conversation.messages,
-        messageCount: conversation.messageCount,
-        lastActivity: conversation.lastActivity,
-        createdAt: conversation.createdAt,
-        metadata: conversation.metadata,
+        conversationId: decryptedConversation.conversationId,
+        title: decryptedConversation.title,
+        messages: decryptedConversation.messages,
+        messageCount: decryptedConversation.messageCount,
+        lastActivity: decryptedConversation.lastActivity,
+        createdAt: decryptedConversation.createdAt,
+        metadata: decryptedConversation.metadata,
       },
       owner: {
-        username: conversation.userId?.username || 'Anonymous', // Use optional chaining as userId might be null or undefined if not found.
+        username: decryptedConversation.userId?.username || 'Anonymous', // Use optional chaining as userId might be null or undefined if not found.
       },
       shareSettings: {
         shareType: chatShare.shareType,
@@ -933,10 +935,10 @@ const getUserSharedChats = async (queryData, req = null) => {
         // Assuming share.conversationId is already populated and is a lean object
         // or a Mongoose document that can be accessed directly.
         conversation: {
-          conversationId: share.conversationId.conversationId,
-          title: share.conversationId.title,
-          messageCount: share.conversationId.messageCount,
-          lastActivity: share.conversationId.lastActivity,
+          conversationId: share.conversationId?.conversationId,
+          title: share.conversationId ? decryptText(share.conversationId.title) : '',
+          messageCount: share.conversationId?.messageCount,
+          lastActivity: share.conversationId?.lastActivity,
         },
         shareType: share.shareType,
         allowComments: share.allowComments,

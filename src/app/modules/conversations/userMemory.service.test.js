@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { userMemoryService } from './userMemory.service.js';
 import UserMemory from './userMemory.model.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import { logger } from '../../../shared/logger.js';
 
 // Mock dependencies
@@ -26,10 +26,12 @@ const {
   };
 });
 
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
-  })),
+vi.mock('@google-cloud/vertexai', () => ({
+  VertexAI: vi.fn().mockImplementation(function() {
+    return {
+      getGenerativeModel: mockGetGenerativeModel,
+    };
+  }),
 }));
 
 vi.mock('../../../../config/index.js', () => ({
@@ -100,6 +102,7 @@ describe('userMemory.service', () => {
   describe('asyncExtractFacts', () => {
     beforeEach(() => {
       vi.useFakeTimers();
+      vi.spyOn(global, 'setTimeout');
     });
 
     afterEach(() => {

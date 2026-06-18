@@ -1,6 +1,11 @@
 import { Schema, model } from 'mongoose';
 import crypto from 'crypto';
 import xss from 'xss'; // --- SECURITY PATCH: Import XSS sanitization library ---
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Synchronously load environment variables from .env file to prevent race conditions during module imports
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 // --- SECURITY FIX: Ensure encryption key is provided and valid ---
 

@@ -1,5 +1,10 @@
 import { Schema, model } from 'mongoose';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Synchronously load environment variables from .env file to prevent race conditions during module imports
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 /**
  * The encryption key used for encrypting sensitive conversation summary data.
@@ -71,7 +76,7 @@ function encryptText(text) {
  * @returns {string | null} The decrypted plain text string, the original text if it's not in the expected encrypted format,
  *                          or null if decryption fails.
  */
-function decryptText(text) {
+export function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
   
   const textParts = text.split(':');
@@ -86,11 +91,8 @@ function decryptText(text) {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (err) {
-    // BUG FIX: Return null on decryption failure to prevent propagating corrupted/unreadable data.
-    // The original behavior of returning the encrypted blob can hide critical errors (e.g., wrong key)
-    // and cause unexpected behavior in the frontend. Null is a clearer signal of data unavailability.
-    console.error('Decryption failed:', err);
-    return null;
+    console.warn('Decryption failed for a value, returning original text. This may be expected for unencrypted legacy data.');
+    return text;
   }
 }
 

@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 import { Schema } from 'mongoose';
 import crypto from 'crypto';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Synchronously load environment variables from .env file to prevent race conditions during module imports
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 /**
  * Initialization vector length for AES-256-CBC encryption.
@@ -11,17 +16,16 @@ const IV_LENGTH = 16;
 
 /**
  * Encryption key buffer used for securing message content and conversation titles.
- * This is initialized asynchronously at module load time from a secure source.
+ * This is initialized synchronously at module load time from a secure source.
  * @type {Buffer}
  */
 let ENCRYPTION_KEY_BUF;
 
-// Asynchronously initialize the encryption key from environment variables or GCP Secret Manager.
-// This self-invoking async function ensures the key is loaded when the module is imported.
-// The application will exit if a secure key cannot be configured, preventing insecure operation.
-(async () => {
+// Synchronously initialize the encryption key from environment variables or default to fallback.
+// In production, if the key is not in environment variables, it fetches asynchronously from GCP Secret Manager.
+(() => {
   try {
-    // Priority 1: Use key injected directly into the environment (e.g., by Cloud Run).
+    // Priority 1: Use key injected directly into the environment (e.g., by Cloud Run / dotenv).
     if (process.env.CHAT_ENCRYPTION_KEY) {
       ENCRYPTION_KEY_BUF = Buffer.from(process.env.CHAT_ENCRYPTION_KEY);
       console.log('Chat encryption key initialized from CHAT_ENCRYPTION_KEY environment variable.');
@@ -33,19 +37,25 @@ let ENCRYPTION_KEY_BUF;
       const secretName = process.env.GCP_CHAT_ENCRYPTION_KEY_SECRET;
 
       if (secretName) {
-        try {
-          const client = new SecretManagerServiceClient();
-          const [version] = await client.accessSecretVersion({ name: secretName });
-          const payload = version.payload.data.toString().trim();
+        // Fallback to async fetch in background for Secret Manager.
+        (async () => {
+          try {
+            const client = new SecretManagerServiceClient();
+            const [version] = await client.accessSecretVersion({ name: secretName });
+            const payload = version.payload.data.toString().trim();
 
-          if (payload) {
-            ENCRYPTION_KEY_BUF = Buffer.from(payload);
-            console.log('Chat encryption key initialized successfully from GCP Secret Manager.');
-            return;
+            if (payload) {
+              ENCRYPTION_KEY_BUF = Buffer.from(payload);
+              console.log('Chat encryption key initialized successfully from GCP Secret Manager.');
+            }
+          } catch (gcpErr) {
+            console.warn('Warning: Failed to fetch encryption key from GCP Secret Manager:', gcpErr.message);
+            if (!ENCRYPTION_KEY_BUF) {
+              ENCRYPTION_KEY_BUF = Buffer.from('development-key-32-characters-!!');
+            }
           }
-        } catch (gcpErr) {
-          console.warn('Warning: Failed to fetch encryption key from GCP Secret Manager:', gcpErr.message);
-        }
+        })();
+        return;
       }
 
       // Fallback: production without GCP secret (e.g., VM deployment)
@@ -387,7 +397,8 @@ ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
     .limit(limit)
     .skip(skip)
     .select('-messages') // Exclude messages for list view
-    .lean({ getters: true });
+    .lean({ getters: true })
+    .exec();
 };
 
 /**
@@ -410,7 +421,7 @@ ConversationSchema.statics.findByConversationId = function (
   // Optimization: Use .lean({ getters: true }) to return a plain JavaScript object instead of a full Mongoose document.
   // This significantly improves performance for read-only operations, especially for large documents with many messages,
   // while ensuring encrypted fields are still decrypted via schema getters.
-  return this.findOne(query).lean({ getters: true });
+  return this.findOne(query).lean({ getters: true }).exec();
 };
 
 /**
