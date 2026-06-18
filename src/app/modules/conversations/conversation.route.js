@@ -349,12 +349,14 @@ router
  *       - auth(ADMIN, USER)
  *       - extractTenantContext
  */
+
 router.route('/search').get(
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
   // validateRequest(ConversationValidation.searchConversationsSchema), // This validation is commented out in the original code
   conversationController.searchConversations
 );
+
 
 /**
  * @swagger

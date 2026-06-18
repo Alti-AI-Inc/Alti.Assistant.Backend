@@ -175,9 +175,9 @@ app.use(
 );
 app.disable('etag');
 
-// Prevent DOS attacks with toobusy — active in all environments
+// Prevent DOS attacks with toobusy — active in production environments
 app.use((req, res, next) => {
-  if (toobusy()) {
+  if (config.env !== 'development' && config.env !== 'test' && toobusy()) {
     res.status(503).json({
       success: false,
       message: 'Server is under heavy load. Please try again shortly.',

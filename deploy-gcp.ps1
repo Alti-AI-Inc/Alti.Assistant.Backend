@@ -2,9 +2,7 @@
 # Usage: .\deploy-gcp.ps1 -ProjectId "your-project-id"
 
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$ProjectId = "alti-assistant-prod",
-    
+    [string]$ProjectId = "gen-lang-client-0273900650",
     [string]$Region = "us-central1",
     [string]$ServiceName = "alti-assistant-backend",
     [string]$Memory = "8Gi",
@@ -60,25 +58,28 @@ Write-Host ""
 Write-Host "Configuring Docker authentication..." -ForegroundColor Yellow
 gcloud auth configure-docker "$Region-docker.pkg.dev"
 
-# Build the Docker image
+# Build the Docker image using GCP Cloud Build with layer caching
 $ImageTag = "${Region}-docker.pkg.dev/${ProjectId}/alti-assistant-core-backend-repo/${ServiceName}:latest"
 Write-Host ""
-Write-Host "Building Docker image: $ImageTag" -ForegroundColor Yellow
-docker build -t $ImageTag .
+Write-Host "Building Docker image via Cloud Build with caching: $ImageTag" -ForegroundColor Yellow
+gcloud builds submit --config cloudbuild-build.yaml --substitutions=_IMAGE_TAG=$ImageTag .
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Docker build failed!" -ForegroundColor Red
+    Write-Host "Cloud Build failed!" -ForegroundColor Red
     exit 1
 }
 
-# Push the image to Artifact Registry
-Write-Host ""
-Write-Host "Pushing image to Artifact Registry..." -ForegroundColor Yellow
-docker push $ImageTag
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Docker push failed!" -ForegroundColor Red
-    exit 1
+# Check VPC Connector
+$VpcFlag = "--clear-vpc-connector"
+if ($VpcConnector) {
+    Write-Host "Checking VPC Connector: $VpcConnector..." -ForegroundColor Yellow
+    $null = gcloud compute networks vpc-access connectors describe $VpcConnector --region=$Region --project=$ProjectId --quiet 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "VPC Connector '$VpcConnector' found. Routing traffic privately." -ForegroundColor Green
+        $VpcFlag = "--vpc-connector=$VpcConnector"
+    } else {
+        Write-Host "VPC Connector '$VpcConnector' not found or API not enabled. Routing publicly." -ForegroundColor Yellow
+    }
 }
 
 # Deploy to Cloud Run
@@ -98,8 +99,8 @@ gcloud run deploy $ServiceName `
     --cpu-boost `
     --no-cpu-throttling `
     --execution-environment gen2 `
-    --vpc-connector $VpcConnector `
-    --env-vars-file $EnvFile
+    --env-vars-file $EnvFile `
+    $VpcFlag
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

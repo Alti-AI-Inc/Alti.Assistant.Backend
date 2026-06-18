@@ -40,7 +40,6 @@ COPY --from=builder /app/alti-core-service/package.json ./
 # alti_gcp.json excluded from image — mount at runtime via secret volume
 COPY --from=builder /app/alti-core-service/imagegen.json ./
 # env.yaml is gitignored (secrets); Cloud Run injects vars via --set-env-vars/--set-secrets
-COPY --from=builder /app/alti-core-service/env.yam[l] ./
 COPY --from=builder /app/alti-core-service/preload.cjs ./
 
 # Create necessary directories

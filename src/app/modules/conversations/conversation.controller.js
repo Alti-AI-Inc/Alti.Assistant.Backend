@@ -2726,7 +2726,7 @@ const revokeChatShare = catchAsync(async (req, res) => {
  * @property {Function} renameChatConversation - Controller for renaming a chat conversation.
  * @property {Function} saveChatConversation - Controller for saving/unsaving a chat conversation.
  * @property {Function} getAllSavedConversations - Controller for getting all saved conversations.
- */
+ */
 export const conversationController = {
   createConversation,
   getUserConversations,

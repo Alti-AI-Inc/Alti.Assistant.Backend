@@ -9,8 +9,13 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 // This runs once at startup and sanitizes every env var before any code reads them.
 const BOM = '\uFEFF';
 for (const key of Object.keys(process.env)) {
-  if (typeof process.env[key] === 'string' && process.env[key].startsWith(BOM)) {
-    process.env[key] = process.env[key].replace(/^\uFEFF+/, '');
+  if (typeof process.env[key] === 'string') {
+    let val = process.env[key];
+    if (val.startsWith(BOM)) {
+      val = val.replace(/^\uFEFF+/, '');
+    }
+    // Strip trailing carriage returns, newlines, and trailing spaces from secrets
+    process.env[key] = val.replace(/[\r\n]+$/, '').trim();
   }
 }
 export default {

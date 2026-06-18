@@ -235,10 +235,9 @@ export const checkAndSummarizeIfNeeded = async (workspaceId, conversationId, use
   try {
     // Optimization: Use .lean() as the conversation document is only read from, not modified.
     // Indexing Recommendation: Ensure a compound index on { conversationId, userId } exists on the Conversation model for efficient lookups.
-    const conversation = await Conversation.findByConversationId(
-      conversationId,
-      userId
-    ).lean();
+    const conversation = decryptConversation(
+      await Conversation.findByConversationId(conversationId, userId).lean()
+    );
     if (
       !conversation ||
       !conversation.messages ||

@@ -9,6 +9,7 @@ import {
 import { ClaudeService } from './services/claudeService.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from '../conversations/conversation.model.js';
+import { decryptConversation } from '../conversations/conversation.helpers.js';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from './utils/videoUtils.js';
@@ -49,8 +50,9 @@ export const runIntelligentSearch = async (state, stream = false) => {
       // Otherwise, fetch from database if conversationId is provided
       const conversation = await Conversation.findOne({
         conversationId: state.conversationId,
-      });
-      conversationContext = conversation ? conversation.messages : [];
+      }).lean();
+      const decryptedConv = decryptConversation(conversation);
+      conversationContext = decryptedConv ? decryptedConv.messages : [];
     } else {
       // No conversationId and no context provided - start fresh
       conversationContext = [];

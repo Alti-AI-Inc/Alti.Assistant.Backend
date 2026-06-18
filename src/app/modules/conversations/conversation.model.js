@@ -418,10 +418,7 @@ ConversationSchema.statics.findByConversationId = function (
   if (userId) {
     query.userId = userId;
   }
-  // Optimization: Use .lean({ getters: true }) to return a plain JavaScript object instead of a full Mongoose document.
-  // This significantly improves performance for read-only operations, especially for large documents with many messages,
-  // while ensuring encrypted fields are still decrypted via schema getters.
-  return this.findOne(query).lean({ getters: true }).exec();
+  return this.findOne(query);
 };
 
 /**

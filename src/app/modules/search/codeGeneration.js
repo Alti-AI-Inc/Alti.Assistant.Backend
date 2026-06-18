@@ -2,6 +2,7 @@
 import { prepareConversationContext } from './utils/historyManager.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from '../conversations/conversation.model.js';
+import { decryptConversation } from '../conversations/conversation.helpers.js';
 
 /**
  * Dedicated code generation function using Claude Sonnet 4.5.
@@ -60,8 +61,9 @@ export const runCodeGeneration = async (state, stream = false) => {
       })
         .select('messages conversationSummary')
         .lean();
-      conversationContext = conversation?.messages || [];
-      existingSummary = conversation?.conversationSummary || existingSummary;
+      const decryptedConv = decryptConversation(conversation);
+      conversationContext = decryptedConv?.messages || [];
+      existingSummary = decryptedConv?.conversationSummary || existingSummary;
     } else {
       conversationContext = [];
     }

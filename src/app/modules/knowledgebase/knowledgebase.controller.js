@@ -7,6 +7,7 @@ import { knowledgebaseService } from './knowledgebase.service.js';
 import UserUsageModel from '../usage/userUsage.model.js';
 import path from 'path';
 import Conversation from '../conversations/conversation.model.js';
+import { decryptConversation } from '../conversations/conversation.helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -840,12 +841,14 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
       .limit(50)
       .lean(); // Added .lean()
 
+    const decryptedConversations = conversations.map(decryptConversation);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Conversations retrieved successfully',
       data: {
-        conversations,
+        conversations: decryptedConversations,
         totalCount: conversations.length,
         knowledgebaseId: knowledgebaseId,
         knowledgebaseName: knowledgeBase.name,
@@ -1052,20 +1055,22 @@ const getConversationMessages = catchAsync(async (req, res) => {
       });
     }
 
+    const decryptedConv = decryptConversation(conversation);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Conversation messages retrieved successfully',
       data: {
-        conversationId: conversation.conversationId,
-        title: conversation.title,
-        knowledgebaseId: conversation.knowledgebaseId?._id,
-        knowledgebaseName: conversation.knowledgebaseId?.name,
-        messages: conversation.messages,
-        messageCount: conversation.messageCount,
-        lastActivity: conversation.lastActivity,
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt,
+        conversationId: decryptedConv.conversationId,
+        title: decryptedConv.title,
+        knowledgebaseId: decryptedConv.knowledgebaseId?._id,
+        knowledgebaseName: decryptedConv.knowledgebaseId?.name,
+        messages: decryptedConv.messages,
+        messageCount: decryptedConv.messageCount,
+        lastActivity: decryptedConv.lastActivity,
+        createdAt: decryptedConv.createdAt,
+        updatedAt: decryptedConv.updatedAt,
       },
     });
   } catch (error) {

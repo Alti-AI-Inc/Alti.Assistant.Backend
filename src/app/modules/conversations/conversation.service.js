@@ -5,6 +5,7 @@ import Conversation, { decryptText } from './conversation.model.js';
 import ChatShare from './chatShare.model.js';
 import { conversationHelpers, decryptConversation } from './conversation.helpers.js';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import {
   withTenantContext,
   withTenantFilter,
@@ -56,10 +57,11 @@ const createConversation = async (
     } = conversationData;
     console.log('Creating conversation with data:', conversationData);
 
-    // Generate unique conversation ID
+    // Generate unique conversation ID if not provided
+    const finalConversationId = conversationId || crypto.randomUUID();
 
     const conversationPayload = {
-      conversationId,
+      conversationId: finalConversationId,
       userId,
       title,
       metadata,
@@ -83,7 +85,7 @@ const createConversation = async (
 
     await conversation.save();
 
-    logger.info(`Conversation created: ${conversationId} for user: ${userId}`);
+    logger.info(`Conversation created: ${finalConversationId} for user: ${userId}`);
 
     return {
       conversationId: conversation.conversationId,
