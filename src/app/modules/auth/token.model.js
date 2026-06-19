@@ -122,6 +122,12 @@ TokenSchema.pre('save', async function (next) {
     return next();
   }
 
+  // Do not hash short-lived 6-digit OTP email verification tokens
+  // to allow direct O(1) indexed lookups by token value.
+  if (this.type === 'emailVerification') {
+    return next();
+  }
+
   try {
     // Hash the token with a salt round of 12, a strong and recommended value.
     const salt = await bcrypt.genSalt(12);
@@ -135,6 +141,9 @@ TokenSchema.pre('save', async function (next) {
 // Security Patch: Add an instance method to compare a candidate token with the hashed token in the database.
 // This allows for secure verification without ever storing the plaintext token.
 TokenSchema.methods.compareToken = async function (candidateToken) {
+  if (this.type === 'emailVerification') {
+    return candidateToken === this.token;
+  }
   return bcrypt.compare(candidateToken, this.token);
 };
 
