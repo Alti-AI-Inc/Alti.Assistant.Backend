@@ -131,10 +131,29 @@ export function decryptText(text) {
     }
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUF, iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+
+    try {
+      // Try decrypting with main configured key first
+      const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUF, iv);
+      let decrypted = decipher.update(encryptedText);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return decrypted.toString();
+    } catch (mainErr) {
+      // If main key fails, try fallback key (if main key is not already the fallback)
+      const fallbackKey = 'development-key-32-characters-!!';
+      if (process.env.CHAT_ENCRYPTION_KEY !== fallbackKey) {
+        try {
+          const fallbackBuf = Buffer.from(fallbackKey);
+          const decipher = crypto.createDecipheriv('aes-256-cbc', fallbackBuf, iv);
+          let decrypted = decipher.update(encryptedText);
+          decrypted = Buffer.concat([decrypted, decipher.final()]);
+          return decrypted.toString();
+        } catch (fallbackErr) {
+          // Both failed, throw the original error to enter final catch
+        }
+      }
+      throw mainErr;
+    }
   } catch (err) {
     // If decryption fails, it might be unencrypted legacy data or a key mismatch.
     // Returning the original text is a safe fallback to avoid crashing on invalid data.

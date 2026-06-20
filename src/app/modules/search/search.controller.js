@@ -21,7 +21,7 @@ export const performSearch = catchAsync(async (req, res) => {
   let userId = isGuest
     ? searchService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
-  const { message, conversationId, deepSearch, timezone, localDate, localTime } = req.body;
+  const { message, conversationId, deepSearch, timezone, localDate, localTime, category } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
 
   if (!message) {
@@ -57,7 +57,8 @@ export const performSearch = catchAsync(async (req, res) => {
       conversationId,
       message,
       isGuest,
-      req
+      req,
+      category
     );
     const actualConversationId = conversation.conversationId || thread_id;
 

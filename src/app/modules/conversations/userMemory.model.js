@@ -173,11 +173,28 @@ export function decryptText(text) {
         return text;
       }
 
-      const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY_BUFFER, iv);
-      decipher.setAuthTag(authTag);
-      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      return decrypted;
+      try {
+        const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY_BUFFER, iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+      } catch (mainErr) {
+        const fallbackKey = 'development-key-32-characters-!!';
+        if (ENCRYPTION_KEY !== fallbackKey) {
+          try {
+            const fallbackBuf = Buffer.from(fallbackKey, 'utf-8');
+            const decipher = crypto.createDecipheriv('aes-256-gcm', fallbackBuf, iv);
+            decipher.setAuthTag(authTag);
+            let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+          } catch (fallbackErr) {
+            // Both failed, throw original error to enter final catch
+          }
+        }
+        throw mainErr;
+      }
     }
     
     // Decrypt legacy CBC format
@@ -189,10 +206,26 @@ export function decryptText(text) {
         return text;
       }
 
-      const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUFFER, iv);
-      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      return decrypted;
+      try {
+        const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY_BUFFER, iv);
+        let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+      } catch (mainErr) {
+        const fallbackKey = 'development-key-32-characters-!!';
+        if (ENCRYPTION_KEY !== fallbackKey) {
+          try {
+            const fallbackBuf = Buffer.from(fallbackKey, 'utf-8');
+            const decipher = crypto.createDecipheriv('aes-256-cbc', fallbackBuf, iv);
+            let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+          } catch (fallbackErr) {
+            // Both failed, throw original error to enter final catch
+          }
+        }
+        throw mainErr;
+      }
     }
     
     return text;

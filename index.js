@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+// Load environment variables immediately on boot before any other modules are imported
+dotenv.config();
+
 import dns from 'dns';
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -7,7 +11,6 @@ try {
 
 import compression from 'compression';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 require('buffer').SlowBuffer = require('buffer').Buffer;
@@ -60,8 +63,7 @@ import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
 import { initSentry, captureException, flushSentry } from './src/shared/sentry.js';
 import { RedisClient } from './src/shared/redis.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (already loaded at entrypoint top)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STARTUP ENV VALIDATION — fail fast if critical config is missing

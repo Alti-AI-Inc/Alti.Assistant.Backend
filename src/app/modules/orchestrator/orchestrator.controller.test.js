@@ -72,6 +72,7 @@ describe('orchestratorController', () => {
         mockSessionId,
         mockUserId,
         mockConversationId,
+        undefined,
         undefined
       );
 
@@ -108,6 +109,7 @@ describe('orchestratorController', () => {
         mockSessionId,
         mockUserId,
         mockConversationId,
+        undefined,
         undefined
       );
 
@@ -144,6 +146,7 @@ describe('orchestratorController', () => {
         mockSessionId,
         mockUserId,
         mockConversationId,
+        undefined,
         undefined
       );
 
@@ -177,6 +180,7 @@ describe('orchestratorController', () => {
         undefined, // Expect undefined for missing sessionId
         mockUserId,
         undefined,  // Expect undefined for missing conversationId
+        undefined,
         undefined
       );
 
@@ -238,6 +242,7 @@ describe('orchestratorController', () => {
         mockSessionId,
         mockUserId,
         mockConversationId,
+        undefined,
         undefined
       );
 

@@ -219,6 +219,52 @@ describe('conversationHelpers', () => {
       );
     });
 
+    it('should apply special category search filter matching search, null, or undefined', async () => {
+      mockMongooseQuery.exec.mockResolvedValue([mockConversations[0]]);
+      Conversation.countDocuments.mockResolvedValue(1);
+
+      const options = { category: 'search' };
+      await conversationHelpers.getUserConversations('user1', options);
+
+      expect(Conversation.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user1',
+          status: 'active',
+          $or: [
+            { 'metadata.category': 'search' },
+            { 'metadata.category': null },
+            { 'metadata.category': { $exists: false } }
+          ],
+        })
+      );
+    });
+
+    it('should apply $and when both search and category are provided', async () => {
+      mockMongooseQuery.exec.mockResolvedValue([mockConversations[0]]);
+      Conversation.countDocuments.mockResolvedValue(1);
+
+      const options = { search: 'Conv 1', category: 'work' };
+      await conversationHelpers.getUserConversations('user1', options);
+
+      expect(Conversation.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user1',
+          status: 'active',
+          $and: [
+            {
+              $or: [
+                { title: { $regex: 'Conv 1', $options: 'i' } },
+                { 'metadata.tags': { $in: [new RegExp('Conv 1', 'i')] } }
+              ]
+            },
+            {
+              'metadata.category': 'work'
+            }
+          ]
+        })
+      );
+    });
+
     it('should apply tenant filtering', async () => {
       const req = { user: { currentTenantId: 'tenant1' } };
       mockMongooseQuery.exec.mockResolvedValue(mockConversations);

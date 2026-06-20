@@ -12,7 +12,7 @@ import { platformAdminService } from './platformAdmin.service.js';
 // ===================================================================================
 
 const routePrompt = catchAsync(async (req, res) => {
-  const { message, prompt, sessionId, conversationId } = req.body;
+  const { message, prompt, sessionId, conversationId, category } = req.body;
   const userPrompt = message || prompt;
   // Safely access user ID from the authenticated user object, using optional chaining.
   const userId = req.user?.id || req.user?._id || req.user?.userId;
@@ -26,6 +26,7 @@ const routePrompt = catchAsync(async (req, res) => {
     effectiveUserId,
     sessionId,
     conversationId,
+    category,
     promptLength: userPrompt?.length || 0,
     isImpersonating: !!(req.user?.role === 'PLATFORM_OWNER' && req.body.impersonatedUserId),
   });
@@ -60,7 +61,7 @@ const routePrompt = catchAsync(async (req, res) => {
   }
 
   const tenantId = req.headers?.['x-tenant-id'] || req.headers?.['x-workspace-id'] || req.query?.tenantId || req.query?.workspaceId;
-  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, effectiveUserId, conversationId, tenantId);
+  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, effectiveUserId, conversationId, tenantId, category);
 
   logger.info('Prompt successfully routed and processed', {
     severity: 'INFO',

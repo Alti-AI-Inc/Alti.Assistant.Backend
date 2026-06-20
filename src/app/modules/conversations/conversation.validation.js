@@ -259,7 +259,7 @@ const getUserConversationsSchema = z.object({
     // SECURITY PATCH: Add a maximum length to search queries to prevent resource exhaustion.
     search: z.string().max(200, 'Search query must be 200 characters or less').optional(),
     // SECURITY PATCH: Add a maximum length to category filter.
-    category: z.string().max(100, 'Category must be 100 characters or less').optional(),
+    category: z.string().max(500, 'Category list must be 500 characters or less').optional(),
     // BUG FIX: Coerce string query parameters to booleans for proper type handling downstream.
     is_deep_search: queryDeepSearchSchema,
   }),

@@ -102,7 +102,7 @@ const VALID_MODULES = Object.keys(MODULE_REGISTRY);
  * @type {string}
  */
 const ORCHESTRATOR_SYSTEM_PROMPT = `You are the Master Orchestrator (Synapse) for the Alti Assistant platform.
-Your ONLY job is to classify the user's prompt into one of the supported backend modules and extract the required parameters.
+Your job is to analyze the user's prompt, classify it into one of the supported modules, judge its complexity, select the appropriate model tier and required data sources, and extract query parameters.
 
 Supported Modules:
 ${VALID_MODULES.map((name, i) => `${i + 1}. "${name}" - ${MODULE_REGISTRY[name].description}`).join('\n')}
@@ -116,10 +116,23 @@ Classification Rules:
 - "creative_writing" is for fiction/poetry/scripts. "article_writer" is for non-fiction/blog content. "document_drafting" is for formal business documents.
 - Default to "general_chat" if the intent is ambiguous or purely conversational.
 
+Complexity & Model Tier Rules:
+- "complexity" must be "simple" (greetings, simple factual questions, brief Q&A, basic computations) or "complex" (coding, writing formal documents, creative writing, detailed project planning, document summaries, deep analytical research).
+- "model_tier" must be "fast" (greetings, basic Q&A, simple lookup tasks) or "pro" (coding, deep analysis, legal/contract reviews, multi-step generation). Generally, route "simple" complexity to "fast" tier and "complex" complexity to "pro" tier.
+
+Data Source Rules:
+- "data_sources" is an array containing:
+  - "web_search" if the query requires real-time information or web-based grounding.
+  - "knowledge_base" if the query requires parsing uploaded files or documents.
+  - Keep the array empty [] if no external data sources are required.
+
 You MUST respond strictly with valid JSON matching this schema:
 {
   "target_module": "string (must be one of the exact module names above)",
   "confidence": number (0.0 to 1.0, how confident you are in the classification),
+  "complexity": "string (simple or complex)",
+  "model_tier": "string (fast or pro)",
+  "data_sources": ["string (web_search, knowledge_base)"],
   "parameters": {
     "query": "The optimized or extracted search/generation query string",
     "require_search": boolean
@@ -152,7 +165,7 @@ const matchesPattern = (text, patterns) => {
  * @param {string} prompt The user's input prompt.
  * @returns {{target_module: string, confidence: number, parameters: {query: string, require_search?: boolean}}} The classification result.
  */
-const localClassifyIntent = (prompt) => {
+const localClassifyIntentRaw = (prompt) => {
   const p = prompt.toLowerCase();
 
   // Connected apps / automations — highest specificity first
@@ -307,6 +320,41 @@ const localClassifyIntent = (prompt) => {
   return { target_module: 'general_chat', confidence: 0.5, parameters: { query: prompt } };
 };
 
+const localClassifyIntent = (prompt) => {
+  const result = localClassifyIntentRaw(prompt);
+  const mapModuleToMetadata = (mod) => {
+    switch (mod) {
+      case 'image_generation':
+      case 'video':
+      case 'presentation':
+      case 'plan_generator':
+      case 'code_generation':
+      case 'creative_writing':
+      case 'article_writer':
+      case 'document_drafting':
+      case 'legal_contract':
+      case 'connected_apps':
+        return { complexity: 'complex', model_tier: 'pro', data_sources: [] };
+      case 'deep_research':
+        return { complexity: 'complex', model_tier: 'pro', data_sources: ['web_search'] };
+      case 'document_analysis':
+      case 'document_review':
+        return { complexity: 'complex', model_tier: 'pro', data_sources: ['knowledge_base'] };
+      case 'web_search':
+        return { complexity: 'simple', model_tier: 'fast', data_sources: ['web_search'] };
+      default:
+        return { complexity: 'simple', model_tier: 'fast', data_sources: [] };
+    }
+  };
+  const meta = mapModuleToMetadata(result.target_module);
+  return {
+    ...result,
+    complexity: meta.complexity,
+    model_tier: meta.model_tier,
+    data_sources: meta.data_sources,
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN CLASSIFICATION & DISPATCH ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -355,7 +403,7 @@ const localClassifyIntent = (prompt) => {
  * @property {Array} [webSearchQueries] Optional list of queries used for web search.
  * @property {Array} [relatedQuestions] Optional list of suggested follow-up questions.
  */
-const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, tenantId = null) => {
+const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, tenantId = null, category = null) => {
   const startTime = Date.now();
   let classificationSource = 'unknown';
   let classificationMs = 0;
@@ -373,19 +421,31 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
       };
     }
 
-    // ── 1. LIGHTNING FAST PATH FOR GREETINGS ──
-    const trimmedPrompt = prompt.trim().toLowerCase();
+    // ── 1. LIGHTNING FAST PATH FOR GREETINGS & SIMPLE TIME/DATE QUERIES ──
+    const cleanedPrompt = prompt.trim().toLowerCase().replace(/[?.!]/g, '');
     const commonGreetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola', 'bonjour', 'howdy', 'greetings', 'help', 'who are you', 'how are you', 'what is this'];
-    const isShortQuery = trimmedPrompt.length <= 15;
-    const isCommonGreeting = commonGreetings.includes(trimmedPrompt) || commonGreetings.some(greet => trimmedPrompt.startsWith(greet + ' ') || trimmedPrompt.endsWith(' ' + greet));
+    const timeQueries = [
+      'what time is it', 'what is the time', 'whats the time', 'current time',
+      'what day is it', 'what is the date', 'whats the date', 'what is todays date', 'what is today'
+    ];
+    const isShortQuery = cleanedPrompt.length <= 15;
+    const isCommonGreeting = commonGreetings.includes(cleanedPrompt) || commonGreetings.some(greet => cleanedPrompt.startsWith(greet + ' ') || cleanedPrompt.endsWith(' ' + greet));
+    const isTimeQuery = timeQueries.includes(cleanedPrompt);
     
     let intentPayload;
-    if (isShortQuery || isCommonGreeting) {
+    if (isShortQuery || isCommonGreeting || isTimeQuery) {
       classificationSource = 'fast-path';
       classificationMs = Date.now() - startTime;
       // GCP Logging: Use structured JSON for logs.
       logger.info({ message: 'Fast-path classification triggered', component: 'Orchestrator', prompt, latency_ms: classificationMs });
-      intentPayload = { target_module: 'general_chat', confidence: 1.0, parameters: { query: prompt } };
+      intentPayload = { 
+        target_module: 'general_chat', 
+        confidence: 1.0, 
+        complexity: 'simple',
+        model_tier: 'fast',
+        data_sources: [],
+        parameters: { query: prompt } 
+      };
     } else {
       // ── 2. LOAD CONVERSATION CONTEXT ──
       let conversationContext = '';
@@ -454,6 +514,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
         if (classificationSource === 'unknown') classificationSource = 'llm';
       } catch (e) {
         // LLM classification unavailable or returned invalid module — use local fallback
+        logger.warn({ message: 'LLM returned invalid module, falling back to local', component: 'Orchestrator', error: { message: e.message } });
         classificationSource = 'local-fallback';
         intentPayload = localClassifyIntent(prompt);
         // GCP Logging: Use structured JSON for logs.
@@ -464,8 +525,22 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     }
 
     const { target_module, parameters, confidence } = intentPayload;
+    const complexity = intentPayload.complexity || 'simple';
+    const model_tier = intentPayload.model_tier || 'fast';
+    const data_sources = intentPayload.data_sources || [];
+
+    const dispatchConfig = MODULE_REGISTRY[target_module] || MODULE_REGISTRY.general_chat;
+
+    // Determine the target model name based on model_tier
+    const targetModel = model_tier === 'pro' 
+      ? (config.gemini_pro_model || 'gemini-3.1-pro') 
+      : (config.gemini_model || 'gemini-3.5-flash');
+
+    // Decide if search/grounding is required
+    const requireSearch = !!parameters?.require_search || !!dispatchConfig.requireSearch || data_sources.includes('web_search');
+
     // GCP Logging: Use structured JSON for logs.
-    logger.info({ message: 'Classification decision made', component: 'Orchestrator', targetModule: target_module, source: classificationSource, latency_ms: classificationMs, confidence: confidence || null });
+    logger.info({ message: 'Classification decision made', component: 'Orchestrator', targetModule: target_module, source: classificationSource, latency_ms: classificationMs, confidence: confidence || null, complexity, model_tier, data_sources });
 
     // ── 4. CHECK CREDITS (fire-and-forget — truly non-blocking) ──
     if (userId) {
@@ -477,20 +552,22 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 
     // ── 5. DISPATCH TO CORRECT MODULE ──
     let finalResponse;
-    const dispatchConfig = MODULE_REGISTRY[target_module] || MODULE_REGISTRY.general_chat;
 
     try {
       if (dispatchConfig.dispatch === 'composio') {
         // Connected apps path — Composio has been removed, fall back to Swarm
         logger.info({ message: 'Dispatching to connected apps, but Composio is disabled. Falling back to Swarm.', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
-        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
+        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId, { model: targetModel });
       } else {
         // Swarm path — for all other modules
         finalResponse = await SwarmService.executeSwarmSync(
           parameters?.query || prompt,
           [],
           userId,
-          { requireSearch: !!parameters?.require_search || !!dispatchConfig.requireSearch }
+          { 
+            model: targetModel,
+            requireSearch: requireSearch
+          }
         );
       }
     } catch (dispatchErr) {
@@ -518,6 +595,47 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
             tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
           );
         }
+
+        const mapTargetModuleToCategory = (targetModule) => {
+          switch (targetModule) {
+            case 'image_generation':
+              return 'image_generation';
+            case 'video':
+              return 'video';
+            case 'code_generation':
+              return 'code';
+            case 'connected_apps':
+              return 'composio';
+            case 'document_analysis':
+              return 'document_analysis';
+            case 'legal_contract':
+              return 'legal_contract';
+            case 'brainstorm':
+              return 'brainstorm';
+            case 'presentation':
+              return 'presentation';
+            case 'plan_generator':
+              return 'plan_generation';
+            case 'translation':
+              return 'translation';
+            case 'transcription':
+              return 'composio';
+            case 'creative_writing':
+              return 'creative_writing';
+            case 'article_writer':
+              return 'article_writer';
+            case 'document_drafting':
+              return 'document_drafting';
+            case 'document_review':
+              return 'document_review';
+            default:
+              return 'search';
+          }
+        };
+
+        const resolvedCategory = (category && category !== 'search')
+          ? category
+          : mapTargetModuleToCategory(target_module);
         
         const assistantMetadata = {
           reference: [],
@@ -544,6 +662,17 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
         if (conversation) {
           conversation.addMessage('user', prompt);
           conversation.addMessage('assistant', finalResponse.reply, assistantMetadata);
+          
+          if (!conversation.metadata) {
+            conversation.metadata = {};
+          }
+          if (!conversation.metadata.category) {
+            conversation.metadata.category = resolvedCategory;
+            if (typeof conversation.markModified === 'function') {
+              conversation.markModified('metadata');
+            }
+          }
+          
           await conversation.save();
         } else {
           finalConversationId = crypto.randomUUID();
@@ -557,7 +686,10 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
               { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new Date() }
             ],
             status: 'active',
-            tenantId: tenantId || null
+            tenantId: tenantId || null,
+            metadata: {
+              category: resolvedCategory
+            }
           });
           await conversation.save();
         }
@@ -590,6 +722,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
         model: classificationSource === 'gemini' ? CLASSIFIER_MODEL : classificationSource,
         confidence: confidence || null,
         latency_ms: classificationMs,
+        complexity,
+        model_tier,
+        data_sources,
       },
       total_time_ms: totalMs,
       ...finalResponse
@@ -603,7 +738,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     const safeResponse = `I received your message but encountered an unexpected issue. Please try again — I'm here to help!`;
 
     return {
-      conversationId: conversationId || crypto.randomUUID(),
+      conversationId: (!conversationId || conversationId === 'new-chat') ? crypto.randomUUID() : conversationId,
       orchestrator_decision: 'general_chat',
       extracted_parameters: {},
       original_prompt: prompt,

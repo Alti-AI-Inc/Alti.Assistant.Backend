@@ -86,10 +86,29 @@ export function decryptText(text) {
   try {
     const iv = Buffer.from(textParts[0], 'hex');
     const encryptedText = Buffer.from(textParts[1], 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+
+    try {
+      // Try decrypting with main configured key first
+      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+      let decrypted = decipher.update(encryptedText);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return decrypted.toString();
+    } catch (mainErr) {
+      // If main key fails, try fallback key (if main key is not already the fallback)
+      const fallbackKey = 'development-key-32-characters-!!';
+      if (ENCRYPTION_KEY !== fallbackKey) {
+        try {
+          const fallbackBuf = Buffer.from(fallbackKey);
+          const decipher = crypto.createDecipheriv('aes-256-cbc', fallbackBuf, iv);
+          let decrypted = decipher.update(encryptedText);
+          decrypted = Buffer.concat([decrypted, decipher.final()]);
+          return decrypted.toString();
+        } catch (fallbackErr) {
+          // Both failed, throw original error to enter final catch
+        }
+      }
+      throw mainErr;
+    }
   } catch (err) {
     console.warn('Decryption failed for a value, returning original text. This may be expected for unencrypted legacy data.');
     return text;

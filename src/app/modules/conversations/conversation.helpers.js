@@ -54,6 +54,32 @@ export const decryptConversation = (conv) => {
 };
 
 /**
+ * Helper to build a query that supports both custom UUID conversationId and MongoDB _id.
+ */
+export const getConversationQuery = (conversationId, userId, extra = {}) => {
+  const query = { ...extra };
+  if (userId) {
+    query.userId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
+  }
+  if (typeof conversationId === 'string' && mongoose.Types.ObjectId.isValid(conversationId)) {
+    query.$or = [
+      { conversationId: conversationId },
+      { _id: new mongoose.Types.ObjectId(conversationId) }
+    ];
+  } else if (conversationId && conversationId.constructor && conversationId.constructor.name === 'ObjectId') {
+    query.$or = [
+      { conversationId: conversationId.toString() },
+      { _id: conversationId }
+    ];
+  } else if (conversationId) {
+    query.conversationId = conversationId;
+  }
+  return query;
+};
+
+/**
  * Retrieves a single conversation by its ID, ensuring it belongs to the specified user
  * and respects tenant isolation if a request object is provided.
  *
@@ -69,8 +95,8 @@ const getConversationById = async (
   req = null
 ) => {
   try {
-    // Build query with tenant filtering and mandatory userId for security
-    const query = { conversationId, userId };
+    // Build query with tenant filtering and support for both UUID and ObjectId
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     ).lean().exec(); // OPTIMIZATION: Use .lean().exec() for faster read-only queries as Mongoose objects are not needed.
@@ -123,15 +149,63 @@ const getUserConversations = async (userId, options = {}, req = null) => {
       : userId;
     const query = { userId: targetUserId, status };
 
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { 'metadata.tags': { $in: [new RegExp(search, 'i')] } },
-      ];
-    }
+    if (search && category) {
+      const andConditions = [];
+      andConditions.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { 'metadata.tags': { $in: [new RegExp(search, 'i')] } },
+        ]
+      });
 
-    if (category) {
-      query['metadata.category'] = category;
+      if (category === 'search') {
+        andConditions.push({
+          $or: [
+            { 'metadata.category': 'search' },
+            { 'metadata.category': null },
+            { 'metadata.category': { $exists: false } }
+          ]
+        });
+      } else if (Array.isArray(category)) {
+        andConditions.push({ 'metadata.category': { $in: category } });
+      } else if (typeof category === 'string') {
+        if (category.includes(',')) {
+          andConditions.push({ 'metadata.category': { $in: category.split(',') } });
+        } else {
+          andConditions.push({ 'metadata.category': category });
+        }
+      } else {
+        andConditions.push({ 'metadata.category': category });
+      }
+
+      query.$and = andConditions;
+    } else {
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { 'metadata.tags': { $in: [new RegExp(search, 'i')] } },
+        ];
+      }
+
+      if (category) {
+        if (category === 'search') {
+          query.$or = [
+            { 'metadata.category': 'search' },
+            { 'metadata.category': null },
+            { 'metadata.category': { $exists: false } }
+          ];
+        } else if (Array.isArray(category)) {
+          query['metadata.category'] = { $in: category };
+        } else if (typeof category === 'string') {
+          if (category.includes(',')) {
+            query['metadata.category'] = { $in: category.split(',') };
+          } else {
+            query['metadata.category'] = category;
+          }
+        } else {
+          query['metadata.category'] = category;
+        }
+      }
     }
 
     if (is_deep_search !== null) {
@@ -195,10 +269,7 @@ const getConversationMessages = async (
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
 
-    const targetUserId = typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)
-      ? new mongoose.Types.ObjectId(userId)
-      : userId;
-    const query = { conversationId, userId: targetUserId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     )
@@ -472,10 +543,7 @@ const getConversationsByCategory = async (
  */
 const hasConversationAccess = async (conversationId, userId, req = null) => {
   try {
-    const query = {
-      conversationId,
-      userId,
-    };
+    const query = getConversationQuery(conversationId, userId);
     // OPTIMIZATION: Use .lean() for a faster read-only existence check.
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query

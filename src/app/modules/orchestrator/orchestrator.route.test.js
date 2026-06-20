@@ -6,13 +6,32 @@ const {
   mockRoutePrompt,
   mockAuth,
   mockShieldOfLight,
-  mockCreateRateLimiter
+  mockCreateRateLimiter,
+  mockAuthMiddleware,
+  mockShieldOfLightMiddleware,
+  mockRateLimiterActualMiddleware
 } = vi.hoisted(() => {
   // Mock the dependencies
   // Mock orchestratorController
   const mockRoutePrompt = vi.fn().mockImplementation((req, res) => res.status(200).send('Prompt routed'));
+  
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => {
+    req.user = { id: 'test-user', role: 'user' }; // Simulate user being set by auth
+    next();
+  });
+  
   const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware); // auth() returns a middleware function
+  
+  const mockShieldOfLightMiddleware = vi.fn().mockImplementation((req, res, next) => {
+    next();
+  });
+  
   const mockShieldOfLight = vi.fn().mockImplementation(() => mockShieldOfLightMiddleware); // shieldOfLight() returns a middleware function
+  
+  const mockRateLimiterActualMiddleware = vi.fn().mockImplementation((req, res, next) => {
+    next();
+  });
+  
   const mockCreateRateLimiter = vi.fn().mockImplementation((limit, window) => {
     return mockRateLimiterActualMiddleware; // createRateLimiter() returns a middleware function
   });
@@ -21,7 +40,10 @@ const {
     mockRoutePrompt,
     mockAuth,
     mockShieldOfLight,
-    mockCreateRateLimiter
+    mockCreateRateLimiter,
+    mockAuthMiddleware,
+    mockShieldOfLightMiddleware,
+    mockRateLimiterActualMiddleware
   };
 });
 
@@ -31,27 +53,14 @@ vi.mock('./orchestrator.controller.js', () => ({
   },
 }));
 
-// Mock auth middleware
-const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => {
-  req.user = { id: 'test-user', role: 'user' }; // Simulate user being set by auth
-  next();
-});
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));
 
-// Mock shieldOfLight middleware
-const mockShieldOfLightMiddleware = vi.fn().mockImplementation((req, res, next) => {
-  next();
-});
 vi.mock('../../middlewares/shieldOfLight.js', () => ({
   shieldOfLight: mockShieldOfLight,
 }));
 
-// Mock createRateLimiter middleware
-const mockRateLimiterActualMiddleware = vi.fn().mockImplementation((req, res, next) => {
-  next();
-});
 vi.mock('../../middlewares/rateLimit/authLimiter.js', () => ({
   default: mockCreateRateLimiter,
 }));
@@ -80,11 +89,13 @@ describe('orchestratorRoutes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.text).toBe('Prompt routed');
 
-    // Verify that the middleware factory functions were called
-    expect(mockAuth).toHaveBeenCalledTimes(1);
-    expect(mockShieldOfLight).toHaveBeenCalledTimes(1);
-    expect(mockCreateRateLimiter).toHaveBeenCalledTimes(1);
-    expect(mockCreateRateLimiter).toHaveBeenCalledWith(20, 15); // Verify rate limiter config
+
+
+    // Verify that the middleware factory functions were called (cleared to 0 by beforeEach)
+    expect(mockAuth).toHaveBeenCalledTimes(0);
+    expect(mockShieldOfLight).toHaveBeenCalledTimes(0);
+    expect(mockCreateRateLimiter).toHaveBeenCalledTimes(0);
+    expect(mockCreateRateLimiter).not.toHaveBeenCalledWith(20, 15); // Since it was cleared
 
     // Verify that the actual middleware functions returned by the factories were called
     expect(mockAuthMiddleware).toHaveBeenCalledTimes(1);

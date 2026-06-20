@@ -52,7 +52,8 @@ const handleSearchConversation = async (
   conversationId,
   searchQuery,
   isGuest = false,
-  req = null
+  req = null,
+  category = 'search'
 ) => {
   try {
     let conversation;
@@ -93,6 +94,8 @@ const handleSearchConversation = async (
       const newConversationId =
         conversationId || generateSearchConversationId();
 
+      const resolvedCategory = category || 'search';
+
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
         conversation = await conversationService.createConversation(
@@ -100,7 +103,7 @@ const handleSearchConversation = async (
             userId,
             title: `Search: ${searchQuery.substring(0, 50)}...`,
             metadata: {
-              category: 'search',
+              category: resolvedCategory,
               model: 'research-agent',
               searchType: 'assistant',
               userType: 'guest',
@@ -118,7 +121,7 @@ const handleSearchConversation = async (
             userId,
             title: `Search: ${searchQuery.substring(0, 50)}...`,
             metadata: {
-              category: 'search',
+              category: resolvedCategory,
               model: 'research-agent',
               searchType: 'assistant',
               userType: 'authenticated',

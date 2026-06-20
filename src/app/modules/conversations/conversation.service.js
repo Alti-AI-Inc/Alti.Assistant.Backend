@@ -3,7 +3,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Conversation, { decryptText } from './conversation.model.js';
 import ChatShare from './chatShare.model.js';
-import { conversationHelpers, decryptConversation } from './conversation.helpers.js';
+import { conversationHelpers, decryptConversation, getConversationQuery } from './conversation.helpers.js';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import {
@@ -131,7 +131,7 @@ const addMessageToConversation = async (
       { role, content, metadata }
     );
 
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     // .lean() is not used here because 'conversation.addMessage' is an instance method
     // that requires a Mongoose document.
     const conversation = await Conversation.findOne(
@@ -183,7 +183,7 @@ const updateConversationTitle = async (
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
     }
 
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { title: title.trim(), lastActivity: new Date() },
@@ -222,7 +222,7 @@ const updateConversationMetadata = async (
       `Updating metadata for conversation ${conversationId} for user ${userId}:`,
       metadata
     );
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
@@ -258,7 +258,7 @@ const updadtePlanMetadata = async (
       `Updating plan metadata for conversation ${conversationId} for user ${userId}:`,
       planMetadata
     );
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
@@ -293,7 +293,7 @@ const updatePresentationMetadata = async (
       `Updating presentation metadata for conversation ${conversationId} for user ${userId}:`,
       presentationMetadata
     );
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
@@ -331,7 +331,7 @@ const updatePresentationMetadata = async (
  */
 const archiveConversation = async (conversationId, userId, req = null) => {
   try {
-    const query = { conversationId, userId, status: 'active' };
+    const query = getConversationQuery(conversationId, userId, { status: 'active' });
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'archived', lastActivity: new Date() },
@@ -360,7 +360,7 @@ const archiveConversation = async (conversationId, userId, req = null) => {
  */
 const restoreConversation = async (conversationId, userId, req = null) => {
   try {
-    const query = { conversationId, userId, status: 'archived' };
+    const query = getConversationQuery(conversationId, userId, { status: 'archived' });
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'active', lastActivity: new Date() },
@@ -395,7 +395,7 @@ const deleteConversation = async (conversationId, userId, req = null) => {
     // Corrected query: using 'conversationId' field instead of '_id'.
     // The original code was inconsistent, attempting to use 'conversationId' as '_id'
     // in some places while 'createConversation' defines it as a distinct field.
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'deleted', lastActivity: new Date() },
@@ -429,7 +429,7 @@ const permanentlyDeleteConversation = async (
   req = null
 ) => {
   try {
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const result = await Conversation.deleteOne(
       req ? withTenantFilter(req, query) : query
     );
@@ -460,7 +460,7 @@ const clearConversationMessages = async (
   req = null
 ) => {
   try {
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
@@ -587,7 +587,7 @@ const addConversationTags = async (
       );
     }
 
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
@@ -627,12 +627,7 @@ const shareChatConversation = async (shareDataArgs, req = null) => { // Renamed 
     });
 
     // Check if conversation exists and belongs to user
-    const query = {
-      // Assuming 'conversationId' is a custom string ID field in the Conversation model,
-      // not the MongoDB '_id'. This is consistent with 'createConversation' and other functions.
-      conversationId,
-      userId,
-    };
+    const query = getConversationQuery(conversationId, userId);
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     ).lean(); // Added .lean() as this is a read-only check for existence.
@@ -641,9 +636,9 @@ const shareChatConversation = async (shareDataArgs, req = null) => { // Renamed 
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
-    // Check if conversation is already shared
+    // Check if conversation is already shared using true database _id
     const shareQuery = {
-      conversationId,
+      conversationId: conversation._id,
       userId,
       isActive: true,
     };
@@ -673,10 +668,10 @@ const shareChatConversation = async (shareDataArgs, req = null) => { // Renamed 
       };
     }
 
-    // Create new share
-    // Using the original shareDataArgs for the new ChatShare instance
+    // Create new share using conversation._id
+    const newShareData = { ...shareDataArgs, conversationId: conversation._id };
     const chatShare = new ChatShare(
-      req ? withTenantContext(req, shareDataArgs) : shareDataArgs
+      req ? withTenantContext(req, newShareData) : newShareData
     );
 
     await chatShare.save();
@@ -729,11 +724,7 @@ const getSharedChatConversation = async (shareId, req = null) => {
     }
 
     // Get the conversation details
-    const convQuery = {
-      // Assuming chatShare.conversationId stores the custom string ID of the conversation,
-      // consistent with how 'conversationId' is used as a field in the Conversation model.
-      conversationId: chatShare.conversationId,
-    };
+    const convQuery = getConversationQuery(chatShare.conversationId);
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, convQuery) : convQuery
     ).lean() // Added .lean() for read-only operation to reduce overhead.
@@ -788,7 +779,7 @@ const renameChatConversation = async (
     if (!newTitle || newTitle.trim().length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
     }
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     // Changed updateOne to findOneAndUpdate to correctly return the updated document.
     // .select() is ineffective with updateOne as it returns an update result object, not the document.
     const conversation = await Conversation.findOneAndUpdate(
@@ -814,7 +805,7 @@ const saveChatConversation = async (
   req = null
 ) => {
   try {
-    const query = { conversationId, userId };
+    const query = getConversationQuery(conversationId, userId);
     // Changed updateOne to findOneAndUpdate to correctly return the updated document.
     // .select() is ineffective with updateOne as it returns an update result object, not the document.
     const conversation = await Conversation.findOneAndUpdate(
@@ -851,9 +842,19 @@ const updateChatShareSettings = async (updateData, req = null) => {
       isActive,
     } = updateData;
 
-    // Find the chat share
+    // First resolve the conversation to extract the true database _id
+    const convQuery = getConversationQuery(conversationId, userId);
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, convQuery) : convQuery
+    ).lean();
+
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+
+    // Find the chat share using the database _id
     const query = {
-      conversationId,
+      conversationId: conversation._id,
       userId,
     };
     // .lean() is not used here because 'chatShare' might be modified and saved later.
@@ -974,8 +975,18 @@ const revokeChatShare = async (revokeData, req = null) => {
   try {
     const { conversationId, userId } = revokeData;
 
+    // First resolve the conversation to extract the true database _id
+    const convQuery = getConversationQuery(conversationId, userId);
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, convQuery) : convQuery
+    ).lean();
+
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+
     const query = {
-      conversationId,
+      conversationId: conversation._id,
       userId,
     };
     // .lean() is not used here because 'chatShare' is modified and saved later.

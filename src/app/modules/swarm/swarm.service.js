@@ -484,7 +484,7 @@ Instructions: ${agent.systemInstruction}`;
 
           const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
           const modelInstance = genAI.getGenerativeModel({
-            model: config.gemini_model || agent.model || 'gemini-3.5-flash',
+            model: options.model || config.gemini_model || agent.model || 'gemini-3.5-flash',
             systemInstruction: systemInstruction,
             tools: [{ functionDeclarations: activeTools }]
           });

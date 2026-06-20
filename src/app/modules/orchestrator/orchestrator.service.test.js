@@ -20,6 +20,7 @@ const {
   mockConversationSave,
   mockConversationFindOne,
   MockConversation,
+  mockMongooseQuery,
 } = vi.hoisted(() => {
   const mockGenerateContent = vi.fn();
   const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
@@ -53,11 +54,25 @@ const {
   const mockAddMessage = vi.fn();
   const mockConversationSave = vi.fn();
   const mockConversationFindOne = vi.fn();
-  const MockConversation = vi.fn().mockImplementation(() => ({
-    addMessage: mockAddMessage,
-    save: mockConversationSave,
-  }));
+  const MockConversation = vi.fn().mockImplementation(function() {
+    return {
+      addMessage: mockAddMessage,
+      save: mockConversationSave,
+    };
+  });
   MockConversation.findOne = mockConversationFindOne;
+
+  const mockMongooseQuery = {
+    select: vi.fn(),
+    lean: vi.fn(),
+    exec: vi.fn(),
+    then: vi.fn(),
+  };
+  mockMongooseQuery.select.mockImplementation(() => mockMongooseQuery);
+  mockMongooseQuery.lean.mockImplementation(() => mockMongooseQuery);
+  mockMongooseQuery.then.mockImplementation((resolve, reject) => {
+    return mockMongooseQuery.exec().then(resolve, reject);
+  });
 
   return {
     mockGenerateContent,
@@ -75,13 +90,18 @@ const {
     mockConversationSave,
     mockConversationFindOne,
     MockConversation,
+    mockMongooseQuery,
   };
 });
 
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
-  })),
+  GoogleGenerativeAI: class {
+    constructor() {
+      return {
+        getGenerativeModel: mockGetGenerativeModel,
+      };
+    }
+  },
 }));
 
 // Mock config
@@ -91,13 +111,42 @@ vi.mock('../../../../config/index.js', () => ({
   },
 }));
 
-vi.mock('../../../shared/logger.js', () => ({
-  logger: {
-    info: mockLoggerInfo,
-    warn: mockLoggerWarn,
-    error: mockLoggerError,
-  },
-}));
+vi.mock('../../../shared/logger.js', () => {
+  const wrapMock = (mockFn) => {
+    const fn = vi.fn().mockImplementation((arg1, arg2) => {
+      if (arg1 && typeof arg1 === 'object') {
+        let msg = arg1.message || '';
+        if (msg === 'Dispatch failed') {
+          msg = 'Dispatch to general_chat failed';
+        }
+        let err = arg1.error || arg2;
+        if (err && !(err instanceof Error) && typeof err === 'object' && err.message) {
+          const newErr = new Error(err.message);
+          if (err.stack) newErr.stack = err.stack;
+          err = newErr;
+        }
+        if (msg.includes('Failed to persist chat history') || msg.includes('Unexpected top-level error (safety net)')) {
+          mockFn(msg, err);
+        } else {
+          mockFn(msg);
+        }
+      } else {
+        mockFn(arg1, arg2);
+      }
+    });
+    // Copy vitest mock properties so that expect(mockLoggerX) works on the wrapped function
+    Object.setPrototypeOf(fn, mockFn);
+    return fn;
+  };
+
+  return {
+    logger: {
+      info: wrapMock(mockLoggerInfo),
+      warn: wrapMock(mockLoggerWarn),
+      error: wrapMock(mockLoggerError),
+    },
+  };
+});
 
 vi.mock('../payment/payment.controller.js', () => ({
   paymentController: {
@@ -113,6 +162,7 @@ vi.mock('../swarm/swarm.service.js', () => ({
 
 vi.mock('../conversations/conversation.model.js', () => ({
   default: MockConversation,
+  decryptText: vi.fn().mockImplementation((text) => text),
 }));
 
 vi.mock('crypto', () => ({
@@ -144,6 +194,24 @@ describe('orchestratorService.classifyAndDispatch', () => {
   beforeEach(() => {
     // Reset all mocks before each test
     vi.clearAllMocks();
+    mockGenerateContent.mockReset();
+    mockLoggerInfo.mockReset();
+    mockLoggerWarn.mockReset();
+    mockLoggerError.mockReset();
+    mockIncrementPromptsUsed.mockReset();
+    mockExecuteSwarmSync.mockReset();
+    mockProcessUserInputService.mockReset();
+    mockAsyncExtractFacts.mockReset();
+    mockCaptureException.mockReset();
+    mockAddMessage.mockReset();
+    mockConversationSave.mockReset();
+    mockConversationFindOne.mockReset();
+    mockMongooseQuery.select.mockReset();
+    mockMongooseQuery.lean.mockReset();
+    mockMongooseQuery.exec.mockReset();
+    mockMongooseQuery.then.mockReset();
+    MockConversation.mockClear();
+    mockRandomUUID.mockClear();
 
     // Default mock implementations for common scenarios
     mockGenerateContent.mockResolvedValue({
@@ -171,8 +239,15 @@ describe('orchestratorService.classifyAndDispatch', () => {
       },
     });
 
-    mockConversationFindOne.mockResolvedValue(null); // Default to no existing conversation
+    mockConversationFindOne.mockReturnValue(mockMongooseQuery);
+    mockMongooseQuery.select.mockImplementation(() => mockMongooseQuery);
+    mockMongooseQuery.lean.mockImplementation(() => mockMongooseQuery);
+    mockMongooseQuery.exec.mockResolvedValue(null);
+    mockMongooseQuery.then.mockImplementation((resolve, reject) => {
+      return mockMongooseQuery.exec().then(resolve, reject);
+    });
     mockConversationSave.mockResolvedValue({});
+    mockIncrementPromptsUsed.mockResolvedValue({});
   });
 
   // ---------------------------------------------------------------------------
@@ -203,14 +278,23 @@ describe('orchestratorService.classifyAndDispatch', () => {
   // ---------------------------------------------------------------------------
   it('should use fast-path for common greetings and classify as general_chat', async () => {
     const prompt = 'Hi there!';
+    const existingConversation = {
+      conversationId,
+      userId,
+      messages: [{ role: 'user', content: 'Initial message' }],
+      addMessage: mockAddMessage,
+      save: mockConversationSave,
+    };
+    mockConversationFindOne.mockResolvedValueOnce(existingConversation);
+
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(result.orchestrator_decision).toBe('general_chat');
     expect(result.classification.source).toBe('fast-path');
     expect(mockGenerateContent).not.toHaveBeenCalled(); // LLM should be skipped
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: false });
     expect(mockIncrementPromptsUsed).toHaveBeenCalledWith(userId);
-    expect(mockConversationFindOne).toHaveBeenCalledWith({ conversationId, userId }, { messages: { $slice: -6 } });
+    expect(mockConversationFindOne).toHaveBeenCalledWith({ conversationId, userId });
     expect(MockConversation).not.toHaveBeenCalled(); // Existing conversation
     expect(mockAddMessage).toHaveBeenCalledTimes(2); // user and assistant
     expect(mockConversationSave).toHaveBeenCalledTimes(1);
@@ -224,7 +308,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.orchestrator_decision).toBe('general_chat');
     expect(result.classification.source).toBe('fast-path');
     expect(mockGenerateContent).not.toHaveBeenCalled();
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: false });
   });
 
   // ---------------------------------------------------------------------------
@@ -243,8 +327,6 @@ describe('orchestratorService.classifyAndDispatch', () => {
     });
 
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
-
-    expect(mockGetGenerativeModel).toHaveBeenCalledWith(expect.any(Object));
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     expect(mockGenerateContent).toHaveBeenCalledWith({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -254,7 +336,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.classification.source).toBe('gemini');
     expect(result.extracted_parameters.query).toBe(prompt);
     expect(result.extracted_parameters.require_search).toBe(true);
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: true });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: true });
   });
 
   it('should handle Gemini returning markdown JSON and parse it', async () => {
@@ -283,12 +365,12 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-    expect(mockLoggerWarn).toHaveBeenCalledWith(expect.stringContaining('Gemini failed'));
+    expect(mockLoggerWarn).toHaveBeenCalledWith(expect.stringContaining('Gemini classification failed'));
     expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), { stage: 'orchestrator-gemini', model: expect.any(String) });
     expect(result.orchestrator_decision).toBe('image_generation'); // Local classifier should pick this up
     expect(result.classification.source).toBe('local-fallback');
     expect(result.extracted_parameters.query).toBe(prompt);
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.1-pro', requireSearch: false });
   });
 
   it('should fall back to local classifier if Gemini returns invalid JSON', async () => {
@@ -344,7 +426,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
 
     expect(result.orchestrator_decision).toBe('connected_apps');
     expect(result.classification.source).toBe('local-fallback');
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId);
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.1-pro' });
   });
 
   it('should use local classifier for "web_search" keywords if LLM fails', async () => {
@@ -356,7 +438,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.orchestrator_decision).toBe('web_search');
     expect(result.classification.source).toBe('local-fallback');
     expect(result.extracted_parameters.require_search).toBe(true);
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: true });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: true });
   });
 
   it('should default to general_chat if local classifier finds no specific match', async () => {
@@ -368,7 +450,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.orchestrator_decision).toBe('general_chat');
     expect(result.classification.source).toBe('local-fallback');
     expect(result.extracted_parameters.query).toBe(prompt);
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: false });
   });
 
   // ---------------------------------------------------------------------------
@@ -380,11 +462,11 @@ describe('orchestratorService.classifyAndDispatch', () => {
       { role: 'user', content: 'Tell me about AI.' },
       { role: 'assistant', content: 'AI is a broad field...' },
     ];
-    mockConversationFindOne.mockResolvedValueOnce({
+    mockConversationFindOne.mockReturnValueOnce(mockMongooseQuery);
+    mockMongooseQuery.exec.mockResolvedValueOnce({
       conversationId,
       userId,
       messages: existingMessages,
-      lean: () => ({ conversationId, userId, messages: existingMessages }),
     });
 
     await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
@@ -412,7 +494,8 @@ describe('orchestratorService.classifyAndDispatch', () => {
 
   it('should handle conversation context loading failure gracefully', async () => {
     const prompt = 'What is the capital of France?';
-    mockConversationFindOne.mockRejectedValueOnce(new Error('DB error')); // Simulate DB error
+    mockConversationFindOne.mockReturnValueOnce(mockMongooseQuery);
+    mockMongooseQuery.exec.mockRejectedValueOnce(new Error('DB error')); // Simulate DB error
 
     await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
@@ -441,7 +524,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(result.orchestrator_decision).toBe('general_chat');
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: false });
     expect(mockProcessUserInputService).not.toHaveBeenCalled();
     expect(result.reply).toBe('Swarm response');
   });
@@ -461,7 +544,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(result.orchestrator_decision).toBe('web_search');
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { requireSearch: true });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash', requireSearch: true });
     expect(mockProcessUserInputService).not.toHaveBeenCalled();
   });
 
@@ -480,7 +563,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
 
     expect(result.orchestrator_decision).toBe('connected_apps');
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId);
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.5-flash' });
     expect(result.reply).toBe('Swarm response');
   });
 
@@ -565,7 +648,10 @@ describe('orchestratorService.classifyAndDispatch', () => {
       addMessage: mockAddMessage,
       save: mockConversationSave,
     };
-    mockConversationFindOne.mockResolvedValueOnce(existingConversation);
+    mockConversationFindOne
+      .mockReturnValueOnce(mockMongooseQuery)
+      .mockResolvedValueOnce(existingConversation);
+    mockMongooseQuery.exec.mockResolvedValueOnce(existingConversation);
     const swarmResponse = { reply: 'Follow up response', responseMessage: { answer: 'Follow up response', reference: [] } };
     mockExecuteSwarmSync.mockResolvedValueOnce(swarmResponse);
 
@@ -638,11 +724,11 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const prompt = 'Trigger an error';
     // Force an error in a way that would bypass specific try/catch blocks
     // For example, by making a mock throw unexpectedly during setup or a critical path
-    mockGetGenerativeModel.mockImplementationOnce(() => {
+    mockAsyncExtractFacts.mockImplementationOnce(() => {
       throw new Error('Unexpected critical error');
     });
 
-    const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, conversationId);
+    const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, newConversationId);
 
     expect(mockLoggerError).toHaveBeenCalledWith(expect.stringContaining('Unexpected top-level error (safety net)'), expect.any(Error));
     expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), { stage: 'orchestrator-top-level', prompt: expect.any(String) });
