@@ -1,40 +1,43 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// --- Mocks setup ---
-// Define mock instances and functions outside beforeEach so they can be referenced
-// and their state cleared across test runs when vi.clearAllMocks() is called.
-
-const mockMemorySaverInstance = { type: 'MemorySaverInstance' };
-const mockMemorySaver = vi.fn().mockImplementation(() => mockMemorySaverInstance);
-
-// This mockCompiledStateGraphInstance will be returned by mockStateGraphInstance.compile.
-// We add a custom property `_checkpointer` to track which checkpointer was used during compilation.
-const mockCompiledStateGraphInstance = {
-  invoke: vi.fn(),
-  stream: vi.fn(),
-  getGraph: vi.fn(),
-  _checkpointer: null, // Custom property to track the checkpointer used for compilation
-};
-
-const mockStateGraphInstance = {
-  addNode: vi.fn(),
-  addEdge: vi.fn(),
-  addConditionalEdges: vi.fn(),
-  compile: vi.fn().mockImplementation((options) => {
-    // When compile is called, update the _checkpointer property of the returned instance
-    mockCompiledStateGraphInstance._checkpointer = options.checkpointer;
-    return mockCompiledStateGraphInstance;
-  }),
-};
-const mockStateGraph = vi.fn().mockImplementation(() => mockStateGraphInstance);
-
 const {
   mockLangchainLanggraph,
   mockWritingAssistantState,
   mockConfig,
   mockWriteContentNode,
-  mockMongoDBSaver
+  mockMongoDBSaver,
+  mockMemorySaverInstance,
+  mockMemorySaver,
+  mockCompiledStateGraphInstance,
+  mockStateGraphInstance,
+  mockStateGraph,
+  mockMongoDBSaverInstance
 } = vi.hoisted(() => {
+  const mockMemorySaverInstance = { type: 'MemorySaverInstance' };
+  const mockMemorySaver = vi.fn().mockImplementation(function() {
+    return mockMemorySaverInstance;
+  });
+
+  const mockCompiledStateGraphInstance = {
+    invoke: vi.fn(),
+    stream: vi.fn(),
+    getGraph: vi.fn(),
+    _checkpointer: null,
+  };
+
+  const mockStateGraphInstance = {
+    addNode: vi.fn(),
+    addEdge: vi.fn(),
+    addConditionalEdges: vi.fn(),
+    compile: vi.fn().mockImplementation((options) => {
+      mockCompiledStateGraphInstance._checkpointer = options.checkpointer;
+      return mockCompiledStateGraphInstance;
+    }),
+  };
+  const mockStateGraph = vi.fn().mockImplementation(function() {
+    return mockStateGraphInstance;
+  });
+
   const mockLangchainLanggraph = {
     StateGraph: mockStateGraph,
     END: 'END',
@@ -59,8 +62,10 @@ const {
 
   const mockWriteContentNode = vi.fn();
 
+  const mockMongoDBSaverInstance = { type: 'MongoDBSaverInstance' };
+
   const mockMongoDBSaver = {
-    fromUri: vi.fn().mockImplementation(() => Promise.resolve(mockMongoDBSaverInstance)), // Default to success
+    fromUri: vi.fn().mockImplementation(() => Promise.resolve(mockMongoDBSaverInstance)),
   };
 
   return {
@@ -68,11 +73,22 @@ const {
     mockWritingAssistantState,
     mockConfig,
     mockWriteContentNode,
-    mockMongoDBSaver
+    mockMongoDBSaver,
+    mockMemorySaverInstance,
+    mockMemorySaver,
+    mockCompiledStateGraphInstance,
+    mockStateGraphInstance,
+    mockStateGraph,
+    mockMongoDBSaverInstance
   };
 });
 
-const mockMongoDBSaverInstance = { type: 'MongoDBSaverInstance' };
+// --- Module Level Mocks ---
+vi.mock('@langchain/langgraph', () => mockLangchainLanggraph);
+vi.mock('./state.js', () => ({ writingAssistantState: mockWritingAssistantState }));
+vi.mock('../../../../../config/index.js', () => ({ default: mockConfig }));
+vi.mock('./nodes.js', () => ({ writeContentNode: mockWriteContentNode }));
+vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({ MongoDBSaver: mockMongoDBSaver }));
 
 describe('writing_assistant/workflow', () => {
   let consoleLogSpy;
@@ -84,33 +100,26 @@ describe('writing_assistant/workflow', () => {
     // 1. Reset modules to clear cache and re-evaluate the file for each test.
     vi.resetModules();
 
-    // 2. Re-establish all mocks *before* importing the module.
-    // This ensures that the module under test sees our mocks when it initializes.
-    vi.mock('@langchain/langgraph', () => mockLangchainLanggraph);
-    vi.mock('./state.js', () => ({ writingAssistantState: mockWritingAssistantState }));
-    vi.mock('../../../../../config/index.js', () => ({ default: mockConfig }));
-    vi.mock('./nodes.js', () => ({ writeContentNode: mockWriteContentNode }));
-    vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({ MongoDBSaver: mockMongoDBSaver }));
-
-    // 3. Clear mock history for spies/mocks defined outside.
+    // 2. Clear mock history for spies/mocks defined outside.
     // This resets call counts and arguments for vi.fn() mocks.
     vi.clearAllMocks();
     // Explicitly reset custom mock state not covered by vi.clearAllMocks().
     mockCompiledStateGraphInstance._checkpointer = null;
 
-    // 4. Set default mock implementation for `MongoDBSaver.fromUri` to resolve.
+    // 3. Set default mock implementation for `MongoDBSaver.fromUri` to resolve.
     // This is for the success path tests. It will be overridden for the failure path.
-    mockMongoDBSaver.fromUri.mockImplementation(() => Promise.resolve(mockMongoDBSaverInstance));
+    mockMongoDBSaver.fromUri.mockResolvedValue(mockMongoDBSaverInstance);
 
-    // 5. Spy on console methods to capture logs.
+    // 4. Spy on console methods to capture logs.
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 6. Import the module under test. This will trigger the workflow definition
+    // 5. Import the module under test. This will trigger the workflow definition
     // and the immediate execution of the async MongoDB checkpointer logic.
     // Awaiting the import ensures the promise chain for MongoDBSaver.fromUri settles
     // before subsequent assertions run.
     const module = await import('./workflow.js');
+    await new Promise(process.nextTick); // Wait for the promise in the module to resolve
     writingAssistantApp = module.writingAssistantApp;
   });
 
@@ -172,24 +181,16 @@ describe('writing_assistant/workflow', () => {
     beforeEach(async () => {
       vi.resetModules(); // Clear module cache to ensure a fresh import.
 
-      // Re-establish all mocks, but crucially, set `MongoDBSaver.fromUri` to reject.
-      vi.mock('@langchain/langgraph', () => mockLangchainLanggraph);
-      vi.mock('./state.js', () => ({ writingAssistantState: mockWritingAssistantState }));
-      vi.mock('../../../../../config/index.js', () => ({ default: mockConfig }));
-      vi.mock('./nodes.js', () => ({ writeContentNode: mockWriteContentNode }));
-      vi.mock('../../code/code_assistant/MongoDBSaver.js', () => ({
-        MongoDBSaver: {
-          fromUri: vi.fn().mockImplementation(() => Promise.reject(mockError)), // Mock failure for this test suite
-        },
-      }));
-
       vi.clearAllMocks();
       mockCompiledStateGraphInstance._checkpointer = null;
+
+      mockMongoDBSaver.fromUri.mockRejectedValue(mockError);
 
       consoleLogSpyFailure = vi.spyOn(console, 'log').mockImplementation(() => {});
       consoleWarnSpyFailure = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const module = await import('./workflow.js');
+      await new Promise(process.nextTick); // Wait for the promise in the module to reject
       failedWritingAssistantApp = module.writingAssistantApp;
     });
 

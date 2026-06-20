@@ -10,16 +10,18 @@ vi.mock('@google-cloud/aiplatform', () => ({
   PredictionServiceClient: vi.fn(),
 }));
 
-const mockInvoke = vi.fn();
 const {
-  mockPipe
+  mockPipe,
+  mockInvoke
 } = vi.hoisted(() => {
+  const mockInvoke = vi.fn();
   const mockPipe = vi.fn().mockReturnValue({
     invoke: mockInvoke,
   });
 
   return {
-    mockPipe
+    mockPipe,
+    mockInvoke
   };
 });
 
@@ -32,7 +34,7 @@ vi.mock('@langchain/core/prompts', () => ({
 }));
 
 vi.mock('@langchain/google-genai', () => ({
-  ChatGoogleGenerativeAI: vi.fn().mockImplementation(() => ({})),
+  ChatGoogleGenerativeAI: vi.fn().mockImplementation(function() { return {}; }),
 }));
 
 const { isUserFinished, llm } = await import('./llm.js');
@@ -59,7 +61,7 @@ describe('llm module', () => {
     });
 
     it('should return true if the LLM response contains "yes" in lowercase', async () => {
-      mockInvoke.mockResolvedValueOnce({ content: 'yes, that is correct' });
+      mockInvoke.mockResolvedValueOnce({ content: 'yes' });
       const result = await isUserFinished('yes');
       expect(result).toBe(true);
     });

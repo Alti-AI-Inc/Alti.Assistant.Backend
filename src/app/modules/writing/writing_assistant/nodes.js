@@ -3,6 +3,7 @@ import {
   generateWritingQuestions,
   updateWritingBrief,
   generateFinalContent,
+  routeToSpecializedAgent,
 } from '../service/writingService.js';
 import {
   startWritingLimiter,
@@ -67,14 +68,44 @@ export const getConfirmationNode = async (state) => {
 
 export const writeContentNode = async (state) => {
   console.log('--- Node: writeContentNode ---', state);
-  const { initialTopic, userInput, userId } = state;
+  const { initialTopic, userInput, userId, selectedAgent, selectedStyle, selectedPurpose, isSwarm, history } = state;
 
   // [DDOS Guard]: Critical. Protects the most expensive final content generation endpoint.
   // Strictly limits how many full articles a user can generate to prevent cost runaway.
   await finalContentLimiter.consume(userId);
 
-  const stream = await generateFinalContent(initialTopic, userInput, true);
-  return { finalContent: stream };
+  let typeAgent = selectedAgent;
+  let styleAgent = selectedStyle;
+  let purposeAgent = selectedPurpose;
+  let swarmMode = isSwarm;
+
+  if (!typeAgent) {
+    const routing = await routeToSpecializedAgent(initialTopic || userInput);
+    typeAgent = routing.typeAgent;
+    styleAgent = routing.styleAgent;
+    purposeAgent = routing.purposeAgent;
+    swarmMode = routing.isSwarm;
+    console.log(`Routed writing request:`, routing);
+  }
+
+  const stream = await generateFinalContent(
+    initialTopic || userInput,
+    history || [],
+    true,
+    null,
+    typeAgent,
+    styleAgent,
+    purposeAgent,
+    swarmMode
+  );
+
+  return {
+    finalContent: stream,
+    selectedAgent: typeAgent,
+    selectedStyle: styleAgent,
+    selectedPurpose: purposeAgent,
+    isSwarm: swarmMode
+  };
 };
 
 export const routeInitial = (state) => {

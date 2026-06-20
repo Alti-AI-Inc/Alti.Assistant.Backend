@@ -9,7 +9,7 @@ import httpStatus from 'http-status';
 import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 import StripeEvent from '../subscription/stripeEvent.model.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
-import StripeWebhookController from './webhook.controller.js'; // The module under test
+import emailService from '../../../shared/email.service.js';
 
 // Mock all external dependencies
 vi.mock('stripe', () => {
@@ -17,9 +17,14 @@ vi.mock('stripe', () => {
     webhooks: {
       constructEvent: vi.fn(),
     },
+    customers: {
+      retrieve: vi.fn(),
+    },
   };
-  // Mock the constructor to return the mockStripe instance
-  const StripeConstructor = vi.fn().mockImplementation(() => mockStripe);
+  // Mock the constructor to return the mockStripe instance using a regular constructible function
+  const StripeConstructor = vi.fn().mockImplementation(function() {
+    return mockStripe;
+  });
   // Add static properties if needed, e.g., Stripe.errors
   StripeConstructor.errors = {
     StripeSignatureVerificationError: class extends Error {
@@ -32,14 +37,19 @@ vi.mock('stripe', () => {
       }
     },
   };
+  StripeConstructor.webhooks = mockStripe.webhooks;
   return {
     default: StripeConstructor,
   };
 });
 
 const {
-  mockConfig
+  mockConfig,
+  mockQuery,
 } = vi.hoisted(() => {
+  const mockQuery = {
+    lean: vi.fn(),
+  };
   // Mock config with default values
   const mockConfig = {
     stripe: {
@@ -47,11 +57,18 @@ const {
       webhook_secret: 'whsec_test_mock',
       webhook_secret_fallback: 'whsec_fallback_mock',
     },
+    gcp: {
+      projectId: 'mock-project-id',
+      pubsub: {
+        subscriptionTopic: 'mock-subscription-topic',
+      },
+    },
     env: 'development',
   };
 
   return {
-    mockConfig
+    mockConfig,
+    mockQuery,
   };
 });
 vi.mock('../../../../config/index.js', () => ({
@@ -69,14 +86,25 @@ vi.mock('../../../shared/logger.js', () => ({
     warn: vi.fn(),
   },
 }));
-vi.mock('../../../shared/securityAlerts.js');
+vi.mock('../../../shared/securityAlerts.js', () => ({
+  sendSecurityAlert: vi.fn().mockResolvedValue({}),
+}));
+vi.mock('../../../shared/email.service.js', () => ({
+  default: {
+    sendPaymentActionRequiredEmail: vi.fn(),
+    sendTrialEndingEmail: vi.fn(),
+    sendStorageLimitAlert: vi.fn(),
+  },
+}));
 vi.mock('../subscription/stripeEvent.model.js', () => ({
   default: {
-    findOne: vi.fn(),
+    findOne: vi.fn().mockImplementation(() => mockQuery),
     create: vi.fn(),
   },
 }));
 vi.mock('../../../shared/stripeSecurity.js');
+
+import StripeWebhookController from './webhook.controller.js'; // The module under test
 
 // Helper for creating mock req/res objects
 const createMockReqRes = (body, headers = {}, ip = '127.0.0.1') => {
@@ -118,8 +146,8 @@ describe('StripeWebhookController', () => {
     config.stripe.webhook_secret = mockConfig.stripe.webhook_secret;
     config.stripe.webhook_secret_fallback = mockConfig.stripe.webhook_secret_fallback;
     config.env = mockConfig.env;
-    process.env.STRIPE_WEBHOOK_SECRET = undefined; // Ensure env var is clean by default
-    process.env.STRIPE_WEBHOOK_SECRET_FALLBACK = undefined; // Ensure env var is clean by default
+    delete process.env.STRIPE_WEBHOOK_SECRET; // Ensure env var is clean by default
+    delete process.env.STRIPE_WEBHOOK_SECRET_FALLBACK; // Ensure env var is clean by default
 
     // Default mock implementations for common dependencies
     isStripeIp.mockResolvedValue(true); // Assume valid IP by default
@@ -128,12 +156,16 @@ describe('StripeWebhookController', () => {
       type: 'checkout.session.completed',
       data: { object: { id: 'cs_test_123' } },
     });
-    StripeEvent.findOne.mockResolvedValue(null); // No duplicate by default
+    StripeEvent.findOne.mockImplementation(() => mockQuery);
+    mockQuery.lean.mockResolvedValue(null); // No duplicate by default
     StripeEvent.create.mockResolvedValue({}); // Successfully create event by default
     subscriptionService.processStripeCheckout.mockResolvedValue({});
     subscriptionService.updateSubscriptionFromStripe.mockResolvedValue({});
     subscriptionService.handleInvoicePaymentSucceeded.mockResolvedValue({});
     subscriptionService.handleInvoicePaymentFailed.mockResolvedValue({});
+    emailService.sendPaymentActionRequiredEmail.mockResolvedValue({});
+    emailService.sendTrialEndingEmail.mockResolvedValue({});
+    emailService.sendStorageLimitAlert.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -158,7 +190,7 @@ describe('StripeWebhookController', () => {
         new ApiError(httpStatus.FORBIDDEN, 'Forbidden: untrusted sender source IP')
       );
       expect(isStripeIp).toHaveBeenCalledWith('1.2.3.4');
-      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Untrusted Webhook IP Blocked'));
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('untrusted IP'));
       expect(sendSecurityAlert).toHaveBeenCalledWith(
         'Untrusted Webhook IP Blocked (Legacy Controller)',
         expect.any(String),
@@ -171,10 +203,10 @@ describe('StripeWebhookController', () => {
     it('should throw ApiError 500 if webhook secret is not configured', async () => {
       // Temporarily unset for this test
       config.stripe.webhook_secret = undefined;
-      process.env.STRIPE_WEBHOOK_SECRET = undefined;
-
+      delete process.env.STRIPE_WEBHOOK_SECRET;
+ 
       const { req, res } = createMockReqRes(rawBodyBuffer);
-
+ 
       await expect(StripeWebhookController.handleStripeWebhook(req, res)).rejects.toThrow(
         new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Webhook secret not configured')
       );
@@ -211,7 +243,7 @@ describe('StripeWebhookController', () => {
       const { req, res } = createMockReqRes(rawBodyBuffer);
 
       await expect(StripeWebhookController.handleStripeWebhook(req, res)).rejects.toThrow(
-        new ApiError(httpStatus.BAD_REQUEST, expect.stringContaining('Webhook signature verification failed'))
+        /Webhook signature verification failed/
       );
       expect(Stripe.webhooks.constructEvent).toHaveBeenCalledTimes(2);
       expect(logger.error).toHaveBeenCalledWith('Webhook signature verification failed:', expect.stringContaining('Both primary and fallback secret verifications failed'));
@@ -271,7 +303,7 @@ describe('StripeWebhookController', () => {
 
     // Test replay protection (duplicate event)
     it('should return duplicate: true and not process event if event ID already exists', async () => {
-      StripeEvent.findOne.mockResolvedValue({ eventId: 'evt_test_123' }); // Simulate existing event
+      mockQuery.lean.mockResolvedValue({ eventId: 'evt_test_123' }); // Simulate existing event
       const { req, res } = createMockReqRes(rawBodyBuffer);
 
       await StripeWebhookController.handleStripeWebhook(req, res);
@@ -388,11 +420,20 @@ describe('StripeWebhookController', () => {
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
-    it('should log for invoice.payment_action_required but not call service', async () => {
+    it('should log and send email for invoice.payment_action_required', async () => {
       const event = {
         id: 'evt_inv_action_1',
         type: 'invoice.payment_action_required',
-        data: { object: { id: 'inv_123', object: 'invoice' } },
+        data: {
+          object: {
+            id: 'inv_123',
+            object: 'invoice',
+            customer_email: 'customer@example.com',
+            hosted_invoice_url: 'https://invoice.stripe.com/inv_123',
+            amount_due: 2500,
+            currency: 'usd',
+          }
+        },
       };
       Stripe.webhooks.constructEvent.mockReturnValue(event);
       const { req, res } = createMockReqRes(rawBodyBuffer);
@@ -400,23 +441,46 @@ describe('StripeWebhookController', () => {
       await StripeWebhookController.handleStripeWebhook(req, res);
 
       expect(logger.warn).toHaveBeenCalledWith(`Payment action required for invoice: ${event.data.object.id}`);
-      expect(subscriptionService.handleInvoicePaymentSucceeded).not.toHaveBeenCalled();
+      expect(emailService.sendPaymentActionRequiredEmail).toHaveBeenCalledWith({
+        to: 'customer@example.com',
+        hostedInvoiceUrl: 'https://invoice.stripe.com/inv_123',
+        amountDue: '$25.00 USD',
+      });
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
-    it('should log for customer.subscription.trial_will_end but not call service', async () => {
+    it('should log and send email for customer.subscription.trial_will_end', async () => {
       const event = {
         id: 'evt_trial_end_1',
         type: 'customer.subscription.trial_will_end',
-        data: { object: { id: 'sub_123', object: 'subscription' } },
+        data: {
+          object: {
+            id: 'sub_123',
+            object: 'subscription',
+            customer: 'cus_mock_123',
+            trial_end: 1718876400,
+          }
+        },
       };
       Stripe.webhooks.constructEvent.mockReturnValue(event);
+      
+      // Mock stripe customers retrieve
+      const stripeInstance = new Stripe();
+      stripeInstance.customers.retrieve.mockResolvedValue({
+        id: 'cus_mock_123',
+        email: 'trial@example.com',
+      });
+
       const { req, res } = createMockReqRes(rawBodyBuffer);
 
       await StripeWebhookController.handleStripeWebhook(req, res);
 
       expect(logger.info).toHaveBeenCalledWith(`Trial ending soon for subscription: ${event.data.object.id}`);
-      expect(subscriptionService.updateSubscriptionFromStripe).not.toHaveBeenCalled();
+      expect(stripeInstance.customers.retrieve).toHaveBeenCalledWith('cus_mock_123');
+      expect(emailService.sendTrialEndingEmail).toHaveBeenCalledWith({
+        to: 'trial@example.com',
+        trialEnd: 1718876400,
+      });
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
-const mockPost = vi.fn();
-
 const {
   mockRouter,
+  mockPost,
   mockWritingController,
   mockOptionalAuth,
   mockExtractTenantContext,
   mockCheckDailyRequestLimit
 } = vi.hoisted(() => {
+  const mockPost = vi.fn();
   const mockRouter = {
     post: mockPost,
   };
@@ -24,6 +24,7 @@ const {
 
   return {
     mockRouter,
+    mockPost,
     mockWritingController,
     mockOptionalAuth,
     mockExtractTenantContext,
@@ -38,7 +39,7 @@ vi.mock('express', () => ({
 }));
 
 vi.mock('./writer.controller.js', () => ({
-  default: mockWritingController,
+  writingTask: mockWritingController,
 }));
 
 vi.mock('../../middlewares/auth/optionalAuth.js', () => ({

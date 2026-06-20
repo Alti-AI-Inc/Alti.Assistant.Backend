@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { llm } from '../llm.js';
 import config from '../../../../../config/index.js';
+import { getAgent, getAgentList } from './specializedAgents.js';
 
 /**
  * A generic function to interact with a generative AI model for writing tasks.
@@ -172,30 +173,253 @@ export const updateWritingBrief = async (
 };
 
 /**
+ * Routes the user's initial writing topic to the most appropriate specialized writing agent.
+ * 
+ * @param {string} topic - The user's input/topic.
+ * @returns {Promise<string>} The ID of the chosen specialized writing agent, or 'general'.
+ */
+export const routeToSpecializedAgent = async (topic) => {
+  try {
+    const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return { typeAgent: 'general', styleAgent: 'general', purposeAgent: 'general', isSwarm: false };
+    }
+    const ai = new GoogleGenerativeAI(apiKey);
+    const model = ai.getGenerativeModel({
+      model: 'gemini-1.5-flash-latest',
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 150
+      }
+    });
+
+    const agents = getAgentList();
+    const agentsListStr = agents
+      .map(a => `- ID: "${a.id}", Name: "${a.name}", Description: "${a.description}"`)
+      .join('\n');
+
+    const prompt = `You are a smart routing orchestrator for an AI writing assistant.
+Your task is to analyze the user's writing request and select the appropriate Specialized Type Agent, Writing Style, and Writing Purpose from the list below. You must also decide if a multi-agent Swarm Orchestration is needed (recommended for complex, detailed, multi-section, or high-quality requests).
+
+Available Agents:
+${agentsListStr}
+
+User Request: "${topic}"
+
+Respond ONLY with a valid JSON object matching the following structure. Do not wrap in markdown code blocks, do not include explanations, and do not add any text before or after the JSON. Ensure all agent IDs are from the list above or "general".
+
+{
+  "typeAgent": "the_chosen_type_agent_id_or_general",
+  "styleAgent": "the_chosen_style_agent_id_or_general",
+  "purposeAgent": "the_chosen_purpose_agent_id_or_general",
+  "isSwarm": true_or_false
+}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result?.response?.text()?.trim() || '{}';
+    
+    let parsed = { typeAgent: 'general', styleAgent: 'general', purposeAgent: 'general', isSwarm: false };
+    try {
+      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsed = { ...parsed, ...JSON.parse(cleanJson) };
+    } catch (e) {
+      console.warn('Failed to parse routing JSON, trying plain string fallback:', e.message);
+      const cleanedId = responseText.replace(/['"`]/g, '').trim();
+      const validIds = new Set(agents.map(a => a.id));
+      if (validIds.has(cleanedId)) {
+        parsed.typeAgent = cleanedId;
+      }
+    }
+
+    const validIds = new Set(['general', ...agents.map(a => a.id)]);
+    if (!validIds.has(parsed.typeAgent)) parsed.typeAgent = 'general';
+    if (!validIds.has(parsed.styleAgent)) parsed.styleAgent = 'general';
+    if (!validIds.has(parsed.purposeAgent)) parsed.purposeAgent = 'general';
+    
+    return parsed;
+  } catch (error) {
+    console.error('Error routing writing request to specialized agent:', error);
+    return { typeAgent: 'general', styleAgent: 'general', purposeAgent: 'general', isSwarm: false }; // Graceful fallback
+  }
+};
+
+/**
+ * Coordinates a multi-agent swarm to outline, draft, style, and edit the final content.
+ * 
+ * @param {string} brief - The writing brief.
+ * @param {Array} history - The conversation history.
+ * @param {boolean} stream - Flag to indicate if response should be streamed.
+ * @param {object} user - The user object.
+ * @param {string} typeAgent - Type agent ID.
+ * @param {string} styleAgent - Style agent ID.
+ * @param {string} purposeAgent - Purpose agent ID.
+ * @returns {Promise<any>} The content stream or text.
+ */
+export const generateSwarmContent = async function* (
+  brief,
+  history,
+  stream,
+  user,
+  typeAgent,
+  styleAgent,
+  purposeAgent
+) {
+  const typeName = getAgent(typeAgent).name;
+  const styleName = getAgent(styleAgent).name;
+  const purposeName = getAgent(purposeAgent).name;
+
+  // Stream intermediate updates if streaming is enabled
+  if (stream) {
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: `> **[Swarm Orchestration Mode Activated]**\n> 🤖 **Agents Collaborating:**\n> - **Writer Role**: *${typeName}*\n> - **Stylist Role**: *${styleName}*\n> - **Purpose Goal**: *${purposeName}*\n\n`
+      }
+    };
+
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: `⏳ *Step 1/4: Swarm Outline Planner is creating a structured document plan...*\n\n`
+      }
+    };
+  }
+
+  // 1. Outline Step
+  const outlinePrompt = `Create a structured markdown outline/plan based on the following writing brief.
+Brief:
+${brief}
+History:
+${history.map(h => `${h.role}: ${h.content}`).join('\n')}`;
+  const outline = await runGenerativeTask(getAgent('swarm_outliner').systemPrompt, outlinePrompt, false, user);
+
+  if (stream) {
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: `📋 *Outline generated successfully. Directing Swarm Draft Writer to write the copy...*\n\n`
+      }
+    };
+  }
+
+  // 2. Draft Step
+  const typeAgentObj = getAgent(typeAgent);
+  const draftPrompt = `Write the first draft based on the outline below.
+Outline:
+${outline}
+
+Brief:
+${brief}
+
+Specific Writer Directives:
+${typeAgentObj.systemPrompt}`;
+  const draft = await runGenerativeTask(getAgent('swarm_writer').systemPrompt, draftPrompt, false, user);
+
+  if (stream) {
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: `✍️ *Draft completed. Directing Stylist and Purpose agents to refine tone...*\n\n`
+      }
+    };
+  }
+
+  // 3. Style Adaptation Step
+  const styleAgentObj = getAgent(styleAgent);
+  const purposeAgentObj = getAgent(purposeAgent);
+  const stylePrompt = `Polish the draft to match the specified style and purpose.
+Draft:
+${draft}
+
+Style Directive:
+${styleAgentObj.systemPrompt}
+
+Purpose Directive:
+${purposeAgentObj.systemPrompt}`;
+  const polished = await runGenerativeTask(getAgent('swarm_style_adapter').systemPrompt, stylePrompt, false, user);
+
+  if (stream) {
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: `✨ *Tone refined. Initiating final review, revision, and delivery by Revision Editor...*\n\n---\n\n`
+      }
+    };
+  }
+
+  // 4. Final Edit Step
+  const editorPrompt = `Edit and proofread the polished text. Correct any spelling or grammatical errors, improve sentence transitions, and ensure standard formatting.
+Polished Text:
+${polished}`;
+  if (stream) {
+    const editStream = await runGenerativeTask(getAgent('swarm_editor').systemPrompt, editorPrompt, true, user);
+    for await (const chunk of editStream) {
+      yield chunk;
+    }
+  } else {
+    const finalResult = await runGenerativeTask(getAgent('swarm_editor').systemPrompt, editorPrompt, false, user);
+    yield {
+      type: 'content_block_delta',
+      delta: {
+        type: 'text_delta',
+        text: finalResult
+      }
+    };
+  }
+};
+
+/**
  * Generates the final written content based on a detailed brief.
  * @param {string} brief - The final, detailed writing brief.
  * @param {Array} history - The full conversation history to provide context.
  * @param {boolean} stream - Flag to indicate if the response should be streamed.
  * @param {object} user - The authenticated user object for usage tracking.
+ * @param {string} [selectedAgentId] - The ID of the selected specialized writing agent.
+ * @param {string} [selectedStyleId='general'] - The ID of the writing style agent.
+ * @param {string} [selectedPurposeId='general'] - The ID of the purpose agent.
+ * @param {boolean} [isSwarm=false] - Whether to run swarm orchestration.
  * @returns {Promise<any>} - The generated content as a string or a stream.
  */
-export const generateFinalContent = (brief, history, stream, user) => {
+export const generateFinalContent = (
+  brief,
+  history,
+  stream,
+  user,
+  selectedAgentId,
+  selectedStyleId = 'general',
+  selectedPurposeId = 'general',
+  isSwarm = false
+) => {
   // TODO: Verify user has sufficient credits/permissions for final generation.
-  // This is a critical check as generation can be expensive.
-  // e.g., if (!await usageService.canPerformAction(user.id, 'generate_final_content')) {
-  //   throw new Error('Usage limit exceeded. Please upgrade your plan to generate content.');
-  // }
+  
+  if (isSwarm) {
+    return generateSwarmContent(
+      brief,
+      history,
+      stream,
+      user,
+      selectedAgentId || 'general',
+      selectedStyleId || 'general',
+      selectedPurposeId || 'general'
+    );
+  }
 
-  const systemPrompt = `You are an expert writer. Your task is to write a high-quality piece of content based on the user's detailed brief.
-    Adhere strictly to all instructions in the brief regarding format, tone, audience, and key points.
-    
-    The final, detailed brief is:
-    ---
-    ${brief}
-    ---
-    
-    Now, write the final piece.`;
+  const agent = getAgent(selectedAgentId);
+  const systemPrompt = `${agent.systemPrompt}
 
-  // The runGenerativeTask function handles its own try/catch and will throw on failure.
+Adhere strictly to all instructions in the brief regarding format, tone, audience, and key points.
+
+The final, detailed brief is:
+---
+${brief}
+---
+
+Now, write the final piece.`;
+
   return runGenerativeTask(systemPrompt, history, stream, user);
 };

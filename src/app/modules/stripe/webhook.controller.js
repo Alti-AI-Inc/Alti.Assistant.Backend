@@ -8,6 +8,7 @@ import httpStatus from 'http-status';
 import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 import StripeEvent from '../subscription/stripeEvent.model.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
+import emailService from '../../../shared/email.service.js';
 
 /**
  * @typedef {import('express').Request} Request
@@ -300,7 +301,17 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         const invoice = event.data.object;
         logger.warn(`Payment action required for invoice: ${invoice.id}`);
 
-        // TODO: Implement logic to notify user to complete payment (e.g., send email).
+        const email = invoice.customer_email || (invoice.customer ? (await stripe.customers.retrieve(invoice.customer)).email : null);
+        if (email) {
+          const amountDueStr = `$${(invoice.amount_due / 100).toFixed(2)} ${invoice.currency.toUpperCase()}`;
+          await emailService.sendPaymentActionRequiredEmail({
+            to: email,
+            hostedInvoiceUrl: invoice.hosted_invoice_url,
+            amountDue: amountDueStr
+          });
+        } else {
+          logger.error(`Could not determine customer email for payment action required webhook. Invoice: ${invoice.id}`);
+        }
         break;
       }
 
@@ -309,7 +320,16 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         const subscription = event.data.object;
         logger.info(`Trial ending soon for subscription: ${subscription.id}`);
 
-        // TODO: Implement logic to send trial ending reminder email.
+        const customer = await stripe.customers.retrieve(subscription.customer);
+        const email = customer.email;
+        if (email) {
+          await emailService.sendTrialEndingEmail({
+            to: email,
+            trialEnd: subscription.trial_end
+          });
+        } else {
+          logger.error(`Could not determine customer email for trial will end webhook. Subscription: ${subscription.id}`);
+        }
         break;
       }
 

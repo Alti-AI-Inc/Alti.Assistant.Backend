@@ -13,6 +13,7 @@ import {
   generateWritingQuestions,
   updateWritingBrief,
   generateFinalContent,
+  routeToSpecializedAgent,
 } from '../service/writingService.js';
 
 // Mock dependencies
@@ -24,6 +25,7 @@ vi.mock('../service/writingService.js', () => ({
   generateWritingQuestions: vi.fn(),
   updateWritingBrief: vi.fn(),
   generateFinalContent: vi.fn(),
+  routeToSpecializedAgent: vi.fn(),
 }));
 
 describe('Writing Assistant Nodes', () => {
@@ -120,23 +122,75 @@ describe('Writing Assistant Nodes', () => {
   });
 
   describe('writeContentNode', () => {
-    it('should call generateFinalContent and return the stream', async () => {
+    it('should route to specialized agent and call generateFinalContent when selectedAgent is not set', async () => {
       const currentState = {
-        initialTopic: 'Final Topic',
+        initialTopic: 'Draft a simple nondisclosure agreement',
         userInput: 'Yes, please start.',
+        history: [],
       };
       const mockStream = 'This is the final generated content stream.';
+      routeToSpecializedAgent.mockResolvedValue({
+        typeAgent: 'legal_nda',
+        styleAgent: 'style_minimalist',
+        purposeAgent: 'purpose_sell',
+        isSwarm: true,
+      });
       generateFinalContent.mockResolvedValue(mockStream);
 
       const result = await writeContentNode(currentState);
 
+      expect(routeToSpecializedAgent).toHaveBeenCalledWith('Draft a simple nondisclosure agreement');
       expect(generateFinalContent).toHaveBeenCalledWith(
-        'Final Topic',
-        'Yes, please start.',
+        'Draft a simple nondisclosure agreement',
+        [],
+        true,
+        null,
+        'legal_nda',
+        'style_minimalist',
+        'purpose_sell',
         true
       );
       expect(result).toEqual({
         finalContent: mockStream,
+        selectedAgent: 'legal_nda',
+        selectedStyle: 'style_minimalist',
+        selectedPurpose: 'purpose_sell',
+        isSwarm: true,
+      });
+    });
+
+    it('should use existing selectedAgent, selectedStyle, selectedPurpose, isSwarm and not call routeToSpecializedAgent', async () => {
+      const currentState = {
+        initialTopic: 'Draft a lease',
+        userInput: 'Go',
+        selectedAgent: 'legal_lease',
+        selectedStyle: 'style_plain_english',
+        selectedPurpose: 'purpose_explain',
+        isSwarm: false,
+        history: [],
+      };
+      const mockStream = 'Lease agreement content.';
+      generateFinalContent.mockResolvedValue(mockStream);
+
+      const result = await writeContentNode(currentState);
+
+      expect(routeToSpecializedAgent).not.toHaveBeenCalled();
+      expect(generateFinalContent).toHaveBeenCalledWith(
+        'Draft a lease',
+        [],
+        true,
+        null,
+        'legal_lease',
+        'style_plain_english',
+        'purpose_explain',
+        false
+      );
+      expect(result).toEqual({
+        finalContent: mockStream,
+        selectedAgent: 'legal_lease',
+        selectedStyle: 'style_plain_english',
+        selectedPurpose: 'purpose_explain',
+        isSwarm: false,
       });
     });
   });

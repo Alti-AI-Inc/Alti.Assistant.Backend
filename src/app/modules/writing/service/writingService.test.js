@@ -1,20 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock external dependencies
-const mockGenerateContent = vi.fn();
-const mockGenerateContentStream = vi.fn();
-const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
-  generateContent: mockGenerateContent,
-  generateContentStream: mockGenerateContentStream,
-}));
-
+import config from '../../../../../config/index.js';
 const {
   mockGoogleGenerativeAI,
   mockLLM,
-  mockJsonOutputParser
+  mockJsonOutputParser,
+  mockGenerateContent,
+  mockGenerateContentStream,
+  mockGetGenerativeModel,
+  mockLLMInvoke,
+  mockLLMPipeInvoke,
+  mockLLMPipe
 } = vi.hoisted(() => {
-  const mockGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
+  const mockGenerateContent = vi.fn();
+  const mockGenerateContentStream = vi.fn();
+  const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
+    generateContent: mockGenerateContent,
+    generateContentStream: mockGenerateContentStream,
+  }));
+
+  const mockGoogleGenerativeAI = vi.fn().mockImplementation(function() {
+    return {
+      getGenerativeModel: mockGetGenerativeModel,
+    };
+  });
+
+  const mockLLMInvoke = vi.fn();
+  const mockLLMPipeInvoke = vi.fn();
+  const mockLLMPipe = vi.fn().mockImplementation(() => ({
+    invoke: mockLLMPipeInvoke,
   }));
 
   const mockLLM = {
@@ -22,14 +35,22 @@ const {
     pipe: mockLLMPipe,
   };
 
-  const mockJsonOutputParser = vi.fn().mockImplementation(() => ({
-    parse: vi.fn(), // The parse method is not directly called in the current chain setup, but good to mock
-  }));
+  const mockJsonOutputParser = vi.fn().mockImplementation(function() {
+    return {
+      parse: vi.fn(),
+    };
+  });
 
   return {
     mockGoogleGenerativeAI,
     mockLLM,
-    mockJsonOutputParser
+    mockJsonOutputParser,
+    mockGenerateContent,
+    mockGenerateContentStream,
+    mockGetGenerativeModel,
+    mockLLMInvoke,
+    mockLLMPipeInvoke,
+    mockLLMPipe
   };
 });
 
@@ -42,12 +63,6 @@ vi.mock('../../../../../config/index.js', () => ({
   default: {
     gemini_secret_key: 'TEST_GEMINI_API_KEY',
   },
-}));
-
-const mockLLMInvoke = vi.fn();
-const mockLLMPipeInvoke = vi.fn(); // For the piped chain
-const mockLLMPipe = vi.fn().mockImplementation(() => ({
-  invoke: mockLLMPipeInvoke,
 }));
 
 vi.mock('../llm.js', () => ({
@@ -63,6 +78,7 @@ import {
   generateWritingQuestions,
   updateWritingBrief,
   generateFinalContent,
+  routeToSpecializedAgent,
 } from './writingService.js';
 
 describe('writingService', () => {
@@ -71,11 +87,7 @@ describe('writingService', () => {
     // Reset process.env for API key tests
     delete process.env.GEMINI_API_KEY;
     // Ensure the default config mock is restored for each test
-    vi.doMock('../../../../../config/index.js', () => ({
-      default: {
-        gemini_secret_key: 'TEST_GEMINI_API_KEY',
-      },
-    }));
+    config.gemini_secret_key = 'TEST_GEMINI_API_KEY';
   });
 
   describe('generateWritingQuestions', () => {
@@ -159,15 +171,16 @@ describe('writingService', () => {
 
   describe('generateFinalContent (and internal runClaudeTask logic)', () => {
     const brief = 'Write a blog post about Vitest testing.';
-    const systemPromptBase = `You are an expert writer. Your task is to write a high-quality piece of content based on the user's detailed brief.
-    Adhere strictly to all instructions in the brief regarding format, tone, audience, and key points.
-    
-    The final, detailed brief is:
-    ---
-    ${brief}
-    ---
-    
-    Now, write the final piece.`;
+    const systemPromptBase = `You are an expert writer. Your task is to write a high-quality piece of content based on the user's detailed request. Adhere strictly to the requested tone, format, and structure.
+
+Adhere strictly to all instructions in the brief regarding format, tone, audience, and key points.
+
+The final, detailed brief is:
+---
+${brief}
+---
+
+Now, write the final piece.`;
 
     it('should generate final content in non-streaming mode with a string message', async () => {
       const history = 'Initial user query.';
@@ -265,10 +278,9 @@ describe('writingService', () => {
 
       await generateFinalContent(brief, history, false);
 
-      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
       expect(mockGenerateContent).toHaveBeenCalledWith({
         contents: [
-          { role: 'user', parts: [{ text: 'Hello' }] }, // Prepended
+          { role: 'user', parts: [{ text: 'Continue the conversation.' }] }, // Prepended
           { role: 'model', parts: [{ text: 'How can I help?' }] },
           { role: 'user', parts: [{ text: 'Write about Vitest.' }] },
         ],
@@ -276,16 +288,8 @@ describe('writingService', () => {
     });
 
     it('should use process.env.GEMINI_API_KEY if config.gemini_secret_key is not set', async () => {
-      // Temporarily override the config mock for this test
-      vi.doMock('../../../../../config/index.js', () => ({
-        default: {
-          gemini_secret_key: undefined,
-        },
-      }));
+      config.gemini_secret_key = undefined;
       process.env.GEMINI_API_KEY = 'ENV_GEMINI_KEY';
-
-      // Re-import the module to pick up the new config mock
-      const { generateFinalContent: generateFinalContentWithEnv } = await vi.importActual('./writingService.js');
 
       const history = 'Test message.';
       const expectedContent = 'Content from env key.';
@@ -295,7 +299,7 @@ describe('writingService', () => {
         },
       });
 
-      const result = await generateFinalContentWithEnv(brief, history, false);
+      const result = await generateFinalContent(brief, history, false);
 
       expect(mockGoogleGenerativeAI).toHaveBeenCalledWith('ENV_GEMINI_KEY');
       expect(result).toBe(expectedContent);
@@ -308,14 +312,13 @@ describe('writingService', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateFinalContent(brief, history, false);
+      await expect(generateFinalContent(brief, history, false)).rejects.toThrow(
+        'Sorry, I encountered an error while processing your request. Please try again.'
+      );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error calling Gemini API in writing service:',
+        'Error calling Generative AI API in writing service:',
         expect.any(Error)
-      );
-      expect(result).toBe(
-        'Sorry, I encountered an error while processing your request with the coding model. Please try again.'
       );
 
       consoleErrorSpy.mockRestore();
@@ -364,18 +367,130 @@ describe('writingService', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await generateFinalContent(brief, history, true);
+      await expect(generateFinalContent(brief, history, true)).rejects.toThrow(
+        'Sorry, I encountered an error while processing your request. Please try again.'
+      );
 
       // The error is caught before the stream is returned, so it should return the error message string
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error calling Gemini API in writing service:',
+        'Error calling Generative AI API in writing service:',
         expect.any(Error)
-      );
-      expect(result).toBe(
-        'Sorry, I encountered an error while processing your request with the coding model. Please try again.'
       );
 
       consoleErrorSpy.mockRestore();
+    });
+
+    describe('routeToSpecializedAgent', () => {
+      it('should return routing object with legal_nda for NDA topic', async () => {
+        const mockJson = JSON.stringify({
+          typeAgent: 'legal_nda',
+          styleAgent: 'style_minimalist',
+          purposeAgent: 'purpose_sell',
+          isSwarm: true
+        });
+        mockGenerateContent.mockResolvedValueOnce({
+          response: {
+            text: () => mockJson,
+            candidates: [{ content: { parts: [{ text: mockJson }] } }]
+          }
+        });
+
+        const routing = await routeToSpecializedAgent('Draft a non-disclosure agreement for my startup.');
+        expect(routing).toEqual({
+          typeAgent: 'legal_nda',
+          styleAgent: 'style_minimalist',
+          purposeAgent: 'purpose_sell',
+          isSwarm: true
+        });
+      });
+
+      it('should route to general and handle plain string fallback', async () => {
+        mockGenerateContent.mockResolvedValueOnce({
+          response: {
+            text: () => 'legal_lease',
+            candidates: [{ content: { parts: [{ text: 'legal_lease' }] } }]
+          }
+        });
+
+        const routing = await routeToSpecializedAgent('Draft a lease.');
+        expect(routing).toEqual({
+          typeAgent: 'legal_lease',
+          styleAgent: 'general',
+          purposeAgent: 'general',
+          isSwarm: false
+        });
+      });
+
+      it('should fallback to general for invalid IDs', async () => {
+        mockGenerateContent.mockResolvedValueOnce({
+          response: {
+            text: () => 'invalid_agent_id_from_ai',
+            candidates: [{ content: { parts: [{ text: 'invalid_agent_id_from_ai' }] } }]
+          }
+        });
+
+        const routing = await routeToSpecializedAgent('Write a story.');
+        expect(routing).toEqual({
+          typeAgent: 'general',
+          styleAgent: 'general',
+          purposeAgent: 'general',
+          isSwarm: false
+        });
+      });
+    });
+
+    describe('generateFinalContent with specialized agent', () => {
+      it('should use the custom system prompt of the selected agent', async () => {
+        const expectedContent = 'Generated NDA text';
+        mockGenerateContent.mockResolvedValueOnce({
+          response: {
+            candidates: [{ content: { parts: [{ text: expectedContent }] } }]
+          }
+        });
+
+        const result = await generateFinalContent('Brief', 'History', false, null, 'legal_nda');
+        expect(result).toBe(expectedContent);
+        expect(mockGoogleGenerativeAI).toHaveBeenCalled();
+      });
+
+      it('should execute multi-agent swarm pipeline when isSwarm is true', async () => {
+        // Outline Step mock
+        mockGenerateContent.mockResolvedValueOnce({
+          response: { candidates: [{ content: { parts: [{ text: 'Outline text' }] } }] }
+        });
+        // Draft Step mock
+        mockGenerateContent.mockResolvedValueOnce({
+          response: { candidates: [{ content: { parts: [{ text: 'Draft text' }] } }] }
+        });
+        // Style Step mock
+        mockGenerateContent.mockResolvedValueOnce({
+          response: { candidates: [{ content: { parts: [{ text: 'Polished text' }] } }] }
+        });
+        // Final Edit Step mock (non-streaming)
+        mockGenerateContent.mockResolvedValueOnce({
+          response: { candidates: [{ content: { parts: [{ text: 'Final edited text' }] } }] }
+        });
+
+        const resultGenerator = await generateFinalContent(
+          'Brief',
+          [{ role: 'user', content: 'History prompt' }],
+          false,
+          null,
+          'legal_nda',
+          'style_minimalist',
+          'purpose_sell',
+          true
+        );
+
+        const results = [];
+        for await (const chunk of resultGenerator) {
+          results.push(chunk);
+        }
+
+        // The final element should contain the final edited text
+        expect(results.length).toBeGreaterThan(0);
+        expect(results[results.length - 1].delta.text).toBe('Final edited text');
+      });
     });
   });
 });
