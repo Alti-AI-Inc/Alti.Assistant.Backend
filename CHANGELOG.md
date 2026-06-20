@@ -3,6 +3,14 @@
 All notable changes to Alti Assistant are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Versioning.
 
+## [1.27.191] — 2026-06-20
+
+### 🚀 Added — Phase 18: Smart Routing Code Swarms & Multi-Agent Coding Orchestration
+- **Specialized Coding Agents Registry**: Registered 110 specialized coding micro-agents spanning languages, framework environments, database tuners, task handlers, coding styles/standards, cloud infrastructure, and swarm roles.
+- **Smart Routing & Swarm Orchestration**: Implemented a dynamic Vertex AI router determining agent configurations and executing collaborative swarms (Architect -> Coder -> Tester -> Reviewer -> Documenter) for complex tasks.
+- **LangGraph State Channels Expansion**: Added `selectedAgent`, `selectedStyle`, `selectedPurpose`, and `isSwarm` state channels, integrating state updates with the MongoDB saver checkpointer.
+- **Node Integration**: Updated the asynchronous task offloader nodes to route user requests and attach routing variables to enqueued GCP Pub/Sub payloads.
+
 ---
 
 ## [Unreleased] — 2026-06-17

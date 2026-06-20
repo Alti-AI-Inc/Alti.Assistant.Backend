@@ -8,6 +8,8 @@ import {
   bestPracticesAdvisor,
   generalCodeAssistant,
   refineCode,
+  routeToSpecializedCodingAgent,
+  generateSwarmCode,
 } from './geminiCodeService.js';
 
 // Mock external dependencies
@@ -61,7 +63,12 @@ describe('geminiCodeService', () => {
 
   // Helper to test the common logic of calling runGeminiTask
   async function testServiceFunction(serviceFn, expectedSystemPrompt) {
-    const result = await serviceFn(mockHistory);
+    const result = await serviceFn(mockHistory, {
+      selectedAgent: 'general',
+      selectedStyle: 'general',
+      selectedPurpose: 'general',
+      isSwarm: false,
+    });
 
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     expect(mockGenerateContent).toHaveBeenCalledWith({
@@ -142,13 +149,23 @@ describe('geminiCodeService', () => {
   describe('runGeminiTask internal logic (via codeGenerator proxy)', () => {
     it('should return "No reply generated" if the Gemini API returns an empty text response', async () => {
       mockGenerateContent.mockResolvedValue({ text: '' }); // Simulate empty response
-      const result = await codeGenerator(mockHistory);
+      const result = await codeGenerator(mockHistory, {
+        selectedAgent: 'general',
+        selectedStyle: 'general',
+        selectedPurpose: 'general',
+        isSwarm: false,
+      });
       expect(result).toBe('No reply generated');
     });
 
     it('should return "No reply generated" if the Gemini API returns null/undefined text response', async () => {
       mockGenerateContent.mockResolvedValue({}); // Simulate no text property
-      const result = await codeGenerator(mockHistory);
+      const result = await codeGenerator(mockHistory, {
+        selectedAgent: 'general',
+        selectedStyle: 'general',
+        selectedPurpose: 'general',
+        isSwarm: false,
+      });
       expect(result).toBe('No reply generated');
     });
 
@@ -156,7 +173,12 @@ describe('geminiCodeService', () => {
       const apiError = new Error('Gemini API failed');
       mockGenerateContent.mockRejectedValue(apiError); // Simulate API error
 
-      const result = await codeGenerator(mockHistory);
+      const result = await codeGenerator(mockHistory, {
+        selectedAgent: 'general',
+        selectedStyle: 'general',
+        selectedPurpose: 'general',
+        isSwarm: false,
+      });
 
       expect(console.error).toHaveBeenCalledTimes(1);
       expect(console.error).toHaveBeenCalledWith('Error calling Google Vertex AI for coding task:', apiError);
@@ -178,7 +200,12 @@ describe('geminiCodeService', () => {
       ];
 
       mockGenerateContent.mockResolvedValue({ text: 'Filtered response' });
-      await codeGenerator(historyWithUnsupportedRole);
+      await codeGenerator(historyWithUnsupportedRole, {
+        selectedAgent: 'general',
+        selectedStyle: 'general',
+        selectedPurpose: 'general',
+        isSwarm: false,
+      });
 
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -199,13 +226,111 @@ describe('geminiCodeService', () => {
       ];
 
       mockGenerateContent.mockResolvedValue({ text: 'Model role test response' });
-      await codeGenerator(historyWithModelRole);
+      await codeGenerator(historyWithModelRole, {
+        selectedAgent: 'general',
+        selectedStyle: 'general',
+        selectedPurpose: 'general',
+        isSwarm: false,
+      });
 
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
           contents: expectedContents,
         })
       );
+    });
+  });
+
+  describe('routeToSpecializedCodingAgent', () => {
+    it('should return parsed routing object for valid JSON response', async () => {
+      const mockJsonResponse = JSON.stringify({
+        typeAgent: 'lang_rust',
+        styleAgent: 'style_pep8',
+        purposeAgent: 'role_debugger',
+        isSwarm: true,
+      });
+      mockGenerateContent.mockResolvedValueOnce({ text: mockJsonResponse });
+
+      const result = await routeToSpecializedCodingAgent('Write some Rust code');
+
+      expect(result).toEqual({
+        typeAgent: 'lang_rust',
+        styleAgent: 'style_pep8',
+        purposeAgent: 'role_debugger',
+        isSwarm: true,
+      });
+    });
+
+    it('should fallback to general values if JSON is invalid', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: 'invalid-non-json' });
+
+      const result = await routeToSpecializedCodingAgent('Write some Rust code');
+
+      expect(result).toEqual({
+        typeAgent: 'general',
+        styleAgent: 'general',
+        purposeAgent: 'general',
+        isSwarm: false,
+      });
+    });
+  });
+
+  describe('generateSwarmCode', () => {
+    it('should execute Architect -> Coder -> Tester -> Reviewer -> Documenter -> Editor sequentially', async () => {
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Architect Blueprint' })
+        .mockResolvedValueOnce({ text: 'Source Code' })
+        .mockResolvedValueOnce({ text: 'Unit Tests' })
+        .mockResolvedValueOnce({ text: 'Reviewer Feedback' })
+        .mockResolvedValueOnce({ text: 'Docs' })
+        .mockResolvedValueOnce({ text: 'Final Package' });
+
+      const result = await generateSwarmCode(
+        'Write custom sort',
+        [{ role: 'user', content: 'Write custom sort' }],
+        'lang_rust',
+        'style_clean_code',
+        'role_performance'
+      );
+
+      expect(result).toContain('[Swarm Orchestration Mode Activated]');
+      expect(result).toContain('Final Package');
+      expect(mockGenerateContent).toHaveBeenCalledTimes(6);
+    });
+  });
+
+  describe('Routing Integration in codeGenerator', () => {
+    it('should execute swarm if state.isSwarm is true', async () => {
+      // 1 routing call (if not resolved) + 6 swarm calls
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: 'Architect Blueprint' })
+        .mockResolvedValueOnce({ text: 'Source Code' })
+        .mockResolvedValueOnce({ text: 'Unit Tests' })
+        .mockResolvedValueOnce({ text: 'Reviewer Feedback' })
+        .mockResolvedValueOnce({ text: 'Docs' })
+        .mockResolvedValueOnce({ text: 'Final Package' });
+
+      const result = await codeGenerator(
+        [{ role: 'user', content: 'Generate code' }],
+        { selectedAgent: 'lang_python', isSwarm: true }
+      );
+
+      expect(result).toContain('[Swarm Orchestration Mode Activated]');
+      expect(result).toContain('Final Package');
+    });
+
+    it('should execute single agent with prefix header if not swarm', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: 'def my_func(): pass' });
+
+      const result = await codeGenerator(
+        [{ role: 'user', content: 'Generate code' }],
+        { selectedAgent: 'lang_python', selectedStyle: 'style_pep8', selectedPurpose: 'role_debugger', isSwarm: false }
+      );
+
+      expect(result).toContain('Active Specialist:** *Python Specialist*');
+      expect(result).toContain('Style**: *PEP 8 Style compliance Analyst*');
+      expect(result).toContain('Focus**: *Debugging Assistant*');
+      expect(result).toContain('def my_func(): pass');
     });
   });
 });

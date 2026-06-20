@@ -25,6 +25,15 @@ vi.mock('@google-cloud/pubsub', () => ({
   }
 }));
 
+vi.mock('../services/geminiCodeService.js', () => ({
+  routeToSpecializedCodingAgent: vi.fn().mockResolvedValue({
+    typeAgent: 'lang_python',
+    styleAgent: 'style_pep8',
+    purposeAgent: 'role_debugger',
+    isSwarm: false,
+  }),
+}));
+
 describe('Code Assistant Nodes', () => {
   beforeEach(() => {
     mockPublishMessage.mockClear();
@@ -98,12 +107,25 @@ describe('Code Assistant Nodes', () => {
 
       expect(mockTopic).toHaveBeenCalledWith('code-assistant-workflow');
       expect(mockPublishMessage).toHaveBeenCalledWith({
-        json: state,
+        json: {
+          ...state,
+          selectedAgent: 'lang_python',
+          selectedStyle: 'style_pep8',
+          selectedPurpose: 'role_debugger',
+          isSwarm: false,
+        },
         attributes: {
           task: taskName,
         },
       });
-      expect(result).toEqual({ status: 'queued', messageId: 'mock-msg-id' });
+      expect(result).toEqual({
+        status: 'queued',
+        messageId: 'mock-msg-id',
+        selectedAgent: 'lang_python',
+        selectedStyle: 'style_pep8',
+        selectedPurpose: 'role_debugger',
+        isSwarm: false,
+      });
     });
 
     it.each(offloadNodes)('should throw an error if offloading $taskName task fails', async ({ node, taskName }) => {

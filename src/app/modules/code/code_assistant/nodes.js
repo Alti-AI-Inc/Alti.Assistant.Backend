@@ -1,4 +1,5 @@
 import { PubSub } from '@google-cloud/pubsub';
+import { routeToSpecializedCodingAgent } from '../services/geminiCodeService.js';
 
 // --- GCP Pub/Sub Configuration ---
 // This file is now responsible for offloading tasks, not executing them.
@@ -105,8 +106,38 @@ export const routeOnIntent = (state) => {
 const offloadTaskNode = (taskName) => async (state) => {
   console.log(`--- Node: Offloading task for intent: ${taskName} ---`);
   try {
-    const messageId = await publishTask(taskName, state);
-    return { status: 'queued', messageId };
+    let typeAgent = state.selectedAgent;
+    let styleAgent = state.selectedStyle;
+    let purposeAgent = state.selectedPurpose;
+    let isSwarm = state.isSwarm;
+
+    if (!typeAgent) {
+      const lastMessage = state.userInput || (state.history && state.history[state.history.length - 1]?.content) || '';
+      const routing = await routeToSpecializedCodingAgent(lastMessage);
+      typeAgent = routing.typeAgent;
+      styleAgent = routing.styleAgent;
+      purposeAgent = routing.purposeAgent;
+      isSwarm = routing.isSwarm;
+      console.log(`[Smart Router] Routed code request:`, routing);
+    }
+
+    const stateUpdate = {
+      ...state,
+      selectedAgent: typeAgent,
+      selectedStyle: styleAgent,
+      selectedPurpose: purposeAgent,
+      isSwarm
+    };
+
+    const messageId = await publishTask(taskName, stateUpdate);
+    return {
+      status: 'queued',
+      messageId,
+      selectedAgent: typeAgent,
+      selectedStyle: styleAgent,
+      selectedPurpose: purposeAgent,
+      isSwarm
+    };
   } catch (error) {
     console.error(`Error publishing task ${taskName}:`, error);
     throw new Error(`Failed to queue task: ${taskName}`);
