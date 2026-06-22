@@ -633,7 +633,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
           }
         };
 
-        const resolvedCategory = (category && category !== 'search')
+        const resolvedCategory = category
           ? category
           : mapTargetModuleToCategory(target_module);
         
