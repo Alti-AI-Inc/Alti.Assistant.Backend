@@ -23,7 +23,7 @@
  */
 export const LEGAL_CONTRACT_REVIEW_CONFIG = {
   // BUG FIX: Corrected model name from 'gemini-3.5-flash' to a valid, existing model.
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.5, // Lower temperature for more precise legal analysis
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -362,7 +362,7 @@ export const CONVERSATION_CATEGORY = 'legal_contract_review';
  * within the legal contract review module.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-1.5-pro'; // BUG FIX: Corrected model name from 'gemini-3.1-pro'
+export const CONVERSATION_MODEL = 'gemini-2.5-pro'; // BUG FIX: Corrected model name from 'gemini-3.1-pro'
 
 /**
  * @typedef {object} StorageConfig

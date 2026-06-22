@@ -23,7 +23,7 @@ import { decryptConversation } from '../conversations/conversation.helpers.js';
  * @constant
  * @type {string}
  */
-const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || config.gemini_model || 'gemini-3.5-flash';
 
 /**
  * The Google Generative AI client instance, authenticated with the secret key.

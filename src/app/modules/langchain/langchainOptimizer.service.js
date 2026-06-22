@@ -378,7 +378,7 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
 
     // VAI-SAFETY-FIX: Use the Vertex AI model with safety settings and generation config.
     const generativeModel = vertex_ai.getGenerativeModel({
-      model: 'gemini-1.5-flash-001', // Using a specific model version for stability
+      model: config.gemini_model || 'gemini-3.5-flash', // Using a specific model version for stability
       safetySettings,
       generationConfig: {
         temperature: 0.2,

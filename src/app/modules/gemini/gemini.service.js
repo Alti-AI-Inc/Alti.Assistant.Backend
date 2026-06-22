@@ -62,7 +62,7 @@ const safetySettings = [
  * @type {import('@google-cloud/vertexai').GenerativeModel}
  */
 const model = vertex_ai.getGenerativeModel({
-  model: config.gemini.model_name || 'gemini-1.5-flash-001', // Fallback to a default Vertex AI model
+  model: config.gemini.model_name || config.gemini_model || 'gemini-3.5-flash', // Fallback to a default Vertex AI model
   generationConfig: { temperature: config.gemini.temperature || 0.2 }, // Fallback to a default temperature
   // SAFETY SETTINGS: Applying the defined safety filters to the model instance.
   safetySettings,
@@ -396,7 +396,7 @@ const _handleGeminiInteraction = async (
 
     const responseData = {
       prompt,
-      model: config.gemini.model_name || 'gemini-1.5-flash-001', // Log the configured model
+      model: config.gemini.model_name || config.gemini_model || 'gemini-3.5-flash', // Log the configured model
       reply,
       total_time: result?.usage?.total_time || 0,
     };

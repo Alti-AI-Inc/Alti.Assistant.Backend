@@ -44,12 +44,12 @@ const safetySettings = [
 
 // VERTEX AI & SAFETY GUARD AGENT: Instantiate the models to be used.
 const generalModel = vertex_ai.getGenerativeModel({
-  model: 'gemini-1.5-flash-001',
+  model: config.gemini_model || 'gemini-3.5-flash',
   safetySettings,
 });
 
 const specializedModel = vertex_ai.getGenerativeModel({
-  model: 'gemini-1.5-flash-001',
+  model: config.gemini_model || 'gemini-3.5-flash',
   safetySettings,
   // Example of a system instruction for a specialized model.
   systemInstruction: {

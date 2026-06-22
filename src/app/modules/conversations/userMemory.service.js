@@ -142,7 +142,7 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
 
         // AUDIT: Switched to a valid Vertex AI model name.
         const model = vertexAI.getGenerativeModel({
-          model: 'gemini-1.5-flash-001',
+          model: config.gemini_model || 'gemini-3.5-flash',
           generationConfig: {
             temperature: 0.1,
             responseMimeType: "application/json",

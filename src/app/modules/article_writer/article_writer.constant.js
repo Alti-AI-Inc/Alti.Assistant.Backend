@@ -23,7 +23,7 @@
  * @type {ArticleWriterConfig}
  */
 export const ARTICLE_WRITER_CONFIG = {
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.8, // Higher temperature for more creative writing
   DEFAULT_MAX_OUTPUT_TOKENS: 8192, // A safe default; Gemini 1.5 Flash supports much more, but this prevents runaway requests.
   DEFAULT_MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB default
@@ -251,7 +251,7 @@ export const CONVERSATION_CATEGORY = 'article_writer';
  * The AI model used for managing the conversation flow. Can be a faster, cheaper model.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-1.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * @typedef {object} StorageConfig

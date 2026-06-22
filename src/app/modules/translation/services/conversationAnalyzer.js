@@ -71,9 +71,8 @@ class ConversationAnalyzer {
   constructor() {
     // It's best practice to source model names from configuration
     // to allow for easier updates without code changes.
-    const analysisModelName = config.gemini?.analysisModel || 'gemini-1.5-flash';
-    const summarizerModelName =
-      config.gemini?.summarizerModel || 'gemini-1.5-flash';
+    const analysisModelName = config.gemini_model || 'gemini-3.5-flash';
+    const summarizerModelName = config.gemini_model || 'gemini-3.5-flash';
 
     /**
      * The primary AI model for intent analysis and parameter extraction.

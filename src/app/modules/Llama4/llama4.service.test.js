@@ -8,7 +8,7 @@ const mockInMemoryChatMessageHistoryInstance = {
 };
 
 const mockChatVertexAIInstance = {
-  model: 'gemini-1.5-flash',
+  model: 'gemini-3.5-flash',
 };
 
 const mockConversationChainInvoke = vi.fn();
@@ -50,7 +50,7 @@ const {
   }
 
   function mockChatVertexAI(config) {
-    this.model = config?.model || 'gemini-1.5-flash';
+    this.model = config?.model || 'gemini-3.5-flash';
   }
 
   function mockConversationChain() {
@@ -99,7 +99,7 @@ const {
     findOne: vi.fn().mockImplementation(() => ({
       lean: vi.fn().mockResolvedValue({
         service: { enabled: true },
-        ai: { defaultModel: 'gemini-1.5-flash', temperature: 0.7 },
+        ai: { defaultModel: 'gemini-3.5-flash', temperature: 0.7 },
       }),
     })),
   };
@@ -217,7 +217,7 @@ describe('Llama4AiGetResponseService', () => {
     mockPlatformConfig.findOne.mockImplementation(() => ({
       lean: vi.fn().mockResolvedValue({
         service: { enabled: true },
-        ai: { defaultModel: 'gemini-1.5-flash', temperature: 0.7 },
+        ai: { defaultModel: 'gemini-3.5-flash', temperature: 0.7 },
       }),
     }));
   };
@@ -249,7 +249,7 @@ describe('Llama4AiGetResponseService', () => {
       responses: [
         {
           prompt: prompt1,
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           reply: aiReply1,
         },
       ],
@@ -272,7 +272,7 @@ describe('Llama4AiGetResponseService', () => {
       responses: [
         {
           prompt: prompt1,
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           reply: aiReply1,
         }
       ],
@@ -293,7 +293,7 @@ describe('Llama4AiGetResponseService', () => {
         $push: {
           responses: {
             prompt: prompt2,
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             reply: aiReply2,
           }
         }
@@ -362,7 +362,7 @@ describe('Llama4AiGetResponseService', () => {
         responses: [
           {
             prompt: prompt1,
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             reply: 'No reply generated',
           },
         ],

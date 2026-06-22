@@ -21,7 +21,7 @@
  */
 export const BRAINSTORM_CONFIG = {
   // Updated to a valid and current model name to prevent execution errors.
-  MODEL: 'gemini-1.5-flash-latest',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.8,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_IDEA_LENGTH: 5000,
@@ -200,7 +200,7 @@ export const CONVERSATION_CATEGORY = 'brainstorm';
  * The AI model to be used for general conversation within the brainstorming module.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-1.5-flash-latest';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * @typedef {object} DefaultParameters

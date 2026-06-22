@@ -109,7 +109,7 @@ ${sanitizedPreview}`;
     // Use the Vertex AI model with explicit safety settings.
     const model = vertex_ai.getGenerativeModel({
       // PLATFORM OWNER IMPROVEMENT: Model is sourced from global config but can be overridden for specific tasks.
-      model: modelName || config.gcp_gemini_model || 'gemini-1.5-flash-preview-0514',
+      model: modelName || config.gcp_gemini_model || config.gemini_model || 'gemini-3.5-flash',
       // Configure Google's safety filters to block harmful content.
       safetySettings: [
         {

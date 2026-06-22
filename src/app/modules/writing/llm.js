@@ -9,7 +9,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 export const llm = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   // Corrected to a valid, high-performance model. 'gemini-3.5-flash' is not a recognized model name.
-  model: 'gemini-1.5-flash-latest',
+  model: config.gemini_model || 'gemini-3.5-flash',
   temperature: 0.7,
   // Added default safety settings to protect the end-user experience from harmful content.
   safetySettings: [
@@ -36,7 +36,7 @@ export const llm = new ChatGoogleGenerativeAI({
 // Using a separate instance prevents compromising the settings of the main creative LLM.
 const classificationLlm = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
-  model: 'gemini-1.5-flash-latest',
+  model: config.gemini_model || 'gemini-3.5-flash',
   // Lower temperature for more deterministic, less "creative" classification.
   temperature: 0.2,
   // Limit the output to a few tokens to reduce cost and latency for simple YES/NO answers.

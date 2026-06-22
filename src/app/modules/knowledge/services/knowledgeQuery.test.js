@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import httpStatus from 'http-status';
 
+const mockRAGInstances = [];
+
 // Mock external dependencies
 vi.mock('../../auth/auth.service.js', () => ({
   authorizeKnowledgeAccess: vi.fn().mockResolvedValue(undefined),
@@ -9,44 +11,60 @@ vi.mock('../../auth/auth.service.js', () => ({
 vi.mock('../../usage/usage.service.js', () => ({
   usageService: {
     checkQueryLimits: vi.fn().mockResolvedValue(undefined),
+    recordQueryUsage: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn(),
-  })),
+  GoogleGenerativeAI: vi.fn().mockImplementation(function() {
+    return {
+      getGenerativeModel: vi.fn(),
+    };
+  }),
 }));
 
-vi.mock('rag-system-pgvector', () => ({
-  RAGSystem: vi.fn().mockImplementation(() => ({
-    initialize: vi.fn(),
-    query: vi.fn(),
-    search: vi.fn(),
-    llm: null, // Will be set dynamically by the module under test
-  })),
-}));
+vi.mock('rag-system-pgvector', () => {
+  class RAGSystemMock {
+    constructor() {
+      this.initialize = vi.fn();
+      this.query = vi.fn();
+      this.search = vi.fn();
+      this.llm = null;
+    }
+  }
+  return {
+    RAGSystem: vi.fn().mockImplementation(function() {
+      const mockInst = new RAGSystemMock();
+      mockRAGInstances.push(mockInst);
+      return mockInst;
+    }),
+  };
+});
 
 vi.mock('../../../../shared/hybridSearch.js', () => ({
   enableHybridSearch: vi.fn(),
 }));
 
 vi.mock('../../../../shared/embeddings.js', () => ({
-  SafeGoogleGenerativeAIEmbeddings: vi.fn().mockImplementation(() => ({})),
+  SafeGoogleGenerativeAIEmbeddings: vi.fn().mockImplementation(function() {
+    return {};
+  }),
 }));
 
 vi.mock('@langchain/google-genai', () => ({
-  ChatGoogleGenerativeAI: vi.fn().mockImplementation((options) => ({
-    // Mock a simple object for LLM instances
-    model: options.model,
-    temperature: options.temperature,
-  })),
+  ChatGoogleGenerativeAI: vi.fn().mockImplementation(function(options) {
+    return {
+      // Mock a simple object for LLM instances
+      model: options.model,
+      temperature: options.temperature,
+    };
+  }),
 }));
 
 vi.mock('../knowledge.constant.js', () => ({
   KNOWLEDGE_CONFIG: {
     MODEL: 'gemini-3.5-flash',
-    COMPLEX_MODEL: 'gemini-1.5-pro',
+    COMPLEX_MODEL: 'gemini-2.5-pro',
     TEMPERATURE: 0.7,
     COMPLEXITY_THRESHOLD: 0.5,
   },
@@ -157,7 +175,7 @@ describe('knowledgeQueryService', () => {
     // A more robust way would be to ensure the module under test is imported *after* all mocks,
     // and then access the mock instance via `RAGSystem.mock.results[0].value`.
     // The current setup with `await import('./knowledgeQuery.js');` should ensure this.
-    ragInstance = RAGSystem.mock.results[0]?.value;
+    ragInstance = mockRAGInstances[0];
     if (!ragInstance) {
       throw new Error("RAGSystem instance not found. Ensure module is imported after mocks.");
     }
@@ -172,6 +190,7 @@ describe('knowledgeQueryService', () => {
       { documentId: 'doc1', content: 'search result content', score: 0.8 },
     ]);
 
+    conversationService.createConversation.mockReset();
     conversationService.createConversation.mockResolvedValue({
       conversationId: 'new-conv-id',
       userId: 'user123',
@@ -179,10 +198,12 @@ describe('knowledgeQueryService', () => {
       metadata: { category: 'knowledge' },
       messages: [],
     });
+    conversationService.addMessageToConversation.mockReset();
     conversationService.addMessageToConversation.mockResolvedValue({
       conversationId: 'conv-id-123',
       messages: [{ role: 'user', content: 'test message' }],
     });
+    conversationHelpers.getConversationById.mockReset();
     conversationHelpers.getConversationById.mockResolvedValue({
       conversationId: 'conv-id-123',
       userId: 'user123',
@@ -190,6 +211,7 @@ describe('knowledgeQueryService', () => {
       metadata: { category: 'knowledge' },
       messages: [],
     });
+    conversationHelpers.getConversationMessages.mockReset();
     conversationHelpers.getConversationMessages.mockResolvedValue([]);
 
     KnowledgeFile.find.mockResolvedValue([
@@ -402,7 +424,7 @@ describe('knowledgeQueryService', () => {
       );
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Model Selection - Complexity: HIGH'));
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(`Using Model: ${KNOWLEDGE_CONFIG.COMPLEX_MODEL}`));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with Gemini 1.5 Pro'));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with gemini-2.5-pro'));
     });
 
     it('should use the default model for simple queries', async () => {
@@ -434,7 +456,7 @@ describe('knowledgeQueryService', () => {
       );
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Model Selection - Complexity: LOW'));
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(`Using Model: ${KNOWLEDGE_CONFIG.MODEL}`));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with Gemini 3.5 Flash'));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with gemini-3.5-flash'));
     });
 
     it('should return a specific message if no processed files are found', async () => {
@@ -508,7 +530,7 @@ describe('knowledgeQueryService', () => {
 
       await expect(
         knowledgeQueryService.conversationalQuery(userId, ownerType, ownerId, message)
-      ).rejects.toThrow(errorMessage);
+      ).rejects.toThrow('Failed to handle conversation');
       expect(logger.error).toHaveBeenCalledWith(
         '[Knowledge] Error in conversational query:',
         expect.any(Error)

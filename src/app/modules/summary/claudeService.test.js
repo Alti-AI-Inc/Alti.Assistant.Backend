@@ -20,9 +20,11 @@ vi.mock('../../../../config/index.js', () => ({
 }));
 
 vi.mock('@google/generative-ai', () => {
-  const GoogleGenerativeAI = vi.fn().mockImplementation(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
-  }));
+  const GoogleGenerativeAI = vi.fn().mockImplementation(function() {
+    return {
+      getGenerativeModel: mockGetGenerativeModel,
+    };
+  });
   const HarmCategory = {
     HARM_CATEGORY_HATE_SPEECH: 'HARM_CATEGORY_HATE_SPEECH',
     HARM_CATEGORY_DANGEROUS_CONTENT: 'HARM_CATEGORY_DANGEROUS_CONTENT',
@@ -62,7 +64,7 @@ describe('geminiSummarizer', () => {
     // Check if the model was initialized with the correct model name and system prompt
     expect(mockGetGenerativeModel).toHaveBeenCalledTimes(1);
     expect(mockGetGenerativeModel).toHaveBeenCalledWith(expect.objectContaining({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       systemInstruction: {
         parts: [{ text: expect.stringContaining('You are an expert summarization assistant.') }],
       },
@@ -181,16 +183,16 @@ describe('geminiSummarizer', () => {
     const runGeminiTask = vi.fn().mockImplementation(async (content, history, systemPrompt) => {
         // This is a mock of the internal function to check its arguments
         if (systemPrompt === null) {
-            mockGetGenerativeModel({ model: 'gemini-1.5-flash' });
+            mockGetGenerativeModel({ model: 'gemini-3.5-flash' });
         } else {
-            mockGetGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: { parts: [{ text: systemPrompt }] } });
+            mockGetGenerativeModel({ model: 'gemini-3.5-flash', systemInstruction: { parts: [{ text: systemPrompt }] } });
         }
     });
 
     // Simulate calling the internal function without a system prompt
     await runGeminiTask('content', [], null);
 
-    expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-1.5-flash' });
+    expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-3.5-flash' });
     expect(mockGetGenerativeModel).not.toHaveBeenCalledWith(expect.objectContaining({
         systemInstruction: expect.any(Object)
     }));

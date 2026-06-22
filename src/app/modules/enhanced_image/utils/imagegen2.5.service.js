@@ -48,7 +48,7 @@ const RATE_LIMIT_WINDOW_HOUR_SECONDS = 3600;
  * @description The specific Google Gemini model to be used for image generation.
  * Pulled from application configuration.
  */
-const MODEL_NAME = config.google.gemini_image_model || 'gemini-1.5-flash-001';
+const MODEL_NAME = config.google.gemini_image_model || config.gemini_model || 'gemini-3.5-flash';
 
 /**
  * @constant {string} GCP_BUCKET_NAME

@@ -37,7 +37,7 @@ describe('brainstorm.constant.js', () => {
       expect(FOCUS_AREAS).toBeDefined();
       expect(BRAINSTORM_INTENTS).toBeDefined();
       expect(CONVERSATION_CATEGORY).toBe('brainstorm');
-      expect(CONVERSATION_MODEL).toBe('gemini-1.5-flash-latest');
+      expect(CONVERSATION_MODEL).toBe('gemini-3.5-flash');
       expect(DEFAULT_PARAMS).toBeDefined();
       expect(SYSTEM_PROMPTS).toBeDefined();
       expect(RESPONSE_MESSAGES).toBeDefined();

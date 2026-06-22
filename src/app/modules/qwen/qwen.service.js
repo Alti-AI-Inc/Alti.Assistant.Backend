@@ -146,7 +146,7 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     const model = new ChatVertexAI({
       // The model name 'gemini-3.5-flash' is not a valid Vertex AI model identifier.
       // Switched to a valid, comparable model 'gemini-1.5-flash-001'.
-      model: 'gemini-1.5-flash-001',
+      model: config.gemini_model || 'gemini-3.5-flash',
       temperature: 0.7,
       safetySettings,
       // No 'apiKey' is needed; authentication is handled via ADC.
@@ -214,7 +214,7 @@ const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) =>
     const responseData = {
       prompt, // Storing original prompt
       // Updated model name to reflect the change.
-      model: 'gemini-1.5-flash-001-thinking',
+      model: config.gemini_model || 'gemini-3.5-flash',
       reply,
       total_time: res1?.usage?.total_time || 0,
     };

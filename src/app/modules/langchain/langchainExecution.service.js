@@ -112,7 +112,7 @@ const executeSteps = async (steps, inputs, userId) => {
           const promptText = scope[step.config.promptSource || ''] || step.config.systemPrompt || '';
           const temperature = step.config.temperature ?? 0.7;
           const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-          const modelName = step.config.model || 'gemini-1.5-flash-001'; // Updated to a common Vertex AI model name
+          const modelName = step.config.model || config.gemini_model || 'gemini-3.5-flash'; // Updated to a common Vertex AI model name
 
           // PII Masking: Sanitize the prompt before sending it to the model.
           const sanitizedPromptText = maskPII(promptText);

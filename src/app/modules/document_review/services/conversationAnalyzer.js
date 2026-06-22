@@ -97,7 +97,7 @@ const analyzeIntent = async (
     const model = genAI.getGenerativeModel({
       // Use a fast, cost-effective model for structured tasks like intent analysis.
       // Model name should be configurable.
-      model: config.gemini_intent_model || 'gemini-1.5-flash-latest',
+      model: config.gemini_model || 'gemini-3.5-flash',
       generationConfig: {
         temperature: 0.2, // Lower temperature for more deterministic, structured output.
         maxOutputTokens: 2048,
@@ -265,7 +265,7 @@ const summarizeConversation = async (
     const model = genAI.getGenerativeModel({
       // Use a powerful model for nuanced summarization tasks.
       // Model name should be configurable.
-      model: config.gemini_summary_model || 'gemini-1.5-pro-latest',
+      model: config.gemini_pro_model || 'gemini-2.5-pro',
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 1024,

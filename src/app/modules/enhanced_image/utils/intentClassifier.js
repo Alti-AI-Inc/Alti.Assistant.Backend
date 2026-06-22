@@ -138,7 +138,7 @@ Analyze the request and determine the appropriate service based on the current r
  */
 export async function classifyImageGenIntent(
   userRequest,
-  { sessionId, apiKey, modelName = 'gemini-1.5-flash' }
+  { sessionId, apiKey, modelName = config.gemini_model || 'gemini-3.5-flash' }
 ) {
   if (!sessionId) {
     throw new Error(

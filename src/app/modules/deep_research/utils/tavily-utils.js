@@ -151,7 +151,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         if (onProgressUpdate) onProgressUpdate('Deconstructing query into multi-turn search strategies...');
 
         const deconstructResponse = await callGeminiWithResilience({
-          model: 'gemini-1.5-flash', // Updated to a more recent and capable model
+          model: config.gemini_model || 'gemini-3.5-flash', // Updated to a more recent and capable model
           contents: [{
             role: 'user',
             parts: [{
@@ -214,7 +214,7 @@ Query: "${query}"`
         // Route B: Native Google Search Grounding (Gemini native tools)
         try {
           const geminiResult = await callGeminiWithResilience({
-            model: 'gemini-1.5-flash',
+            model: config.gemini_model || 'gemini-3.5-flash',
             contents: [{ role: 'user', parts: [{ text: `Search the web and retrieve precise, factual details about: ${subQ}` }] }],
             tools: [{ googleSearch: {} }],
             generationConfig: {
@@ -389,7 +389,7 @@ Query: "${query}"`
         const snippetsBlock = finalResults.map(r => `[Source #${r.index}] Title: ${r.title}\nDomain: ${r.domain}\nURL: ${r.url}\nSnippet: ${r.content}`).join('\n\n');
 
         const synthesisResponse = await callGeminiWithResilience({
-          model: 'gemini-1.5-flash',
+          model: config.gemini_model || 'gemini-3.5-flash',
           contents: [{
             role: 'user',
             parts: [{

@@ -11,7 +11,7 @@ const platformConfigSchema = new mongoose.Schema(
     ai: {
       defaultModel: {
         type: String,
-        default: 'gemini-1.5-flash',
+        default: 'gemini-3.5-flash',
       },
       temperature: {
         type: Number,

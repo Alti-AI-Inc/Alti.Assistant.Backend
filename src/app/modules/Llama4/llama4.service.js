@@ -134,7 +134,7 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     // PLATFORM_OWNER_FEATURE: Use dynamically configured model settings from the database.
     // This allows the Platform Owner to change the AI model or its parameters for all users without a code deployment.
     // Fallback to environment config if no database config is found.
-    const modelName = platformConfig?.ai?.defaultModel || 'gemini-1.5-flash';
+    const modelName = platformConfig?.ai?.defaultModel || config.gemini_model || 'gemini-3.5-flash';
     const modelTemperature = platformConfig?.ai?.temperature ?? 0.7;
 
     // VERTEX_AI_AUDIT: Instantiating the model using the enterprise ChatVertexAI class.

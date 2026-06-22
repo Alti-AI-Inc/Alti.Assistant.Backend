@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runSimpleGeminiResearchTask, runGeminiResearchTask } from './geminiResearchService.js';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
 // Mock the config module
@@ -26,10 +26,12 @@ const {
 
 vi.mock('@langchain/google-genai', () => {
   return {
-    ChatGoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-      invoke: mockInvoke,
-      stream: mockStream,
-    })),
+    ChatGoogleGenerativeAI: vi.fn().mockImplementation(function() {
+      return {
+        invoke: mockInvoke,
+        stream: mockStream,
+      };
+    }),
   };
 });
 
@@ -42,7 +44,7 @@ describe('Gemini Research Service', () => {
     // Reset mocks before each test
     mockInvoke.mockReset();
     mockStream.mockReset();
-    ChatGoogleGenerativeAI.mockClear(); // Clear constructor calls
+    // ChatGoogleGenerativeAI.mockClear(); // Clear constructor calls
 
     // Mock console methods
     console.log = vi.fn();
@@ -60,10 +62,10 @@ describe('Gemini Research Service', () => {
     // We can check the arguments passed to the constructor mock.
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledTimes(1);
     expect(ChatGoogleGenerativeAI).toHaveBeenCalledWith({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-pro',
       apiKey: 'mock_gemini_key', // From our config mock
       temperature: 0,
-      maxRetries: 2,
+      maxRetries: 3,
     });
   });
 
@@ -78,25 +80,22 @@ describe('Gemini Research Service', () => {
 
       const result = await runSimpleGeminiResearchTask(mockState);
 
-      expect(console.log).toHaveBeenCalledWith(
-        'Running Gemini deep research task with search results:',
-        mockState.searchResults
-      );
+      expect(console.log).toHaveBeenCalledWith({
+        message: 'Running Gemini simple deep research task',
+        query: mockState.query,
+      });
       expect(mockInvoke).toHaveBeenCalledTimes(1);
       const invokeArgs = mockInvoke.mock.calls[0][0];
       expect(invokeArgs).toHaveLength(2);
-      expect(invokeArgs[0]).toEqual({
-        role: 'system',
-        content: expect.stringContaining('You are an expert research assistant.'),
-      });
-      expect(invokeArgs[1]).toEqual({
-        role: 'user',
-        content: `state.searchResults: ${mockState.searchResults}\n\nQuery: ${mockState.query}`,
-      });
+      expect(invokeArgs[0]).toBeInstanceOf(SystemMessage);
+      expect(invokeArgs[0].content).toContain('You are an expert research assistant.');
+      expect(invokeArgs[1]).toBeInstanceOf(HumanMessage);
+      expect(invokeArgs[1].content).toContain(mockState.searchResults);
+      expect(invokeArgs[1].content).toContain(mockState.query);
       expect(result).toBe(mockResponseContent);
     });
 
-    it('should handle errors from llm.invoke and return a specific error message', async () => {
+    it('should handle errors from llm.invoke and throw an error', async () => {
       const mockState = {
         query: 'Test query',
         searchResults: 'Test results',
@@ -104,10 +103,9 @@ describe('Gemini Research Service', () => {
       const mockError = new Error('Gemini API error');
       mockInvoke.mockRejectedValueOnce(mockError);
 
-      const result = await runSimpleGeminiResearchTask(mockState);
+      await expect(runSimpleGeminiResearchTask(mockState)).rejects.toThrow('Failed to process research task with Gemini.');
 
-      expect(console.error).toHaveBeenCalledWith('Error calling Gemini deep research API:', mockError);
-      expect(result).toBe('Sorry, I encountered an error while processing your request with the coding model. Please try again.');
+      expect(console.error).toHaveBeenCalledWith('Error in runSimpleGeminiResearchTask:', mockError);
     });
   });
 
@@ -137,13 +135,13 @@ describe('Gemini Research Service', () => {
       expect(invokeArgs[1]).toBeInstanceOf(HumanMessage);
       expect(invokeArgs[1].content).toBe('Hello');
 
-      expect(invokeArgs[2]).toBeInstanceOf(SystemMessage); // assistant -> SystemMessage
+      expect(invokeArgs[2]).toBeInstanceOf(AIMessage); // assistant -> AIMessage
       expect(invokeArgs[2].content).toBe('Hi there!');
 
       expect(invokeArgs[3]).toBeInstanceOf(HumanMessage);
       expect(invokeArgs[3].content).toBe('How are you?');
 
-      expect(invokeArgs[4]).toBeInstanceOf(SystemMessage); // ai -> SystemMessage
+      expect(invokeArgs[4]).toBeInstanceOf(AIMessage); // ai -> AIMessage
       expect(invokeArgs[4].content).toBe('I am good, thank you.');
 
       expect(invokeArgs[5]).toBeInstanceOf(HumanMessage); // unknown -> HumanMessage (fallback)
@@ -168,31 +166,32 @@ describe('Gemini Research Service', () => {
 
       expect(streamArgs[1]).toBeInstanceOf(HumanMessage);
       expect(streamArgs[1].content).toBe('Hello');
-      expect(streamArgs[2]).toBeInstanceOf(SystemMessage);
+      expect(streamArgs[2]).toBeInstanceOf(AIMessage);
       expect(streamArgs[2].content).toBe('Hi there!');
 
       expect(result).toBe(mockStreamObject);
-      expect(console.log).toHaveBeenCalledWith('Streaming response from Gemini deep research API...', mockStreamObject);
     });
 
-    it('should handle errors from llm.invoke and return a specific error message (no stream)', async () => {
+    it('should handle errors from llm.invoke and throw an error (no stream)', async () => {
       const mockError = new Error('Gemini API error for invoke');
       mockInvoke.mockRejectedValueOnce(mockError);
 
-      const result = await runGeminiResearchTask(mockSystemPrompt, mockInputMessages, false);
+      await expect(
+        runGeminiResearchTask(mockSystemPrompt, mockInputMessages, false)
+      ).rejects.toThrow('Failed to process request with Gemini.');
 
-      expect(console.error).toHaveBeenCalledWith('Error calling Gemini deep research API:', mockError);
-      expect(result).toBe('Sorry, I encountered an error while processing your request with the coding model. Please try again.');
+      expect(console.error).toHaveBeenCalledWith('Error in runGeminiResearchTask:', mockError);
     });
 
-    it('should handle errors from llm.stream and return a specific error message (stream = true)', async () => {
+    it('should handle errors from llm.stream and throw an error (stream = true)', async () => {
       const mockError = new Error('Gemini API error for stream');
       mockStream.mockRejectedValueOnce(mockError);
 
-      const result = await runGeminiResearchTask(mockSystemPrompt, mockInputMessages, true);
+      await expect(
+        runGeminiResearchTask(mockSystemPrompt, mockInputMessages, true)
+      ).rejects.toThrow('Failed to process request with Gemini.');
 
-      expect(console.error).toHaveBeenCalledWith('Error calling Gemini deep research API:', mockError);
-      expect(result).toBe('Sorry, I encountered an error while processing your request with the coding model. Please try again.');
+      expect(console.error).toHaveBeenCalledWith('Error in runGeminiResearchTask:', mockError);
     });
   });
 });

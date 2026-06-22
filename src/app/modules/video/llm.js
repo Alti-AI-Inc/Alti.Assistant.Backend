@@ -51,7 +51,7 @@ if (!config.google.gcp_project_id) {
 export const createLlmInstance = (options = {}) => {
   // Define default settings that can be overridden by the options parameter.
   const defaultSettings = {
-    model: config.google.llm_model || 'gemini-1.5-flash', // Use a configurable, modern model.
+    model: config.google.llm_model || config.gemini_model || 'gemini-3.5-flash', // Use a configurable, modern model.
     temperature: 0.7,
     maxOutputTokens: 8192, // Set a reasonable default max output to prevent runaway requests.
     maxRetries: 3, // Improve reliability by retrying on transient errors.

@@ -229,7 +229,7 @@ const initiateTaskInSessionService = async (
       project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
       location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
     });
-    const model = 'gemini-1.5-flash-001';
+    const model = config.gemini_model || 'gemini-3.5-flash';
 
     // Configure enterprise-grade safety settings to block harmful content at a low threshold.
     const safetySettings = [

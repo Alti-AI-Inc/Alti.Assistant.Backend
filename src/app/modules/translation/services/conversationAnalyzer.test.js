@@ -4,9 +4,11 @@ const mockInvoke = vi.fn();
 const {
   mockChatGoogleGenerativeAI
 } = vi.hoisted(() => {
-  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(() => ({
-    invoke: mockInvoke,
-  }));
+  const mockChatGoogleGenerativeAI = vi.fn().mockImplementation(function() {
+    return {
+      invoke: mockInvoke,
+    };
+  });
 
   return {
     mockChatGoogleGenerativeAI
@@ -42,20 +44,21 @@ describe('ConversationAnalyzer', () => {
 
   describe('constructor', () => {
     it('should initialize two ChatGoogleGenerativeAI models with correct configurations', () => {
-      // This is implicitly tested by the module import, let's verify the calls
+      mockChatGoogleGenerativeAI.mockClear();
+      new ConversationAnalyzer();
       expect(mockChatGoogleGenerativeAI).toHaveBeenCalledTimes(2);
 
       // Check the primary model config
-      expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
-        model: 'gemini-1.5-flash',
+      expect(mockChatGoogleGenerativeAI).toHaveBeenNthCalledWith(1, {
+        model: 'gemini-3.5-flash',
         apiKey: 'test-api-key',
         temperature: 0.3,
         maxOutputTokens: 2048,
       });
 
       // Check the summarizer model config
-      expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith({
-        model: 'gemini-1.5-flash',
+      expect(mockChatGoogleGenerativeAI).toHaveBeenNthCalledWith(2, {
+        model: 'gemini-3.5-flash',
         apiKey: 'test-api-key',
         temperature: 0.5,
         maxOutputTokens: 1000,
@@ -132,18 +135,21 @@ describe('ConversationAnalyzer', () => {
       expect(prompt).toContain('Current user message: "to German"');
     });
 
-    it('should use conversation summary if provided', async () => {
-      const conversationHistory = [{ role: 'user', content: 'This is a very long message that should be ignored.' }];
+    it('should use conversation summary if threshold is exceeded', async () => {
+      const longContent = 'A'.repeat(21000); // ~5250 tokens, exceeding 5000 threshold
+      const conversationHistory = [{ role: 'user', content: longContent }];
       const existingParams = {};
-      const conversationSummary = 'User wants to translate something.';
-      mockInvoke.mockResolvedValue({ content: JSON.stringify({ intent: 'general_question' }) });
+      
+      // First call for summarizeConversation, second for analyzeIntent
+      mockInvoke.mockResolvedValueOnce({ content: 'User wants to translate something.' });
+      mockInvoke.mockResolvedValueOnce({ content: JSON.stringify({ intent: 'general_question' }) });
 
-      await conversationAnalyzer.analyzeIntent('Okay, now what?', conversationHistory, existingParams, conversationSummary);
+      await conversationAnalyzer.analyzeIntent('Okay, now what?', conversationHistory, existingParams);
 
-      expect(mockInvoke).toHaveBeenCalledOnce();
-      const prompt = mockInvoke.mock.calls[0][0];
-      expect(prompt).toContain('Previous conversation summary:\nUser wants to translate something.');
-      expect(prompt).not.toContain('Recent conversation:');
+      expect(mockInvoke).toHaveBeenCalledTimes(2);
+      const analyzePrompt = mockInvoke.mock.calls[1][0];
+      expect(analyzePrompt).toContain('Previous conversation summary:\nUser wants to translate something.');
+      expect(analyzePrompt).not.toContain('Recent conversation:');
     });
 
     it('should return a fallback response if the model invocation fails', async () => {

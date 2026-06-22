@@ -114,7 +114,7 @@ const executeSingleStep = async (step, scope, userId) => {
         const promptText = typeof rawPromptText === 'string' ? rawPromptText : (typeof rawPromptText === 'object' ? JSON.stringify(rawPromptText) : String(rawPromptText));
         const temperature = step.config.temperature ?? 0.7;
         const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-        const modelName = step.config.model || 'gemini-1.5-flash';
+        const modelName = step.config.model || config.gemini_model || 'gemini-3.5-flash';
 
         // SECURITY (PII): Filter out Personally Identifiable Information before sending data to the model.
         const sanitizedPromptText = filterPII(promptText);

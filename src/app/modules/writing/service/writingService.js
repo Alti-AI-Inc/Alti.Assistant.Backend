@@ -186,7 +186,7 @@ export const routeToSpecializedAgent = async (topic) => {
     }
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
+      model: config.gemini_model || 'gemini-3.5-flash',
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 150

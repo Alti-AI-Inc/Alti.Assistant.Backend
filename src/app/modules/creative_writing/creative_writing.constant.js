@@ -18,7 +18,7 @@
  */
 export const CREATIVE_WRITING_CONFIG = {
   // OPTIMIZATION: Updated to a valid and current model version for better performance and features.
-  MODEL: 'gemini-1.5-flash-latest',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.9, // Higher temperature for creativity
   TOP_P: 0.95,
   MAX_OUTPUT_TOKENS: 8192,
@@ -183,7 +183,7 @@ export const CONVERSATION_CATEGORY = 'creative_writing';
  * @constant {string} CONVERSATION_MODEL - Specifies the AI model to be used for general conversation
  * within the creative writing module.
  */
-export const CONVERSATION_MODEL = 'gemini-1.5-flash-latest';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 /**
  * @constant {object} DEFAULT_PARAMS - Default parameters for creative writing requests.

@@ -201,7 +201,7 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
       try {
         // ENTERPRISE_SDK: Use the Vertex AI SDK for enterprise features like IAM integration and regional endpoints.
         const model = vertex_ai.getGenerativeModel({
-          model: 'gemini-1.5-flash-001', // Use a specific, versioned model for stability.
+          model: config.gemini_model || 'gemini-3.5-flash', // Use a specific, versioned model for stability.
           // SAFETY: Explicitly configure safety settings to block harmful content.
           // This is a mandatory security control for enterprise applications.
           safetySettings: [

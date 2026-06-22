@@ -323,7 +323,7 @@ describe('langchainOptimizerService', () => {
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-1.5-flash-001',
+          model: 'gemini-3.5-flash',
           generationConfig: {
             temperature: 0.2,
             responseMimeType: 'application/json',

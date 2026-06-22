@@ -121,7 +121,7 @@ const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
   }
 
   // PLATFORM-OWNER-OPTIMIZATION: Model name is now configurable, allowing platform owners to update the evaluator model without code changes.
-  const modelName = config.langchain?.evaluator_model_name || 'gemini-1.5-flash-preview-0514';
+  const modelName = config.langchain?.evaluator_model_name || config.gemini_model || 'gemini-3.5-flash';
 
   // PLATFORM-OWNER-OPTIMIZATION: Safety settings are now configurable. This is a critical security control
   // that allows platform owners to enforce system-wide content policies.

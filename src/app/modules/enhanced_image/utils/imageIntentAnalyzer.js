@@ -129,7 +129,7 @@ export async function analyzeImageIntent(
 ) {
   const {
     apiKey,
-    modelName = 'gemini-3.5-flash',
+    modelName = config.gemini_model || 'gemini-3.5-flash',
     ip = 'global_anon_user',
   } = options;
 

@@ -48,7 +48,7 @@ async function runGeminiTask(content, history, systemPrompt = null) {
     // Get the generative model instance.
     // Using gemini-1.5-flash as it's a recent, fast, and capable model.
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: config.gemini_model || 'gemini-3.5-flash',
       // The systemInstruction provides high-level guidance for the model's behavior.
       ...(systemPrompt && { systemInstruction: { parts: [{ text: systemPrompt }] } }),
     });

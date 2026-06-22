@@ -54,7 +54,7 @@ const generateTrainingPairs = async (chatbot, fileContent) => {
     const projectId = await auth.getProjectId();
     const vertexAI = new VertexAI({ project: projectId, location: 'us-central1' });
     const generativeModel = vertexAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-001',
+      model: config.gemini_model || 'gemini-3.5-flash',
       generationConfig: {
         temperature: 0.5,
       },
@@ -182,7 +182,7 @@ export const startModelTuning = async (chatbotId) => {
 
     const tuningPayload = {
       displayName: `tuning-${chatbot.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${chatbot.id.substring(0, 8)}`,
-      baseModel: 'publishers/google/models/gemini-1.5-flash-001',
+      baseModel: `publishers/google/models/${config.gemini_model || 'gemini-3.5-flash'}`,
       supervisedTuningSpec: {
         trainingDatasetUri: datasetGcsUri,
         hyperParameters: {
