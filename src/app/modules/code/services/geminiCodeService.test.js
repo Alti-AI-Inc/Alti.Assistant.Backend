@@ -38,6 +38,15 @@ vi.mock('../../../../../config/index.js', () => ({
   },
 }));
 
+vi.mock('../../search/services/vertexClaudeService.js', () => ({
+  vertexClaudeService: {
+    generateText: vi.fn().mockRejectedValue(new Error('Mocked Claude Error for Testing Fallback'))
+  },
+  default: {
+    generateText: vi.fn().mockRejectedValue(new Error('Mocked Claude Error for Testing Fallback'))
+  }
+}));
+
 // Get the mocked generateContent function
 const { mockGenerateContent } = await import('@google/genai');
 

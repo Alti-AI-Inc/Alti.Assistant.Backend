@@ -25,6 +25,7 @@ import { summaryRoutes } from '../modules/summary/summary.route.js';
 import { searchRoute } from '../modules/search/search.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
 import { imageRoutes } from '../modules/image/image.route.js';
+import { audioRoutes } from '../modules/audio/audio.route.js';
 import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
 
@@ -210,6 +211,10 @@ const moduleRoutes = [
   {
     path: '/image',
     route: imageRoutes,
+  },
+  {
+    path: '/audio',
+    route: audioRoutes,
   },
   {
     path: '/video',

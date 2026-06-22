@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
+import { vertexClaudeService } from './vertexClaudeService.js';
 
 /**
  * Claude Service mapped to Google Generative AI.
@@ -89,10 +90,8 @@ class ClaudeService {
    * @throws {Error} If the Gemini API call fails.
    */
   async callClaude(messages, options = {}) {
-    await this.initialize();
-
     try {
-      console.log(`🤖 Calling Gemini (mocked as Claude Sonnet 4.5)...`);
+      console.log(`🤖 Calling Vertex Claude Sonnet 4.5...`);
       console.log(`📝 Messages: ${messages.length} messages`);
 
       // Inject Massive.com real-time financial data if applicable
@@ -113,7 +112,52 @@ class ClaudeService {
         }
       }
 
-      // Convert messages to Gemini format (alternate user/model)
+      // Construct final messages array with enhancedSystem prepended as a system message
+      const finalMessages = [...messages];
+      if (enhancedSystem) {
+        finalMessages.unshift({ role: 'system', content: enhancedSystem });
+      }
+
+      const startTime = Date.now();
+      const result = await vertexClaudeService.generateText(finalMessages, {
+        temperature: options.temperature || config.claude?.temperature || 0.7,
+        maxTokens: options.maxTokens || config.claude?.maxTokens || 4096,
+      });
+      const duration = Date.now() - startTime;
+
+      console.log(`✅ Vertex Claude response received in ${duration}ms`);
+
+      return {
+        id: `claude-vertex-msg-${Date.now()}`,
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-4-5-sonnet@20250219',
+        content: result.content,
+        usage: result.usage
+      };
+    } catch (claudeError) {
+      console.error('❌ Vertex Claude rawPredict failed, falling back to Gemini:', claudeError);
+      
+      // FALLBACK TO GEMINI
+      await this.initialize();
+      console.log(`🤖 Calling Gemini fallback (mocked as Claude)...`);
+
+      let enhancedSystem = options.system || '';
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUserMsg && lastUserMsg.content) {
+        try {
+          const userText = typeof lastUserMsg.content === 'string'
+            ? lastUserMsg.content
+            : lastUserMsg.content?.[0]?.text || '';
+          const enhanced = await massiveSmartRouter.combinedRouteAndEnhancePrompt(userText);
+          if (enhanced !== userText) {
+            enhancedSystem = enhanced + '\n\n' + enhancedSystem;
+          }
+        } catch (err) {
+          console.warn('Massive.com enhancement failed for Gemini fallback, continuing:', err.message);
+        }
+      }
+
       const contents = [];
       for (const msg of messages) {
         if (msg.role === 'system') {
@@ -132,11 +176,8 @@ class ClaudeService {
         }
         
         const text = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || '');
-        
-        // Gemini doesn't allow empty parts
         if (!text) continue;
         
-        // Gemini expects alternate user/model roles. If last message had the same role, merge parts.
         if (contents.length > 0 && contents[contents.length - 1].role === role) {
           contents[contents.length - 1].parts.push({ text });
         } else {
@@ -147,7 +188,6 @@ class ClaudeService {
         }
       }
 
-      // Ensure valid alternation structure
       if (contents.length > 0 && contents[0].role === 'model') {
         contents.unshift({ role: 'user', parts: [{ text: 'Hello' }] });
       }
@@ -174,7 +214,6 @@ class ClaudeService {
 
       const replyText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
-      // Mock the response structure of Anthropic Claude so downstream callers continue to work
       const response = {
         id: `mock-claude-msg-${Date.now()}`,
         type: 'message',
@@ -192,13 +231,8 @@ class ClaudeService {
         }
       };
 
-      console.log(`✅ Gemini response received in ${duration}ms`);
-      console.log(`📊 Tokens - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}`);
-
+      console.log(`✅ Gemini fallback response received in ${duration}ms`);
       return response;
-    } catch (error) {
-      console.error('❌ Error calling Gemini:', error);
-      throw new Error(`Gemini API call failed: ${error.message}`);
     }
   }
 

@@ -22,6 +22,7 @@ const DEFAULT_LIMITS = {
   images: 10,
   webSearches: 5,
   deepResearch: 1,
+  gcpTtsCharacters: 100000,
 };
 
 /**
@@ -45,6 +46,10 @@ const USAGE_FEATURE_MAP = {
   deepResearch: {
     limitKey: 'deepResearch',
     usageKey: 'deepResearchUsed',
+  },
+  gcp_tts_characters: {
+    limitKey: 'gcpTtsCharacters',
+    usageKey: 'gcpTtsCharactersUsed',
   },
 };
 

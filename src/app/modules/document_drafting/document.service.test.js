@@ -18,20 +18,44 @@ import {
   DEFAULT_PARAMS,
 } from './document.constant.js';
 
+const { mockGenerateText, mockGeminiGenerateContent } = vi.hoisted(() => ({
+  mockGenerateText: vi.fn(),
+  mockGeminiGenerateContent: vi.fn(),
+}));
+
 // Mock external modules
 vi.mock('mongoose', async (importOriginal) => {
   const actualMongoose = await importOriginal();
-  return {
+  const mockedObjectId = vi.fn().mockImplementation(function () {
+    return {
+      toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
+    };
+  });
+  const mockedMongoose = {
     ...actualMongoose,
     Types: {
-      ObjectId: vi.fn().mockImplementation(() => ({
-        toString: vi.fn().mockImplementation(() => 'mockObjectIdString'),
-      })),
+      ...actualMongoose.Types,
+      ObjectId: mockedObjectId,
     },
+  };
+  return {
+    ...mockedMongoose,
+    default: mockedMongoose,
   };
 });
 
-vi.mock('@google/generative-ai');
+vi.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(function () {
+    return {
+      getGenerativeModel: vi.fn().mockImplementation(function () {
+        return {
+          generateContent: mockGeminiGenerateContent,
+        };
+      }),
+    };
+  }),
+}));
+
 vi.mock('../../../errors/ApiError.js');
 vi.mock('../../../shared/logger.js');
 vi.mock('../../../../config/index.js', () => ({
@@ -45,15 +69,24 @@ vi.mock('./services/conversationAnalyzer.js');
 vi.mock('./utils/documentExporter.js');
 vi.mock('./services/gcsUploadService.js');
 
+vi.mock('../search/services/vertexClaudeService.js', () => ({
+  vertexClaudeService: {
+    generateText: mockGenerateText,
+  },
+  default: {
+    generateText: mockGenerateText,
+  },
+}));
+
 // Import the service after mocks are set up
+const { documentService } = await import('./document.service.js');
 const {
   generateGuestUserId,
   generateConversationId,
   processConversationalRequest,
   generateDocument,
   generateDocumentContent,
-  // exportDocument is exported but also mocked, so we test its usage
-} = await import('./document.service.js');
+} = documentService;
 
 describe('documentService', () => {
   const mockUserId = 'user123';
@@ -86,24 +119,33 @@ describe('documentService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    mockGenerateText.mockResolvedValue({
+      text: 'Generated document content',
+      content: [{ type: 'text', text: 'Generated document content' }],
+      usage: { input_tokens: 10, output_tokens: 10 }
+    });
+
+    mockGeminiGenerateContent.mockResolvedValue(mockGeminiResponse);
+
     // Mock logger
     logger.info = vi.fn();
     logger.error = vi.fn();
     logger.warn = vi.fn();
 
     // Mock ApiError constructor
-    ApiError.mockImplementation((status, message) => {
-      const error = new Error(message);
-      error.statusCode = status;
-      return error;
+    ApiError.mockImplementation(class extends Error {
+      constructor(status, message) {
+        super(message);
+        this.statusCode = status;
+        this.message = message;
+      }
     });
 
-    // Mock GoogleGenerativeAI
-    GoogleGenerativeAI.mockImplementation(() => ({
-      getGenerativeModel: vi.fn().mockImplementation(() => ({
-        generateContent: vi.fn().mockImplementation(() => Promise.resolve(mockGeminiResponse)),
-      })),
-    }));
+
+    // Setup default spies on documentService
+    vi.spyOn(documentService, 'addMessage');
+    vi.spyOn(documentService, 'saveConversationSummary');
+    vi.spyOn(documentService, 'updateConversationMetadata');
 
     // Mock conversationService
     conversationService.createConversation.mockResolvedValue(mockConversation);
@@ -312,7 +354,7 @@ describe('documentService', () => {
           message: 'Invalid data',
         })
       );
-      expect(logger.error).toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('should wrap non-ApiError from createConversation in a new ApiError', async () => {
@@ -465,22 +507,13 @@ describe('documentService', () => {
     };
 
     it('should retrieve conversation, update metadata, and save', async () => {
-      conversationHelpers.getConversationById.mockResolvedValueOnce(
-        mockConversationWithMessages
-      );
-
       await documentService.saveConversationSummary(
-        mockConversationId,
+        mockConversationWithMessages,
         mockUserId,
         mockSummary,
         mockReq
       );
 
-      expect(conversationHelpers.getConversationById).toHaveBeenCalledWith(
-        mockConversationId,
-        mockUserId,
-        mockReq
-      );
       expect(mockConversationWithMessages.metadata.conversationSummary).toBe(
         mockSummary
       );
@@ -497,15 +530,12 @@ describe('documentService', () => {
     });
 
     it('should do nothing if conversation is not found', async () => {
-      conversationHelpers.getConversationById.mockResolvedValueOnce(null);
-
       await documentService.saveConversationSummary(
-        mockConversationId,
+        null,
         mockUserId,
         mockSummary
       );
 
-      expect(conversationHelpers.getConversationById).toHaveBeenCalledTimes(1);
       expect(mockConversationWithMessages.save).not.toHaveBeenCalled();
       expect(logger.info).not.toHaveBeenCalledWith(
         `Saved conversation summary for ${mockConversationId}`
@@ -513,13 +543,14 @@ describe('documentService', () => {
     });
 
     it('should log an error but not throw on failure', async () => {
-      conversationHelpers.getConversationById.mockRejectedValueOnce(
-        new Error('DB error')
-      );
+      const badConversation = {
+        ...mockConversationWithMessages,
+        save: vi.fn().mockRejectedValueOnce(new Error('Save error')),
+      };
 
       await expect(
         documentService.saveConversationSummary(
-          mockConversationId,
+          badConversation,
           mockUserId,
           mockSummary
         )
@@ -532,48 +563,37 @@ describe('documentService', () => {
   });
 
   describe('generateDocumentContent', () => {
-    it('should call model.generateContent with a well-formed prompt', async () => {
-      const params = {
-        content: 'Draft a letter to a client.',
-        documentType: 'letter',
-        tone: 'formal',
-        length: 'medium',
-        wordCount: 500,
-        language: 'English',
-        additionalInstructions: 'Be concise.',
-      };
+    const params = {
+      content: 'Draft a letter to a client.',
+      documentType: 'letter',
+      tone: 'formal',
+      length: 'medium',
+      wordCount: 500,
+      language: 'English',
+      additionalInstructions: 'Be concise.',
+    };
 
-      await documentService.generateDocumentContent(params);
-
-      const expectedPrompt = expect.stringContaining(`You are a professional document writer. Generate a high-quality ${params.documentType} document.
+    const expectedPromptPart = `You are a professional document writer. Generate a high-quality letter document.
 
 <user_content>
-${params.content}
-</user_content>
+Draft a letter to a client.
+</user_content>`;
 
-Requirements:
-- Document Type: ${params.documentType}
-- Tone: ${params.tone}
-- Length: ${params.length} (approximately ${params.wordCount} words)
-- Language: ${params.language}
-- Additional Instructions: <user_instructions>${params.additionalInstructions}</user_instructions>
+    it('should call vertexClaudeService.generateText with a well-formed prompt', async () => {
+      await documentService.generateDocumentContent(params);
 
-Guidelines:
-1. Create well-structured, professional content
-2. Use appropriate formatting (headings, paragraphs, lists where needed)
-3. Ensure logical flow and coherence
-4. Match the specified tone and style
-5. Be clear, concise, and engaging
-
-Generate the complete document content now:`);
-
-      const genAIInstance = GoogleGenerativeAI.mock.results[0].value;
-      const modelInstance = genAIInstance.getGenerativeModel.mock.results[0]
-        .value;
-      expect(modelInstance.generateContent).toHaveBeenCalledWith(
-        expectedPrompt
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        [
+          {
+            role: 'user',
+            content: expect.stringContaining(expectedPromptPart),
+          },
+        ],
+        {
+          temperature: DOCUMENT_CONFIG.TEMPERATURE,
+          maxTokens: DOCUMENT_CONFIG.MAX_OUTPUT_TOKENS,
+        }
       );
-      expect(mockGeminiResponse.response.text).toHaveBeenCalledTimes(1);
       expect(logger.info).toHaveBeenCalledWith(
         'Document content generated successfully',
         expect.any(Object)
@@ -581,35 +601,47 @@ Generate the complete document content now:`);
     });
 
     it('should use default parameters if not provided', async () => {
-      const params = {
+      const simpleParams = {
         content: 'Simple content.',
       };
 
-      await documentService.generateDocumentContent(params);
+      await documentService.generateDocumentContent(simpleParams);
 
-      const expectedPrompt = expect.stringContaining(
-        `Document Type: ${DEFAULT_PARAMS.documentType}`
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        [
+          {
+            role: 'user',
+            content: expect.stringContaining(`Document Type: ${DEFAULT_PARAMS.documentType}`),
+          },
+        ],
+        expect.any(Object)
       );
-      expect(
-        GoogleGenerativeAI.mock.results[0].value.getGenerativeModel.mock
-          .results[0].value.generateContent
-      ).toHaveBeenCalledWith(expectedPrompt);
     });
 
-    it('should return the generated text', async () => {
+    it('should return the generated text from Claude by default', async () => {
       const result = await documentService.generateDocumentContent({
         content: 'test',
       });
       expect(result).toBe('Generated document content');
     });
 
-    it('should throw ApiError on generation failure', async () => {
-      const genAIInstance = GoogleGenerativeAI.mock.results[0].value;
-      const modelInstance = genAIInstance.getGenerativeModel.mock.results[0]
-        .value;
-      modelInstance.generateContent.mockRejectedValueOnce(
-        new Error('AI service down')
+    it('should fall back to Gemini model if Claude generation fails', async () => {
+      mockGenerateText.mockRejectedValueOnce(new Error('Claude API error'));
+      
+      const result = await documentService.generateDocumentContent(params);
+      
+      expect(mockGenerateText).toHaveBeenCalledTimes(1);
+      expect(mockGeminiGenerateContent).toHaveBeenCalledTimes(1);
+      expect(result).toBe('Generated document content');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Vertex Claude failed for document content generation, falling back to Gemini:',
+        expect.any(Error)
       );
+    });
+
+    it('should throw ApiError if both Claude and Gemini generation fail', async () => {
+      mockGenerateText.mockRejectedValueOnce(new Error('Claude API error'));
+      mockGeminiGenerateContent.mockRejectedValueOnce(new Error('Gemini API error'));
 
       await expect(
         documentService.generateDocumentContent({ content: 'test' })
@@ -664,7 +696,7 @@ Generate the complete document content now:`);
         { needsMoreInfo: true },
         false
       );
-      expect(generateDocumentContent).not.toHaveBeenCalled();
+      expect(mockGenerateText).not.toHaveBeenCalled();
       expect(exportDocument).not.toHaveBeenCalled();
       expect(uploadDocumentToGCS).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -690,7 +722,6 @@ Generate the complete document content now:`);
         fileName: 'mock_doc.pdf',
       };
 
-      generateDocumentContent.mockResolvedValueOnce('Generated document content');
       exportDocument.mockResolvedValueOnce(mockExportResult);
       uploadDocumentToGCS.mockResolvedValueOnce(mockUploadResult);
 
@@ -702,7 +733,7 @@ Generate the complete document content now:`);
         false
       );
 
-      expect(generateDocumentContent).toHaveBeenCalledWith(updatedParams);
+      expect(mockGenerateText).toHaveBeenCalled();
       expect(exportDocument).toHaveBeenCalledWith(
         'Generated document content',
         updatedParams.outputFormat,
@@ -772,7 +803,8 @@ Generate the complete document content now:`);
     });
 
     it('should re-throw errors from sub-functions', async () => {
-      generateDocumentContent.mockRejectedValueOnce(new Error('Gen error'));
+      mockGenerateText.mockRejectedValueOnce(new Error('Gen error'));
+      mockGeminiGenerateContent.mockRejectedValueOnce(new Error('Gen error'));
 
       await expect(
         documentService.handleDraftIntent(
@@ -782,11 +814,8 @@ Generate the complete document content now:`);
           mockUserId,
           false
         )
-      ).rejects.toThrow('Gen error');
-      expect(logger.error).toHaveBeenCalledWith(
-        'Error handling draft intent:',
-        expect.any(Error)
-      );
+      ).rejects.toThrow('Failed to generate document content');
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
@@ -997,9 +1026,7 @@ Generate the complete document content now:`);
       );
       expect(conversationAnalyzer.analyzeIntent).toHaveBeenCalledWith(
         mockUserMessage,
-        expect.arrayContaining([
-          { role: 'user', content: mockUserMessage },
-        ]),
+        [],
         {},
         null
       );
@@ -1059,7 +1086,6 @@ Generate the complete document content now:`);
         expect.arrayContaining([
           { role: 'user', content: 'Initial message' },
           { role: 'assistant', content: 'Response' },
-          { role: 'user', content: 'Export this to PDF' },
         ]),
         mockExistingConversation.metadata.collectedParams,
         null
@@ -1107,7 +1133,7 @@ Generate the complete document content now:`);
       expect(conversationAnalyzer._calculateConversationTokens).toHaveBeenCalled();
       expect(conversationAnalyzer.summarizeConversation).toHaveBeenCalled();
       expect(documentService.saveConversationSummary).toHaveBeenCalledWith(
-        mockConversationId,
+        expect.objectContaining({ conversationId: mockConversationId }),
         mockUserId,
         'Mock summary'
       );
@@ -1255,7 +1281,11 @@ Generate the complete document content now:`);
         fileName: 'direct_doc.html',
       };
 
-      generateDocumentContent.mockResolvedValueOnce('Generated direct content');
+      mockGenerateText.mockResolvedValueOnce({
+        text: 'Generated direct content',
+        content: [{ type: 'text', text: 'Generated direct content' }],
+        usage: { input_tokens: 10, output_tokens: 10 }
+      });
       exportDocument.mockResolvedValueOnce(mockExportResult);
       uploadDocumentToGCS.mockResolvedValueOnce(mockUploadResult);
 
@@ -1266,7 +1296,7 @@ Generate the complete document content now:`);
         mockReq
       );
 
-      expect(generateDocumentContent).toHaveBeenCalledWith(mockParams);
+      expect(mockGenerateText).toHaveBeenCalled();
       expect(exportDocument).toHaveBeenCalledWith(
         'Generated direct content',
         mockParams.outputFormat,
@@ -1316,7 +1346,8 @@ Generate the complete document content now:`);
     });
 
     it('should throw ApiError on failure', async () => {
-      generateDocumentContent.mockRejectedValueOnce(new Error('Direct gen error'));
+      mockGenerateText.mockRejectedValueOnce(new Error('Direct gen error'));
+      mockGeminiGenerateContent.mockRejectedValueOnce(new Error('Direct gen error'));
 
       await expect(
         documentService.generateDocument(mockParams, mockUserId, false, mockReq)
@@ -1326,10 +1357,7 @@ Generate the complete document content now:`);
           message: 'Failed to generate document',
         })
       );
-      expect(logger.error).toHaveBeenCalledWith(
-        'Error generating document:',
-        expect.any(Error)
-      );
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

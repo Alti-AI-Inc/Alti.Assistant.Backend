@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import config from '../../../../../config/index.js';
 import { getAgent, getAgentList } from './specializedCodingAgents.js';
+import { vertexClaudeService } from '../../search/services/vertexClaudeService.js';
+import { logger } from '../../../../shared/logger.js';
 
 /**
  * @typedef {Object} ChatMessage
@@ -33,27 +35,43 @@ const ai = new GoogleGenAI({
  */
 async function runGeminiTask(systemPrompt, history) {
   try {
-    // Translate user and assistant roles to Gemini's expected formats ('user' and 'model')
-    const contents = history
-      .filter((msg) => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'model')
-      .map((msg) => ({
-        role: (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user',
-        parts: [{ text: msg.content }],
-      }));
+    logger.info('Calling Vertex Claude Sonnet 4.5 for coding task...');
+    const messages = [];
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
+    messages.push(...history);
 
-    const result = await ai.models.generateContent({
-      model: config.gemini_pro_model || 'gemini-2.5-pro', // Specifies the Gemini Pro model
-      contents: contents,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.2, // Lower temperature for more focused and less creative responses
-      },
+    const result = await vertexClaudeService.generateText(messages, {
+      temperature: 0.2,
     });
+    return result.text || 'No reply generated';
+  } catch (claudeError) {
+    logger.warn(`Vertex Claude failed for coding task, falling back to Gemini: ${claudeError.message}`);
+    
+    try {
+      // Translate user and assistant roles to Gemini's expected formats ('user' and 'model')
+      const contents = history
+        .filter((msg) => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'model')
+        .map((msg) => ({
+          role: (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        }));
 
-    return result?.text || 'No reply generated';
-  } catch (error) {
-    console.error('Error calling Google Vertex AI for coding task:', error);
-    return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
+      const result = await ai.models.generateContent({
+        model: config.gemini_pro_model || 'gemini-2.5-pro', // Specifies the Gemini Pro model
+        contents: contents,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature: 0.2, // Lower temperature for more focused and less creative responses
+        },
+      });
+
+      return result?.text || 'No reply generated';
+    } catch (error) {
+      console.error('Error calling Google Vertex AI for coding task:', error);
+      return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
+    }
   }
 }
 

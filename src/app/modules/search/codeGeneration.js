@@ -3,6 +3,7 @@ import { prepareConversationContext } from './utils/historyManager.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from '../conversations/conversation.model.js';
 import { decryptConversation } from '../conversations/conversation.helpers.js';
+import { vertexClaudeService } from './services/vertexClaudeService.js';
 
 /**
  * Dedicated code generation function using Claude Sonnet 4.5.
@@ -296,20 +297,40 @@ Generate high-quality, production-ready code with:
     ];
 
     const startTime = Date.now();
-    console.log('🚀 Starting code generation with tool-based conversation...');
+    let codeResult;
 
-    // Use executeToolBasedConversation from reactAgent.js with optional search
-    const codeResult = await executeToolBasedConversation(messages, {
-      userId,
-      conversationId: state.conversationId,
-    });
+    try {
+      console.log('🚀 Routing code query directly to Vertex Claude Sonnet 4.5...');
+      const result = await vertexClaudeService.generateText(messages, {
+        temperature: 0.2,
+      });
+
+      codeResult = {
+        answer: result.text,
+        reference: [],
+        citations: [],
+        citationMetadata: {
+          model: 'claude-4-5-sonnet@20250219',
+          searchMethod: 'claude_direct_generation',
+          timestamp: new Date().toISOString(),
+        }
+      };
+    } catch (claudeError) {
+      console.warn('⚠️ Vertex Claude failed in codeGeneration, falling back to ReAct agent:', claudeError.message);
+      
+      const reactResult = await executeToolBasedConversation(messages, {
+        userId,
+        conversationId: state.conversationId,
+      });
+      
+      codeResult = reactResult?.responseMessage || reactResult;
+    }
 
     const duration = Date.now() - startTime;
     console.log(`✅ Code generation process completed in ${duration}ms`);
-    console.log(`Code Result:`, codeResult.responseMessage);
 
     return {
-      ...codeResult?.responseMessage,
+      ...codeResult,
     };
   } catch (error) {
     console.error('❌ Error in code generation:', error);

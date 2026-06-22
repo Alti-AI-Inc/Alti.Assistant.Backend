@@ -34,6 +34,17 @@ vi.mock('./services/reactAgent.js', () => ({
 
 vi.mock('../conversations/conversation.model.js', () => ({
   default: mockConversationModel,
+  decryptText: vi.fn(text => text),
+  encryptText: vi.fn(text => text),
+}));
+
+vi.mock('./services/vertexClaudeService.js', () => ({
+  vertexClaudeService: {
+    generateText: vi.fn().mockRejectedValue(new Error('Mocked Claude Error for Testing Fallback'))
+  },
+  default: {
+    generateText: vi.fn().mockRejectedValue(new Error('Mocked Claude Error for Testing Fallback'))
+  }
 }));
 
 describe('runCodeGeneration', () => {

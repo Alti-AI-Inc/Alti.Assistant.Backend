@@ -21,6 +21,7 @@ import {
   TONES,
   LENGTH_OPTIONS,
 } from './document.constant.js';
+import { vertexClaudeService } from '../search/services/vertexClaudeService.js';
 
 /**
  * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
@@ -113,7 +114,7 @@ const handleDocumentConversation = async (
     if (!conversation) {
       // Only generate a new ID if no conversationId was provided initially.
       // If we reach here, it means conversationId was null/undefined.
-      actualConversationId = generateConversationId();
+      actualConversationId = documentService.generateConversationId();
 
       conversation = await conversationService.createConversation(
         {
@@ -317,8 +318,20 @@ Guidelines:
 
 Generate the complete document content now:`;
 
-    const result = await model.generateContent(prompt);
-    const documentContent = result.response.text();
+    let documentContent;
+    try {
+      const result = await vertexClaudeService.generateText([
+        { role: 'user', content: prompt }
+      ], {
+        temperature: DOCUMENT_CONFIG.TEMPERATURE,
+        maxTokens: DOCUMENT_CONFIG.MAX_OUTPUT_TOKENS
+      });
+      documentContent = result.text;
+    } catch (claudeError) {
+      logger.error('Vertex Claude failed for document content generation, falling back to Gemini:', claudeError);
+      const result = await model.generateContent(prompt);
+      documentContent = result.response.text();
+    }
 
     logger.info('Document content generated successfully', {
       contentLength: documentContent.length,
@@ -361,7 +374,7 @@ const handleDraftIntent = async (
   try {
     // Check if we can proceed
     if (!analysis.canProceed) {
-      await addMessage(
+      await documentService.addMessage(
         conversationId,
         userId,
         'assistant',
@@ -423,7 +436,7 @@ const handleDraftIntent = async (
       responseMessage += `Let me know if you'd like any changes or refinements!`;
     }
 
-    await addMessage(
+    await documentService.addMessage(
       conversationId,
       userId,
       'assistant',
@@ -494,7 +507,7 @@ const handleExportIntent = async (
     if (!content) {
       const message =
         'I need the document content to export. Could you provide it?';
-      await addMessage(
+      await documentService.addMessage(
         conversationId,
         userId,
         'assistant',
@@ -516,7 +529,7 @@ const handleExportIntent = async (
     if (!outputFormat) {
       const message =
         'What format would you like to export to? (PDF, DOCX, TXT, HTML, or MD)';
-      await addMessage(
+      await documentService.addMessage(
         conversationId,
         userId,
         'assistant',
@@ -552,7 +565,7 @@ const handleExportIntent = async (
 
     const responseMessage = `I've exported your document to ${outputFormat.toUpperCase()} format!`;
 
-    await addMessage(
+    await documentService.addMessage(
       conversationId,
       userId,
       'assistant',
@@ -609,7 +622,7 @@ const processConversationalRequest = async (
     });
 
     // Handle or create conversation
-    const conversation = await handleDocumentConversation(
+    const conversation = await documentService.handleDocumentConversation(
       userId,
       conversationId,
       userMessage,
@@ -630,7 +643,7 @@ const processConversationalRequest = async (
       conversation.metadata?.conversationSummary || null;
 
     // Add user message
-    await addMessage(
+    await documentService.addMessage(
       actualConversationId,
       userId,
       'user',
@@ -657,7 +670,7 @@ const processConversationalRequest = async (
         existingParams
       );
       // Optimization: Pass the already-fetched conversation object to avoid a redundant database query.
-      await saveConversationSummary(
+      await documentService.saveConversationSummary(
         conversation, // Pass the Mongoose document directly
         userId,
         conversationSummary
@@ -680,7 +693,7 @@ const processConversationalRequest = async (
 
     // Merge parameters
     const updatedParams = { ...existingParams, ...analysis.parameters };
-    await updateConversationMetadata(
+    await documentService.updateConversationMetadata(
       actualConversationId,
       userId,
       updatedParams
@@ -691,7 +704,7 @@ const processConversationalRequest = async (
 
     switch (analysis.intent) {
       case DOCUMENT_INTENTS.DRAFT:
-        response = await handleDraftIntent(
+        response = await documentService.handleDraftIntent(
           analysis,
           updatedParams,
           actualConversationId,
@@ -705,7 +718,7 @@ const processConversationalRequest = async (
       case DOCUMENT_INTENTS.REWRITE:
       case DOCUMENT_INTENTS.EXPAND:
         // If user wants to refine/edit, regenerate with updated params
-        response = await handleDraftIntent(
+        response = await documentService.handleDraftIntent(
           analysis,
           updatedParams,
           actualConversationId,
@@ -716,7 +729,7 @@ const processConversationalRequest = async (
 
       case DOCUMENT_INTENTS.EXPORT:
       case DOCUMENT_INTENTS.FORMAT:
-        response = await handleExportIntent(
+        response = await documentService.handleExportIntent(
           analysis,
           updatedParams,
           actualConversationId,
@@ -729,7 +742,7 @@ const processConversationalRequest = async (
       case DOCUMENT_INTENTS.INFO:
       default:
         // General response
-        await addMessage(
+        await documentService.addMessage(
           actualConversationId,
           userId,
           'assistant',
@@ -859,4 +872,10 @@ export const documentService = {
   generateDocument,
   generateDocumentContent,
   exportDocument,
+  handleDocumentConversation,
+  handleDraftIntent,
+  handleExportIntent,
+  addMessage,
+  updateConversationMetadata,
+  saveConversationSummary,
 };

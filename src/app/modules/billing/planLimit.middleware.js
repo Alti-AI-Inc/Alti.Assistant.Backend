@@ -117,7 +117,7 @@ export const planLimitMiddleware = (limitType) => {
       }
 
       const meteredFeatures = [
-        'research', 'image', 'video', 'task', 'workflow',
+        'research', 'image', 'audio', 'video', 'task', 'workflow',
         'search', 'write', 'code', 'projects', 'models', 'knowledge'
       ];
 
