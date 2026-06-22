@@ -32,7 +32,7 @@ const auth = new GoogleAuth({
 const LIVE_API_MODELS = {
   FLASH_LIVE: 'models/gemini-2.0-flash-live-001',
   FLASH_EXP: 'models/gemini-2.0-flash-exp',
-  GEMINI_2_5_PRO: 'models/gemini-3.1-pro'
+  GEMINI_2_5_PRO: 'models/gemini-2.5-pro'
 };
 
 // ── Voice options for TTS output ────────────────────────────────────────────

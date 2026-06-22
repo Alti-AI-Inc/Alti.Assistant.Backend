@@ -370,7 +370,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.orchestrator_decision).toBe('image_generation'); // Local classifier should pick this up
     expect(result.classification.source).toBe('local-fallback');
     expect(result.extracted_parameters.query).toBe(prompt);
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.1-pro', requireSearch: false });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-2.5-pro', requireSearch: false });
   });
 
   it('should fall back to local classifier if Gemini returns invalid JSON', async () => {
@@ -426,7 +426,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
 
     expect(result.orchestrator_decision).toBe('connected_apps');
     expect(result.classification.source).toBe('local-fallback');
-    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-3.1-pro' });
+    expect(mockExecuteSwarmSync).toHaveBeenCalledWith(prompt, [], userId, { model: 'gemini-2.5-pro' });
   });
 
   it('should use local classifier for "web_search" keywords if LLM fails', async () => {

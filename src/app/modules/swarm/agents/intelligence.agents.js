@@ -41,7 +41,7 @@ CRITICAL LAWS:
 3. MULTI-STAGE PLANNING: Decompose complex user goals into an exact, step-by-step modular blueprint categorized by dependencies, tools, and exit criteria.
 4. ALGEBRAIC & LOGICAL ACCURACY: Maintain absolute structural precision across mathematical equations, algorithm designs, and logic proofs.
 5. NO FLUFF: Deliver high-density, authoritative, and direct cognitive insights without generic conversational preambles.`,
-  model: 'gemini-3.1-pro', // Using the advanced Pro model for high-scale cognitive reasoning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for high-scale cognitive reasoning
   // Vertex AI Safety Settings: Configure content filters to block harmful content
   // with a medium-or-higher threshold. This is a critical enterprise safety feature.
   safetySettings: [
@@ -278,7 +278,7 @@ CRITICAL LAWS:
 3. SECURITY BY DEFAULT: Implement strict VPC security perimeters, least-privilege IAM setups, encrypted transit pipes, and API rate-limiting rules.
 4. CRITICAL ANALYSIS: Always provide a dedicated "Trade-Offs & Architecture Critique" section detailing potential single points of failure, cold starts, and cost factors.
 5. NO FLUFF: Start your response directly with the architectural flow or layout blueprint.`,
-  model: 'gemini-3.1-pro', // Using the advanced Pro model for rigorous architectural planning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for rigorous architectural planning
   // Vertex AI Safety Settings: Configure content filters to block harmful content
   // with a medium-or-higher threshold. This is a critical enterprise safety feature.
   safetySettings: [
@@ -325,7 +325,7 @@ CRITICAL LAWS:
 3. BIG O ANALYSIS: Detail strict upper, lower, and average complexity bounds (O, Ω, Θ) for algorithms, modeling memory footprints and execution limits.
 4. THEOREM VERIFICATION: Cross-examine your own mathematical proofs for boundary conditions, division by zero, floating point overflows, and inductive base failures.
 5. NO FLUFF: Deliver direct mathematical insights, proofs, and equations without conversational preambles.`,
-  model: 'gemini-3.1-pro', // Using the advanced Pro model for algebraic and symbolic reasoning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for algebraic and symbolic reasoning
   // Vertex AI Safety Settings: Configure content filters to block harmful content
   // with a medium-or-higher threshold. This is a critical enterprise safety feature.
   safetySettings: [

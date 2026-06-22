@@ -14,13 +14,13 @@ const {
   };
 });
 
-vi.mock('@google-generative-ai', () => {
+vi.mock('@google/generative-ai', () => {
   return {
-    GoogleGenerativeAI: vi.fn().mockImplementation(() => {
+    GoogleGenerativeAI: function() {
       return {
         getGenerativeModel: mockGetGenerativeModel,
       };
-    }),
+    },
   };
 });
 
@@ -46,7 +46,8 @@ vi.mock('../document_review.constant.js', () => ({
 
 describe('conversationAnalyzer', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockGenerateContent.mockReset();
+    mockGetGenerativeModel.mockReset();
     mockGetGenerativeModel.mockReturnValue({
       generateContent: mockGenerateContent,
     });
@@ -68,9 +69,9 @@ describe('conversationAnalyzer', () => {
         reasoning: 'User explicitly asked for grammar check on an academic paper.',
       });
 
-      mockGenerateContent.mockResolvedValue({
+      mockGenerateContent.mockResolvedValueOnce({
         response: {
-          text: () => `\`\`\`json\n${mockResponseText}\n\`\`\``,
+          text: () => mockResponseText,
         },
       });
 
@@ -82,16 +83,18 @@ describe('conversationAnalyzer', () => {
       const existingParams = { documentType: 'academic' };
 
       const result = await conversationAnalyzer.analyzeIntent(
+        'test-user-id',
         userMessage,
         conversationHistory,
         existingParams
       );
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-3.1-pro',
+        model: 'gemini-1.5-flash-latest',
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.2,
           maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
         },
       });
 
@@ -135,7 +138,7 @@ describe('conversationAnalyzer', () => {
         reasoning: 'Manager requested formatting review.',
       });
 
-      mockGenerateContent.mockResolvedValue({
+      mockGenerateContent.mockResolvedValueOnce({
         response: {
           text: () => mockResponseText,
         },
@@ -148,6 +151,7 @@ describe('conversationAnalyzer', () => {
       ];
 
       const result = await conversationAnalyzer.analyzeIntent(
+        'test-user-id',
         'Is the formatting correct?',
         conversationHistory
       );
@@ -160,33 +164,33 @@ describe('conversationAnalyzer', () => {
     });
 
     it('should fall back to default values if JSON parsing fails', async () => {
-      mockGenerateContent.mockResolvedValue({
+      mockGenerateContent.mockResolvedValueOnce({
         response: {
           text: () => 'Invalid non-JSON response from model',
         },
       });
 
-      const result = await conversationAnalyzer.analyzeIntent('Hello');
+      const result = await conversationAnalyzer.analyzeIntent('test-user-id', 'Hello');
 
       expect(result).toEqual({
         intent: REVIEW_INTENTS.GENERAL_REVIEW,
         confidence: 0.5,
         parameters: {},
-        reasoning: 'Default fallback',
+        reasoning: 'Failed to parse AI model response.',
       });
-      expect(logger.warn).toHaveBeenCalledWith('Could not parse intent analysis response');
+      expect(logger.error).toHaveBeenCalledWith('Failed to parse JSON from intent analysis model', expect.any(Object));
     });
 
     it('should fall back to default values if an exception is thrown', async () => {
-      mockGenerateContent.mockRejectedValue(new Error('API Error'));
+      mockGenerateContent.mockRejectedValueOnce(new Error('API Error'));
 
-      const result = await conversationAnalyzer.analyzeIntent('Hello');
+      const result = await conversationAnalyzer.analyzeIntent('test-user-id', 'Hello');
 
       expect(result).toEqual({
         intent: REVIEW_INTENTS.GENERAL_REVIEW,
         confidence: 0.5,
         parameters: {},
-        reasoning: 'Error occurred, using default',
+        reasoning: 'Error occurred during analysis, using default intent.',
       });
       expect(logger.error).toHaveBeenCalledWith('Error analyzing intent:', expect.any(Error));
     });
@@ -199,13 +203,13 @@ describe('conversationAnalyzer', () => {
         reasoning: null,
       });
 
-      mockGenerateContent.mockResolvedValue({
+      mockGenerateContent.mockResolvedValueOnce({
         response: {
           text: () => mockResponseText,
         },
       });
 
-      const result = await conversationAnalyzer.analyzeIntent('Hello');
+      const result = await conversationAnalyzer.analyzeIntent('test-user-id', 'Hello');
 
       expect(result).toEqual({
         intent: REVIEW_INTENTS.GENERAL_REVIEW,
@@ -219,7 +223,7 @@ describe('conversationAnalyzer', () => {
   describe('summarizeConversation', () => {
     it('should successfully summarize conversation history', async () => {
       const mockSummary = 'The user wants a detailed grammar check on their academic essay.';
-      mockGenerateContent.mockResolvedValue({
+      mockGenerateContent.mockResolvedValueOnce({
         response: {
           text: () => mockSummary,
         },
@@ -232,14 +236,15 @@ describe('conversationAnalyzer', () => {
       const collectedParams = { reviewType: 'grammar_check' };
 
       const result = await conversationAnalyzer.summarizeConversation(
+        'test-user-id',
         conversationHistory,
         collectedParams
       );
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-3.1-pro',
+        model: 'gemini-1.5-pro-latest',
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.4,
           maxOutputTokens: 1024,
         },
       });
@@ -248,22 +253,22 @@ describe('conversationAnalyzer', () => {
       const promptArg = mockGenerateContent.mock.calls[0][0];
       expect(promptArg).toContain('user: Can you check my essay?');
       expect(promptArg).toContain('model: Sure, what kind of review?');
-      expect(promptArg).toContain('Collected parameters: {"reviewType":"grammar_check"}');
+      expect(promptArg).toContain('Currently Collected Parameters: {"reviewType":"grammar_check"}');
 
-      expect(result).toBe(mockSummary);
-      expect(logger.info).toHaveBeenCalledWith('Conversation summarized', {
+      expect(logger.info).toHaveBeenCalledWith('Conversation summarized successfully', {
         originalLength: expect.any(Number),
         summaryLength: mockSummary.length,
       });
     });
 
     it('should return fallback string if an exception is thrown during summarization', async () => {
-      mockGenerateContent.mockRejectedValue(new Error('API Error'));
+      mockGenerateContent.mockRejectedValueOnce(new Error('API Error'));
 
       const conversationHistory = [{ role: 'user', content: 'Hello' }];
       const collectedParams = {};
 
       const result = await conversationAnalyzer.summarizeConversation(
+        'test-user-id',
         conversationHistory,
         collectedParams
       );

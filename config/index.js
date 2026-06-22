@@ -80,10 +80,10 @@ export default {
   // Flash: fastest & cheapest — use for 90% of requests
   // Pro:   deep reasoning, complex tasks, document review, agentic workflows
   gemini_model:     process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
-  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro',
+  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   gemini: {
     model_name:   process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
-    pro_model:    process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro',
+    pro_model:    process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
     temperature:  parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
   },
   realestate_api_key: process.env.REALESTATE_API_KEY,

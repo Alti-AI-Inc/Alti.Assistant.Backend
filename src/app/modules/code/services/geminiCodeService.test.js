@@ -72,7 +72,7 @@ describe('geminiCodeService', () => {
 
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     expect(mockGenerateContent).toHaveBeenCalledWith({
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-2.5-pro',
       contents: expectedGeminiContents,
       config: {
         systemInstruction: expectedSystemPrompt,

@@ -197,7 +197,7 @@ describe('GcpVertexGroundingService', () => {
       expect(mockCombinedRouteAndEnhancePrompt).toHaveBeenCalledWith(prompt);
       expect(mockAddMessage).toHaveBeenCalledWith({ type: 'human', content: prompt });
       expect(mockGenerateContent).toHaveBeenCalledWith({
-        model: 'gemini-3.1-pro',
+        model: 'gemini-2.5-pro',
         contents: enhancedPrompt,
         config: {
           temperature: 0.1,
@@ -213,7 +213,7 @@ describe('GcpVertexGroundingService', () => {
           $push: {
             responses: {
               prompt,
-              model: 'gemini-3.1-pro-grounded',
+              model: 'gemini-2.5-pro-grounded',
               reply: aiReply,
               groundingMetadata: mockGroundingMetadata,
               output_tokens: 50,

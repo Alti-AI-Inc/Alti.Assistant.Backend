@@ -151,7 +151,7 @@ describe('legalContractAnalyzer', () => {
       await legalContractAnalyzer.performIntentAnalysis('test message');
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-3.1-pro',
+        model: 'gemini-2.5-pro',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 2048,

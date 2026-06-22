@@ -533,7 +533,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 
     // Determine the target model name based on model_tier
     const targetModel = model_tier === 'pro' 
-      ? (config.gemini_pro_model || 'gemini-3.1-pro') 
+      ? (config.gemini_pro_model || 'gemini-2.5-pro') 
       : (config.gemini_model || 'gemini-3.5-flash');
 
     // Decide if search/grounding is required
