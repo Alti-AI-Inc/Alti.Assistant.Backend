@@ -399,6 +399,15 @@ const server = app.listen(port, '0.0.0.0', () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
   logger.info(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`   Gemini model: ${config.gemini_model}`);
+
+  // Start the Open-Source LiveKit Voice Agent Worker asynchronously
+  import('./src/app/modules/streaming/agents/voice-agent.worker.js')
+    .then((module) => {
+      module.runVoiceAgentWorker().catch(err => logger.error('Failed to start Voice Agent Worker', err));
+    })
+    .catch((err) => {
+      logger.error('Could not load Voice Agent Worker module', err);
+    });
 });
 
 // Graceful shutdown handlers

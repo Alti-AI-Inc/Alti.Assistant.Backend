@@ -9,6 +9,8 @@ import { openMemoryClient } from '../../shared/openMemoryClient.js';
 import { rateLimiter } from '../../shared/rateLimiter.js';
 import { imagen3 } from './utils/imagegen2.5.service.js';
 import { imagegen_4 } from './utils/imagegen4.service.js';
+import { gemini3ProImage, gemini31FlashImage } from './utils/gemini3.service.js';
+import { gemini31ProCritique } from './utils/gemini3.1pro.service.js';
 import { routeImageGenRequest } from './utils/intentClassifier.js';
 import { analyzeImageIntent as analyzeIntent } from './utils/imageIntentAnalyzer.js';
 import { editImageWithImagen3 } from './utils/imagen3.service.js';
@@ -412,8 +414,24 @@ const generateImage = async (
 
     if (result.service === 'imagen4') {
       publicUrl = await imagegen_4(prompt, filepath);
+    } else if (result.service === 'gemini3pro-image') {
+      publicUrl = await gemini3ProImage(prompt, options.referenceImage, safeFilename);
+    } else if (result.service === 'gemini3.1flash-image') {
+      publicUrl = await gemini31FlashImage(prompt, options.referenceImage, safeFilename);
+    } else if (result.service === 'gemini3.1pro') {
+      // For critique, we don't return an image URL, we return the text critique.
+      // But to fit the existing object shape without crashing, we'll return a mock text file or string.
+      const critiqueText = await gemini31ProCritique(prompt, options.referenceImage);
+      return {
+        filename: null,
+        url: null, // No image generated
+        service: result.service,
+        reasoning: result.reasoning,
+        confidence: result.confidence,
+        critique: critiqueText,
+      };
     } else if (result.service === 'gemini2.5flash') {
-      // Pass the sanitized filename to imagen3 if it expects a simple filename.
+      // Legacy fallback
       publicUrl = await imagen3(prompt, options.referenceImage, safeFilename);
     }
 

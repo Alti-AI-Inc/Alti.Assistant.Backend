@@ -19,8 +19,8 @@ import config from '../../../../../config/index.js';
  */
 const intentSchema = z.object({
   service: z
-    .enum(['imagen4', 'gemini2.5flash'])
-    .describe('The image generation service to use'),
+    .enum(['imagen4', 'gemini3pro-image', 'gemini3.1flash-image', 'gemini3.1pro'])
+    .describe('The image generation or design service to use'),
   reasoning: z.string().describe('Brief explanation for the choice'),
   confidence: z.number().min(0).max(1).describe('Confidence score (0-1)'),
 });
@@ -109,11 +109,13 @@ const userMemoryStore = new Map();
  * @type {PromptTemplate}
  */
 const promptTemplate = PromptTemplate.fromTemplate(
-  `You are an AI assistant that determines which image generation service to use based on user requests.
+  `You are an AI assistant that determines which design or image generation service to use based on user requests.
 
 Rules:
-- Use "imagen4" if the user wants: photoreal, high-fidelity, marketing-quality, professional photography, realistic images, or high-quality output
-- Use "gemini2.5flash" if the user wants: image editing, image-to-image transformation, brand consistency, style transfer, fast generation, quick results, or modifications to existing images
+- Use "imagen4" if the user wants: photoreal, high-fidelity marketing assets, professional photography, realistic generation.
+- Use "gemini3pro-image" if the user wants: high-fidelity edits, complex inpainting/outpainting, or advanced graphic design generation.
+- Use "gemini3.1flash-image" if the user wants: rapid sketching, real-time feedback, simple icons, logos, or fast low-latency tasks.
+- Use "gemini3.1pro" if the user wants: design critique, layout analysis, UI/UX feedback, or multimodal art direction (text-heavy response).
 
 Conversation History:
 {history}
@@ -222,7 +224,9 @@ export async function routeImageGenRequest(userRequest, options) {
   return {
     ...intent,
     shouldUseImagen4: intent.service === 'imagen4',
-    shouldUseGemini25Flash: intent.service === 'gemini2.5flash',
+    shouldUseGemini3ProImage: intent.service === 'gemini3pro-image',
+    shouldUseGemini31FlashImage: intent.service === 'gemini3.1flash-image',
+    shouldUseGemini31Pro: intent.service === 'gemini3.1pro',
   };
 }
 
