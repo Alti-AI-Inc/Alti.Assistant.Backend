@@ -13,7 +13,6 @@ import { Storage } from '@google-cloud/storage';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import Redis from 'ioredis';
 import { logger } from '../../../../shared/logger.js';
 import { RedisClient } from '../../../../shared/redis.js';
 import ApiError from '../../../../errors/ApiError.js';
@@ -23,39 +22,11 @@ import { STORAGE_CONFIG } from '../document_review.constant.js';
 // --- Enterprise Rate-Limiting & DDOS Guard Agent: Initialization ---
 
 /**
- * Redis client for rate limiting.
- * Fails fast if Redis is not available to prevent hanging requests.
- * Rate limiting will be bypassed if the connection fails, ensuring service availability.
- */
-let redisClient;
-if (RedisClient.isEnabled) {
-  try {
-    redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
-      enableOfflineQueue: false,
-      maxRetriesPerRequest: 1, // Don't retry on connection errors
-      connectTimeout: 5000, // 5 second timeout
-    });
-
-    redisClient.on('error', err => {
-      logger.error(
-        'Redis connection error for rate limiting. Rate limiting will be disabled.',
-        err
-      );
-    });
-    logger.info('Rate limiting Redis client connected.');
-  } catch (error) {
-    logger.error(
-      'Failed to initialize Redis client for rate limiting. Rate limiting will be disabled.',
-      error
-    );
-  }
-}
-
-/**
  * Generic options for all Redis-based rate limiters.
+ * Uses the fail-open RedisClient wrapper.
  */
 const rateLimiterOptions = {
-  storeClient: redisClient,
+  storeClient: RedisClient,
   keyPrefix: 'rlflx', // Rate Limiter Flex
   blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
 };

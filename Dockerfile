@@ -30,6 +30,7 @@ COPY package*.json ./
 # Copy only necessary application files from builder
 COPY --from=builder /app/alti-core-service/src ./src
 COPY --from=builder /app/alti-core-service/config ./config
+COPY --from=builder /app/alti-core-service/shared ./shared
 # test/ intentionally excluded from production image
 COPY --from=builder /app/alti-core-service/index.js ./
 COPY --from=builder /app/alti-core-service/package.json ./

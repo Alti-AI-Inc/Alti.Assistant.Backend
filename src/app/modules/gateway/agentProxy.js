@@ -11,8 +11,8 @@
  *   IMAGE_AGENT_URL, AUDIO_AGENT_URL, VIDEO_AGENT_URL
  */
 
-import { createInternalHeaders } from '../../../shared/auth/index.js';
-import { logger } from '../../../shared/logging/index.js';
+import { createInternalHeaders } from '../../../../shared/auth/index.js';
+import { logger } from '../../../../shared/logging/index.js';
 
 // ── Agent Service Registry ──────────────────────────────────────────────────
 const AGENT_REGISTRY = {

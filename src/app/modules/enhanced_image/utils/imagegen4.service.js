@@ -2,7 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import dotenv from 'dotenv';
-import Redis from 'ioredis';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
@@ -10,54 +9,36 @@ import { RedisClient } from '../../../../shared/redis.js';
 
 dotenv.config();
 
-// --- Enterprise Rate Limiting & DDOS Guard ---
-// Establish a connection to the Redis server for rate limiting.
-// It's configured to fail fast if Redis is unavailable, preventing requests from hanging.
-const redisClient = RedisClient.isEnabled
-  ? new Redis(config.redis.url, { enableOfflineQueue: false })
-  : null;
-
-if (redisClient) {
-  redisClient.on('error', err => console.error('Redis client error in imagegen4:', err));
-}
-
 // Rate limiter for authenticated users, identified by their unique userId.
 // This is a generous limit for legitimate users, allowing 20 image generations per hour.
-// It protects against abuse from a single compromised account.
-const userRateLimiter = redisClient
-  ? new RateLimiterRedis({
-      storeClient: redisClient,
-      keyPrefix: 'rate_limit_imagegen_user',
-      points: 20, // 20 requests
-      duration: 3600, // per 1 hour
-      blockDuration: 3600, // Block for 1 hour if limit is exceeded
-    })
-  : null;
+// Uses the fail-open RedisClient wrapper, which prevents the app from crashing if Redis is unavailable.
+const userRateLimiter = new RateLimiterRedis({
+  storeClient: RedisClient,
+  keyPrefix: 'rate_limit_imagegen_user',
+  points: 20, // 20 requests
+  duration: 3600, // per 1 hour
+  blockDuration: 3600, // Block for 1 hour if limit is exceeded
+});
 
-// A much stricter rate limiter for unauthenticated (public) users, identified by their IP address.
-// This is a critical defense against anonymous DDOS and cost-runaway attacks.
-// It allows only 5 image generations per day from a single IP.
-const ipRateLimiter = redisClient
-  ? new RateLimiterRedis({
-      storeClient: redisClient,
-      keyPrefix: 'rate_limit_imagegen_ip',
-      points: 5, // 5 requests
-      duration: 86400, // per 1 day (24 * 60 * 60)
-      blockDuration: 86400, // Block for 1 day if limit is exceeded
-    })
-  : null;
+// Rate limiter based on IP address to prevent abuse from unauthenticated or malicious sources.
+// This limit is stricter, allowing 50 requests per hour per IP.
+const ipRateLimiter = new RateLimiterRedis({
+  storeClient: RedisClient,
+  keyPrefix: 'rate_limit_imagegen_ip',
+  points: 50, // 50 requests
+  duration: 3600, // per 1 hour
+  blockDuration: 3600, // Block for 1 hour if limit is exceeded
+});
 
 // A global burst limiter to protect the overall system from sudden traffic spikes.
 // It ensures that the service can't be overwhelmed by a flood of requests, even from many different users/IPs.
-// It allows a maximum of 10 requests to be processed every 10 seconds across the entire service.
-const globalBurstLimiter = redisClient
-  ? new RateLimiterRedis({
-      storeClient: redisClient,
-      keyPrefix: 'rate_limit_imagegen_global_burst',
-      points: 10, // 10 requests
-      duration: 10, // per 10 seconds
-    })
-  : null;
+const globalBurstLimiter = new RateLimiterRedis({
+  storeClient: RedisClient,
+  keyPrefix: 'rate_limit_imagegen_global_burst',
+  points: 10, // 10 requests
+  duration: 1, // per 1 second
+  blockDuration: 5, // Block for 5 seconds if limit is exceeded
+});
 // --- End of Rate Limiting Setup ---
 
 /**
