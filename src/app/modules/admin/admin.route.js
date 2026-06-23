@@ -85,7 +85,7 @@ const listEndpointValidation = [
  */
 router.put(
   '/update-user-role/:id',
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation and sanitization.
   // REASON: Ensures the user ID is a valid UUID to prevent injection attacks and validates the role against the allowed enum values.
   [
@@ -138,7 +138,7 @@ router.delete(
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: The 'admin' role is for a workspace/tenant owner and should not have permission to delete arbitrary users across the platform.
   // This prevents a critical IDOR vulnerability where an admin from one tenant could delete users from another.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation.
   // REASON: Ensures the object ID is a valid UUID, preventing malformed requests and potential injection vectors.
   [param('objectId').isUUID().withMessage('User ID must be a valid UUID.')],
@@ -186,7 +186,7 @@ router.get(
   '/buyer/all-user',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all users of a specific type is a platform-wide operation and should not be accessible to a tenant-level admin.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -233,7 +233,7 @@ router.get(
   '/all-user',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all users across all tenants is a platform-wide operation and must be restricted to SUPER_ADMIN to maintain tenant isolation.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -280,7 +280,7 @@ router.get(
   '/all-payment',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Accessing all payment records is a sensitive, platform-wide operation.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -328,7 +328,7 @@ router.get(
   '/billing/audit-logs',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Platform-wide audit logs should only be accessible by the platform owner.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -376,7 +376,7 @@ router.get(
   '/swarm-audits',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Platform-wide audit logs must be restricted to the highest administrative level.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize optional query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -433,7 +433,7 @@ router.get(
   '/admin/:email',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents tenant admins from enumerating or retrieving details of other admins in the system.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation and sanitization.
   // REASON: Ensures the email parameter is a valid email format and normalizes it to prevent canonicalization issues.
   [param('email').isEmail().withMessage('Must be a valid email address.').normalizeEmail()],
@@ -482,7 +482,7 @@ router.get(
   '/all-user/statistics',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Platform-wide statistics are sensitive and should only be available to the platform owner.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   AdminController.getUserStatisticsByMonth
 );
 
@@ -566,7 +566,7 @@ router.get(
   '/tenants',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Listing all tenants is a core platform management function and must be restricted to SUPER_ADMIN.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Validate and sanitize query parameters for pagination, sorting, and searching.
   listEndpointValidation,
   validateRequest,
@@ -623,7 +623,7 @@ router.get(
   '/tenants/:tenantId',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents a tenant admin from accessing details of other tenants (IDOR).
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation.
   // REASON: Ensures the tenant ID is a valid UUID, preventing malformed requests and potential injection vectors.
   [param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.')],
@@ -694,7 +694,7 @@ router.patch(
   '/tenants/:tenantId/status',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Changing a tenant's status is a critical platform-level action.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation.
   // REASON: Ensures the tenant ID is a valid UUID and the status is one of the allowed values.
   [
@@ -761,7 +761,7 @@ router.get(
   '/tenants/:tenantId/usage',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Prevents a tenant admin from viewing usage data of other tenants.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation.
   // REASON: Ensures the tenant ID is a valid UUID, preventing malformed requests and potential injection vectors.
   [param('tenantId').isUUID().withMessage('Tenant ID must be a valid UUID.')],
@@ -832,7 +832,7 @@ router.post(
   '/tenants/:tenantId/extend-trial',
   // BUGFIX: Role changed from ADMIN to SUPER_ADMIN.
   // REASON: Modifying tenant subscription details is a platform-level administrative task.
-  auth(ENUM_USER_ROLE.SUPER_ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN),
   // SECURITY-PATCH: Add input validation.
   // REASON: Ensures the tenant ID is a valid UUID and that 'days' is a positive integer.
   [
