@@ -33,7 +33,6 @@ const router = express.Router();
  *             required:
  *               - email
  *               - password
- *               - name
  *             properties:
  *               email:
  *                 type: string
