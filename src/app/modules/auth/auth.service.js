@@ -411,8 +411,8 @@ const confirmEmailService = async (confirmationCode) => {
     );
   }
 
-  const emailLower = user.email ? user.email.toLowerCase() : '';
-  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  const emailLower = user.email ? user.email.toLowerCase().trim() : '';
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase().trim();
   if (superAdminEmail && emailLower === superAdminEmail) {
     user.role = 'super_admin';
   } else if (!user.tenantId) {
@@ -714,8 +714,8 @@ const loginService = async (
     role: membership.role,
   }));
 
-  const userEmail = user.email ? user.email.toLowerCase() : '';
-  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  const userEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase().trim();
   const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
 
   // Include tenants in JWT token payload
@@ -792,8 +792,8 @@ const refreshToken = async (token) => {
     role: membership.role,
   }));
 
-  const userEmail = user.email ? user.email.toLowerCase() : '';
-  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  const userEmail = user.email ? user.email.toLowerCase().trim() : '';
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase().trim();
   const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
 
   // Token payload for both access and refresh tokens
