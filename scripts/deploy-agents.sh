@@ -34,8 +34,8 @@ EOF
   rm cloudbuild-tmp-${AGENT}.yaml
 
   # Extract necessary secrets from .env
-  DB_URI=$(grep '^DATABASE_LOCAL=' .env | cut -d '=' -f2-)
-  GEMINI_KEY=$(grep '^GEMINI_API_KEY=' .env | cut -d '=' -f2-)
+  DB_URI=$(grep '^DATABASE_LOCAL=' .env | cut -d '=' -f2- | tr -d '\r')
+  GEMINI_KEY=$(grep '^GEMINI_API_KEY=' .env | cut -d '=' -f2- | tr -d '\r')
 
   # Deploy to Cloud Run
   echo "   [2/2] Deploying to Cloud Run..."
