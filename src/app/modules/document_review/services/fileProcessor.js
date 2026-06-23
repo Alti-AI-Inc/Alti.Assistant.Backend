@@ -14,7 +14,7 @@ import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { logger } from '../../../../shared/logger.js';
-import { RedisClient } from '../../../../shared/redis.js';
+import { RedisClient, redisClient } from '../../../../shared/redis.js';
 import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { STORAGE_CONFIG } from '../document_review.constant.js';
