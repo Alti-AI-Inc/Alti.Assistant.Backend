@@ -10,6 +10,7 @@ import { userMemoryService } from '../conversations/userMemory.service.js';
 import { captureException } from '../../../shared/sentry.js';
 import { withTenantFilter, withTenantContext } from '../../helpers/tenantQuery.js';
 import { decryptConversation } from '../conversations/conversation.helpers.js';
+import { conversationService } from '../conversations/conversation.service.js';
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -676,22 +677,29 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
           await conversation.save();
         } else {
           finalConversationId = crypto.randomUUID();
+          let formattedPrefix = '';
+          if (resolvedCategory === 'search') formattedPrefix = 'Search: ';
+          else if (resolvedCategory === 'code') formattedPrefix = 'Code: ';
+          else if (resolvedCategory === 'image') formattedPrefix = 'Image: ';
+          else if (resolvedCategory === 'deep_research') formattedPrefix = 'Deep Research: ';
+          
           const cleanTitle = prompt.length > 40 ? `${prompt.substring(0, 40)}...` : prompt;
-          conversation = new Conversation({
-            conversationId: finalConversationId,
+          const finalTitle = `${formattedPrefix}${cleanTitle}`;
+
+          const createdConvData = await conversationService.createConversation({
             userId,
-            title: cleanTitle,
-            messages: [
-              { role: 'user', content: prompt, timestamp: new Date() },
-              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new Date() }
-            ],
-            status: 'active',
-            tenantId: tenantId || null,
-            metadata: {
-              category: resolvedCategory
-            }
-          });
-          await conversation.save();
+            title: finalTitle,
+            metadata: { category: resolvedCategory },
+            is_deep_search: false,
+            initialMessage: { role: 'user', content: prompt }
+          }, finalConversationId, req);
+
+          // createConversation returns a POJO, so we need to fetch the document to add the assistant message
+          conversation = await Conversation.findOne({ conversationId: finalConversationId });
+          if (conversation) {
+            conversation.addMessage('assistant', finalResponse.reply, assistantMetadata);
+            await conversation.save();
+          }
         }
       }
     } catch (dbErr) {
