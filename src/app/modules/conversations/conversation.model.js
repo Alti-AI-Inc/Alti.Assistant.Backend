@@ -157,7 +157,17 @@ export function decryptText(text) {
   } catch (err) {
     // If decryption fails, it might be unencrypted legacy data or a key mismatch.
     // Returning the original text is a safe fallback to avoid crashing on invalid data.
-    console.warn('Decryption failed for a value, returning original text. This may be expected for unencrypted legacy data.');
+    console.warn('Decryption failed for a value. This may be expected for unencrypted legacy data or due to a key mismatch.');
+    
+    // If the text looks like our encrypted format (32-char hex IV + colon + hex data),
+    // return a clean fallback instead of exposing the raw encrypted hex string to the UI.
+    const textParts = text.split(':');
+    if (textParts.length === 2 && textParts[0].length === 32) {
+      // It's clearly an encrypted string that failed to decrypt.
+      // We return a user-friendly fallback title.
+      return 'Previous Conversation';
+    }
+    
     return text;
   }
 }
