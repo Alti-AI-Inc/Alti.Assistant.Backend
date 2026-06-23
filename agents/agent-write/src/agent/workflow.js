@@ -212,9 +212,28 @@ Write the COMPLETE document now. Output ONLY the document content in markdown.` 
 async function reviewAndRefine(state) {
   logger.info('Node 4: Reviewing and refining draft', { draftLength: state.draft?.length });
 
+  // 1. Run parallel critics
+  const critics = [
+    { name: 'Tone Critic', focus: `Is the tone strictly matching the requested "${state.tone}" tone? Is it appropriate for the "${state.audience}" audience?` },
+    { name: 'Structure Critic', focus: 'Is the flow logical? Are the transitions smooth? Does the structure follow the outline exactly?' },
+    { name: 'Clarity Critic', focus: 'Are there any confusing sentences, grammatical issues, or overly verbose sections? Could the phrasing be more concise and engaging?' }
+  ];
+
+  const critiquePromises = critics.map(async (critic) => {
+    const messages = [
+      { role: 'system', content: 'You are an expert editor.' },
+      { role: 'user', content: `Critique the following draft as a ${critic.name}. Focus ONLY on: ${critic.focus}.\n\nDraft:\n${state.draft}` }
+    ];
+    return writeService.callClaude(messages, { maxTokens: 1024, temperature: 0.2 });
+  });
+
+  const critiqueResults = await Promise.all(critiquePromises);
+  const critiquesText = critiqueResults.map((res, i) => `**${critics[i].name} Critique:**\n${res.text}`).join('\n\n');
+
+  // 2. Apply refinements based on critiques
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: `Review and improve the following ${state.documentType} draft.
+    { role: 'user', content: `Review and improve the following ${state.documentType} draft using the expert critiques provided.
 
 **Document Type**: ${state.documentType}
 **Tone**: ${state.tone}
@@ -225,19 +244,13 @@ async function reviewAndRefine(state) {
 ${state.prompt}
 """
 
+**Expert Critiques**:
+${critiquesText}
+
 **Draft to Review**:
 ${state.draft}
 
-Review the draft for:
-1. **Completeness**: Does it fully address the original request?
-2. **Clarity**: Is the writing clear, concise, and easy to follow?
-3. **Tone consistency**: Does the tone match throughout?
-4. **Structure**: Is the logical flow effective? Are transitions smooth?
-5. **Grammar & style**: Fix any errors, improve word choice
-6. **Audience fit**: Is the content appropriate for the target audience?
-7. **Impact**: Does the opening grab attention? Does the conclusion leave an impression?
-
-Output the IMPROVED version of the full document in markdown. Apply all refinements directly — do not list the changes separately. If the draft is already excellent, output it with only minor polish.` },
+Output the IMPROVED version of the full document in markdown. Apply all refinements directly — do not list the changes separately. If the draft is already excellent despite critiques, output it with only minor polish.` },
   ];
 
   const { text, usage } = await writeService.callClaude(messages, {
@@ -245,7 +258,7 @@ Output the IMPROVED version of the full document in markdown. Apply all refineme
     temperature: 0.2,
   });
 
-  const review = `Reviewed and refined: ${state.documentType} document for ${state.audience} audience in ${state.tone} tone.`;
+  const review = `Parallel critiques applied from Tone, Structure, and Clarity critics.`;
 
   logger.info('Draft reviewed and refined', {
     originalLength: state.draft?.length,
@@ -282,12 +295,26 @@ async function formatAndExport(state) {
     finalDocument += '\n';
   }
 
+  // Extract structured metadata
+  const metadataMessages = [
+    { role: 'user', content: `Extract metadata from this document as JSON with the following structure: {"detectedTone": "string", "readingLevel": "string", "estimatedReadingTimeMinutes": number}.\n\nOutput ONLY valid JSON.\n\nDocument:\n${finalDocument.substring(0, 3000)}` }
+  ];
+  let extractedMetadata = {};
+  try {
+    const metaRes = await writeService.callClaude(metadataMessages, { maxTokens: 256, temperature: 0.0 });
+    const jsonStr = metaRes.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    extractedMetadata = JSON.parse(jsonStr);
+  } catch (err) {
+    logger.warn('Failed to extract metadata', { error: err.message });
+  }
+
   logger.info('Final document formatted', {
     finalLength: finalDocument.length,
     documentType: state.documentType,
+    metadata: extractedMetadata
   });
 
-  return { finalDocument };
+  return { finalDocument, metadata: extractedMetadata };
 }
 
 // ── Graph Assembly ───────────────────────────────────────────────────────────

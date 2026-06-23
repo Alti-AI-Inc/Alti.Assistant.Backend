@@ -53,6 +53,9 @@ const CodeAgentState = Annotation.Root({
 
   /** Result metadata (model, tokens, etc.) */
   metadata: Annotation({ reducer: (_, v) => v, default: () => ({}) }),
+
+  /** Loop count for debug reflection */
+  loopCount: Annotation({ reducer: (a, b) => b, default: () => 0 }),
 });
 
 // ── Node Implementations ─────────────────────────────────────────────────────
@@ -249,34 +252,44 @@ async function reviewCode(state) {
   };
 }
 
-/**
- * Validate the output structure. Ensures the workflow produced meaningful results.
- */
 async function testAndValidate(state) {
   logger.info('testAndValidate node', { intent: state.intent });
 
   const checks = [];
+  let validationError = null;
 
   switch (state.intent) {
     case 'generate':
+    case 'debug':
       checks.push({
         name: 'code_present',
         passed: Boolean(state.code && state.code.length > 0),
-        message: state.code ? 'Generated code present' : 'No code was generated',
+        message: state.code ? 'Code present' : 'No code produced',
       });
-      break;
 
-    case 'debug':
-      checks.push({
-        name: 'fix_present',
-        passed: Boolean(state.code && state.code.length > 0),
-        message: state.code ? 'Fixed code present' : 'No fixed code produced',
-      });
-      checks.push({
-        name: 'explanation_present',
-        passed: Boolean(state.explanation),
-        message: state.explanation ? 'Debug explanation present' : 'No explanation provided',
-      });
+      // Basic static analysis / syntax check for JS/TS
+      if (state.code && (state.language === 'javascript' || state.language === 'typescript')) {
+        try {
+          // A very rudimentary syntax check using the Function constructor
+          // Only works for standard JS, but catches basic unclosed brackets
+          new Function(state.code);
+          checks.push({
+            name: 'syntax_check',
+            passed: true,
+            message: 'Passed basic JS syntax check',
+          });
+        } catch (err) {
+          // If it's a SyntaxError, it's a real issue
+          if (err instanceof SyntaxError) {
+            validationError = err.message;
+            checks.push({
+              name: 'syntax_check',
+              passed: false,
+              message: `Syntax error detected: ${err.message}`,
+            });
+          }
+        }
+      }
       break;
 
     case 'explain':
@@ -297,12 +310,15 @@ async function testAndValidate(state) {
   }
 
   const allPassed = checks.every((c) => c.passed);
+  const nextLoopCount = state.loopCount + 1;
 
   if (!allPassed) {
     logger.warn('Validation found issues', { checks });
   }
 
   return {
+    error: validationError || state.error,
+    loopCount: nextLoopCount,
     validationResult: {
       passed: allPassed,
       checks,
@@ -376,8 +392,15 @@ const workflow = new StateGraph(CodeAgentState)
   .addEdge('explainCode', 'testAndValidate')
   .addEdge('reviewCode', 'testAndValidate')
 
-  // testAndValidate → END
-  .addEdge('testAndValidate', END);
+  // testAndValidate → conditional reflection or END
+  .addConditionalEdges('testAndValidate', (state) => {
+    // If validation fails and we haven't looped too much, reflect via debugCode
+    if (!state.validationResult?.passed && state.loopCount < 3) {
+      logger.info('Reflecting back to debugCode', { error: state.error });
+      return 'debugCode';
+    }
+    return END;
+  }, { debugCode: 'debugCode', [END]: END });
 
 // ── Compile & Export ─────────────────────────────────────────────────────────
 

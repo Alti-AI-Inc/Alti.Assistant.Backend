@@ -3,25 +3,34 @@
  *
  *   classifyIntent  →  executeSearch  →  synthesizeResults
  *
- * Uses a plain async pipeline (no LangGraph dependency) to keep the agent
- * lightweight. The state object flows through each node in sequence.
- *
- * classifyIntent:   rule-based query type detection with optional site restrictions
- * executeSearch:    calls SearchService (Gemini 3.5 Flash + Google Search Grounding)
- * synthesizeResults: pass-through — Gemini's grounding already synthesises the answer
+ * Uses LangGraph to manage state and allow for more complex routing in the future.
  */
 
+import { StateGraph, Annotation, END, START } from '@langchain/langgraph';
 import { SearchService } from '../services/searchService.js';
 import { createLogger } from '../../../../shared/logging/index.js';
 
 const { logger } = createLogger('search-workflow');
 
-// ── Singleton service instance ──────────────────────────────────────────────
 let _searchService;
 function getSearchService() {
   if (!_searchService) _searchService = new SearchService();
   return _searchService;
 }
+
+// ── State Schema ─────────────────────────────────────────────────────────────
+
+const SearchState = Annotation.Root({
+  query: Annotation({ reducer: (_, v) => v, default: () => '' }),
+  conversationHistory: Annotation({ reducer: (_, v) => v, default: () => [] }),
+  userContext: Annotation({ reducer: (_, v) => v, default: () => ({}) }),
+  queryType: Annotation({ reducer: (_, v) => v, default: () => 'general' }),
+  siteRestrictions: Annotation({ reducer: (_, v) => v, default: () => '' }),
+  _querySuffix: Annotation({ reducer: (_, v) => v, default: () => '' }),
+  results: Annotation({ reducer: (_, v) => v, default: () => null }),
+  sources: Annotation({ reducer: (_, v) => v, default: () => [] }),
+  response: Annotation({ reducer: (_, v) => v, default: () => '' }),
+});
 
 // ── Query type → site restriction mapping ───────────────────────────────────
 const QUERY_TYPE_PATTERNS = [
@@ -62,34 +71,15 @@ const QUERY_TYPE_PATTERNS = [
     sites: 'site:espn.com OR site:nba.com OR site:nfl.com OR site:nhl.com OR site:mlb.com',
   },
   {
-    type: 'technology',
-    keywords: ['software', 'hardware', 'app', 'startup', 'ai', 'machine learning', 'algorithm', 'tech', 'gadget', 'release', 'open source'],
-    sites: '',
-  },
-  {
     type: 'crypto',
     keywords: ['bitcoin', 'ethereum', 'crypto', 'blockchain', 'defi', 'nft', 'token', 'wallet', 'mining', 'altcoin', 'solana'],
     sites: 'site:coinmarketcap.com OR site:coingecko.com OR site:coindesk.com OR site:cointelegraph.com',
-  },
-  {
-    type: 'travel',
-    keywords: ['flight', 'hotel', 'booking', 'travel', 'vacation', 'trip', 'destination', 'airline', 'airport', 'tourism'],
-    sites: 'site:tripadvisor.com OR site:booking.com OR site:expedia.com OR site:lonelyplanet.com',
-  },
-  {
-    type: 'entertainment',
-    keywords: ['movie', 'film', 'tv show', 'series', 'actor', 'actress', 'director', 'imdb', 'netflix', 'streaming', 'album', 'artist', 'concert'],
-    sites: 'site:imdb.com OR site:rottentomatoes.com OR site:metacritic.com OR site:billboard.com',
   },
 ];
 
 // ── Node 1: classifyIntent ──────────────────────────────────────────────────
 
-/**
- * Rule-based intent classifier. Scores each query type by keyword hits
- * and returns the best match with optional site restrictions.
- */
-function classifyIntent(state) {
+async function classifyIntent(state) {
   const query = (state.query || '').toLowerCase();
   let bestType = 'general';
   let bestScore = 0;
@@ -109,10 +99,32 @@ function classifyIntent(state) {
     }
   }
 
-  logger.info('classifyIntent', { queryType: bestType, score: bestScore });
+  // LLM Fallback if heuristics fail for complex queries
+  if (bestScore === 0) {
+    try {
+      const svc = getSearchService();
+      // Use Gemini to classify the prompt
+      const result = await svc.ai.models.generateContent({
+        model: svc.model,
+        contents: `Classify the following query into ONE of these categories: academic, news, medical, financial, weather, legal, sports, crypto, general. Output ONLY the category word.\n\nQuery: ${query}`,
+        config: { temperature: 0.1, maxOutputTokens: 10 }
+      });
+      const llmType = (result.text || '').trim().toLowerCase();
+      const matchedPattern = QUERY_TYPE_PATTERNS.find(p => p.type === llmType);
+      if (matchedPattern) {
+        bestType = matchedPattern.type;
+        bestSites = matchedPattern.sites || '';
+        suffix = matchedPattern.suffix || '';
+        logger.info('classifyIntent: LLM fallback used', { queryType: bestType });
+      }
+    } catch (err) {
+      logger.warn('classifyIntent: LLM fallback failed', { error: err.message });
+    }
+  } else {
+    logger.info('classifyIntent: heuristic match', { queryType: bestType, score: bestScore });
+  }
 
   return {
-    ...state,
     queryType: bestType,
     siteRestrictions: bestSites,
     _querySuffix: suffix,
@@ -121,13 +133,9 @@ function classifyIntent(state) {
 
 // ── Node 2: executeSearch ───────────────────────────────────────────────────
 
-/**
- * Calls SearchService with the (optionally enriched) prompt.
- */
 async function executeSearch(state) {
   const svc = getSearchService();
 
-  // Optionally enrich the prompt with site restrictions
   let enrichedPrompt = state.query;
   if (state.siteRestrictions) {
     enrichedPrompt = `${state.query} (${state.siteRestrictions})`;
@@ -140,7 +148,6 @@ async function executeSearch(state) {
   });
 
   return {
-    ...state,
     results: result,
     sources: result.references || [],
     response: result.content || '',
@@ -149,71 +156,50 @@ async function executeSearch(state) {
 
 // ── Node 3: synthesizeResults ───────────────────────────────────────────────
 
-/**
- * Pass-through: Gemini's grounding already synthesises the answer.
- * We only attach the queryType to final metadata.
- */
 function synthesizeResults(state) {
   if (state.results?.metadata) {
     state.results.metadata.queryType = state.queryType;
   }
-  return state;
+  return { results: state.results };
 }
 
-// ── Pipeline runner ─────────────────────────────────────────────────────────
+// ── Build the Graph ──────────────────────────────────────────────────────────
 
-/**
- * Run the full search workflow pipeline.
- *
- * @param {{ query: string, conversationHistory?: Array, userContext?: object }} input
- * @returns {Promise<object>} The final results object
- */
+const workflowGraph = new StateGraph(SearchState)
+  .addNode('classifyIntent', classifyIntent)
+  .addNode('executeSearch', executeSearch)
+  .addNode('synthesizeResults', synthesizeResults)
+  .addEdge(START, 'classifyIntent')
+  .addEdge('classifyIntent', 'executeSearch')
+  .addEdge('executeSearch', 'synthesizeResults')
+  .addEdge('synthesizeResults', END);
+
+export const searchAgentGraph = workflowGraph.compile();
+
+// ── Pipeline runners ─────────────────────────────────────────────────────────
+
 export async function runWorkflow(input) {
-  let state = {
-    query: input.query || '',
-    conversationHistory: input.conversationHistory || [],
-    userContext: input.userContext || {},
-    queryType: 'general',
-    siteRestrictions: '',
-    results: null,
-    sources: [],
-    response: '',
-  };
-
-  state = classifyIntent(state);
-  state = await executeSearch(state);
-  state = synthesizeResults(state);
-
-  return state.results;
+  const resultState = await searchAgentGraph.invoke(input);
+  return resultState.results;
 }
 
-/**
- * Run the streaming search workflow.
- * Returns an async generator yielding SSE-compatible chunks.
- */
 export async function* runStreamingWorkflow(input) {
   const svc = getSearchService();
-
-  let state = {
-    query: input.query || '',
-    conversationHistory: input.conversationHistory || [],
-    userContext: input.userContext || {},
-    queryType: 'general',
-    siteRestrictions: '',
-  };
-
-  state = classifyIntent(state);
-
-  let enrichedPrompt = state.query;
+  
+  // Reuse classifyIntent logic directly for the stream since graph.stream() yields node updates
+  // rather than the raw SSE chunks that executeStreamingSearch yields.
+  const state = await classifyIntent({ query: input.query || '' });
+  
+  let enrichedPrompt = input.query || '';
   if (state.siteRestrictions) {
-    enrichedPrompt = `${state.query} (${state.siteRestrictions})`;
+    enrichedPrompt = `${enrichedPrompt} (${state.siteRestrictions})`;
   } else if (state._querySuffix) {
-    enrichedPrompt = `${state.query} ${state._querySuffix}`;
+    enrichedPrompt = `${enrichedPrompt} ${state._querySuffix}`;
   }
 
-  yield* svc.executeStreamingSearch(enrichedPrompt, state.userContext, {
-    conversationHistory: state.conversationHistory,
+  yield* svc.executeStreamingSearch(enrichedPrompt, input.userContext || {}, {
+    conversationHistory: input.conversationHistory || [],
   });
 }
 
-export default { runWorkflow, runStreamingWorkflow };
+export default { runWorkflow, runStreamingWorkflow, searchAgentGraph };

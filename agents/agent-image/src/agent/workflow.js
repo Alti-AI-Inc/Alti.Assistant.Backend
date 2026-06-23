@@ -39,6 +39,13 @@ async function confirmDetails(state) {
   };
 }
 
+async function promptExpansion(state) {
+  logger.info('Running prompt expansion');
+  const basePrompt = state.enhancedPrompt || state.prompt;
+  const enhanced = await imageService.enhancePrompt(basePrompt);
+  return { enhancedPrompt: enhanced };
+}
+
 async function generateImage(state) {
   logger.info('Generating image');
   const finalPrompt = state.enhancedPrompt || state.prompt;
@@ -53,21 +60,23 @@ const workflow = new StateGraph(ImageState)
   .addNode('analyzeIntent', analyzeIntent)
   .addNode('chatInterviewer', chatInterviewer)
   .addNode('confirmDetails', confirmDetails)
+  .addNode('promptExpansion', promptExpansion)
   .addNode('generateImage', generateImage)
   
   .addEdge('__start__', 'analyzeIntent')
   .addConditionalEdges('analyzeIntent', (state) => {
     if (state.state === 'gather') return 'chatInterviewer';
     if (state.state === 'confirm') return 'confirmDetails';
-    return 'generateImage';
+    return 'promptExpansion';
   }, {
     'chatInterviewer': 'chatInterviewer',
     'confirmDetails': 'confirmDetails',
-    'generateImage': 'generateImage'
+    'promptExpansion': 'promptExpansion'
   })
   
+  .addEdge('confirmDetails', 'promptExpansion')
+  .addEdge('promptExpansion', 'generateImage')
   .addEdge('chatInterviewer', '__end__')
-  .addEdge('confirmDetails', '__end__')
   .addEdge('generateImage', '__end__');
 
 export const app = workflow.compile();

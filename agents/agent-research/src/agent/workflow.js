@@ -17,7 +17,8 @@ const ResearchState = Annotation.Root({
   pdfPath: Annotation(),
   userId: Annotation(),
   status: Annotation(),
-  error: Annotation()
+  error: Annotation(),
+  loopCount: Annotation({ reducer: (a, b) => b, default: () => 0 })
 });
 
 async function initialize(state) {
@@ -28,7 +29,8 @@ async function initialize(state) {
 
 async function breadthSearch(state) {
   logger.info('breadthSearch node');
-  const res = await researchService.breadthSearch(state.topic, 'auto terms');
+  const terms = state.researchPlan?.searchTerms || 'auto terms';
+  const res = await researchService.breadthSearch(state.topic, terms);
   return { breadthResults: res, status: 'breadth_searched' };
 }
 
@@ -42,6 +44,24 @@ async function deepDive(state) {
   logger.info('deepDive node');
   const res = await researchService.deepDive(state.leads);
   return { deepDiveResults: res, status: 'deep_dived' };
+}
+
+async function evaluateDeepDive(state) {
+  logger.info('evaluateDeepDive node');
+  const evaluation = await researchService.evaluateDeepDive(state.deepDiveResults, state.topic);
+  const nextLoopCount = (state.loopCount || 0) + 1;
+  
+  if (evaluation.needsMoreResearch && nextLoopCount < 3) {
+    logger.info('Deep dive results insufficient, looping back', { missing: evaluation.missingInformation });
+    // Update the research plan with new terms to find the missing info
+    const plan = state.researchPlan;
+    if (plan && plan.searchTerms) {
+      plan.searchTerms.push(`"${evaluation.missingInformation}"`);
+    }
+    return { status: 'reflecting', loopCount: nextLoopCount, researchPlan: plan };
+  }
+  
+  return { status: 'evaluated', loopCount: nextLoopCount };
 }
 
 async function synthesizeReport(state) {
@@ -79,6 +99,7 @@ const workflow = new StateGraph(ResearchState)
   .addNode('breadthSearch', breadthSearch)
   .addNode('identifyLeads', identifyLeads)
   .addNode('deepDive', deepDive)
+  .addNode('evaluateDeepDive', evaluateDeepDive)
   .addNode('synthesizeReport', synthesizeReport)
   .addNode('boardDebate', boardDebate)
   .addNode('refineSynthesis', refineSynthesis)
@@ -88,7 +109,10 @@ const workflow = new StateGraph(ResearchState)
   .addEdge('initialize', 'breadthSearch')
   .addEdge('breadthSearch', 'identifyLeads')
   .addEdge('identifyLeads', 'deepDive')
-  .addEdge('deepDive', 'synthesizeReport')
+  .addEdge('deepDive', 'evaluateDeepDive')
+  .addConditionalEdges('evaluateDeepDive', (state) => {
+    return state.status === 'reflecting' ? 'breadthSearch' : 'synthesizeReport';
+  }, { breadthSearch: 'breadthSearch', synthesizeReport: 'synthesizeReport' })
   .addEdge('synthesizeReport', 'boardDebate')
   .addEdge('boardDebate', 'refineSynthesis')
   .addEdge('refineSynthesis', 'saveResearch')

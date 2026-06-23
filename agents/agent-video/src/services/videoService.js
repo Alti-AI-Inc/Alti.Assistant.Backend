@@ -24,6 +24,22 @@ class VideoService {
     }
   }
 
+  async createStoryboard(prompt) {
+    logger.info('Creating storyboard');
+    try {
+      const result = await this.ai.models.generateContent({
+        model: this.scriptModel,
+        contents: `Create a 3-shot storyboard for a short video based on this prompt: "${prompt}". Output JSON with an array "shots", each containing "description", "cameraAngle", and "duration".`,
+        config: { responseMimeType: 'application/json' }
+      });
+      const data = JSON.parse(result.candidates[0].content.parts[0].text);
+      return data.shots || [];
+    } catch (err) {
+      logger.warn('Failed to create storyboard', err);
+      return [];
+    }
+  }
+
   selectModel(tier) {
     // Default to veo-2.0
     return {

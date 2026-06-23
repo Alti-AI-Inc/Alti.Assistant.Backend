@@ -11,6 +11,7 @@ const VideoState = Annotation.Root({
   reply: Annotation(),
   enhancedPrompt: Annotation(),
   qualityTier: Annotation(),
+  storyboard: Annotation(),
   videoUrl: Annotation(),
   operationName: Annotation(),
   metadata: Annotation()
@@ -46,6 +47,13 @@ async function analyzeVideoPrompt(state) {
   return { qualityTier: 'standard' };
 }
 
+async function createStoryboard(state) {
+  logger.info('Creating storyboard');
+  const finalPrompt = state.enhancedPrompt || state.prompt;
+  const storyboard = await videoService.createStoryboard(finalPrompt);
+  return { storyboard };
+}
+
 async function generateVideo(state) {
   logger.info('Generating video');
   const finalPrompt = state.enhancedPrompt || state.prompt;
@@ -62,6 +70,7 @@ const workflow = new StateGraph(VideoState)
   .addNode('chatInterviewer', chatInterviewer)
   .addNode('confirmDetails', confirmDetails)
   .addNode('analyzeVideoPrompt', analyzeVideoPrompt)
+  .addNode('createStoryboard', createStoryboard)
   .addNode('generateVideo', generateVideo)
   
   .addEdge('__start__', 'analyzeIntent')
@@ -77,7 +86,8 @@ const workflow = new StateGraph(VideoState)
   
   .addEdge('chatInterviewer', '__end__')
   .addEdge('confirmDetails', '__end__')
-  .addEdge('analyzeVideoPrompt', 'generateVideo')
+  .addEdge('analyzeVideoPrompt', 'createStoryboard')
+  .addEdge('createStoryboard', 'generateVideo')
   .addEdge('generateVideo', '__end__');
 
 export const app = workflow.compile();

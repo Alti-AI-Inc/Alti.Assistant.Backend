@@ -16,6 +16,13 @@ class ImageService {
   async generateImage(prompt, userContext, options = {}) {
     logger.info(`Generating image for prompt: ${prompt.substring(0, 50)}...`);
     try {
+      let aspectRatio = '1:1';
+      const arMatch = prompt.match(/--ar\s+(\d+:\d+)/) || prompt.match(/aspect ratio\s+(\d+:\d+)/i);
+      if (arMatch) {
+        aspectRatio = arMatch[1];
+        // Only 1:1, 3:4, 4:3, 9:16, 16:9 are typical, let's just pass it
+      }
+
       const result = await this.ai.models.generateContent({
         model: this.model,
         contents: prompt,
@@ -23,6 +30,7 @@ class ImageService {
           responseModalities: ['TEXT', 'IMAGE'],
           temperature: 1.0,
           maxOutputTokens: 8192,
+          aspectRatio: aspectRatio, // pass aspect ratio
         }
       });
 
@@ -43,7 +51,6 @@ class ImageService {
       }
 
       // Placeholder for GCS upload
-      // const imageUrl = await uploadBuffer(imageBuffer, `images/${Date.now()}.png`, 'image/png');
       const imageUrl = `https://storage.googleapis.com/placeholder-bucket/images/generated_${Date.now()}.png`;
 
       return { 
@@ -52,6 +59,7 @@ class ImageService {
         text: accompanimentText,
         metadata: {
           model: this.model,
+          aspectRatio,
           timestamp: new Date().toISOString()
         } 
       };

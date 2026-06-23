@@ -28,6 +28,7 @@ import { imageRoutes } from '../modules/image/image.route.js';
 import { audioRoutes } from '../modules/audio/audio.route.js';
 import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
+import { createAgentProxy } from './agentProxy.js';
 
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
@@ -186,11 +187,11 @@ const moduleRoutes = [
   },
   {
     path: '/code',
-    route: codeRoutes,
+    route: createAgentProxy('agent-code', 8081),
   },
   {
     path: '/writing',
-    route: writingRoutes,
+    route: createAgentProxy('agent-write', 8082),
   },
   {
     path: '/summary',
@@ -201,8 +202,12 @@ const moduleRoutes = [
     route: searchRoute,
   },
   {
+    path: '/agent-search',
+    route: createAgentProxy('agent-search', 8083),
+  },
+  {
     path: '/deep-research',
-    route: deepResearchRoute,
+    route: createAgentProxy('agent-research', 8084),
   },
   {
     path: '/conversations',
@@ -210,15 +215,15 @@ const moduleRoutes = [
   },
   {
     path: '/image',
-    route: imageRoutes,
+    route: createAgentProxy('agent-image', 8085),
   },
   {
     path: '/audio',
-    route: audioRoutes,
+    route: createAgentProxy('agent-audio', 8086),
   },
   {
     path: '/video',
-    route: videoRoutes,
+    route: createAgentProxy('agent-video', 8087),
   },
   {
     path: '/knowledgebase',

@@ -25,7 +25,12 @@ describe('Video Agent', () => {
     vi.clearAllMocks();
   });
 
-  it('should enhance a video prompt correctly', async () => {
+  it('should generate a video and storyboard correctly', async () => {
+    // Stub createStoryboard
+    vi.spyOn(videoService, 'createStoryboard').mockResolvedValue([
+      { description: 'Shot 1', duration: 3 }
+    ]);
+    
     // Stub generateVideo for the test
     vi.spyOn(videoService, 'generateVideo').mockResolvedValue({
       videoUrl: 'https://mock-video-url.com/video.mp4',
@@ -33,7 +38,7 @@ describe('Video Agent', () => {
     });
 
     const result = await runWorkflow({ prompt: 'A dog running' });
-    expect(result.enhancedPrompt).toBe('Mocked video prompt enhancement');
+    expect(result.storyboard[0].description).toBe('Shot 1');
     expect(result.videoUrl).toBe('https://mock-video-url.com/video.mp4');
   });
 });

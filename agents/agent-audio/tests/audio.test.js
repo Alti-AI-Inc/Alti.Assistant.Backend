@@ -28,12 +28,12 @@ describe('Audio Agent', () => {
   it('should generate an audio script correctly', async () => {
     // Stub synthesizeSpeech for the test
     vi.spyOn(audioService, 'synthesizeSpeech').mockResolvedValue({
-      audioBase64: 'mock-audio-base64',
+      audioBuffer: Buffer.from('mock-audio-buffer'),
       metadata: { voice: 'mock-voice' }
     });
 
     const result = await runWorkflow({ prompt: 'Create a podcast about AI' });
     expect(result.script).toBe('Mocked audio script');
-    expect(result.audioBase64).toBe('mock-audio-base64');
+    expect(result.audioBase64).toBe(Buffer.from('mock-audio-buffer').toString('base64'));
   });
 });

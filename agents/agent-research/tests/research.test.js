@@ -10,7 +10,7 @@ vi.mock('@google/genai', () => {
           generateContent: vi.fn().mockResolvedValue({
             candidates: [
               {
-                content: { parts: [{ text: 'Mocked research text' }] },
+                content: { parts: [{ text: '{"queries":["mock query"],"rationale":"mock rationale"}' }] },
                 groundingMetadata: { groundingChunks: [] }
               }
             ]
@@ -34,18 +34,18 @@ describe('Research Agent', () => {
   it('should perform breadthSearch correctly', async () => {
     const result = await researchService.breadthSearch('Topic', ['term1', 'term2']);
     expect(result).toHaveLength(1);
-    expect(result[0]).toBe('Mocked research text');
+    expect(result[0]).toBe('{"queries":["mock query"],"rationale":"mock rationale"}');
   });
 
   it('should execute the deep research workflow', async () => {
     // We mock the DB and PDF services inside if needed, or rely on them failing gracefully.
     // For unit testing the workflow, we can pass a dummy topic.
-    vi.spyOn(researchService, 'saveResearch').mockResolvedValue('mock-saved-path');
-    vi.spyOn(researchService, 'generatePdf').mockResolvedValue('mock-pdf-path');
+    vi.spyOn(researchService, 'saveResearch').mockResolvedValue({ savedId: 'mock-saved-path' });
+    vi.spyOn(researchService, 'generatePdf').mockResolvedValue({ pdfUrl: 'mock-pdf-path' });
     
-    const result = await runWorkflow({ prompt: 'Test topic' });
+    const result = await runWorkflow({ topic: 'Test topic' });
     
-    expect(result.report).toBe('Mocked research text');
-    expect(result.metadata.nodesExecuted).toBeGreaterThan(0);
+    expect(result.refinedSynthesis).toBe('{"queries":["mock query"],"rationale":"mock rationale"}');
+    expect(result.status).toBe('completed');
   });
 });

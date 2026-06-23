@@ -22,10 +22,32 @@ class AudioService {
     logger.info('Classifying audio intent');
     const result = await this.ai.models.generateContent({
       model: this.scriptModel,
-      contents: `Classify this audio request into one of these types: podcast, voiceover, commercial, narration. Request: ${prompt}. Only output the type string in lowercase.`,
+      contents: `Classify this audio request into one of these types: podcast, voiceover, commercial, narration, music. Request: ${prompt}. Only output the type string in lowercase.`,
     });
     const type = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || 'voiceover';
     return { audioType: type };
+  }
+
+  async enhancePrompt(prompt) {
+    logger.info('Enhancing prompt using Flash model');
+    try {
+      const result = await this.ai.models.generateContent({
+        model: this.scriptModel,
+        contents: `Enhance this audio prompt to be highly descriptive. If it's speech, specify tone, pacing, and emotion. If it's music, specify genre, tempo, instruments, and mood. Original prompt: ${prompt}`,
+      });
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || prompt;
+    } catch (err) {
+      logger.warn('Failed to enhance prompt, falling back to original', err);
+      return prompt;
+    }
+  }
+
+  async generateMusic(prompt) {
+    logger.info('Generating music');
+    // Placeholder for MusicFX / external music generation API
+    // Since native sdk doesn't support MusicFX yet, we mock a response
+    const mockAudioBuffer = Buffer.from('mock-music-data');
+    return { audioBuffer: mockAudioBuffer, duration: 30, metadata: { type: 'music', prompt } };
   }
 
   async generateScript(prompt, audioType, options = {}) {

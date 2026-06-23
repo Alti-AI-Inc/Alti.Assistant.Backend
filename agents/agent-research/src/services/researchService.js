@@ -33,20 +33,38 @@ class ResearchService {
 
   async initializeResearch(topic) {
     logger.info('Initializing research');
-    const res = await this.callModel(this.flashModel, `Create a research plan for: ${topic}. List 3 key questions and 5 search terms. Output JSON.`);
-    return { plan: res };
+    const result = await this.ai.models.generateContent({
+      model: this.flashModel,
+      contents: `Create a research plan for: ${topic}.`,
+      config: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            questions: { type: 'ARRAY', items: { type: 'STRING' } },
+            searchTerms: { type: 'ARRAY', items: { type: 'STRING' } }
+          },
+          required: ['questions', 'searchTerms']
+        }
+      }
+    });
+    const text = result.candidates?.[0]?.content?.parts?.filter(p => p.text)?.map(p => p.text)?.join('');
+    return { plan: JSON.parse(text) };
   }
 
   async breadthSearch(topic, searchTerms) {
     logger.info('Performing breadth search');
-    const res = await this.callModel(this.flashModel, `Perform a broad search on ${topic} using terms: ${searchTerms}. Summarize findings.`);
+    // searchTerms is an array from the research plan
+    const termsString = Array.isArray(searchTerms) ? searchTerms.join(', ') : searchTerms;
+    const res = await this.callModel(this.flashModel, `Perform a broad search on ${topic} using terms: ${termsString}. Summarize findings.`);
     return [res];
   }
 
   async identifyLeads(breadthResults) {
     logger.info('Identifying leads');
-    const res = await this.callModel(this.proModel, `Analyze these findings and extract the most promising leads: ${breadthResults.join('\\n')}`);
-    return [res];
+    const res = await this.callModel(this.proModel, `Analyze these findings and extract the most promising leads (max 3): ${breadthResults.join('\\n')}`);
+    return [res]; // In reality, we would parse this into an array of strings
   }
 
   async deepDive(leads) {
@@ -57,6 +75,28 @@ class ResearchService {
       results.push(res);
     }
     return results;
+  }
+
+  async evaluateDeepDive(deepDiveResults, topic) {
+    logger.info('Evaluating deep dive results');
+    const result = await this.ai.models.generateContent({
+      model: this.flashModel,
+      contents: `Evaluate these research findings for the topic "${topic}":\n\n${deepDiveResults.join('\\n')}\n\nAre the findings comprehensive enough to write a highly detailed report, or is there a lack of depth requiring more research?`,
+      config: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            needsMoreResearch: { type: 'BOOLEAN' },
+            missingInformation: { type: 'STRING', description: 'What specific information is still missing?' }
+          },
+          required: ['needsMoreResearch']
+        }
+      }
+    });
+    const text = result.candidates?.[0]?.content?.parts?.filter(p => p.text)?.map(p => p.text)?.join('');
+    return JSON.parse(text);
   }
 
   async synthesizeReport(deepDiveResults, topic) {

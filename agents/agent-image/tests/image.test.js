@@ -8,7 +8,7 @@ vi.mock('@google/genai', () => {
       constructor() {
         this.models = {
           generateContent: vi.fn().mockImplementation(async (req) => {
-            if (req.model.includes('image')) {
+            if (req.config?.responseModalities?.includes('IMAGE')) {
               return {
                 candidates: [ { content: { parts: [
                   { text: 'Mocked accompaniment text' },
@@ -39,6 +39,6 @@ describe('Image Agent', () => {
 
   it('should execute the workflow', async () => {
     const result = await runWorkflow({ prompt: 'Draw a cat', options: { preferences: { size: 'standard' } } });
-    expect(result.imageUrl).toContain('mock-base64-bytes');
+    expect(result.imageUrl).toContain('placeholder-bucket');
   });
 });

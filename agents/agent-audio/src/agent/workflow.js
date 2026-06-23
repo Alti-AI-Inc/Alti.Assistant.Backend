@@ -42,6 +42,13 @@ async function confirmDetails(state) {
   };
 }
 
+async function promptExpansion(state) {
+  logger.info('Running prompt expansion');
+  const basePrompt = state.enhancedPrompt || state.prompt;
+  const enhanced = await audioService.enhancePrompt(basePrompt);
+  return { enhancedPrompt: enhanced };
+}
+
 async function classifyIntent(state) {
   logger.info('Classifying intent');
   const finalPrompt = state.enhancedPrompt || state.prompt;
@@ -77,32 +84,54 @@ async function synthesizeSpeech(state) {
   };
 }
 
+async function generateMusic(state) {
+  logger.info('Generating music');
+  const finalPrompt = state.enhancedPrompt || state.prompt;
+  const result = await audioService.generateMusic(finalPrompt);
+  return {
+    audioBase64: result.audioBuffer.toString('base64'),
+    metadata: result.metadata
+  };
+}
+
 const workflow = new StateGraph(AudioState)
   .addNode('analyzeIntent', analyzeIntent)
   .addNode('chatInterviewer', chatInterviewer)
   .addNode('confirmDetails', confirmDetails)
+  .addNode('promptExpansion', promptExpansion)
   .addNode('classifyIntent', classifyIntent)
   .addNode('generateScript', generateScript)
   .addNode('selectVoiceProfile', selectVoiceProfile)
   .addNode('synthesizeSpeech', synthesizeSpeech)
+  .addNode('generateMusic', generateMusic)
   
   .addEdge('__start__', 'analyzeIntent')
   .addConditionalEdges('analyzeIntent', (state) => {
     if (state.state === 'gather') return 'chatInterviewer';
     if (state.state === 'confirm') return 'confirmDetails';
-    return 'classifyIntent'; // proceed to generate
+    return 'promptExpansion';
   }, {
     'chatInterviewer': 'chatInterviewer',
     'confirmDetails': 'confirmDetails',
-    'classifyIntent': 'classifyIntent'
+    'promptExpansion': 'promptExpansion'
   })
   
-  .addEdge('chatInterviewer', '__end__')
-  .addEdge('confirmDetails', '__end__')
-  .addEdge('classifyIntent', 'generateScript')
+  .addEdge('confirmDetails', 'promptExpansion')
+  .addEdge('promptExpansion', 'classifyIntent')
+  .addConditionalEdges('classifyIntent', (state) => {
+    if (state.audioType === 'music') return 'generateMusic';
+    return 'generateScript';
+  }, {
+    'generateMusic': 'generateMusic',
+    'generateScript': 'generateScript'
+  })
+  
   .addEdge('generateScript', 'selectVoiceProfile')
   .addEdge('selectVoiceProfile', 'synthesizeSpeech')
-  .addEdge('synthesizeSpeech', '__end__');
+  
+  .addEdge('chatInterviewer', '__end__')
+  .addEdge('synthesizeSpeech', '__end__')
+  .addEdge('generateMusic', '__end__');
 
 export const app = workflow.compile();
 

@@ -16,6 +16,10 @@ describe('Code Agent', () => {
   });
 
   it('should execute code task correctly', async () => {
+    vi.spyOn(codeService, 'callClaude').mockResolvedValue({ 
+      text: 'Mocked writing text', 
+      usage: { input_tokens: 10, output_tokens: 20 } 
+    });
     const result = await codeService.generateCode('Write a loop', { language: 'js' });
     expect(result.code).toBe('Mocked writing text');
   });
