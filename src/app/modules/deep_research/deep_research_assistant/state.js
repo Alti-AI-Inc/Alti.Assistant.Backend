@@ -193,4 +193,5 @@ export const deepResearchAgentState = {
   // Pre-flight settings
   boardPersonas: { value: null },
   consensusLevel: { value: null },
+  researchTier: { value: null },
 };

@@ -192,6 +192,7 @@ export const runDeepResearchAgent = async (query, options = {}) => {
       researchStrategy: 'recursive_deep',
       confidence: null,
     },
+    researchTier,
   };
 
   // Configuration for the LangGraph invocation, using the consistent threadId for the checkpointer.

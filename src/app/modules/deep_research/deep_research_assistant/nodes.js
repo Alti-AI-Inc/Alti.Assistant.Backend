@@ -375,7 +375,17 @@ export const synthesizeComprehensiveReportNode = async (state) => {
     deepDiveResults,
     allSources,
     conversationId,
+    researchTier,
   } = state;
+
+  let lengthInstruction = 'Produce a detailed and comprehensive report.';
+  if (researchTier === 'bachelors') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be concise and fast, approximately 3 to 5 pages in length. Do not exceed this length.';
+  } else if (researchTier === 'masters') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be deep and detailed, approximately 10 to 15 pages in length.';
+  } else if (researchTier === 'phd') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be exhaustive, authoritative, and highly detailed, approximately 20 to 25 pages in length.';
+  }
 
   emitTelemetryProgress(conversationId, {
     step: 'synthesize_report',
@@ -448,6 +458,8 @@ QUALITY METRICS:
 - Information Depth: ${qualityMetrics.informationDepth}/10
 - Topic Coverage: ${qualityMetrics.topicCoverage}/10
 - Credibility Score: ${qualityMetrics.credibilityScore}/10
+
+${lengthInstruction}
 
 Create a comprehensive research report with the following structure:
 
@@ -1374,8 +1386,17 @@ Format your output as a clean markdown document with clear headings for each per
  */
 export const refineSynthesisNode = async (state) => {
   console.log('--- Node: refineSynthesisNode ---');
-  const { finalReport, metadata, conversationId } = state;
+  const { finalReport, metadata, conversationId, researchTier } = state;
   const reviewComments = metadata?.reviewComments || '';
+
+  let lengthInstruction = 'Produce a detailed and comprehensive report.';
+  if (researchTier === 'bachelors') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be concise and fast, approximately 3 to 5 pages in length. Do not exceed this length.';
+  } else if (researchTier === 'masters') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be deep and detailed, approximately 10 to 15 pages in length.';
+  } else if (researchTier === 'phd') {
+    lengthInstruction = 'CRITICAL REQUIREMENT: The final report MUST be exhaustive, authoritative, and highly detailed, approximately 20 to 25 pages in length.';
+  }
 
   emitTelemetryProgress(conversationId, {
     step: 'refine_synthesis',
@@ -1398,7 +1419,9 @@ Re-synthesize and rewrite the report to perfectly resolve every point of strateg
 3. Build deep conceptual paragraphs around omitted variables and technical challenges.
 4. Keep the core structured outline intact (# Executive Summary, # Methodology, # Key Findings, # Quantitative Market & Technical Models, # Cross-Source Dialectical & Tension Analysis, # Complete Source Bibliography).
 
-Produce the absolute best, most premium, PhD-grade final version of the report. Keep markdown formatting and all citations intact.`;
+${lengthInstruction}
+
+Produce the absolute best, most premium, final version of the report matching the expected length. Keep markdown formatting and all citations intact.`;
 
   try {
     const refinedReport = await runGeminiResearchTask(refinePrompt, [
