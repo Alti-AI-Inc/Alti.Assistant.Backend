@@ -3,25 +3,21 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy workspace root config (needed for pnpm workspace resolution)
-COPY pnpm-workspace.yaml ./
-COPY package.json ./
-
-# Copy shared library
+# Copy shared modules first (changes less often → better cache)
 COPY shared/ ./shared/
 
-# Copy agent package files
-COPY agents/agent-code/package.json ./agents/agent-code/
+# Copy agent package files for dependency install
+COPY agents/agent-code/package.json agents/agent-code/package-lock.json* ./agents/agent-code/
 
-# Install dependencies
-RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --frozen-lockfile --filter @alti/agent-code --filter @alti/shared
+WORKDIR /app/agents/agent-code
+RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev
 
 # Copy agent source code
+WORKDIR /app
 COPY agents/agent-code/ ./agents/agent-code/
 
 # ── Production Stage ──────────────────────────────────────────────────────────
-FROM node:20-slim
+FROM node:20-slim AS production
 
 WORKDIR /app
 
@@ -29,20 +25,18 @@ WORKDIR /app
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/agents/agent-code ./agents/agent-code
 RUN mv ./agents/agent-code/node_modules ./node_modules
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/agents/agent-code/node_modules ./agents/agent-code/node_modules
 
-# Run as non-root user for security
-RUN chown -R node:node /app
-USER node
+# Create non-root user
+RUN groupadd -r alti && useradd -r -g alti -d /app -s /sbin/nologin alti \
+    && chown -R alti:alti /app
+
+USER alti
 
 WORKDIR /app/agents/agent-code
 
-# Cloud Run sets PORT=8080 by default
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "fetch('http://localhost:' + (process.env.PORT || 8080) + '/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+ENV NODE_ENV=production
+ENV PORT=8080
 
 CMD ["node", "index.js"]
