@@ -510,7 +510,7 @@ ${conflictSection}
 # Complete Source Bibliography
 (All sources organized by relevance and credibility)
 
-CRITICAL SCHOLARLY REQUIREMENT: You must write in the absolute highest-tier, authoritative, and analytical tone of top global consulting firms (e.g., McKinsey, BCG, Deloitte, PwC, Plante Moran, Bain & Company). Your analysis should be so profound, structured, and insightful that it completely replaces the need for hiring a top human consultant. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. Use markdown formatting and ensure the report is extremely comprehensive, deeply strategic, and readable.`;
+CRITICAL SCHOLARLY REQUIREMENT: You must write in the absolute highest-tier, authoritative, and analytical tone of top global consulting firms (e.g., McKinsey, BCG, Deloitte, PwC, Plante Moran, Bain & Company). Your analysis should be so profound, structured, and insightful that it completely replaces the need for hiring a top human consultant. EVERY single report must meet the criteria, exact standard, and rigorous approval of Citadel and Ken Griffin. Imagine Ken Griffin is reading every single deep research output; it must be flawless. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. Use markdown formatting and ensure the report is extremely comprehensive, deeply strategic, and readable.`;
 
     const finalReport = await runGeminiResearchTask(
       synthesisPrompt,
@@ -1421,7 +1421,7 @@ Re-synthesize and rewrite the report to perfectly resolve every point of strateg
 
 ${lengthInstruction}
 
-CRITICAL SCHOLARLY REQUIREMENT: You must write in the absolute highest-tier, authoritative, and analytical tone of top global consulting firms (e.g., McKinsey, BCG, Deloitte, PwC, Plante Moran, Bain & Company). Your analysis should be so profound, structured, and insightful that it completely replaces the need for hiring a top human consultant. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. 
+CRITICAL SCHOLARLY REQUIREMENT: You must write in the absolute highest-tier, authoritative, and analytical tone of top global consulting firms (e.g., McKinsey, BCG, Deloitte, PwC, Plante Moran, Bain & Company). Your analysis should be so profound, structured, and insightful that it completely replaces the need for hiring a top human consultant. EVERY single report must meet the criteria, exact standard, and rigorous approval of Citadel and Ken Griffin. Imagine Ken Griffin is reading every single deep research output; it must be flawless. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. 
 Produce the absolute best, most premium, final version of the report matching the expected length. Keep markdown formatting and all citations intact.`;
 
   try {
