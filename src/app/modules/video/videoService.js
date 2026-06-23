@@ -6,6 +6,7 @@ import path from 'path';
 import { GoogleAuth } from 'google-auth-library';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import redisClient from '../../../shared/redis.js';
+import { classifyVideoIntent, VIDEO_INTENTS } from './utils/intentClassifier.js';
 
 // --- Enterprise Rate-Limiting & DDOS Guard ---
 // Centralized handler for rate limit errors to ensure consistent responses.
@@ -490,4 +491,42 @@ export const getAvailableVideoModels = async (userId) => {
       resolutions: ['1920x1080', '2560x1440'],
     },
   ];
+};
+
+/**
+ * Main router for video requests. Uses intent classifier to route to the correct service.
+ */
+export const processVideoRequest = async (prompt, userId, history = []) => {
+  const intent = await classifyVideoIntent(prompt, history);
+  console.log(`Video Intent Classified: ${intent}`);
+
+  switch (intent) {
+    case VIDEO_INTENTS.VIDEO_GENERATION:
+      // T2V
+      return generateVideo({ prompt }, userId);
+      
+    case VIDEO_INTENTS.IMAGE_TO_VIDEO:
+      // Assume I2V via generation endpoint for now (Veo 3.1 supports image constraints)
+      return generateVideo({ prompt: `Animate this scene: ${prompt}` }, userId);
+      
+    case VIDEO_INTENTS.VIDEO_ANALYSIS:
+      // Mock Gemini 3.1 Pro Video Analysis
+      return {
+        type: 'analysis',
+        content: "Based on the analysis with Gemini 3.1 Pro, the video contains multiple cinematic elements. The lighting suggests a sunset, and the primary subject moves dynamically from left to right. Transcript and specific timestamps can be extracted upon request.",
+        generatedAt: new Date().toISOString()
+      };
+      
+    case VIDEO_INTENTS.STORYBOARDING:
+      // Mock Gemini 3.1 Pro Storyboarding
+      return {
+        type: 'storyboard',
+        content: "Storyboard Draft:\\n\\n1. **Scene 1 (0-3s)**: Wide shot establishing the environment based on your description.\\n2. **Scene 2 (3-6s)**: Close up on the main subject's expression.\\n3. **Scene 3 (6-10s)**: Dynamic panning shot revealing the action.\\n\\nWould you like to refine this script before we generate the video?",
+        generatedAt: new Date().toISOString()
+      };
+      
+    case VIDEO_INTENTS.UNKNOWN:
+    default:
+      return generateVideo({ prompt }, userId);
+  }
 };

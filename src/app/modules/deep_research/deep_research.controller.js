@@ -200,6 +200,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     depth = 'thorough',
     boardPersonas = ['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect'],
     consensusLevel = 'majority',
+    researchTier,
   } = req.body;
 
   // Determine actual maxDepth based on pre-flight depth choice
@@ -296,6 +297,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         maxDepth: finalMaxDepth,
         boardPersonas,
         consensusLevel,
+        researchTier,
       }
     }, proxyUser);
 

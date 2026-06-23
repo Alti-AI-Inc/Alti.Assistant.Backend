@@ -144,14 +144,31 @@ if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
  * On failure, it includes `success: false` and an `error` message.
  */
 export const runDeepResearchAgent = async (query, options = {}) => {
-  const {
+  let {
     generatePdf = false,
     conversationId = null,
     history = [],
     maxDepth = 3,
     boardPersonas = ['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect'],
     consensusLevel = 'majority',
+    researchTier,
   } = options;
+
+  if (researchTier) {
+    if (researchTier === 'bachelors') {
+      maxDepth = 2;
+      boardPersonas = ['Junior Research Analyst', 'Content Summarizer'];
+      consensusLevel = 'majority';
+    } else if (researchTier === 'masters') {
+      maxDepth = 3;
+      boardPersonas = ['Senior Industry Researcher', 'Domain Expert', 'Fact Checker'];
+      consensusLevel = 'majority';
+    } else if (researchTier === 'phd') {
+      maxDepth = 4;
+      boardPersonas = ['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect', 'Academic Professor', 'Chief Security Auditor'];
+      consensusLevel = 'unanimous';
+    }
+  }
 
   // Determine a consistent threadId for both the initial state and the LangGraph checkpointer.
   // Prioritize provided conversationId, then a default from the imported config, then a new unique ID.

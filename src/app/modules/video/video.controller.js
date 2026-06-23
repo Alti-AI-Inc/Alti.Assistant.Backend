@@ -168,16 +168,20 @@ export const generateVideo = catchAsync(async (req, res) => {
       };
     }
 
-    const proxyUser = req.user || { userId: userId.toString(), email: '', plan: 'free' };
-    const proxyResult = await proxyToAgent('video', '/execute', {
-      prompt: message,
-      options: inputs
-    }, proxyUser);
+    // Fetch recent history for intent classification
+    let history = [];
+    try {
+      const convData = await conversationHelpers.getConversationById(actualConversationId, userId, req);
+      history = convData?.messages || [];
+    } catch (err) {
+      logger.warn(`Could not fetch history for conversation ${actualConversationId}`);
+    }
 
-    const result = proxyResult.data || {};
-    
+    // Call our native video service which handles intent classification
+    const result = await videoService.processVideoRequest(message, userId, history);
+
     logger.info(
-      `Video Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Video Processing Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
     let fullResponse = '';
@@ -186,7 +190,7 @@ export const generateVideo = catchAsync(async (req, res) => {
     // Handle different response types from the video assistant
     if (result.videoUrl) {
       // If video was generated
-      fullResponse = result.response || 'Video generated successfully';
+      fullResponse = result.response || result.prompt || 'Video generated successfully';
       videoData = result.videoUrl;
 
       // Increment monthly usage for video overages
@@ -197,9 +201,10 @@ export const generateVideo = catchAsync(async (req, res) => {
           logger.error('Error incrementing video monthly usage:', err);
         });
       }
-    } else if (result.responseMessage) {
-      // If it's a clarification or question
-      fullResponse = result.responseMessage;
+    } else if (result.content || result.responseMessage) {
+      // If it's an analysis, storyboard, or clarification
+      fullResponse = result.content || result.responseMessage;
+      videoData = null; // No new video URL
     } else {
       // Fallback
       fullResponse =
