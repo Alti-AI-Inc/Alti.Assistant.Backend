@@ -6,8 +6,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { imageService } from './image.service.js';
-import { app as imageAssistantApp } from './imageAssistant/workflow.js';
 import { imageHelpers } from './image.helper.js';
+import { proxyToAgent } from '../gateway/agentProxy.js';
 
 // Initialize GCS storage client
 const storage = new Storage();
@@ -181,11 +181,15 @@ export const generateImage = catchAsync(async (req, res) => {
       };
     }
 
-    const result = await imageAssistantApp.invoke(inputs, {
-      configurable: { thread_id: actualConversationId },
-    });
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('image', '/execute', {
+      prompt: message,
+      options: inputs
+    }, proxyUser);
+    const result = proxyResult.data || {};
+
     logger.info(
-      `Image Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Image Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
     let fullResponse = '';
@@ -490,11 +494,15 @@ export const analyzeImage = catchAsync(async (req, res) => {
       };
     }
 
-    const result = await imageAssistantApp.invoke(inputs, {
-      configurable: { thread_id: actualConversationId },
-    });
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('image', '/execute', {
+      prompt: message || 'Analyze this image',
+      options: inputs
+    }, proxyUser);
+    const result = proxyResult.data || {};
+
     logger.info(
-      `Image Analysis Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Image Analysis Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
     const fullResponse = result.response || 'Image analysis completed';

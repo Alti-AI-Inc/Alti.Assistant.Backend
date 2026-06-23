@@ -7,8 +7,7 @@ import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import { vertexClaudeService } from '../search/services/vertexClaudeService.js';
-import { GcpSpeechService } from '../gcp_native/gcp-speech.service.js';
+import { proxyToAgent } from '../gateway/agentProxy.js';
 
 // Initialize GCS storage client
 const storage = new Storage();
@@ -207,67 +206,22 @@ const generateAudio = async (userId, conversationId, message, isGuest = false, r
   // Sort oldest first for Claude context
   history.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  const systemInstruction = `You are Alti's Audio Producer, a professional voiceover artist, copywriter, and podcast producer.
-Your goal is to write a highly engaging, natural-sounding, and high-fidelity script for speech synthesis based on the user's prompt.
+  logger.info(`Proxying audio request to Audio Agent...`);
+  const proxyUser = req?.user || { userId: userId.toString(), email: '', plan: 'free' };
+  const proxyResult = await proxyToAgent('audio', '/execute', {
+    prompt: message,
+    options: {}
+  }, proxyUser);
 
-You MUST wrap the final speech/script that should be spoken inside [SCRIPT_START] and [SCRIPT_END] tags.
-Outside of these tags, you can provide background context, a description of the tone, style, sound effects, or additional suggestions.
-However, only the text inside [SCRIPT_START] and [SCRIPT_END] will be synthesized into voiceover audio.
+  const resultData = proxyResult.data || {};
+  const fullText = resultData.content || '';
+  const audioBase64 = resultData.audioBase64;
 
-Make the script flow naturally and sound human. Keep it under 1000 characters if possible. Avoid hard-to-pronounce characters, complex formatting, or symbols that do not translate well to speech.`;
-
-  // Format messages for Claude Messages API
-  const claudeMessages = [
-    { role: 'system', content: systemInstruction }
-  ];
-
-  // Exclude current user prompt since it will be added at the end, and map history roles
-  for (const h of history) {
-    if (h.content && h.content !== message) {
-      claudeMessages.push({
-        role: h.role === 'model' ? 'assistant' : h.role,
-        content: h.content
-      });
-    }
-  }
-
-  // Add current user prompt
-  claudeMessages.push({ role: 'user', content: message });
-
-  logger.info(`Generating audio script using Claude 4.5 Sonnet...`);
-  const claudeResponse = await vertexClaudeService.generateText(claudeMessages, { temperature: 0.6 });
-  const fullText = claudeResponse.text;
-
-  // Extract the script text wrapped inside tags
-  const scriptMatch = fullText.match(/\[SCRIPT_START\]([\s\S]*?)\[SCRIPT_END\]/i);
-  let scriptText = scriptMatch ? scriptMatch[1].trim() : fullText;
-
-  // Clean any remaining markdown tags or brackets from the script text
-  scriptText = scriptText.replace(/\[.*?\]/g, '').trim();
-
-  if (!scriptText) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate speech script');
-  }
-
-  // synthesized audio settings
-  const userContext = {
-    userId: userId.toString(),
-    tenantId: req?.user?.tenantId || req?.tenantId || 'guest-tenant'
-  };
-
-  logger.info(`Synthesizing speech via GCP Text-to-Speech...`);
-  const speechResult = await GcpSpeechService.synthesizeSpeech(userContext, scriptText, {
-    languageCode: 'en-US',
-    voiceName: 'en-US-Neural2-F', // Premium Neural2 female voice
-    gender: 'FEMALE',
-    audioEncoding: 'MP3'
-  });
-
-  if (!speechResult || !speechResult.audioContent) {
+  if (!audioBase64) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Speech synthesis failed to return content');
   }
 
-  const audioBuffer = Buffer.from(speechResult.audioContent, 'base64');
+  const audioBuffer = Buffer.from(audioBase64, 'base64');
   const fileName = `${crypto.randomUUID()}.mp3`;
   const gcsObjectName = `uploads/audio/${userId}/${Date.now()}-${fileName}`;
 

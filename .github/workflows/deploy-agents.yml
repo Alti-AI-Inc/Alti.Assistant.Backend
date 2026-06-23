@@ -1,0 +1,52 @@
+name: Deploy Agents to GCP Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'agents/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID:   gen-lang-client-0273900650
+  REGION:       us-central1
+
+jobs:
+  deploy-agents:
+    name: Build & Deploy Agents to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth_setup
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Verify Google Cloud Auth
+        id: auth
+        run: |
+          gcloud auth print-access-token --quiet
+
+      - name: Deploy Agents
+        run: |
+          chmod +x scripts/deploy-agents.sh
+          # Pass the project ID and region
+          export GCP_PROJECT_ID=${{ env.PROJECT_ID }}
+          export GCP_REGION=${{ env.REGION }}
+          ./scripts/deploy-agents.sh
+
+      - name: Report Deployment
+        run: |
+          echo "✅ Agents deployment successful!"
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ✅ Cloud Run Agents Deployment Complete
+          The 7 agents have been successfully deployed.
+          EOF

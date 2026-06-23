@@ -1,0 +1,19 @@
+{
+  "name": "@alti/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared libraries for Alti Assistant agent microservices",
+  "exports": {
+    "./config": "./config/index.js",
+    "./logging": "./logging/index.js",
+    "./db": "./db/index.js",
+    "./storage": "./storage/index.js",
+    "./auth": "./auth/index.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.15.0",
+    "dotenv": "^16.5.0",
+    "mongoose": "^8.15.1",
+    "winston": "^3.17.0"
+  }
+}

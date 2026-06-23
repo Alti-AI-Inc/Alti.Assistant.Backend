@@ -1,0 +1,24 @@
+{
+  "name": "@alti/agent-research",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Alti Research Agent — deep-research pipeline with LangGraph workflow",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jspdf": "^2.5.2",
+    "pptxgenjs": "^3.12.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  }
+}

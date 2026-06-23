@@ -3,7 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { deepResearchService } from './deep_research.service.js';
-import { runDeepResearchAgent } from './deep_research_assistant/workflow.js';
+import { proxyToAgent } from '../gateway/agentProxy.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import {
@@ -286,23 +286,26 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
     console.log(`Starting deep research for query: "${message}"`);
 
-    // Run the deep research agent
-    // Note: `runDeepResearchAgent` is an external AI workflow, its internal performance
-    // is outside the scope of this file's direct database/CPU optimizations.
-    const result = await runDeepResearchAgent(message, {
-      generatePdf,
-      conversationId: actualConversationId,
-      maxDepth: finalMaxDepth,
-      history: conversationHistory,
-      boardPersonas,
-      consensusLevel,
-    });
+    // Run the deep research agent via API Gateway proxy
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('research', '/execute', {
+      prompt: message,
+      conversationHistory: conversationHistory,
+      options: {
+        generatePdf,
+        maxDepth: finalMaxDepth,
+        boardPersonas,
+        consensusLevel,
+      }
+    }, proxyUser);
 
-    if (!result.success) {
+    const result = proxyResult.data || {};
+
+    if (!proxyResult.success) {
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        message: result.error || 'Deep research failed',
+        message: proxyResult.error || 'Deep research failed',
       });
     }
 

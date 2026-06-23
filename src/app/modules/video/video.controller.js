@@ -10,8 +10,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { videoService } from './video.service.js';
-import { videoApp } from './video_assistant/workflow.js';
 import { videoHelpers } from './video.helper.js';
+import { proxyToAgent } from '../gateway/agentProxy.js';
 // BUG FIX: Missing import for conversationHelpers.
 // Assuming conversationHelpers is a shared utility, adjust path if necessary.
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
@@ -168,11 +168,16 @@ export const generateVideo = catchAsync(async (req, res) => {
       };
     }
 
-    const result = await videoApp.invoke(inputs, {
-      configurable: { thread_id: actualConversationId },
-    });
+    const proxyUser = req.user || { userId: userId.toString(), email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('video', '/execute', {
+      prompt: message,
+      options: inputs
+    }, proxyUser);
+
+    const result = proxyResult.data || {};
+    
     logger.info(
-      `Video Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Video Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
     let fullResponse = '';

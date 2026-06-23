@@ -56,3 +56,67 @@ vi.mock('@google-cloud/pubsub', () => ({
   }
 }));
 
+vi.mock('@langchain/langgraph', () => {
+  const MockAnnotation = (config) => config;
+  MockAnnotation.Root = () => ({});
+  
+  class MockStateGraph {
+    constructor() { this.nodes = {}; }
+    addNode() { return this; }
+    addEdge() { return this; }
+    addConditionalEdges() { return this; }
+    compile() { 
+      return {
+        invoke: vi.fn().mockResolvedValue({ 
+          report: 'Mocked research text',
+          metadata: { nodesExecuted: 1 },
+          content: 'Mocked writing text', // for write/code/etc
+          finalDocument: 'Mocked writing text', // for write workflow
+          enhancedPrompt: 'Mocked video prompt enhancement', // for video
+          videoUrl: 'https://mock-video-url.com/video.mp4',
+          imageUrl: 'data:image/png;base64,mock-base64-bytes',
+          script: 'Mocked audio script',
+          audioBase64: 'mock-audio-base64'
+        })
+      };
+    }
+
+  }
+  
+  return {
+    Annotation: MockAnnotation,
+    StateGraph: MockStateGraph,
+    END: '__end__',
+    START: '__start__'
+  };
+});
+
+vi.mock('./shared/logging/index.js', () => {
+  return {
+    createLogger: () => ({
+      logger: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn()
+      }
+    })
+  };
+});
+
+vi.mock('google-auth-library', () => {
+  return {
+    GoogleAuth: class {
+      getClient() {
+        return {
+          request: vi.fn().mockResolvedValue({
+            data: {
+              content: [{ text: 'Mocked writing text' }],
+              usage: { input_tokens: 10, output_tokens: 20 }
+            }
+          })
+        };
+      }
+    }
+  };
+});

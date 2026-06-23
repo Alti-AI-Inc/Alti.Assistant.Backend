@@ -1,0 +1,26 @@
+{
+  "name": "@alti/agent-write",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "description": "Alti Write Agent — document generation and export microservice powered by LangGraph",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "google-auth-library": "^9.14.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

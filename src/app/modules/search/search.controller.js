@@ -12,6 +12,7 @@ import {
 } from './services/geminiGroundingService.js';
 // import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js'; // Not used in this file.
 import { detectFinancialIntent } from '../../helpers/massiveTickerDB.js';
+import { proxyToAgent } from '../gateway/agentProxy.js';
 
 export const performSearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -93,18 +94,21 @@ export const performSearch = catchAsync(async (req, res) => {
       localTime: localTime || null,
     };
 
-    const result = await researchAgentApp.invoke(inputs, {
-      configurable: { thread_id: actualConversationId },
-    });
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('search', '/execute', {
+      prompt: message,
+      conversationHistory: conversationHistory,
+      options: { depth: deepSearch ? deepSearch : 'standard' }
+    }, proxyUser);
 
     logger.info(
-      `Research Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Search Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
-    // console.log('Research Assistant Result:', result);
 
-    const answer = result.answer;
-    const reference = result.reference || [];
-    const citationMetadata = result.citationMetadata || null;
+    const resultData = proxyResult.data || {};
+    const answer = resultData.content || '';
+    const reference = resultData.references || [];
+    const citationMetadata = resultData.metadata || null;
 
     console.log('References are:', reference);
     console.log('Citation metadata:', citationMetadata);
@@ -326,25 +330,22 @@ const generateCode = catchAsync(async (req, res) => {
       req
     );
 
-    // Import code generation function
-    const { runCodeGeneration } = await import('./llm.js');
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('code', '/execute', {
+      prompt: message,
+      conversationHistory: conversationHistory,
+      options: {}
+    }, proxyUser);
 
-    const inputs = {
-      query: message,
-      conversationContext: conversationHistory,
-      conversationId: actualConversationId,
-      currentQuery: message,
-    };
-
-    const result = await runCodeGeneration(inputs, false);
     logger.info(
-      `Code Generation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Code Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
-    const answer = result.answer;
-    const reference = result.reference || [];
-    const citationMetadata = result.citationMetadata || {
-      model: 'gemini-3.5-flash',
+    const resultData = proxyResult.data || {};
+    const answer = resultData.content || '';
+    const reference = resultData.references || [];
+    const citationMetadata = resultData.metadata || {
+      model: 'claude-sonnet-4.5',
       type: 'code_generation',
       timestamp: new Date().toISOString(),
     };
@@ -508,24 +509,21 @@ const generateWriting = catchAsync(async (req, res) => {
       req
     );
 
-    // Import intelligent search function
-    const { runIntelligentSearch } = await import('./llm.js');
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('write', '/execute', {
+      prompt: message,
+      conversationHistory: conversationHistory,
+      options: {}
+    }, proxyUser);
 
-    const inputs = {
-      query: message,
-      conversationContext: conversationHistory,
-      conversationId: actualConversationId,
-      currentQuery: message,
-    };
-
-    const result = await runIntelligentSearch(inputs);
     logger.info(
-      `Writing Generation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Write Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
-    const answer = result.answer;
-    const reference = result.reference || [];
-    const citationMetadata = result.citationMetadata || {
+    const resultData = proxyResult.data || {};
+    const answer = resultData.content || '';
+    const reference = resultData.references || [];
+    const citationMetadata = resultData.metadata || {
       model: 'claude-sonnet-4.5',
       type: 'writing',
       timestamp: new Date().toISOString(),
@@ -691,26 +689,24 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       req
     );
 
-    console.log(`🔍 Using NATIVE GROUNDING ONLY (Test Mode)`);
+    console.log(`🔍 Using SEARCH AGENT PROXY (Native Grounding mode)`);
 
-    // Use native grounding search directly
-    const result = await executeGroundedSearch(message, conversationHistory);
+    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+    const proxyResult = await proxyToAgent('search', '/execute', {
+      prompt: message,
+      conversationHistory: conversationHistory,
+      options: {}
+    }, proxyUser);
 
     logger.info(
-      `Native Grounding Search Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+      `Search Agent Proxy (Native Grounding) Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
 
-    let answer = result.answer;
-    // console.log(answer)
-    const isJson = isValidJSON(answer);
-    console.log('Is valid json', isJson, answer);
-    if (isJson) {
-      const parsedAnswer = JSON.parse(answer);
-      answer = parsedAnswer.responseMessage.answer;
-    }
-    const reference = result.reference || [];
-    const citations = result.citations || [];
-    const citationMetadata = result.citationMetadata || null;
+    const resultData = proxyResult.data || {};
+    let answer = resultData.content || '';
+    const reference = resultData.references || [];
+    const citations = resultData.citations || [];
+    const citationMetadata = resultData.metadata || null;
 
     console.log('Native Grounding - References:', reference);
     console.log('Native Grounding - Citation metadata:', citationMetadata);
@@ -726,7 +722,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       financialTicker: tickerInfo2?.symbol || null,
       financialIntent: tickerInfo2?.type || null,
       searchMethod: tickerInfo2 ? 'massive_realtime' : 'native_grounding_only',
-      ...(result.registryMetadata || {}),
+      ...(resultData.metadata || {}),
     };
 
     // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model

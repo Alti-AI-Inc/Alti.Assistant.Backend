@@ -1,0 +1,23 @@
+{
+  "name": "@alti/agent-code",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Alti Code Agent — code generation, debugging, review, and explanation microservice",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "google-auth-library": "^10.1.0",
+    "@alti/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.1"
+  }
+}
