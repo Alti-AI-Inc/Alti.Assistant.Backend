@@ -24,6 +24,7 @@ WORKDIR /app
 # Preserve directory structure for relative imports to shared/
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/agents/agent-write ./agents/agent-write
+RUN mv ./agents/agent-write/node_modules ./node_modules
 
 WORKDIR /app/agents/agent-write
 

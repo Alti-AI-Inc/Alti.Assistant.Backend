@@ -21,23 +21,34 @@ router.get('/health', (_req, res) => {
 // ── Execute Audio Generation (full pipeline: script + voice/music) ───────────
 router.post('/execute', internalAuth, async (req, res) => {
   try {
-    const { prompt, options } = req.body;
+    const { prompt, conversationHistory = [], options } = req.body;
     const userContext = req.user;
 
     logger.info('Execute audio request received', {
       userId: userContext.userId,
       promptLength: prompt?.length,
+      historyLength: conversationHistory.length
     });
 
-    const result = await runWorkflow({ prompt, ...options });
-    res.json({
-      success: true,
-      data: {
-        content: result.script,
-        audioBase64: result.audioBase64,
-        metadata: result.metadata
-      }
-    });
+    const finalState = await runWorkflow({ prompt, conversationHistory, ...options });
+
+    if (finalState.state !== 'generate') {
+      // Still gathering details
+      res.json({
+        status: 'gathering_details',
+        reply: finalState.reply
+      });
+    } else {
+      // Completed generation
+      res.json({
+        status: 'completed',
+        data: {
+          content: finalState.script,
+          audioBase64: finalState.audioBase64,
+          metadata: finalState.metadata
+        }
+      });
+    }
   } catch (error) {
     logger.error(`Audio execution failed: ${error.message}`);
     res.status(500).json({

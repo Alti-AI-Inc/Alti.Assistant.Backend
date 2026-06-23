@@ -6,11 +6,10 @@
 
 import { Router } from 'express';
 import { internalAuth } from '../../../../shared/auth/index.js';
-import { ImageService } from '../services/imageService.js';
+import imageService from '../services/imageService.js';
 import { createLogger } from '../../../../shared/logging/index.js';
 
 const router = Router();
-const imageService = new ImageService();
 const { logger } = createLogger('agent-image-routes');
 
 // ── Health Check (unauthenticated — used by Cloud Run probes) ────────────────
@@ -21,18 +20,39 @@ router.get('/health', (_req, res) => {
 // ── Execute — Image Generation ───────────────────────────────────────────────
 router.post('/execute', internalAuth, async (req, res) => {
   try {
-    const { prompt, options } = req.body;
+    // Import runWorkflow here to avoid circular dependency issues if any
+    const { runWorkflow } = await import('../agent/workflow.js');
+    
+    const { prompt, conversationHistory = [], options } = req.body;
     const userContext = req.user;
 
-    logger.info('Image generation request received', {
+    logger.info('Image generation workflow request received', {
       userId: userContext.userId,
       promptLength: prompt?.length,
+      historyLength: conversationHistory.length
     });
 
-    const result = await imageService.generateImage(prompt, userContext, options);
-    res.json(result);
+    const finalState = await runWorkflow({ prompt, conversationHistory });
+
+    if (finalState.state !== 'generate') {
+      // Still gathering details or confirming
+      res.json({
+        status: 'gathering_details',
+        reply: finalState.reply
+      });
+    } else {
+      // Completed generation
+      res.json({
+        status: 'completed',
+        data: {
+          imageUrl: finalState.imageUrl,
+          prompt: finalState.prompt,
+          metadata: finalState.metadata
+        }
+      });
+    }
   } catch (error) {
-    logger.error(`Image generation failed: ${error.message}`);
+    logger.error(`Image generation workflow failed: ${error.message}`);
     res.status(500).json({
       error: 'Image generation failed',
       message: error.message,

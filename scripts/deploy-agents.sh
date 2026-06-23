@@ -33,6 +33,10 @@ EOF
   gcloud builds submit --config cloudbuild-tmp-${AGENT}.yaml --project ${PROJECT_ID} --timeout=30m .
   rm cloudbuild-tmp-${AGENT}.yaml
 
+  # Extract necessary secrets from .env
+  DB_URI=$(grep '^DATABASE_LOCAL=' .env | cut -d '=' -f2-)
+  GEMINI_KEY=$(grep '^GEMINI_API_KEY=' .env | cut -d '=' -f2-)
+
   # Deploy to Cloud Run
   echo "   [2/2] Deploying to Cloud Run..."
   gcloud run deploy ${SERVICE_NAME} \
@@ -45,7 +49,7 @@ EOF
     --max-instances 10 \
     --cpu 1 \
     --memory 1Gi \
-    --set-env-vars NODE_ENV=production
+    --set-env-vars="^|^NODE_ENV=production|MONGODB_URI=${DB_URI}|GEMINI_API_KEY=${GEMINI_KEY}"
 
   echo "✅ ${SERVICE_NAME} deployed successfully!"
 done

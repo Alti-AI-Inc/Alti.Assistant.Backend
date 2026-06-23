@@ -28,6 +28,7 @@ WORKDIR /app
 # Copy everything from builder
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/agents/agent-code ./agents/agent-code
+RUN mv ./agents/agent-code/node_modules ./node_modules
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/agents/agent-code/node_modules ./agents/agent-code/node_modules
 

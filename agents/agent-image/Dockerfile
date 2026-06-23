@@ -27,6 +27,7 @@ WORKDIR /app
 # Copy everything from builder
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/agents/agent-image ./agents/agent-image
+RUN mv ./agents/agent-image/node_modules ./node_modules
 
 # Create non-root user
 RUN groupadd -r alti && useradd -r -g alti -d /app -s /sbin/nologin alti \

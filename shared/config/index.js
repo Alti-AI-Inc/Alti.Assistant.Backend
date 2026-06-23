@@ -8,10 +8,18 @@
  *   console.log(config.gcp.projectId);
  */
 
-import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-dotenv.config({ path: path.join(process.cwd(), '.env') });
+const envPath = path.join(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  try {
+    const dotenv = await import('dotenv');
+    dotenv.default.config({ path: envPath });
+  } catch (e) {
+    console.warn('dotenv not found, skipping .env load');
+  }
+}
 
 // ── Strip BOM (\\uFEFF) from all environment variables ───────────────────────
 const BOM = '\uFEFF';

@@ -80,6 +80,107 @@ class ImageService {
       return prompt;
     }
   }
+
+  async analyzeIntent(prompt, conversationHistory = []) {
+    logger.info('Analyzing intent for details and confirmation');
+    try {
+      const historyText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const systemInstruction = `You are a helpful assistant analyzing user requests to generate an image.
+The user's latest prompt: "${prompt}"
+Conversation history:
+${historyText}
+
+Determine the current state of the request:
+1. "gather": If the user has NOT provided enough specific details (subject, action, environment, lighting, style).
+2. "confirm": If the user HAS provided enough details, BUT has not explicitly confirmed to generate it yet (e.g. hasn't said "yes", "generate it", "looks good").
+3. "generate": If the user HAS provided enough details AND has explicitly confirmed to generate it.
+
+Respond ONLY with JSON in this format:
+{
+  "state": "gather" | "confirm" | "generate"
+}`;
+
+      const result = await this.ai.models.generateContent({
+        model: this.conversationalModel,
+        contents: systemInstruction,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.1
+        }
+      });
+      
+      const parsed = JSON.parse(result.candidates[0].content.parts[0].text);
+      return parsed.state || 'gather';
+    } catch (err) {
+      logger.error('Failed to analyze intent', err);
+      return 'generate'; // Fallback
+    }
+  }
+
+  async gatherDetails(prompt, conversationHistory = []) {
+    logger.info('Formulating detail-gathering questions');
+    try {
+      const historyText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const systemInstruction = `You are an expert AI image prompt engineer. 
+The user wants an image but hasn't provided enough details.
+Current prompt: "${prompt}"
+History:
+${historyText}
+
+Formulate ONE brief, conversational response asking for specific missing details (e.g., lighting, style, setting, action). Be friendly and concise.`;
+
+      const result = await this.ai.models.generateContent({
+        model: this.conversationalModel,
+        contents: systemInstruction,
+        config: { temperature: 0.7 }
+      });
+      
+      return result.candidates[0].content.parts[0].text;
+    } catch (err) {
+      logger.error('Failed to gather details', err);
+      return "Could you provide a bit more detail about the setting, style, or lighting you want for this image?";
+    }
+  }
+
+  async confirmDetails(prompt, conversationHistory = []) {
+    logger.info('Formulating confirmation summary');
+    try {
+      const historyText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const systemInstruction = `You are an expert AI image prompt engineer.
+The user has provided enough details to generate the image, but we need final confirmation.
+Current prompt: "${prompt}"
+History:
+${historyText}
+
+Your task:
+1. Combine all gathered details into a highly descriptive 'enhancedPrompt'.
+2. Write a brief 'reply' summarizing the image you are about to create, and ask "Shall I go ahead and generate this?"
+
+Respond ONLY with JSON in this format:
+{
+  "reply": "Summary and confirmation question...",
+  "enhancedPrompt": "The highly descriptive final prompt"
+}`;
+
+      const result = await this.ai.models.generateContent({
+        model: this.conversationalModel,
+        contents: systemInstruction,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.2
+        }
+      });
+      
+      const parsed = JSON.parse(result.candidates[0].content.parts[0].text);
+      return parsed;
+    } catch (err) {
+      logger.error('Failed to confirm details', err);
+      return { 
+        reply: "Great, I have all the details. Shall I go ahead and generate this?",
+        enhancedPrompt: prompt 
+      };
+    }
+  }
 }
 
 export default new ImageService();

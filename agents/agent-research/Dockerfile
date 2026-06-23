@@ -30,6 +30,7 @@ COPY --from=builder /app/shared ./shared
 
 # Copy agent with node_modules
 COPY --from=builder /app/agents/agent-research ./agents/agent-research
+RUN mv ./agents/agent-research/node_modules ./node_modules
 
 WORKDIR /app/agents/agent-research
 

@@ -34,6 +34,7 @@ COPY --from=builder /app/shared ./shared
 
 # Copy agent code
 COPY --from=builder /app/agents/agent-audio ./agents/agent-audio
+RUN mv ./agents/agent-audio/node_modules ./node_modules
 
 # Run as non-root user for security
 RUN chown -R node:node /app

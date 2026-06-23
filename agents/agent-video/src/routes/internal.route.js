@@ -21,24 +21,35 @@ router.get('/health', (_req, res) => {
 // ── Execute Video Generation ─────────────────────────────────────────────────
 router.post('/execute', internalAuth, async (req, res) => {
   try {
-    const { prompt, options } = req.body;
+    const { prompt, conversationHistory = [], options } = req.body;
     const userContext = req.user;
 
     logger.info('Video generation request received', {
       userId: userContext.userId,
       promptLength: prompt?.length,
+      historyLength: conversationHistory.length,
       tier: options?.tier,
     });
 
-    const result = await runWorkflow({ prompt, ...options });
-    res.json({
-      success: true,
-      data: {
-        content: result.enhancedPrompt,
-        videoUrl: result.videoUrl,
-        metadata: result.metadata
-      }
-    });
+    const finalState = await runWorkflow({ prompt, conversationHistory, ...options });
+
+    if (finalState.state !== 'generate') {
+      // Still gathering details
+      res.json({
+        status: 'gathering_details',
+        reply: finalState.reply
+      });
+    } else {
+      // Completed generation
+      res.json({
+        status: 'completed',
+        data: {
+          content: finalState.enhancedPrompt,
+          videoUrl: finalState.videoUrl,
+          metadata: finalState.metadata
+        }
+      });
+    }
   } catch (error) {
     logger.error(`Video generation failed: ${error.message}`);
     res.status(500).json({

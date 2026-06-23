@@ -6,6 +6,10 @@ const { logger } = createLogger('audioWorkflow');
 
 const AudioState = Annotation.Root({
   prompt: Annotation(),
+  conversationHistory: Annotation({ default: () => [] }),
+  state: Annotation(), // 'gather', 'confirm', 'generate'
+  reply: Annotation(),
+  enhancedPrompt: Annotation(),
   audioType: Annotation(),
   script: Annotation(),
   voiceConfig: Annotation(),
@@ -13,15 +17,42 @@ const AudioState = Annotation.Root({
   metadata: Annotation()
 });
 
+async function analyzeIntent(state) {
+  logger.info('Analyzing audio prompt intent');
+  const currentState = await audioService.analyzeIntent(state.prompt, state.conversationHistory);
+  return { state: currentState };
+}
+
+async function chatInterviewer(state) {
+  logger.info('Running audio chat interviewer');
+  if (state.state !== 'gather') return {};
+  
+  const reply = await audioService.gatherDetails(state.prompt, state.conversationHistory);
+  return { reply };
+}
+
+async function confirmDetails(state) {
+  logger.info('Running audio confirm details');
+  if (state.state !== 'confirm') return {};
+
+  const confirmation = await audioService.confirmDetails(state.prompt, state.conversationHistory);
+  return { 
+    reply: confirmation.reply,
+    enhancedPrompt: confirmation.enhancedPrompt
+  };
+}
+
 async function classifyIntent(state) {
   logger.info('Classifying intent');
-  const result = await audioService.classifyAudioIntent(state.prompt);
+  const finalPrompt = state.enhancedPrompt || state.prompt;
+  const result = await audioService.classifyAudioIntent(finalPrompt);
   return { audioType: result.audioType };
 }
 
 async function generateScript(state) {
   logger.info('Generating script');
-  const result = await audioService.generateScript(state.prompt, state.audioType);
+  const finalPrompt = state.enhancedPrompt || state.prompt;
+  const result = await audioService.generateScript(finalPrompt, state.audioType);
   return { script: result.script };
 }
 
@@ -47,11 +78,27 @@ async function synthesizeSpeech(state) {
 }
 
 const workflow = new StateGraph(AudioState)
+  .addNode('analyzeIntent', analyzeIntent)
+  .addNode('chatInterviewer', chatInterviewer)
+  .addNode('confirmDetails', confirmDetails)
   .addNode('classifyIntent', classifyIntent)
   .addNode('generateScript', generateScript)
   .addNode('selectVoiceProfile', selectVoiceProfile)
   .addNode('synthesizeSpeech', synthesizeSpeech)
-  .addEdge('__start__', 'classifyIntent')
+  
+  .addEdge('__start__', 'analyzeIntent')
+  .addConditionalEdges('analyzeIntent', (state) => {
+    if (state.state === 'gather') return 'chatInterviewer';
+    if (state.state === 'confirm') return 'confirmDetails';
+    return 'classifyIntent'; // proceed to generate
+  }, {
+    'chatInterviewer': 'chatInterviewer',
+    'confirmDetails': 'confirmDetails',
+    'classifyIntent': 'classifyIntent'
+  })
+  
+  .addEdge('chatInterviewer', '__end__')
+  .addEdge('confirmDetails', '__end__')
   .addEdge('classifyIntent', 'generateScript')
   .addEdge('generateScript', 'selectVoiceProfile')
   .addEdge('selectVoiceProfile', 'synthesizeSpeech')
