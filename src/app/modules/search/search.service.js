@@ -109,7 +109,7 @@ const handleSearchConversation = async (
               userType: 'guest',
               isGuest: true,
             },
-            is_deep_search: true,
+            is_deep_search: false,
           },
           newConversationId,
           req
@@ -126,7 +126,7 @@ const handleSearchConversation = async (
               searchType: 'assistant',
               userType: 'authenticated',
             },
-            is_deep_search: true,
+            is_deep_search: false,
           },
           newConversationId,
           req
