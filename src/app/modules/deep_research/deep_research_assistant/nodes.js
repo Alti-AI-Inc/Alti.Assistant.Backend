@@ -510,7 +510,7 @@ ${conflictSection}
 # Complete Source Bibliography
 (All sources organized by relevance and credibility)
 
-Use markdown formatting, include proper citations [1], [2], etc., and ensure the report is comprehensive yet readable.`;
+CRITICAL SCHOLARLY REQUIREMENT: You must write in the authoritative, analytical tone of a top-tier consulting firm (e.g., McKinsey, BCG) or a leading academic researcher. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. Use markdown formatting and ensure the report is extremely comprehensive and readable.`;
 
     const finalReport = await runGeminiResearchTask(
       synthesisPrompt,
@@ -1421,6 +1421,7 @@ Re-synthesize and rewrite the report to perfectly resolve every point of strateg
 
 ${lengthInstruction}
 
+CRITICAL SCHOLARLY REQUIREMENT: You must write in the authoritative, analytical tone of a top-tier consulting firm (e.g., McKinsey, BCG) or a leading academic researcher. Every single factual claim, statistic, or argument MUST be strictly backed by credible citations to the provided sources using inline format (e.g., [1], [2]). You must prove the credibility of your findings. Unsubstantiated claims will result in failure. 
 Produce the absolute best, most premium, final version of the report matching the expected length. Keep markdown formatting and all citations intact.`;
 
   try {
