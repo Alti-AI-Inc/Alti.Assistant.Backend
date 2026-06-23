@@ -22,9 +22,16 @@ for AGENT in "${AGENTS[@]}"; do
   echo ""
   echo "🚀 Building and deploying ${SERVICE_NAME}..."
   
-  # Submit build to Cloud Build natively (from the root directory so shared/ is included)
+  # Submit build to Cloud Build natively using an inline config to specify the Dockerfile
   echo "   [1/2] Building Docker image via Cloud Build..."
-  gcloud builds submit --tag ${IMAGE_NAME} --project ${PROJECT_ID} --timeout=30m -f ${AGENT_DIR}/Dockerfile .
+  cat <<EOF > cloudbuild-tmp-${AGENT}.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', '${IMAGE_NAME}', '-f', '${AGENT_DIR}/Dockerfile', '.']
+images: ['${IMAGE_NAME}']
+EOF
+  gcloud builds submit --config cloudbuild-tmp-${AGENT}.yaml --project ${PROJECT_ID} --timeout=30m .
+  rm cloudbuild-tmp-${AGENT}.yaml
 
   # Deploy to Cloud Run
   echo "   [2/2] Deploying to Cloud Run..."
