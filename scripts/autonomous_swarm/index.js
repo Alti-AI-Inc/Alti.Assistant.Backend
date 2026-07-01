@@ -21,7 +21,7 @@ const zones = {
     'article_writer', 'brainstorm', 'plan_generator', 'document_drafting', 
     'writing', 'creative_writing', 'document_analysis', 'document_review', 
     'image', 'enhanced_image', 'video', 'transcription', 'wishper', 
-    'apisports', 'aviationstack', 'google_search', 'serper', 
+    'apisports', 'aviationstack', 'google_search', 
     'realestate', 'presentation', 'report', 'summary', 'translation'
   ],
   '4': [
