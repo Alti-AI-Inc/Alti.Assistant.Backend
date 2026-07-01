@@ -10,6 +10,7 @@ import {
   retrieveProductController,
   createPaymentIntentController,
   addPaymentMethodController,
+  deletePaymentMethodController,
   listPaymentMethodsController,
   getMyPaymentMethodsController,
   createSubscriptionController,
@@ -482,6 +483,13 @@ router.post(
   auth(),
   extractTenantContext,
   addPaymentMethodController
+);
+
+router.delete(
+  '/payment-method/:paymentMethodId',
+  auth(),
+  extractTenantContext,
+  deletePaymentMethodController
 );
 
 /**

@@ -17,6 +17,7 @@ import {
   createPaymentIntentService,
   getAllPaymentMethodsService,
   savePaymentMethodService,
+  detachPaymentMethodService,
 } from './paymentMethod.service.js';
 import {
   createProductService,
@@ -643,6 +644,59 @@ const addPaymentMethodController = catchAsync(async (req, res, next) => {
       customerId,
       paymentMethod,
     },
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/stripe/payment-method/{paymentMethodId}:
+ *   delete:
+ *     summary: Delete/detach a payment method
+ *     description: Detaches a payment method from the Stripe customer associated with the current tenant context.
+ *     tags:
+ *       - Stripe Payments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentMethodId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the Payment Method to delete/detach.
+ *     responses:
+ *       200:
+ *         description: Payment method detached successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+const deletePaymentMethodController = catchAsync(async (req, res, next) => {
+  const { paymentMethodId } = req.params;
+  const { customerId } = await getStripeCustomerId(req, false);
+
+  if (!customerId) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Stripe customer not found');
+  }
+
+  // Retrieve payment method to verify ownership
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  if (!paymentMethod || paymentMethod.customer !== customerId) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You do not have permission to delete this payment method'
+    );
+  }
+
+  await detachPaymentMethodService(paymentMethodId);
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Payment method deleted successfully',
   });
 });
 
@@ -1354,6 +1408,7 @@ export {
   retrieveProductController,
   createPaymentIntentController,
   addPaymentMethodController,
+  deletePaymentMethodController,
   listPaymentMethodsController,
   getMyPaymentMethodsController,
   createSubscriptionController,

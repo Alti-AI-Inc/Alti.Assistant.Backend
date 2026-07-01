@@ -20,6 +20,7 @@ const {
     retrieveProductController: 'retrieveProductController',
     createPaymentIntentController: 'createPaymentIntentController',
     addPaymentMethodController: 'addPaymentMethodController',
+    deletePaymentMethodController: 'deletePaymentMethodController',
     listPaymentMethodsController: 'listPaymentMethodsController',
     getMyPaymentMethodsController: 'getMyPaymentMethodsController',
     createSubscriptionController: 'createSubscriptionController',
@@ -180,6 +181,15 @@ describe('Stripe Routes', () => {
         'authMiddleware',
         'extractTenantContextMiddleware',
         mockControllers.addPaymentMethodController
+      );
+    });
+
+    it('should register DELETE /payment-method/:paymentMethodId to delete a payment method', () => {
+      expect(mockRouter.delete).toHaveBeenCalledWith(
+        '/payment-method/:paymentMethodId',
+        'authMiddleware',
+        'extractTenantContextMiddleware',
+        mockControllers.deletePaymentMethodController
       );
     });
 
