@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import { google } from 'googleapis';
 import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -64,7 +63,6 @@ export default {
     namespace: process.env.TEMPORAL_NAMESPACE || 'default',
   },
 
-
   openMemory: {
     enabled: process.env.OPENMEMORY_ENABLED === 'true',
     baseUrl: process.env.OPENMEMORY_BASE_URL || 'http://localhost:8080',
@@ -74,17 +72,18 @@ export default {
     timeoutMs: Number(process.env.OPENMEMORY_TIMEOUT_MS || 8000),
   },
 
-  gemini_secret_key: process.env.GEMINI_API_KEY,
+  gemini_secret_key: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+  google_api_key: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
 
   // ── Gemini Model Config (single source of truth — update here only) ──────
   // Flash: fastest & cheapest — use for 90% of requests
   // Pro:   deep reasoning, complex tasks, document review, agentic workflows
-  gemini_model:     process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
+  gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   gemini: {
-    model_name:   process.env.GEMINI_MODEL     || 'gemini-3.5-flash',
-    pro_model:    process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
-    temperature:  parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
+    model_name: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+    pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
+    temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
   },
   realestate_api_key: process.env.REALESTATE_API_KEY,
 
@@ -113,8 +112,7 @@ export default {
     model_id: process.env.MODEL_ID,
   },
   gcs: {
-    uploads_bucket:
-      process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
+    uploads_bucket: process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
     transcription_bucket:
       process.env.GCS_TRANSCRIPTION_BUCKET || 'alti_assistant_transcription',
     knowledge_bank_bucket:
@@ -124,8 +122,7 @@ export default {
       'alti_assistant_knowledge_bot_files',
     presentation_bucket:
       process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
-    datasetStorageClass:
-      process.env.GCS_DATASET_STORAGE_CLASS || 'ARCHIVE',
+    datasetStorageClass: process.env.GCS_DATASET_STORAGE_CLASS || 'ARCHIVE',
   },
   shelfHfRagIndexing: process.env.SHELF_HF_RAG_INDEXING === 'true',
   mail: {
@@ -140,11 +137,16 @@ export default {
     location: process.env.GCP_LOCATION || 'us-central1',
     saKeyPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './alti_gcp.json',
     pubsub: {
-      subscriptionTopic: process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC || 'stripe-subscription-updates',
-      stripe_webhook_topic: process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhook-events',
+      subscriptionTopic:
+        process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC ||
+        'stripe-subscription-updates',
+      stripe_webhook_topic:
+        process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhook-events',
     },
     tasks_queue: process.env.GCP_TASKS_QUEUE || 'stripe-tasks-queue',
-    tasks_worker_url: process.env.GCP_TASKS_WORKER_URL || 'https://alti-backend.onrender.com/api/v1/stripe/tasks-worker',
+    tasks_worker_url:
+      process.env.GCP_TASKS_WORKER_URL ||
+      'https://alti-backend.onrender.com/api/v1/stripe/tasks-worker',
     tasks_service_account_email: process.env.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
   },
   privacy: {

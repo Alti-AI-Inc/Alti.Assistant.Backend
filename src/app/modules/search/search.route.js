@@ -15,12 +15,12 @@ const router = express.Router();
 // Search assistant endpoint - open to all (with optional auth)
 router.post(
   '/assistant_v2',
-  optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  // optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
-  planLimitMiddleware('search'),
-  checkDailyRequestLimit,
+  // planLimitMiddleware('search'),
+  // checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
-  validateRequest(SearchValidation.searchQuerySchema),
+  // validateRequest(SearchValidation.searchQuerySchema),
   searchController.performSearch
 );
 

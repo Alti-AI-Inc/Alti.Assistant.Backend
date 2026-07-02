@@ -7,16 +7,27 @@ import UsageLog from './usageLog.model.js'; // Consider adding indexes to UsageL
 // 4. { module: 1, timestamp: -1 } for module-specific time-based queries.
 // For read operations in getTenantUsageSummary/getUserUsageSummary, ensure .lean() is used if they return Mongoose documents
 // to avoid the overhead of Mongoose document instantiation.
-import { logger } from '../../../shared/logger.js';
-import crypto from 'crypto';
 import { PubSub } from '@google-cloud/pubsub';
+import crypto from 'crypto';
+import path from 'path';
+import config from '../../../../config/index.js';
+import { logger } from '../../../shared/logger.js';
 
 /**
  * Google Cloud Pub/Sub client instance.
  * Used for asynchronously publishing usage log messages to a topic.
  * @type {PubSub}
  */
-const pubsub = new PubSub();
+const pubSubOptions = {};
+if (config.gcp?.projectId) pubSubOptions.projectId = config.gcp.projectId;
+if (config.gcp?.saKeyPath) {
+  pubSubOptions.keyFilename = path.isAbsolute(config.gcp.saKeyPath)
+    ? config.gcp.saKeyPath
+    : path.join(process.cwd(), config.gcp.saKeyPath);
+}
+const pubsub = new PubSub(pubSubOptions);
+const PUBSUB_ENABLED =
+  process.env.PUBSUB_ENABLED !== 'false' && process.env.PUBSUB_ENABLED !== '0';
 
 /**
  * The name of the GCP Pub/Sub topic where usage logs are sent.
@@ -54,7 +65,10 @@ const mapEndpointToModule = (endpoint, method) => {
     };
   }
   if (path.includes('/tenant') || path.includes('/workspace')) {
-    return { module: 'workspace-management', action: extractAction(path, method) };
+    return {
+      module: 'workspace-management',
+      action: extractAction(path, method),
+    };
   }
   if (path.includes('/legal-contract-review')) {
     return {
@@ -116,8 +130,15 @@ const mapEndpointToModule = (endpoint, method) => {
   if (path.includes('/image')) {
     return { module: 'image-generation', action: extractAction(path, method) };
   }
-  if (path.includes('/stripe') || path.includes('/billing') || path.includes('/subscription')) {
-    return { module: 'billing-subscription', action: extractAction(path, method) };
+  if (
+    path.includes('/stripe') ||
+    path.includes('/billing') ||
+    path.includes('/subscription')
+  ) {
+    return {
+      module: 'billing-subscription',
+      action: extractAction(path, method),
+    };
   }
 
   return { module: 'other', action: extractAction(path, method) };
@@ -170,9 +191,17 @@ const anonymizeIP = (ip) => {
   const salt = process.env.IP_HASH_SALT;
   if (!salt) {
     logger.warn('IP_HASH_SALT is not set. IP anonymization is less secure.');
-    return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
+    return crypto
+      .createHash('sha256')
+      .update(ip)
+      .digest('hex')
+      .substring(0, 16);
   }
-  return crypto.createHmac('sha256', salt).update(ip).digest('hex').substring(0, 16);
+  return crypto
+    .createHmac('sha256', salt)
+    .update(ip)
+    .digest('hex')
+    .substring(0, 16);
 };
 
 /**
@@ -220,24 +249,41 @@ const getErrorType = (statusCode) => {
 const createLogAsync = (logData) => {
   const dataBuffer = Buffer.from(JSON.stringify(logData));
 
+  if (!PUBSUB_ENABLED) {
+    logger.warn('Pub/Sub disabled for usage logging; skipping publish.', {
+      logContext: {
+        userId: logData.userId,
+        tenantId: logData.tenantId,
+        requestId: logData.requestId,
+      },
+    });
+    return;
+  }
+
   pubsub
     .topic(TOPIC_NAME)
     .publishMessage({ data: dataBuffer })
     .catch((error) => {
-      logger.error('Failed to publish usage log to Pub/Sub. Falling back to direct DB write.', {
-        error, // Log the full error for better debugging
-        logContext: {
-          userId: logData.userId,
-          tenantId: logData.tenantId,
-          requestId: logData.requestId,
-        },
-      });
+      logger.error(
+        'Failed to publish usage log to Pub/Sub. Falling back to direct DB write.',
+        {
+          error, // Log the full error for better debugging
+          logContext: {
+            userId: logData.userId,
+            tenantId: logData.tenantId,
+            requestId: logData.requestId,
+          },
+        }
+      );
       // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable
       UsageLog.create(logData).catch((dbError) => {
-        logger.error('Fallback database write for usage log also failed. Data loss occurred.', {
-          error: dbError,
-          originalLogRequestId: logData.requestId, // Correlate the failed log
-        });
+        logger.error(
+          'Fallback database write for usage log also failed. Data loss occurred.',
+          {
+            error: dbError,
+            originalLogRequestId: logData.requestId, // Correlate the failed log
+          }
+        );
       });
     });
 };
@@ -335,7 +381,10 @@ const getTenantUsage = async (tenantId, startDate, endDate) => {
     // The model method should use .lean() for performance.
     return await UsageLog.getTenantUsageSummary(tenantId, startDate, endDate);
   } catch (error) {
-    logger.error(`Error getting tenant usage summary for tenantId: ${tenantId}`, { error });
+    logger.error(
+      `Error getting tenant usage summary for tenantId: ${tenantId}`,
+      { error }
+    );
     throw error;
   }
 };
@@ -356,7 +405,9 @@ const getUserUsage = async (userId, startDate, endDate) => {
     // The model method should use .lean() for performance.
     return await UsageLog.getUserUsageSummary(userId, startDate, endDate);
   } catch (error) {
-    logger.error(`Error getting user usage summary for userId: ${userId}`, { error });
+    logger.error(`Error getting user usage summary for userId: ${userId}`, {
+      error,
+    });
     throw error;
   }
 };
@@ -406,7 +457,13 @@ const getUsageStats = async (filters = {}) => {
             $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
           },
           errorCount: {
-            $sum: { $cond: [{ $in: ['$status', ['client-error', 'server-error']] }, 1, 0] },
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['client-error', 'server-error']] },
+                1,
+                0,
+              ],
+            },
           },
           avgDuration: { $avg: '$duration' },
           maxDuration: { $max: '$duration' },
@@ -423,7 +480,12 @@ const getUsageStats = async (filters = {}) => {
           successRate: {
             $cond: {
               if: { $gt: ['$totalRequests', 0] },
-              then: { $multiply: [{ $divide: ['$successCount', '$totalRequests'] }, 100] },
+              then: {
+                $multiply: [
+                  { $divide: ['$successCount', '$totalRequests'] },
+                  100,
+                ],
+              },
               else: 0,
             },
           },
@@ -434,7 +496,9 @@ const getUsageStats = async (filters = {}) => {
           avgTokens: {
             $cond: {
               if: { $gt: ['$totalRequests', 0] },
-              then: { $round: [{ $divide: ['$totalTokens', '$totalRequests'] }, 2] },
+              then: {
+                $round: [{ $divide: ['$totalTokens', '$totalRequests'] }, 2],
+              },
               else: 0,
             },
           },
@@ -443,17 +507,19 @@ const getUsageStats = async (filters = {}) => {
     ]);
 
     // If no records match, aggregation returns an empty array. Return a default object.
-    return stats[0] || {
-      totalRequests: 0,
-      successCount: 0,
-      errorCount: 0,
-      successRate: 0,
-      avgDuration: 0,
-      maxDuration: 0,
-      minDuration: 0,
-      totalTokens: 0,
-      avgTokens: 0,
-    };
+    return (
+      stats[0] || {
+        totalRequests: 0,
+        successCount: 0,
+        errorCount: 0,
+        successRate: 0,
+        avgDuration: 0,
+        maxDuration: 0,
+        minDuration: 0,
+        totalTokens: 0,
+        avgTokens: 0,
+      }
+    );
   } catch (error) {
     logger.error('Error getting usage stats:', { error, filters });
     throw error;
@@ -474,7 +540,13 @@ const getUsageStats = async (filters = {}) => {
  * @param {Date} [options.cycleEndDate=new Date()] - The end date of the cycle, defaults to now.
  * @returns {Promise<{exceeded: boolean, currentUsage: number, limit: number, remaining: number}>} A promise that resolves to an object indicating if the limit is exceeded.
  */
-const checkUsageLimit = async ({ tenantId, limitType, limitValue, cycleStartDate, cycleEndDate = new Date() }) => {
+const checkUsageLimit = async ({
+  tenantId,
+  limitType,
+  limitValue,
+  cycleStartDate,
+  cycleEndDate = new Date(),
+}) => {
   if (!tenantId || !limitType || limitValue === undefined || !cycleStartDate) {
     throw new Error('Missing required parameters for usage limit check.');
   }
@@ -491,7 +563,8 @@ const checkUsageLimit = async ({ tenantId, limitType, limitValue, cycleStartDate
       endDate: cycleEndDate,
     });
 
-    const currentUsage = limitType === 'tokens' ? stats.totalTokens : stats.totalRequests;
+    const currentUsage =
+      limitType === 'tokens' ? stats.totalTokens : stats.totalRequests;
     const exceeded = currentUsage >= limitValue;
     const remaining = Math.max(0, limitValue - currentUsage);
 
@@ -502,14 +575,15 @@ const checkUsageLimit = async ({ tenantId, limitType, limitValue, cycleStartDate
       remaining,
     };
   } catch (error) {
-    logger.error(`Error checking usage limit for tenant ${tenantId}:`, { error });
+    logger.error(`Error checking usage limit for tenant ${tenantId}:`, {
+      error,
+    });
     // Fail-safe decision: Re-throwing the error allows the calling service (e.g., a middleware)
     // to decide whether to block the request (fail-closed) or allow it (fail-open).
     // For billing-related features, fail-closed is often the safer default to prevent financial loss.
     throw error;
   }
 };
-
 
 /**
  * @typedef {object} UsageLogService

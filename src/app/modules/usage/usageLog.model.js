@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import { PubSub } from '@google-cloud/pubsub';
+import mongoose from 'mongoose';
 
 // --- Resilient Database Connection for GCP ---
 // This function establishes a connection to MongoDB with settings optimized for
@@ -10,7 +10,9 @@ export const connectDB = async () => {
   const mongoURI = process.env.MONGO_URI;
 
   if (!mongoURI) {
-    console.error('[FATAL] MONGO_URI environment variable is not set. Application cannot start.');
+    console.error(
+      '[FATAL] MONGO_URI environment variable is not set. Application cannot start.'
+    );
     process.exit(1);
   }
 
@@ -39,10 +41,8 @@ export const connectDB = async () => {
     // infrastructure from considering the connection stale and dropping it.
     // This is highly recommended for long-running applications and resilient connections in GCP.
 
-
     // Delay in milliseconds between when the socket becomes idle and when the first
     // keep-alive probe is sent. 30000ms (30 seconds) is a good starting point.
-
 
     // Note: In Mongoose 6+ (and the underlying modern Node.js MongoDB driver),
     // automatic reconnection is handled by default and is part of the core topology
@@ -60,7 +60,9 @@ export const connectDB = async () => {
   });
 
   mongoose.connection.on('disconnected', () => {
-    console.warn('[WARN] Mongoose disconnected from database. The driver will attempt to reconnect.');
+    console.warn(
+      '[WARN] Mongoose disconnected from database. The driver will attempt to reconnect.'
+    );
   });
 
   // --- Initial Connection Logic ---
@@ -74,7 +76,6 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
-
 
 // It's a best practice to create one client and reuse it across the application.
 // Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set or you are
@@ -180,7 +181,15 @@ const UsageLogSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ['success', 'error', 'partial'],
+      enum: [
+        'success',
+        'redirect',
+        'client-error',
+        'server-error',
+        'unknown',
+        'error',
+        'partial',
+      ],
       index: true,
     },
     statusCode: {

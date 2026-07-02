@@ -1,15 +1,17 @@
+import crypto from 'crypto';
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
-import Conversation, { decryptText } from './conversation.model.js';
-import ChatShare from './chatShare.model.js';
-import { conversationHelpers, decryptConversation, getConversationQuery } from './conversation.helpers.js';
-import mongoose from 'mongoose';
-import crypto from 'crypto';
 import {
   withTenantContext,
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
+import ChatShare from './chatShare.model.js';
+import {
+  decryptConversation,
+  getConversationQuery,
+} from './conversation.helpers.js';
+import Conversation, { decryptText } from './conversation.model.js';
 
 // Recommended Indexes for Conversation Model:
 // These indexes will significantly improve query performance for common lookups.
@@ -34,7 +36,6 @@ import {
 //    db.chatshares.createIndex({ tenantId: 1, conversationId: 1, userId: 1, isActive: 1 })
 //    db.chatshares.createIndex({ tenantId: 1, userId: 1, isActive: 1, expiresAt: 1 })
 
-
 /**
  * Create a new conversation
  * @param {Object} conversationData
@@ -47,59 +48,79 @@ const createConversation = async (
   conversationId,
   req = null
 ) => {
-  try {
-    const {
-      userId,
-      title = 'New Conversation',
-      initialMessage = null,
-      metadata = {},
-      is_deep_search = false,
-    } = conversationData;
-    console.log('Creating conversation with data:', conversationData);
+  const MAX_DUPLICATE_RETRIES = 3;
 
-    // Generate unique conversation ID if not provided
-    const finalConversationId = conversationId || crypto.randomUUID();
+  const createWithId = async (conversationIdToUse, attempt = 0) => {
+    try {
+      const {
+        userId,
+        title = 'New Conversation',
+        initialMessage = null,
+        metadata = {},
+        is_deep_search = false,
+      } = conversationData;
+      console.log('Creating conversation with data:', conversationData);
 
-    const conversationPayload = {
-      conversationId: finalConversationId,
-      userId,
-      title,
-      metadata,
-      messages: [],
-      status: 'active',
-      is_deep_search,
-    };
+      // Generate unique conversation ID if not provided
+      const finalConversationId = conversationIdToUse || crypto.randomUUID();
 
-    const conversation = new Conversation(
-      req ? withTenantContext(req, conversationPayload) : conversationPayload
-    );
+      const conversationPayload = {
+        conversationId: finalConversationId,
+        userId,
+        title,
+        metadata,
+        messages: [],
+        status: 'active',
+        is_deep_search,
+      };
 
-    // Add initial message if provided
-    if (initialMessage) {
-      conversation.addMessage(
-        initialMessage.role || 'user',
-        initialMessage.content,
-        initialMessage.metadata || {}
+      const conversation = new Conversation(
+        req ? withTenantContext(req, conversationPayload) : conversationPayload
+      );
+
+      // Add initial message if provided
+      if (initialMessage) {
+        conversation.addMessage(
+          initialMessage.role || 'user',
+          initialMessage.content,
+          initialMessage.metadata || {}
+        );
+      }
+
+      await conversation.save();
+
+      logger.info(
+        `Conversation created: ${finalConversationId} for user: ${userId}`
+      );
+
+      return {
+        conversationId: conversation.conversationId,
+        title: conversation.title,
+        createdAt: conversation.createdAt,
+        messageCount: conversation.messageCount,
+      };
+    } catch (error) {
+      if (
+        attempt < MAX_DUPLICATE_RETRIES &&
+        error?.code === 11000 &&
+        error?.keyPattern?.conversationId
+      ) {
+        const retryId = crypto.randomUUID();
+        logger.warn(
+          `Duplicate conversationId ${conversationIdToUse} detected, retrying with a new ID ${retryId}`
+        );
+        return createWithId(retryId, attempt + 1);
+      }
+
+      logger.error('Error creating conversation:', error);
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to create conversation'
       );
     }
+  };
 
-    await conversation.save();
-
-    logger.info(`Conversation created: ${finalConversationId} for user: ${userId}`);
-
-    return {
-      conversationId: conversation.conversationId,
-      title: conversation.title,
-      createdAt: conversation.createdAt,
-      messageCount: conversation.messageCount,
-    };
-  } catch (error) {
-    logger.error('Error creating conversation:', error);
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to create conversation'
-    );
-  }
+  return createWithId(conversationId, 0);
 };
 
 /**
@@ -331,7 +352,9 @@ const updatePresentationMetadata = async (
  */
 const archiveConversation = async (conversationId, userId, req = null) => {
   try {
-    const query = getConversationQuery(conversationId, userId, { status: 'active' });
+    const query = getConversationQuery(conversationId, userId, {
+      status: 'active',
+    });
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'archived', lastActivity: new Date() },
@@ -360,7 +383,9 @@ const archiveConversation = async (conversationId, userId, req = null) => {
  */
 const restoreConversation = async (conversationId, userId, req = null) => {
   try {
-    const query = getConversationQuery(conversationId, userId, { status: 'archived' });
+    const query = getConversationQuery(conversationId, userId, {
+      status: 'archived',
+    });
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'active', lastActivity: new Date() },
@@ -616,7 +641,8 @@ const addConversationTags = async (
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const shareChatConversation = async (shareDataArgs, req = null) => { // Renamed shareData to shareDataArgs to avoid shadowing
+const shareChatConversation = async (shareDataArgs, req = null) => {
+  // Renamed shareData to shareDataArgs to avoid shadowing
   try {
     const { conversationId, userId, shareType, expiresAt, allowComments } =
       shareDataArgs; // Use shareDataArgs
@@ -727,8 +753,9 @@ const getSharedChatConversation = async (shareId, req = null) => {
     const convQuery = getConversationQuery(chatShare.conversationId);
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, convQuery) : convQuery
-    ).lean() // Added .lean() for read-only operation to reduce overhead.
-    .populate('userId', 'username email'); // Populate userId for owner info.
+    )
+      .lean() // Added .lean() for read-only operation to reduce overhead.
+      .populate('userId', 'username email'); // Populate userId for owner info.
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -939,7 +966,9 @@ const getUserSharedChats = async (queryData, req = null) => {
         // or a Mongoose document that can be accessed directly.
         conversation: {
           conversationId: share.conversationId?.conversationId,
-          title: share.conversationId ? decryptText(share.conversationId.title) : '',
+          title: share.conversationId
+            ? decryptText(share.conversationId.title)
+            : '',
           messageCount: share.conversationId?.messageCount,
           lastActivity: share.conversationId?.lastActivity,
         },

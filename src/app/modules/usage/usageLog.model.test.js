@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import mongoose from 'mongoose'; // This will be mocked
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock mongoose before importing the model
 const mockSchemaInstance = {
@@ -7,9 +6,7 @@ const mockSchemaInstance = {
   statics: {}, // This will be populated by the schema definition
 };
 
-const {
-  mockMongoose
-} = vi.hoisted(() => {
+const { mockMongoose } = vi.hoisted(() => {
   const mockMongoose = {
     Schema: vi.fn().mockImplementation(() => mockSchemaInstance),
     model: vi.fn().mockImplementation((name, schema) => {
@@ -27,7 +24,8 @@ const {
       ObjectId: vi.fn().mockImplementation((id) => ({
         _id: id, // Simulate the internal _id property of an ObjectId
         toString: () => id, // Simulate toString method
-        equals: (other) => other && (other._id === id || other.toString() === id),
+        equals: (other) =>
+          other && (other._id === id || other.toString() === id),
         // Mongoose ObjectId instances are objects. For testing, we return an object
         // that holds the ID string and has methods similar to a real ObjectId.
         // This allows us to assert against its presence in the aggregation pipeline.
@@ -37,7 +35,7 @@ const {
   };
 
   return {
-    mockMongoose
+    mockMongoose,
   };
 });
 
@@ -96,12 +94,28 @@ describe('UsageLog Model', () => {
       required: true,
       index: true,
       enum: [
-        'auth', 'tenant', 'legal-contract', 'legal-contract-review',
-        'document-review', 'document-analysis', 'document-drafting',
-        'knowledge-bank', 'code-generation', 'search', 'deep-research',
-        'presentation', 'report-generation', 'article-writer',
-        'creative-writing', 'rewrite', 'translation', 'transcription',
-        'brainstorm', 'plan-generator', 'image-generation', 'stripe',
+        'auth',
+        'tenant',
+        'legal-contract',
+        'legal-contract-review',
+        'document-review',
+        'document-analysis',
+        'document-drafting',
+        'knowledge-bank',
+        'code-generation',
+        'search',
+        'deep-research',
+        'presentation',
+        'report-generation',
+        'article-writer',
+        'creative-writing',
+        'rewrite',
+        'translation',
+        'transcription',
+        'brainstorm',
+        'plan-generator',
+        'image-generation',
+        'stripe',
         'other',
       ],
     });
@@ -135,7 +149,15 @@ describe('UsageLog Model', () => {
     expect(schemaDefinition.status).toEqual({
       type: String,
       required: true,
-      enum: ['success', 'error', 'partial'],
+      enum: [
+        'success',
+        'redirect',
+        'client-error',
+        'server-error',
+        'unknown',
+        'error',
+        'partial',
+      ],
       index: true,
     });
     expect(schemaDefinition.statusCode).toEqual({
@@ -146,8 +168,15 @@ describe('UsageLog Model', () => {
     expect(schemaDefinition.errorType).toEqual({
       type: String,
       enum: [
-        'validation', 'authentication', 'authorization', 'rate-limit',
-        'server', 'external-service', 'timeout', 'not-found', null,
+        'validation',
+        'authentication',
+        'authorization',
+        'rate-limit',
+        'server',
+        'external-service',
+        'timeout',
+        'not-found',
+        null,
       ],
       default: null,
     });
@@ -191,15 +220,34 @@ describe('UsageLog Model', () => {
     });
 
     // Check that the model was created
-    expect(mockMongoose.model).toHaveBeenCalledWith('UsageLog', mockSchemaInstance);
+    expect(mockMongoose.model).toHaveBeenCalledWith(
+      'UsageLog',
+      mockSchemaInstance
+    );
 
     // Check indexes
     expect(mockSchemaInstance.index).toHaveBeenCalledTimes(6);
-    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, timestamp: -1 });
-    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ userId: 1, timestamp: -1 });
-    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ module: 1, timestamp: -1 });
-    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ status: 1, timestamp: -1 });
-    expect(mockSchemaInstance.index).toHaveBeenCalledWith({ tenantId: 1, module: 1, timestamp: -1 });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      tenantId: 1,
+      timestamp: -1,
+    });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      userId: 1,
+      timestamp: -1,
+    });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      module: 1,
+      timestamp: -1,
+    });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      status: 1,
+      timestamp: -1,
+    });
+    expect(mockSchemaInstance.index).toHaveBeenCalledWith({
+      tenantId: 1,
+      module: 1,
+      timestamp: -1,
+    });
     expect(mockSchemaInstance.index).toHaveBeenCalledWith(
       { timestamp: 1 },
       { expireAfterSeconds: 90 * 24 * 60 * 60 }
@@ -296,7 +344,11 @@ describe('UsageLog Model', () => {
         const expectedPipeline = [
           {
             $match: {
-              tenantId: { _id: tenantId, toString: expect.any(Function), equals: expect.any(Function) }, // Mocked ObjectId
+              tenantId: {
+                _id: tenantId,
+                toString: expect.any(Function),
+                equals: expect.any(Function),
+              }, // Mocked ObjectId
               timestamp: {
                 $gte: startDate,
                 $lte: endDate,
@@ -324,7 +376,10 @@ describe('UsageLog Model', () => {
               successCount: 1,
               errorCount: 1,
               successRate: {
-                $multiply: [{ $divide: ['$successCount', '$totalRequests'] }, 100],
+                $multiply: [
+                  { $divide: ['$successCount', '$totalRequests'] },
+                  100,
+                ],
               },
               avgDuration: { $round: ['$avgDuration', 2] },
               totalTokens: 1,
@@ -364,7 +419,11 @@ describe('UsageLog Model', () => {
         const expectedPipeline = [
           {
             $match: {
-              userId: { _id: userId, toString: expect.any(Function), equals: expect.any(Function) }, // Mocked ObjectId
+              userId: {
+                _id: userId,
+                toString: expect.any(Function),
+                equals: expect.any(Function),
+              }, // Mocked ObjectId
               timestamp: {
                 $gte: startDate,
                 $lte: endDate,

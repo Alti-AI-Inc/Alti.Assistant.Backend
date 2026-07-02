@@ -1,13 +1,17 @@
 import { GoogleGenAI } from '@google/genai';
 
 export const searchWithGemini = async (query) => {
-  // Retrieve API key from environment variables for security and flexibility.
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Retrieve API key from config with Google API key fallback.
+  const apiKey =
+    config.gemini_secret_key ||
+    config.google_api_key ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
-    // Ensure API key is present before attempting to use the service.
-    // This prevents runtime errors due to missing credentials.
-    throw new Error('GEMINI_API_KEY environment variable is not set.');
+    throw new Error(
+      'GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set.'
+    );
   }
 
   const ai = new GoogleGenAI({ apiKey });

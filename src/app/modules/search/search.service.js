@@ -1,10 +1,10 @@
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
-import { conversationService } from '../conversations/conversation.service.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import mongoose from 'mongoose';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { conversationService } from '../conversations/conversation.service.js';
 
 // Optimization Note: For the Conversation model (likely used by conversationHelpers and conversationService),
 // consider adding indexes for frequently queried fields to improve read performance:
@@ -81,11 +81,13 @@ const handleSearchConversation = async (
             `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
           );
           conversation = null; // Force creation of new conversation
+          conversationId = null; // Avoid reusing an unauthorized conversationId
         }
       } catch (error) {
         logger.warn(
           `Conversation ${conversationId} not found for user ${userId}, creating new one`
         );
+        conversationId = null; // Avoid reusing a conversationId that exists but is not accessible
       }
     }
 
@@ -323,9 +325,39 @@ const addErrorMessage = async (
       `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
     );
 
-    // Store the error in the conversation for both guest and authenticated users
+    let targetConversationId = conversationId;
+    let conversationExists = false;
+
+    if (targetConversationId) {
+      try {
+        await conversationHelpers.getConversationById(
+          targetConversationId,
+          userId,
+          req
+        );
+        conversationExists = true;
+      } catch (error) {
+        logger.warn(
+          `Target conversation ${targetConversationId} not found for user ${userId}. Creating a new conversation instead.`,
+          { userId, isGuest, originalConversationId: targetConversationId }
+        );
+        targetConversationId = null; // Avoid reusing a missing or unauthorized conversation ID
+      }
+    }
+
+    if (!conversationExists) {
+      const newConversation = await handleSearchConversation(
+        userId,
+        targetConversationId,
+        'Search error',
+        isGuest,
+        req
+      );
+      targetConversationId = newConversation.conversationId;
+    }
+
     return await conversationService.addMessageToConversation(
-      conversationId,
+      targetConversationId,
       userId,
       {
         role: 'assistant',

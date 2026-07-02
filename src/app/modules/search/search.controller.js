@@ -3,7 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { searchService } from './search.service.js';
-import { researchAgentApp } from './search_assistant/workflow.js';
 // import SubscriptionModel from '../subscription/subscription.model.js'; // Not used in this file.
 // import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Not used in this file.
 import {
@@ -22,7 +21,15 @@ export const performSearch = catchAsync(async (req, res) => {
   let userId = isGuest
     ? searchService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
-  const { message, conversationId, deepSearch, timezone, localDate, localTime, category } = req.body;
+  const {
+    message,
+    conversationId,
+    deepSearch,
+    timezone,
+    localDate,
+    localTime,
+    category,
+  } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
 
   if (!message) {
@@ -94,21 +101,51 @@ export const performSearch = catchAsync(async (req, res) => {
       localTime: localTime || null,
     };
 
-    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
-    const proxyResult = await proxyToAgent('search', '/execute', {
-      prompt: message,
-      conversationHistory: conversationHistory,
-      options: { depth: deepSearch ? deepSearch : 'standard' }
-    }, proxyUser);
+    let resultData;
+    if (!process.env.SEARCH_AGENT_URL) {
+      logger.warn(
+        'SEARCH_AGENT_URL is not configured. Falling back to native grounded search for /assistant_v2.'
+      );
+      resultData = await executeGroundedSearch(message, conversationHistory);
+    } else {
+      const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
+      try {
+        const proxyResult = await proxyToAgent(
+          'search',
+          '/execute',
+          {
+            prompt: message,
+            conversationHistory: conversationHistory,
+            options: { depth: deepSearch ? deepSearch : 'standard' },
+          },
+          proxyUser
+        );
 
-    logger.info(
-      `Search Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
-    );
+        logger.info(
+          `Search Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+        );
 
-    const resultData = proxyResult.data || {};
-    const answer = resultData.content || '';
-    const reference = resultData.references || [];
-    const citationMetadata = resultData.metadata || null;
+        resultData = proxyResult.data || {};
+      } catch (proxyError) {
+        logger.warn(
+          'Search Agent proxy failed. Falling back to native grounded search for /assistant_v2.',
+          proxyError
+        );
+        resultData = await executeGroundedSearch(message, conversationHistory);
+      }
+    }
+
+    const answer = resultData.content || resultData.answer || '';
+    const shouldPreferLiveMarketData =
+      /(?:stock|stocks|crypto|forex|currency|commodit|oil|gold|silver|market|price|quote|latest|today|live|intraday|bet|odds|spread|futures|nasdaq|sp500|dow|s&p)/i.test(
+        message
+      );
+    const liveDataHint = shouldPreferLiveMarketData
+      ? '\n\n[Live Market Data Preference: Use the freshest available market data feed and avoid assumptions. If multiple values are present, prefer the latest verified quote or odds from the live provider.]'
+      : '';
+    const reference = resultData.references || resultData.reference || [];
+    const citationMetadata =
+      resultData.metadata || resultData.citationMetadata || null;
 
     console.log('References are:', reference);
     console.log('Citation metadata:', citationMetadata);
@@ -142,12 +179,20 @@ export const performSearch = catchAsync(async (req, res) => {
 
     if (!isGuest) {
       try {
-        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const subscriptionService = (
+          await import('../subscription/subscription.service.js')
+        ).default;
         const tenantId = req.user?.tenantId || req.tenantId || null;
-        const resourceType = (deepSearch === true || deepSearch === 'true') ? 'research' : 'search';
-        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, resourceType).catch((err) => {
-          logger.error(`Failed to increment monthly usage for ${resourceType}:`, err);
-        });
+        const resourceType =
+          deepSearch === true || deepSearch === 'true' ? 'research' : 'search';
+        subscriptionService
+          .trackAndIncrementMonthlyUsage(userId, tenantId, resourceType)
+          .catch((err) => {
+            logger.error(
+              `Failed to increment monthly usage for ${resourceType}:`,
+              err
+            );
+          });
       } catch (err) {
         logger.error('Failed to increment monthly usage:', err);
       }
@@ -331,11 +376,16 @@ const generateCode = catchAsync(async (req, res) => {
     );
 
     const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
-    const proxyResult = await proxyToAgent('code', '/execute', {
-      prompt: message,
-      conversationHistory: conversationHistory,
-      options: {}
-    }, proxyUser);
+    const proxyResult = await proxyToAgent(
+      'code',
+      '/execute',
+      {
+        prompt: message,
+        conversationHistory: conversationHistory,
+        options: {},
+      },
+      proxyUser
+    );
 
     logger.info(
       `Code Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
@@ -373,11 +423,15 @@ const generateCode = catchAsync(async (req, res) => {
 
     if (!isGuest) {
       try {
-        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const subscriptionService = (
+          await import('../subscription/subscription.service.js')
+        ).default;
         const tenantId = req.user?.tenantId || req.tenantId || null;
-        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'code').catch((err) => {
-          logger.error('Failed to increment monthly usage for code:', err);
-        });
+        subscriptionService
+          .trackAndIncrementMonthlyUsage(userId, tenantId, 'code')
+          .catch((err) => {
+            logger.error('Failed to increment monthly usage for code:', err);
+          });
       } catch (err) {
         logger.error('Failed to increment monthly usage:', err);
       }
@@ -510,11 +564,16 @@ const generateWriting = catchAsync(async (req, res) => {
     );
 
     const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
-    const proxyResult = await proxyToAgent('write', '/execute', {
-      prompt: message,
-      conversationHistory: conversationHistory,
-      options: {}
-    }, proxyUser);
+    const proxyResult = await proxyToAgent(
+      'write',
+      '/execute',
+      {
+        prompt: message,
+        conversationHistory: conversationHistory,
+        options: {},
+      },
+      proxyUser
+    );
 
     logger.info(
       `Write Agent Proxy Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
@@ -552,11 +611,15 @@ const generateWriting = catchAsync(async (req, res) => {
 
     if (!isGuest) {
       try {
-        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const subscriptionService = (
+          await import('../subscription/subscription.service.js')
+        ).default;
         const tenantId = req.user?.tenantId || req.tenantId || null;
-        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'write').catch((err) => {
-          logger.error('Failed to increment monthly usage for write:', err);
-        });
+        subscriptionService
+          .trackAndIncrementMonthlyUsage(userId, tenantId, 'write')
+          .catch((err) => {
+            logger.error('Failed to increment monthly usage for write:', err);
+          });
       } catch (err) {
         logger.error('Failed to increment monthly usage:', err);
       }
@@ -689,24 +752,19 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       req
     );
 
-    console.log(`🔍 Using SEARCH AGENT PROXY (Native Grounding mode)`);
-
-    const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
-    const proxyResult = await proxyToAgent('search', '/execute', {
-      prompt: message,
-      conversationHistory: conversationHistory,
-      options: {}
-    }, proxyUser);
-
-    logger.info(
-      `Search Agent Proxy (Native Grounding) Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+    console.log(
+      `🔍 Using native grounded search for /assistant (direct Gemini grounding)`
     );
 
-    const resultData = proxyResult.data || {};
-    let answer = resultData.content || '';
-    const reference = resultData.references || [];
-    const citations = resultData.citations || [];
-    const citationMetadata = resultData.metadata || null;
+    const groundedResult = await executeGroundedSearch(
+      message,
+      conversationHistory
+    );
+
+    const answer = groundedResult.answer || '';
+    const reference = groundedResult.reference || [];
+    const citations = groundedResult.citations || [];
+    const citationMetadata = groundedResult.citationMetadata || null;
 
     console.log('Native Grounding - References:', reference);
     console.log('Native Grounding - Citation metadata:', citationMetadata);
@@ -722,7 +780,9 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       financialTicker: tickerInfo2?.symbol || null,
       financialIntent: tickerInfo2?.type || null,
       searchMethod: tickerInfo2 ? 'massive_realtime' : 'native_grounding_only',
-      ...(resultData.metadata || {}),
+      ...(citationMetadata && typeof citationMetadata === 'object'
+        ? citationMetadata
+        : {}),
     };
 
     // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
@@ -738,11 +798,15 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
 
     if (!isGuest) {
       try {
-        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const subscriptionService = (
+          await import('../subscription/subscription.service.js')
+        ).default;
         const tenantId = req.user?.tenantId || req.tenantId || null;
-        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'search').catch((err) => {
-          logger.error('Failed to increment monthly usage for search:', err);
-        });
+        subscriptionService
+          .trackAndIncrementMonthlyUsage(userId, tenantId, 'search')
+          .catch((err) => {
+            logger.error('Failed to increment monthly usage for search:', err);
+          });
       } catch (err) {
         logger.error('Failed to increment monthly usage:', err);
       }
@@ -976,11 +1040,18 @@ const performStreamingSearch = catchAsync(async (req, res) => {
 
     if (!isGuest) {
       try {
-        const subscriptionService = (await import('../subscription/subscription.service.js')).default;
+        const subscriptionService = (
+          await import('../subscription/subscription.service.js')
+        ).default;
         const tenantId = req.user?.tenantId || req.tenantId || null;
-        subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'search').catch((err) => {
-          logger.error('Failed to increment monthly usage for search (streaming):', err);
-        });
+        subscriptionService
+          .trackAndIncrementMonthlyUsage(userId, tenantId, 'search')
+          .catch((err) => {
+            logger.error(
+              'Failed to increment monthly usage for search (streaming):',
+              err
+            );
+          });
       } catch (err) {
         logger.error('Failed to increment monthly usage:', err);
       }
