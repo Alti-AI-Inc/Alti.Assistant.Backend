@@ -1,4 +1,4 @@
-# Inso AI — Production Docker Compose
+# Alti Assistant — Production Docker Compose
 # Lean 2-service stack: Backend + Redis only
 # MongoDB: Atlas (cloud-hosted, no local container needed)
 # Everything else: managed GCP services (Vertex AI, Cloud Storage, Pub/Sub)

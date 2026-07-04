@@ -23,7 +23,7 @@ export const GithubReleasesProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:releases for|release of|release tags in)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {
@@ -32,12 +32,12 @@ export const GithubReleasesProvider = {
 
 | Repository Scope | Release Tag Version | Pre-Release Status | Downloadable Assets Count | Total Asset Downloads | Release Date |
 |------------------|---------------------|--------------------|---------------------------|-----------------------|--------------|
-| **insoaiapp / Alti.Assistant** | **v1.2.0** | Stable Release | 4 assets (ZIP / TAR) | **14,250 downloads** | **2026-05-24** |
+| **altiapp / Alti.Assistant** | **v1.2.0** | Stable Release | 4 assets (ZIP / TAR) | **14,250 downloads** | **2026-05-24** |
 | **google / gemma.cpp** | **v2.1.0-rc1** | **Pre-Release Tag** | 3 assets (Binaries) | **3,120 downloads** | **2026-05-22** |`;
 
     const metadata = {
       domain: 'github_releases',
-      repoScope: 'insoaiapp/Alti.Assistant',
+      repoScope: 'altiapp/Alti.Assistant',
       releaseTag: 'v1.2.0',
       isPreRelease: false,
       totalDownloads: 14250

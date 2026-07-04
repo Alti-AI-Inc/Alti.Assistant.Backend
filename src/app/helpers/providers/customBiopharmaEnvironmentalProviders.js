@@ -187,13 +187,13 @@ export const FecRawFilingsProvider = {
 
 | Filer Committee Name | Form Type Submitted | Daily Contribution Amount | Reporting Coverage Period | Submission Timestamp |
 |----------------------|----------------------|---------------------------|---------------------------|----------------------|
-| **Inso AIs PAC (C098401)** | **Form 3X (Quarterly)** | **$124,500** | April 01 - May 30 | May 30, 16:45:10 EST |
+| **Alti Assistants PAC (C098401)** | **Form 3X (Quarterly)** | **$124,500** | April 01 - May 30 | May 30, 16:45:10 EST |
 | **Friends of Clara Inc**| **Form 3 (Candidate)** | **$45,800** | April 01 - May 30 | May 30, 16:30:15 EST |
 | **Vance Liberty Fund** | Form 24 (24-Hr Expend) | **$12,000** | 24-Hour Independent | May 30, 16:15:00 EST |`;
 
     const metadata = {
       domain: 'fec_raw_filings',
-      committeeName: 'Inso AIs PAC (C098401)',
+      committeeName: 'Alti Assistants PAC (C098401)',
       formType: 'Form 3X',
       contributionAmount: '$124,500',
       timestamp: '2026-05-30'
@@ -209,7 +209,7 @@ export const FaaAircraftProvider = {
   category: 'legal_security',
   cacheTTL: 43200,
   citationLabel: 'FAA Civil Aircraft Registry',
-  mandatoryRule: '▸ Present N-Number registration codes, plane manufacturers, and registered owners in **BOLD** (e.g. **N495TS**, **Boeing 737**, **Inso AIs Aviation LLC**)',
+  mandatoryRule: '▸ Present N-Number registration codes, plane manufacturers, and registered owners in **BOLD** (e.g. **N495TS**, **Boeing 737**, **Alti Assistants Aviation LLC**)',
 
   detectIntent: (query) => {
     return /\bfaa\s+aircraft\b|\bn-number\b|\baircraft\s+registration\b|\bplane\s+owner\b|\bfaa\s+registry\b/i.test(query);
@@ -226,7 +226,7 @@ export const FaaAircraftProvider = {
 
 | Aircraft N-Number Code | Plane Manufacturer / Model | Aircraft Classification | Registration Date Record | Registered Owner Corporate Entity |
 |-------------------------|----------------------------|-------------------------|--------------------------|-----------------------------------|
-| **N495TS** | **Boeing 737-800** | Fixed Wing Multi-Engine | March 12, 2023 | **Inso AIs Aviation LLC (US)** |
+| **N495TS** | **Boeing 737-800** | Fixed Wing Multi-Engine | March 12, 2023 | **Alti Assistants Aviation LLC (US)** |
 | **N312TA** | **Cessna Citation 560** | Fixed Wing Multi-Engine | September 18, 2024 | **Hawthorne Holdings Corp** |
 | **N781DB** | Learjet 60 | Fixed Wing Multi-Engine | February 04, 2025 | **Vance Capital Management** |`;
 
@@ -235,7 +235,7 @@ export const FaaAircraftProvider = {
       nNumber: 'N495TS',
       manufacturer: 'Boeing 737-800',
       registrationDate: 'March 12, 2023',
-      ownerEntity: 'Inso AIs Aviation LLC'
+      ownerEntity: 'Alti Assistants Aviation LLC'
     };
 
     return { markdown, metadata };
@@ -265,13 +265,13 @@ export const FccEasProvider = {
 
 | Device Manufacturer / Grantee | Filer FCC ID Code | Product Class Description | Grant Standing Status | Certified Testing Laboratory |
 |-------------------------------|--------------------|---------------------------|-----------------------|------------------------------|
-| **Inso AIs Technology Corp** | **FCC ID 2A401-ALTIS** | Smart Edge RAG Transceiver| **Approved** | **Shenzhen Compliance Labs** |
+| **Alti Assistants Technology Corp** | **FCC ID 2A401-ALTIS** | Smart Edge RAG Transceiver| **Approved** | **Shenzhen Compliance Labs** |
 | **Hawthorne Tech Inc** | **FCC ID 2B705-HAW** | Wireless Mesh Node Hub | **Approved** | California Telecomm Testing |
 | **Vance Telecoms LLC** | **FCC ID 2C309-VAN** | Bluetooth Beacon Array | Under Examination | London Wireless Auditing |`;
 
     const metadata = {
       domain: 'fcc_eas',
-      granteeName: 'Inso AIs Technology Corp',
+      granteeName: 'Alti Assistants Technology Corp',
       fccIdCode: 'FCC ID 2A401-ALTIS',
       status: 'Approved',
       testingLab: 'Shenzhen Compliance Labs'
@@ -326,7 +326,7 @@ export const NhtsaManufacturersProvider = {
   category: 'legal_security',
   cacheTTL: 43200,
   citationLabel: 'NHTSA VPIC Manufacturer Registry',
-  mandatoryRule: '▸ Present vehicle manufacturer names, plant locations, and registered classes in **BOLD** (e.g. **Inso AIs EV Corp**, **California Plant**, **Passenger Car**)',
+  mandatoryRule: '▸ Present vehicle manufacturer names, plant locations, and registered classes in **BOLD** (e.g. **Alti Assistants EV Corp**, **California Plant**, **Passenger Car**)',
 
   detectIntent: (query) => {
     return /\bvehicle\s+manufacturer\b|\bnhtsa\s+manufacturer\b|\bglobal\s+vehicle\s+maker\b|\bvpic\s+maker\b|\bplant\s+location\b/i.test(query);
@@ -343,13 +343,13 @@ export const NhtsaManufacturersProvider = {
 
 | Vehicle Maker Corporate Title | Registered WMI Code | Primary Assembly Plant | Active Vehicle Classes | Regulatory Status |
 |--------------------------------|---------------------|------------------------|------------------------|-------------------|
-| **Inso AIs EV Corp** | **WMI 1A9-EV** | **California Plant (US)**| **Passenger Car / Truck**| Active - Compliant |
+| **Alti Assistants EV Corp** | **WMI 1A9-EV** | **California Plant (US)**| **Passenger Car / Truck**| Active - Compliant |
 | **Hawthorne Motorwerks** | WMI 1B7-HW | Leipzig Plant (DE) | Multi-Purpose Vehicle | Active - Compliant |
 | **Vance Hybrid Lines** | WMI 1C3-VH | London Plant (UK) | Heavy Duty Trailers | Active - Compliant |`;
 
     const metadata = {
       domain: 'nhtsa_manufacturers',
-      manufacturerName: 'Inso AIs EV Corp',
+      manufacturerName: 'Alti Assistants EV Corp',
       wmiCode: 'WMI 1A9-EV',
       plantLocation: 'California Plant',
       vehicleClasses: 'Passenger Car'
@@ -365,7 +365,7 @@ export const UsdaOrganicProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'USDA NOP Organic Integrity Database',
-  mandatoryRule: '▸ Highlight organic operations, certifier details, and organic statuses in **BOLD** (e.g. **Inso AIs Organic Farms**, **Certified**, **CCOF Certification**)',
+  mandatoryRule: '▸ Highlight organic operations, certifier details, and organic statuses in **BOLD** (e.g. **Alti Assistants Organic Farms**, **Certified**, **CCOF Certification**)',
 
   detectIntent: (query) => {
     return /\borganic\s+integrity\b|\bcertified\s+organic\b|\busda\s+organic\s+cert\b|\borganic\s+operation\b|\bcertifier\s+detail\b/i.test(query);
@@ -382,13 +382,13 @@ export const UsdaOrganicProvider = {
 
 | Certified Organic Operation | USDA Certification Status | Lead Organic Certifier | Primary Certified Products | Verification Date Record |
 |-----------------------------|---------------------------|------------------------|-----------------------------|--------------------------|
-| **Inso AIs Organic Farms** | **Certified** | **CCOF Certification** | Organic Apples & Citrus | May 24, 2026 |
+| **Alti Assistants Organic Farms** | **Certified** | **CCOF Certification** | Organic Apples & Citrus | May 24, 2026 |
 | **Hawthorne Dairy Farms** | **Certified** | Midwest Organic Services| Organic Milk & Butter | May 18, 2026 |
 | **Vance Herbal Solutions** | **Certified** | QAI Organic Inc | Organic Botanical Extracts | April 29, 2026 |`;
 
     const metadata = {
       domain: 'usda_organic',
-      operationName: 'Inso AIs Organic Farms',
+      operationName: 'Alti Assistants Organic Farms',
       status: 'Certified',
       certifier: 'CCOF Certification',
       products: 'Organic Apples & Citrus'

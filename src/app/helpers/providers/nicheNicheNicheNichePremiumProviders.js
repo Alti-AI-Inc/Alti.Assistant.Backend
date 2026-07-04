@@ -23,7 +23,7 @@ export const GithubForksProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:forks for|forks of|fork network of)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {
@@ -32,14 +32,14 @@ export const GithubForksProvider = {
 
 | Forked Repository Path | Parent Repository | Forks Count | Created Date Timestamp | Active Fork Status | Hex Code Index |
 |------------------------|-------------------|-------------|------------------------|-------------------|----------------|
-| **hyperdev/insoaiapp** | **insoaiapp/insoaiapp** | **1,420 forks** | **2026-05-24** | **Active Fork** | #f1e05a |
-| **testuser/insoaiapp** | **insoaiapp/insoaiapp** | **1,420 forks** | **2026-05-23** | **Active Fork** | #563d7c |`;
+| **hyperdev/altiapp** | **altiapp/altiapp** | **1,420 forks** | **2026-05-24** | **Active Fork** | #f1e05a |
+| **testuser/altiapp** | **altiapp/altiapp** | **1,420 forks** | **2026-05-23** | **Active Fork** | #563d7c |`;
 
     const metadata = {
       domain: 'github_forks',
-      parentRepo: 'insoaiapp/insoaiapp',
+      parentRepo: 'altiapp/altiapp',
       forksCount: 1420,
-      forkedRepoPath: 'hyperdev/insoaiapp'
+      forkedRepoPath: 'hyperdev/altiapp'
     };
 
     return { markdown, metadata };
@@ -69,12 +69,12 @@ export const OpenstreetmapBuildingsProvider = {
 
 | Zoned Building Outline | Building Footprint Class | Building Height Index | Outline Polygon Center | Zoned Occupancy | Zoning Code |
 |------------------------|--------------------------|-----------------------|-------------------------|-----------------|-------------|
-| **Inso AI HQ Tower** | Commercial Highrise | **320 feet (24 floors)**| **25.7617, -80.1918** | Commercial | US-MIA-COM1 |
+| **Alti Assistant HQ Tower** | Commercial Highrise | **320 feet (24 floors)**| **25.7617, -80.1918** | Commercial | US-MIA-COM1 |
 | **Biscayne Residency**| Residential Midrise | **120 feet (10 floors)**| **25.7820, -80.1850** | Residential | US-MIA-RES1 |`;
 
     const metadata = {
       domain: 'openstreetmap_buildings',
-      buildingName: 'Inso AI HQ Tower',
+      buildingName: 'Alti Assistant HQ Tower',
       class: 'Commercial Highrise',
       heightFt: 320
     };

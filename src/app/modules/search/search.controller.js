@@ -159,9 +159,9 @@ export const performSearch = catchAsync(async (req, res) => {
     }
     if (reference.length === 0) {
       reference = [{
-        url: 'https://search.insoai.com',
-        domain: 'search.insoai.com',
-        title: 'Inso AI Global Search Index'
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Assistant Global Search Index'
       }];
     }
     const citationMetadata =
@@ -182,7 +182,7 @@ export const performSearch = catchAsync(async (req, res) => {
         citationMetadata?.searchTimestamp || new Date().toISOString(),
       financialTicker: tickerInfo?.symbol || null,
       financialIntent: tickerInfo?.type || null,
-      searchMethod: tickerInfo ? 'massive_reinsoaime' : 'intelligent_search',
+      searchMethod: tickerInfo ? 'massive_realtime' : 'intelligent_search',
     };
 
     // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
@@ -799,7 +799,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
         citationMetadata?.searchTimestamp || new Date().toISOString(),
       financialTicker: tickerInfo2?.symbol || null,
       financialIntent: tickerInfo2?.type || null,
-      searchMethod: tickerInfo2 ? 'massive_reinsoaime' : 'native_grounding_only',
+      searchMethod: tickerInfo2 ? 'massive_realtime' : 'native_grounding_only',
       ...(citationMetadata && typeof citationMetadata === 'object'
         ? citationMetadata
         : {}),
@@ -1032,15 +1032,15 @@ const performStreamingSearch = catchAsync(async (req, res) => {
         let citationList = chunk.citations || [];
         if (!Array.isArray(referenceList) || referenceList.length === 0) {
           referenceList = [{
-            url: 'https://search.insoai.com',
-            domain: 'search.insoai.com',
-            title: 'Inso AI Global Search Index'
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Assistant Global Search Index'
           }];
           citationList = [{
             index: 1,
-            url: 'https://search.insoai.com',
-            domain: 'search.insoai.com',
-            title: 'Inso AI Global Search Index'
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Assistant Global Search Index'
           }];
         }
         res.write(
@@ -1062,15 +1062,15 @@ const performStreamingSearch = catchAsync(async (req, res) => {
 
     if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
       finalReferences = [{
-        url: 'https://search.insoai.com',
-        domain: 'search.insoai.com',
-        title: 'Inso AI Global Search Index'
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Assistant Global Search Index'
       }];
       finalCitations = [{
         index: 1,
-        url: 'https://search.insoai.com',
-        domain: 'search.insoai.com',
-        title: 'Inso AI Global Search Index'
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Assistant Global Search Index'
       }];
       // Send fallback metadata event if metadata wasn't sent or was empty
       res.write(

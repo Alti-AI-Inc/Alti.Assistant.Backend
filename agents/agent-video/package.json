@@ -1,5 +1,5 @@
 {
-  "name": "@insoai/agent-video",
+  "name": "@alti/agent-video",
   "version": "1.0.0",
   "description": "Alti.Assistant Video Agent — video generation via Google Veo with tiered quality routing",
   "type": "module",

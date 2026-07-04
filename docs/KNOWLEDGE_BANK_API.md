@@ -103,7 +103,7 @@ const result = await response.json();
     "fileType": "pdf",
     "fileSize": 1048576,
     "formattedFileSize": "1 MB",
-    "gcsUrl": "https://storage.googleapis.com/insoai_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
+    "gcsUrl": "https://storage.googleapis.com/alti_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
     "uploadedAt": "2024-11-05T10:30:00.000Z",
     "processingStatus": "pending"
   }
@@ -148,7 +148,7 @@ curl -X GET "http://localhost:5000/api/v1/knowledge-bank/files?fileType=pdf&isPr
         "fileType": "pdf",
         "fileSize": 1048576,
         "formattedFileSize": "1 MB",
-        "gcsUrl": "https://storage.googleapis.com/insoai_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
+        "gcsUrl": "https://storage.googleapis.com/alti_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
         "documentId": "doc_abc123xyz",
         "title": "Important Project Document",
         "description": "Important project document",
@@ -204,7 +204,7 @@ curl -X GET http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7h
     "fileType": "pdf",
     "fileSize": 1048576,
     "formattedFileSize": "1 MB",
-    "gcsUrl": "https://storage.googleapis.com/insoai_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
+    "gcsUrl": "https://storage.googleapis.com/alti_knowledge_bank_files/users/USER_ID/1699876543210_document.pdf",
     "gcsPath": "users/USER_ID/1699876543210_document.pdf",
     "documentId": "doc_abc123xyz",
     "title": "Important Project Document",
@@ -416,13 +416,13 @@ Add these to your `.env` file:
 
 ```env
 # GCS Configuration
-GCS_KNOWLEDGE_BANK_BUCKET=insoai_knowledge_bank_files
-GCS_KNOWLEDGEBOT_BUCKET=insoai_assistant_knowledge_bot_files
+GCS_KNOWLEDGE_BANK_BUCKET=alti_knowledge_bank_files
+GCS_KNOWLEDGEBOT_BUCKET=alti_assistant_knowledge_bot_files
 ```
 
 ### GCS Bucket Setup
 
-1. Create a bucket named `insoai_knowledge_bank_files` in Google Cloud Storage
+1. Create a bucket named `alti_knowledge_bank_files` in Google Cloud Storage
 2. Set appropriate IAM permissions
 3. Ensure the service account has write access
 

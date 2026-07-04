@@ -38,7 +38,7 @@ vi.mock('../../../../config/index.js', () => ({
       google_application_credentials: 'mock-gcp-key.json',
     },
     gcs: {
-      knowledge_bank_bucket: 'mock-insoai-assistant-datasets',
+      knowledge_bank_bucket: 'mock-alti-assistant-datasets',
       datasetStorageClass: 'ARCHIVE',
     },
     shelfHfRagIndexing: false,
@@ -461,8 +461,8 @@ describe('DatasetsService', () => {
 
       expect(mockDatasetInstance.save).toHaveBeenCalledTimes(3); // initial, after download, after indexing
       expect(mockDatasetInstance.status).toBe('archived');
-      expect(mockDatasetInstance.gcsBucket).toBe('mock-insoai-assistant-datasets');
-      expect(mockDatasetInstance.gcsPaths).toEqual(['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet']);
+      expect(mockDatasetInstance.gcsBucket).toBe('mock-alti-assistant-datasets');
+      expect(mockDatasetInstance.gcsPaths).toEqual(['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet']);
       expect(mockDatasetInstance.sizeBytes).toBe(1000);
       expect(mockDatasetInstance.rowCount).toBe(100);
       expect(mockDatasetInstance.features).toEqual([{ name: 'col1' }]);
@@ -572,7 +572,7 @@ describe('DatasetsService', () => {
       await DatasetsService.archiveDatasetToGCSCore('mock/dataset', mockDatasetInstance);
 
       expect(mockBucket.create).toHaveBeenCalled();
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('GCS Bucket "mock-insoai-assistant-datasets" does not exist. Attempting to create...'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('GCS Bucket "mock-alti-assistant-datasets" does not exist. Attempting to create...'));
       expect(mockDatasetInstance.status).toBe('archived');
     });
 
@@ -800,8 +800,8 @@ describe('DatasetsService', () => {
       const dataset = {
         ...mockDatasetInstance,
         status: 'archived',
-        gcsBucket: 'mock-insoai-assistant-datasets',
-        gcsPaths: ['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
+        gcsBucket: 'mock-alti-assistant-datasets',
+        gcsPaths: ['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
         save: vi.fn(),
       };
 
@@ -863,8 +863,8 @@ describe('DatasetsService', () => {
       const dataset = {
         ...mockDatasetInstance,
         status: 'archived',
-        gcsBucket: 'mock-insoai-assistant-datasets',
-        gcsPaths: ['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
+        gcsBucket: 'mock-alti-assistant-datasets',
+        gcsPaths: ['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
         save: vi.fn(),
       };
       parquetReadObjects.mockResolvedValue([]); // No rows
@@ -883,8 +883,8 @@ describe('DatasetsService', () => {
       const dataset = {
         ...mockDatasetInstance,
         status: 'archived',
-        gcsBucket: 'mock-insoai-assistant-datasets',
-        gcsPaths: ['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
+        gcsBucket: 'mock-alti-assistant-datasets',
+        gcsPaths: ['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
         save: vi.fn(),
       };
       mockFile.download.mockRejectedValueOnce(new Error('GCS download failed'));
@@ -918,8 +918,8 @@ describe('DatasetsService', () => {
       const dataset = {
         ...mockDatasetInstance,
         status: 'archived',
-        gcsBucket: 'mock-insoai-assistant-datasets',
-        gcsPaths: ['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
+        gcsBucket: 'mock-alti-assistant-datasets',
+        gcsPaths: ['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
         save: vi.fn(),
       };
       parquetReadObjects.mockRejectedValueOnce(new Error('Parquet parse error'));
@@ -935,8 +935,8 @@ describe('DatasetsService', () => {
       const dataset = {
         ...mockDatasetInstance,
         status: 'archived',
-        gcsBucket: 'mock-insoai-assistant-datasets',
-        gcsPaths: ['gs://mock-insoai-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
+        gcsBucket: 'mock-alti-assistant-datasets',
+        gcsPaths: ['gs://mock-alti-assistant-datasets/datasets/mock/dataset/default/train/file1.parquet'],
         save: vi.fn(),
       };
       parquetReadObjects.mockResolvedValue([

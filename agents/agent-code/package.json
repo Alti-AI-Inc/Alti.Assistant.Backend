@@ -1,8 +1,8 @@
 {
-  "name": "@insoai/agent-code",
+  "name": "@alti/agent-code",
   "version": "1.0.0",
   "type": "module",
-  "description": "Inso AI Code Agent — code generation, debugging, review, and explanation microservice",
+  "description": "Alti Assistant Code Agent — code generation, debugging, review, and explanation microservice",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

@@ -1,4 +1,4 @@
-# Inso AI — Secrets & Deployment Guide
+# Alti Assistant — Secrets & Deployment Guide
 
 > **Single Source of Truth** for all production secrets, GCP configuration, and CI/CD deployment.
 
@@ -23,10 +23,10 @@
 | [deploy.yml](.github/workflows/deploy.yml) | Push to `dev` | GCP VM (Docker Compose) |
 
 ### Cloud Run Details
-- **Project:** `insoai-assistant-prod`
+- **Project:** `alti-assistant-prod`
 - **Region:** `us-central1`
-- **Service:** `insoai-assistant-backend`
-- **Registry:** `us-central1-docker.pkg.dev/insoai-assistant-prod/insoai-assistant-core-backend-repo`
+- **Service:** `alti-assistant-backend`
+- **Registry:** `us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo`
 - **Resources:** 4Gi RAM · 2 vCPU · 1–4 instances · 300s timeout
 
 ---
@@ -52,8 +52,8 @@ This script:
 
 #### `GCP_SA_KEY` — Service account JSON for CI
 ```bash
-# Download from: GCP Console → IAM → Service Accounts → insoai-assistant-prod@... → Keys
-gh secret set GCP_SA_KEY --repo=Alti-AI-Inc/Alti.Assistant.Backend < insoai_gcp.json
+# Download from: GCP Console → IAM → Service Accounts → alti-assistant-prod@... → Keys
+gh secret set GCP_SA_KEY --repo=Alti-AI-Inc/Alti.Assistant.Backend < alti_gcp.json
 ```
 
 #### `VM_SSH_KEY` — SSH private key for the VM deployer
@@ -147,10 +147,10 @@ gh secret set VM_SSH_KEY --repo=Alti-AI-Inc/Alti.Assistant.Backend < ~/.ssh/your
 
 | Resource | Link |
 |----------|------|
-| **GCP Secret Manager** | https://console.cloud.google.com/security/secret-manager?project=insoai-assistant-prod |
-| **Cloud Run Service** | https://console.cloud.google.com/run/detail/us-central1/insoai-assistant-backend/metrics?project=insoai-assistant-prod |
-| **Artifact Registry** | https://console.cloud.google.com/artifacts/docker/insoai-assistant-prod/us-central1/insoai-assistant-core-backend-repo?project=insoai-assistant-prod |
-| **Cloud Logs** | https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%20resource.labels.service_name%3D%22insoai-assistant-backend%22?project=insoai-assistant-prod |
+| **GCP Secret Manager** | https://console.cloud.google.com/security/secret-manager?project=alti-assistant-prod |
+| **Cloud Run Service** | https://console.cloud.google.com/run/detail/us-central1/alti-assistant-backend/metrics?project=alti-assistant-prod |
+| **Artifact Registry** | https://console.cloud.google.com/artifacts/docker/alti-assistant-prod/us-central1/alti-assistant-core-backend-repo?project=alti-assistant-prod |
+| **Cloud Logs** | https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%20resource.labels.service_name%3D%22alti-assistant-backend%22?project=alti-assistant-prod |
 | **GitHub Actions** | https://github.com/Alti-AI-Inc/Alti.Assistant.Backend/actions |
 | **GitHub Secrets** | https://github.com/Alti-AI-Inc/Alti.Assistant.Backend/settings/secrets/actions |
 
@@ -162,13 +162,13 @@ gh secret set VM_SSH_KEY --repo=Alti-AI-Inc/Alti.Assistant.Backend < ~/.ssh/your
 ```bash
 # Update a single secret value (new version is created, old is kept for rollback)
 echo -n "new_value" | gcloud secrets versions add SECRET_NAME \
-  --data-file=- --project=insoai-assistant-prod
+  --data-file=- --project=alti-assistant-prod
 
 # List all versions of a secret
-gcloud secrets versions list SECRET_NAME --project=insoai-assistant-prod
+gcloud secrets versions list SECRET_NAME --project=alti-assistant-prod
 
 # View current value
-gcloud secrets versions access latest --secret=SECRET_NAME --project=insoai-assistant-prod
+gcloud secrets versions access latest --secret=SECRET_NAME --project=alti-assistant-prod
 ```
 
 ### Re-run the setup script (updates all secrets at once)
@@ -185,15 +185,15 @@ Push any commit to `main` — the CI pipeline picks up the latest secret version
 
 ```bash
 # Roll back to a previous secret version
-gcloud secrets versions disable VERSION_NUMBER --secret=SECRET_NAME --project=insoai-assistant-prod
+gcloud secrets versions disable VERSION_NUMBER --secret=SECRET_NAME --project=alti-assistant-prod
 
 # Roll back Cloud Run to a previous revision
-gcloud run services update-traffic insoai-assistant-backend \
+gcloud run services update-traffic alti-assistant-backend \
   --to-revisions=REVISION_NAME=100 \
   --region=us-central1 \
-  --project=insoai-assistant-prod
+  --project=alti-assistant-prod
 ```
 
 ---
 
-*Last updated: 2026-05-21 · Maintained by the Inso AI Engineering team*
+*Last updated: 2026-05-21 · Maintained by the Alti Assistant Engineering team*

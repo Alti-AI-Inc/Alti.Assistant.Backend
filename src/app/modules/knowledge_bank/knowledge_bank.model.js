@@ -19,7 +19,7 @@ const KNOWLEDGE_FILE_PROCESSING_TOPIC =
  * @property {number} fileSize - The size of the file in bytes.
  * @property {string} gcsUrl - The public URL of the file in Google Cloud Storage.
  * @property {string} gcsPath - The path to the file within the GCS bucket.
- * @property {string} gcsBucket - The name of the GCS bucket where the file is stored. Defaults to 'insoai_knowledge_bank_files'.
+ * @property {string} gcsBucket - The name of the GCS bucket where the file is stored. Defaults to 'alti_knowledge_bank_files'.
  * @property {mongoose.Types.ObjectId} userId - The ID of the user who owns this file. References the 'User' model.
  * @property {mongoose.Types.ObjectId | null} folderId - The ID of the folder this file belongs to. Null if in the root. References the 'KnowledgeBankFolder' model.
  * @property {string} [documentId] - The ID assigned to the document by the RAG system after processing. Sparse index allows null.
@@ -123,17 +123,17 @@ const KnowledgeBankFileSchema = new mongoose.Schema(
     },
     /**
      * The name of the GCS bucket where the file is stored.
-     * Defaults to 'insoai_knowledge_bank_files'.
+     * Defaults to 'alti_knowledge_bank_files'.
      * @type {string}
      * @required
      * @trim
-     * @default 'insoai_knowledge_bank_files'
+     * @default 'alti_knowledge_bank_files'
      */
     gcsBucket: {
       type: String,
       required: true,
       trim: true,
-      default: 'insoai_knowledge_bank_files',
+      default: 'alti_knowledge_bank_files',
     },
 
     // User reference

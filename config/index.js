@@ -31,7 +31,7 @@ export default {
     refresh_token: process.env.JWT_REFRESH_REFRESH_TOKEN,
     refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
-  superAdminEmail: process.env.SUPER_ADMIN_EMAIL || 'admin@insoai.com',
+  superAdminEmail: process.env.SUPER_ADMIN_EMAIL || 'admin@altihq.com',
   email: process.env.email,
   password: process.env.password,
   client_id: process.env.CLIENT_ID,
@@ -112,16 +112,16 @@ export default {
     model_id: process.env.MODEL_ID,
   },
   gcs: {
-    uploads_bucket: process.env.GCS_UPLOADS_BUCKET || 'insoai_assistant_uploads',
+    uploads_bucket: process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
     transcription_bucket:
-      process.env.GCS_TRANSCRIPTION_BUCKET || 'insoai_assistant_transcription',
+      process.env.GCS_TRANSCRIPTION_BUCKET || 'alti_assistant_transcription',
     knowledge_bank_bucket:
-      process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'insoai_knowledge_bank_files',
+      process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
     knowledgebot_bucket:
       process.env.GCS_KNOWLEDGEBOT_BUCKET ||
-      'insoai_assistant_knowledge_bot_files',
+      'alti_assistant_knowledge_bot_files',
     presentation_bucket:
-      process.env.GCS_PRESENTATION_BUCKET || 'insoai_assistant_presentation',
+      process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
     datasetStorageClass: process.env.GCS_DATASET_STORAGE_CLASS || 'ARCHIVE',
   },
   shelfHfRagIndexing: process.env.SHELF_HF_RAG_INDEXING === 'true',
@@ -135,7 +135,7 @@ export default {
     projectId: process.env.GCP_PROJECT_ID,
     project_id: process.env.GCP_PROJECT_ID,
     location: process.env.GCP_LOCATION || 'us-central1',
-    saKeyPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './insoai_gcp.json',
+    saKeyPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './alti_gcp.json',
     pubsub: {
       subscriptionTopic:
         process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC ||
@@ -146,7 +146,7 @@ export default {
     tasks_queue: process.env.GCP_TASKS_QUEUE || 'stripe-tasks-queue',
     tasks_worker_url:
       process.env.GCP_TASKS_WORKER_URL ||
-      'https://insoai-backend.onrender.com/api/v1/stripe/tasks-worker',
+      'https://alti-backend.onrender.com/api/v1/stripe/tasks-worker',
     tasks_service_account_email: process.env.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
   },
   privacy: {

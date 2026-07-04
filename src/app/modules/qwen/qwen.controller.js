@@ -17,7 +17,7 @@ import config from '../../../../config/index.js';
 // VERTEX AI & SAFETY GUARD AGENT: Initialize Vertex AI client.
 // Ensure GCLOUD_PROJECT and GCLOUD_LOCATION are set in your environment variables.
 const vertex_ai = new VertexAI({
-  project: config.gcp?.projectId || process.env.GCP_PROJECT_ID || process.env.GCLOUD_PROJECT || 'insoai-assistant',
+  project: config.gcp?.projectId || process.env.GCP_PROJECT_ID || process.env.GCLOUD_PROJECT || 'alti-assistant',
   location: config.gcp?.location || process.env.GCP_LOCATION || process.env.GCLOUD_LOCATION || 'us-central1',
 });
 

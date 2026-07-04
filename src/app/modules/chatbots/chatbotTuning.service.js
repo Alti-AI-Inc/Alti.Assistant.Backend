@@ -20,7 +20,7 @@ const auth = new GoogleAuth({
 
 // Initialize GCS Storage
 const storage = new Storage();
-const bucketName = config.gcs?.uploads_bucket || 'insoai_assistant_uploads';
+const bucketName = config.gcs?.uploads_bucket || 'alti_assistant_uploads';
 
 /**
  * Downloads a file's content from Google Cloud Storage and returns it as a UTF-8 string.

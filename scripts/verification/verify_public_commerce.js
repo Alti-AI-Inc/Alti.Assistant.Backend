@@ -1,7 +1,7 @@
 /**
  * verify_public_commerce.js
  *
- * Verification script for testing Inso AI's Batch 2 Corporate, Vehicle Safety,
+ * Verification script for testing Alti Assistant's Batch 2 Corporate, Vehicle Safety,
  * FBI Crime, CPSC Product Recalls, and NSF Awards grounding channels.
  */
 
@@ -13,7 +13,7 @@ async function runVerification() {
   const testQueries = [
     {
       name: 'OpenCorporates Corporate Registration',
-      query: 'Is Inso AIs Holdings LLC registered in Delaware corporate registry?',
+      query: 'Is Alti Assistants Holdings LLC registered in Delaware corporate registry?',
       expectedId: 'opencorporates'
     },
     {

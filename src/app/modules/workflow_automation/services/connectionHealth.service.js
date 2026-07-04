@@ -35,7 +35,7 @@ class ConnectionHealthService {
       success: true,
       app: appName,
       message: `Re-authentication initiated for ${appName} (stubbed).`,
-      redirectUrl: 'https://insoai-backend.onrender.com/oauth/stub-success',
+      redirectUrl: 'https://alti-backend.onrender.com/oauth/stub-success',
       newConnectedAccountId: 'mock-account-id',
     };
   }

@@ -1,7 +1,7 @@
 {
-  "name": "@insoai/agent-image",
+  "name": "@alti/agent-image",
   "version": "1.0.0",
-  "description": "Inso AI Image Agent — image generation and editing microservice powered by Gemini native image generation",
+  "description": "Alti Assistant Image Agent — image generation and editing microservice powered by Gemini native image generation",
   "type": "module",
   "main": "index.js",
   "scripts": {

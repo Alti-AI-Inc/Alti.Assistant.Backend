@@ -23,7 +23,7 @@ export const ConsumptionLog = mongoose.models.ConsumptionLog || mongoose.model('
  */
 const TenantBillingConfigSchema = new mongoose.Schema({
   tenantId: { type: String, required: true, unique: true, index: true },
-  planId: { type: String, default: 'insoai-enterprise-gold' },
+  planId: { type: String, default: 'alti-enterprise-gold' },
   monthlyBudgetLimit: { type: Number, default: 5000 }, // limit in USD
   monthlyBudgetAlertThreshold: { type: Number, default: 4000 }, // soft threshold in USD
   inputTokenCostPerMillion: { type: Number, default: 15 }, // USD per 1M tokens
@@ -191,7 +191,7 @@ export async function processSingleOutboxRecord(record) {
     const source = (marketplaceSource || '').toLowerCase();
     
     if (source === 'aws_marketplace' || source === 'azure_marketplace') {
-      throw new Error(`CloudMarketplaceExclusivityError: Billing reporting to "${marketplaceSource}" is deprecated. Inso AI runs exclusively on Google Cloud. Please route billing records via "gcp_marketplace".`);
+      throw new Error(`CloudMarketplaceExclusivityError: Billing reporting to "${marketplaceSource}" is deprecated. Alti Assistant runs exclusively on Google Cloud. Please route billing records via "gcp_marketplace".`);
     } else if (source === 'gcp_marketplace') {
       // ----------------------------------------------------
       // GCP Marketplace: Partner Procurement Service
@@ -204,7 +204,7 @@ export async function processSingleOutboxRecord(record) {
           startTime: payload.timestamp,
           endTime: payload.timestamp,
           metricValueByMetric: {
-            [`insoai.googleapis.com/${u.dimension}`]: { int64Value: String(u.quantity) }
+            [`alti.googleapis.com/${u.dimension}`]: { int64Value: String(u.quantity) }
           }
         }))
       }, null, 2));

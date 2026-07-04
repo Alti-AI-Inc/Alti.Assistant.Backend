@@ -3,7 +3,7 @@ import axios from 'axios';
 
 async function mapDomain(domain) {
   const auth = new GoogleAuth({
-    keyFilename: 'insoai_gcp.json',
+    keyFilename: 'alti_gcp.json',
     scopes: ['https://www.googleapis.com/auth/cloud-platform']
   });
   
@@ -11,7 +11,7 @@ async function mapDomain(domain) {
   const tokenResponse = await client.getAccessToken();
   const token = tokenResponse.token;
   
-  const projectId = 'insoai-assistant-prod';
+  const projectId = 'alti-assistant-prod';
   const region = 'us-central1';
   const url = `https://${region}-run.googleapis.com/apis/domains.cloudrun.com/v1/namespaces/${projectId}/domainmappings`;
   
@@ -23,7 +23,7 @@ async function mapDomain(domain) {
       namespace: projectId
     },
     spec: {
-      routeName: 'insoai-assistant-frontend'
+      routeName: 'alti-assistant-frontend'
     }
   };
   
@@ -52,8 +52,8 @@ async function mapDomain(domain) {
 }
 
 async function run() {
-  await mapDomain('insoai.com');
-  await mapDomain('www.insoai.com');
+  await mapDomain('altihq.com');
+  await mapDomain('www.altihq.com');
 }
 
 run();

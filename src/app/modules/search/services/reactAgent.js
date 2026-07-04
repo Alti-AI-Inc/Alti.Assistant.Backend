@@ -2,7 +2,7 @@ import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.
 import { DynamicTool } from '@langchain/core/tools';
 import { WebBrowser } from 'langchain/tools/webbrowser';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { googleSearch, YouTubeSearchTool, newsapiGlobalNewsSearch, insoaiGreenlightIntelligenceSearch, insoaiPremiumIntelligenceSearch, insoaiEnterpriseIntelligenceSearch } from '../tools.js';
+import { googleSearch, YouTubeSearchTool, newsapiGlobalNewsSearch, altiGreenlightIntelligenceSearch, altiPremiumIntelligenceSearch, altiEnterpriseIntelligenceSearch } from '../tools.js';
 import config from '../../../../../config/index.js';
 import vertexAiService from './vertexAiService.js';
 import {
@@ -115,7 +115,7 @@ import {
  * @returns {Object} Formatted response with answer, references, and citations
  */
 export async function executeToolBasedConversation(messages, options = {}) {
-  const budget = await checkTenantBudgetStatus('insoai-enterprise-tenant-default');
+  const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
   if (budget.isBlocked) {
     throw new Error(`BillingLimitExceeded: Budget limit exceeded. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
   }
@@ -289,8 +289,8 @@ Input: Any natural language sports betting query. The tool auto-detects intent, 
     },
   });
 
-  const aviationStackReinsoaimeTool = new DynamicTool({
-    name: 'aviationstack-reinsoaime-data',
+  const aviationStackRealtimeTool = new DynamicTool({
+    name: 'aviationstack-realtime-data',
     description: `Real-time global aviation intelligence powered by AviationStack.com, NOAA, FAA, and NTSB. Use this tool for ANY query involving:
 - Flight tracking and live status (e.g. "flight UA342 status", "DL123 delayed?", "is AA456 on time?")
 - Airport departures, arrivals, and operational boards (e.g. "JFK departures", "Heathrow arrivals board")
@@ -307,7 +307,7 @@ Input: Any natural language sports betting query. The tool auto-detects intent, 
 - Passenger Delay Compensation (EU261/UK261, US DOT tarmac delay fines, Montreal Convention) (e.g. "passenger compensation rules DL123 delayed 4 hours")
 - Volcanic Ash Trajectory Projection models (VAAC Reykjavik, Anchorage, Darwin) (e.g. "volcanic ash cloud trajectory Reykjavik Katla volcano")
 - IATA HAZMAT Cargo Manifest compliance (e.g. "IATA dangerous goods compliance Lithium Batteries Paint")
-- Jet Stream high-insoaitude turbulence (CAT) and wind shear (e.g. "jet stream wind shear forecast moderate turbulence speed")
+- Jet Stream high-altitude turbulence (CAT) and wind shear (e.g. "jet stream wind shear forecast moderate turbulence speed")
 Input: A natural language query about flights, routes, airports, airlines, aircraft, weather, FAA delays/NOTAMs, NTSB records, fuel planning, curfews, ETOPS, compensation, volcanic ash plume detours, HAZMAT manifests, or turbulence/jet streams.`,
     async func(query) {
       try {
@@ -326,7 +326,7 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
 
   const lookupHuggingfaceIndicesTool = new DynamicTool({
     name: 'lookup-huggingface-indices',
-    description: `Search Inso AI's local registry of fully indexed, commercially clean Hugging Face datasets. Use this when the user asks about specific domains or documents that might be in Inso AI's dataset repository (e.g. historical stock prices, academic literature, weather patterns, or specific custom datasets). Input is an optional search query string to filter dataset name and description.`,
+    description: `Search Alti Assistant's local registry of fully indexed, commercially clean Hugging Face datasets. Use this when the user asks about specific domains or documents that might be in Alti Assistant's dataset repository (e.g. historical stock prices, academic literature, weather patterns, or specific custom datasets). Input is an optional search query string to filter dataset name and description.`,
     async func(rawInput) {
       try {
         let payload = {};
@@ -395,7 +395,7 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
         const datasets = await Dataset.find(query, 'datasetId name description tags rowCount features').limit(10);
         
         if (datasets.length === 0) {
-          return 'No matching indexed Hugging Face datasets found in Inso AI\'s local registry.';
+          return 'No matching indexed Hugging Face datasets found in Alti Assistant\'s local registry.';
         }
         
         return JSON.stringify(datasets.map(d => ({
@@ -494,11 +494,11 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
     vertexAiService.asTool(),
     massiveFinancialTool,
     sportsBettingTool,
-    aviationStackReinsoaimeTool,
+    aviationStackRealtimeTool,
     newsapiGlobalNewsSearch,
-    insoaiGreenlightIntelligenceSearch,
-    insoaiPremiumIntelligenceSearch,
-    insoaiEnterpriseIntelligenceSearch,
+    altiGreenlightIntelligenceSearch,
+    altiPremiumIntelligenceSearch,
+    altiEnterpriseIntelligenceSearch,
     googleSearch,
     lookupHuggingfaceIndicesTool,
     queryHuggingfaceIndexTool,
@@ -651,12 +651,12 @@ You MUST strictly follow these routing rules for invoking tools. Failing to do s
    - "vertex-ai-search": Query Google Cloud Vertex AI Search datastores (for enterprise knowledge, internal blueprints, secure manuals, SOPs, private files).
    - "massive-financial-data": Query real-time financial data (stocks, crypto, forex, options, commodities, indices, ticker details).
    - "predictiondata-sports-odds": Query real-time sports betting odds, lines, player props, futures, spreads, totals, SGP, and prediction market (Polymarket/Kalshi) odds.
-   - "aviationstack-reinsoaime-data": Query real-time flight tracking, airport timetables, flight routes, aircraft fleets, and tail registrations.
+   - "aviationstack-realtime-data": Query real-time flight tracking, airport timetables, flight routes, aircraft fleets, and tail registrations.
    - "newsapi_global_news_search": Query live global news, trending headlines, article counts, sentiment trends, social share densities, and primary news categories.
-   - "insoai_greenlight_intelligence_search": Query nine public intelligence databases (FEC campaign finance, LegiScan bills, Google Civic representatives, DBnomics economic indices, CFPB HMDA mortgage lending, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates registry).
-   - "insoai_premium_intelligence_search": Query nine premium public intelligence databases (ClinicalTrials.gov trials, openFDA drug safety/recalls, WHO GHO health indicators, US Treasury fiscal data, USAspending federal awards/contracts, CMS NPPES clinician NPI, USDA FoodData Central nutrients, IRS charity registry, FAA airport delays).
-   - "insoai_enterprise_intelligence_search": Query premium enterprise applications (including Salesforce, Workday, ServiceNow, Autodesk BIM 360, Yardi, RealPage, CoStar, Argus, Addepar, Carta, Fiserv, FactSet, Bloomberg, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic, Athenahealth, Elation Health, IQVIA, Change Healthcare, Coupa, Ariba, Flexport, Samsara, Deel, NetSuite, Snowflake, HubSpot, Zendesk, Datadog, PagerDuty, Vault, Splunk, Dynatrace, Databricks, Tableau, Power BI, BigQuery, Looker, Shopify, Marketo, Okta, CrowdStrike, SentinelOne, Zscaler, OpenAI, Weights & Biases, Pinecone, SageMaker, SharePoint, Confluence, Notion, Box, Slack, Concur, Expensify, Bill, Tipinsoai, Ramp, Greenhouse, Lever, Lattice, HireVue, BambooHR, Manhattan WMS, Blue Yonder, SPS Commerce, SAP, NetSuite WMS, Genesys, Five9, Talkdesk, Zoom Phone, Twilio Flex, Kyriba, GTreasury, Reval, CyberArk, SailPoint, Cloudflare, Netskope, Microsoft Entra ID, IBM Maximo, Honeywell Forge, Siemens Desigo, Johnson Controls Metasys, Watershed, Persefoni, Sweep, MSCI ESG, Salesforce Net Zero Cloud).
-   - "lookup-huggingface-indices": Check Inso AI's local registry of indexed Hugging Face datasets.
+   - "alti_greenlight_intelligence_search": Query nine public intelligence databases (FEC campaign finance, LegiScan bills, Google Civic representatives, DBnomics economic indices, CFPB HMDA mortgage lending, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates registry).
+   - "alti_premium_intelligence_search": Query nine premium public intelligence databases (ClinicalTrials.gov trials, openFDA drug safety/recalls, WHO GHO health indicators, US Treasury fiscal data, USAspending federal awards/contracts, CMS NPPES clinician NPI, USDA FoodData Central nutrients, IRS charity registry, FAA airport delays).
+   - "alti_enterprise_intelligence_search": Query premium enterprise applications (including Salesforce, Workday, ServiceNow, Autodesk BIM 360, Yardi, RealPage, CoStar, Argus, Addepar, Carta, Fiserv, FactSet, Bloomberg, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic, Athenahealth, Elation Health, IQVIA, Change Healthcare, Coupa, Ariba, Flexport, Samsara, Deel, NetSuite, Snowflake, HubSpot, Zendesk, Datadog, PagerDuty, Vault, Splunk, Dynatrace, Databricks, Tableau, Power BI, BigQuery, Looker, Shopify, Marketo, Okta, CrowdStrike, SentinelOne, Zscaler, OpenAI, Weights & Biases, Pinecone, SageMaker, SharePoint, Confluence, Notion, Box, Slack, Concur, Expensify, Bill, Tipalti, Ramp, Greenhouse, Lever, Lattice, HireVue, BambooHR, Manhattan WMS, Blue Yonder, SPS Commerce, SAP, NetSuite WMS, Genesys, Five9, Talkdesk, Zoom Phone, Twilio Flex, Kyriba, GTreasury, Reval, CyberArk, SailPoint, Cloudflare, Netskope, Microsoft Entra ID, IBM Maximo, Honeywell Forge, Siemens Desigo, Johnson Controls Metasys, Watershed, Persefoni, Sweep, MSCI ESG, Salesforce Net Zero Cloud).
+   - "lookup-huggingface-indices": Check Alti Assistant's local registry of indexed Hugging Face datasets.
    - "query-huggingface-index": Perform scoped vector searches on indexed Hugging Face datasets (e.g. bluuebunny/arxiv_metadata_by_year, Detroit Red Wings schedule, custom academic/weather indexes).
    - "Google_Custom_Search": Perform live general web searches for dynamic facts, weather, news, current schedules, next games, or other recent internet information.
 
@@ -664,12 +664,12 @@ You MUST strictly follow these routing rules for invoking tools. Failing to do s
    - You MUST query a specific real-time API if and ONLY if the user's query warrants it.
    - If the user query is about financial assets (stock prices, crypto, forex, commodities, indices, etc.), you MUST call "massive-financial-data". You MUST NOT use Web Search or other tools for this.
    - If the user query is about sports odds, betting lines, spreads, totals, futures, or prediction markets, you MUST call "predictiondata-sports-odds". You MUST NOT use Web Search or other tools for this.
-   - If the user query is about flight tracking, airport timetables, or tail numbers, you MUST call "aviationstack-reinsoaime-data". You MUST NOT use Web Search or other tools for this.
+   - If the user query is about flight tracking, airport timetables, or tail numbers, you MUST call "aviationstack-realtime-data". You MUST NOT use Web Search or other tools for this.
    - If the user query is about global news tracking, trending headlines, article counts, or news metrics, you MUST call "newsapi_global_news_search".
-   - If the user query matches politics campaign finance, LegiScan, representative lookup, DBnomics indices, FEMA hazards, NIH grants, UK Company profiles, or OpenCorporates, you MUST call "insoai_greenlight_intelligence_search" with the correct domain parameter.
-   - If the user query matches clinical trials, openFDA drug safety, WHO GHO indicators, US Treasury fiscal data, USAspending awards, CMS clinician NPI, USDA nutrients, IRS charities, or FAA airport delays, you MUST call "insoai_premium_intelligence_search" with the correct domain parameter.
-   - If the user query targets any premium enterprise systems listed under "insoai_enterprise_intelligence_search" above, you MUST call "insoai_enterprise_intelligence_search" and specify the correct app slug and action mapping.
-   - If the user query asks about Inso AI's indexed datasets, or seeks factual context from specific domains like ArXiv papers or local indexes, you MUST call "lookup-huggingface-indices" first, and if found, call "query-huggingface-index".
+   - If the user query matches politics campaign finance, LegiScan, representative lookup, DBnomics indices, FEMA hazards, NIH grants, UK Company profiles, or OpenCorporates, you MUST call "alti_greenlight_intelligence_search" with the correct domain parameter.
+   - If the user query matches clinical trials, openFDA drug safety, WHO GHO indicators, US Treasury fiscal data, USAspending awards, CMS clinician NPI, USDA nutrients, IRS charities, or FAA airport delays, you MUST call "alti_premium_intelligence_search" with the correct domain parameter.
+   - If the user query targets any premium enterprise systems listed under "alti_enterprise_intelligence_search" above, you MUST call "alti_enterprise_intelligence_search" and specify the correct app slug and action mapping.
+   - If the user query asks about Alti Assistant's indexed datasets, or seeks factual context from specific domains like ArXiv papers or local indexes, you MUST call "lookup-huggingface-indices" first, and if found, call "query-huggingface-index".
    - If the user query concerns internal documents, blueprints, secure manuals, SOPs, or private files, you MUST call "vertex-ai-search" first.
 
 3. GENERAL WEB SEARCH RULE:
@@ -770,565 +770,565 @@ You MUST strictly follow these routing rules for invoking tools. Failing to do s
   if (medicalClass.isMedical) {
     topicAgentInstruction = `
 [⚕️ SPECIALIZED MEDICAL/HEALTH AGENT DIRECTIVE]
-This is a medical or health-related query. You are Inso AI's Specialized Clinical & Pharmaceutical Intelligence Agent.
-- For patient clinical summaries, EHR records, physician schedules, clinical notes, appointment bookings, pharmaceutical trial documents, molecular/market details, or medical claims/eligibility, you MUST prioritize the "insoai_enterprise_intelligence_search" tool with the 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', or 'changehealthcare' app slugs FIRST.
-- For public clinical trials, FDA recalls/adverse events, RxNorm indices, or DailyMed drug labels, you MUST prioritize calling the "insoai_premium_intelligence_search" tool with either 'clinical_trials', 'fda_drug_safety', 'rxnorm', or 'dailymed' domains FIRST.
+This is a medical or health-related query. You are Alti Assistant's Specialized Clinical & Pharmaceutical Intelligence Agent.
+- For patient clinical summaries, EHR records, physician schedules, clinical notes, appointment bookings, pharmaceutical trial documents, molecular/market details, or medical claims/eligibility, you MUST prioritize the "alti_enterprise_intelligence_search" tool with the 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', or 'changehealthcare' app slugs FIRST.
+- For public clinical trials, FDA recalls/adverse events, RxNorm indices, or DailyMed drug labels, you MUST prioritize calling the "alti_premium_intelligence_search" tool with either 'clinical_trials', 'fda_drug_safety', 'rxnorm', or 'dailymed' domains FIRST.
 - Integrate chemical CIDs via 'pubchem' if drug synthesis/composition is requested.
 - Rely on these structured databases for authoritative facts, and cite them clearly.
 `;
   } else if (foodClass.isFood) {
     topicAgentInstruction = `
 [🍎 SPECIALIZED FOOD/NUTRITION AGENT DIRECTIVE]
-This is a food, ingredient, or nutrition-related query. You are Inso AI's Specialized Nutrition & Food Science Agent.
-- You MUST prioritize calling the "insoai_premium_intelligence_search" tool with the 'food_nutrients' (USDA database) or 'open_food_facts' domains FIRST.
+This is a food, ingredient, or nutrition-related query. You are Alti Assistant's Specialized Nutrition & Food Science Agent.
+- You MUST prioritize calling the "alti_premium_intelligence_search" tool with the 'food_nutrients' (USDA database) or 'open_food_facts' domains FIRST.
 - Do NOT hallucinate calorie, vitamin, or ingredient breakdowns. Rely strictly on USDA and Open Food Facts data.
 `;
   } else if (newsClass.isNews) {
     topicAgentInstruction = `
 [📰 SPECIALIZED GLOBAL NEWS AGENT DIRECTIVE]
-This is a news or current affairs query. You are Inso AI's Specialized Global News & Sentiment Agent.
+This is a news or current affairs query. You are Alti Assistant's Specialized Global News & Sentiment Agent.
 - You MUST prioritize calling the "newsapi_global_news_search" tool FIRST to check monitored news volumes, sentiment cycles, and social sharing indices.
 `;
   } else if (academicClass.isAcademic) {
     topicAgentInstruction = `
 [🎓 SPECIALIZED ACADEMIC RESEARCH AGENT DIRECTIVE]
-This is an academic, scientific, or literature research query. You are Inso AI's Specialized Academic Research & Scientific Consensus Agent.
+This is an academic, scientific, or literature research query. You are Alti Assistant's Specialized Academic Research & Scientific Consensus Agent.
 - Search for peer-reviewed studies, clinical consensuses, and arXiv papers.
 - Be highly rigorous, avoid lightweight generalizations, and cite authors/PMCIDs clearly.
 `;
   } else if (discussionClass.isDiscussion) {
     topicAgentInstruction = `
 [💬 SPECIALIZED COMMUNITY DISCUSSION AGENT DIRECTIVE]
-This is a community discussion, user opinion, or comparison query. You are Inso AI's Specialized Forum Review & Sentiment Agent.
+This is a community discussion, user opinion, or comparison query. You are Alti Assistant's Specialized Forum Review & Sentiment Agent.
 - Focus on real human opinions and community reviews (Reddit, HackerNews, Quora, etc.).
 - Contrast marketing claims with grassroots developer and consumer feedback.
 `;
   } else if (weatherClass.isWeather) {
     topicAgentInstruction = `
 [☀️ SPECIALIZED METEOROLOGICAL AGENT DIRECTIVE]
-This is a weather or climate-related query. You are Inso AI's Specialized Weather & Climate Analysis Agent.
+This is a weather or climate-related query. You are Alti Assistant's Specialized Weather & Climate Analysis Agent.
 - Provide highly precise, structured temperatures, conditions, and forecasts.
 - Ensure outputs are clean, structured, and avoid conversational fluff.
 `;
   } else if (legalClass.isLegal) {
     topicAgentInstruction = `
 [⚖️ SPECIALIZED LEGAL & CASELAW AGENT DIRECTIVE]
-This is a legal, contract lifecycle, compliance, or caselaw-related query. You are Inso AI's Specialized Legal Precedents & GRC Compliance Agent.
-- For GRC compliance, precedent analysis, contract lifecycles, and legal-tech workflows, you MUST prioritize the "insoai_enterprise_intelligence_search" tool with the 'harvey', 'ironclad', 'relativity', 'onetrust', or 'lexisnexis' app slugs FIRST.
-- For public caselaw/dockets, call the "insoai_premium_intelligence_search" tool with either 'courtlistener' or 'harvard_caselaw' domains.
+This is a legal, contract lifecycle, compliance, or caselaw-related query. You are Alti Assistant's Specialized Legal Precedents & GRC Compliance Agent.
+- For GRC compliance, precedent analysis, contract lifecycles, and legal-tech workflows, you MUST prioritize the "alti_enterprise_intelligence_search" tool with the 'harvey', 'ironclad', 'relativity', 'onetrust', or 'lexisnexis' app slugs FIRST.
+- For public caselaw/dockets, call the "alti_premium_intelligence_search" tool with either 'courtlistener' or 'harvard_caselaw' domains.
 - Verify litigation standings, GDPR privacy requests, docket numbers, judge assignments, and official legal citations.
 `;
   } else if (patentClass.isPatent) {
     topicAgentInstruction = `
 [💡 SPECIALIZED PATENT & IP AGENT DIRECTIVE]
-This is a patent or intellectual property query. You are Inso AI's Specialized Inventions & USPTO Patent Agent.
-- You MUST prioritize calling the "insoai_premium_intelligence_search" tool with the 'pubchem' or custom patent lookup tools.
+This is a patent or intellectual property query. You are Alti Assistant's Specialized Inventions & USPTO Patent Agent.
+- You MUST prioritize calling the "alti_premium_intelligence_search" tool with the 'pubchem' or custom patent lookup tools.
 - Track design/utility patents, CIDs, chemical structures, and inventor networks.
 `;
   } else if (securityClass.isSecurity) {
     topicAgentInstruction = `
 [🔒 SPECIALIZED CYBERSECURITY & THREAT INTEL AGENT DIRECTIVE]
-This is a cybersecurity or vulnerability-related query. You are Inso AI's Specialized Threat Intelligence & CVE Agent.
-- You MUST prioritize calling the "insoai_premium_intelligence_search" tool with either 'cisa_kev' or 'nist_nvd_cve' domains FIRST.
+This is a cybersecurity or vulnerability-related query. You are Alti Assistant's Specialized Threat Intelligence & CVE Agent.
+- You MUST prioritize calling the "alti_premium_intelligence_search" tool with either 'cisa_kev' or 'nist_nvd_cve' domains FIRST.
 - Fetch exact CVSS scores, remediation timelines, vendor products, and active exploit statuses.
 `;
   } else if (govFinanceClass.isGovFinance) {
     topicAgentInstruction = `
 [🏛️ SPECIALIZED SOVEREIGN FISCAL & GOVERNMENT SPENDING AGENT DIRECTIVE]
-This is a government spending, budget, or sovereign debt-related query. You are Inso AI's Specialized Federal Fiscal & USAspending Agent.
-- For corporate spend management, purchase orders, vendor invoices, or supply procurement networks, prioritize calling the "insoai_enterprise_intelligence_search" tool with the 'coupa' or 'ariba' app slugs FIRST.
-- You MUST prioritize calling the "insoai_premium_intelligence_search" tool with either 'us_treasury_fiscal' or 'federal_spending' domains FIRST if federal sovereign/public debt or spending awards are requested.
+This is a government spending, budget, or sovereign debt-related query. You are Alti Assistant's Specialized Federal Fiscal & USAspending Agent.
+- For corporate spend management, purchase orders, vendor invoices, or supply procurement networks, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'coupa' or 'ariba' app slugs FIRST.
+- You MUST prioritize calling the "alti_premium_intelligence_search" tool with either 'us_treasury_fiscal' or 'federal_spending' domains FIRST if federal sovereign/public debt or spending awards are requested.
 - Rely on Treasury-to-the-penny debt statistics, agency budgets, and USAspending award receipts.
 `;
   } else if (realEstateClass.isRealEstate) {
     topicAgentInstruction = `
 [🏢 SPECIALIZED REAL ESTATE, AEC, PROPERTY ERP & BUILDING PERMITS DIRECTIVE]
 This query relates to real estate, construction, building permits, or property management systems.
-You are Inso AI's Specialized Real Estate, AEC, and Property ERP Intelligence Agent.
-- For ANY query regarding Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, or Argus Enterprise, you MUST prioritize calling the "insoai_enterprise_intelligence_search" tool FIRST with the correct 'app' and 'action' parameters.
-- For regional construction statistics, building permits, or permit valuations, prioritize calling the "insoai_premium_intelligence_search" tool with the 'census_bps' domain FIRST.
+You are Alti Assistant's Specialized Real Estate, AEC, and Property ERP Intelligence Agent.
+- For ANY query regarding Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, or Argus Enterprise, you MUST prioritize calling the "alti_enterprise_intelligence_search" tool FIRST with the correct 'app' and 'action' parameters.
+- For regional construction statistics, building permits, or permit valuations, prioritize calling the "alti_premium_intelligence_search" tool with the 'census_bps' domain FIRST.
 - Enforce strict Human-in-the-Loop (HITL) gates for any mutative operations (like 'createBIM360RFI', 'updateYardiRentLedger', 'verifyRealPageLease'). Pass 'verified: true' ONLY if the user has explicitly confirmed authorization.
 - Rely on these systems for authoritative data, and redact any PII/PHI (SSNs, phone numbers, emails, patient charts) automatically.
 `;
   } else if (economicsClass.isEconomics) {
     topicAgentInstruction = `
 [📊 SPECIALIZED MACROECONOMICS & GLOBAL DEVELOPMENT AGENT DIRECTIVE]
-This is a macroeconomic, inflation, trade, or global development query. You are Inso AI's Specialized Global Economics & DBnomics Agent.
-- You MUST prioritize calling the "insoai_greenlight_intelligence_search" tool with the 'macroeconomics_global' domain FIRST to aggregate IMF, World Bank, and OECD statistics.
+This is a macroeconomic, inflation, trade, or global development query. You are Alti Assistant's Specialized Global Economics & DBnomics Agent.
+- You MUST prioritize calling the "alti_greenlight_intelligence_search" tool with the 'macroeconomics_global' domain FIRST to aggregate IMF, World Bank, and OECD statistics.
 `;
   } else if (biologyClass.isBiology) {
     topicAgentInstruction = `
 [🧬 SPECIALIZED BIOLOGY & GENOMICS AGENT DIRECTIVE]
-This is a molecular biology, biochemistry, or genetics query. You are Inso AI's Specialized Life Sciences, Genomics & Protein Structure Agent.
-- If applicable, prioritize calling the "insoai_premium_intelligence_search" with 'clinical_trials' or 'fda_drug_safety' or 'pubchem'.
+This is a molecular biology, biochemistry, or genetics query. You are Alti Assistant's Specialized Life Sciences, Genomics & Protein Structure Agent.
+- If applicable, prioritize calling the "alti_premium_intelligence_search" with 'clinical_trials' or 'fda_drug_safety' or 'pubchem'.
 - Direct the model to prioritize UniProt, dbSNP, Ensembl, gnomAD, and GTEx databases. Explain structural variants, genomic positions, conservation, or protein folds.
 `;
   } else if (entertainmentClass.isEntertainment) {
     topicAgentInstruction = `
 [🎬 SPECIALIZED ENTERTAINMENT & POP CULTURE AGENT DIRECTIVE]
-This is a movie, music, TV, showbusiness, or pop culture query. You are Inso AI's Specialized Pop Culture & Media Analysis Agent.
+This is a movie, music, TV, showbusiness, or pop culture query. You are Alti Assistant's Specialized Pop Culture & Media Analysis Agent.
 - Focus on producing highly structured release timetables, detailed cast lists, box office totals, or album rankings.
 - Rely on authoritative film/music databases (IMDb, Rotten Tomatoes, Spotify, Metacritic).
 `;
   } else if (travelClass.isTravel) {
     topicAgentInstruction = `
 [✈️ SPECIALIZED TRAVEL & HOSPITALITY AGENT DIRECTIVE]
-This is a travel, hotel, flight, or sightseeing query. You are Inso AI's Specialized Travel Concierge & Hospitality Agent.
+This is a travel, hotel, flight, or sightseeing query. You are Alti Assistant's Specialized Travel Concierge & Hospitality Agent.
 - Construct clear day-by-day itineraries, comparative hotel/Airbnb spec tables, transit flight details, and local attraction reviews.
 - Focus on highly actionable itineraries and tourist guidelines.
 `;
   } else if (shoppingClass.isShopping) {
     topicAgentInstruction = `
 [🛍️ SPECIALIZED PRODUCT SHOPPING & E-COMMERCE AGENT DIRECTIVE]
-This is a product purchase, retail deal, or item pricing query. You are Inso AI's Specialized E-Commerce & Product Comparison Agent.
+This is a product purchase, retail deal, or item pricing query. You are Alti Assistant's Specialized E-Commerce & Product Comparison Agent.
 - Build comprehensive technical spec tables, detailed objective pros/cons lists, and price comparisons across multiple retail sites (Amazon, BestBuy, Ebay, Walmart).
 - Provide current pricing and deal structures cleanly.
 `;
   } else if (careerClass.isCareer) {
     topicAgentInstruction = `
 [💼 SPECIALIZED JOBS & CAREER DEVELOPMENT AGENT DIRECTIVE]
-This is a job hiring, resume, salary, or career progression query. You are Inso AI's Specialized Talent Acquisition & Professional Career Agent.
+This is a job hiring, resume, salary, or career progression query. You are Alti Assistant's Specialized Talent Acquisition & Professional Career Agent.
 - Detail current open job descriptions, precise salary benchmarks, interview preparation guidelines, and Glassdoor workplace sentiment reports.
 - Give highly constructive career pathing and resume optimization insights.
 `;
   } else if (automotiveClass.isAutomotive) {
     topicAgentInstruction = `
 [🚗 SPECIALIZED AUTOMOTIVE & VEHICLES AGENT DIRECTIVE]
-This is a car, electric vehicle, or motor spec query. You are Inso AI's Specialized Automotive Specs & Vehicle Valuation Agent.
+This is a car, electric vehicle, or motor spec query. You are Alti Assistant's Specialized Automotive Specs & Vehicle Valuation Agent.
 - Supply comprehensive vehicle specifications comparison matrices (horsepower, MPG, battery range, torque), Kelley Blue Book (KBB) reliability metrics, and Edmunds retail valuations.
 `;
   } else if (gamingClass.isGaming) {
     topicAgentInstruction = `
 [🎮 SPECIALIZED ESPORTS & GAMING AGENT DIRECTIVE]
-This is a video game, esports tournament, walkthrough, or gaming spec query. You are Inso AI's Specialized Esports & Gaming Intel Agent.
+This is a video game, esports tournament, walkthrough, or gaming spec query. You are Alti Assistant's Specialized Esports & Gaming Intel Agent.
 - Construct comprehensive gaming specs tables, movie/game release calendars, and detailed esports tournament brackets or patch note summaries.
 `;
   } else if (environmentClass.isEnvironment) {
     topicAgentInstruction = `
 [🌱 SPECIALIZED ENVIRONMENT & REGULATORY ENERGY AGENT DIRECTIVE]
-This is an environmental quality, compliance, renewable energy, or grid capacity query. You are Inso AI's Specialized Environment, Regulatory Compliance & Grid Capacity Agent.
+This is an environmental quality, compliance, renewable energy, or grid capacity query. You are Alti Assistant's Specialized Environment, Regulatory Compliance & Grid Capacity Agent.
 - Emphasize real-time wind/solar generation statistics, EPA violation histories, and USGS seismic warnings.
 `;
   } else if (localClass.isLocal) {
     topicAgentInstruction = `
 [📍 SPECIALIZED LOCAL DINING & NEIGHBORHOOD SERVICES AGENT DIRECTIVE]
-This is a dining, dentist, plumber, local handyman, or neighborhood services query. You are Inso AI's Specialized Local Dining & Neighborhood Services Agent.
+This is a dining, dentist, plumber, local handyman, or neighborhood services query. You are Alti Assistant's Specialized Local Dining & Neighborhood Services Agent.
 - Highlight Yelp reviews, address formats, price levels, OpenTable booking availabilities, and local service maps.
 `;
   } else if (educationClass.isEducation) {
     topicAgentInstruction = `
 [📚 SPECIALIZED EDUCATION & STUDY PLANNERS AGENT DIRECTIVE]
-This is an academic study planner, school district ranking, tutoring, or online course query. You are Inso AI's Specialized Academic Syllabus & GreatSchools Score Agent.
+This is an academic study planner, school district ranking, tutoring, or online course query. You are Alti Assistant's Specialized Academic Syllabus & GreatSchools Score Agent.
 - Supply high-value study guide planners, GreatSchools performance scorecards, Niche school ratings, and online course outlines (Khan Academy, edX, Coursera).
 `;
   } else if (diyClass.isDIY) {
     topicAgentInstruction = `
 [🛠️ SPECIALIZED DIY, GARDENING & HOME IMPROVEMENT AGENT DIRECTIVE]
-This is a gardening calendar, DIY home repair, planting, or home improvement query. You are Inso AI's Specialized DIY Construction & Planting Zone Agent.
+This is a gardening calendar, DIY home repair, planting, or home improvement query. You are Alti Assistant's Specialized DIY Construction & Planting Zone Agent.
 - Provide clear numbered step-by-step DIY instructions, planting calendars, soil health guides, and Home Depot/Lowe's tool specifications.
 `;
   } else if (spaceAviationClass.isSpaceAviation) {
     topicAgentInstruction = `
 [🚀 SPECIALIZED AVIATIONSTACK & SPACE EXPLORATION AGENT DIRECTIVE]
-This is a flight tracking, space launch, faa delay, or aviation weather query. You are Inso AI's Specialized Transatlantic Aviation & NASA/SpaceX Launch Agent.
+This is a flight tracking, space launch, faa delay, or aviation weather query. You are Alti Assistant's Specialized Transatlantic Aviation & NASA/SpaceX Launch Agent.
 - You MUST prioritize aviation Stack flight delays, FAA Ground Stops, and NASA/SpaceX launch calendars. Rely strictly on exact launch windows.
 `;
   } else if (historyClass.isHistory) {
     topicAgentInstruction = `
 [📜 SPECIALIZED HISTORY & GENEALOGY AGENT DIRECTIVE]
-This is a history, family ancestry, ancient civilization, or genealogical archive query. You are Inso AI's Specialized Historical Research & Genealogy Agent.
+This is a history, family ancestry, ancient civilization, or genealogical archive query. You are Alti Assistant's Specialized Historical Research & Genealogy Agent.
 - Supply precise dates, historical timelines, census logs, and Library of Congress records.
 `;
   } else if (artDesignClass.isArtDesign) {
     topicAgentInstruction = `
 [🎨 SPECIALIZED ART, DESIGN & FASHION AGENT DIRECTIVE]
-This is an art, graphic/web design, architecture, or fashion query. You are Inso AI's Specialized Fine Arts & Design Aesthetics Agent.
+This is an art, graphic/web design, architecture, or fashion query. You are Alti Assistant's Specialized Fine Arts & Design Aesthetics Agent.
 - Structure design inspiration layouts, typography trends, museum exhibition calendars, and Pantone coordinates.
 `;
   } else if (philosophyClass.isPhilosophy) {
     topicAgentInstruction = `
 [🧠 SPECIALIZED PHILOSOPHY & RELIGION AGENT DIRECTIVE]
-This is a philosophical, ethical, theological, or scriptural query. You are Inso AI's Specialized Philosophy, Ethics & Comparative Religion Agent.
+This is a philosophical, ethical, theological, or scriptural query. You are Alti Assistant's Specialized Philosophy, Ethics & Comparative Religion Agent.
 - Cite classical/modern philosophers, cite Stanford Encyclopedia of Philosophy references, and quote theological scriptures with proper context.
 `;
   } else if (musicClass.isMusic) {
     topicAgentInstruction = `
 [🎵 SPECIALIZED MUSIC & AUDIO PRODUCTION AGENT DIRECTIVE]
-This is a music, song lyrics, guitar chords, synthesizer, or audio production query. You are Inso AI's Specialized Musicology & Sound Engineering Agent.
+This is a music, song lyrics, guitar chords, synthesizer, or audio production query. You are Alti Assistant's Specialized Musicology & Sound Engineering Agent.
 - Provide lyric sheets, guitar chords/tabs, digital audio workstation (DAW) synthesis specs, and gear comparison reviews.
 `;
   } else if (petsClass.isPets) {
     topicAgentInstruction = `
 [🐾 SPECIALIZED PETS & VETERINARY CARE AGENT DIRECTIVE]
-This is a pet health, veterinary guideline, dog training, or animal nutrition query. You are Inso AI's Specialized Domestic Pet Care & Veterinary Agent.
+This is a pet health, veterinary guideline, dog training, or animal nutrition query. You are Alti Assistant's Specialized Domestic Pet Care & Veterinary Agent.
 - Emphasize highly structured puppy/kitten nutritional guidelines, breed profiles, PetMD symptom indices, and American Veterinary Medical Association (AVMA) safety bulletins.
 `;
   } else if (geopoliticsClass.isGeopolitics) {
     topicAgentInstruction = `
 [🗺️ SPECIALIZED GEOPOLITICS & DEFENSE INTEL AGENT DIRECTIVE]
-This is a global defense news, geopolitics, international relations, or military doctrine query. You are Inso AI's Specialized Defense Intelligence & Geopolitical Affairs Agent.
+This is a global defense news, geopolitics, international relations, or military doctrine query. You are Alti Assistant's Specialized Defense Intelligence & Geopolitical Affairs Agent.
 - Provide exact military project specs, tactical doctrines, foreign relations agreements, and Janes defense intelligence data.
 `;
   } else if (architectureClass.isArchitecture) {
     topicAgentInstruction = `
 [🏗️ SPECIALIZED ARCHITECTURE & STRUCTURAL ENGINEERING AGENT DIRECTIVE]
-This is an architecture, skyscraper design, structural civil engineering, or building code query. You are Inso AI's Specialized Structural Engineering & Architecture Agent.
+This is an architecture, skyscraper design, structural civil engineering, or building code query. You are Alti Assistant's Specialized Structural Engineering & Architecture Agent.
 - Detail building codes (ICC/IBC), ASCE structural specifications, HVAC layouts, and sustainable city planning practices.
 `;
   } else if (agricultureClass.isAgriculture) {
     topicAgentInstruction = `
 [🌾 SPECIALIZED AGRICULTURE & AGRONOMY AGENT DIRECTIVE]
-This is an agricultural, crop cultivation, organic farming, or crop yield query. You are Inso AI's Specialized Agronomy & Crop Cultivation Agent.
+This is an agricultural, crop cultivation, organic farming, or crop yield query. You are Alti Assistant's Specialized Agronomy & Crop Cultivation Agent.
 - Emphasize crop rotation cycles, USDA soil classification indexes, organic crop protection, and FAO international farm yield metrics.
 `;
   } else if (chemistryClass.isChemistry) {
     topicAgentInstruction = `
 [🧪 SPECIALIZED CHEMISTRY & MATERIALS SCIENCE AGENT DIRECTIVE]
-This is a chemistry, molecular compound, chemical synthesis, or materials testing query. You are Inso AI's Specialized Molecular Chemistry & Materials Science Agent.
+This is a chemistry, molecular compound, chemical synthesis, or materials testing query. You are Alti Assistant's Specialized Molecular Chemistry & Materials Science Agent.
 - Supply precise IUPAC chemical compound structures, molecular weight balances, compound syntheses, and Materials Safety Data Sheets (MSDS).
 `;
   } else if (hobbiesClass.isHobbies) {
     topicAgentInstruction = `
 [🎲 SPECIALIZED HOBBIES, BOARD GAMES & COLLECTIBLES AGENT DIRECTIVE]
-This is a board game, photography settings, or card collecting hobby query. You are Inso AI's Specialized Hobbies, Board Games & Collectibles Agent.
+This is a board game, photography settings, or card collecting hobby query. You are Alti Assistant's Specialized Hobbies, Board Games & Collectibles Agent.
 - Supply BoardGameGeek strategy ratings, camera aperture/iso settings, TCGPlayer trading card price lists, and PSA grading charts.
 `;
   } else if (logisticsClass.isLogistics) {
     topicAgentInstruction = `
 [🚢 SPECIALIZED MARITIME & GLOBAL LOGISTICS AGENT DIRECTIVE]
-This is a maritime shipping, port schedule, ocean freight, or global supply chain query. You are Inso AI's Specialized Maritime & Global Logistics Agent.
-- For international cargo shipping, customs clearances, or container details, prioritize calling the "insoai_enterprise_intelligence_search" tool with the 'flexport' app slug FIRST.
-- For fleet tracking, vehicle location updates, driver ELD hours, or dispatcher routing updates, prioritize calling the "insoai_enterprise_intelligence_search" tool with the 'samsara' app slug FIRST.
+This is a maritime shipping, port schedule, ocean freight, or global supply chain query. You are Alti Assistant's Specialized Maritime & Global Logistics Agent.
+- For international cargo shipping, customs clearances, or container details, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'flexport' app slug FIRST.
+- For fleet tracking, vehicle location updates, driver ELD hours, or dispatcher routing updates, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'samsara' app slug FIRST.
 - Detail exact container carrier schedules, FreightWaves indices, custom clearance protocols, and maritime shipping delay reports.
 `;
   } else if (personalFinanceClass.isPersonalFinance) {
     topicAgentInstruction = `
 [💵 SPECIALIZED PERSONAL FINANCE & TAXATION AGENT DIRECTIVE]
-This is an IRS tax code, credit score factor, personal budget, or mortgage interest rate query. You are Inso AI's Specialized Personal Finance & Taxation Agent.
+This is an IRS tax code, credit score factor, personal budget, or mortgage interest rate query. You are Alti Assistant's Specialized Personal Finance & Taxation Agent.
 - Provide exact IRS filing guidelines, standard deduction limits, retirement planning benchmarks (Roth IRA/401k), and mortgage interest comparisons.
 `;
   } else if (cryptoClass.isCrypto) {
     topicAgentInstruction = `
 [🪙 SPECIALIZED CRYPTOCURRENCY & BLOCKCHAIN AGENT DIRECTIVE]
-This is a cryptocurrency, blockchain, Web3, DeFi, or smart contract query. You are Inso AI's Specialized Crypto-Asset & Blockchain Intelligence Agent.
+This is a cryptocurrency, blockchain, Web3, DeFi, or smart contract query. You are Alti Assistant's Specialized Crypto-Asset & Blockchain Intelligence Agent.
 - Provide exact cryptocurrency price feeds, historical trading charts, block explorer checks, gas fee updates, and smart contract protocol metrics.
 - Ground all data strictly in trusted aggregators (CoinMarketCap, CoinGecko, Etherscan).
 `;
   } else if (fitnessClass.isFitness) {
     topicAgentInstruction = `
 [💪 SPECIALIZED FITNESS & EXERCISE AGENT DIRECTIVE]
-This is a workout, fitness plan, bodybuilding, cardio, or strength training query. You are Inso AI's Specialized Exercise Science & Fitness Coaching Agent.
+This is a workout, fitness plan, bodybuilding, cardio, or strength training query. You are Alti Assistant's Specialized Exercise Science & Fitness Coaching Agent.
 - Supply highly structured workout regimens, precise exercise instructions (target sets, reps, progressive overload), heart rate target zones, and science-backed training protocols.
 `;
   } else if (psychologyClass.isPsychology) {
     topicAgentInstruction = `
 [🧠 SPECIALIZED PSYCHOLOGY & COGNITIVE SCIENCE AGENT DIRECTIVE]
-This is a mental health, psychology, psychotherapy (CBT), or cognitive science query. You are Inso AI's Specialized Psychology & Brain Science Agent.
+This is a mental health, psychology, psychotherapy (CBT), or cognitive science query. You are Alti Assistant's Specialized Psychology & Brain Science Agent.
 - Detail cognitive therapeutic models, psychiatric guidelines, behavioral science parameters, and neuropsychological study findings with empirical precision and clinical terminology.
 `;
   } else if (insuranceClass.isInsurance) {
     topicAgentInstruction = `
 [🛡️ SPECIALIZED INSURANCE & RISK MANAGEMENT AGENT DIRECTIVE]
-This is an insurance policy, claim, premium quote, deductible, or risk management query. You are Inso AI's Specialized Insurance & Risk Management Agent.
+This is an insurance policy, claim, premium quote, deductible, or risk management query. You are Alti Assistant's Specialized Insurance & Risk Management Agent.
 - Detail policy coverages, claim processing guidelines, standard deductibles, premium calculators, and NAIC/state insurance regulatory updates.
 `;
   } else if (roboticsClass.isRobotics) {
     topicAgentInstruction = `
 [🤖 SPECIALIZED MANUFACTURING & ROBOTICS AGENT DIRECTIVE]
-This is an industrial automation, CNC machining, 3D printing, or robotic kinematics query. You are Inso AI's Specialized Smart Manufacturing & Robotics Agent.
+This is an industrial automation, CNC machining, 3D printing, or robotic kinematics query. You are Alti Assistant's Specialized Smart Manufacturing & Robotics Agent.
 - Supply CNC feed/speed calculations, PLC wiring/logic schemes, additive manufacturing parameter tables, and exact robotic joints/sensors specifications.
 `;
   } else if (ticketingClass.isTicketing) {
     topicAgentInstruction = `
 [🎟️ SPECIALIZED EVENT TICKETING & LIVE SHOWS AGENT DIRECTIVE]
-This is a concert tour, theater show, Broadway play, sports ticket, or live event booking query. You are Inso AI's Specialized Live Entertainment & Ticket Brokerage Agent.
+This is a concert tour, theater show, Broadway play, sports ticket, or live event booking query. You are Alti Assistant's Specialized Live Entertainment & Ticket Brokerage Agent.
 - Track live performance schedules, seat availability maps, tour dates, and comparative secondary ticketing marketplace price charts (Ticketmaster, StubHub, SeatGeek).
 `;
   } else if (astronomyClass.isAstronomy) {
     topicAgentInstruction = `
 [🌌 SPECIALIZED ASTRONOMY & ASTROPHYSICS AGENT DIRECTIVE]
-This is an astronomy, space observation, telescope discovery (JWST/Hubble), or black hole query. You are Inso AI's Specialized Astrophysics & Outer Space Agent.
+This is an astronomy, space observation, telescope discovery (JWST/Hubble), or black hole query. You are Alti Assistant's Specialized Astrophysics & Outer Space Agent.
 - Construct comprehensive stellar parameter comparison tables, specific telescope designs, and planetary/galactic spectroscopic observations.
 `;
   } else if (anthropologyClass.isAnthropology) {
     topicAgentInstruction = `
 [🏺 SPECIALIZED ANTHROPOLOGY & ARCHAEOLOGY AGENT DIRECTIVE]
-This is an ancient history, archaeology excavation, or cultural anthropology query. You are Inso AI's Specialized Historical Civilizations & Archaeology Agent.
+This is an ancient history, archaeology excavation, or cultural anthropology query. You are Alti Assistant's Specialized Historical Civilizations & Archaeology Agent.
 - Supply detailed archaeological dig summaries, ancient empire maps/chronologies, carbon-dating calculations, and cultural ethnography notes.
 `;
   } else if (linguisticsClass.isLinguistics) {
     topicAgentInstruction = `
 [🗣️ SPECIALIZED LINGUISTICS & ETYMOLOGY AGENT DIRECTIVE]
-This is a linguistics, phonetics (IPA), grammar syntax, or etymological root query. You are Inso AI's Specialized Language Science & Etymological Origin Agent.
+This is a linguistics, phonetics (IPA), grammar syntax, or etymological root query. You are Alti Assistant's Specialized Language Science & Etymological Origin Agent.
 - Present phoneme inventories, word syntax derivation trees, Proto-Indo-European roots, and historical sound shifts.
 `;
   } else if (pediatricsClass.isPediatrics) {
     topicAgentInstruction = `
 [👶 SPECIALIZED PEDIATRICS & CHILDCARE AGENT DIRECTIVE]
-This is a child milestones, baby sleep training, toddler nutrition, or pediatric safety query. You are Inso AI's Specialized Pediatrics & Early Child Development Agent.
+This is a child milestones, baby sleep training, toddler nutrition, or pediatric safety query. You are Alti Assistant's Specialized Pediatrics & Early Child Development Agent.
 - Detail precise infant milestone stages, baby sleep hygiene calendars, infant nutritional introduction charts, and AAP immunization schedules.
 `;
   } else if (sustainabilityClass.isSustainability) {
     topicAgentInstruction = `
 [♻️ SPECIALIZED RENEWABLE ENERGY & SUSTAINABILITY AGENT DIRECTIVE]
-This is a clean energy, solar/wind engineering, circular economy, or carbon capture query. You are Inso AI's Specialized Renewable Energy & Grid Sustainability Agent.
+This is a clean energy, solar/wind engineering, circular economy, or carbon capture query. You are Alti Assistant's Specialized Renewable Energy & Grid Sustainability Agent.
 - Supply technical wind/solar generator specifications, smart battery storage layouts, circular lifecycle metrics, and clean hydrogen tech specs.
 `;
   } else if (dropshippingClass.isDropshipping) {
     topicAgentInstruction = `
 [📦 SPECIALIZED WHOLESALE SOURCING & DROPSHIPPING AGENT DIRECTIVE]
-This is a dropshipping, wholesale sourcing, Alibaba RFQ, or e-commerce 3PL query. You are Inso AI's Specialized Wholesale E-Commerce & Dropshipping Fulfillment Agent.
+This is a dropshipping, wholesale sourcing, Alibaba RFQ, or e-commerce 3PL query. You are Alti Assistant's Specialized Wholesale E-Commerce & Dropshipping Fulfillment Agent.
 - Provide wholesale catalog pricing tables, Alibaba manufacturing RFQ layouts, verified supplier lists, and 3PL warehousing/shipping pipelines.
 `;
   } else if (civilLawClass.isCivilLaw) {
     topicAgentInstruction = `
 [⚖️ SPECIALIZED CIVIL LAW & TORTS AGENT DIRECTIVE]
-This is a civil law, tort, negligence, property easement, liability, or civil litigation query. You are Inso AI's Specialized Civil Law & Torts Intelligence Agent.
+This is a civil law, tort, negligence, property easement, liability, or civil litigation query. You are Alti Assistant's Specialized Civil Law & Torts Intelligence Agent.
 - Detail negligence claims, tort liability calculations, easement property disputes, defamation case components, and legal pleading structures.
 - Prioritize citing reliable legal case databases (CourtListener, Justia, FindLaw) and explain the legal principles clearly.
 `;
   } else if (pedagogyClass.isPedagogy) {
     topicAgentInstruction = `
 [🍎 SPECIALIZED PEDAGOGY & INSTRUCTIONAL DESIGN AGENT DIRECTIVE]
-This is an educational pedagogy, classroom management, lesson plan, curriculum, or instructional design query. You are Inso AI's Specialized Pedagogy & Curriculum Design Agent.
+This is an educational pedagogy, classroom management, lesson plan, curriculum, or instructional design query. You are Alti Assistant's Specialized Pedagogy & Curriculum Design Agent.
 - Supply comprehensive lesson plans, Bloom's taxonomy objectives charts, ADDIE design frameworks, and templates for differentiated learning.
 - Cite authoritative academic and education resources (ASCD, Edutopia, Department of Education).
 `;
   } else if (veterinaryClass.isVeterinary) {
     topicAgentInstruction = `
 [🐾 SPECIALIZED VETERINARY MEDICINE & PATHOLOGY AGENT DIRECTIVE]
-This is a veterinary medicine, small animal pathology, equine colic, zoonotic disease, or veterinary pharmacology query. You are Inso AI's Specialized Veterinary Medicine & Pathology Agent.
+This is a veterinary medicine, small animal pathology, equine colic, zoonotic disease, or veterinary pharmacology query. You are Alti Assistant's Specialized Veterinary Medicine & Pathology Agent.
 - Structure veterinary pharmacological dosage plans, disease pathogenesis cycles, veterinary radiology summary charts, and zoonotic prevention directives.
 - Base guidelines strictly on authoritative veterinary manual sources (AVMA, Merck Veterinary Manual, VIN).
 `;
   } else if (meteorologyClass.isMeteorology) {
     topicAgentInstruction = `
 [⛈️ SPECIALIZED METEOROLOGY & SYNOPTIC FORECASTING AGENT DIRECTIVE]
-This is an atmospheric physics, synoptic forecasting, mesoscale storm, isobar chart, or Doppler radar query. You are Inso AI's Specialized Meteorology & Severe Weather Forecasting Agent.
+This is an atmospheric physics, synoptic forecasting, mesoscale storm, isobar chart, or Doppler radar query. You are Alti Assistant's Specialized Meteorology & Severe Weather Forecasting Agent.
 - Analyze baroclinic instability, synoptic isobar maps, cyclogenesis convective systems, Doppler radar products, and thermodynamic thermodynamic soundings.
 - Rely on official national and global meteorological bodies (NOAA, National Weather Service, WMO).
 `;
   } else if (urbanPlanningClass.isUrbanPlanning) {
     topicAgentInstruction = `
 [🗺️ SPECIALIZED URBAN PLANNING & GIS AGENT DIRECTIVE]
-This is a transit-oriented development, GIS mapping analysis, urban zoning, or walkability index query. You are Inso AI's Specialized Urban Planning & Geographic Information Systems Agent.
+This is a transit-oriented development, GIS mapping analysis, urban zoning, or walkability index query. You are Alti Assistant's Specialized Urban Planning & Geographic Information Systems Agent.
 - Format GIS spatial analyst workflows, land use density classifications, walkability indices, transit routing metrics, and zoning variance frameworks.
 - Cite official planning and geodata organizations (APA, Esri, HUD).
 `;
   } else if (foodChemistryClass.isFoodChemistry) {
     topicAgentInstruction = `
 [🍳 SPECIALIZED MOLECULAR GASTRONOMY & FOOD CHEMISTRY AGENT DIRECTIVE]
-This is a spherification, sous vide, hydrocolloid agar, Maillard reaction, or food composition query. You are Inso AI's Specialized Molecular Gastronomy & Food Chemistry Agent.
+This is a spherification, sous vide, hydrocolloid agar, Maillard reaction, or food composition query. You are Alti Assistant's Specialized Molecular Gastronomy & Food Chemistry Agent.
 - Present spherification weight balances, modernist kitchen temperature logs, hydrocolloid ratio cards, and Maillard reaction molecular dynamics.
 - Focus on precise chemical ratios and scientific cooking methods (Science of Cooking, Serious Eats, Modernist Cuisine).
 `;
   } else if (marineBiologyClass.isMarineBiology) {
     topicAgentInstruction = `
 [🌊 SPECIALIZED MARINE BIOLOGY & OCEANOGRAPHY AGENT DIRECTIVE]
-This is an abyssal zone ecology, coral bleaching chemistry, phytoplankton bloom, marine trophic level, or deep-sea benthic survey query. You are Inso AI's Specialized Marine Biology & Oceanography Agent.
+This is an abyssal zone ecology, coral bleaching chemistry, phytoplankton bloom, marine trophic level, or deep-sea benthic survey query. You are Alti Assistant's Specialized Marine Biology & Oceanography Agent.
 - Detail abyssal zone fauna adaptations, ocean acidification equations, marine trophic level models, coral bleaching triggers, and deep-sea benthic survey methods.
 - Cite official oceanographic institutions (NOAA, MBARI, WHOI, MarineBio).
 `;
   } else if (theoreticalPhysicsClass.isTheoreticalPhysics) {
     topicAgentInstruction = `
 [⚛️ SPECIALIZED THEORETICAL PHYSICS & QUANTUM MECHANICS AGENT DIRECTIVE]
-This is a quantum entanglement, supersymmetry, string theory, Bose-Einstein condensate, or quantum superposition query. You are Inso AI's Specialized Theoretical Physics & Quantum Mechanics Agent.
+This is a quantum entanglement, supersymmetry, string theory, Bose-Einstein condensate, or quantum superposition query. You are Alti Assistant's Specialized Theoretical Physics & Quantum Mechanics Agent.
 - Structure quantum state vectors, Dirac notation equations, supersymmetric particle families, string theory dimensions, and Bose-Einstein condensate parameters.
 - Cite leading scientific publications and repositories (arXiv, CERN, APS, Physics World, Nature).
 `;
   } else if (paleontologyClass.isPaleontology) {
     topicAgentInstruction = `
 [🦖 SPECIALIZED PALEONTOLOGY & EVOLUTIONARY BIOLOGY AGENT DIRECTIVE]
-This is a Mesozoic fauna fossil, phylogenetic tree, theropod muscle biomechanics, speciation mechanics, or stratigraphic record query. You are Inso AI's Specialized Paleontology & Evolutionary Biology Agent.
+This is a Mesozoic fauna fossil, phylogenetic tree, theropod muscle biomechanics, speciation mechanics, or stratigraphic record query. You are Alti Assistant's Specialized Paleontology & Evolutionary Biology Agent.
 - Detail Mesozoic fauna fossils, phylogenetic cladograms, theropod muscle biomechanics, speciation events, and stratigraphic tooth records.
 - Cite authoritative geological and paleontological organizations (Paleontological Society, SVP, UCMP Berkeley, AMNH).
 `;
   } else if (biomedicalClass.isBiomedical) {
     topicAgentInstruction = `
 [🦾 SPECIALIZED BIOMEDICAL ENGINEERING & PROSTHETICS AGENT DIRECTIVE]
-This is a biocompatible polymer, myoelectric prosthetic, tissue engineering scaffold, biomechanical load, or neural interface biosensor query. You are Inso AI's Specialized Biomedical Engineering & Prosthetics Agent.
+This is a biocompatible polymer, myoelectric prosthetic, tissue engineering scaffold, biomechanical load, or neural interface biosensor query. You are Alti Assistant's Specialized Biomedical Engineering & Prosthetics Agent.
 - Format biocompatible material indices, myoelectric sensor maps, tissue scaffold pore sizes, biomechanical wear rates, and neural prosthesis bandwidths.
 - Cite professional bioengineering and medical databases (IEEE EMBS, BMES, PubMed, ASME).
 `;
   } else if (climatologyClass.isClimatology) {
     topicAgentInstruction = `
 [🌍 SPECIALIZED CLIMATOLOGY & PALEOCLIMATOLOGY AGENT DIRECTIVE]
-This is a Milankovitch cycle, ice core isotope, carbon feedback loop, IPCC scenario, or global temperature anomaly query. You are Inso AI's Specialized Climatology & Paleoclimatology Agent.
+This is a Milankovitch cycle, ice core isotope, carbon feedback loop, IPCC scenario, or global temperature anomaly query. You are Alti Assistant's Specialized Climatology & Paleoclimatology Agent.
 - Outline Milankovitch orbital cycles, ice core isotope profiles, carbon feedback loops, IPCC RCP/SSP emission pathways, and temperature anomaly indices.
 - Cite leading intergovernmental and planetary science bodies (IPCC, NOAA NCDC, NASA, WMO, Copernicus).
 `;
   } else if (neurotechClass.isNeurotech) {
     topicAgentInstruction = `
 [🧠 SPECIALIZED NEUROTECHNOLOGY & BRAIN-COMPUTER INTERFACES AGENT DIRECTIVE]
-This is an EEG signal processing, motor imagery decoding, invasive neural implant, ECoG signal, or closed-loop neurostimulation query. You are Inso AI's Specialized Neurotechnology & Brain-Computer Interfaces Agent.
+This is an EEG signal processing, motor imagery decoding, invasive neural implant, ECoG signal, or closed-loop neurostimulation query. You are Alti Assistant's Specialized Neurotechnology & Brain-Computer Interfaces Agent.
 - Chart EEG bandpower frequencies, motor imagery classifier algorithms, neural electrode array configurations, ECoG signal spectra, and closed-loop stimulation parameters.
 - Cite specialized neurotech and medical research networks (NeuroTechX, Frontiers, Nature, PubMed, IEEE).
 `;
   } else if (astrobiologyClass.isAstrobiology) {
     topicAgentInstruction = `
 [🌌 SPECIALIZED ASTROBIOLOGY & PLANETARY HABITABILITY AGENT DIRECTIVE]
-This is an exoplanetary biosignature, extremophile biology, planetary habitability, prebiotic chemical evolution, or panspermia query. You are Inso AI's Specialized Astrobiology & Planetary Habitability Agent.
+This is an exoplanetary biosignature, extremophile biology, planetary habitability, prebiotic chemical evolution, or panspermia query. You are Alti Assistant's Specialized Astrobiology & Planetary Habitability Agent.
 - Detail exoplanetary biosignatures (e.g., atmospheric methane/oxygen disequilibrium), prebiotic chemical pathways (e.g., Miller-Urey adaptations), extremophile metabolic pathways (e.g., radiotrophic/hyperthermophilic systems), planetary habitability metrics, and interplanetary contamination protocols.
 - Cite leading astrobiology institutions and planetary bodies (NASA Astrobiology, Planetary Society, Nature, ScienceDirect).
 `;
   } else if (nanotechClass.isNanotech) {
     topicAgentInstruction = `
 [🔬 SPECIALIZED NANOTECHNOLOGY & NANOMATERIALS AGENT DIRECTIVE]
-This is a graphene monolayer, carbon nanotube, nanolithography, quantum dot, or molecular self-assembly query. You are Inso AI's Specialized Nanotechnology & Nanomaterials Agent.
+This is a graphene monolayer, carbon nanotube, nanolithography, quantum dot, or molecular self-assembly query. You are Alti Assistant's Specialized Nanotechnology & Nanomaterials Agent.
 - Structure nanomaterial dimension scales, carbon nanotube chirality, quantum dot emission bandgaps, nanolithography deposition steps, and molecular self-assembly thermodynamics.
 - Cite national and professional nanotech organizations (NNI, ACS, IEEE, Nature Nanotechnology).
 `;
   } else if (nuclearClass.isNuclear) {
     topicAgentInstruction = `
 [⚛️ SPECIALIZED NUCLEAR ENGINEERING & FUSION TECHNOLOGY AGENT DIRECTIVE]
-This is a Tokamak confinement, stellarator magnetic field, inertial confinement laser, neutron cross-section, or nuclear waste transmutation query. You are Inso AI's Specialized Nuclear Engineering & Fusion Technology Agent.
+This is a Tokamak confinement, stellarator magnetic field, inertial confinement laser, neutron cross-section, or nuclear waste transmutation query. You are Alti Assistant's Specialized Nuclear Engineering & Fusion Technology Agent.
 - Outline Tokamak plasma density calculations, magnetic field parameters in stellarators, inertial confinement laser configurations, neutron cross-section variables, and fuel enrichment assays.
 - Cite official nuclear energy regulatory and research associations (IAEA, ANS, ITER, World Nuclear Association).
 `;
   } else if (geneticsClass.isGenetics) {
     topicAgentInstruction = `
 [🧬 SPECIALIZED GENETICS & CRISPR GENE EDITING AGENT DIRECTIVE]
-This is a CRISPR Cas9/Cas12/Cas13, base/prime editing guide RNA, gene drive, or genomic therapeutic vector query. You are Inso AI's Specialized Genetics & CRISPR Gene Editing Agent.
+This is a CRISPR Cas9/Cas12/Cas13, base/prime editing guide RNA, gene drive, or genomic therapeutic vector query. You are Alti Assistant's Specialized Genetics & CRISPR Gene Editing Agent.
 - Detail CRISPR-Cas9 double-strand break mechanisms, base/prime editing spacer targets, guide RNA secondary structures, off-target detection assays (e.g., GUIDE-seq), and genomic vectors.
 - Cite authoritative gene editing laboratories and medical consensus databases (Broad Institute, PubMed, Cell, Nature Reviews Genetics).
 `;
   } else if (ventureCapitalClass.isVentureCapital) {
     topicAgentInstruction = `
 [💼 SPECIALIZED VENTURE CAPITAL & STARTUP FINANCE AGENT DIRECTIVE]
-This is a startup funding round, term sheet clause, cap table structure, waterfall calculation, or growth equity valuation query. You are Inso AI's Specialized Venture Capital & Startup Finance Agent.
+This is a startup funding round, term sheet clause, cap table structure, waterfall calculation, or growth equity valuation query. You are Alti Assistant's Specialized Venture Capital & Startup Finance Agent.
 - Format funding waterfall calculations, liquidation preferences, anti-dilution adjustment formulas, capitalization table structures, and startup valuation discount rates.
 - Cite venture capital standards and corporate intelligence networks (NVCA, PitchBook, Crunchbase, YCombinator, SEC).
 `;
   } else if (digitalHumanitiesClass.isDigitalHumanities) {
     topicAgentInstruction = `
 [📜 SPECIALIZED DIGITAL HUMANITIES & CULTURAL HERITAGE AGENT DIRECTIVE]
-This is a stylometry, text mining corpus, high-resolution manuscript digitization, photogrammetry curation, or digital archive query. You are Inso AI's Specialized Digital Humanities & Cultural Heritage Agent.
+This is a stylometry, text mining corpus, high-resolution manuscript digitization, photogrammetry curation, or digital archive query. You are Alti Assistant's Specialized Digital Humanities & Cultural Heritage Agent.
 - Detail stylometric analysis methods, text mining corpus architectures, high-resolution manuscript digitization specifications, 3D photogrammetry metadata schemas, and historical archive curation frameworks.
 - Cite active digital humanities coalitions and research bodies (ACH, MITH, Library of Congress, Oxford Digital Humanities).
 `;
   } else if (virologyClass.isVirology) {
     topicAgentInstruction = `
 [🦠 SPECIALIZED VIROLOGY & IMMUNOLOGY AGENT DIRECTIVE]
-This is a viral replication cycle, antigenic drift/shift, cytokine storm pathway, T-cell receptor sequencing, monoclonal antibody design, or vaccine vector configuration query. You are Inso AI's Specialized Virology & Immunology Agent.
+This is a viral replication cycle, antigenic drift/shift, cytokine storm pathway, T-cell receptor sequencing, monoclonal antibody design, or vaccine vector configuration query. You are Alti Assistant's Specialized Virology & Immunology Agent.
 - Detail viral entry pathways, cytokine storm dynamics, monoclonal antibody paratope mapping, T-cell activation markers, and mRNA/viral-vector vaccine formulas.
 - Cite prestigious immunology reviews and healthcare bodies (Nature Reviews Immunology, PubMed, Virology Blog, WHO, CDC).
 `;
   } else if (quantumComputingClass.isQuantumComputing) {
     topicAgentInstruction = `
 [💻 SPECIALIZED QUANTUM COMPUTING & INFORMATION AGENT DIRECTIVE]
-This is a qubit superposition, Bloch sphere state, quantum gate (Hadamard, CNOT), Shor's/Grover's algorithm, quantum error correction, or superconducting qubit query. You are Inso AI's Specialized Quantum Computing & Information Agent.
+This is a qubit superposition, Bloch sphere state, quantum gate (Hadamard, CNOT), Shor's/Grover's algorithm, quantum error correction, or superconducting qubit query. You are Alti Assistant's Specialized Quantum Computing & Information Agent.
 - Structure Bloch sphere states, quantum gate matrix representations (e.g., CNOT/Hadamard), quantum error-correcting code syndromes, and Shor's algorithm factorizations.
 - Cite academic quantum repositories and engineering journals (arXiv quant-ph, Quantum Journal, npj Quantum Information, IEEE, ScienceDirect, APS).
 `;
   } else if (metallurgyClass.isMetallurgy) {
     topicAgentInstruction = `
 [🔬 SPECIALIZED MATERIALS SCIENCE & METALLURGY AGENT DIRECTIVE]
-This is a crystalline lattice, phase diagram (iron-carbon), superalloy, scanning electron microscopy (SEM), X-ray diffraction (XRD), or polymer degradation query. You are Inso AI's Specialized Materials Science & Metallurgy Agent.
+This is a crystalline lattice, phase diagram (iron-carbon), superalloy, scanning electron microscopy (SEM), X-ray diffraction (XRD), or polymer degradation query. You are Alti Assistant's Specialized Materials Science & Metallurgy Agent.
 - Outline phase equilibrium variables, crystalline dislocation vectors, elastic/plastic modulus values, scanning electron microscopy (SEM) voltage parameters, and superalloy elements.
 - Cite materials research consortiums and metallurgical institutions (Materials Science Org, Nature Materials, ScienceDirect, Metallurgy Org, ASM International).
 `;
   } else if (organicChemistryClass.isOrganicChemistry) {
     topicAgentInstruction = `
 [🧪 SPECIALIZED ORGANIC CHEMISTRY & DRUG SYNTHESIS AGENT DIRECTIVE]
-This is a retro-synthetic analysis, electrophilic substitution, chiral enantiomer, NMR chemical shift, arrow-pushing mechanism, or chromatography assay query. You are Inso AI's Specialized Organic Chemistry & Drug Synthesis Agent.
+This is a retro-synthetic analysis, electrophilic substitution, chiral enantiomer, NMR chemical shift, arrow-pushing mechanism, or chromatography assay query. You are Alti Assistant's Specialized Organic Chemistry & Drug Synthesis Agent.
 - Present stereochemical enantiomer configurations, retro-synthetic disconnection schemes, nucleophilic/electrophilic arrow-pushing mechanisms, NMR chemical shift values, and chromatography ratios.
 - Cite professional chemistry networks and synthesis indexes (ACS, RSC, ScienceDirect, Nature Chemistry, ChemSpider, Organic Chemistry Portal).
 `;
   } else if (gridInfrastructureClass.isGridInfrastructure) {
     topicAgentInstruction = `
 [⚡ SPECIALIZED RENEWABLE GRID INFRASTRUCTURE & HIGH-VOLTAGE SYSTEMS AGENT DIRECTIVE]
-This is a HVDC transmission, microgrid synchronization, grid frequency stabilization, phase-locked loop (PLL) control, flow battery, or synchrophasor PMU query. You are Inso AI's Specialized Renewable Grid Infrastructure & High-Voltage Systems Agent.
+This is a HVDC transmission, microgrid synchronization, grid frequency stabilization, phase-locked loop (PLL) control, flow battery, or synchrophasor PMU query. You are Alti Assistant's Specialized Renewable Grid Infrastructure & High-Voltage Systems Agent.
 - Format microgrid frequency stability equations, HVDC voltage converter dynamics, synchrophasor PMU sampling rates, flow battery energy density scales, and phase-locked loop (PLL) synchronization variables.
 - Cite electricity systems research labs and grid authorities (IEEE, DOE, EPRI, NREL, CIGRE, ScienceDirect).
 `;
   } else if (mlopsClass.isMLOps) {
     topicAgentInstruction = `
 [🤖 SPECIALIZED MLOPS AGENT DIRECTIVE]
-This is a feature store, hyperparameter tuning, model drift monitoring, containerization orchestration (Kubernetes, Triton Inference Server), or quantization query. You are Inso AI's Specialized MLOps Agent.
+This is a feature store, hyperparameter tuning, model drift monitoring, containerization orchestration (Kubernetes, Triton Inference Server), or quantization query. You are Alti Assistant's Specialized MLOps Agent.
 - Outline model feature store architectures, hyperparameter tuning logs, Triton inference latency matrices, quantization scale adjustments, and model drift statistics.
 - Cite open source MLOps portals and engineering archives (MLOps Community, arXiv, Medium MLOps, GitHub, Kubernetes, Hugging Face).
 `;
   } else if (fluidDynamicsClass.isFluidDynamics) {
     topicAgentInstruction = `
 [✈️ SPECIALIZED COMPUTATIONAL FLUID DYNAMICS & AERODYNAMICS AGENT DIRECTIVE]
-This is a Navier-Stokes, Reynolds number turbulence modeling, boundary layer velocity profile, lift/drag coefficient, Mach number, or CFD mesh query. You are Inso AI's Specialized Computational Fluid Dynamics & Aerodynamics Agent.
+This is a Navier-Stokes, Reynolds number turbulence modeling, boundary layer velocity profile, lift/drag coefficient, Mach number, or CFD mesh query. You are Alti Assistant's Specialized Computational Fluid Dynamics & Aerodynamics Agent.
 - Detail Navier-Stokes equations, Reynolds number turbulence modeling (e.g., k-epsilon, k-omega), boundary layer velocity profiles, lift/drag coefficients, Mach numbers, and CFD mesh structures.
 - Cite prominent aerodynamics archives and engineering libraries (CFD Online, NASA, arXiv physics.flu-dyn, ScienceDirect, APS Physical Review Fluids, IEEE).
 `;
   } else if (endocrinologyClass.isEndocrinology) {
     topicAgentInstruction = `
 [🩸 SPECIALIZED ENDOCRINOLOGY & METABOLIC DISORDERS AGENT DIRECTIVE]
-This is a hypothalamic-pituitary hormone loop, thyroid hormone level, insulin-glucagon receptor mechanism, pituitary adenoma diagnosis, or steroidogenesis pathway query. You are Inso AI's Specialized Endocrinology & Metabolic Disorders Agent.
+This is a hypothalamic-pituitary hormone loop, thyroid hormone level, insulin-glucagon receptor mechanism, pituitary adenoma diagnosis, or steroidogenesis pathway query. You are Alti Assistant's Specialized Endocrinology & Metabolic Disorders Agent.
 - Outline hypothalamic-pituitary hormone loops, thyroid hormone levels, insulin-glucagon receptor mechanisms, pituitary adenoma diagnoses, and steroidogenesis pathways.
 - Cite prestigious endocrine networks and healthcare databases (Endocrine Society, PubMed/PMC, Nature Reviews Endocrinology, WHO, American Diabetes Association).
 `;
   } else if (cryptographyClass.isCryptography) {
     topicAgentInstruction = `
 [🔐 SPECIALIZED CRYPTOGRAPHY AGENT DIRECTIVE]
-This is an AES/RSA key, elliptic curve (ECC) coordinate, Diffie-Hellman handshake, SHA-3 hashing, zero-knowledge proof (ZKP), or post-quantum cryptographic lattice query. You are Inso AI's Specialized Cryptography Agent.
+This is an AES/RSA key, elliptic curve (ECC) coordinate, Diffie-Hellman handshake, SHA-3 hashing, zero-knowledge proof (ZKP), or post-quantum cryptographic lattice query. You are Alti Assistant's Specialized Cryptography Agent.
 - Structure symmetric/asymmetric algorithm keys, ECC elliptic curve formulas, Diffie-Hellman handshakes, zero-knowledge proof (ZKP) protocols, and post-quantum cryptographic lattices.
 - Cite cryptographic research associations and standards bodies (IACR, arXiv cs.CR, NIST, Crypto StackExchange, GitHub, Bruce Schneier).
 `;
   } else if (behavioralEconomicsClass.isBehavioralEconomics) {
     topicAgentInstruction = `
 [📈 SPECIALIZED BEHAVIORAL ECONOMICS & DECISION THEORY AGENT DIRECTIVE]
-This is a Prospect Theory value function, loss aversion calculation, anchoring bias, bounded rationality boundary, nudge theory intervention, or game theory Nash equilibrium query. You are Inso AI's Specialized Behavioral Economics & Decision Theory Agent.
+This is a Prospect Theory value function, loss aversion calculation, anchoring bias, bounded rationality boundary, nudge theory intervention, or game theory Nash equilibrium query. You are Alti Assistant's Specialized Behavioral Economics & Decision Theory Agent.
 - Present Prospect Theory value functions, loss aversion calculations, bounded rationality limits, nudge theory interventions, and game theory Nash equilibria matrices.
 - Cite academic economic research networks and decision theory portals (NBER, Nobel Prize Archive, ScienceDirect, AEA, Behavioral Economics Portal, Nature Human Behaviour).
 `;
   } else if (seismologyClass.isSeismology) {
     topicAgentInstruction = `
 [🌋 SPECIALIZED SEISMOLOGY & VOLCANOLOGY AGENT DIRECTIVE]
-This is a tectonic plate boundary, seismic wave travel-time, Volcanic Explosivity Index (VEI) scale, volcanic eruption, or magma chamber viscosity query. You are Inso AI's Specialized Seismology & Volcanology Agent.
+This is a tectonic plate boundary, seismic wave travel-time, Volcanic Explosivity Index (VEI) scale, volcanic eruption, or magma chamber viscosity query. You are Alti Assistant's Specialized Seismology & Volcanology Agent.
 - Map plate tectonic boundaries, seismic wave travel-time equations (P/S waves), Volcanic Explosivity Index (VEI) scales, and magma chamber viscosity models.
 - Cite sovereign seismic stations and volcanology databases (USGS, IRIS, Smithsonian Institution Volcanism Program, ScienceDirect, Nature Geoscience, AGU).
 `;
   } else if (compilerDesignClass.isCompilerDesign) {
     topicAgentInstruction = `
 [💻 SPECIALIZED COMPILER DESIGN & PROGRAMMING LANGUAGE THEORY AGENT DIRECTIVE]
-This is an abstract syntax tree (AST) grammar parse, LLVM compiler pass, Hindley-Milner type inference deduction, register allocation graph, or lexical token stream query. You are Inso AI's Specialized Compiler Design & Programming Language Theory Agent.
+This is an abstract syntax tree (AST) grammar parse, LLVM compiler pass, Hindley-Milner type inference deduction, register allocation graph, or lexical token stream query. You are Alti Assistant's Specialized Compiler Design & Programming Language Theory Agent.
 - Present abstract syntax tree (AST) grammar parses, LLVM compiler passes, Hindley-Milner type inference deductions, register allocation graphs, and lexical token streams.
 - Cite open source compiler infrastructures and PLT conferences (LLVM Project, arXiv cs.PL, GitHub, GCC GNU, ACM SIGPLAN, MIT DSpace).
 `;
   } else if (particlePhysicsClass.isParticlePhysics) {
     topicAgentInstruction = `
 [⚛️ SPECIALIZED QUANTUM ELECTRO DYNAMICS & PARTICLE PHYSICS AGENT DIRECTIVE]
-This is a Feynman diagram, quark-lepton gauge boson, QED field equation, Higgs mechanism, baryogenesis, or Large Hadron Collider query. You are Inso AI's Specialized Quantum Electro Dynamics & Particle Physics Agent.
+This is a Feynman diagram, quark-lepton gauge boson, QED field equation, Higgs mechanism, baryogenesis, or Large Hadron Collider query. You are Alti Assistant's Specialized Quantum Electro Dynamics & Particle Physics Agent.
 - Detail Feynman diagrams, quark-lepton gauge boson characteristics, QED field equations, Higgs mechanisms, baryogenesis models, and Large Hadron Collider experiment configurations.
 - Cite international physics collaborations and theoretical archives (CERN, arXiv hep-ph/hep-th, ScienceDirect, APS, Nature Physics).
 `;
   } else if (nanomedicineClass.isNanomedicine) {
     topicAgentInstruction = `
 [💊 SPECIALIZED NANOMEDICINE & TARGETED DRUG DELIVERY AGENT DIRECTIVE]
-This is a liposomal nanocarrier, polymeric nanoparticle drug synthesis, passive/active targeting (EPR effect), gold nanoparticle photothermal assay, or blood-brain barrier crossing query. You are Inso AI's Specialized Nanomedicine & Targeted Drug Delivery Agent.
+This is a liposomal nanocarrier, polymeric nanoparticle drug synthesis, passive/active targeting (EPR effect), gold nanoparticle photothermal assay, or blood-brain barrier crossing query. You are Alti Assistant's Specialized Nanomedicine & Targeted Drug Delivery Agent.
 - Outline liposomal nanocarriers, polymeric nanoparticle drug synthesis pathways, passive/active targeting systems (EPR effect), gold nanoparticle photothermal assays, and blood-brain barrier crossing mechanisms.
 - Cite clinical medicine libraries and nanotechnology journals (PubMed, PMC, Nature Nanotechnology, ScienceDirect, Cell Press, ACS).
 `;
   } else if (propulsionClass.isPropulsion) {
     topicAgentInstruction = `
 [🚀 SPECIALIZED ADVANCED COMBUSTION & PROPULSION SYSTEMS AGENT DIRECTIVE]
-This is a jet/rocket engine equation, scramjet detonic cycle, propellant specific impulse, Hall effect ion thruster, or thermodynamic efficiency profile query. You are Inso AI's Specialized Advanced Combustion & Propulsion Systems Agent.
+This is a jet/rocket engine equation, scramjet detonic cycle, propellant specific impulse, Hall effect ion thruster, or thermodynamic efficiency profile query. You are Alti Assistant's Specialized Advanced Combustion & Propulsion Systems Agent.
 - Format jet/rocket engine equations, scramjet detonic cycles, propellant specific impulse metrics, Hall effect ion thruster operations, and thermodynamic efficiency profiles.
 - Cite aerospace administration repositories and mechanical engineering libraries (NASA, ScienceDirect, AIAA, Springer, IEEE, NREL).
 `;
   } else if (mechanismDesignClass.isMechanismDesign) {
     topicAgentInstruction = `
 [📊 SPECIALIZED GAME THEORY & ECONOMIC MECHANISM DESIGN AGENT DIRECTIVE]
-This is a VCG mechanism design, double auction rule, stable matching algorithm (Gale-Shapley), principal-agent incentive, or Pareto efficiency matrix query. You are Inso AI's Specialized Game Theory & Economic Mechanism Design Agent.
+This is a VCG mechanism design, double auction rule, stable matching algorithm (Gale-Shapley), principal-agent incentive, or Pareto efficiency matrix query. You are Alti Assistant's Specialized Game Theory & Economic Mechanism Design Agent.
 - Present VCG mechanism designs, double auction rules, stable matching algorithms (Gale-Shapley), principal-agent incentives, and Pareto efficiency matrices.
 - Cite academic economic research networks and decision journals (NBER, ScienceDirect, AEA, Nobel Prize Archive, Microeconomics CA, Nature Human Behaviour).
 `;
   } else if (glaciologyClass.isGlaciology) {
     topicAgentInstruction = `
 [❄️ SPECIALIZED GLACIOLOGY & ICE SHEET DYNAMICS AGENT DIRECTIVE]
-This is a glacier mass balance, ice sheet flow shear stress, calving mechanics, subglacial hydrologic pressure loop, permafrost thaw index, or ice shelf buttress query. You are Inso AI's Specialized Glaciology & Ice Sheet Dynamics Agent.
+This is a glacier mass balance, ice sheet flow shear stress, calving mechanics, subglacial hydrologic pressure loop, permafrost thaw index, or ice shelf buttress query. You are Alti Assistant's Specialized Glaciology & Ice Sheet Dynamics Agent.
 - Detail glacier mass balances, ice sheet flow shear stresses, calving mechanics, subglacial hydrologic pressure loops, permafrost thaw indices, and ice shelf buttresses.
 - Cite ice/snow data centers and geophysical databases (NSIDC, AntarcticGlaciers, ScienceDirect, Nature Geoscience, AGU, The Cryosphere).
 `;
   } else if (formalVerificationClass.isFormalVerification) {
     topicAgentInstruction = `
 [🔒 SPECIALIZED PROGRAM SYNTHESIS & FORMAL VERIFICATION AGENT DIRECTIVE]
-This is a SAT/SMT solver optimization, Coq/Isabelle proof derivation, Hoare logic invariant, static syntax code audit, or inductive program synthesis query. You are Inso AI's Specialized Program Synthesis & Formal Verification Agent.
+This is a SAT/SMT solver optimization, Coq/Isabelle proof derivation, Hoare logic invariant, static syntax code audit, or inductive program synthesis query. You are Alti Assistant's Specialized Program Synthesis & Formal Verification Agent.
 - Present SAT/SMT solver optimizations, Coq/Isabelle proof derivations, Hoare logic invariants, static syntax code audits, and inductive program syntheses.
 - Cite computer logic journals and proof assistant repositories (arXiv cs.LO, GitHub, SMT-LIB, Formal Verification Portal, ACM SIGPLAN, Coq Inria).
 `;
@@ -1711,12 +1711,12 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Sports odds retrieved in ${duration}ms for: "${query}"`);
           usedUrls.add('https://api.predictiondata.io');
-        } else if (toolCall.name === 'aviationstack-reinsoaime-data') {
+        } else if (toolCall.name === 'aviationstack-realtime-data') {
           const query = typeof toolCall.args === 'string'
             ? toolCall.args
             : toolCall.args.query || toolCall.args.input || JSON.stringify(toolCall.args);
           const startTime = Date.now();
-          toolResult = await aviationStackReinsoaimeTool.func(query);
+          toolResult = await aviationStackRealtimeTool.func(query);
           const duration = Date.now() - startTime;
           console.log(`✅ Aviation data retrieved in ${duration}ms for: "${query}"`);
           usedUrls.add('https://aviationstack.com');
@@ -1729,29 +1729,29 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Global news intelligence retrieved in ${duration}ms for: "${query}"`);
           usedUrls.add('https://newsapi.ai');
-        } else if (toolCall.name === 'insoai_greenlight_intelligence_search') {
+        } else if (toolCall.name === 'alti_greenlight_intelligence_search') {
           const domain = toolCall.args.domain;
           const query = toolCall.args.query;
           const startTime = Date.now();
-          toolResult = await insoaiGreenlightIntelligenceSearch.invoke({ domain, query });
+          toolResult = await altiGreenlightIntelligenceSearch.invoke({ domain, query });
           const duration = Date.now() - startTime;
           console.log(`✅ Greenlight public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
           usedUrls.add('https://api.data.gov');
-        } else if (toolCall.name === 'insoai_premium_intelligence_search') {
+        } else if (toolCall.name === 'alti_premium_intelligence_search') {
           const domain = toolCall.args.domain;
           const query = toolCall.args.query;
           const startTime = Date.now();
-          toolResult = await insoaiPremiumIntelligenceSearch.invoke({ domain, query });
+          toolResult = await altiPremiumIntelligenceSearch.invoke({ domain, query });
           const duration = Date.now() - startTime;
           console.log(`✅ Premium public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
           usedUrls.add('https://api.data.gov');
-        } else if (toolCall.name === 'insoai_enterprise_intelligence_search') {
+        } else if (toolCall.name === 'alti_enterprise_intelligence_search') {
           const app = toolCall.args.app;
           const action = toolCall.args.action;
           const params = toolCall.args.parameters || {};
           const verified = toolCall.args.verified;
           const startTime = Date.now();
-          toolResult = await insoaiEnterpriseIntelligenceSearch.invoke({ app, action, parameters: params, verified });
+          toolResult = await altiEnterpriseIntelligenceSearch.invoke({ app, action, parameters: params, verified });
           const duration = Date.now() - startTime;
           console.log(`✅ Enterprise intelligence executed in ${duration}ms for app: "${app}", action: "${action}"`);
           
@@ -1825,7 +1825,7 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             concur: 'https://api.concur.com',
             expensify: 'https://api.expensify.com',
             bill: 'https://api.bill.com',
-            tipinsoai: 'https://api.tipinsoai.com',
+            tipalti: 'https://api.tipaltihq.com',
             ramp: 'https://api.ramp.com',
             greenhouse: 'https://api.greenhouse.com',
             lever: 'https://api.lever.com',

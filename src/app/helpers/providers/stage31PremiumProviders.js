@@ -2,7 +2,7 @@
  * stage31PremiumProviders.js — Stage 31 Premium Global Sovereign Open Data Grounding Channels
  *
  * Implements the macroeconomic and central bank search providers for Canada,
- * Italy, Spain, the Netherlands, and Sweden for Inso AI's RAG/Grounding engine.
+ * Italy, Spain, the Netherlands, and Sweden for Alti Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

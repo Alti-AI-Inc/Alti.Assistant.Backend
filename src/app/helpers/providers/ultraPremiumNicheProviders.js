@@ -23,7 +23,7 @@ export const GithubCommitsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:commits for|commit history of|changesets in)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {

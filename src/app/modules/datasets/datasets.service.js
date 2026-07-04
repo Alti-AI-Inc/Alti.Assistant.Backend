@@ -21,7 +21,7 @@ import { rag } from '../knowledge/knowledge.service.js';
 /**
  * Initializes and returns a Google Cloud Storage client and bucket.
  * It attempts to use credentials from `config.google.google_application_credentials`
- * or a local `insoai_gcp.json` file.
+ * or a local `alti_gcp.json` file.
  * If GCS initialization fails, it logs an error and returns nulls for storage and bucket.
  *
  * @returns {object} An object containing:
@@ -31,10 +31,10 @@ import { rag } from '../knowledge/knowledge.service.js';
  */
 const getGcsBucket = () => {
   try {
-    const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'insoai_gcp.json');
+    const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'alti_gcp.json');
     const storage = new Storage({ keyFilename: keyPath });
-    // Default bucket to one configured in env, or a standard insoai dataset storage bucket
-    const bucketName = config.gcs.knowledge_bank_bucket || 'insoai_assistant_datasets';
+    // Default bucket to one configured in env, or a standard alti dataset storage bucket
+    const bucketName = config.gcs.knowledge_bank_bucket || 'alti_assistant_datasets';
     return { storage, bucket: storage.bucket(bucketName), bucketName };
   } catch (error) {
     console.error('Failed to initialize GCS bucket for datasets:', error.message);
@@ -48,7 +48,7 @@ const getGcsBucket = () => {
  */
 const getCloudTasksClient = () => {
   try {
-    const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'insoai_gcp.json');
+    const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'alti_gcp.json');
     if (fs.existsSync(keyPath)) {
       return new CloudTasksClient({ keyFilename: keyPath });
     }
@@ -135,7 +135,7 @@ const searchHFDatasets = async (query = '', limit = 10) => {
         direction: '-1'
       },
       headers: {
-        'User-Agent': 'Inso AI-Assistant-Backend'
+        'User-Agent': 'Alti Assistant-Assistant-Backend'
       }
     });
 
@@ -168,7 +168,7 @@ const getHFDatasetInfo = async (datasetId) => {
   try {
     // 1. Get main metadata from HF Hub API
     const hubResponse = await axios.get(`https://huggingface.co/api/datasets/${datasetId}`, {
-      headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
+      headers: { 'User-Agent': 'Alti Assistant-Assistant-Backend' }
     });
 
     const meta = hubResponse.data;
@@ -233,7 +233,7 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
     if (!datasetId.includes('/')) {
       try {
         const hubResponse = await axios.get(`https://huggingface.co/api/datasets/${datasetId}`, {
-          headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
+          headers: { 'User-Agent': 'Alti Assistant-Assistant-Backend' }
         });
         canonicalId = hubResponse.data.id;
       } catch (e) {
@@ -249,7 +249,7 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
         offset,
         limit
       },
-      headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
+      headers: { 'User-Agent': 'Alti Assistant-Assistant-Backend' }
     });
 
     return {
@@ -371,7 +371,7 @@ const archiveDatasetToGCSCore = async (datasetId) => {
         method: 'GET',
         url: downloadUrl,
         responseType: 'stream',
-        headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
+        headers: { 'User-Agent': 'Alti Assistant-Assistant-Backend' }
       });
 
       await new Promise((resolve, reject) => {

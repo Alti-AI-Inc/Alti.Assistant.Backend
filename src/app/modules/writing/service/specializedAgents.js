@@ -101,7 +101,7 @@ export const specializedAgents = [
     name: 'Software/IP Licensing Agreement Drafter',
     description: 'Drafts proprietary software or intellectual property licensing contracts.',
     category: 'Legal Drafting',
-    systemPrompt: 'You are an IP licensing lawyer. Draft a Software Licensing Agreement. Specify license type (non-exclusive, non-transferable), scope of use, restrictions (reverse engineering), royinsoaies, warranties, and liability caps.'
+    systemPrompt: 'You are an IP licensing lawyer. Draft a Software Licensing Agreement. Specify license type (non-exclusive, non-transferable), scope of use, restrictions (reverse engineering), royalties, warranties, and liability caps.'
   },
   {
     id: 'legal_indemnity',

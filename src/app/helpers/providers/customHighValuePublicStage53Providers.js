@@ -190,7 +190,7 @@ export const SecFailsToDeliverProvider = {
 
 | Failed Ticker Symbol | Daily Fails-to-Deliver Vol | Share Price at Failure | Sponsoring Settlement Date | SEC FTD Registry Standing |
 |----------------------|----------------------------|-------------------------|----------------------------|---------------------------|
-| **ALTI** (Inso AIs Tech)| **124,500 Shares Failed to Deliver**| $45.20 per share | **FTD Settlement Date March 12**| **SEC FTD Active List** |
+| **ALTI** (Alti Assistants Tech)| **124,500 Shares Failed to Deliver**| $45.20 per share | **FTD Settlement Date March 12**| **SEC FTD Active List** |
 | **HAWN** (Hawthorne) | **84,500 Shares Failed to Deliver**| $28.50 per share | **FTD Settlement Date March 12**| **SEC FTD Active List** |
 | VNCE (Vance Corp) | 22,000 Shares Failed to Deliver| $12.40 per share | FTD Settlement Date March 10| Verified Fails-to-Deliver |`;
 
@@ -346,13 +346,13 @@ export const FtcFuneralRuleProvider = {
 
 | Audited Establishment Name | County Geographic Locality | Pricing Disclosure Rating | Regulatory FTC Case Docket | FTC Funeral Rule Status |
 |-----------------------------|----------------------------|----------------------------|----------------------------|-------------------------|
-| **Inso AIs Funeral Chapel** | Ann Arbor, Michigan | **General Price List (GPL) Failure**| **FTC Funeral Rule Violation Flag**| **FTC Active Compliance Case**|
+| **Alti Assistants Funeral Chapel** | Ann Arbor, Michigan | **General Price List (GPL) Failure**| **FTC Funeral Rule Violation Flag**| **FTC Active Compliance Case**|
 | **Hawthorne Memorials** | Kent County, Michigan | **General Price List (GPL) Failure**| **FTC Funeral Rule Violation Flag**| **FTC Active Compliance Case**|
 | Vance Care & Service | Indianapolis, Indiana | Verified GPL Compliant | FTC Case Docket #VNCE620 | Funeral Rule Passed |`;
 
     const metadata = {
       domain: 'ftc_funeral_rule',
-      establishmentName: 'Inso AIs Funeral Chapel',
+      establishmentName: 'Alti Assistants Funeral Chapel',
       location: 'Ann Arbor, Michigan',
       rating: 'GPL Failure',
       status: 'FTC Funeral Rule Violation Flag'

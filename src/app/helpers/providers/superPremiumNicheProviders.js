@@ -23,7 +23,7 @@ export const GithubWorkflowsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:workflows for|CI\/CD configurations in|workflow runs of)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {

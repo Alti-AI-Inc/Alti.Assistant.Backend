@@ -94,7 +94,7 @@ const createSession = async (engineId, userMetadata = {}) => {
     userMetadata: {
       ...userMetadata,
       createdAt: new Date().toISOString(),
-      platform: 'insoai-assistant'
+      platform: 'alti-assistant'
     }
   };
 

@@ -128,7 +128,7 @@ export const CfpbEnforcementProvider = {
   category: 'legal_security',
   cacheTTL: 7200,
   citationLabel: 'CFPB Consumer Financial Protection Law Enforcement Register',
-  mandatoryRule: '▸ Highlight civil peninsoaies, settlement figures, and consent orders in **BOLD** (e.g. **$12,500,000**)',
+  mandatoryRule: '▸ Highlight civil penalties, settlement figures, and consent orders in **BOLD** (e.g. **$12,500,000**)',
 
   detectIntent: (query) => {
     return /\bcfpb\s+enforcement\b|\bcfpb\s+suit\b|\bcfpb\s+penalty\b|\bconsent\s+order\b|\bpredatory\s+lending\b|\bfinancial\s+settlement\b/i.test(query);

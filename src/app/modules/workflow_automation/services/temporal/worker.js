@@ -16,7 +16,7 @@ class TemporalWorkerCoordinator {
   }
 
   /**
-   * Initializes and starts the background Temporal Worker polling insoai-workflows-queue
+   * Initializes and starts the background Temporal Worker polling alti-workflows-queue
    */
   async start() {
     // Prevent multiple concurrent calls to start the worker.
@@ -51,7 +51,7 @@ class TemporalWorkerCoordinator {
       this.worker = await Worker.create({
         workflowsPath,
         activities,
-        taskQueue: 'insoai-workflows-queue',
+        taskQueue: 'alti-workflows-queue',
         connectionOptions: {
           address
         },
@@ -73,7 +73,7 @@ class TemporalWorkerCoordinator {
         this._activateMockFallback(); // Attempt to fall back to mock mode
       });
 
-      logger.info('[Temporal Worker] Resilient Temporal Worker successfully started and polling: "insoai-workflows-queue".');
+      logger.info('[Temporal Worker] Resilient Temporal Worker successfully started and polling: "alti-workflows-queue".');
     } catch (error) {
       logger.warn(`[Temporal Worker] Could not connect to live Temporal cluster: ${error.message}. Entering Standby Emulation Mode.`);
       // If Worker.create fails, the live worker could not be established.

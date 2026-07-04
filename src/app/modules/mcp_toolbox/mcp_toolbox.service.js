@@ -134,7 +134,7 @@ class McpStdioBridge {
                 sampling: {}
               },
               clientInfo: {
-                name: 'Inso AI-Backend-Core',
+                name: 'Alti Assistant-Backend-Core',
                 version: '1.11.0'
               }
             });
@@ -283,7 +283,7 @@ class McpToolboxService {
    * @param {string} [connectionDetails.type='postgres'] - Database type (e.g., 'postgres', 'mysql').
    * @param {string} [connectionDetails.host='127.0.0.1'] - Database host.
    * @param {number} [connectionDetails.port=5432] - Database port.
-   * @param {string} [connectionDetails.database='insoai_db'] - Database name.
+   * @param {string} [connectionDetails.database='alti_db'] - Database name.
    * @param {string} [connectionDetails.user='postgres'] - Database user.
    * @param {string} [connectionDetails.password] - Database password.
    * @param {Array<Object>} [customTools=[]] - Custom SQL parameterized safe tools.
@@ -317,7 +317,7 @@ class McpToolboxService {
     yamlContent += `type: ${connectionDetails.type || 'postgres'}\n`;
     yamlContent += `host: ${connectionDetails.host || '127.0.0.1'}\n`;
     yamlContent += `port: ${connectionDetails.port || 5432}\n`;
-    yamlContent += `database: ${connectionDetails.database || 'insoai_db'}\n`;
+    yamlContent += `database: ${connectionDetails.database || 'alti_db'}\n`;
     yamlContent += `user: ${connectionDetails.user || 'postgres'}\n`;
     if (connectionDetails.password) {
       yamlContent += `password: ${connectionDetails.password}\n`;

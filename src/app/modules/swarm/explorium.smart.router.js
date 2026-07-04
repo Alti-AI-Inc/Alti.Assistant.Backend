@@ -429,7 +429,7 @@ async function autoEnrollBusinessForWebhooks(businessId) {
 
     // Fallback webhook endpoint
     const webhookUrl = process.env.EXPLORIUM_WEBHOOK_URL || 'http://localhost:5000/api/v1/explorium/webhook/inbound';
-    const partnerId = 'insoai_assistant';
+    const partnerId = 'alti_assistant';
 
     // Execute background API enrollment call without holding up the request thread
     addBusinessEnrollmentsService([businessId], eventTypes, webhookUrl, partnerId)

@@ -260,7 +260,7 @@ describe('legal_contract.route.js', () => {
     });
 
     it('should queue a contract generation job', async () => {
-      mockReq.body = { templateId: 'nda-template', variables: { name: 'Inso AI' } };
+      mockReq.body = { templateId: 'nda-template', variables: { name: 'Alti Assistant' } };
       await handler(mockReq, mockRes, mockNext);
 
       expect(mockTopic).toHaveBeenCalledWith('projects/your-gcp-project-id/topics/generate-contract-jobs');
@@ -268,7 +268,7 @@ describe('legal_contract.route.js', () => {
         json: {
           jobId: 'mock-uuid-v4',
           templateId: 'nda-template',
-          variables: { name: 'Inso AI' },
+          variables: { name: 'Alti Assistant' },
           user: mockReq.user,
           tenantId: mockReq.tenantId,
         },

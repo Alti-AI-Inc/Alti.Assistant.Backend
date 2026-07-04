@@ -1,4 +1,4 @@
-# Inso AI: Full Metering and Overage Billing System
+# Alti Assistant: Full Metering and Overage Billing System
 
 This document outlines the hybrid seat-based subscription and monthly metered overage billing architecture for all 11 user-facing features (sidebar toggle tabs, sub-tabs, and knowledge storage).
 

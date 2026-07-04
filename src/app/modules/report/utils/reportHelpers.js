@@ -292,7 +292,7 @@ export const validateReportParams = (params) => {
 export const generateReportMetadata = (params) => {
   return {
     generatedAt: new Date().toISOString(),
-    generator: 'Inso AI Report Generation Module',
+    generator: 'Alti Assistant Report Generation Module',
     version: '1.0.0',
     reportType: params.reportType || 'custom',
     outputFormat: params.outputFormat || 'pdf',

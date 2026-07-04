@@ -17,8 +17,8 @@ const auth = new GoogleAuth({
  * This function handles authentication, task payload construction, and dispatch to the specified
  * Google Cloud Tasks queue. The task will make a POST request to the target URL with the provided payload.
  *
- * @param {string} [queueName='insoai-default-tasks'] - The ID of the Cloud Tasks Queue to dispatch the task to.
- *   If not provided, defaults to "insoai-default-tasks".
+ * @param {string} [queueName='alti-default-tasks'] - The ID of the Cloud Tasks Queue to dispatch the task to.
+ *   If not provided, defaults to "alti-default-tasks".
  * @param {string} url - The target HTTP callback URL that the Cloud Task will invoke. This URL must be publicly accessible.
  * @param {object} [payload={}] - The request body payload to send with the HTTP POST request.
  *   This object will be JSON.stringified and base64-encoded as required by Cloud Tasks.
@@ -37,7 +37,7 @@ const auth = new GoogleAuth({
  * @throws {Error} If the target callback URL is not provided.
  * @throws {Error} If the Cloud Tasks dispatch fails for any other reason (e.g., network issues, API errors).
  */
-const createHttpTask = async (queueName = 'insoai-default-tasks', url, payload = {}, delaySeconds = 0, headers = {}) => {
+const createHttpTask = async (queueName = 'alti-default-tasks', url, payload = {}, delaySeconds = 0, headers = {}) => {
   try {
     const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
     const location = config.google.gcp_location || process.env.GCP_LOCATION || 'us-central1';
@@ -50,7 +50,7 @@ const createHttpTask = async (queueName = 'insoai-default-tasks', url, payload =
       throw new Error('Target callback URL is required.');
     }
 
-    const activeQueue = queueName || 'insoai-default-tasks';
+    const activeQueue = queueName || 'alti-default-tasks';
     logger.info(`GCP Cloud Tasks: Dispatching task to queue "projects/${projectId}/locations/${location}/queues/${activeQueue}"...`);
 
     const client = await auth.getClient();

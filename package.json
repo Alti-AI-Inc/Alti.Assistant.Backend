@@ -1,8 +1,8 @@
 {
   "type": "module",
-  "name": "insoai-backend",
+  "name": "alti-backend",
   "version": "1.28.3",
-  "repository": "https://github.com/shohidul-jaman-anik/Inso AI-Backend-Core-Service",
+  "repository": "https://github.com/shohidul-jaman-anik/Alti Assistant-Backend-Core-Service",
   "description": "",
   "main": "index.js",
   "scripts": {

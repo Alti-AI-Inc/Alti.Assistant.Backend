@@ -230,7 +230,7 @@ export const KNOWLEDGE_CONFIG = {
 };
 
 export const STORAGE_CONFIG = {
-  GCS_BUCKET: 'insoai_assistant_knowledge_bot_files',
+  GCS_BUCKET: 'alti_assistant_knowledge_bot_files',
   TEMP_FOLDER: 'uploads/knowledge',
 };
 

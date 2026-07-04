@@ -13,10 +13,10 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * The path to the Google application credentials key file.
- * Defaults to 'insoai_gcp.json' if not specified in configuration.
+ * Defaults to 'alti_gcp.json' if not specified in configuration.
  * @type {string}
  */
-const keyFile = config.google.google_application_credentials || 'insoai_gcp.json';
+const keyFile = config.google.google_application_credentials || 'alti_gcp.json';
 
 /**
  * GoogleAuth client for authenticating requests to Google APIs.

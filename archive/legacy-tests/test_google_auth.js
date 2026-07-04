@@ -2,7 +2,7 @@ import { JWT } from 'google-auth-library';
 import fs from 'fs';
 
 async function main() {
-  const credentials = JSON.parse(fs.readFileSync('./insoai_gcp.json', 'utf8'));
+  const credentials = JSON.parse(fs.readFileSync('./alti_gcp.json', 'utf8'));
   const client = new JWT({
     email: credentials.client_email,
     key: credentials.private_key,

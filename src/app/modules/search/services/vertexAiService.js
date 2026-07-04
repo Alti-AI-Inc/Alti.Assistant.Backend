@@ -65,7 +65,7 @@ class VertexAiService {
     // service/API endpoint to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
     // The underlying Google Cloud permissions will enforce access, but application-level validation
     // provides a stronger defense-in-depth.
-    const datastore = datastoreId || process.env.VERTEX_AI_DATASTORE_ID || `projects/${config.google.gcp_project_id || 'insoai-gcp-project'}/locations/global/collections/default_collection/dataStores/insoai-knowledge-base`;
+    const datastore = datastoreId || process.env.VERTEX_AI_DATASTORE_ID || `projects/${config.google.gcp_project_id || 'alti-gcp-project'}/locations/global/collections/default_collection/dataStores/alti-knowledge-base`;
     console.log(`📍 Scoping search to Datastore: ${datastore}`);
 
     try {

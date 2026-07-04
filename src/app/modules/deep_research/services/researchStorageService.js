@@ -12,13 +12,13 @@ let storage = null;
 try {
   storage = new Storage({
     projectId: config.google?.gcp_project_id || process.env.GCP_PROJECT_ID,
-    keyFilename: 'insoai_gcp.json',
+    keyFilename: 'alti_gcp.json',
   });
 } catch (gcsInitErr) {
   console.warn('⚠️ Google Cloud Storage client initialization bypassed:', gcsInitErr.message);
 }
 
-const DEEP_RESEARCH_BUCKET = 'insoai_assistant_reports';
+const DEEP_RESEARCH_BUCKET = 'alti_assistant_reports';
 
 // Ensure MongoDB connection using the config URI
 connectToMongoDB(config.database_local).catch(console.error);

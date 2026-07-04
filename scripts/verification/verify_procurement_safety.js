@@ -1,7 +1,7 @@
 /**
  * verify_procurement_safety.js
  *
- * Verification script for testing Inso AI's Batch 3 EU TED, USDA FAS,
+ * Verification script for testing Alti Assistant's Batch 3 EU TED, USDA FAS,
  * NTSB CAROL, CFPB Enforcement, and EPA IRIS grounding channels.
  */
 
@@ -28,7 +28,7 @@ async function runVerification() {
     },
     {
       name: 'CFPB Financial Enforcement Judgments',
-      query: 'What cfpb enforcement actions, peninsoaies, and consent orders were issued against Apex Home Loans?',
+      query: 'What cfpb enforcement actions, penalties, and consent orders were issued against Apex Home Loans?',
       expectedId: 'cfpb_enforcement'
     },
     {

@@ -10,9 +10,9 @@ console.log('\n=================================================================
 console.log('🌙 GCP DATASET COLD STORAGE MIGRATION UTILITY');
 console.log('======================================================================');
 
-const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'insoai_gcp.json');
+const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'alti_gcp.json');
 const storage = new Storage({ keyFilename: keyPath });
-const bucketName = config.gcs.knowledge_bank_bucket || 'insoai_assistant_datasets';
+const bucketName = config.gcs.knowledge_bank_bucket || 'alti_assistant_datasets';
 const bucket = storage.bucket(bucketName);
 
 async function migrate() {

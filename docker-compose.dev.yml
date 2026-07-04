@@ -1,4 +1,4 @@
-# ─── Inso AI — Agent Microservices (Local Development) ─────────────────
+# ─── Alti Assistant — Agent Microservices (Local Development) ─────────────────
 # Run all 7 agents + gateway + infrastructure locally with:
 #   docker compose -f docker-compose.dev.yml up --build
 # ─────────────────────────────────────────────────────────────────────────────

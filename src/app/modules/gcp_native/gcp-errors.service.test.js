@@ -131,19 +131,19 @@ describe('GcpErrorsService', () => {
       const result = await GcpErrorsService.reportError(errorMessage);
 
       expect(logger.info).toHaveBeenCalledWith(
-        'GCP Errors: Queuing error report for service "insoai-backend" to Pub/Sub topic "gcp-error-reporting-events"...'
+        'GCP Errors: Queuing error report for service "alti-backend" to Pub/Sub topic "gcp-error-reporting-events"...'
       );
       expect(mockPublishMessage).toHaveBeenCalledOnce();
 
       const publishedData = JSON.parse(mockPublishMessage.mock.calls[0][0].data.toString());
-      expect(publishedData.serviceContext.service).toBe('insoai-backend');
+      expect(publishedData.serviceContext.service).toBe('alti-backend');
       expect(publishedData.message).toBe(errorMessage);
       expect(publishedData.context.user).toBe('');
 
       expect(result).toEqual({
         success: true,
         messageId: 'pubsub-msg-id-123',
-        serviceName: 'insoai-backend',
+        serviceName: 'alti-backend',
         user: ''
       });
     });

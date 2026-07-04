@@ -160,7 +160,7 @@ describe('KnowledgeFile Model', () => {
       type: String,
       required: true,
       trim: true,
-      default: 'insoai_assistant_knowledge_bot_files',
+      default: 'alti_assistant_knowledge_bot_files',
     });
     expect(schemaDefinition.ownerType).toEqual({
       type: String,

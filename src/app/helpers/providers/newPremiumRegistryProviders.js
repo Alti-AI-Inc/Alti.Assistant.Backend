@@ -262,7 +262,7 @@ export const SamGovProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:debarment status of|sam status of|sam lookup for|debarred)\s+([^?]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'Inso AIs');
+    return sanitizeQueryString(match ? match[1] : 'Alti Assistants');
   },
 
   fetch: async (topic) => {
@@ -271,7 +271,7 @@ export const SamGovProvider = {
 
 | Audited Corporate Entity | Active Exclusion Status | Registered CAGE Code | Current Procurement Eligibility |
 |--------------------------|-------------------------|----------------------|---------------------------------|
-| **Inso AIs Holdings LLC** | **ACTIVE - NO EXCLUSIONS FOUND** | **7ABC1** | Fully Eligible for Contracts |
+| **Alti Assistants Holdings LLC** | **ACTIVE - NO EXCLUSIONS FOUND** | **7ABC1** | Fully Eligible for Contracts |
 | **Apex Builders Corp** | **ACTIVE - EXCLUSION DETECTED** | **8XYZ4** | Debarred - Suspension Active |`;
 
     const metadata = {
@@ -420,7 +420,7 @@ export const EpaEchoProvider = {
 | Audited Industrial Facility | Environmental Act Standing | Violation Status | Enforcement Action / Fine |
 |-----------------------------|----------------------------|------------------|---------------------------|
 | **Chevron Refinery #3** | Clean Air Act (CAA) | **HIGH PRIORITY VIOLATION** | $145,000 Administrative Fine |
-| **Miami Utility Plant** | Clean Water Act (CWA) | **IN COMPLIANCE** | No Active Peninsoaies |`;
+| **Miami Utility Plant** | Clean Water Act (CWA) | **IN COMPLIANCE** | No Active Penalties |`;
 
     const metadata = {
       domain: 'epa_echo',
@@ -439,7 +439,7 @@ export const OshaInspectionsProvider = {
   category: 'premium_public',
   cacheTTL: 3600,
   citationLabel: 'OSHA Workplace Safety and employer Enforcement Registry',
-  mandatoryRule: '▸ Present all safety peninsoaies and inspections counts in **BOLD** (e.g. **$45,000**, **5**)',
+  mandatoryRule: '▸ Present all safety penalties and inspections counts in **BOLD** (e.g. **$45,000**, **5**)',
 
   detectIntent: (query) => {
     return /\bosha\b|\bworkplace\s+safety\b|\bworkplace\s+accident\b/i.test(query);
@@ -451,7 +451,7 @@ export const OshaInspectionsProvider = {
   },
 
   fetch: async (topic) => {
-    const markdown = `### 🛡️ OSHA Workplace Safety Inspections, Violations & Peninsoaies
+    const markdown = `### 🛡️ OSHA Workplace Safety Inspections, Violations & Penalties
 *Retrieved employer workplace safety audits, OSHA citations, and accident investigation records.*
 
 | Audited Employer Facility | Active Safety Citations | OSHA Penalty Sum | Total Inspections Count |
@@ -462,7 +462,7 @@ export const OshaInspectionsProvider = {
     const metadata = {
       domain: 'osha_inspections',
       inspectionsCount: 5,
-      totalPeninsoaies: '$45,000',
+      totalPenalties: '$45,000',
       targetEmployer: 'Tesla Gigafactory TX'
     };
 

@@ -23,7 +23,7 @@ import TemporalRepository from './temporal-repository.model.js';
  * Reads from the `MONGODB_URI` environment variable, falling back to a local default.
  * @type {string}
  */
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/insoaidb';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/altidb';
 
 /**
  * Mongoose connection options optimized for resilient, high-performance connections,

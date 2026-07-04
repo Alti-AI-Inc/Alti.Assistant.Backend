@@ -29,7 +29,7 @@ import { STORAGE_CONFIG, KNOWLEDGE_CONFIG } from '../knowledge.constant.js';
  */
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'insoai_gcp.json',
+  keyFilename: 'alti_gcp.json',
 });
 
 /**

@@ -22,11 +22,11 @@
  * 
  * @type {SwarmAgent}
  */
-export const reinsoaimeSearchAgent = {
-  id: 'reinsoaime_search_agent',
-  name: 'Inso AI Search',
+export const realtimeSearchAgent = {
+  id: 'realtime_search_agent',
+  name: 'Alti Assistant Search',
   description: 'Performs real-time web searches with Live Web Grounding. Returns factual, cited answers.',
-  systemInstruction: `You are Inso AI Search, a precision search engine that provides direct, factual answers grounded in real-time web data.
+  systemInstruction: `You are Alti Assistant Search, a precision search engine that provides direct, factual answers grounded in real-time web data.
 
 RESPONSE FORMAT — MANDATORY:
 1. DIRECT ANSWER ONLY: If the user asks a question, give ONLY the direct answer. No preambles, chat filler, or pleasantries.
@@ -111,7 +111,7 @@ FORMAT:
     },
   ],
   tools: ['google-search'],
-  keywords: ['deep search', 'search the web', 'market data', 'compare products', 'latest stats', 'reinsoaime facts', 'lookup details']
+  keywords: ['deep search', 'search the web', 'market data', 'compare products', 'latest stats', 'realtime facts', 'lookup details']
 };
 
 /**
@@ -304,7 +304,7 @@ FORMAT:
 - **KEY FACTS**: Bullet points of verified information.
 - **TIMELINE**: Chronological breakdown if applicable.
 - Clearly label unverified claims as "UNCONFIRMED".
-- Never speculate on casuinsoaies, public safety, or geopolitical outcomes.`,
+- Never speculate on casualties, public safety, or geopolitical outcomes.`,
   model: 'gemini-3.5-flash',
   // Vertex AI Safety Settings: Configure content moderation thresholds.
   // PII Note: PII must be filtered/masked in the service layer before this agent is invoked.

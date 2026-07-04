@@ -1251,7 +1251,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_reinsoaime'
+                ? 'massive_realtime'
                 : 'native_grounding',
           }
         : {
@@ -1259,7 +1259,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_reinsoaime'
+                ? 'massive_realtime'
                 : 'native_grounding',
           };
 
@@ -2146,7 +2146,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_reinsoaime'
+                ? 'massive_realtime'
                 : 'native_grounding',
           }
         : {
@@ -2154,7 +2154,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_reinsoaime'
+                ? 'massive_realtime'
                 : 'native_grounding',
           };
 

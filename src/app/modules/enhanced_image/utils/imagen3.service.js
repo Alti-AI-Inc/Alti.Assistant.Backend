@@ -53,15 +53,15 @@ const __dirname = path.dirname(__filename);
  */
 
 // Initialize GCP Storage
-const gcpKeyPath = path.join(process.cwd(), 'insoai_gcp.json');
+const gcpKeyPath = path.join(process.cwd(), 'alti_gcp.json');
 
 /**
- * An instance of the GCPStorageService configured for the 'insoai_assistant_generated_photo' bucket.
+ * An instance of the GCPStorageService configured for the 'alti_assistant_generated_photo' bucket.
  * This service is used to upload generated or edited images to Google Cloud Storage.
  * @type {GCPStorageService}
  */
 const gcpStorage = new GCPStorageService(
-  'insoai_assistant_generated_photo',
+  'alti_assistant_generated_photo',
   gcpKeyPath
 );
 

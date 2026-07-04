@@ -80,7 +80,7 @@ describe('Auth Utils', () => {
     it('should use the fallback client_url if config.client_url is not defined', () => {
       config.client_url = undefined; // Simulate undefined client_url
       const result = registrationOtpTemplate(testEmail, testToken);
-      const fallbackFrontendUrl = 'https://insoaiassistant.com';
+      const fallbackFrontendUrl = 'https://altiassistant.com';
       const expectedVerificationLink = `${fallbackFrontendUrl}/register?code=${testToken}`;
 
       expect(result.message).toContain(fallbackFrontendUrl);
@@ -92,9 +92,9 @@ describe('Auth Utils', () => {
       const result = registrationOtpTemplate(testEmail, testToken);
       expect(result.message).toContain('Email Verification');
       expect(result.message).toContain('Dear user,');
-      expect(result.message).toContain('Thank you for signing up on Inso AI!');
+      expect(result.message).toContain('Thank you for signing up on Alti Assistant!');
       expect(result.message).toContain('Verify Account');
-      expect(result.message).toContain('This email was sent by Inso AI.');
+      expect(result.message).toContain('This email was sent by Alti Assistant.');
     });
   });
 
@@ -133,7 +133,7 @@ describe('Auth Utils', () => {
       expect(result.message).toContain('Verify Your OTP');
       expect(result.message).toContain('To complete your reset password, please enter the following OTP:');
       expect(result.message).toContain('This code is valid for 10 minutes.');
-      expect(result.message).toContain('This email was sent by Inso AI.');
+      expect(result.message).toContain('This email was sent by Alti Assistant.');
     });
   });
 
@@ -180,7 +180,7 @@ describe('Auth Utils', () => {
       expect(result.message).toContain('Verify Your OTP');
       expect(result.message).toContain('To proceed with deleting your account, please enter the following OTP:');
       expect(result.message).toContain('This code is valid for 10 minutes.');
-      expect(result.message).toContain('This email was sent by Inso AI.');
+      expect(result.message).toContain('This email was sent by Alti Assistant.');
     });
   });
 });

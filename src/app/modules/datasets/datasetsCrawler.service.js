@@ -142,7 +142,7 @@ const scanHuggingFaceHub = async (user, maxDatasetsToScan = 500) => {
     while (nextPageUrl && scannedCount < maxDatasetsToScan) {
       console.log(`[HF Scanner] Querying HF Hub endpoint: ${nextPageUrl}`);
       const response = await axios.get(nextPageUrl, {
-        headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
+        headers: { 'User-Agent': 'Alti Assistant-Assistant-Backend' }
       });
 
       const datasets = response.data;
@@ -322,7 +322,7 @@ const runWorkerLoop = async () => {
       const totalBytesArchived = currentStorageUsed[0]?.total || 0;
 
       if (totalBytesArchived >= capacityLimit) {
-        console.warn(`[HF Worker] GCS Storage Limit Reached (${(totalBytesArchived / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB / ${(capacityLimit / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB). Hinsoaing crawler loop.`);
+        console.warn(`[HF Worker] GCS Storage Limit Reached (${(totalBytesArchived / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB / ${(capacityLimit / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB). Halting crawler loop.`);
         isWorkerRunning = false;
         break;
       }
@@ -461,7 +461,7 @@ const runTemporalWorkerLoop = async () => {
       const totalBytesArchived = currentStorageUsed[0]?.total || 0;
 
       if (totalBytesArchived >= capacityLimit) {
-        console.warn(`[HF Worker] GCS Storage Limit Reached (${(totalBytesArchived / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB / ${(capacityLimit / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB). Hinsoaing crawler loop.`);
+        console.warn(`[HF Worker] GCS Storage Limit Reached (${(totalBytesArchived / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB / ${(capacityLimit / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB). Halting crawler loop.`);
         isWorkerRunning = false;
         break;
       }
@@ -490,7 +490,7 @@ const runTemporalWorkerLoop = async () => {
         
         await client.workflow.start(runDatasetIngestionWorkflow, {
           args: [datasetId],
-          taskQueue: 'insoai-workflows-queue',
+          taskQueue: 'alti-workflows-queue',
           workflowId
         });
 

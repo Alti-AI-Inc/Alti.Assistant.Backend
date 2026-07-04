@@ -30,7 +30,7 @@ const storage = new Storage({
   credentials: config.gcp_credentials || config.gcp?.credentials,
 });
 const bucketName =
-  config.gcs_bucket_name || config.gcs?.bucketName || 'insoai-reports-bucket';
+  config.gcs_bucket_name || config.gcs?.bucketName || 'alti-reports-bucket';
 const bucket = storage.bucket(bucketName);
 
 /**

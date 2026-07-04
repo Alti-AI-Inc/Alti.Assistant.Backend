@@ -15,7 +15,7 @@ import { usageService } from '../usage/usage.service.js';
  * @type {VertexAI}
  */
 const vertex_ai = new VertexAI({
-  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'insoai-assistant',
+  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
   location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 

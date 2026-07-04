@@ -12,7 +12,7 @@
  */
 import { generalChatAssistant } from './core.agents.js';
 import {
-  reinsoaimeSearchAgent,
+  realtimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,
@@ -237,7 +237,7 @@ export const customAgents = [
   knowledgeCatalogEnricher,
   knowledgeDiscoveryAgent,
 
-  reinsoaimeSearchAgent,
+  realtimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,
@@ -435,7 +435,7 @@ export const customAgents = [
  *
  * @exports {Object} generalChatAssistant - A general-purpose AI assistant for broad conversational tasks.
  *
- * @exports {Object} reinsoaimeSearchAgent - An AI agent specialized in performing real-time searches.
+ * @exports {Object} realtimeSearchAgent - An AI agent specialized in performing real-time searches.
  * @exports {Object} perplexityDeepSearcher - An AI agent for deep, comprehensive searches using Perplexity AI.
  * @exports {Object} youtubeResearcher - An AI agent focused on researching and summarizing YouTube content.
  * @exports {Object} academicScholar - An AI agent designed for academic research and scholarly article retrieval.
@@ -617,7 +617,7 @@ export const customAgents = [
 export {
   generalChatAssistant,
 
-  reinsoaimeSearchAgent,
+  realtimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,

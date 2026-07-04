@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import fetch from 'node-fetch';
 
-const dbUri = 'mongodb://127.0.0.1:27017/Inso AI';
+const dbUri = 'mongodb://127.0.0.1:27017/Alti Assistant';
 const backendUrl = 'http://127.0.0.1:5100/api/v1';
 
 async function run() {

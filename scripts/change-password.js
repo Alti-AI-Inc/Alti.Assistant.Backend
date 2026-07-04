@@ -18,7 +18,7 @@ async function changePassword() {
   }
 
   try {
-    const dbUri = config.database_local || process.env.DATABASE_LOCAL || 'mongodb://localhost:27017/insoai-assistant';
+    const dbUri = config.database_local || process.env.DATABASE_LOCAL || 'mongodb://localhost:27017/alti-assistant';
     console.log('Connecting to database...');
     await mongoose.connect(dbUri);
     console.log('Connected.');

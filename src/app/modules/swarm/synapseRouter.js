@@ -29,7 +29,7 @@ export class SynapseRouter {
     const isLiveIntel         = ['breaking news', 'latest events today', 'live update', 'global news feed', 'current world event', 'ongoing situation', 'news alert', 'crisis update'].some(k => q.includes(k));
     const isAcademicMeta      = ['meta analysis', 'literature review', 'clinical trials database', 'pubmed meta analysis', 'cochrane library'].some(k => q.includes(k));
     const isAcademicSearch    = ['doi', 'academic paper', 'arxiv', 'pubmed', 'biorxiv', 'medrxiv', 'scholarly', 'citation'].some(k => q.includes(k));
-    const isReinsoaimeSearch    = ['search', 'lookup', 'latest news', 'weather', 'sports schedule', 'game score', 'who won', 'happenings', 'real-time', 'reinsoaime'].some(k => q.includes(k));
+    const isRealtimeSearch    = ['search', 'lookup', 'latest news', 'weather', 'sports schedule', 'game score', 'who won', 'happenings', 'real-time', 'realtime'].some(k => q.includes(k));
     const isPatentIntel       = ['patent search', 'prior art', 'patent claims', 'uspto', 'patent application', 'wipo search', 'epo filing', 'infringement risk'].some(k => q.includes(k));
     const isFinancialSec      = ['sec filing search', '10-k', '10-q', 'corporate disclosure audit', 'sec edgar', 'risk factor warnings'].some(k => q.includes(k));
     const isLegalRegulatory   = ['case law search', 'court docket review', 'statutory code', 'cfr lookup', 'supreme court holding', 'compliance mandate'].some(k => q.includes(k));
@@ -677,7 +677,7 @@ export class SynapseRouter {
     if (isFinancialSec)     return [SWARM_REGISTRY.financial_sec_auditor];
     if (isLegalRegulatory)  return [SWARM_REGISTRY.legal_regulatory_researcher];
     if (isAcademicSearch)   return [SWARM_REGISTRY.academic_search_agent];
-    if (isReinsoaimeSearch)   return [SWARM_REGISTRY.reinsoaime_search_agent];
+    if (isRealtimeSearch)   return [SWARM_REGISTRY.realtime_search_agent];
     if (isSchemaMapping)    return [SWARM_REGISTRY.schema_mapper_agent];
     if (isPayloadTransform) return [SWARM_REGISTRY.payload_transformer_agent];
     if (isDataProcessing)   return [SWARM_REGISTRY.data_processor_agent];

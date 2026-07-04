@@ -151,7 +151,7 @@ describe('TemporalWorkerCoordinator', () => {
     expect(mockWorker.create).toHaveBeenCalledWith({
       workflowsPath: './workflows.js',
       activities,
-      taskQueue: 'insoai-workflows-queue',
+      taskQueue: 'alti-workflows-queue',
       connectionOptions: {
         address: 'test-temporal:7233',
       },
@@ -160,7 +160,7 @@ describe('TemporalWorkerCoordinator', () => {
     expect(mockWorkerInstance.run).toHaveBeenCalled();
     expect(coordinator.isRunning).toBe(true);
     expect(coordinator.isMock).toBe(false);
-    expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Resilient Temporal Worker successfully started and polling: "insoai-workflows-queue".');
+    expect(mockLogger.info).toHaveBeenCalledWith('[Temporal Worker] Resilient Temporal Worker successfully started and polling: "alti-workflows-queue".');
 
     resolveRun();
     await Promise.resolve();

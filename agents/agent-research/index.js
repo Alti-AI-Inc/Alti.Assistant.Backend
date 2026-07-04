@@ -1,5 +1,5 @@
 /**
- * @fileoverview Inso AI Research Agent — Express entry point.
+ * @fileoverview Alti Assistant Research Agent — Express entry point.
  * Runs as an isolated Cloud Run service on port 8080.
  *
  * Startup:

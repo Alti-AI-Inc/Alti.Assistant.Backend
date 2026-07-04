@@ -9,7 +9,7 @@ console.log('📡 Starting Swarm Registry & Synapse Router Tests...\n');
 
 // 1. Verify Registration of Core, Custom, and Background Agents
 const requiredAgentIds = [
-  'reinsoaime_search_agent', 
+  'realtime_search_agent', 
   'data_processor_agent', 
   'intelligence_agent',
   'financial_search_agent',
@@ -85,7 +85,7 @@ const testCases = [
   },
   {
     query: 'Search the web for the latest Gemini 1.5 update and news',
-    expectedAgentId: 'reinsoaime_search_agent'
+    expectedAgentId: 'realtime_search_agent'
   },
   {
     query: 'What is the stock price and annual revenue of AAPL?',

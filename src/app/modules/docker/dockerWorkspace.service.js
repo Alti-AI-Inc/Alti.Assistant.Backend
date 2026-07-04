@@ -20,7 +20,7 @@ class DockerWorkspaceService {
     /**
      * @property {string} imageName - The name of the custom Docker image used for sandbox environments.
      */
-    this.imageName = 'insoai-sandbox:latest';
+    this.imageName = 'alti-sandbox:latest';
     /**
      * @property {string} dockerfileDir - The absolute path to the directory containing the Dockerfile for the sandbox image.
      */
@@ -96,7 +96,7 @@ class DockerWorkspaceService {
       }
 
       if (!imageExists) {
-        logger.info(`[DOCKER] Compiling custom Inso AI Sandbox Image "${this.imageName}"...`);
+        logger.info(`[DOCKER] Compiling custom Alti Assistant Sandbox Image "${this.imageName}"...`);
         const dockerfilePath = path.join(this.dockerfileDir, 'Workspace.Dockerfile');
         execSync(`docker build -t ${this.imageName} -f ${dockerfilePath} ${this.dockerfileDir}`, {
           stdio: 'inherit'
@@ -107,12 +107,12 @@ class DockerWorkspaceService {
       // 3. Ensure secure internal bridge network exists with ICC disabled
       let networkNeedsRecreation = false;
       try {
-        const netInspect = execSync('docker network inspect insoai_sandbox_net --format "{{json .Options}}"', { encoding: 'utf8' });
+        const netInspect = execSync('docker network inspect alti_sandbox_net --format "{{json .Options}}"', { encoding: 'utf8' });
         const options = JSON.parse(netInspect);
         if (options['com.docker.network.bridge.enable_icc'] !== 'false') {
           networkNeedsRecreation = true;
           logger.info('[DOCKER] Existing sandbox network has ICC enabled. Recreating for secure isolation...');
-          execSync('docker network rm insoai_sandbox_net', { stdio: 'ignore' });
+          execSync('docker network rm alti_sandbox_net', { stdio: 'ignore' });
         }
       } catch {
         networkNeedsRecreation = true;
@@ -120,9 +120,9 @@ class DockerWorkspaceService {
 
       if (networkNeedsRecreation) {
         const isInternal = process.env.DOCKER_NETWORK_INTERNAL === 'true';
-        logger.info(`[DOCKER] Creating secure sandbox network "insoai_sandbox_net" (internal/offline: ${isInternal}, ICC: false)...`);
+        logger.info(`[DOCKER] Creating secure sandbox network "alti_sandbox_net" (internal/offline: ${isInternal}, ICC: false)...`);
         const internalFlag = isInternal ? '--internal' : '';
-        execSync(`docker network create -o com.docker.network.bridge.enable_icc=false ${internalFlag} insoai_sandbox_net`, { stdio: 'ignore' });
+        execSync(`docker network create -o com.docker.network.bridge.enable_icc=false ${internalFlag} alti_sandbox_net`, { stdio: 'ignore' });
       }
 
       this.initialized = true;
@@ -161,7 +161,7 @@ class DockerWorkspaceService {
   async _reclaimContainerSlot(excludeUniqueSessionId = null) {
     try {
       const containers = execSync(
-        `docker ps -a --filter "name=insoai_workspace_" --format "{{.Names}}"`,
+        `docker ps -a --filter "name=alti_workspace_" --format "{{.Names}}"`,
         { encoding: 'utf8' }
       ).trim().split('\n').map(n => n.trim()).filter(Boolean);
 
@@ -173,7 +173,7 @@ class DockerWorkspaceService {
 
       // 1. Evict any container not registered in activeSessions
       for (const name of containers) {
-        const match = name.match(/^insoai_workspace_(.+)$/);
+        const match = name.match(/^alti_workspace_(.+)$/);
         if (match) {
           const sId = match[1]; // sId is the uniqueSessionId
           if (sId === excludeUniqueSessionId) continue;
@@ -200,12 +200,12 @@ class DockerWorkspaceService {
 
       if (oldestSessionId) {
         logger.info(`[DOCKER EVICT] Evicting LRU container ${oldestSessionId} (inactive since ${new Date(oldestTime).toISOString()})`);
-        try { execSync(`docker rm -f insoai_workspace_${oldestSessionId}`); } catch(e){}
+        try { execSync(`docker rm -f alti_workspace_${oldestSessionId}`); } catch(e){}
         this.activeSessions.delete(oldestSessionId);
       } else {
         // 3. Fallback eviction if map is empty/unavailable
         for (const name of containers) {
-          const match = name.match(/^insoai_workspace_(.+)$/);
+          const match = name.match(/^alti_workspace_(.+)$/);
           if (match) {
             const sId = match[1]; // sId is uniqueSessionId
             if (sId !== excludeUniqueSessionId) {
@@ -281,7 +281,7 @@ class DockerWorkspaceService {
       return { success: false, mode: 'local-fallback', containerId: null };
     }
 
-    const containerName = `insoai_workspace_${uniqueSessionId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`;
     const hostVolumePath = this._ensureHostUserDir(sanitizedUserId, sanitizedIsolationId);
     
     // Ensure project data directory exists if projectId is provided
@@ -319,7 +319,7 @@ class DockerWorkspaceService {
           // are derived from sanitized inputs or internal constants, preventing command injection.
           const createCmd = `docker run -d \
             --name ${containerName} \
-            --network insoai_sandbox_net \
+            --network alti_sandbox_net \
             --add-host=host.docker.internal:host-gateway \
             --memory 512m \
             --cpus 1.0 \
@@ -406,7 +406,7 @@ class DockerWorkspaceService {
     }
 
     // B. Strict isolated Docker Exec container execution
-    const containerName = workspace.containerId; // This is already `insoai_workspace_${uniqueSessionId}`
+    const containerName = workspace.containerId; // This is already `alti_workspace_${uniqueSessionId}`
     logger.info(`[DOCKER EXEC] Running inside ${containerName}: ${commandArgs.join(' ')}`);
 
     return new Promise((resolve) => {
@@ -510,7 +510,7 @@ class DockerWorkspaceService {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
-    const containerName = `insoai_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker pause ${containerName}`);
       logger.info(`[DOCKER] Successfully paused workspace container: ${containerName}`);
@@ -532,7 +532,7 @@ class DockerWorkspaceService {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
-    const containerName = `insoai_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker rm -f ${containerName}`);
       logger.info(`[DOCKER] Safely destroyed workspace container: ${containerName}`);
@@ -557,7 +557,7 @@ class DockerWorkspaceService {
     // Iterate over uniqueSessionId keys in activeSessions map
     for (const [uniqueSessionId, session] of this.activeSessions.entries()) {
       const idleTimeSec = (now.getTime() - session.lastActivity.getTime()) / 1000;
-      const containerName = `insoai_workspace_${uniqueSessionId}`; // Use the consistent container naming
+      const containerName = `alti_workspace_${uniqueSessionId}`; // Use the consistent container naming
 
       // Parse userId and isolationId from uniqueSessionId to pass to stop/pause methods
       const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
@@ -600,7 +600,7 @@ class DockerWorkspaceService {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`; // Consistent uniqueSessionId
-    const containerName = `insoai_workspace_${uniqueSessionId}`; // Consistent container naming
+    const containerName = `alti_workspace_${uniqueSessionId}`; // Consistent container naming
 
     return this._enqueueDockerOperation(async () => {
       // Reclaim slot if at or above container limit, excluding the current session.
@@ -622,7 +622,7 @@ class DockerWorkspaceService {
           // are derived from sanitized inputs or internal constants, preventing command injection.
           const createCmd = `docker run -d \
             --name ${containerName} \
-            --network insoai_sandbox_net \
+            --network alti_sandbox_net \
             --add-host=host.docker.internal:host-gateway \
             --memory 512m \
             --cpus 1.0 \
@@ -664,7 +664,7 @@ class DockerWorkspaceService {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
-    const containerName = `insoai_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
 
     try {
       const statsJson = execSync(

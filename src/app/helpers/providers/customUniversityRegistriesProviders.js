@@ -149,13 +149,13 @@ export const StanfordHelmProvider = {
 
 | Target Evaluation Model | Stanford HELM Benchmark Category | CRFM Holistic Accuracy Score | Safety & Bias Audit Status | Foundation Model CRFM Class |
 |-------------------------|-----------------------------------|------------------------------|----------------------------|-----------------------------|
-| **Inso AIs LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
+| **Alti Assistants LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
 | **Stanford Base Model** | Core Commonsense Logic Bench | **HELM Accuracy: 78.2%** | **Passed Safety Audit** | Medium General Foundation |
 | **Vance Logic Array** | Mathematics & Code Synthesis | HELM Accuracy: 72.1% | Under Examination | Small Specialist Foundation |`;
 
     const metadata = {
       domain: 'stanford_helm_benchmarks',
-      evaluatedModel: 'Inso AIs LLM-V2-Premium',
+      evaluatedModel: 'Alti Assistants LLM-V2-Premium',
       benchmarkCategory: 'Core RAG Reasoning',
       accuracyScore: '84.5%',
       safetyStatus: 'Passed Safety Audit'
@@ -366,7 +366,7 @@ export const BrownCostOfWarProvider = {
   category: 'scientific',
   cacheTTL: 86400,
   citationLabel: 'Brown Watson Institute Cost of War Registry',
-  mandatoryRule: '▸ Highlight war cost expenses, military budgets, and casuinsoaies in **BOLD** (e.g. **$8.0 Trillion Total Cost**, **Watson Institute Database**, **45,800 Direct Casuinsoaies**)',
+  mandatoryRule: '▸ Highlight war cost expenses, military budgets, and casualties in **BOLD** (e.g. **$8.0 Trillion Total Cost**, **Watson Institute Database**, **45,800 Direct Casualties**)',
 
   detectIntent: (query) => {
     return /\bbrown\s+cost\s+of\s+war\b|\bwatson\s+institute\s+spending\b|\bmilitary\s+conflict\s+casualty\b|\bwar\s+expense\s+registry\b/i.test(query);
@@ -379,19 +379,19 @@ export const BrownCostOfWarProvider = {
 
   fetch: async (topic) => {
     const markdown = `### 🪖 Brown University Watson Institute Global Cost of War & Conflict Registry
-*Retrieved federal military campaign expenses, global homeland security budgets, and direct casuinsoaies.*
+*Retrieved federal military campaign expenses, global homeland security budgets, and direct casualties.*
 
-| Conflict Campaign Sector | Total Estimated Campaign Cost | Sponsoring Defense Agency | Direct Campaign Casuinsoaies | Watson Institute Database Standing |
+| Conflict Campaign Sector | Total Estimated Campaign Cost | Sponsoring Defense Agency | Direct Campaign Casualties | Watson Institute Database Standing |
 |---------------------------|-------------------------------|---------------------------|----------------------------|-------------------------------------|
-| **Post-9/11 Campaigns (US)**| **$8.0 Trillion Total Cost** | Department of Defense | **45,800 Direct Casuinsoaies**| Verified Active Study |
-| **Afghanistan Theater** | **$2.3 Trillion Total Cost** | Department of Defense | **24,500 Direct Casuinsoaies**| Verified Active Study |
-| **Iraq Campaign Sector** | **$2.1 Trillion Total Cost** | Department of Defense | 12,000 Direct Casuinsoaies | Verified Active Study |`;
+| **Post-9/11 Campaigns (US)**| **$8.0 Trillion Total Cost** | Department of Defense | **45,800 Direct Casualties**| Verified Active Study |
+| **Afghanistan Theater** | **$2.3 Trillion Total Cost** | Department of Defense | **24,500 Direct Casualties**| Verified Active Study |
+| **Iraq Campaign Sector** | **$2.1 Trillion Total Cost** | Department of Defense | 12,000 Direct Casualties | Verified Active Study |`;
 
     const metadata = {
       domain: 'brown_cost_of_war',
       campaignSector: 'Post-9/11 Campaigns',
       totalCost: '$8.0 Trillion',
-      directCasuinsoaies: '45,800 Direct Casuinsoaies',
+      directCasualties: '45,800 Direct Casualties',
       status: 'Active Study'
     };
 

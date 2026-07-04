@@ -277,8 +277,8 @@ const generateFederalSpendingData = (query, hash) => {
  */
 const generateHealthcareNpiData = (query, hash) => {
   const npiNum = (hash % 8900000000) + 1000000000; // 10-digit NPI starting with 1
-  const speciinsoaies = ['Cardiovascular Disease', 'Internal Medicine', 'Orthopaedic Surgery', 'Clinical Psychology', 'Pediatric Medicine', 'Anesthesiology'];
-  const specialty = speciinsoaies[hash % speciinsoaies.length];
+  const specialties = ['Cardiovascular Disease', 'Internal Medicine', 'Orthopaedic Surgery', 'Clinical Psychology', 'Pediatric Medicine', 'Anesthesiology'];
+  const specialty = specialties[hash % specialties.length];
   const states = ['CA', 'NY', 'TX', 'FL', 'IL', 'MA'];
   const state = states[hash % states.length];
   const cities = ['Los Angeles', 'New York', 'Houston', 'Miami', 'Chicago', 'Boston'];
@@ -403,7 +403,7 @@ const generateAviationDelaysData = (query, hash) => {
   const delay = hash % 2 === 0 ? (hash % 120) + 15 : 0; // 0 or 15 - 135 mins
   const statuses = delay > 45 ? ['GROUND STOP', 'REDUCED FLOW', 'WEATHER DELAY'] : ['NORMAL OPERATIONS', 'OPEN / ON-TIME'];
   const status = statuses[hash % statuses.length];
-  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High Inso AItude Turbulence', 'Runway Maintenance Grid'];
+  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High Alti Assistanttude Turbulence', 'Runway Maintenance Grid'];
   const reason = delay > 0 ? reasons[hash % reasons.length] : 'No Delay Active';
   const weathers = ['Clear Sky / Calm Winds', 'Scattered Showers', 'Dense Fog / Light Winds', 'Thunderstorms / Gusty', 'Freezing Rain / Low Temp'];
   const weather = weathers[hash % weathers.length];
@@ -656,7 +656,7 @@ const generateOpenFoodFactsData = (query, hash) => {
 
 const fetchLiveOpenFoodFacts = async (query) => {
   try {
-    const headers = { 'User-Agent': 'InsoAI/1.0 (https://insoai.com)' };
+    const headers = { 'User-Agent': 'AltiAssistant/1.0 (https://altihq.com)' };
     const isBarcode = /^\d{8,14}$/.test(query);
     
     if (isBarcode) {

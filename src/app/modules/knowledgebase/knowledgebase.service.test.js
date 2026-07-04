@@ -381,7 +381,7 @@ describe('KnowledgebaseService', () => {
       new RegExp(`${mockKnowledgebotId}/\\d+_test\\.pdf`)
     );
     const expectedPublicUrl = expect.stringMatching(
-      new RegExp(`https://storage.googleapis.com/insoai_assistant_knowledge_bot_files/${mockKnowledgebotId}/\\d+_test\\.pdf`)
+      new RegExp(`https://storage.googleapis.com/alti_assistant_knowledge_bot_files/${mockKnowledgebotId}/\\d+_test\\.pdf`)
     );
 
     it('should upload a file to GCS successfully and return public URL', async () => {
@@ -392,9 +392,9 @@ describe('KnowledgebaseService', () => {
       );
 
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining(`Uploading file to GCS: insoai_assistant_knowledge_bot_files/`)
+        expect.stringContaining(`Uploading file to GCS: alti_assistant_knowledge_bot_files/`)
       );
-      expect(mockStorageBucket).toHaveBeenCalledWith('insoai_assistant_knowledge_bot_files');
+      expect(mockStorageBucket).toHaveBeenCalledWith('alti_assistant_knowledge_bot_files');
       expect(mockBucketFile).toHaveBeenCalledWith(expectedGcsFileName);
       expect(mockFileSave).toHaveBeenCalledWith(mockBuffer, {
         metadata: {
@@ -544,7 +544,7 @@ describe('KnowledgebaseService', () => {
       originalname: mockFileName,
       size: mockFileBuffer.length,
     };
-    const mockGcsUrl = 'https://storage.googleapis.com/insoai_assistant_knowledge_bot_files/kb-456/123_document.txt';
+    const mockGcsUrl = 'https://storage.googleapis.com/alti_assistant_knowledge_bot_files/kb-456/123_document.txt';
 
     beforeEach(() => {
       vi.spyOn(knowledgebaseService, 'uploadToGCS').mockResolvedValue(mockGcsUrl);
@@ -632,7 +632,7 @@ describe('KnowledgebaseService', () => {
         originalname: mediaFileName,
         size: mockFileBuffer.length,
       };
-      const mediaGcsUrl = 'https://storage.googleapis.com/insoai_assistant_knowledge_bot_files/kb-456/123_image.png';
+      const mediaGcsUrl = 'https://storage.googleapis.com/alti_assistant_knowledge_bot_files/kb-456/123_image.png';
       knowledgebaseService.uploadToGCS.mockResolvedValueOnce(mediaGcsUrl);
 
       const result = await knowledgebaseService.processUploadedFile(
@@ -684,7 +684,7 @@ describe('KnowledgebaseService', () => {
         originalname: mediaFileName,
         size: mockFileBuffer.length,
       };
-      const mediaGcsUrl = 'https://storage.googleapis.com/insoai_assistant_knowledge_bot_files/kb-456/123_audio.mp3';
+      const mediaGcsUrl = 'https://storage.googleapis.com/alti_assistant_knowledge_bot_files/kb-456/123_audio.mp3';
       knowledgebaseService.uploadToGCS.mockResolvedValueOnce(mediaGcsUrl);
       knowledgebaseService.extractMediaContent.mockResolvedValueOnce('This is plain text transcription, not JSON.');
 

@@ -43,19 +43,19 @@ const globalBurstLimiter = new RateLimiterRedis({
 
 /**
  * @const {string} gcpKeyPath
- * @description The absolute path to the GCP service account key file (`insoai_gcp.json`), resolved from the current working directory.
+ * @description The absolute path to the GCP service account key file (`alti_gcp.json`), resolved from the current working directory.
  * @private
  */
-const gcpKeyPath = path.join(process.cwd(), 'insoai_gcp.json');
+const gcpKeyPath = path.join(process.cwd(), 'alti_gcp.json');
 
 /**
  * @const {GCPStorageService} gcpStorage
- * @description An instance of the GCPStorageService, configured for the 'insoai_assistant_generated_photo' bucket.
+ * @description An instance of the GCPStorageService, configured for the 'alti_assistant_generated_photo' bucket.
  * This service handles the uploading of generated images to Google Cloud Storage.
  * @private
  */
 const gcpStorage = new GCPStorageService(
-  'insoai_assistant_generated_photo',
+  'alti_assistant_generated_photo',
   gcpKeyPath
 );
 

@@ -23,7 +23,7 @@ export const GithubIssuesPrsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:issues in|prs of|milestones for)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {
@@ -32,12 +32,12 @@ export const GithubIssuesPrsProvider = {
 
 | Repository Scope | Pull Request ID | PR Title / Status | Open Issue Ticket | Milestone Target | Assigned Developer |
 |------------------|-----------------|-------------------|-------------------|------------------|--------------------|
-| **insoaiapp / Alti.Assistant** | **PR #452** | **feat: Stage 9 integrations** (Approved) | **Issue #118**: Fix citations dedup | **v1.2.0 Release** | **@hyper-dev** |
+| **altiapp / Alti.Assistant** | **PR #452** | **feat: Stage 9 integrations** (Approved) | **Issue #118**: Fix citations dedup | **v1.2.0 Release** | **@hyper-dev** |
 | **google / gemma.cpp** | **PR #82** | **fix: memory alignment** (Pending) | **Issue #39**: ARM build error | **v2.1.0 Release** | **@gemma-core** |`;
 
     const metadata = {
       domain: 'github_issues_prs',
-      repoScope: 'insoaiapp/Alti.Assistant',
+      repoScope: 'altiapp/Alti.Assistant',
       prId: 'PR #452',
       issueId: 'Issue #118',
       assignedDev: '@hyper-dev'

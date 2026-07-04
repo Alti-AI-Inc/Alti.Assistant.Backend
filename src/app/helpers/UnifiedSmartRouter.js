@@ -1,5 +1,5 @@
 /**
- * UnifiedSmartRouter.js — The Modern Core Router for Inso AI's Data-Grounding Engine
+ * UnifiedSmartRouter.js — The Modern Core Router for Alti Assistant's Data-Grounding Engine
  *
  * Serves as a backward-compatible drop-in replacement for the massive legacy promise-tree
  * smart routers. Dispatches all grounding query audits directly to the high-performance,
@@ -82,8 +82,8 @@ export const UnifiedSmartRouter = {
     if (targetMetadata && typeof targetMetadata === 'object') {
       Object.keys(targetMetadata).forEach(providerId => {
         let title = 'Data Partner Reference';
-        let url = 'https://insoaiapp.com';
-        let domain = 'insoaiapp.com';
+        let url = 'https://altiapp.com';
+        let domain = 'altiapp.com';
 
         if (providerId === 'sports_odds') {
           title = 'PredictionData.io Live Sports Odds Feed';
@@ -847,9 +847,9 @@ export const UnifiedSmartRouter = {
     // 4. Resilient Fallback if no citations found
     if (references.length === 0) {
       references.push({
-        url: 'https://search.insoai.com',
-        domain: 'search.insoai.com',
-        title: 'Inso AI Global Search Index'
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Assistant Global Search Index'
       });
     }
 

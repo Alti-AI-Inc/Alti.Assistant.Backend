@@ -1553,7 +1553,7 @@ Standalone Question:`;
 
   // 9. Synthesize final response
   const tSynthesis = performance.now();
-  const responsePrompt = `You are Inso AI's premium real-time AI analyst. 
+  const responsePrompt = `You are Alti Assistant's premium real-time AI analyst. 
 Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information, document profile summary, and conversation history.
 
 ${docProfile ? `Document Profile Summary:
@@ -1779,7 +1779,7 @@ export async function askQueryStream(query, userId = 'default_user', onChunk) {
     ? topNodes.map((node, idx) => `[Node ${idx + 1}] (Source: ${node.node.metadata?.fileName || 'Document'}${node.node.metadata?.pageNumber ? `, Page ${node.node.metadata.pageNumber}` : ''}): ${node.node.getContent(MetadataMode.NONE)}`).join('\n\n')
     : 'No context retrieved.';
 
-  const responsePrompt = `You are Inso AI's premium real-time AI analyst. 
+  const responsePrompt = `You are Alti Assistant's premium real-time AI analyst. 
 Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information.
 
 ${docProfile ? `Document Profile Summary:\n${docProfile.summary}\nKey Topics: ${docProfile.topics.join(', ')}\n` : ''}
@@ -6165,7 +6165,7 @@ export function optimizePromptWithHelper(promptText, userId = 'default_user') {
 
 let gcsStorage = null;
 let gcsBucket = null;
-const gcsBucketName = process.env.CLOUD_STORAGE_BUCKET || 'insoai_assistant_uploads';
+const gcsBucketName = process.env.CLOUD_STORAGE_BUCKET || 'alti_assistant_uploads';
 
 try {
   gcsStorage = new Storage();

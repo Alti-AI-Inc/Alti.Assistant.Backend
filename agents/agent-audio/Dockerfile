@@ -27,10 +27,10 @@ COPY --from=builder /app/agents/agent-audio ./agents/agent-audio
 RUN mv ./agents/agent-audio/node_modules ./node_modules
 
 # Create non-root user
-RUN groupadd -r insoai && useradd -r -g insoai -d /app -s /sbin/nologin insoai \
-    && chown -R insoai:insoai /app
+RUN groupadd -r alti && useradd -r -g alti -d /app -s /sbin/nologin alti \
+    && chown -R alti:alti /app
 
-USER insoai
+USER alti
 
 WORKDIR /app/agents/agent-audio
 

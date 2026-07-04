@@ -36,7 +36,7 @@ export const sendSecurityAlert = async (title, description, metadata = {}) => {
       payload = {
         embeds: [
           {
-            title: `🛡️ Inso AI Shield Alert: ${title}`,
+            title: `🛡️ Alti Assistant Shield Alert: ${title}`,
             description: description,
             color: 15158332, // Premium warning Red
             fields: sanitizedFields,
@@ -47,7 +47,7 @@ export const sendSecurityAlert = async (title, description, metadata = {}) => {
     } else {
       // Default to Slack-compatible layout
       payload = {
-        text: `🛡️ *Inso AI Shield Alert: ${title}*\n${description}\n\n*Metadata:*\n\`\`\`${JSON.stringify(metadata, null, 2)}\`\`\``
+        text: `🛡️ *Alti Assistant Shield Alert: ${title}*\n${description}\n\n*Metadata:*\n\`\`\`${JSON.stringify(metadata, null, 2)}\`\`\``
       };
     }
 

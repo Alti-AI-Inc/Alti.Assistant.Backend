@@ -117,13 +117,13 @@ const KnowledgeFileSchema = new mongoose.Schema(
      * The name of the GCS bucket where the file is stored.
      * @type {string}
      * @required
-     * @default 'insoai_assistant_knowledge_bot_files'
+     * @default 'alti_assistant_knowledge_bot_files'
      */
     gcsBucket: {
       type: String,
       required: true,
       trim: true,
-      default: 'insoai_assistant_knowledge_bot_files',
+      default: 'alti_assistant_knowledge_bot_files',
     },
 
     // Unified ownership

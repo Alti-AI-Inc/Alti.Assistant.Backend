@@ -19,7 +19,7 @@ No additional dependencies need to be installed - the module uses existing packa
 2. **(Optional) Configure Google Cloud Storage**
 
    ```env
-   GCS_BUCKET_NAME=insoai-documents
+   GCS_BUCKET_NAME=alti-documents
    GCP_PROJECT_ID=your-project-id
    GCS_KEY_FILE=/path/to/service-account-key.json
    ```
@@ -179,12 +179,12 @@ Example response structure:
     "content": "Full text content...",
     "format": "pdf",
     "file": {
-      "filePath": "d:\\insoai\\output\\documents\\document_1234567890.pdf",
+      "filePath": "d:\\alti\\output\\documents\\document_1234567890.pdf",
       "fileName": "document_1234567890.pdf",
       "format": "pdf",
       "size": 45678
     },
-    "url": "https://storage.googleapis.com/insoai-documents/documents/...",
+    "url": "https://storage.googleapis.com/alti-documents/documents/...",
     "metadata": {
       "title": "Document Title",
       "documentType": "proposal"

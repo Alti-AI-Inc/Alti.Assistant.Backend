@@ -17,7 +17,7 @@ import httpStatus from 'http-status';
 // Initialize GCS storage
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'insoai_gcp.json',
+  keyFilename: 'alti_gcp.json',
 });
 
 /**

@@ -2,7 +2,7 @@
  * stage32PremiumProviders.js — Stage 32 High-Value Sovereign Specialized Domains Grounding Channels
  *
  * Implements the tax, banking, real estate, and macroeconomic search providers
- * for Norway, Ireland, Austria, Denmark, and Belgium for Inso AI's RAG/Grounding engine.
+ * for Norway, Ireland, Austria, Denmark, and Belgium for Alti Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

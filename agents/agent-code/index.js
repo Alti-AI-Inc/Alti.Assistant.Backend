@@ -1,5 +1,5 @@
 /**
- * @fileoverview Inso AI Code Agent — Express microservice entry point.
+ * @fileoverview Alti Assistant Code Agent — Express microservice entry point.
  * Handles code generation, debugging, review, and explanation.
  *
  * Cloud Run default port: 8080

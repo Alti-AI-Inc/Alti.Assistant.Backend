@@ -590,7 +590,7 @@ export const googleSearch = new DynamicStructuredTool({
 
     // Perform budget pre-flight check
     try {
-      const budget = await checkTenantBudgetStatus('insoai-enterprise-tenant-default');
+      const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
       if (budget.isBlocked) {
         throw new Error(`BillingLimitExceeded: Search execution blocked. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
       }
@@ -603,7 +603,7 @@ export const googleSearch = new DynamicStructuredTool({
 
     const results = await rawGoogle.invoke(finalQuery);
     try {
-      logTenantUsage('insoai-enterprise-tenant-default', config.llmProvider || 'gcp', {
+      logTenantUsage('alti-enterprise-tenant-default', config.llmProvider || 'gcp', {
         inputTokens: 0,
         outputTokens: 0,
         webSearchCount: 1,
@@ -798,10 +798,10 @@ Input: A natural language query or topic to search global news intelligence (e.g
 });
 
 /**
- * Inso AI Greenlight Public Intelligence Search Tool
+ * Alti Assistant Greenlight Public Intelligence Search Tool
  */
-export const insoaiGreenlightIntelligenceSearch = new DynamicStructuredTool({
-  name: 'insoai_greenlight_intelligence_search',
+export const altiGreenlightIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_greenlight_intelligence_search',
   description: `Access nine highly targeted public intelligence databases. Use this tool for ANY query regarding:
 1. "politics_campaign" -> FEC political donations, campaign financing, PAC cash flow.
 2. "legislation_tracking" -> LegiScan state/federal bill tracking, roll call voting records, bill sponsors.
@@ -838,10 +838,10 @@ Input: The domain enum name (politics_campaign, legislation_tracking, civic_repr
 });
 
 /**
- * Inso AI Premium Public Intelligence Search Tool
+ * Alti Assistant Premium Public Intelligence Search Tool
  */
-export const insoaiPremiumIntelligenceSearch = new DynamicStructuredTool({
-  name: 'insoai_premium_intelligence_search',
+export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_premium_intelligence_search',
   description: `Access twenty-three high-value premium public intelligence databases. Use this tool for ANY query regarding:
 1. "clinical_trials" -> ClinicalTrials.gov global clinical trial registries, study recruitment, enrollment stats, drug trial phases.
 2. "fda_drug_safety" -> openFDA drug safety warnings, adverse event counts, recall enforcement records, labeling details.
@@ -914,10 +914,10 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
 });
 
 /**
- * Inso AI Strategic Enterprise & High-Stakes Search Tool
+ * Alti Assistant Strategic Enterprise & High-Stakes Search Tool
  */
-export const insoaiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
-  name: 'insoai_enterprise_intelligence_search',
+export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_enterprise_intelligence_search',
   description: `Access premium enterprise-focused applications. Use this tool for ANY query regarding:
 1. "autodesk" -> Autodesk BIM 360 Construction sheets, RFIs, sheets coordination, models.
 2. "yardi" -> Yardi Systems property tenant rent history, billing balances, property management ledger update.
@@ -966,7 +966,7 @@ Input: The app slug name and action list.`,
       'splunk', 'dynatrace', 'databricks', 'tableau', 'powerbi', 'googlebigquery', 'looker', 'shopify', 'adobe_experience',
       'twilio_segment', 'marketo', 'exacttarget', 'okta', 'crowdstrike', 'sentinelone', 'zscaler', 'pingidentity',
       'openai', 'weights_biases', 'huggingface', 'pinecone', 'sagemaker', 'sharepoint', 'confluence', 'notion', 'box',
-      'slack_enterprise', 'concur', 'expensify', 'bill', 'tipinsoai', 'ramp', 'greenhouse', 'lever', 'lattice', 'hirevue',
+      'slack_enterprise', 'concur', 'expensify', 'bill', 'tipalti', 'ramp', 'greenhouse', 'lever', 'lattice', 'hirevue',
       'bamboohr', 'manhattan_wms', 'blue_yonder', 'sps_commerce', 'sap_ibp', 'netsuite_wms', 'genesys', 'five9', 'talkdesk',
       'zoom_phone', 'twilio_flex', 'kyriba', 'gtreasury', 'reval', 'sap_treasury', 'bloomberg_fx', 'ivalua', 'gep_smart',
       'jaggaer', 'zycus', 'sap_fieldglass', 'cyberark', 'sailpoint', 'cloudflare_ent', 'netskope', 'entra_id', 'ibm_maximo',
@@ -1017,7 +1017,7 @@ Input: The app slug name and action list.`,
       'getNotionDatabaseRecords', 'purgeNotionPage', 'getBoxFileDetails', 'modifyBoxFilePermissions',
       'getSlackChannelHistory', 'purgeSlackChannelMessages', 'getConcurExpenseReports', 'approveConcurExpenseReport',
       'getExpensifyReceipts', 'reimburseExpensifyReport', 'getBillInvoices', 'createBillPayment',
-      'getTipinsoaiPayeeProfiles', 'initiateTipinsoaiVendorPayment', 'getRampCardTransactions', 'adjustRampCardSpendingLimit',
+      'getTipaltiPayeeProfiles', 'initiateTipaltiVendorPayment', 'getRampCardTransactions', 'adjustRampCardSpendingLimit',
       'getGreenhouseJobApplicants', 'extendGreenhouseJobOffer', 'getLeverTalentPool', 'modifyLeverCandidateStatus',
       'getLatticePerformanceReviews', 'modifyLatticeCompensationScore', 'getHireVueInterviewRecordings', 'evaluateHireVueApplicant',
       'getBambooHRHolidays', 'suspendBambooHREmployee', 'getManhattanInventoryStatus', 'dispatchManhattanWarehouseOrder',

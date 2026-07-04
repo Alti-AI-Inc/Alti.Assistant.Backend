@@ -1,7 +1,7 @@
 /**
  * verify_finance_rates.js
  *
- * Verification script for testing Inso AI's Stage 42 Premium Finance, Mortgage,
+ * Verification script for testing Alti Assistant's Stage 42 Premium Finance, Mortgage,
  * Rate, and Regulatory grounding channels.
  */
 

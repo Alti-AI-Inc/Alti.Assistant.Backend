@@ -267,7 +267,7 @@ describe('TemporalClientCoordinator', () => {
       expect(mockClient.workflow.start).toHaveBeenCalledTimes(1);
       expect(mockClient.workflow.start).toHaveBeenCalledWith(mockRunDurableWorkflow, {
         args: [mockWorkflow, mockUserId, mockContext, mockOptions.startStepIndex],
-        taskQueue: 'insoai-workflows-queue',
+        taskQueue: 'alti-workflows-queue',
         workflowId: expect.stringMatching(/^wf-wf123-\d+$/),
       });
       expect(result).toEqual({

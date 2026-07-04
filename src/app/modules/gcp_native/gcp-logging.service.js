@@ -55,7 +55,7 @@ const getAuthenticatedClient = () => {
  * Writes a structured log entry directly to Google Cloud Logging using jsonPayload.
  * This approach is preferred over textPayload for rich, queryable logs.
  *
- * @param {string} logName - Name of the log container (e.g. "insoai-activity-log")
+ * @param {string} logName - Name of the log container (e.g. "alti-activity-log")
  * @param {string} severity - Logging severity: 'DEFAULT', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL'
  * @param {object} payload - The structured data object to be logged. Must be JSON-serializable.
  * @param {string} [traceId] - Optional trace ID for correlating logs across services.
@@ -164,7 +164,7 @@ const logBillingEvent = async (workspaceId, adminUserId, action, details = {}, t
     eventType: 'billing',
     details
   };
-  return writeLogEntry('insoai-billing-audit-log', 'INFO', payload, traceId);
+  return writeLogEntry('alti-billing-audit-log', 'INFO', payload, traceId);
 };
 
 /**
@@ -190,7 +190,7 @@ const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stri
     eventType: 'subscription',
     details
   };
-  return writeLogEntry('insoai-subscription-audit-log', 'NOTICE', payload, traceId);
+  return writeLogEntry('alti-subscription-audit-log', 'NOTICE', payload, traceId);
 };
 
 /**
@@ -220,7 +220,7 @@ const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, n
     },
     details
   };
-  return writeLogEntry('insoai-workspace-audit-log', 'INFO', payload, traceId);
+  return writeLogEntry('alti-workspace-audit-log', 'INFO', payload, traceId);
 };
 
 /**
@@ -246,7 +246,7 @@ const logLimitBreachEvent = async (workspaceId, limitType, currentUsage, maxLimi
     },
     details
   };
-  return writeLogEntry('insoai-limits-audit-log', 'WARNING', payload, traceId);
+  return writeLogEntry('alti-limits-audit-log', 'WARNING', payload, traceId);
 };
 
 /**
@@ -270,7 +270,7 @@ const logSecurityEvent = async (adminUserId, action, status, details = {}, trace
   };
   // Security events are high-importance and should be logged with a higher severity.
   const severity = status === 'failure' ? 'ERROR' : 'NOTICE';
-  return writeLogEntry('insoai-security-audit-log', severity, payload, traceId);
+  return writeLogEntry('alti-security-audit-log', severity, payload, traceId);
 };
 
 

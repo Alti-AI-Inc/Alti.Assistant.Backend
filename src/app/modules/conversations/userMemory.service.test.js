@@ -123,7 +123,7 @@ describe('userMemory.service', () => {
       const existingMemories = [{ key: 'location', value: 'Berlin', category: 'facts' }];
       const geminiResponse = [
         { key: 'location', value: 'Munich', category: 'facts', action: 'upsert' },
-        { key: 'company', value: 'Inso AIorem', category: 'facts', action: 'upsert' },
+        { key: 'company', value: 'Alti Assistantorem', category: 'facts', action: 'upsert' },
         { key: 'old_project', value: '', category: 'facts', action: 'delete' },
       ];
 
@@ -134,7 +134,7 @@ describe('userMemory.service', () => {
       UserMemory.deleteMany.mockResolvedValue({ deletedCount: 1 });
       UserMemory.bulkWrite.mockResolvedValue({ upsertedCount: 1, modifiedCount: 1 });
 
-      userMemoryService.asyncExtractFacts(userId, 'I moved to Munich and work at Inso AIorem', 'Got it.');
+      userMemoryService.asyncExtractFacts(userId, 'I moved to Munich and work at Alti Assistantorem', 'Got it.');
       await vi.runAllTimersAsync();
 
       expect(UserMemory.find).toHaveBeenCalledWith({ userId });
@@ -156,7 +156,7 @@ describe('userMemory.service', () => {
         {
           updateOne: {
             filter: { userId, key: 'company' },
-            update: { $set: { value: 'Inso AIorem', category: 'facts', confidence: 1.0 } },
+            update: { $set: { value: 'Alti Assistantorem', category: 'facts', confidence: 1.0 } },
             upsert: true,
           },
         },

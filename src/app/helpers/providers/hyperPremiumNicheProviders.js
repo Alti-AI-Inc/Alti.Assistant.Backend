@@ -23,7 +23,7 @@ export const GithubDeploymentsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:deployments for|deployment environment of|environment status of)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
+    return sanitizeQueryString(match ? match[1] : 'altiapp');
   },
 
   fetch: async (topic) => {

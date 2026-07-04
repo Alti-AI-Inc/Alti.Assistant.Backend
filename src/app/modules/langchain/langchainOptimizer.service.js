@@ -14,7 +14,7 @@ import ApiError from '../../../errors/ApiError.js';
  * from the application's configuration. Used for all interactions with Google's generative AI models.
  */
 const vertex_ai = new VertexAI({
-  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'insoai-assistant',
+  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
   location: config.google?.gcp_location || config.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 

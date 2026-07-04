@@ -38,7 +38,7 @@ User Query
 ┌────▼──────────────┐  ┌──▼──────────────┐
 │ Native Grounding  │  │  ReAct Agent    │
 │ (google_search)   │  │  (multi-step)   │
-│ - Faster          │  │  - Reinsoaiing    │
+│ - Faster          │  │  - Realtiing    │
 │ - Auto citations  │  │  - Verification │
 │ - Built-in        │  │  - Filtering    │
 └───────────────────┘  └─────────────────┘
@@ -58,7 +58,7 @@ User Query
 
 ❌ **Don't use for:**
 
-- Multi-step reinsoaiing (compare, analyze)
+- Multi-step realtiing (compare, analyze)
 - Requires filtering (home vs away games)
 - Complex decision-making
 - Needs verification from multiple sources
@@ -67,7 +67,7 @@ User Query
 
 ✅ **Use for:**
 
-- Multi-step reinsoaiing
+- Multi-step realtiing
 - Comparison queries ("A vs B")
 - Prediction/analysis requests
 - Filtering requirements (specific criteria)
