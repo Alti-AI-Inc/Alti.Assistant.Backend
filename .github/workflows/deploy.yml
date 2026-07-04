@@ -126,6 +126,18 @@ jobs:
         run: |
           scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:${{ env.COMPOSE_DIR }}/docker-compose.yml
 
+      - name: Ensure .env is present on VM
+        run: |
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          if ! ssh -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ env.VM_HOST }} "[ -f ~/.env ]"; then
+            echo "No .env found on sandbox VM. Fetching .env from persistent VM..."
+            ssh -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ secrets.VM_HOST }} "cat ~/.env" > /tmp/temp_env
+            scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no /tmp/temp_env ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/.env
+            rm -f /tmp/temp_env
+          else
+            echo ".env already exists on sandbox VM."
+          fi
+
       - name: Deploy to VM
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
