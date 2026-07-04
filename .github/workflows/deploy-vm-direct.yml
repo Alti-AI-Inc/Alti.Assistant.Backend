@@ -80,6 +80,8 @@ jobs:
             docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
 
             echo "=== Step 2: Aggressive disk cleanup BEFORE pull ==="
+            sudo systemctl restart docker || sudo service docker restart || true
+            docker system prune -af 2>/dev/null || true
             docker container prune -f 2>/dev/null || true
             docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
             docker image prune -af 2>/dev/null || true
