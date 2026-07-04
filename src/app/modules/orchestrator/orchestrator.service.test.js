@@ -12,6 +12,7 @@ const {
   mockLoggerError,
   mockIncrementPromptsUsed,
   mockExecuteSwarmSync,
+  mockExecuteSwarmStream,
   mockRandomUUID,
   mockProcessUserInputService,
   mockAsyncExtractFacts,
@@ -37,6 +38,10 @@ const {
 
   // Mock SwarmService
   const mockExecuteSwarmSync = vi.fn();
+  const mockExecuteSwarmStream = vi.fn().mockImplementation(async function* () {
+    yield { type: 'text', content: 'Stream chunk' };
+    yield { type: 'metadata', reference: [{ url: 'https://example.com' }], citations: [{ index: 1 }] };
+  });
 
   // Mock crypto
   const mockRandomUUID = vi.fn().mockImplementation(() => 'mock-uuid-123');
@@ -82,6 +87,7 @@ const {
     mockLoggerError,
     mockIncrementPromptsUsed,
     mockExecuteSwarmSync,
+    mockExecuteSwarmStream,
     mockRandomUUID,
     mockProcessUserInputService,
     mockAsyncExtractFacts,
@@ -157,6 +163,7 @@ vi.mock('../payment/payment.controller.js', () => ({
 vi.mock('../swarm/swarm.service.js', () => ({
   SwarmService: {
     executeSwarmSync: mockExecuteSwarmSync,
+    executeSwarmStream: mockExecuteSwarmStream,
   },
 }));
 
@@ -742,5 +749,39 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(result.reply).toContain("I received your message but encountered an unexpected issue.");
     expect(result.orchestrator_decision).toBe('general_chat');
     expect(result.conversationId).toBe('mock-uuid-123'); // A new UUID is generated for the error response
+  });
+
+  describe('classifyAndDispatchStream', () => {
+    let mockRes;
+    beforeEach(() => {
+      mockRes = {
+        setHeader: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
+        flushHeaders: vi.fn(),
+      };
+    });
+
+    it('should stream fast-path greeting', async () => {
+      await orchestratorService.classifyAndDispatchStream('hi', sessionId, userId, conversationId, null, null, null, mockRes);
+      expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
+      expect(mockRes.write).toHaveBeenCalled();
+      expect(mockRes.end).toHaveBeenCalled();
+    });
+
+    it('should stream general prompt and call executeSwarmStream', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        response: {
+          candidates: [{
+            content: { parts: [{ text: JSON.stringify({ target_module: 'general_chat', model_tier: 'fast' }) }] }
+          }]
+        }
+      });
+
+      await orchestratorService.classifyAndDispatchStream('some long prompt here to trigger normal flow', sessionId, userId, conversationId, null, null, null, mockRes);
+      expect(mockExecuteSwarmStream).toHaveBeenCalled();
+      expect(mockRes.write).toHaveBeenCalled();
+      expect(mockRes.end).toHaveBeenCalled();
+    });
   });
 });

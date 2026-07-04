@@ -9,6 +9,7 @@ import httpStatus from 'http-status';
 vi.mock('./orchestrator.service.js', () => ({
   orchestratorService: {
     classifyAndDispatch: vi.fn(),
+    classifyAndDispatchStream: vi.fn(),
   },
 }));
 
@@ -281,6 +282,36 @@ describe('orchestratorController', () => {
         success: false,
         message: 'Prompt message is required and cannot be empty.',
       });
+    });
+
+    it('should call classifyAndDispatchStream if stream is true', async () => {
+      const mockMessage = 'Hello, AI!';
+      const mockSessionId = 'session123';
+      const mockUserId = 'user456';
+      const mockConversationId = 'conv789';
+
+      mockReq.body = {
+        message: mockMessage,
+        sessionId: mockSessionId,
+        conversationId: mockConversationId,
+        stream: true,
+      };
+      mockReq.user = { id: mockUserId };
+
+      await orchestratorController.routePrompt(mockReq, mockRes, next);
+
+      expect(orchestratorService.classifyAndDispatchStream).toHaveBeenCalledTimes(1);
+      expect(orchestratorService.classifyAndDispatchStream).toHaveBeenCalledWith(
+        mockMessage,
+        mockSessionId,
+        mockUserId,
+        mockConversationId,
+        undefined,
+        undefined,
+        mockReq,
+        mockRes
+      );
+      expect(orchestratorService.classifyAndDispatch).not.toHaveBeenCalled();
     });
   });
 });

@@ -761,10 +761,296 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 };
 
 /**
+ * Executes a collaborative multi-agent execution pipeline streaming SSE chunks to the client.
+ */
+const classifyAndDispatchStream = async (prompt, sessionId, userId, conversationId, tenantId = null, category = null, req = null, res) => {
+  const startTime = Date.now();
+  let classificationSource = 'unknown';
+  let classificationMs = 0;
+
+  try {
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      const reply = "It looks like you sent an empty message. How can I help you today?";
+      res.write(`data: ${JSON.stringify({ type: 'text', content: reply })}\n\n`);
+      res.end();
+      return;
+    }
+
+    // ── 1. LIGHTNING FAST PATH FOR GREETINGS & SIMPLE TIME/DATE QUERIES ──
+    const cleanedPrompt = prompt.trim().toLowerCase().replace(/[?.!]/g, '');
+    const commonGreetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola', 'bonjour', 'howdy', 'greetings', 'help', 'who are you', 'how are you', 'what is this'];
+    const timeQueries = [
+      'what time is it', 'what is the time', 'whats the time', 'current time',
+      'what day is it', 'what is the date', 'whats the date', 'what is todays date', 'what is today'
+    ];
+    const isShortQuery = cleanedPrompt.length <= 15;
+    const isCommonGreeting = commonGreetings.includes(cleanedPrompt) || commonGreetings.some(greet => cleanedPrompt.startsWith(greet + ' ') || cleanedPrompt.endsWith(' ' + greet));
+    const isTimeQuery = timeQueries.includes(cleanedPrompt);
+    
+    let intentPayload;
+    if (isShortQuery || isCommonGreeting || isTimeQuery) {
+      classificationSource = 'fast-path';
+      classificationMs = Date.now() - startTime;
+      logger.info({ message: 'Fast-path classification triggered (Stream)', component: 'Orchestrator', prompt, latency_ms: classificationMs });
+      intentPayload = { 
+        target_module: 'general_chat', 
+        confidence: 1.0, 
+        complexity: 'simple',
+        model_tier: 'fast',
+        data_sources: [],
+        parameters: { query: prompt } 
+      };
+    } else {
+      // ── 2. LOAD CONVERSATION CONTEXT ──
+      let conversationContext = '';
+      if (conversationId && conversationId !== 'new-chat') {
+        try {
+          const query = { conversationId, userId };
+          const conversation = await Conversation.findOne(
+            tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query,
+            { messages: { $slice: -6 } }
+          ).lean();
+          const decryptedConversation = decryptConversation(conversation);
+          if (decryptedConversation?.messages?.length > 0) {
+            conversationContext = '\n\nRecent conversation context:\n' +
+              decryptedConversation.messages
+                .map(m => `${m.role}: ${(m.content || '').substring(0, 200)}`)
+                .join('\n');
+          }
+        } catch (ctxErr) {
+          logger.warn({ message: 'Failed to load conversation context (Stream)', component: 'Orchestrator', error: { message: ctxErr.message } });
+        }
+      }
+
+      // ── 3. LLM CLASSIFICATION ──
+      logger.info({ message: 'Classifying prompt (Stream)', component: 'Orchestrator', userId, model: CLASSIFIER_MODEL });
+      const classifyStart = Date.now();
+      let rawJson = '{}';
+
+      try {
+        const classificationPrompt = conversationContext
+          ? `${conversationContext}\n\nNew user message to classify:\n${prompt}`
+          : prompt;
+
+        const classificationResult = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: classificationPrompt }] }],
+          systemInstruction: { role: "system", parts: [{ text: ORCHESTRATOR_SYSTEM_PROMPT }] }
+        });
+        rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        classificationSource = 'gemini';
+      } catch (geminiErr) {
+        logger.warn({ message: 'Gemini classification failed (Stream), defaulting to local classifier', component: 'Orchestrator', error: { message: geminiErr.message } });
+        rawJson = '{}';
+      }
+
+      rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      try {
+        intentPayload = JSON.parse(rawJson);
+        if (!intentPayload.target_module || !VALID_MODULES.includes(intentPayload.target_module)) {
+          throw new Error(`Invalid target_module: ${intentPayload.target_module}`);
+        }
+      } catch (e) {
+        classificationSource = 'local-fallback';
+        intentPayload = localClassifyIntent(prompt);
+      }
+      classificationMs = Date.now() - classifyStart;
+    }
+
+    const { target_module, parameters, confidence } = intentPayload;
+    const complexity = intentPayload.complexity || 'simple';
+    const model_tier = intentPayload.model_tier || 'fast';
+    const data_sources = intentPayload.data_sources || [];
+    const dispatchConfig = MODULE_REGISTRY[target_module] || MODULE_REGISTRY.general_chat;
+    const targetModel = model_tier === 'pro' 
+      ? (config.gemini_pro_model || 'gemini-2.5-pro') 
+      : (config.gemini_model || 'gemini-3.5-flash');
+
+    const requireSearch = !!parameters?.require_search || !!dispatchConfig.requireSearch || data_sources.includes('web_search');
+
+    logger.info({ message: 'Classification decision made (Stream)', component: 'Orchestrator', targetModule: target_module, source: classificationSource, latency_ms: classificationMs });
+
+    // ── 4. CHECK CREDITS (non-blocking) ──
+    if (userId) {
+      paymentController.incrementPromptsUsed(userId).catch(paymentErr => {
+        logger.warn({ message: 'Payment check failed (Stream)', component: 'Orchestrator', error: { message: paymentErr.message } });
+      });
+    }
+
+    // ── 5. PERSIST INITIAL CONVERSATION TO DB IF NEW CHAT ──
+    let finalConversationId = conversationId;
+    let resolvedCategory = category || 'search';
+    if (target_module) {
+      const mapTargetModuleToCategory = (mod) => {
+        switch (mod) {
+          case 'image_generation': return 'image_generation';
+          case 'video': return 'video';
+          case 'code_generation': return 'code';
+          case 'document_analysis': return 'document_analysis';
+          case 'legal_contract': return 'legal_contract';
+          case 'brainstorm': return 'brainstorm';
+          case 'presentation': return 'presentation';
+          case 'plan_generator': return 'plan_generation';
+          case 'translation': return 'translation';
+          case 'creative_writing': return 'creative_writing';
+          case 'article_writer': return 'article_writer';
+          case 'document_drafting': return 'document_drafting';
+          case 'document_review': return 'document_review';
+          default: return 'search';
+        }
+      };
+      resolvedCategory = category || mapTargetModuleToCategory(target_module);
+    }
+
+    if (userId && (!finalConversationId || finalConversationId === 'new-chat')) {
+      finalConversationId = crypto.randomUUID();
+      let formattedPrefix = '';
+      if (resolvedCategory === 'search') formattedPrefix = 'Search: ';
+      else if (resolvedCategory === 'code') formattedPrefix = 'Code: ';
+      else if (resolvedCategory === 'image') formattedPrefix = 'Image: ';
+      else if (resolvedCategory === 'deep_research') formattedPrefix = 'Deep Research: ';
+      
+      const cleanTitle = prompt.length > 40 ? `${prompt.substring(0, 40)}...` : prompt;
+      const finalTitle = `${formattedPrefix}${cleanTitle}`;
+
+      await conversationService.createConversation({
+        userId,
+        title: finalTitle,
+        metadata: { category: resolvedCategory },
+        is_deep_search: false,
+        initialMessage: { role: 'user', content: prompt }
+      }, finalConversationId, req);
+    } else if (userId && finalConversationId) {
+      const query = { conversationId: finalConversationId, userId };
+      const conversation = await Conversation.findOne(
+        tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
+      );
+      if (conversation) {
+        conversation.addMessage('user', prompt);
+        await conversation.save();
+      }
+    }
+
+    // Send initial connected event
+    res.write(`data: ${JSON.stringify({
+      type: 'connected',
+      conversationId: finalConversationId,
+      timestamp: Date.now()
+    })}\n\n`);
+
+    // Get conversation history for streaming context
+    let conversationHistory = [];
+    if (finalConversationId && finalConversationId !== 'new-chat') {
+      try {
+        const query = { conversationId: finalConversationId, userId };
+        const conversationDoc = await Conversation.findOne(
+          tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query,
+          { messages: { $slice: -6 } }
+        ).lean();
+        const decryptedDoc = decryptConversation(conversationDoc);
+        if (decryptedDoc?.messages?.length > 0) {
+          conversationHistory = decryptedDoc.messages.map(m => ({
+            role: m.role,
+            content: m.content
+          }));
+        }
+      } catch (histErr) {
+        logger.warn({ message: 'Failed to load history for streaming context', component: 'Orchestrator', error: histErr.message });
+      }
+    }
+
+    // ── 6. DISPATCH STREAM ──
+    let fullText = '';
+    let finalReferences = [];
+    let finalCitations = [];
+
+    const streamOptions = {
+      model: targetModel,
+      requireSearch: requireSearch
+    };
+
+    try {
+      for await (const chunk of SwarmService.executeSwarmStream(
+        parameters?.query || prompt,
+        conversationHistory,
+        userId,
+        streamOptions
+      )) {
+        if (chunk.type === 'text') {
+          fullText += chunk.content;
+          res.write(`data: ${JSON.stringify({
+            type: 'text',
+            content: chunk.content,
+            timestamp: Date.now()
+          })}\n\n`);
+        } else if (chunk.type === 'metadata') {
+          finalReferences = chunk.reference || [];
+          finalCitations = chunk.citations || [];
+          res.write(`data: ${JSON.stringify({
+            type: 'metadata',
+            reference: finalReferences,
+            citations: finalCitations,
+            timestamp: chunk.timestamp
+          })}\n\n`);
+        }
+      }
+    } catch (streamErr) {
+      logger.error({ message: 'Orchestrator streaming dispatch failed', component: 'Orchestrator', error: streamErr.message });
+      const errorReply = `\n\nI encountered a temporary issue generating the response. Please try sending your message again.`;
+      fullText += errorReply;
+      res.write(`data: ${JSON.stringify({ type: 'text', content: errorReply })}\n\n`);
+    }
+
+    // ── 7. PERSIST ASSISTANT REPLY TO DATABASE ──
+    try {
+      if (userId && finalConversationId) {
+        const conversation = await Conversation.findOne({ conversationId: finalConversationId, userId });
+        if (conversation) {
+          const assistantMetadata = {
+            reference: finalReferences,
+            citations: finalCitations,
+            model: targetModel,
+            classificationSource,
+            classificationMs,
+            streamingMode: true,
+          };
+          conversation.addMessage('assistant', fullText, assistantMetadata);
+          await conversation.save();
+        }
+      }
+    } catch (dbErr) {
+      logger.error({ message: 'Failed to persist streaming assistant response', component: 'Orchestrator', error: dbErr.message });
+    }
+
+    // ── 8. ASYNC MEMORY EXTRACTION ──
+    if (userId && fullText) {
+      userMemoryService.asyncExtractFacts(userId, prompt, fullText);
+    }
+
+    res.end();
+  } catch (err) {
+    logger.error({ message: 'Unexpected streaming error', component: 'Orchestrator', error: err.message });
+    const safeResponse = `I received your message but encountered an unexpected issue. Please try again.`;
+    res.write(`data: ${JSON.stringify({ type: 'text', content: safeResponse })}\n\n`);
+    res.end();
+  }
+};
+
+/**
  * The Orchestrator Service, responsible for classifying user prompts and dispatching
  * them to the appropriate backend modules for processing.
  * @exports orchestratorService
  */
 export const orchestratorService = {
   classifyAndDispatch,
+  classifyAndDispatchStream,
 };
