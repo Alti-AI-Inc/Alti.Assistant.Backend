@@ -100,7 +100,7 @@ jobs:
             [ -f ~/.env ] && sed -i 's/\r//' ~/.env && echo ".env CRLF stripped"
 
             echo "=== Step 4: Authenticate with Artifact Registry ==="
-            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet 2>/dev/null || true
+            echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
 
             echo "=== Step 5: Pull latest images ==="
             docker compose -f ~/docker-compose.yml pull
