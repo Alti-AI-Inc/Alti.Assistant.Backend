@@ -588,13 +588,16 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     try {
       if (userId) {
         let conversation;
+        let conversationExists = false;
         if (finalConversationId && finalConversationId !== 'new-chat') {
           // This findOne is for updating an existing document, so .lean() should NOT be used here.
-          // Ensure a compound index { conversationId: 1, userId: 1 } exists on the Conversation model for efficient lookups.
           const query = { conversationId: finalConversationId, userId };
           conversation = await Conversation.findOne(
             tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
           );
+          if (conversation) {
+            conversationExists = true;
+          }
         }
 
         const mapTargetModuleToCategory = (targetModule) => {
@@ -660,7 +663,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
           classificationMs,
         };
 
-        if (conversation) {
+        if (conversationExists && conversation) {
           conversation.addMessage('user', prompt);
           conversation.addMessage('assistant', finalResponse.reply, assistantMetadata);
           
@@ -676,7 +679,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
           
           await conversation.save();
         } else {
-          finalConversationId = crypto.randomUUID();
+          if (!finalConversationId || finalConversationId === 'new-chat') {
+            finalConversationId = crypto.randomUUID();
+          }
           let formattedPrefix = '';
           if (resolvedCategory === 'search') formattedPrefix = 'Search: ';
           else if (resolvedCategory === 'code') formattedPrefix = 'Code: ';
@@ -911,8 +916,23 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
       resolvedCategory = category || mapTargetModuleToCategory(target_module);
     }
 
-    if (userId && (!finalConversationId || finalConversationId === 'new-chat')) {
-      finalConversationId = crypto.randomUUID();
+    let conversationExists = false;
+    if (userId && finalConversationId && finalConversationId !== 'new-chat') {
+      const query = { conversationId: finalConversationId, userId };
+      const conversation = await Conversation.findOne(
+        tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
+      );
+      if (conversation) {
+        conversationExists = true;
+        conversation.addMessage('user', prompt);
+        await conversation.save();
+      }
+    }
+
+    if (userId && (!conversationExists)) {
+      if (!finalConversationId || finalConversationId === 'new-chat') {
+        finalConversationId = crypto.randomUUID();
+      }
       let formattedPrefix = '';
       if (resolvedCategory === 'search') formattedPrefix = 'Search: ';
       else if (resolvedCategory === 'code') formattedPrefix = 'Code: ';
@@ -929,15 +949,6 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
         is_deep_search: false,
         initialMessage: { role: 'user', content: prompt }
       }, finalConversationId, req);
-    } else if (userId && finalConversationId) {
-      const query = { conversationId: finalConversationId, userId };
-      const conversation = await Conversation.findOne(
-        tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
-      );
-      if (conversation) {
-        conversation.addMessage('user', prompt);
-        await conversation.save();
-      }
     }
 
     // Send initial connected event
@@ -958,7 +969,12 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
         ).lean();
         const decryptedDoc = decryptConversation(conversationDoc);
         if (decryptedDoc?.messages?.length > 0) {
-          conversationHistory = decryptedDoc.messages.map(m => ({
+          let messagesToUse = decryptedDoc.messages;
+          const lastMsg = messagesToUse[messagesToUse.length - 1];
+          if (lastMsg && lastMsg.role === 'user' && lastMsg.content === prompt) {
+            messagesToUse = messagesToUse.slice(0, -1);
+          }
+          conversationHistory = messagesToUse.map(m => ({
             role: m.role,
             content: m.content
           }));
