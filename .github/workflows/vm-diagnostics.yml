@@ -25,6 +25,9 @@ jobs:
             echo "=== Hostname ==="
             hostname
             
+            echo "=== Nginx sites-enabled ==="
+            cat /etc/nginx/sites-enabled/* 2>/dev/null || echo "Nginx sites-enabled not readable"
+            
             echo "=== Docker containers ==="
             docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
             
