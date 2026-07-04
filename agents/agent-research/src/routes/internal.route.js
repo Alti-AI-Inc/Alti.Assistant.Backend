@@ -12,10 +12,9 @@
 
 import { Router } from 'express';
 import { internalAuth } from '../../../../shared/auth/index.js';
-import { ResearchService } from '../services/researchService.js';
+import researchService from '../services/researchService.js';
 
 const router = Router();
-const researchService = new ResearchService();
 
 // ── Health Check ────────────────────────────────────────────────────────────
 router.get('/health', (_req, res) => {
