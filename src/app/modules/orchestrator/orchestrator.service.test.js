@@ -486,7 +486,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const prompt = 'Start a new chat about quantum physics.';
     await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, newConversationId);
 
-    expect(mockConversationFindOne).not.toHaveBeenCalled();
+    expect(mockConversationFindOne).not.toHaveBeenCalledWith(expect.objectContaining({ userId }));
     expect(mockGenerateContent).toHaveBeenCalledWith(expect.objectContaining({
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     }));
@@ -622,6 +622,15 @@ describe('orchestratorService.classifyAndDispatch', () => {
     const swarmResponse = { reply: 'New chat response', responseMessage: { answer: 'New chat response', reference: [] } };
     mockExecuteSwarmSync.mockResolvedValueOnce(swarmResponse);
 
+    const mockCreatedConv = {
+      conversationId: 'mock-uuid-123',
+      userId,
+      messages: [{ role: 'user', content: prompt }],
+      addMessage: mockAddMessage,
+      save: mockConversationSave,
+    };
+    mockConversationFindOne.mockResolvedValueOnce(mockCreatedConv);
+
     const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId, newConversationId);
 
     expect(mockRandomUUID).toHaveBeenCalledTimes(1);
@@ -629,13 +638,11 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(MockConversation).toHaveBeenCalledWith(expect.objectContaining({
       conversationId: 'mock-uuid-123',
       userId,
-      title: 'New chat topic.',
-      messages: [
-        expect.objectContaining({ role: 'user', content: prompt }),
-        expect.objectContaining({ role: 'assistant', content: swarmResponse.reply }),
-      ],
+      title: 'Search: New chat topic.',
+      messages: [],
     }));
-    expect(mockConversationSave).toHaveBeenCalledTimes(1);
+    expect(mockAddMessage).toHaveBeenCalledWith('assistant', swarmResponse.reply, expect.any(Object));
+    expect(mockConversationSave).toHaveBeenCalledTimes(2);
     expect(result.conversationId).toBe('mock-uuid-123');
   });
 

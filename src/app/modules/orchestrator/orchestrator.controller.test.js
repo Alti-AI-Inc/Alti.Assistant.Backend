@@ -73,7 +73,8 @@ describe('orchestratorController', () => {
         mockUserId,
         mockConversationId,
         undefined,
-        undefined
+        undefined,
+        mockReq
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -110,7 +111,8 @@ describe('orchestratorController', () => {
         mockUserId,
         mockConversationId,
         undefined,
-        undefined
+        undefined,
+        mockReq
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -147,7 +149,8 @@ describe('orchestratorController', () => {
         mockUserId,
         mockConversationId,
         undefined,
-        undefined
+        undefined,
+        mockReq
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -181,7 +184,8 @@ describe('orchestratorController', () => {
         mockUserId,
         undefined,  // Expect undefined for missing conversationId
         undefined,
-        undefined
+        undefined,
+        mockReq
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);
@@ -243,7 +247,8 @@ describe('orchestratorController', () => {
         mockUserId,
         mockConversationId,
         undefined,
-        undefined
+        undefined,
+        mockReq
       );
 
       expect(sendResponse).toHaveBeenCalledTimes(1);

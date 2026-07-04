@@ -404,7 +404,7 @@ const localClassifyIntent = (prompt) => {
  * @property {Array} [webSearchQueries] Optional list of queries used for web search.
  * @property {Array} [relatedQuestions] Optional list of suggested follow-up questions.
  */
-const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, tenantId = null, category = null) => {
+const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, tenantId = null, category = null, req = null) => {
   const startTime = Date.now();
   let classificationSource = 'unknown';
   let classificationMs = 0;
