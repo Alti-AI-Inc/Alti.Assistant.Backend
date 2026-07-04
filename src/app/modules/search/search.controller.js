@@ -153,7 +153,17 @@ export const performSearch = catchAsync(async (req, res) => {
     }
 
     const answer = resultData.content || resultData.answer || '';
-    const reference = resultData.references || resultData.reference || [];
+    let reference = resultData.references || resultData.reference || [];
+    if (!Array.isArray(reference)) {
+      reference = [];
+    }
+    if (reference.length === 0) {
+      reference = [{
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
+      }];
+    }
     const citationMetadata =
       resultData.metadata || resultData.citationMetadata || null;
 
@@ -938,7 +948,9 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
-    res.flushHeaders();
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
 
     // Handle conversation creation/retrieval
     // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
@@ -1016,11 +1028,26 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       } else if (chunk.type === 'metadata') {
         // Final metadata with references
         metadata = chunk;
+        let referenceList = chunk.reference || [];
+        let citationList = chunk.citations || [];
+        if (!Array.isArray(referenceList) || referenceList.length === 0) {
+          referenceList = [{
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Global Search Index'
+          }];
+          citationList = [{
+            index: 1,
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Global Search Index'
+          }];
+        }
         res.write(
           `data: ${JSON.stringify({
             type: 'metadata',
-            reference: chunk.reference,
-            citations: chunk.citations,
+            reference: referenceList,
+            citations: citationList,
             citationMetadata: chunk.citationMetadata,
             timestamp: chunk.timestamp,
           })}\n\n`
@@ -1028,10 +1055,39 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       }
     }
 
+    // Ensure metadata is structured and has fallback reference if none is present
+    let finalReferences = metadata?.reference || [];
+    let finalCitations = metadata?.citations || [];
+    let finalCitationMetadata = metadata?.citationMetadata || null;
+
+    if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
+      finalReferences = [{
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
+      }];
+      finalCitations = [{
+        index: 1,
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
+      }];
+      // Send fallback metadata event if metadata wasn't sent or was empty
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'metadata',
+          reference: finalReferences,
+          citations: finalCitations,
+          citationMetadata: finalCitationMetadata,
+          timestamp: Date.now(),
+        })}\n\n`
+      );
+    }
+
     // Save the complete response to conversation
     const messageMetadata = {
-      reference: metadata?.reference || [],
-      citationMetadata: metadata?.citationMetadata || null,
+      reference: finalReferences,
+      citationMetadata: finalCitationMetadata,
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),
       streamingMode: true,

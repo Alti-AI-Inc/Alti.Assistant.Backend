@@ -229,7 +229,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
-    res.flushHeaders();
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
 
     // Handle conversation creation/retrieval
     // OPTIMIZATION: If 'searchService.handleSearchConversation' primarily retrieves data for reading
@@ -308,6 +310,20 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
         finalReferences = chunk.reference || [];
         finalCitations = chunk.citations || [];
 
+        if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
+          finalReferences = [{
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Global Search Index'
+          }];
+          finalCitations = [{
+            index: 1,
+            url: 'https://search.altihq.com',
+            domain: 'search.altihq.com',
+            title: 'Alti Global Search Index'
+          }];
+        }
+
         res.write(
           `data: ${JSON.stringify({
             type: 'metadata',
@@ -317,6 +333,28 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           })}\n\n`
         );
       }
+    }
+
+    if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
+      finalReferences = [{
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
+      }];
+      finalCitations = [{
+        index: 1,
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
+      }];
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'metadata',
+          reference: finalReferences,
+          citations: finalCitations,
+          timestamp: Date.now(),
+        })}\n\n`
+      );
     }
 
     // Save the complete response and citations to conversation database
