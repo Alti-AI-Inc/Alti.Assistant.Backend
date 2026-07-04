@@ -19,12 +19,12 @@ import { logger } from '../../../shared/logger.js';
  *     - `platformType`: {string} The platform type associated with the threat (e.g., 'ANY_PLATFORM').
  *     - `threatEntryType`: {string} The entry type of the threat (e.g., 'URL').
  *   - `error`: {string} (Optional) An error message if `success` is false, indicating why the check failed.
- * @throws {Error} If the Google Search/Safe Browsing API Key is not configured or if the target URL is not provided.
+ * @throws {Error} If the Web Search/Safe Browsing API Key is not configured or if the target URL is not provided.
  */
 const lookupUrlSafety = async (url) => {
   const apiKey = config.google_search_api_key || process.env.GOOGLE_SEARCH_API_KEY;
   if (!apiKey) {
-    throw new Error('Google Search/Safe Browsing API Key is not configured.');
+    throw new Error('Web Search/Safe Browsing API Key is not configured.');
   }
 
   if (url === null || url === undefined || url === '') {
@@ -38,7 +38,7 @@ const lookupUrlSafety = async (url) => {
 
     const requestBody = {
       client: {
-        clientId: 'alti-assistant-backend',
+        clientId: 'insoai-assistant-backend',
         clientVersion: '1.0.0'
       },
       threatInfo: {

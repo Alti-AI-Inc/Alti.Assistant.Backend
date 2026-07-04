@@ -1,4 +1,4 @@
-# Alti Assistant — Production Docker Compose
+# Inso AI — Production Docker Compose
 # Lean 2-service stack: Backend + Redis only
 # MongoDB: Atlas (cloud-hosted, no local container needed)
 # Everything else: managed GCP services (Vertex AI, Cloud Storage, Pub/Sub)
@@ -19,7 +19,7 @@ services:
     environment:
       - REDIS_ARGS=--save 900 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
-      - alti-network
+      - insoai-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -27,8 +27,8 @@ services:
       retries: 5
 
   backend:
-    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest
-    container_name: alti-backend
+    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/insoai-assistant-core-backend-repo/insoai-assistant-backend:latest
+    container_name: insoai-backend
     restart: unless-stopped
     ports:
       - "5100:5100"
@@ -38,7 +38,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - alti-network
+      - insoai-network
     environment:
       - PORT=5100
     healthcheck:
@@ -49,7 +49,7 @@ services:
       start_period: 120s
 
 networks:
-  alti-network:
+  insoai-network:
     driver: bridge
 
 volumes:

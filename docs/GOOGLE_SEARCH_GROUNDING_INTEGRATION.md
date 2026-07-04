@@ -1,4 +1,4 @@
-# Google Search Grounding Integration Guide
+# Live Web Grounding Integration Guide
 
 ## Overview
 
@@ -38,7 +38,7 @@ User Query
 ┌────▼──────────────┐  ┌──▼──────────────┐
 │ Native Grounding  │  │  ReAct Agent    │
 │ (google_search)   │  │  (multi-step)   │
-│ - Faster          │  │  - Realtiing    │
+│ - Faster          │  │  - Reinsoaiing    │
 │ - Auto citations  │  │  - Verification │
 │ - Built-in        │  │  - Filtering    │
 └───────────────────┘  └─────────────────┘
@@ -58,7 +58,7 @@ User Query
 
 ❌ **Don't use for:**
 
-- Multi-step realtiing (compare, analyze)
+- Multi-step reinsoaiing (compare, analyze)
 - Requires filtering (home vs away games)
 - Complex decision-making
 - Needs verification from multiple sources
@@ -67,7 +67,7 @@ User Query
 
 ✅ **Use for:**
 
-- Multi-step realtiing
+- Multi-step reinsoaiing
 - Comparison queries ("A vs B")
 - Prediction/analysis requests
 - Filtering requirements (specific criteria)
@@ -93,7 +93,7 @@ export function createGroundedModel(modelName = "gemini-2.5-flash") {
     model: modelName,
     tools: [
       {
-        googleSearch: {} // Native Google Search grounding
+        googleSearch: {} // Native Web Search grounding
       }
     ]
   });
@@ -361,6 +361,6 @@ tools: [{ googleSearch: {} }]; // Not bindTools()
 
 ## References
 
-- [Google Search Grounding Docs](https://ai.google.dev/gemini-api/docs/google-search)
+- [Live Web Grounding Docs](https://ai.google.dev/gemini-api/docs/google-search)
 - [Gemini API Models](https://ai.google.dev/gemini-api/docs/models)
 - [Grounding with Search Cookbook](https://colab.research.google.com/github/google-gemini/cookbook/blob/main/quickstarts/Search_Grounding.ipynb)

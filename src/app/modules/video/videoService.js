@@ -313,7 +313,7 @@ const uploadFileToStorage = async (filePath) => {
   const storage = new Storage({
     projectId: globalConfig.google.gcp_project_id,
     // Security Fix: Removed hardcoded keyFilename. Rely on GOOGLE_APPLICATION_CREDENTIALS or default credentials.
-    // keyFilename: 'alti_gcp.json',
+    // keyFilename: 'insoai_gcp.json',
   });
   const fileName = path.basename(filePath);
   // Bug Fix: Use configurable GCS bucket name
@@ -349,7 +349,7 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
   const storage = new Storage({
     projectId: globalConfig.google.gcp_project_id,
     // Security Fix: Removed hardcoded keyFilename. Rely on GOOGLE_APPLICATION_CREDENTIALS or default credentials.
-    // keyFilename: 'alti_gcp.json',
+    // keyFilename: 'insoai_gcp.json',
   });
   // Bug Fix: Use configurable GCS bucket name
   const bucketName = globalConfig.google.gcs_bucket_name; // Ensure this is configured in globalConfig

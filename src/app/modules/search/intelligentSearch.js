@@ -773,9 +773,9 @@ Provide a well-researched, detailed response with proper source references. Use 
       ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5),
       citationMetadata: {
         ...(searchResult?.responseMessage?.citationMetadata || {}),
-        searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'intelligent_search',
+        searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_reinsoaime' : 'intelligent_search',
       },
-      searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'intelligent_search',
+      searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_reinsoaime' : 'intelligent_search',
       timestamp: new Date().toISOString(),
     };
   } catch (error) {

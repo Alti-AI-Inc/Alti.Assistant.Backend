@@ -454,7 +454,7 @@ curl -X GET "http://localhost:5000/api/v1/knowledge/folders/674b1c2d3e4f5g6h7i8j
 ### Storage
 
 - **Provider**: Google Cloud Storage
-- **Bucket**: alti_assistant_knowledge_bot_files
+- **Bucket**: insoai_assistant_knowledge_bot_files
 - **Structure**:
   - User files: `users/{userId}[/folders/{folderId}]/{timestamp}_{filename}`
   - Bot files: `bots/{botId}/{timestamp}_{filename}`

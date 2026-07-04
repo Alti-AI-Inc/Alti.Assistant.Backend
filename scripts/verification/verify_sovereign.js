@@ -15,7 +15,7 @@ import LangchainRepository from './src/app/modules/langchain/langchain-repositor
 import TemporalRepository from './src/app/modules/temporal/temporal-repository.model.js';
 import GoogleRepository from './src/app/modules/gcp_native/gcp-repository.model.js';
 
-const mongoUrl = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/alti';
+const mongoUrl = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/insoai';
 
 async function testSovereignRetrieval() {
   console.log('📡 [Test] Connecting to MongoDB at:', mongoUrl);

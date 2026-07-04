@@ -113,7 +113,7 @@ describe('GcpSafeBrowsingService', () => {
       delete process.env.GOOGLE_SEARCH_API_KEY; // Unset env key
 
       await expect(GcpSafeBrowsingService.lookupUrlSafety(testUrl)).rejects.toThrow(
-        'Google Search/Safe Browsing API Key is not configured.'
+        'Web Search/Safe Browsing API Key is not configured.'
       );
       expect(axios.post).not.toHaveBeenCalled();
       expect(logger.info).not.toHaveBeenCalled();
@@ -180,7 +180,7 @@ describe('GcpSafeBrowsingService', () => {
 
       const expectedRequestBody = {
         client: {
-          clientId: 'alti-assistant-backend',
+          clientId: 'insoai-assistant-backend',
           clientVersion: '1.0.0'
         },
         threatInfo: {

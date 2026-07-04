@@ -204,7 +204,7 @@ describe('GcpVertexGroundingService', () => {
           tools: [{ googleSearch: {} }],
         },
       });
-      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Sending prompt with live Google Search Grounding'));
+      expect(mockLoggerInfo).toHaveBeenCalledWith(expect.stringContaining('Sending prompt with live Live Web Grounding'));
       expect(mockIncrementPromptsUsed).toHaveBeenCalledWith(userId);
       expect(mockAddMessage).toHaveBeenCalledWith({ type: 'ai', content: aiReply });
       expect(mockFindOneAndUpdate).toHaveBeenCalledWith(

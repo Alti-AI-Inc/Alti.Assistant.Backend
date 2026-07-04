@@ -10,7 +10,7 @@
  * the X-User-Context header as a base64-encoded JSON object.
  *
  * Usage:
- *   import { internalAuth } from '@alti/shared/auth';
+ *   import { internalAuth } from '@insoai/shared/auth';
  *   router.post('/execute', internalAuth, controller.execute);
  */
 

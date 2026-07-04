@@ -11,7 +11,7 @@ import { detectPremiumIntent } from '../../../helpers/v15DataIntegrations.js';
 
 /**
  * Smart Search Router
- * Chooses between native Google Search grounding and ReAct agent based on query complexity
+ * Chooses between native Web Search grounding and ReAct agent based on query complexity
  */
 
 /**
@@ -198,7 +198,7 @@ export async function executeSmartSearch(
       console.log(`   ↳ ReAct agent forced (intent=${intentType})`);
       try {
         const messages = [
-          { role: 'system', content: 'You are Alti, an expert sports betting AI. Use the predictiondata-sports-odds tool for all real-time odds, player props, SGP pricing, and prediction market queries.' },
+          { role: 'system', content: 'You are Inso AI, an expert sports betting AI. Use the predictiondata-sports-odds tool for all real-time odds, player props, SGP pricing, and prediction market queries.' },
           ...conversationHistory,
           { role: 'user', content: query },
         ];

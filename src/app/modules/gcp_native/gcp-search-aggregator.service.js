@@ -38,7 +38,7 @@ const executeRawSearch = async (query, searchType = 'web', num = 10, start = 1, 
     const cx = config.google_engine_id || process.env.GOOGLE_ENGINE_ID;
 
     if (!apiKey || !cx) {
-      throw new Error('Google Search API Key or CSE Engine ID is not configured.');
+      throw new Error('Web Search API Key or CSE Engine ID is not configured.');
     }
 
     const params = {

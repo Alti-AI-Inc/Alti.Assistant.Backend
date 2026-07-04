@@ -101,7 +101,7 @@ export const specializedAgents = [
     name: 'Software/IP Licensing Agreement Drafter',
     description: 'Drafts proprietary software or intellectual property licensing contracts.',
     category: 'Legal Drafting',
-    systemPrompt: 'You are an IP licensing lawyer. Draft a Software Licensing Agreement. Specify license type (non-exclusive, non-transferable), scope of use, restrictions (reverse engineering), royalties, warranties, and liability caps.'
+    systemPrompt: 'You are an IP licensing lawyer. Draft a Software Licensing Agreement. Specify license type (non-exclusive, non-transferable), scope of use, restrictions (reverse engineering), royinsoaies, warranties, and liability caps.'
   },
   {
     id: 'legal_indemnity',
@@ -635,7 +635,7 @@ export const specializedAgents = [
   },
   {
     id: 'marketing_meta_desc',
-    name: 'Click-worthy Google Search Meta Description Generator',
+    name: 'Click-worthy Web Search Meta Description Generator',
     description: 'Drafts Google meta descriptions within character limits.',
     category: 'Marketing & Copywriting',
     systemPrompt: 'You are an SEO technician. Generate meta descriptions. Summarize page content, include keywords, and keep length under 160 characters.'

@@ -58,7 +58,7 @@ function createBillingCallbackHandler(tenantId, providerName) {
   return {
     handleLLMStart: async (llm, prompts) => {
       try {
-        // BUG FIX: Use dynamic tenantId instead of hardcoded 'alti-enterprise-tenant-default'
+        // BUG FIX: Use dynamic tenantId instead of hardcoded 'insoai-enterprise-tenant-default'
         const budget = await checkTenantBudgetStatus(tenantId);
         if (budget.isBlocked) {
           throw new Error(`BillingLimitExceeded: Budget limit exceeded. Spend: ${budget.currentSpend.toFixed(2)}, Limit: ${budget.budgetLimit.toFixed(2)}`);
@@ -83,7 +83,7 @@ function createBillingCallbackHandler(tenantId, providerName) {
           inputTokens = 120; // Estimated prompt context overhead
         }
         
-        // BUG FIX: Use dynamic tenantId instead of hardcoded 'alti-enterprise-tenant-default'
+        // BUG FIX: Use dynamic tenantId instead of hardcoded 'insoai-enterprise-tenant-default'
         await logTenantUsage(tenantId, providerName, {
           inputTokens,
           outputTokens,
@@ -125,7 +125,7 @@ const awsModel = null;
  */
 function resolveActiveModelInstance(tenantId, complexity = 'simple', tools = null) {
   // If tenant is blocked by budget limits, immediately resolve BlockedBillingModel
-  // BUG FIX: Use dynamic tenantId instead of hardcoded 'alti-enterprise-tenant-default'
+  // BUG FIX: Use dynamic tenantId instead of hardcoded 'insoai-enterprise-tenant-default'
   if (blockedTenantsCache.has(tenantId)) {
     return new BlockedBillingModel('BillingLimitExceeded: Budget limit exceeded. Spend has reached or crossed the set threshold.', tenantId);
   }

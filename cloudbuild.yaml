@@ -1,9 +1,9 @@
 substitutions:
-  _SERVICE_NAME: alti-assistant-backend
+  _SERVICE_NAME: insoai-assistant-backend
   _REGION: us-central1
-  _ARTIFACT_REPO: alti-assistant-core-backend-repo
+  _ARTIFACT_REPO: insoai-assistant-core-backend-repo
   _COMMIT_SHA: latest
-  _VPC_CONNECTOR: alti-vpc-connector # Serverless VPC connector for private DB/Cache access
+  _VPC_CONNECTOR: insoai-vpc-connector # Serverless VPC connector for private DB/Cache access
   _NODE_ENV: production
 
 steps:

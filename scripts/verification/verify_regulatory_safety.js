@@ -1,7 +1,7 @@
 /**
  * verify_regulatory_safety.js
  *
- * Verification script for testing Alti's Stage 43 Premium Regulatory, Corporate Benefit,
+ * Verification script for testing Inso AI's Stage 43 Premium Regulatory, Corporate Benefit,
  * and Energy Transition grounding channels.
  */
 
@@ -23,7 +23,7 @@ async function runVerification() {
     },
     {
       name: 'DOL EBSA Form 5500 & Benefits',
-      query: 'Retrieve dol ebsa form 5500 retirement assets for Altis Tech 401k plan',
+      query: 'Retrieve dol ebsa form 5500 retirement assets for Inso AIs Tech 401k plan',
       expectedId: 'dol_ebsa'
     },
     {

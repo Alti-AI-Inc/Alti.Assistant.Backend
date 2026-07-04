@@ -1,7 +1,7 @@
 /**
  * deepScientificProviders.js — Modular Deep Scientific & Demographics Search Providers
  *
- * Implements self-registering SearchProvider configurations for Alti's deep intelligence engines:
+ * Implements self-registering SearchProvider configurations for Inso AI's deep intelligence engines:
  * GLEIF LEI Entity Registry, USPTO PatentsView, OpenSky Aviation, Wholesale Grid Monitor,
  * USDA NASS QuickStats, Copernicus Sentinel, Census/BLS Demographics, and NewsAPI.ai (Event Registry).
  */

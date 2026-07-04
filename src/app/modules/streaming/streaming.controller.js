@@ -33,7 +33,7 @@ const generateRandomParticipantName = (length) => {
  *   post:
  *     summary: Generate an authentication token for LiveKit streaming.
  *     description: Generates a JWT token for a participant to join a LiveKit streaming room.
- *                  The room name is fixed as 'alti-ai-room', and a random participant name is generated.
+ *                  The room name is fixed as 'insoai-ai-room', and a random participant name is generated.
  *                  The token is valid for 60 minutes.
  *     tags:
  *       - Streaming
@@ -64,7 +64,7 @@ const generateRandomParticipantName = (length) => {
 /**
  * Controller function to generate an authentication token for LiveKit streaming.
  * It creates a new LiveKit AccessToken with a randomly generated participant identity
- * and grants permission to join a predefined room ('alti-ai-room').
+ * and grants permission to join a predefined room ('insoai-ai-room').
  * The token is set to expire after 60 minutes.
  *
  * @param {import('express').Request} req - The Express request object.
@@ -74,7 +74,7 @@ const generateRandomParticipantName = (length) => {
 export const authStreamingController = catchAsync(async (req, res) => {
   const { AccessToken } = await import('livekit-server-sdk');
   // if this room doesn't exist, it'll be automatically created when the first client joins
-  const roomName = 'alti-ai-room';
+  const roomName = 'insoai-ai-room';
   // identifier to be used for participant.
   // it's available as LocalParticipant.identity with livekit-client SDK
 

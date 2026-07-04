@@ -14,7 +14,7 @@ import { detectFinancialIntent } from '../../../helpers/massiveTickerDB.js';
  * @property {string} [answer] - The generated answer from the LLM or an error message.
  * @property {Array<object>} [reference] - An array of reference objects or sources used.
  * @property {boolean} [searchCompleted] - Indicates if the search process completed successfully.
- * @property {string} [searchMethod] - The method used for search (e.g., 'massive_realtime', 'tool_based', 'error').
+ * @property {string} [searchMethod] - The method used for search (e.g., 'massive_reinsoaime', 'tool_based', 'error').
  * @property {number} [searchDuration] - The duration of the search operation in milliseconds.
  * @property {string} [timestamp] - ISO string of when the search operation completed.
  * @property {string} [error] - An error message if an error occurred during processing.
@@ -87,7 +87,7 @@ export const toolBasedSearchNode = async (state) => {
         answer: result.answer,
         reference: result.reference || [],
         searchCompleted: true,
-        searchMethod: result.searchMethod || (financialIntent ? 'massive_realtime' : 'tool_based'),
+        searchMethod: result.searchMethod || (financialIntent ? 'massive_reinsoaime' : 'tool_based'),
         searchDuration: duration,
         timestamp: result.timestamp || new Date().toISOString(),
         massiveIntentType: financialIntent?.type || null,
@@ -101,7 +101,7 @@ export const toolBasedSearchNode = async (state) => {
         answer: result,
         reference: [],
         searchCompleted: true,
-        searchMethod: financialIntent ? 'massive_realtime' : 'tool_based',
+        searchMethod: financialIntent ? 'massive_reinsoaime' : 'tool_based',
         searchDuration: duration,
         timestamp: new Date().toISOString(),
         massiveIntentType: financialIntent?.type || null,

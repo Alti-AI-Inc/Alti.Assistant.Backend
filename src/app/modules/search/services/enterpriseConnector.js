@@ -359,7 +359,7 @@ export class EnterpriseConnector {
       concur: { apiToken: 'mock_concur_token', endpoint: 'https://api.concur.com/v1' },
       expensify: { apiToken: 'mock_expensify_token', endpoint: 'https://api.expensify.com/v1' },
       bill: { apiToken: 'mock_bill_token', endpoint: 'https://api.bill.com/v1' },
-      tipalti: { apiToken: 'mock_tipalti_token', endpoint: 'https://api.tipalti.com/v1' },
+      tipinsoai: { apiToken: 'mock_tipinsoai_token', endpoint: 'https://api.tipinsoai.com/v1' },
       ramp: { apiToken: 'mock_ramp_token', endpoint: 'https://api.ramp.com/v1' },
       greenhouse: { apiToken: 'mock_greenhouse_token', endpoint: 'https://api.greenhouse.com/v1' },
       lever: { apiToken: 'mock_lever_token', endpoint: 'https://api.lever.com/v1' },
@@ -559,7 +559,7 @@ export class EnterpriseConnector {
       'deleteSharePointFolder',
       'purgeSlackChannelMessages',
       'approveConcurExpenseReport',
-      'initiateTipaltiVendorPayment',
+      'initiateTipinsoaiVendorPayment',
       'adjustRampCardSpendingLimit',
       'extendGreenhouseJobOffer',
       'modifyLatticeCompensationScore',
@@ -901,7 +901,7 @@ export class EnterpriseConnector {
           result = {
             success: true,
             trialId: sanitizedParams.trialId || 'tr-veeva-402',
-            molecule: 'Alti-990-compound',
+            molecule: 'Inso AI-990-compound',
             phase: 'Phase IIb',
             siteCount: 18,
             enrollmentTarget: 450,
@@ -1565,7 +1565,7 @@ export class EnterpriseConnector {
           result = {
             success: true,
             storeId: sanitizedParams.storeId || 'shop-plus-1002',
-            storeName: 'Alti Enterprise Merchandise',
+            storeName: 'Inso AI Enterprise Merchandise',
             monthlyRevenue: 154200.50,
             activeCarts: 124,
             cartdata: 'Shopify Checkout cart details with customer IDs and token logs.',
@@ -1852,7 +1852,7 @@ export class EnterpriseConnector {
         case 'getPineconeIndexStats':
           result = {
             success: true,
-            indexName: sanitizedParams.indexName || 'alti-kb-index',
+            indexName: sanitizedParams.indexName || 'insoai-kb-index',
             dimension: 1536,
             totalVectorCount: 1542000,
             indexmetadata: 'Pinecone namespace ratios, metric settings, and cluster ratios.',
@@ -1863,7 +1863,7 @@ export class EnterpriseConnector {
         case 'deletePineconeIndexNamespace':
           result = {
             success: true,
-            indexName: sanitizedParams.indexName || 'alti-kb-index',
+            indexName: sanitizedParams.indexName || 'insoai-kb-index',
             namespace: sanitizedParams.namespace || 'temp-cache',
             indexmetadata: 'Pinecone index namespace metadata purged. Vectors permanently removed.',
             status: 'NAMESPACE_DELETED'
@@ -1944,11 +1944,11 @@ export class EnterpriseConnector {
         case 'createBillPayment':
           result = { success: true, invoiceId: sanitizedParams.invoiceId || 'inv-bill-992', paidAmount: 1250.00, status: 'BILL_PAYMENT_CREATED' };
           break;
-        case 'getTipaltiPayeeProfiles':
+        case 'getTipinsoaiPayeeProfiles':
           result = { success: true, activePayeesCount: 245, status: 'PAYEES_LOADED' };
           break;
-        case 'initiateTipaltiVendorPayment':
-          result = { success: true, payeeId: sanitizedParams.payeeId || 'vendor-tipalti-992', wireAmount: sanitizedParams.amount || 5000.00, invoicebillingaddress: '[REDACTED SENSITIVE FIELD]', status: 'VENDOR_PAYMENT_INITIATED' };
+        case 'initiateTipinsoaiVendorPayment':
+          result = { success: true, payeeId: sanitizedParams.payeeId || 'vendor-tipinsoai-992', wireAmount: sanitizedParams.amount || 5000.00, invoicebillingaddress: '[REDACTED SENSITIVE FIELD]', status: 'VENDOR_PAYMENT_INITIATED' };
           break;
         case 'getRampCardTransactions':
           result = { success: true, activeCardsCount: 15, monthlySpendUSD: 4520.00, corporatecardpan: '[REDACTED SENSITIVE FIELD]', status: 'RAMP_TRANSACTIONS_LOADED' };
@@ -2214,16 +2214,16 @@ export class EnterpriseConnector {
           break;
         // --- Phase 23: Business Communication & Email Core ---
         case 'getGmailEmails':
-          result = { success: true, emails: [{ id: 'm1', from: 'ceo@alti.com', snippet: 'Strategic growth update' }], status: 'GMAIL_EMAILS_LOADED' };
+          result = { success: true, emails: [{ id: 'm1', from: 'ceo@insoai.com', snippet: 'Strategic growth update' }], status: 'GMAIL_EMAILS_LOADED' };
           break;
         case 'sendGmailEmail':
-          result = { success: true, recipient: sanitizedParams.recipient || 'info@alti.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'GMAIL_EMAIL_SENT' };
+          result = { success: true, recipient: sanitizedParams.recipient || 'info@insoai.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'GMAIL_EMAIL_SENT' };
           break;
         case 'getOutlookEmails':
-          result = { success: true, emails: [{ id: 'om1', from: 'board@alti.com', snippet: 'Q2 Performance review' }], status: 'OUTLOOK_EMAILS_LOADED' };
+          result = { success: true, emails: [{ id: 'om1', from: 'board@insoai.com', snippet: 'Q2 Performance review' }], status: 'OUTLOOK_EMAILS_LOADED' };
           break;
         case 'sendOutlookEmail':
-          result = { success: true, recipient: sanitizedParams.recipient || 'board@alti.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'OUTLOOK_EMAIL_SENT' };
+          result = { success: true, recipient: sanitizedParams.recipient || 'board@insoai.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'OUTLOOK_EMAIL_SENT' };
           break;
         case 'getZoomMeetings':
           result = { success: true, meetings: [{ id: 'z1', topic: 'Board Alignment Meeting', startTime: '2026-05-28T10:00:00Z' }], status: 'ZOOM_MEETINGS_LOADED' };
@@ -2342,31 +2342,31 @@ export class EnterpriseConnector {
 
         // --- Phase 27: Marketing & Social Platforms ---
         case 'getGoogleAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'ga1', name: 'Alti Launch Search Campaign', dailyBudget: 150.00 }], status: 'GOOGLE_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'ga1', name: 'Inso AI Launch Search Campaign', dailyBudget: 150.00 }], status: 'GOOGLE_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustGoogleAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'ga1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'GOOGLE_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getFacebookAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'fb1', name: 'Alti Brand Video Campaign', dailyBudget: 200.00 }], status: 'FACEBOOK_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'fb1', name: 'Inso AI Brand Video Campaign', dailyBudget: 200.00 }], status: 'FACEBOOK_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustFacebookAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'fb1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'FACEBOOK_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getLinkedInAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'li1', name: 'Alti Enterprise ABM Campaign', dailyBudget: 500.00 }], status: 'LINKEDIN_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'li1', name: 'Inso AI Enterprise ABM Campaign', dailyBudget: 500.00 }], status: 'LINKEDIN_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustLinkedInAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'li1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'LINKEDIN_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getTwitterTweets':
-          result = { success: true, tweets: [{ id: 'tw1', text: 'Alti v1.27.11 is now live!' }], status: 'TWITTER_TWEETS_LOADED' };
+          result = { success: true, tweets: [{ id: 'tw1', text: 'Inso AI v1.27.11 is now live!' }], status: 'TWITTER_TWEETS_LOADED' };
           break;
         case 'postTwitterTweet':
-          result = { success: true, text: sanitizedParams.text || 'Alti Swarms are taking over!', tweetId: 'tw2', status: 'TWITTER_TWEET_POSTED' };
+          result = { success: true, text: sanitizedParams.text || 'Inso AI Swarms are taking over!', tweetId: 'tw2', status: 'TWITTER_TWEET_POSTED' };
           break;
         case 'getMailchimpCampaigns':
-          result = { success: true, campaigns: [{ id: 'mc1', subject: 'Alti Monthly Update' }], status: 'MAILCHIMP_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'mc1', subject: 'Inso AI Monthly Update' }], status: 'MAILCHIMP_CAMPAIGNS_LOADED' };
           break;
         case 'sendMailchimpCampaign':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'mc1', status: 'MAILCHIMP_CAMPAIGN_SENT' };
@@ -2374,13 +2374,13 @@ export class EnterpriseConnector {
 
         // --- Phase 28: Customer Feedback & Survey Core ---
         case 'getSurveyMonkeySurveys':
-          result = { success: true, surveys: [{ id: 'sm1', name: 'Alti Customer Satisfaction 2026' }], status: 'SURVEYMONKEY_SURVEYS_LOADED' };
+          result = { success: true, surveys: [{ id: 'sm1', name: 'Inso AI Customer Satisfaction 2026' }], status: 'SURVEYMONKEY_SURVEYS_LOADED' };
           break;
         case 'deleteSurveyMonkeySurvey':
           result = { success: true, surveyId: sanitizedParams.surveyId || 'sm1', status: 'SURVEYMONKEY_SURVEY_DELETED' };
           break;
         case 'getTypeformForms':
-          result = { success: true, forms: [{ id: 'tf1', title: 'Alti Beta Feedback Form' }], status: 'TYPEFORM_FORMS_LOADED' };
+          result = { success: true, forms: [{ id: 'tf1', title: 'Inso AI Beta Feedback Form' }], status: 'TYPEFORM_FORMS_LOADED' };
           break;
         case 'deleteTypeformForm':
           result = { success: true, formId: sanitizedParams.formId || 'tf1', status: 'TYPEFORM_FORM_DELETED' };
@@ -2406,31 +2406,31 @@ export class EnterpriseConnector {
 
         // --- Phase 29: Cloud Infrastructure & Storage ---
         case 'getS3Buckets':
-          result = { success: true, buckets: ['alti-backups', 'alti-user-assets'], status: 'S3_BUCKETS_LOADED' };
+          result = { success: true, buckets: ['insoai-backups', 'insoai-user-assets'], status: 'S3_BUCKETS_LOADED' };
           break;
         case 'deleteS3Bucket':
-          result = { success: true, bucketName: sanitizedParams.bucketName || 'alti-temp-sandbox', status: 'S3_BUCKET_DELETED' };
+          result = { success: true, bucketName: sanitizedParams.bucketName || 'insoai-temp-sandbox', status: 'S3_BUCKET_DELETED' };
           break;
         case 'getGCSBuckets':
-          result = { success: true, buckets: ['alti-gcp-backups', 'alti-gcp-raw-assets'], status: 'GCS_BUCKETS_LOADED' };
+          result = { success: true, buckets: ['insoai-gcp-backups', 'insoai-gcp-raw-assets'], status: 'GCS_BUCKETS_LOADED' };
           break;
         case 'deleteGCSBucket':
-          result = { success: true, bucketName: sanitizedParams.bucketName || 'alti-temp-gcs-sandbox', status: 'GCS_BUCKET_DELETED' };
+          result = { success: true, bucketName: sanitizedParams.bucketName || 'insoai-temp-gcs-sandbox', status: 'GCS_BUCKET_DELETED' };
           break;
         case 'getAzureContainers':
-          result = { success: true, containers: ['alti-azure-blobs', 'alti-azure-logs'], status: 'AZURE_CONTAINERS_LOADED' };
+          result = { success: true, containers: ['insoai-azure-blobs', 'insoai-azure-logs'], status: 'AZURE_CONTAINERS_LOADED' };
           break;
         case 'deleteAzureContainer':
-          result = { success: true, containerName: sanitizedParams.containerName || 'alti-temp-azure-sandbox', status: 'AZURE_CONTAINER_DELETED' };
+          result = { success: true, containerName: sanitizedParams.containerName || 'insoai-temp-azure-sandbox', status: 'AZURE_CONTAINER_DELETED' };
           break;
         case 'getDropboxFiles':
-          result = { success: true, files: [{ path: '/Shared/AltiDocs', size: 1048576 }], status: 'DROPBOX_FILES_LOADED' };
+          result = { success: true, files: [{ path: '/Shared/Inso AIDocs', size: 1048576 }], status: 'DROPBOX_FILES_LOADED' };
           break;
         case 'deleteDropboxFolder':
-          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared/AltiTemp', status: 'DROPBOX_FOLDER_DELETED' };
+          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared/Inso AITemp', status: 'DROPBOX_FOLDER_DELETED' };
           break;
         case 'getDriveFiles':
-          result = { success: true, files: [{ id: 'gd1', name: 'Alti Budget 2026.xlsx' }], status: 'GDRIVE_FILES_LOADED' };
+          result = { success: true, files: [{ id: 'gd1', name: 'Inso AI Budget 2026.xlsx' }], status: 'GDRIVE_FILES_LOADED' };
           break;
         case 'deleteDriveFile':
           result = { success: true, fileId: sanitizedParams.fileId || 'gd1', status: 'GDRIVE_FILE_DELETED' };
@@ -2450,7 +2450,7 @@ export class EnterpriseConnector {
           result = { success: true, projectName: sanitizedParams.projectName || 'temp-debug-run', status: 'LANGSMITH_PROJECT_DELETED' };
           break;
         case 'getMLflowExperiments':
-          result = { success: true, experiments: [{ id: '0', name: 'Default', artifactLocation: 's3://alti-artifacts' }], status: 'MLFLOW_EXPERIMENTS_LOADED' };
+          result = { success: true, experiments: [{ id: '0', name: 'Default', artifactLocation: 's3://insoai-artifacts' }], status: 'MLFLOW_EXPERIMENTS_LOADED' };
           break;
         case 'deleteMLflowRun':
           result = { success: true, runId: sanitizedParams.runId || 'run-mlf-90', status: 'MLFLOW_RUN_DELETED' };
@@ -2462,10 +2462,10 @@ export class EnterpriseConnector {
           result = { success: true, modelId: sanitizedParams.modelId || 'command-r-plus', status: 'COHERE_MODEL_DEPLOYED' };
           break;
         case 'getHubPrompts':
-          result = { success: true, prompts: [{ id: 'alti-system-v1' }], status: 'LANGCHAIN_HUB_PROMPTS_LOADED' };
+          result = { success: true, prompts: [{ id: 'insoai-system-v1' }], status: 'LANGCHAIN_HUB_PROMPTS_LOADED' };
           break;
         case 'deleteHubPrompt':
-          result = { success: true, promptId: sanitizedParams.promptId || 'alti-temp-v1', status: 'LANGCHAIN_HUB_PROMPT_DELETED' };
+          result = { success: true, promptId: sanitizedParams.promptId || 'insoai-temp-v1', status: 'LANGCHAIN_HUB_PROMPT_DELETED' };
           break;
 
         // --- Phase 31: Corporate Tax Compliance & VAT Operations ---
@@ -2630,13 +2630,13 @@ export class EnterpriseConnector {
 
         // --- Phase 36: Modern Workspace Collaboration & Project Spoke ---
         case 'getFigmaFileMetadata':
-          result = { success: true, file: { key: 'fig-file-889', name: 'Alti UI Layout Prototype', version: 'v2.4' }, status: 'FIGMA_FILE_LOADED' };
+          result = { success: true, file: { key: 'fig-file-889', name: 'Inso AI UI Layout Prototype', version: 'v2.4' }, status: 'FIGMA_FILE_LOADED' };
           break;
         case 'deleteFigmaFile':
           result = { success: true, fileKey: sanitizedParams.fileKey || 'fig-file-889', status: 'FIGMA_FILE_DELETED' };
           break;
         case 'getAirtableRecords':
-          result = { success: true, records: [{ id: 'recAirtable99', fields: { Company: 'Alti AI Inc', Value: 5000000 } }], status: 'AIRTABLE_RECORDS_LOADED' };
+          result = { success: true, records: [{ id: 'recAirtable99', fields: { Company: 'Inso AI Inc', Value: 5000000 } }], status: 'AIRTABLE_RECORDS_LOADED' };
           break;
         case 'deleteAirtableBase':
           result = { success: true, baseId: sanitizedParams.baseId || 'appAirtable302', status: 'AIRTABLE_BASE_DELETED' };

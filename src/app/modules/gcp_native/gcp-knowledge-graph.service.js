@@ -28,14 +28,14 @@ import { logger } from '../../../shared/logger.js';
  * @returns {string} return.entities[].image.sourceUrl - URL to the source of the image.
  * @returns {string} return.entities[].url - The canonical URL for the entity (e.g., Wikipedia page).
  * @returns {number} return.entities[].relevanceScore - A score indicating the relevance of the entity to the query.
- * @throws {Error} If the Google Search API Key is not configured or if the API call fails.
+ * @throws {Error} If the Web Search API Key is not configured or if the API call fails.
  */
 const lookupEntity = async (query, limit = 5, types = [], languages = ['en']) => {
   try {
     const apiKey = process.env.GOOGLE_SEARCH_API_KEY || config.google_search_api_key;
 
     if (!apiKey) {
-      throw new Error('Google Search API Key is not configured.');
+      throw new Error('Web Search API Key is not configured.');
     }
 
     // Ensure limit is a number and within acceptable range (Google API default 20, max 500).

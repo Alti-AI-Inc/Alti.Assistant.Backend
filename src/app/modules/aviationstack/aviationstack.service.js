@@ -590,7 +590,7 @@ function getMockData(endpoint, params) {
         updated: new Date().toISOString(),
         latitude: 45.1234,
         longitude: -40.5678,
-        altitude: 35000,
+        insoaitude: 35000,
         direction: 78,
         speed_horizontal: 540,
         speed_vertical: 0,

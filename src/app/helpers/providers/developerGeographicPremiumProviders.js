@@ -23,7 +23,7 @@ export const GithubApiReposProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:github for|repo of|repository)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'altiapp');
+    return sanitizeQueryString(match ? match[1] : 'insoaiapp');
   },
 
   fetch: async (topic) => {
@@ -32,12 +32,12 @@ export const GithubApiReposProvider = {
 
 | Repository Name | Star Count | Fork Count | Open Issues | Primary Language | Recent Commit / Message |
 |-----------------|------------|------------|-------------|------------------|-------------------------|
-| **altiapp / Alti.Assistant** | **1,245** | **156** | **14** | JavaScript (ESM) | **feat: implement Stage 7 grounding channels** |
+| **insoaiapp / Alti.Assistant** | **1,245** | **156** | **14** | JavaScript (ESM) | **feat: implement Stage 7 grounding channels** |
 | **google / gemma.cpp** | **4,850** | **420** | **38** | C++ | **fix: optimize memory alignment on ARM** |`;
 
     const metadata = {
       domain: 'github_api_repos',
-      repoName: 'altiapp/Alti.Assistant',
+      repoName: 'insoaiapp/Alti.Assistant',
       stars: 1245,
       forks: 156,
       openIssues: 14,

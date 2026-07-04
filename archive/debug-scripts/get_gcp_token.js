@@ -3,7 +3,7 @@ import axios from 'axios';
 import fs from 'fs';
 
 async function main() {
-  const credentialsPath = './alti_gcp.json';
+  const credentialsPath = './insoai_gcp.json';
   const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
 
   const tokenUrl = credentials.token_uri || 'https://oauth2.googleapis.com/token';

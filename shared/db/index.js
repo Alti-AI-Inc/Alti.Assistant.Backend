@@ -1,10 +1,10 @@
 /**
- * @fileoverview Shared MongoDB connection manager for all Alti agent microservices.
+ * @fileoverview Shared MongoDB connection manager for all Inso AI agent microservices.
  * Provides a singleton connection with automatic reconnection, health checks,
  * and graceful shutdown.
  *
  * Usage:
- *   import { connectDB, getConnection, disconnectDB } from '@alti/shared/db';
+ *   import { connectDB, getConnection, disconnectDB } from '@insoai/shared/db';
  *   await connectDB();
  */
 

@@ -9,7 +9,7 @@ describe('Invitation Email Templates', () => {
   const mockData = {
     inviterName: 'John Doe',
     tenantName: 'Acme Corp',
-    invitationLink: 'https://app.altihq.com/invite/12345',
+    invitationLink: 'https://app.insoai.com/invite/12345',
     role: 'member',
     expiryDays: 10,
   };
@@ -50,7 +50,7 @@ describe('Invitation Email Templates', () => {
       expect(html).toContain(`This invitation will expire in ${mockData.expiryDays} days.`);
       expect(html).toContain(`Member access to team features`);
       expect(html).not.toContain(`Full administrative access`);
-      expect(html).toContain(`© ${MOCK_YEAR} Alti AI. All rights reserved.`);
+      expect(html).toContain(`© ${MOCK_YEAR} Inso AI. All rights reserved.`);
       expect(html).toMatch(/^<!DOCTYPE html>/); // Check for valid HTML start
       expect(html).toMatch(/<\/html>$/); // Check for valid HTML end
       expect(html).toContain('<style>'); // Ensure styles are included
@@ -94,7 +94,7 @@ describe('Invitation Email Templates', () => {
       expect(text).toContain(`IMPORTANT: This invitation will expire in ${mockData.expiryDays} days.`);
       expect(text).toContain(`Member access to team features`);
       expect(text).not.toContain(`Full administrative access`);
-      expect(text).toContain(`© ${MOCK_YEAR} Alti AI. All rights reserved.`);
+      expect(text).toContain(`© ${MOCK_YEAR} Inso AI. All rights reserved.`);
     });
 
     it('should generate plain text email with default expiryDays if not provided', () => {

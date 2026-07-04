@@ -1,9 +1,9 @@
 {
-  "name": "@alti/agent-write",
+  "name": "@insoai/agent-write",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-  "description": "Alti Write Agent — document generation and export microservice powered by LangGraph",
+  "description": "Inso AI Write Agent — document generation and export microservice powered by LangGraph",
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",

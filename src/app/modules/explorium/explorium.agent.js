@@ -2,7 +2,7 @@
  * explorium.agent.js — LLM-Powered B2B Intelligence Agent
  *
  * Combines Explorium's 80M+ company database with Gemini AI to answer
- * natural-language business intelligence questions. This is Alti's
+ * natural-language business intelligence questions. This is Inso AI's
  * secret weapon against Perplexity — grounded, real B2B data + AI reasoning.
  *
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

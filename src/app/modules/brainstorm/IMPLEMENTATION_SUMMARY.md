@@ -252,7 +252,7 @@ Configurable in payment/subscription model.
           "id": 1,
           "title": "Smart Pet Health Tracker",
           "description": "...",
-          "realtiing": "...",
+          "reinsoaiing": "...",
           "priority": "high"
         }
       ],

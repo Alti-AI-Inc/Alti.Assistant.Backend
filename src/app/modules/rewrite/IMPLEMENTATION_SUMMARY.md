@@ -54,7 +54,7 @@ A fully functional rewrite module has been created following the same architectu
 ### Services
 
 7. **services/gcsUploadService.js** - Google Cloud Storage integration
-   - Uploads rewritten files to GCS bucket `alti_files`
+   - Uploads rewritten files to GCS bucket `insoai_files`
    - Generates signed URLs for file access (7-day validity)
    - Automatic fallback to local storage if GCS unavailable
    - File deletion from GCS
@@ -120,7 +120,7 @@ The system automatically detects user intent from their message:
 - Keywords: "create file", "generate file", "download", etc.
 - Optional file output with configurable format
 - **Google Cloud Storage integration** for reliable file storage
-  - Files uploaded to `alti_files` GCS bucket
+  - Files uploaded to `insoai_files` GCS bucket
   - Stored in `rewrites/{userId}/` folder structure
   - Generates signed URLs (valid for 7 days)
   - Automatic fallback to local storage if GCS unavailable
@@ -187,7 +187,7 @@ Retrieve conversation history (authenticated only)
 
 **Google Cloud Storage:**
 
-- Bucket: `alti_files` (configurable via `GCS_BUCKET_NAME`)
+- Bucket: `insoai_files` (configurable via `GCS_BUCKET_NAME`)
 - Folder Prefix: `rewrites/`
 - Structure: `rewrites/{userId}/{filename}`
 - Signed URL Validity: 7 days
@@ -196,7 +196,7 @@ Retrieve conversation history (authenticated only)
 **Environment Variables:**
 
 ```bash
-GCS_BUCKET_NAME=alti_files
+GCS_BUCKET_NAME=insoai_files
 GCP_PROJECT_ID=your-project-id
 GCS_KEY_FILE=path/to/service-account-key.json
 ```

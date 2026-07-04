@@ -92,7 +92,7 @@ export const DolEbsaProvider = {
   category: 'premium_public',
   cacheTTL: 14400,
   citationLabel: 'U.S. Department of Labor (DOL) EBSA Registry',
-  mandatoryRule: '▸ Highlight company names, Form 5500 plan sizes, and fiduciary ratings in **BOLD** (e.g. **Altis Tech 401(k)**, **$420,000,000**, **Fiduciary Grade A**)',
+  mandatoryRule: '▸ Highlight company names, Form 5500 plan sizes, and fiduciary ratings in **BOLD** (e.g. **Inso AIs Tech 401(k)**, **$420,000,000**, **Fiduciary Grade A**)',
 
   detectIntent: (query) => {
     return /\bdol\s+ebsa\b|\bform\s+5500\b|\b401k\s+filing\b|\bpension\s+plan\s+audit\b|\bemployee\s+benefit\s+report\b/i.test(query);
@@ -109,13 +109,13 @@ export const DolEbsaProvider = {
 
 | Employer / Benefit Plan Name | Filing Serial No. | Total Retirement Assets | Total Active Plan Participants | Fiduciary Compliance Grade |
 |------------------------------|-------------------|--------------------------|--------------------------------|----------------------------|
-| **Altis Tech 401(k) Plan** | **5500-2026-9042** | **$420,000,000** | **12,450 Participants** | **Fiduciary Grade A (Clean)**|
+| **Inso AIs Tech 401(k) Plan** | **5500-2026-9042** | **$420,000,000** | **12,450 Participants** | **Fiduciary Grade A (Clean)**|
 | **Global Tech Pension Plan** | **5500-2026-1045** | **$1,850,000,000** | **45,800 Participants** | **Fiduciary Grade A (Clean)**|
 | **Pinnacle Wealth Retirement**| **5500-2025-0811** | **$95,000,000** | **1,950 Participants** | **Fiduciary Grade B (Minor)**|`;
 
     const metadata = {
       domain: 'dol_ebsa',
-      planName: 'Altis Tech 401(k) Plan',
+      planName: 'Inso AIs Tech 401(k) Plan',
       planAssets: '$420,000,000',
       participants: 12450,
       fiduciaryGrade: 'Grade A'
@@ -150,7 +150,7 @@ export const NcuaCreditUnionProvider = {
 |-------------------------------|---------------------|------------------------------|----------------------------|---------------------------|
 | **Navy Federal Credit Union** | **Charter #24018** | **10.85% Net Worth** | **$170.40 Billion** | **WELL CAPITALIZED** |
 | **Pentagon Federal (PenFed)** | **Charter #09845** | **9.12% Net Worth** | **$35.80 Billion** | **WELL CAPITALIZED** |
-| **Altis Employees Credit** | **Charter #31204** | **12.45% Net Worth** | **$450 Million** | **WELL CAPITALIZED** |`;
+| **Inso AIs Employees Credit** | **Charter #31204** | **12.45% Net Worth** | **$450 Million** | **WELL CAPITALIZED** |`;
 
     const metadata = {
       domain: 'ncua_credit_union',

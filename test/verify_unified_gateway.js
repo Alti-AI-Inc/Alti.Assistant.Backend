@@ -149,7 +149,7 @@ rl.on('line', (line) => {
     console.log('\n--- 4. Testing Virtual Tool Call Routing ---');
     
     // Route tool call 1 -> Server A
-    const resA = await mcpOrchestratorService.callUnifiedTool(tenantId, 'star_repo', { param: 'mnmballa/Alti' });
+    const resA = await mcpOrchestratorService.callUnifiedTool(tenantId, 'star_repo', { param: 'mnmballa/Inso AI' });
     // Route tool call 2 -> Server B
     const resB = await mcpOrchestratorService.callUnifiedTool(tenantId, 'create_issue', { param: 'upgrade pipeline' });
     // Route tool call 3 -> Server C

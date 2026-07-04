@@ -113,7 +113,7 @@ function generateMockMETARTAF(airport) {
   let visibility = 10;
   let temp = 16;
   let dewpoint = 8;
-  let altimeter = 29.92;
+  let insoaimeter = 29.92;
   let rawSkyCover = 'FEW025';
   let skyConditions = [{ sky_cover: 'FEW', cloud_base_ft_agl: 2500 }];
 
@@ -125,7 +125,7 @@ function generateMockMETARTAF(airport) {
     visibility = 2;
     temp = 12;
     dewpoint = 11;
-    altimeter = 29.74;
+    insoaimeter = 29.74;
     rawSkyCover = 'OVC008';
     skyConditions = [
       { sky_cover: 'OVC', cloud_base_ft_agl: 800 }
@@ -137,7 +137,7 @@ function generateMockMETARTAF(airport) {
     visibility = 4;
     temp = 14;
     dewpoint = 11;
-    altimeter = 30.12;
+    insoaimeter = 30.12;
     rawSkyCover = 'BKN018';
     skyConditions = [
       { sky_cover: 'BKN', cloud_base_ft_agl: 1800 }
@@ -150,7 +150,7 @@ function generateMockMETARTAF(airport) {
     visibility = 0.5;
     temp = 3;
     dewpoint = 2;
-    altimeter = 29.56;
+    insoaimeter = 29.56;
     rawSkyCover = 'OVC003';
     skyConditions = [
       { sky_cover: 'OVC', cloud_base_ft_agl: 300 }
@@ -164,7 +164,7 @@ function generateMockMETARTAF(airport) {
     windDir = ((hash * 13) % 36) * 10;
     temp = 5 + (hash % 26); // 5 to 30 deg C
     dewpoint = Math.max(-5, temp - 1 - (hash % 6)); // Dewpoint <= temp
-    altimeter = Number((29.50 + ((hash % 100) / 100) * 0.8).toFixed(2));
+    insoaimeter = Number((29.50 + ((hash % 100) / 100) * 0.8).toFixed(2));
     
     const catIndex = hash % 4;
     if (catIndex === 0) {
@@ -193,7 +193,7 @@ function generateMockMETARTAF(airport) {
   const windStr = windGust > 0 ? `${windDir}${windSpeed}G${windGust}KT` : `${windDir}${windSpeed}KT`;
   const tempStr = temp < 10 ? `0${temp}` : `${temp}`;
   const dpStr = dewpoint < 10 ? `0${dewpoint}` : `${dewpoint}`;
-  const rawMetarText = `${airport} ${obsDay}${obsHour}${obsMin}Z ${windStr} ${visibility}SM ${rawSkyCover} ${tempStr}/${dpStr} A${altimeter.toString().replace('.', '')} NOSIG`;
+  const rawMetarText = `${airport} ${obsDay}${obsHour}${obsMin}Z ${windStr} ${visibility}SM ${rawSkyCover} ${tempStr}/${dpStr} A${insoaimeter.toString().replace('.', '')} NOSIG`;
 
   const getNextCategory = (cat) => {
     if (cat === 'VFR') return 'MVFR';
@@ -232,7 +232,7 @@ function generateMockMETARTAF(airport) {
       wind_speed_kt: windSpeed,
       wind_gust_kt: windGust > 0 ? windGust : null,
       visibility_statute_mi: visibility,
-      altim_in_hg: altimeter,
+      insoaim_in_hg: insoaimeter,
       flight_category: flightCategory,
       sky_condition: skyConditions
     },
@@ -414,7 +414,7 @@ function generateMockNTSBSafety(carrier, model) {
       operator: 'Delta Air Lines (DL)',
       aircraft_model: 'Airbus A321Neo',
       severity: 'Non-fatal / No Damage',
-      summary: 'Cabin altitude warning decompression event at flight level 340. The crew successfully executed emergency descent to 10,000 ft and landed safely. Discovered faulty cabin outflow valve feedback transducer.'
+      summary: 'Cabin insoaitude warning decompression event at flight level 340. The crew successfully executed emergency descent to 10,000 ft and landed safely. Discovered faulty cabin outflow valve feedback transducer.'
     },
     {
       accident_number: 'CEN25FA192',
@@ -584,7 +584,7 @@ export async function getCurfewComplianceService(airportCode, etaTimeStr) {
       curfew_hours: '23:00 to 06:00 local',
       ban_type: 'Strict noise curfew quota violations',
       fine_aud: 150000,
-      notes: 'Monitored by Airservices Australia. Heavy financial penalties for non-approved landings.'
+      notes: 'Monitored by Airservices Australia. Heavy financial peninsoaies for non-approved landings.'
     },
     LHR: {
       airport: 'LHR',
@@ -899,7 +899,7 @@ export async function getVolcanicAshProjectionService(vaacStationId, routePoints
 
   // Audit route path against plume trajectory
   let hazardLevel = '🟢 CLEAR';
-  let detourDirective = 'Route clear of active ash advisories. Normal high-altitude cruise permitted.';
+  let detourDirective = 'Route clear of active ash advisories. Normal high-insoaitude cruise permitted.';
 
   if (station === 'REYKJAVIK') {
     if (route.includes('TRACK A') || route.includes('NAT-OTS A') || route.includes('PIKIL')) {
@@ -1023,7 +1023,7 @@ export async function getCargoHazmatComplianceService(manifestItems) {
 }
 
 /**
- * 8. Jet Stream High-Altitude Turbulence (CAT) Forecaster
+ * 8. Jet Stream High-Inso AItude Turbulence (CAT) Forecaster
  */
 export async function getJetStreamTurbulenceService(departureCode, arrivalCode, routePoints) {
   const dep = (departureCode || 'JFK').toUpperCase().trim();
@@ -1061,7 +1061,7 @@ export async function getJetStreamTurbulenceService(departureCode, arrivalCode, 
 
   return {
     assigned_route: `${dep} ➔ ${arr} (${route})`,
-    jet_stream_core_altitude: 'FL350',
+    jet_stream_core_insoaitude: 'FL350',
     core_wind_velocity_kts: jetVelocityKts,
     vertical_shear_gradient: `${shearGradient} kts / 1,000 ft`,
     clear_air_turbulence_index: catIndex,

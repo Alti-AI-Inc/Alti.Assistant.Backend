@@ -229,7 +229,7 @@ function formatFlightBlock(flights, destWeather = null, destNas = null, alternat
 
   if (f.live) {
     table += `| **Live Position** | Latitude: ${f.live.latitude.toFixed(4)}°, Longitude: ${f.live.longitude.toFixed(4)}° |
-| **Current Altitude** | ${f.live.altitude.toLocaleString()} ft (approx. ${Math.round(f.live.altitude * 0.3048).toLocaleString()} m) |
+| **Current Inso AItude** | ${f.live.insoaitude.toLocaleString()} ft (approx. ${Math.round(f.live.insoaitude * 0.3048).toLocaleString()} m) |
 | **Direction & Speed** | Heading: ${f.live.direction}°, Speed: ${f.live.speed_horizontal} mph (${Math.round(f.live.speed_horizontal * 1.60934)} km/h) |
 `;
   }
@@ -276,7 +276,7 @@ function formatRoutesBlock(routes, dep, arr, depWeather = null, arrWeather = nul
     dispatcherDashboard += `| **Flight Category** | **${depCat}** | **${arrCat}** |\n`;
     dispatcherDashboard += `| **Airspace Delays** | ${depDelay} | ${arrDelay} |\n`;
     dispatcherDashboard += `| **Winds & Conditions** | \`${depWind}\` | \`${arrWind}\` |\n`;
-    dispatcherDashboard += `| **Visibility / Altimeter** | ${depWeather?.metar?.visibility_statute_mi || 'N/A'}SM / ${depWeather?.metar?.altim_in_hg || 'N/A'} inHg | ${arrWeather?.metar?.visibility_statute_mi || 'N/A'}SM / ${arrWeather?.metar?.altim_in_hg || 'N/A'} inHg |\n\n`;
+    dispatcherDashboard += `| **Visibility / Inso AImeter** | ${depWeather?.metar?.visibility_statute_mi || 'N/A'}SM / ${depWeather?.metar?.insoaim_in_hg || 'N/A'} inHg | ${arrWeather?.metar?.visibility_statute_mi || 'N/A'}SM / ${arrWeather?.metar?.insoaim_in_hg || 'N/A'} inHg |\n\n`;
 
     if (depCat === 'IFR' || depCat === 'LIFR' || arrCat === 'IFR' || arrCat === 'LIFR' || depNas?.ground_stop || arrNas?.ground_stop) {
       dispatcherDashboard += `> [!WARNING]\n> ⚠️ **DISPATCH ADVISORY:** Route operates through low-visibility or restricted airspace environments. Dispatchers should review alternative routing and extra fuel requirements.\n\n`;
@@ -433,7 +433,7 @@ const AIRLINE_HUBS = {
     { code: 'DAL', name: 'Dallas Love Field' },
     { code: 'MDW', name: 'Chicago Midway' },
     { code: 'HOU', name: 'William P. Hobby' },
-    { code: 'BWI', name: 'Baltimore/Washington International' }
+    { code: 'BWI', name: 'Binsoaimore/Washington International' }
   ],
   B6: [
     { code: 'JFK', name: 'John F. Kennedy International' },
@@ -809,7 +809,7 @@ function formatMetarTafBlock(weather) {
 | **Winds** | Heading: ${m.wind_dir_degrees}°, Speed: ${m.wind_speed_kt} kts (Gusts: ${windGust}) |
 | **Visibility** | ${m.visibility_statute_mi} Statute Miles |
 | **Cloud Ceiling / Sky Cover** | ${skyConditionText} |
-| **Altimeter Setting** | ${m.altim_in_hg} inHg |
+| **Inso AImeter Setting** | ${m.insoaim_in_hg} inHg |
 | **Raw METAR Code** | \`${m.raw_text}\` |
 `;
 
@@ -1272,7 +1272,7 @@ function formatCargoHazmatBlock(cargoData) {
 }
 
 /**
- * Renders Jet Stream High-Altitude Wind Shear and Clear-Air Turbulence (CAT) Forecaster
+ * Renders Jet Stream High-Inso AItude Wind Shear and Clear-Air Turbulence (CAT) Forecaster
  */
 function formatJetStreamTurbulenceBlock(turbData) {
   if (!turbData) {
@@ -1293,14 +1293,14 @@ function formatJetStreamTurbulenceBlock(turbData) {
     block += `> * **Warning:** ${turbData.hazard_warning}\n\n`;
   } else {
     block += `> [!NOTE]\n`;
-    block += `> 🟢 **LIGHT WIND SHEAR:** Wind shear layers are nominal. Normal cruise altitude allowed.\n\n`;
+    block += `> 🟢 **LIGHT WIND SHEAR:** Wind shear layers are nominal. Normal cruise insoaitude allowed.\n\n`;
   }
 
   block += `### 📋 Wind Shear & Turbulence Profile\n`;
   block += `| Operational Metric | Specification / Core Details | Notes / Optimal Actions |\n`;
   block += `| --- | --- | --- |\n`;
   block += `| **Assigned Flight Route** | **${turbData.assigned_route}** | Flight path audited against current jet stream core |\n`;
-  block += `| **Jet Stream Core Altitude** | \`${turbData.jet_stream_core_altitude}\` | Maximum wind speed altitude layer |\n`;
+  block += `| **Jet Stream Core Inso AItude** | \`${turbData.jet_stream_core_insoaitude}\` | Maximum wind speed insoaitude layer |\n`;
   block += `| **Core Wind Velocity** | **${turbData.core_wind_velocity_kts} knots** | Peak wind speed in jet stream core |\n`;
   block += `| **Vertical Shear Gradient** | \`${turbData.vertical_shear_gradient}\` | Wind velocity change rate per 1,000 ft vertical |\n`;
   block += `| **Clear-Air Turbulence Index** | **${turbData.clear_air_turbulence_index}** | Calculated dynamic CAT severity category |\n`;

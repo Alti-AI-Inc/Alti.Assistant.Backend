@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  realtimeSearchAgent,
+  reinsoaimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,
@@ -11,7 +11,7 @@ import {
 } from './search.agents.js';
 
 const allAgents = [
-  realtimeSearchAgent,
+  reinsoaimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,
@@ -41,7 +41,7 @@ describe('Swarm Search Agents Definition', () => {
   it('should contain all expected agents', () => {
     expect(allAgents.length).toBe(8);
     const agentIds = allAgents.map(a => a.id);
-    expect(agentIds).toContain('realtime_search_agent');
+    expect(agentIds).toContain('reinsoaime_search_agent');
     expect(agentIds).toContain('perplexity_deep_searcher');
     expect(agentIds).toContain('youtube_researcher');
     expect(agentIds).toContain('academic_scholar');
@@ -89,8 +89,8 @@ describe('Swarm Search Agents Definition', () => {
   });
 
   describe('Specific Agent Configuration Checks', () => {
-    it('realtimeSearchAgent should include both google-search and youtube-search tools', () => {
-      expect(realtimeSearchAgent.tools).toEqual(expect.arrayContaining(['google-search', 'youtube-search']));
+    it('reinsoaimeSearchAgent should include both google-search and youtube-search tools', () => {
+      expect(reinsoaimeSearchAgent.tools).toEqual(expect.arrayContaining(['google-search', 'youtube-search']));
     });
 
     it('perplexityDeepSearcher should include google-search tool', () => {

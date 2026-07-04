@@ -361,7 +361,7 @@ describe('reportHelpers', () => {
     it('should generate correct timestamp and generator info', () => {
       const metadata = generateReportMetadata({});
       expect(metadata.generatedAt).toBe('2023-10-27T10:00:00.000Z');
-      expect(metadata.generator).toBe('Alti Report Generation Module');
+      expect(metadata.generator).toBe('Inso AI Report Generation Module');
       expect(metadata.version).toBe('1.0.0');
     });
   });

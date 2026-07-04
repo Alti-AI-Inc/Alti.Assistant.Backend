@@ -1,10 +1,10 @@
 /**
- * @fileoverview Shared configuration module for all Alti agent microservices.
+ * @fileoverview Shared configuration module for all Inso AI agent microservices.
  * Each agent imports this to get a consistent view of environment variables
  * without duplicating config parsing logic.
  *
  * Usage:
- *   import config from '@alti/shared/config';
+ *   import config from '@insoai/shared/config';
  *   console.log(config.gcp.projectId);
  */
 
@@ -36,7 +36,7 @@ for (const key of Object.keys(process.env)) {
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '8080', 10),
-  serviceName: process.env.SERVICE_NAME || 'alti-agent',
+  serviceName: process.env.SERVICE_NAME || 'insoai-agent',
 
   // ── Database ────────────────────────────────────────────────────────────────
   database: {
@@ -67,10 +67,10 @@ const config = {
 
   // ── GCS Buckets ─────────────────────────────────────────────────────────────
   gcs: {
-    uploadsBucket: process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
-    transcriptionBucket: process.env.GCS_TRANSCRIPTION_BUCKET || 'alti_assistant_transcription',
-    knowledgeBankBucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
-    presentationBucket: process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
+    uploadsBucket: process.env.GCS_UPLOADS_BUCKET || 'insoai_assistant_uploads',
+    transcriptionBucket: process.env.GCS_TRANSCRIPTION_BUCKET || 'insoai_assistant_transcription',
+    knowledgeBankBucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'insoai_knowledge_bank_files',
+    presentationBucket: process.env.GCS_PRESENTATION_BUCKET || 'insoai_assistant_presentation',
   },
 
   // ── Model Defaults ──────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ const config = {
   // ── Internal Service Auth ───────────────────────────────────────────────────
   internal: {
     // Shared secret for gateway ↔ agent service-to-service auth
-    serviceSecret: process.env.INTERNAL_SERVICE_SECRET || 'alti-internal-dev-secret',
+    serviceSecret: process.env.INTERNAL_SERVICE_SECRET || 'insoai-internal-dev-secret',
   },
 
   // ── Privacy ─────────────────────────────────────────────────────────────────

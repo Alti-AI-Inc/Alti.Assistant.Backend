@@ -31,7 +31,7 @@ import path from 'path';
  * @property {number} index - The numerical index of the citation.
  * @property {string} url - The URL or internal path to the source document.
  * @property {string} title - The title of the source document or snippet.
- * @property {string} domain - The domain or origin of the source (e.g., 'Data Vault', 'Google Search').
+ * @property {string} domain - The domain or origin of the source (e.g., 'Data Vault', 'Web Search').
  * @property {string} snippet - A short excerpt or summary from the source.
  * @property {number} [score] - The relevance score of the snippet, if available.
  * @property {number} [pageNumber] - The page number within the document, if applicable.
@@ -212,14 +212,14 @@ const llm = {
           content = 'NO';
         } else {
           if (combinedPrompt.toLowerCase().includes('stock') || combinedPrompt.toLowerCase().includes('price')) {
-            content = `Based on Google Search Grounding results, Apple (AAPL) is currently trading at approximately $175.50 per share. Apple's latest product announcement includes the groundbreaking M4-powered iPad Pro and refined MacBook Air lineups featuring enhanced on-device neural processing cores [Source #1].`;
+            content = `Based on Live Web Grounding results, Apple (AAPL) is currently trading at approximately $175.50 per share. Apple's latest product announcement includes the groundbreaking M4-powered iPad Pro and refined MacBook Air lineups featuring enhanced on-device neural processing cores [Source #1].`;
           } else if (combinedPrompt.toLowerCase().includes('vertex ai search') || combinedPrompt.toLowerCase().includes('security guidelines')) {
             content = `Google Vertex AI Search provides enterprise-ready semantic search over private datasets. The core security guidelines and requirements include:
 1. **Access Control**: Strict integration with Google Cloud IAM roles to ensure that users only search and retrieve documents they have permissions to read.
 2. **Encryption**: All document ingestion and vector embeddings are encrypted at rest using Customer-Managed Encryption Keys (CMEK) and in transit [Source #1].
 3. **Data Residency**: Supports regulatory compliance by pinning ingestion pipelines and document index storages to specific regional buckets [Source #2].`;
           } else {
-            content = `Hello! I am Alti, your premium RAG-enabled digital assistant. How can I help you explore your enterprise knowledge base or coordinate active automation today?`;
+            content = `Hello! I am Inso AI, your premium RAG-enabled digital assistant. How can I help you explore your enterprise knowledge base or coordinate active automation today?`;
           }
         }
         
@@ -562,7 +562,7 @@ Google Vertex AI Search and stateful cognitive architectures deliver highly accu
 async function conversationalNode(state) {
   logger.info(`[LangGraph RAG] Processing off-topic/friendly conversational query: "${state.query}"`);
   
-  const systemPrompt = `You are Alti, a premium, helpful, and highly intelligent AI assistant. 
+  const systemPrompt = `You are Inso AI, a premium, helpful, and highly intelligent AI assistant. 
 Answer the user's friendly chat query directly. Keep it professional, concise, and helpful.`;
 
   try {
@@ -578,7 +578,7 @@ Answer the user's friendly chat query directly. Keep it professional, concise, a
 }
 
 /**
- * Web Search Node: Fallback using high-fidelity Google Search Grounding via Gemini.
+ * Web Search Node: Fallback using high-fidelity Live Web Grounding via Gemini.
  * This node is activated when local retrieval is insufficient or for time-sensitive queries.
  * It performs a real-time web search and integrates the results into the context.
  * Includes a robust mock fallback for development/sandbox environments.
@@ -588,7 +588,7 @@ Answer the user's friendly chat query directly. Keep it professional, concise, a
  *   containing the updated `retrievedContext`, `citations`, `webSearchUsed`, and `isRelevant` properties.
  */
 async function webSearchNode(state) {
-  logger.info(`[LangGraph RAG] Falling back to real-time Google Search Grounding for: "${state.query}"`);
+  logger.info(`[LangGraph RAG] Falling back to real-time Live Web Grounding for: "${state.query}"`);
   try {
     const searchTool = new GoogleSearchGroundingTool();
     const searchResult = await searchTool.invoke({ query: state.query });
@@ -598,11 +598,11 @@ async function webSearchNode(state) {
       index: state.citations.length + idx + 1,
       url: res.url,
       title: res.title,
-      domain: 'Google Search',
+      domain: 'Web Search',
       snippet: res.content
     }));
 
-    const enrichedContext = `${state.retrievedContext}\n\n[Google Search Grounding Results]\n${searchAnswer}`;
+    const enrichedContext = `${state.retrievedContext}\n\n[Live Web Grounding Results]\n${searchAnswer}`;
 
     return {
       retrievedContext: enrichedContext,
@@ -611,7 +611,7 @@ async function webSearchNode(state) {
       isRelevant: true
     };
   } catch (err) {
-    logger.warn(`[LangGraph RAG] Google Search Grounding fallback failed: ${err.message}. Activating sandbox mock search grounding fallback...`);
+    logger.warn(`[LangGraph RAG] Live Web Grounding fallback failed: ${err.message}. Activating sandbox mock search grounding fallback...`);
     
     // Fallback to high-fidelity mock search results to prevent hard failures in sandbox/dev environments
     const mockAnswer = `Based on high-fidelity sandbox search results, Apple (AAPL) stock is currently trading around $175.50. The latest announcements highlighted the integration of M4 silicon chips across iPad Pro and MacBook Air lines, delivering advanced neural cores.`;
@@ -625,7 +625,7 @@ async function webSearchNode(state) {
       }
     ];
 
-    const enrichedContext = `${state.retrievedContext}\n\n[Google Search Grounding Results]\n${mockAnswer}`;
+    const enrichedContext = `${state.retrievedContext}\n\n[Live Web Grounding Results]\n${mockAnswer}`;
 
     return {
       retrievedContext: enrichedContext,
@@ -658,7 +658,7 @@ ${state.retrievedContext}
 
 Instructions:
 1. Answer the user query comprehensively using ONLY details present in the context.
-2. If Google Search Grounding was utilized, synthesize the live search details clearly.
+2. If Live Web Grounding was utilized, synthesize the live search details clearly.
 3. Incorporate citations cleanly. Refer to source indexes using bracket notation e.g. [Source #1], [Source #2].
 4. Maintain a professional, objective tone. Do not make up facts.`;
 

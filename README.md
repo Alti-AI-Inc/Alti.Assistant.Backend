@@ -8,7 +8,7 @@ An enterprise-grade, high-performance Swarm & RAG (Retrieval-Augmented Generatio
 
 ### 1. Swarm Agent & Grounding Engine
 - **Intent Router**: Houses a smart intent classifier routing user requests dynamically to 44 expert specialized domain agents (financial analysis, real estate, arbitrage scanning, sports betting odds, legal compliance, etc.).
-- **100% Google Grounding Entrenchment**: Completely purged of external proprietary branding (such as Tavily), utilizing native Google Search and custom grounding engines for reliable real-time ground-truth verification.
+- **100% Google Grounding Entrenchment**: Completely purged of external proprietary branding (such as Tavily), utilizing native Web Search and custom grounding engines for reliable real-time ground-truth verification.
 - **Dynamic SSE Token Streaming**: Implements real-time token streaming over Server-Sent Events (SSE) to ensure ultra-low latency, fluid UX responses.
 
 ### 2. Advanced LlamaIndex RAG Pipeline

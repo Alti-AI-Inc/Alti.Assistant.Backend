@@ -31,7 +31,7 @@ vi.mock('./google-search.controller.js', () => ({
   },
 }));
 
-describe('Google Search Routes', () => {
+describe('Web Search Routes', () => {
   beforeEach(() => {
     // Reset mocks before each test to ensure a clean state
     vi.clearAllMocks();

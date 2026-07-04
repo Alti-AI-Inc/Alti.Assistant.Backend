@@ -94,10 +94,10 @@ app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }
 app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
 
 const allowedOrigins = [
-  'https://altihq.com',
-  'https://www.altihq.com',
-  'https://altiassistant.com',
-  'https://www.altiassistant.com',
+  'https://insoai.com',
+  'https://www.insoai.com',
+  'https://insoaiassistant.com',
+  'https://www.insoaiassistant.com',
 ];
 
 // Only allow localhost origins in non-production environments
@@ -376,7 +376,7 @@ app.use(globalErrorHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('Alti is working! YaY!');
+  res.send('Inso AI is working! YaY!');
 });
 
 // 404 Handler

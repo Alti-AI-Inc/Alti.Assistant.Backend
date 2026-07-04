@@ -1111,7 +1111,7 @@ async function queryGoogleSearchGrounding(query) {
       tools: [{ googleSearch: {} }]
     });
     
-    console.log(`LlamaIndex Grounding: Querying Google Search for "${query}"`);
+    console.log(`LlamaIndex Grounding: Querying Web Search for "${query}"`);
     const result = await model.generateContent(query);
     const text = result?.response?.text() || '';
     
@@ -1119,11 +1119,11 @@ async function queryGoogleSearchGrounding(query) {
       content: text,
       sources: [{
         score: '1.000',
-        snippet: '[Google Search Grounding] Grounded dynamically using Google real-time search engine results.'
+        snippet: '[Live Web Grounding] Grounded dynamically using Google real-time search engine results.'
       }]
     };
   } catch (err) {
-    console.error('LlamaIndex Grounding: Google Search Grounding failed.', err);
+    console.error('LlamaIndex Grounding: Live Web Grounding failed.', err);
     throw err;
   }
 }
@@ -1553,7 +1553,7 @@ Standalone Question:`;
 
   // 9. Synthesize final response
   const tSynthesis = performance.now();
-  const responsePrompt = `You are Alti's premium real-time AI analyst. 
+  const responsePrompt = `You are Inso AI's premium real-time AI analyst. 
 Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information, document profile summary, and conversation history.
 
 ${docProfile ? `Document Profile Summary:
@@ -1592,10 +1592,10 @@ Rules you MUST follow:
   const isInsufficient = insufficientKeywords.some(kw => reply.toLowerCase().includes(kw.toLowerCase()));
 
   if (isInsufficient) {
-    console.log(`LlamaIndex Grounding: Local document context insufficient. Triggering Google Search Grounding Fallback.`);
+    console.log(`LlamaIndex Grounding: Local document context insufficient. Triggering Live Web Grounding Fallback.`);
     try {
       const groundedResult = await queryGoogleSearchGrounding(query);
-      const suggestions = await generateSuggestedQuestions(query, 'Google Search Grounding', groundedResult.content);
+      const suggestions = await generateSuggestedQuestions(query, 'Live Web Grounding', groundedResult.content);
 
       chatHistory.push({ role: 'user', content: query });
       chatHistory.push({ role: 'assistant', content: groundedResult.content });
@@ -1779,7 +1779,7 @@ export async function askQueryStream(query, userId = 'default_user', onChunk) {
     ? topNodes.map((node, idx) => `[Node ${idx + 1}] (Source: ${node.node.metadata?.fileName || 'Document'}${node.node.metadata?.pageNumber ? `, Page ${node.node.metadata.pageNumber}` : ''}): ${node.node.getContent(MetadataMode.NONE)}`).join('\n\n')
     : 'No context retrieved.';
 
-  const responsePrompt = `You are Alti's premium real-time AI analyst. 
+  const responsePrompt = `You are Inso AI's premium real-time AI analyst. 
 Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information.
 
 ${docProfile ? `Document Profile Summary:\n${docProfile.summary}\nKey Topics: ${docProfile.topics.join(', ')}\n` : ''}
@@ -6165,7 +6165,7 @@ export function optimizePromptWithHelper(promptText, userId = 'default_user') {
 
 let gcsStorage = null;
 let gcsBucket = null;
-const gcsBucketName = process.env.CLOUD_STORAGE_BUCKET || 'alti_assistant_uploads';
+const gcsBucketName = process.env.CLOUD_STORAGE_BUCKET || 'insoai_assistant_uploads';
 
 try {
   gcsStorage = new Storage();

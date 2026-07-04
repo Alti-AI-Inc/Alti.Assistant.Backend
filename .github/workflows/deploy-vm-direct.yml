@@ -18,7 +18,7 @@ env:
   VM_HOST: ${{ secrets.VM_HOST }}
   VM_USER: ${{ secrets.VM_USER }}
   REGISTRY: us-central1-docker.pkg.dev
-  IMAGE: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend
+  IMAGE: us-central1-docker.pkg.dev/gen-lang-client-0273900650/insoai-assistant-core-backend-repo/insoai-assistant-backend
 
 permissions:
   contents: read
@@ -62,18 +62,18 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
-          chmod 600 ~/.ssh/alti-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/insoai-vm-key
+          chmod 600 ~/.ssh/insoai-vm-key
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy docker-compose to VM
         run: |
-          scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no \
+          scp -i ~/.ssh/insoai-vm-key -o StrictHostKeyChecking=no \
             docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/docker-compose.yml
 
       - name: Deploy to VM
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash -s << 'EOF'
+          ssh -i ~/.ssh/insoai-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash -s << 'EOF'
             set -e
 
             echo "=== Step 1: Stop containers (release image locks) ==="
@@ -83,7 +83,7 @@ jobs:
             sudo systemctl restart docker || sudo service docker restart || true
             docker system prune -af 2>/dev/null || true
             docker container prune -f 2>/dev/null || true
-            docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+            docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/insoai-assistant-core-backend-repo/insoai-assistant-backend:latest 2>/dev/null || true
             docker image prune -af 2>/dev/null || true
             docker volume prune -f 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
@@ -121,15 +121,15 @@ jobs:
         run: |
           echo "Waiting 30s for backend to start..."
           sleep 30
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+          ssh -i ~/.ssh/insoai-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
             "curl -sf http://localhost:5100/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
 
       - name: Fetch recent logs
         if: always()
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
-            "docker logs alti-backend --tail=20 2>&1" || true
+          ssh -i ~/.ssh/insoai-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+            "docker logs insoai-backend --tail=20 2>&1" || true
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: rm -f ~/.ssh/insoai-vm-key

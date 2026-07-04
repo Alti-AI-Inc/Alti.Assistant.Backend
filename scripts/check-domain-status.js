@@ -3,7 +3,7 @@ import axios from 'axios';
 
 async function getDomainStatus(domain) {
   const auth = new GoogleAuth({
-    keyFilename: 'alti_gcp.json',
+    keyFilename: 'insoai_gcp.json',
     scopes: ['https://www.googleapis.com/auth/cloud-platform']
   });
   
@@ -11,7 +11,7 @@ async function getDomainStatus(domain) {
   const tokenResponse = await client.getAccessToken();
   const token = tokenResponse.token;
   
-  const projectId = 'alti-assistant-prod';
+  const projectId = 'insoai-assistant-prod';
   const region = 'us-central1';
   const url = `https://${region}-run.googleapis.com/apis/domains.cloudrun.com/v1/namespaces/${projectId}/domainmappings/${domain}`;
   
@@ -36,8 +36,8 @@ async function getDomainStatus(domain) {
 }
 
 async function run() {
-  await getDomainStatus('altihq.com');
-  await getDomainStatus('www.altihq.com');
+  await getDomainStatus('insoai.com');
+  await getDomainStatus('www.insoai.com');
 }
 
 run();

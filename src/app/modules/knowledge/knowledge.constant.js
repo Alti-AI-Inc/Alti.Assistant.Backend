@@ -43,7 +43,7 @@ export const KNOWLEDGE_CONFIG = {
 
 // Storage configuration
 export const STORAGE_CONFIG = {
-  GCS_BUCKET: 'alti_assistant_knowledge_bot_files',
+  GCS_BUCKET: 'insoai_assistant_knowledge_bot_files',
   TEMP_FOLDER: 'uploads/knowledge',
   USER_FILES_PREFIX: 'users',
   BOT_FILES_PREFIX: 'bots',

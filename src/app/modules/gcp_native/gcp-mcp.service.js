@@ -196,7 +196,7 @@ const startMcpServer = async (options = {}) => {
 /**
  * @typedef {object} DataSourceConfig
  * @property {'source'} kind - The kind of configuration, always 'source'.
- * @property {string} name - A unique name for the data source (e.g., 'alti-default-postgres').
+ * @property {string} name - A unique name for the data source (e.g., 'insoai-default-postgres').
  * @property {string} type - The type of the database (e.g., 'postgres', 'mysql', 'sqlite').
  * @property {string} [host] - The database host address.
  * @property {number} [port] - The database port number.
@@ -246,11 +246,11 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
   // Fallback to basic configuration if parameters are empty
   const defaultSources = sources.length > 0 ? sources : [{
     kind: 'source',
-    name: 'alti-default-postgres',
+    name: 'insoai-default-postgres',
     type: 'postgres',
     host: '127.0.0.1', // For GCP, this is often the Cloud SQL Auth Proxy listener
     port: 5432,
-    database: 'alti_db',
+    database: 'insoai_db',
     user: 'postgres',
     password: 'secure_password', // SECURITY NOTE: In a real application, avoid hardcoding sensitive credentials.
                                 // Use environment variables or a secure secrets manager.
@@ -285,7 +285,7 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
     kind: 'tool',
     name: 'fetch-recent-alerts',
     type: 'postgres-sql',
-    source: 'alti-default-postgres',
+    source: 'insoai-default-postgres',
     description: 'Lists all recent audit logs and critical security alerts from the platform.',
     parameters: [
       { name: 'limit', type: 'integer', description: 'Maximum record count to retrieve' }
@@ -348,7 +348,7 @@ const generateToolsConfig = (sources = [], tools = [], outputPath = null) => {
  * Invokes a specific prebuilt or custom registered tool via the Google MCP Toolbox bridge.
  * This function handles both live execution via the MCP server and mock execution based on environment variables.
  *
- * @param {string} toolsetName - The registered toolset or source name to target (e.g., 'alti-default-postgres').
+ * @param {string} toolsetName - The registered toolset or source name to target (e.g., 'insoai-default-postgres').
  * @param {string} toolName - Name of the specific database tool to execute (e.g., 'execute_sql', 'fetch-recent-alerts').
  * @param {object} [parameters={}] - Arguments passed into the targeted tool. The structure depends on the tool's definition.
  *                                   For 'execute_sql', this object should contain 'statement' and optionally 'values' (an array).
@@ -491,7 +491,7 @@ const queryNaturalLanguage = async (queryText, databaseContext = {}) => {
     
     // Execute SQL generated via the core MCP toolbox execute_sql tool
     // Assuming 'execute_sql' tool expects an object with a 'statement' key and optionally 'values' for parameters.
-    const mcpResult = await executeMcpTool('alti-default-postgres', 'execute_sql', {
+    const mcpResult = await executeMcpTool('insoai-default-postgres', 'execute_sql', {
       statement: generatedSql
       // If the generated SQL had placeholders (e.g., 'LIMIT $1'), values would be passed here:
       // values: [someLimitValue]

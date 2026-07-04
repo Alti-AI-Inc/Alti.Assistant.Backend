@@ -2,7 +2,7 @@
  * stage27PremiumProviders.js — Stage 27 Premium German, French & EU Open Data Grounding Channels
  *
  * Implements the German Statistical Office (Destatis), French Statistical Institute (INSEE),
- * and European Central Bank (ECB) search providers for Alti's RAG/Grounding engine.
+ * and European Central Bank (ECB) search providers for Inso AI's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

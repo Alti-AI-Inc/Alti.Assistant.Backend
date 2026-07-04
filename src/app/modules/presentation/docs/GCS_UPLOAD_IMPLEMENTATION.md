@@ -28,9 +28,9 @@
 
 ```javascript
 gcs: {
-  knowledge_bank_bucket: 'alti_knowledge_bank_files',
-  knowledgebot_bucket: 'alti_assistant_knowledge_bot_files',
-  presentation_bucket: 'alti_assistant_presentation',  // NEW
+  knowledge_bank_bucket: 'insoai_knowledge_bank_files',
+  knowledgebot_bucket: 'insoai_assistant_knowledge_bot_files',
+  presentation_bucket: 'insoai_assistant_presentation',  // NEW
 }
 ```
 
@@ -117,11 +117,11 @@ gcs: {
 ```json
 {
   "success": true,
-  "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/alti_assistant_presentation/...\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
+  "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/insoai_assistant_presentation/...\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
   "presentationId": "abc123",
   "downloadUrl": "http://localhost:5000/download/abc123",
   "editUrl": "http://localhost:5000/edit/abc123",
-  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...", // NEW
+  "publicUrl": "https://storage.googleapis.com/insoai_assistant_presentation/...", // NEW
   "creditsConsumed": 10
 }
 ```
@@ -147,7 +147,7 @@ gcs: {
     "presentation_id": "abc123",
     "path": "http://localhost:5000/download/abc123",
     "edit_path": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...", // NEW
+    "publicUrl": "https://storage.googleapis.com/insoai_assistant_presentation/...", // NEW
     "credits_consumed": 10
   }
 }
@@ -156,7 +156,7 @@ gcs: {
 ## File Structure in GCS
 
 ```
-alti_assistant_presentation/
+insoai_assistant_presentation/
   ├── user_id_1/
   │   ├── conversation_id_1/
   │   │   ├── presentation_abc123.pptx
@@ -216,10 +216,10 @@ logger.error('Error uploading presentation to GCS:', uploadError);
 ```env
 # Existing
 GCP_PROJECT_ID=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=alti_gcp.json
+GOOGLE_APPLICATION_CREDENTIALS=insoai_gcp.json
 
-# New (optional, defaults to 'alti_assistant_presentation')
-GCS_PRESENTATION_BUCKET=alti_assistant_presentation
+# New (optional, defaults to 'insoai_assistant_presentation')
+GCS_PRESENTATION_BUCKET=insoai_assistant_presentation
 ```
 
 ## Dependencies
@@ -253,7 +253,7 @@ curl -X POST http://localhost:3000/api/presentation/generate \
 3. **Verify in Response**:
 
 - Check for `publicUrl` field
-- Verify URL format: `https://storage.googleapis.com/alti_assistant_presentation/...`
+- Verify URL format: `https://storage.googleapis.com/insoai_assistant_presentation/...`
 - Access the URL to confirm file is downloadable
 
 4. **Check Conversation Metadata**:

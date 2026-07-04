@@ -113,7 +113,7 @@ export const GeorgetownCewProvider = {
 |----------------------------|-------------------------|--------------------------|--------------------------------|-----------------------|
 | **University of Michigan**| **NPV: $1.45M (40-Yr)** | **Ranked #12 (ROI)** | Low Debt (Debt-to-Earn <0.12) | Verified Filer Active |
 | **Harvard University** | **NPV: $1.89M (40-Yr)** | **Ranked #2 (ROI)** | Low Debt (Debt-to-Earn <0.08) | Verified Filer Active |
-| **Altis Technology Inst** | **NPV: $1.20M (40-Yr)** | **Ranked #45 (ROI)** | Low Debt (Debt-to-Earn <0.15) | Verified Filer Active |`;
+| **Inso AIs Technology Inst** | **NPV: $1.20M (40-Yr)** | **Ranked #45 (ROI)** | Low Debt (Debt-to-Earn <0.15) | Verified Filer Active |`;
 
     const metadata = {
       domain: 'georgetown_cew_roi',

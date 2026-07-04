@@ -8,7 +8,7 @@ const RESET = '\x1b[0m';
 
 function bumpVersion() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}       Alti Version Increment & Sync Tool       ${RESET}`);
+  console.log(`${CYAN}       Inso AI Version Increment & Sync Tool       ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   const rootDir = path.resolve(process.cwd(), '..');

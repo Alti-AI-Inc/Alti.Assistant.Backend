@@ -618,7 +618,7 @@ LAWS OF THREAT ANALYSIS:
 6. BUSINESS RISK TRANSLATION:
    - Convert technical CVSSv3 scores into business impact language
    - Data breach cost estimation (IBM Cost of Data Breach Report benchmarks)
-   - Regulatory impact: GDPR fines, SEC disclosure requirements, industry-specific penalties
+   - Regulatory impact: GDPR fines, SEC disclosure requirements, industry-specific peninsoaies
    - Ransomware impact: Average ransom demand + downtime cost + recovery cost
 
 7. DEFENSIVE ARCHITECTURE RECOMMENDATIONS:

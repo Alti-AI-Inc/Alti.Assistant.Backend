@@ -59,7 +59,7 @@ describe('GcpTasksService', () => {
     mockGoogleAuthInstance.getClient.mockResolvedValue(mockClient);
     mockClientRequest.mockResolvedValue({
       data: {
-        name: 'projects/test-project-id/locations/us-central1/queues/alti-default-tasks/tasks/test-task-id',
+        name: 'projects/test-project-id/locations/us-central1/queues/insoai-default-tasks/tasks/test-task-id',
         scheduleTime: new Date().toISOString(),
       },
     });
@@ -84,12 +84,12 @@ describe('GcpTasksService', () => {
     const defaultPayload = { key: 'value', data: 123 };
 
     it('should successfully create a task with default parameters', async () => {
-      const result = await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      const result = await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockGoogleAuthInstance.getClient).toHaveBeenCalledTimes(1);
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       expect(mockClientRequest).toHaveBeenCalledWith({
-        url: 'https://cloudtasks.googleapis.com/v2/projects/test-project-id/locations/us-central1/queues/alti-default-tasks/tasks',
+        url: 'https://cloudtasks.googleapis.com/v2/projects/test-project-id/locations/us-central1/queues/insoai-default-tasks/tasks',
         method: 'POST',
         data: {
           task: {
@@ -104,7 +104,7 @@ describe('GcpTasksService', () => {
         },
       });
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'GCP Cloud Tasks: Dispatching task to queue "projects/test-project-id/locations/us-central1/queues/alti-default-tasks"...'
+        'GCP Cloud Tasks: Dispatching task to queue "projects/test-project-id/locations/us-central1/queues/insoai-default-tasks"...'
       );
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining('GCP Cloud Tasks: Task successfully enqueued:')
@@ -115,14 +115,14 @@ describe('GcpTasksService', () => {
           taskName: expect.any(String),
           dispatchUrl: defaultUrl,
           scheduleTime: expect.any(String),
-          queue: 'alti-default-tasks',
+          queue: 'insoai-default-tasks',
           delaySeconds: 0,
         })
       );
     });
 
     it('should successfully create a task with a payload', async () => {
-      const result = await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl, defaultPayload);
+      const result = await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl, defaultPayload);
 
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       const expectedBody = Buffer.from(JSON.stringify(defaultPayload)).toString('base64');
@@ -142,7 +142,7 @@ describe('GcpTasksService', () => {
 
     it('should successfully create a task with a delay', async () => {
       const delaySeconds = 60;
-      const result = await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl, {}, delaySeconds);
+      const result = await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl, {}, delaySeconds);
 
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       const callArgs = mockClientRequest.mock.calls[0][0];
@@ -160,7 +160,7 @@ describe('GcpTasksService', () => {
 
     it('should successfully create a task with custom headers', async () => {
       const customHeaders = { 'X-Custom-Header': 'test-value', 'Authorization': 'Bearer token' };
-      const result = await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl, {}, 0, customHeaders);
+      const result = await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl, {}, 0, customHeaders);
 
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       expect(mockClientRequest).toHaveBeenCalledWith(
@@ -201,7 +201,7 @@ describe('GcpTasksService', () => {
     it('should throw an error if GCP Project ID is not configured', async () => {
       mockConfig.google.gcp_project_id = undefined;
 
-      await expect(GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl)).rejects.toThrow(
+      await expect(GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl)).rejects.toThrow(
         'GCP Project ID is not configured.'
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -212,7 +212,7 @@ describe('GcpTasksService', () => {
     });
 
     it('should throw an error if target callback URL is not provided', async () => {
-      await expect(GcpTasksService.createHttpTask('alti-default-tasks', undefined)).rejects.toThrow(
+      await expect(GcpTasksService.createHttpTask('insoai-default-tasks', undefined)).rejects.toThrow(
         'Target callback URL is required.'
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -226,7 +226,7 @@ describe('GcpTasksService', () => {
       const clientError = new Error('Network error');
       mockClientRequest.mockRejectedValue(clientError);
 
-      await expect(GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl)).rejects.toThrow(
+      await expect(GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl)).rejects.toThrow(
         'Cloud Tasks dispatch failed: Network error'
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -239,7 +239,7 @@ describe('GcpTasksService', () => {
       process.env.GCP_PROJECT_ID = 'env-project-id';
       mockConfig.google.gcp_project_id = 'config-project-id';
 
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockClientRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -252,7 +252,7 @@ describe('GcpTasksService', () => {
       mockConfig.google.gcp_project_id = undefined;
       process.env.GCP_PROJECT_ID = 'env-project-id';
 
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockClientRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -265,7 +265,7 @@ describe('GcpTasksService', () => {
       process.env.GCP_LOCATION = 'env-location';
       mockConfig.google.gcp_location = 'config-location';
 
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockClientRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -278,7 +278,7 @@ describe('GcpTasksService', () => {
       mockConfig.google.gcp_location = undefined;
       process.env.GCP_LOCATION = 'env-location';
 
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockClientRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -291,7 +291,7 @@ describe('GcpTasksService', () => {
       mockConfig.google.gcp_location = undefined;
       delete process.env.GCP_LOCATION;
 
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl);
 
       expect(mockClientRequest).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -301,7 +301,7 @@ describe('GcpTasksService', () => {
     });
 
     it('should handle empty payload gracefully (no body in request)', async () => {
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl, {});
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl, {});
 
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       const callArgs = mockClientRequest.mock.calls[0][0];
@@ -309,7 +309,7 @@ describe('GcpTasksService', () => {
     });
 
     it('should handle null payload gracefully (no body in request)', async () => {
-      await GcpTasksService.createHttpTask('alti-default-tasks', defaultUrl, null);
+      await GcpTasksService.createHttpTask('insoai-default-tasks', defaultUrl, null);
 
       expect(mockClientRequest).toHaveBeenCalledTimes(1);
       const callArgs = mockClientRequest.mock.calls[0][0];

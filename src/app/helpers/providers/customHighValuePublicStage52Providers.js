@@ -16,7 +16,7 @@ export const EpaFuelEconomyProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'EPA Green Vehicle Guide & Fuel Economy Logs',
-  mandatoryRule: '▸ Highlight vehicle fuel economies, carbon footprints, and MPG specifications in **BOLD** (e.g. **32 MPG Fuel Economy**, **Altis Eco Hybrid**, **EPA Green Vehicle Passed**)',
+  mandatoryRule: '▸ Highlight vehicle fuel economies, carbon footprints, and MPG specifications in **BOLD** (e.g. **32 MPG Fuel Economy**, **Inso AIs Eco Hybrid**, **EPA Green Vehicle Passed**)',
 
   detectIntent: (query) => {
     return /\bepa\s+fuel\s+economy\b|\bgreen\s+vehicle\s+guide\b|\bfuel\s+economy\s+estimates\b|\bvehicle\s+spec\s+mpg\b/i.test(query);
@@ -33,13 +33,13 @@ export const EpaFuelEconomyProvider = {
 
 | Monitored Vehicle Model | EPA Fuel Economy Class | Total Staged Spec MPG | Staged Carbon Footprint | EPA Green Vehicle Status |
 |-------------------------|------------------------|-----------------------|-------------------------|--------------------------|
-| **Altis Eco Hybrid** | Compact Sedan (Hybrid) | **32 MPG Fuel Economy**| 245 Grams CO2 per Mile | **EPA Green Vehicle Passed**|
+| **Inso AIs Eco Hybrid** | Compact Sedan (Hybrid) | **32 MPG Fuel Economy**| 245 Grams CO2 per Mile | **EPA Green Vehicle Passed**|
 | Hawthorne Electric EV | Compact Sedan (EV) | **124 MPGe Spec MPG** | 0 Grams CO2 per Mile | **EPA Green Vehicle Passed**|
 | Vance Cross SUV (Gas) | Midsize SUV (Gasoline) | 22 MPG Fuel Economy | 380 Grams CO2 per Mile | Verified Fuel Economy Filer|`;
 
     const metadata = {
       domain: 'epa_fuel_economy',
-      vehicleModel: 'Altis Eco Hybrid',
+      vehicleModel: 'Inso AIs Eco Hybrid',
       mpg: 32,
       carbon: 245,
       status: 'EPA Green Vehicle Passed'
@@ -113,7 +113,7 @@ export const DojAdaEnforcementProvider = {
 |-----------------------|--------------------------|------------------------------|-------------------------|--------------------------|
 | **DOJ ADA Settlement #1245**| Hawthorne Retail Group | Wheelchair Ramp Widths | **Active ADA Compliance Flag**| Settlement Active |
 | **DOJ ADA Settlement #1842**| Vance Arena Stadium | Accessible Seating Count | **Active ADA Compliance Flag**| **DOJ Civil Rights Registry**|
-| DOJ ADA Settlement #2004 | Altis Software Labs | Website Screen Readers | Verified Active Stand | E-Accessibility Passed |`;
+| DOJ ADA Settlement #2004 | Inso AIs Software Labs | Website Screen Readers | Verified Active Stand | E-Accessibility Passed |`;
 
     const metadata = {
       domain: 'doj_ada_enforcement',
@@ -150,13 +150,13 @@ export const GsaElibraryContractsProvider = {
 
 | Target Federal Contractor | GSA Contract Number Record | Special Item Numbers (SIN) | Regulatory GSA Standing | GSA Schedules eLibrary Record |
 |---------------------------|----------------------------|----------------------------|-------------------------|------------------------------|
-| **Altis Technology Labs** | **GSA Schedule GS-35F-1245**| SIN 54151S (IT Services) | **Active GSA Contractor**| **GSA eLibrary Register** Filer|
+| **Inso AIs Technology Labs** | **GSA Schedule GS-35F-1245**| SIN 54151S (IT Services) | **Active GSA Contractor**| **GSA eLibrary Register** Filer|
 | Hawthorne Systems | **GSA Schedule GS-35F-8456**| SIN 54151S (IT Services) | **Active GSA Contractor**| **GSA eLibrary Register** Filer|
 | Vance Trading Group | GSA Schedule GS-35F-6204 | SIN 54151S (IT Services) | Verified Active Filer | GSA eLibrary Register Filer |`;
 
     const metadata = {
       domain: 'gsa_elibrary_contracts',
-      contractor: 'Altis Technology Labs',
+      contractor: 'Inso AIs Technology Labs',
       contractNumber: 'GSA Schedule GS-35F-1245',
       sin: '54151S',
       status: 'Active GSA Contractor'
@@ -229,14 +229,14 @@ export const DoiBseeOffshoreProductionProvider = {
 
 | Target Lease Block Name | Sponsoring Drilling Platform | Monthly Oil Production Vol | Monthly Gas Production Vol | BSEE Offshore Status Record |
 |-------------------------|------------------------------|----------------------------|----------------------------|-----------------------------|
-| **Gulf Lease Block #124**| **Altis Deepwater Alpha** | **124,500 Barrels Offshore Oil**| 480,000 Cubic Feet Gas | **BSEE Offshore Production Active**|
+| **Gulf Lease Block #124**| **Inso AIs Deepwater Alpha** | **124,500 Barrels Offshore Oil**| 480,000 Cubic Feet Gas | **BSEE Offshore Production Active**|
 | Gulf Lease Block #482 | Hawthorne Deepwater Beta | **84,500 Barrels Offshore Oil** | 310,000 Cubic Feet Gas | **BSEE Offshore Production Active**|
 | Gulf Lease Block #620 | Vance Deepwater Gamma | 62,000 Barrels Offshore Oil| 245,000 Cubic Feet Gas | Verified Offshore Production |`;
 
     const metadata = {
       domain: 'doi_bsee_offshore_production',
       leaseBlock: 'Gulf Lease Block #124',
-      platform: 'Altis Deepwater Alpha',
+      platform: 'Inso AIs Deepwater Alpha',
       oilVolume: 124500,
       status: 'BSEE Offshore Production Active'
     };
@@ -307,14 +307,14 @@ export const FaaRepairStationsProvider = {
 
 | Repair Station Location | Target Repair Station Name | FAA Station Certificate Number | Primary Station Rating Class | FAA Airman Program Status |
 |-------------------------|----------------------------|--------------------------------|------------------------------|---------------------------|
-| **Ann Arbor, Michigan** | **Altis Aero Maintenance** | **FAA Repair Station Certificate #ALTI124**| **Class 3 Powerplant Rating**| **FAA Active Repair Station**|
+| **Ann Arbor, Michigan** | **Inso AIs Aero Maintenance** | **FAA Repair Station Certificate #ALTI124**| **Class 3 Powerplant Rating**| **FAA Active Repair Station**|
 | Columbus, Ohio | Hawthorne Propulsion | **FAA Repair Station Certificate #HAWN852**| **Class 3 Powerplant Rating**| **FAA Active Repair Station**|
 | Indianapolis, Indiana | Vance Avionics Labs | FAA Repair Station Certificate #VNCE620| Class 2 Radio Avionics Rating | Verified Active Station |`;
 
     const metadata = {
       domain: 'faa_repair_stations',
       location: 'Ann Arbor, Michigan',
-      stationName: 'Altis Aero Maintenance',
+      stationName: 'Inso AIs Aero Maintenance',
       certificateNumber: 'FAA Repair Station Certificate #ALTI124',
       status: 'FAA Active Repair Station'
     };
@@ -385,13 +385,13 @@ export const SecFormAdvWWithdrawalsProvider = {
 
 | Terminating Firm Name | CRD Identifier | Terminating Assets at ADV-W | SEC Withdrawal Date Record | SEC Form ADV-W Registry Status |
 |------------------------|----------------|-----------------------------|----------------------------|--------------------------------|
-| **Altis Wealth Advisors**| CRD #124598 | **$24.5 Million Assets at ADV-W**| March 12, 2023 | **Adviser Registration Withdrawn**|
+| **Inso AIs Wealth Advisors**| CRD #124598 | **$24.5 Million Assets at ADV-W**| March 12, 2023 | **Adviser Registration Withdrawn**|
 | **Hawthorne Capital Group**| CRD #845612 | **$12.8 Million Assets at ADV-W**| September 18, 2024 | **Adviser Registration Withdrawn**|
 | Vance Asset Consulting | CRD #620458 | $8.2 Million Assets at ADV-W | February 04, 2025 | **SEC Form ADV-W Registry** Filer|`;
 
     const metadata = {
       domain: 'sec_form_adv_w',
-      firmName: 'Altis Wealth Advisors',
+      firmName: 'Inso AIs Wealth Advisors',
       crd: 124598,
       terminatingAum: '$24.5 Million',
       status: 'Adviser Registration Withdrawn'

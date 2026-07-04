@@ -3,7 +3,7 @@ import https from 'https'; // For creating a custom agent with keep-alive
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-const keyFile = config.google.google_application_credentials || 'alti_gcp.json';
+const keyFile = config.google.google_application_credentials || 'insoai_gcp.json';
 const auth = new google.auth.GoogleAuth({
   keyFile,
   scopes: ['https://www.googleapis.com/auth/bigquery']

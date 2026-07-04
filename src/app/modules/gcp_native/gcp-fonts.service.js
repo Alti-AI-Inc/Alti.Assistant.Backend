@@ -70,7 +70,7 @@ const resolveGoogleFonts = async (authContext, { filterQuery = '', sortBy = 'pop
     const apiKey = config.google_search_api_key || process.env.GOOGLE_SEARCH_API_KEY;
     if (!apiKey) {
       // This is a server configuration error, not a user error.
-      logger.error('CRITICAL: Google Search/Fonts API Key is not configured.');
+      logger.error('CRITICAL: Web Search/Fonts API Key is not configured.');
       throw new AppError('Font service is currently unavailable due to a configuration issue.', 503, 'SERVICE_UNAVAILABLE');
     }
 

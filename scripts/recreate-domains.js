@@ -3,7 +3,7 @@ import axios from 'axios';
 
 async function deleteAndCreateDomain(domain) {
   const auth = new GoogleAuth({
-    keyFilename: 'alti_gcp.json',
+    keyFilename: 'insoai_gcp.json',
     scopes: ['https://www.googleapis.com/auth/cloud-platform']
   });
   
@@ -11,7 +11,7 @@ async function deleteAndCreateDomain(domain) {
   const tokenResponse = await client.getAccessToken();
   const token = tokenResponse.token;
   
-  const projectId = 'alti-assistant-prod';
+  const projectId = 'insoai-assistant-prod';
   const region = 'us-central1';
   const deleteUrl = `https://${region}-run.googleapis.com/apis/domains.cloudrun.com/v1/namespaces/${projectId}/domainmappings/${domain}`;
   const createUrl = `https://${region}-run.googleapis.com/apis/domains.cloudrun.com/v1/namespaces/${projectId}/domainmappings`;
@@ -39,7 +39,7 @@ async function deleteAndCreateDomain(domain) {
       namespace: projectId
     },
     spec: {
-      routeName: 'alti-assistant-frontend'
+      routeName: 'insoai-assistant-frontend'
     }
   };
   
@@ -62,8 +62,8 @@ async function deleteAndCreateDomain(domain) {
 }
 
 async function run() {
-  await deleteAndCreateDomain('altihq.com');
-  await deleteAndCreateDomain('www.altihq.com');
+  await deleteAndCreateDomain('insoai.com');
+  await deleteAndCreateDomain('www.insoai.com');
 }
 
 run();

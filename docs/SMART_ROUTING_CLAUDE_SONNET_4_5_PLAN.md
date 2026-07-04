@@ -163,7 +163,7 @@ A query should be classified as "code-related" if it includes:
 vertexAi: {
   projectId: process.env.VERTEX_AI_PROJECT_ID || 'gen-lang-client-0159237802',
   location: process.env.VERTEX_AI_LOCATION || 'us-central1',
-  credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './alti_gcp.json',
+  credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './insoai_gcp.json',
 }
 ```
 
@@ -400,7 +400,7 @@ const CODE_SYSTEM_PROMPT = `You are an expert software engineer with deep knowle
 
 When answering coding questions:
 1. Provide clear, working code examples
-2. Explain the realtiing behind your implementation
+2. Explain the reinsoaiing behind your implementation
 3. Include error handling and edge cases
 4. Suggest optimizations and alternatives
 5. Reference official documentation when relevant
@@ -545,12 +545,12 @@ describe('Query Classification', () => {
 
 - **Base URL**: `https://us-central1-aiplatform.googleapis.com`
 - **Region**: `us-central1` (configurable)
-- **Project ID**: `gen-lang-client-0159237802` (from alti_gcp.json)
+- **Project ID**: `gen-lang-client-0159237802` (from insoai_gcp.json)
 
 #### Authentication
 
 - **Method**: Service Account JSON
-- **File**: `alti_gcp.json`
+- **File**: `insoai_gcp.json`
 - **Environment Variable**: `GOOGLE_APPLICATION_CREDENTIALS`
 
 #### Model Parameters
@@ -610,7 +610,7 @@ src/app/modules/search/
 # Existing
 VERTEX_AI_ENDPOINT=us-central1-aiplatform.googleapis.com
 VERTEX_AI_LOCATION=us-central1
-GOOGLE_APPLICATION_CREDENTIALS=./alti_gcp.json
+GOOGLE_APPLICATION_CREDENTIALS=./insoai_gcp.json
 
 # New additions
 VERTEX_AI_PROJECT_ID=gen-lang-client-0159237802
@@ -633,7 +633,7 @@ export default {
     endpoint:
       process.env.VERTEX_AI_ENDPOINT || 'us-central1-aiplatform.googleapis.com',
     credentialsPath:
-      process.env.GOOGLE_APPLICATION_CREDENTIALS || './alti_gcp.json',
+      process.env.GOOGLE_APPLICATION_CREDENTIALS || './insoai_gcp.json',
   },
 
   claude: {

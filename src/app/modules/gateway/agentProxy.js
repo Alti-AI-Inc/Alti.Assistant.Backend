@@ -19,7 +19,7 @@ const AGENT_REGISTRY = {
   search: {
     url: process.env.SEARCH_AGENT_URL,
     name: 'Search Agent',
-    model: 'Gemini 3.5 Flash + Google Search Grounding',
+    model: 'Gemini 3.5 Flash + Live Web Grounding',
   },
   research: {
     url: process.env.RESEARCH_AGENT_URL,

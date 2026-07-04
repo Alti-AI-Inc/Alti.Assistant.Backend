@@ -1,7 +1,7 @@
 services:
-  alti-backend:
-    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest
-    container_name: alti-backend
+  insoai-backend:
+    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/insoai-assistant-core-backend-repo/insoai-assistant-backend:latest
+    container_name: insoai-backend
     restart: unless-stopped
     ports:
       - '5100:5100'
@@ -15,8 +15,8 @@ services:
       # Shared volume with Presenton - Presenton's /app_data mounted to backend's /app/presenton_files
       - presenton_data:/app/presenton_files
       # Your application logs and uploads
-      - ./logs:/app/alti-core-service/logs
-      - ./uploads:/app/alti-core-service/uploads
+      - ./logs:/app/insoai-core-service/logs
+      - ./uploads:/app/insoai-core-service/uploads
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:' + (process.env.PORT || 5100) + '/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 30s

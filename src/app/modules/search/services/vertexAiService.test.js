@@ -157,7 +157,7 @@ describe('VertexAiService', () => {
     });
 
     it('should use the default datastore if no custom ID or env var is provided', async () => {
-      const expectedDefaultDatastore = `projects/test-gcp-project/locations/global/collections/default_collection/dataStores/alti-knowledge-base`;
+      const expectedDefaultDatastore = `projects/test-gcp-project/locations/global/collections/default_collection/dataStores/insoai-knowledge-base`;
       await service.searchVertexStore(mockQuery);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({

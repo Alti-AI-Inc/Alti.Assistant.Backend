@@ -10,7 +10,7 @@ const RESET = '\x1b[0m';
 
 function runIntegritySelfTest() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}   Alti Production Container Integrity Test    ${RESET}`);
+  console.log(`${CYAN}   Inso AI Production Container Integrity Test    ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   let failed = false;

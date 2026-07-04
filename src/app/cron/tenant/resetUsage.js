@@ -170,7 +170,7 @@ export const sendUsageWarnings = () => {
           const tenantName = tenant.name || 'Workspace';
           const used = tenant.usage.apiCallsUsed;
           const limit = tenant.limits.maxApiCalls;
-          const upgradeUrl = `${config.client_url || 'https://alti.assistant.ai'}/dashboard/billing`;
+          const upgradeUrl = `${config.client_url || 'https://insoai.assistant.ai'}/dashboard/billing`;
 
           const emailMessage = `
             <!DOCTYPE html>
@@ -190,10 +190,10 @@ export const sendUsageWarnings = () => {
             </head>
             <body>
               <div class="card">
-                <div class="header">⚠️ Alti Workspace API Limit Warning</div>
+                <div class="header">⚠️ Inso AI Workspace API Limit Warning</div>
                 <div class="content">
                   <p>Hello <span class="highlight">${firstName}</span>,</p>
-                  <p>This is an automated notification that your Alti Workspace, <span class="highlight">${tenantName}</span>, has reached or exceeded <span class="highlight">${percentageUsed}%</span> of its daily API call capacity.</p>
+                  <p>This is an automated notification that your Inso AI Workspace, <span class="highlight">${tenantName}</span>, has reached or exceeded <span class="highlight">${percentageUsed}%</span> of its daily API call capacity.</p>
                   
                   <div class="stats">
                     <strong>Workspace:</strong> ${tenantName}<br>
@@ -207,7 +207,7 @@ export const sendUsageWarnings = () => {
                   </div>
                 </div>
                 <div class="footer">
-                  <p>Thank you for using Alti AI.<br>If you have any questions or require custom enterprise limits, please contact our support team.</p>
+                  <p>Thank you for using Inso AI.<br>If you have any questions or require custom enterprise limits, please contact our support team.</p>
                 </div>
               </div>
             </body>
@@ -216,7 +216,7 @@ export const sendUsageWarnings = () => {
 
           try {
             await sendMailWithNodeMailer({
-              sub: `[Action Required] Alti Workspace API Usage Warning - ${percentageUsed}% Limit Reached`,
+              sub: `[Action Required] Inso AI Workspace API Usage Warning - ${percentageUsed}% Limit Reached`,
               message: emailMessage,
               userEmail: tenant.ownerId.email,
             });

@@ -152,7 +152,7 @@ export const NhtsaRecallsProvider = {
 |------------------------|---------------------------|------------------------------|------------------------------|----------------------------|
 | **Tesla Model Y (2024)**| **Rear View Camera Defect**| **NHTSA #24V-120** | **124,500 Units Affected** | OTA Software Patch Update |
 | **Ford Explorer (2023)**| Parking Brake Failure | **NHTSA #23V-789** | 45,800 Units Affected | Physical Inspection & Swap |
-| **Altis EV Sedan (2025)**| **Battery Management Module**| **NHTSA #25V-045** | **12,000 Units Affected** | Physical Inspection & Swap |`;
+| **Inso AIs EV Sedan (2025)**| **Battery Management Module**| **NHTSA #25V-045** | **12,000 Units Affected** | Physical Inspection & Swap |`;
 
     const metadata = {
       domain: 'nhtsa_recalls',
@@ -172,7 +172,7 @@ export const HrsaHealthCentersProvider = {
   category: 'premium_public',
   cacheTTL: 43200,
   citationLabel: 'HRSA Health Center Program Registry',
-  mandatoryRule: '▸ Highlight health clinic titles, FQHC federal charters, and federal funding allocations in **BOLD** (e.g. **Altis Health Center**, **FQHC Certified**, **$1,245,000 Federal Grant**)',
+  mandatoryRule: '▸ Highlight health clinic titles, FQHC federal charters, and federal funding allocations in **BOLD** (e.g. **Inso AIs Health Center**, **FQHC Certified**, **$1,245,000 Federal Grant**)',
 
   detectIntent: (query) => {
     return /\bfqhc\b|\bhealth\s+center\s+program\b|\bhrsa\s+uds\b|\bcommunity\s+health\s+center\b|\bfederally\s+qualified\s+health\b/i.test(query);
@@ -189,13 +189,13 @@ export const HrsaHealthCentersProvider = {
 
 | Registered Health Center Clinic | HRSA Certification Status | Annual Patient Intake Volume | Primary Clinical Focus Sector | Annual Federal Funding Grant |
 |---------------------------------|---------------------------|------------------------------|-------------------------------|------------------------------|
-| **Altis Community Health (MI)** | **FQHC Certified** | **24,500 Active Patients** | Primary Care & Dental Services| **$1,245,000 Federal Grant** |
+| **Inso AIs Community Health (MI)** | **FQHC Certified** | **24,500 Active Patients** | Primary Care & Dental Services| **$1,245,000 Federal Grant** |
 | **Hawthorne Clinic (Detroit)** | **FQHC Certified** | 12,450 Active Patients | Mental Health & Pediatrics | **$850,000 Federal Grant** |
 | **Vance Medical Hub (Ann Arbor)**| Look-Alike Qualified | 3,450 Active Patients | Family Practice Medicine | FQHC Service Rebates Only |`;
 
     const metadata = {
       domain: 'hrsa_health_centers',
-      clinicName: 'Altis Community Health (MI)',
+      clinicName: 'Inso AIs Community Health (MI)',
       certificationStatus: 'FQHC Certified',
       grantAmount: '$1,245,000',
       patientVolume: 24500
@@ -250,7 +250,7 @@ export const UsdaFarmersMarketsProvider = {
   category: 'premium_public',
   cacheTTL: 43200,
   citationLabel: 'USDA Farmers Market Directory',
-  mandatoryRule: '▸ Present farmers market names, payment options, and locations in **BOLD** (e.g. **Altis Farmers Market**, **SNAP/EBT Accepted**, **Ann Arbor Downtown**)',
+  mandatoryRule: '▸ Present farmers market names, payment options, and locations in **BOLD** (e.g. **Inso AIs Farmers Market**, **SNAP/EBT Accepted**, **Ann Arbor Downtown**)',
 
   detectIntent: (query) => {
     return /\bfarmers\s+market\s+directory\b|\blocal\s+food\s+directory\b|\bsnap\s+farmers\s+market\b|\busda\s+market\s+listing\b/i.test(query);
@@ -267,13 +267,13 @@ export const UsdaFarmersMarketsProvider = {
 
 | Farmers Market Operation | Geographic Location Sector | Payment Integration Accepted | Operating Calendar Season | USDA Directory Status |
 |--------------------------|----------------------------|-------------------------------|---------------------------|-----------------------|
-| **Altis Farmers Market** | **Ann Arbor Downtown (MI)**| **SNAP/EBT Accepted** | May 01 - October 31 | Verified - Active |
+| **Inso AIs Farmers Market** | **Ann Arbor Downtown (MI)**| **SNAP/EBT Accepted** | May 01 - October 31 | Verified - Active |
 | **Detroit Central Market**| **Eastern Market District**| **SNAP/EBT Accepted** | Year-Round Operation | Verified - Active |
 | **Vance Organic Market** | Ann Arbor West Sector | WIC Coupons Accepted | June 01 - September 30 | Verified - Active |`;
 
     const metadata = {
       domain: 'usda_farmers_markets',
-      marketName: 'Altis Farmers Market',
+      marketName: 'Inso AIs Farmers Market',
       location: 'Ann Arbor Downtown (MI)',
       payments: 'SNAP/EBT Accepted',
       status: 'Verified - Active'

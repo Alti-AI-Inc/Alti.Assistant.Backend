@@ -1,8 +1,8 @@
 {
-  "name": "@alti/shared",
+  "name": "@insoai/shared",
   "version": "1.0.0",
   "type": "module",
-  "description": "Shared libraries for Alti Assistant agent microservices",
+  "description": "Shared libraries for Inso AI agent microservices",
   "exports": {
     "./config": "./config/index.js",
     "./logging": "./logging/index.js",

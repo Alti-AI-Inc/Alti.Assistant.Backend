@@ -16,7 +16,7 @@ export const DoeSolarInstallationsProvider = {
   category: 'scientific',
   cacheTTL: 43200, // Solar stats are relatively stable, cache 12h
   citationLabel: 'DOE Solar Energy Technologies Office (SETO) Registry',
-  mandatoryRule: '▸ Present solar capacity values, photovoltaic cell indices, and operating projects in **BOLD** (e.g. **124.5 GW Solar Capacity**, **PV Pricing Index: $0.12/W**, **Altis Solar Array**)',
+  mandatoryRule: '▸ Present solar capacity values, photovoltaic cell indices, and operating projects in **BOLD** (e.g. **124.5 GW Solar Capacity**, **PV Pricing Index: $0.12/W**, **Inso AIs Solar Array**)',
 
   detectIntent: (query) => {
     return /\bsolar\s+installation\s+capacity\b|\bphotovoltaic\s+PV\s+data\b|\bsolar\s+project\s+registry\b|\bdoe\s+solar\s+technologies\b/i.test(query);
@@ -33,14 +33,14 @@ export const DoeSolarInstallationsProvider = {
 
 | Monitored Geographic State | Total Operating Solar Capacity | Sponsoring PV Project Name | PV Cell Pricing Index | Project Grid Connection Status |
 |-----------------------------|--------------------------------|----------------------------|-----------------------|--------------------------------|
-| **California State (SETO)** | **38.9 GW Solar Capacity** | **Altis Solar Array** | **PV Pricing Index: $0.12/W**| Verified Active Connection |
+| **California State (SETO)** | **38.9 GW Solar Capacity** | **Inso AIs Solar Array** | **PV Pricing Index: $0.12/W**| Verified Active Connection |
 | **Texas State (SETO)** | **18.4 GW Solar Capacity** | Hawthorne Solar Field | PV Pricing Index: $0.13/W| Verified Active Connection |
 | **Michigan State (SETO)** | **2.1 GW Solar Capacity** | Vance Renewable Station | PV Pricing Index: $0.15/W| Verified Active Connection |`;
 
     const metadata = {
       domain: 'doe_solar_installations',
       totalCapacity: '38.9 GW',
-      projectName: 'Altis Solar Array',
+      projectName: 'Inso AIs Solar Array',
       pricingIndex: '$0.12/W',
       status: 'Active Connection'
     };
@@ -367,7 +367,7 @@ export const FmcOtiOceanShippingProvider = {
   category: 'legal_security',
   cacheTTL: 43200,
   citationLabel: 'FMC Ocean Transportation Intermediaries (OTI) Registry',
-  mandatoryRule: '▸ Highlight ocean freight forwarders, NVOCC licensing, and carrier bond standings in **BOLD** (e.g. **Altis Shipping Forwarder**, **NVOCC Licensed**, **$75,000 Active Bond**)',
+  mandatoryRule: '▸ Highlight ocean freight forwarders, NVOCC licensing, and carrier bond standings in **BOLD** (e.g. **Inso AIs Shipping Forwarder**, **NVOCC Licensed**, **$75,000 Active Bond**)',
 
   detectIntent: (query) => {
     return /\bocean\s+freight\s+forwarder\b|\bnvocc\s+registry\b|\bocean\s+transportation\s+intermediary\b|\bfmc\s+shipping\s+license\b|\bocean\s+carrier\s+bond\b/i.test(query);
@@ -384,13 +384,13 @@ export const FmcOtiOceanShippingProvider = {
 
 | Intermediary Company Title | FMC OTI License Number | Primary Licensing Class | Active Shipping Carrier Bond | Regulatory Registry Standing |
 |-----------------------------|-------------------------|-------------------------|------------------------------|------------------------------|
-| **Altis Shipping Forwarder**| **FMC License #OTI-120**| **NVOCC Licensed** | **$75,000 Active Bond** | Active - Compliant Standing |
+| **Inso AIs Shipping Forwarder**| **FMC License #OTI-120**| **NVOCC Licensed** | **$75,000 Active Bond** | Active - Compliant Standing |
 | **Hawthorne Ocean Logistics**| FMC License #OTI-789 | Freight Forwarder Class | **$50,000 Active Bond** | Active - Compliant Standing |
 | **Vance Carrier Lines** | FMC License #OTI-045 | **NVOCC Licensed** | **$75,000 Active Bond** | Active - Compliant Standing |`;
 
     const metadata = {
       domain: 'fmc_oti_ocean_shipping',
-      companyTitle: 'Altis Shipping Forwarder',
+      companyTitle: 'Inso AIs Shipping Forwarder',
       licenseNumber: 'FMC License #OTI-120',
       licensingClass: 'NVOCC Licensed',
       bondStatus: '$75,000 Active Bond'

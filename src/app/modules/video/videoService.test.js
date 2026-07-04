@@ -31,7 +31,7 @@ vi.mock('../../../../config/index.js', () => ({
       gcp_project_id: 'test-project-id',
       vertex_ai_region: 'us-central1',
       vertex_ai_endpoint: 'us-central1-aiplatform.googleapis.com',
-      gcs_bucket_name: 'ai_video_alti',
+      gcs_bucket_name: 'ai_video_insoai',
     },
   },
 }));
@@ -91,7 +91,7 @@ describe('videoService', () => {
     it('should generate a video and upload it directly to GCS using video.uri', async () => {
       const prompt = 'A cat flying in space';
       const expectedVideoUri = 'https://genai.google.com/video/123.mp4';
-      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_1672574410000.mp4`;
+      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_insoai/generated_video_1672574410000.mp4`;
 
       mockGenerateVideos.mockResolvedValueOnce({
         done: false,
@@ -148,7 +148,7 @@ describe('videoService', () => {
     it('should generate a video and upload it directly to GCS using ai.files.downloadAsBuffer if no video.uri', async () => {
       const prompt = 'A dog running in a field';
       const expectedVideoFileObject = { name: 'files/video-abc' };
-      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_alti/generated_video_1672574410000.mp4`;
+      const expectedPublicUrl = `https://storage.googleapis.com/ai_video_insoai/generated_video_1672574410000.mp4`;
 
       mockGenerateVideos.mockResolvedValueOnce({
         done: false,
@@ -278,7 +278,7 @@ describe('videoService', () => {
             parameters: {
               aspectRatio: '16:9',
               sampleCount: 1,
-              storageUri: 'gs://ai_video_alti/',
+              storageUri: 'gs://ai_video_insoai/',
             },
           }),
         }
@@ -321,7 +321,7 @@ describe('videoService', () => {
       const mockOperationResponse = {
         done: true,
         response: {
-          videos: [{ gcsUri: 'gs://ai_video_alti/output/video.mp4' }],
+          videos: [{ gcsUri: 'gs://ai_video_insoai/output/video.mp4' }],
         },
       };
       mockFetch.mockResolvedValueOnce({
@@ -345,7 +345,7 @@ describe('videoService', () => {
         ...mockOperationResponse,
         response: {
           ...mockOperationResponse.response,
-          videoUrl: 'https://storage.googleapis.com/ai_video_alti/output/video.mp4',
+          videoUrl: 'https://storage.googleapis.com/ai_video_insoai/output/video.mp4',
         },
       });
     });
@@ -413,8 +413,8 @@ describe('videoService', () => {
       const mockOperationResponse = {
         done: true,
         response: {
-          videos: [{ gcsUri: 'gs://ai_video_alti/output/video.mp4' }],
-          videoUrl: 'https://storage.googleapis.com/ai_video_alti/output/video.mp4', // Added by getOperationStatus
+          videos: [{ gcsUri: 'gs://ai_video_insoai/output/video.mp4' }],
+          videoUrl: 'https://storage.googleapis.com/ai_video_insoai/output/video.mp4', // Added by getOperationStatus
         },
       };
       mockFetch.mockResolvedValueOnce({
@@ -429,7 +429,7 @@ describe('videoService', () => {
         id: jobId,
         status: 'completed',
         progress: 100,
-        videoUrl: 'https://storage.googleapis.com/ai_video_alti/output/video.mp4',
+        videoUrl: 'https://storage.googleapis.com/ai_video_insoai/output/video.mp4',
         error: null,
         raw: mockOperationResponse,
       });

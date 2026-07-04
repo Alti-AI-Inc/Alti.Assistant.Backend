@@ -64,7 +64,7 @@ setInterval(cleanupMemoryStore, CLEANUP_INTERVAL_MINUTES * 60 * 1000);
 
 
 /**
- * Executes a Gemini model query with active Google Search Grounding using the modern GenAI SDK.
+ * Executes a Gemini model query with active Live Web Grounding using the modern GenAI SDK.
  * It enhances the prompt, manages chat history, increments user prompt usage,
  * saves the conversation to the database, and publishes the response to Redis.
  * This service requires a valid user context (`userId`) to track usage and save history.
@@ -103,7 +103,7 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
-    logger.info(`Sending prompt with live Google Search Grounding using gemini-2.5-pro: "${prompt.slice(0, 50)}..."`);
+    logger.info(`Sending prompt with live Live Web Grounding using gemini-2.5-pro: "${prompt.slice(0, 50)}..."`);
     
     /** @type {GenerateContentResult} */
     const result = await ai.models.generateContent({
@@ -210,12 +210,12 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 };
 
 /**
- * Provides services related to GCP Vertex AI with Google Search Grounding.
+ * Provides services related to GCP Vertex AI with Live Web Grounding.
  * @namespace GcpVertexGroundingService
  */
 export const GcpVertexGroundingService = {
   /**
-   * Handles a user prompt by sending it to the Gemini model with active Google Search Grounding.
+   * Handles a user prompt by sending it to the Gemini model with active Live Web Grounding.
    * It manages session memory, enhances prompts, tracks usage, and stores conversation history.
    * This service requires a valid user context (`userId`) to track usage and save history.
    * Access is implicitly controlled by the payment/subscription status checked via `paymentController`.

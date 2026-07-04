@@ -90,11 +90,11 @@ const listLocationReviews = async (accountId, locationId) => {
 };
 
 /**
- * Creates an update, offer, or event post for a local business location on Google Search & Maps.
+ * Creates an update, offer, or event post for a local business location on Web Search & Maps.
  * 
  * @param {string} accountId - Business Account ID
  * @param {string} locationId - Specific Location ID
- * @param {object} postPayload - Post details (e.g. { summary: "Join us for Alti launch!", callToAction: { actionType: "LEARN_MORE", url: "https://alti.assistant" } })
+ * @param {object} postPayload - Post details (e.g. { summary: "Join us for Inso AI launch!", callToAction: { actionType: "LEARN_MORE", url: "https://insoai.assistant" } })
  * @returns {Promise<object>} Local post publication report
  */
 const createLocalPost = async (accountId, locationId, postPayload) => {

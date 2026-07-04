@@ -133,7 +133,7 @@ const createPipelineJob = async (pipelineSpec, options = {}) => {
   if (!projectId) throw new Error('GCP Project ID is not configured.');
   if (!pipelineSpec) throw new Error('Pipeline specification is required.');
 
-  const displayName = options.displayName || `alti-pipeline-${Date.now()}`;
+  const displayName = options.displayName || `insoai-pipeline-${Date.now()}`;
   logger.info(`GCP VertexPipeline: Creating pipeline job: "${displayName}"`);
 
   const client = await auth.getClient();
@@ -148,7 +148,7 @@ const createPipelineJob = async (pipelineSpec, options = {}) => {
     serviceAccount: options.serviceAccount || `vertex-ai@${projectId}.iam.gserviceaccount.com`,
     enableCaching: options.enableCaching !== false,
     labels: {
-      platform: 'alti-assistant',
+      platform: 'insoai-assistant',
       environment: process.env.NODE_ENV || 'production',
       ...options.labels
     }
@@ -186,7 +186,7 @@ const submitPipelineFromTemplate = async (templateGcsUri, options = {}) => {
 
   // Build a minimal pipeline spec that references the GCS template
   const pipelineSpec = {
-    pipelineInfo: { name: options.displayName || 'alti-pipeline' },
+    pipelineInfo: { name: options.displayName || 'insoai-pipeline' },
     sdkVersion: 'kfp-2.x',
     schemaVersion: '2.1.0',
     // Reference the compiled template stored in GCS

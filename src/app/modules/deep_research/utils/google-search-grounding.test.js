@@ -292,7 +292,7 @@ describe('GoogleSearchGroundingTool', () => {
       });
 
       await expect(tool.invoke({ query: 'test query' })).rejects.toThrow(
-        'Failed to search with advanced Google Search Grounding: Fatal Internal Server Error 500'
+        'Failed to search with advanced Live Web Grounding: Fatal Internal Server Error 500'
       );
       expect(logger.error).toHaveBeenCalled();
     });

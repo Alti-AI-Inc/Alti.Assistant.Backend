@@ -344,7 +344,7 @@ describe('tenantInvitation.email', () => {
 
       await tenantInvitationEmail.sendInvitationEmail(invitationData);
 
-      const expectedFallbackLink = `https://app.altihq.com/accept-invite/${invitationData.token}`;
+      const expectedFallbackLink = `https://app.insoai.com/accept-invite/${invitationData.token}`;
       expect(mockGenerateInvitationEmailHTML).toHaveBeenCalledWith(
         expect.objectContaining({
           invitationLink: expectedFallbackLink,
@@ -421,7 +421,7 @@ describe('tenantInvitation.email', () => {
 
       await tenantInvitationEmail.sendInvitationReminderEmail(invitationData);
 
-      const expectedFallbackLink = `https://app.altihq.com/invite/${invitationData.token}`;
+      const expectedFallbackLink = `https://app.insoai.com/invite/${invitationData.token}`;
       expect(mockGenerateInvitationEmailHTML).toHaveBeenCalledWith(
         expect.objectContaining({
           invitationLink: expectedFallbackLink,

@@ -17,7 +17,7 @@ export async function runVoiceAgentWorker() {
 
         const initialContext = new llm.ChatContext().append({
           role: llm.ChatRole.SYSTEM,
-          text: 'You are Alti, a highly intelligent and helpful voice assistant. Keep your answers concise, conversational, and directly address the user.',
+          text: 'You are Inso AI, a highly intelligent and helpful voice assistant. Keep your answers concise, conversational, and directly address the user.',
         });
 
         const agent = new VoicePipelineAgent(
@@ -30,7 +30,7 @@ export async function runVoiceAgentWorker() {
 
         agent.start(ctx.room, ctx.participant);
 
-        const greeting = 'Hello! I am Alti. How can I help you today?';
+        const greeting = 'Hello! I am Inso AI. How can I help you today?';
         await agent.say(greeting, true);
         logger.info('Voice Agent initialized and ready.');
       },

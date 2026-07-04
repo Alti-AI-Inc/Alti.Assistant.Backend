@@ -69,10 +69,10 @@ const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
 // Initialize Google Cloud Storage
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'alti_gcp.json',
+  keyFilename: 'insoai_gcp.json',
 });
 
-const BUCKET_NAME = 'alti_assistant_knowledge_bot_files';
+const BUCKET_NAME = 'insoai_assistant_knowledge_bot_files';
 
 /**
  * Estimate token count for text (rough approximation)

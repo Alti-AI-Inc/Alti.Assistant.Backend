@@ -16,7 +16,7 @@ GEMINI_API_KEY=your_gemini_api_key
 
 # Google Cloud Storage
 GCP_PROJECT_ID=your_project_id
-# Place alti_gcp.json in project root
+# Place insoai_gcp.json in project root
 
 # PostgreSQL RAG Database (already configured)
 # Host: 34.135.175.69

@@ -141,7 +141,7 @@ const FRESHNESS_SIGNALS = [
 ];
 
 /**
- * Determines if a query needs Google Search Grounding.
+ * Determines if a query needs Live Web Grounding.
  * Returns true if: options.requireSearch is enabled for primary agent,
  * or agent has search tools, or query contains freshness signals.
  */

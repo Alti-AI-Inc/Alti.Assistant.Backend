@@ -1,12 +1,12 @@
 /**
- * @fileoverview Search service — production Gemini 3.5 Flash + Google Search Grounding.
+ * @fileoverview Search service — production Gemini 3.5 Flash + Live Web Grounding.
  *
  * Mirrors the core pattern from the monolith's geminiGroundingService.js but
  * extracted into a clean, self-contained class for the agent microservice.
  *
  * Uses:
  *  - @google/genai (GoogleGenAI) — unified Gemini SDK
- *  - tools: [{ googleSearch: {} }] — native Google Search grounding
+ *  - tools: [{ googleSearch: {} }] — native Web Search grounding
  */
 
 import { GoogleGenAI } from '@google/genai';

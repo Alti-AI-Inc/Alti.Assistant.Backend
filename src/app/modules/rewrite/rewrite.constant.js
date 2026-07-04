@@ -74,7 +74,7 @@ export const STORAGE_CONFIG = {
  * @type {GCSConfig}
  */
 export const GCS_CONFIG = {
-  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'alti_files',
+  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'insoai_files',
   PROJECT_ID: process.env.GCP_PROJECT_ID,
   KEY_FILE: process.env.GCS_KEY_FILE,
   FOLDER_PREFIX: 'rewrites/',

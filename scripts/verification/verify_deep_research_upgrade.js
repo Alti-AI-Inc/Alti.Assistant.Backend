@@ -25,10 +25,10 @@ knowledgeQueryService.semanticSearch = async (query, ownerType, ownerId, options
     success: true,
     results: [
       {
-        fileName: 'alti_internal_strategy_2026.pdf',
+        fileName: 'insoai_internal_strategy_2026.pdf',
         content: `Alti.Assistant internal system specifications define the Deep Research module as an autonomous Perplexity-killer. It leverages pgvector RAG with Reciprocal Rank Fusion (RRF) for local search and Gemini search grounding for real-time web scans.`,
         similarity: 0.92,
-        gcsUrl: 'https://storage.googleapis.com/alti_assistant_datasets/alti_internal_strategy_2026.pdf'
+        gcsUrl: 'https://storage.googleapis.com/insoai_assistant_datasets/insoai_internal_strategy_2026.pdf'
       }
     ],
     totalResults: 1,

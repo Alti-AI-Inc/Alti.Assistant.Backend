@@ -1,7 +1,7 @@
 /**
  * verify_scientific_logistics.js
  *
- * Verification script for testing Alti's Stage 46 Premium Scientific Research,
+ * Verification script for testing Inso AI's Stage 46 Premium Scientific Research,
  * Transport, and Logistics grounding channels.
  */
 
@@ -13,7 +13,7 @@ async function runVerification() {
   const testQueries = [
     {
       name: 'DOE SETO Solar Installations & Capacity',
-      query: 'Check solar installation capacity and photovoltaic PV data project registry for Altis Solar Array',
+      query: 'Check solar installation capacity and photovoltaic PV data project registry for Inso AIs Solar Array',
       expectedId: 'doe_solar_installations'
     },
     {
@@ -58,7 +58,7 @@ async function runVerification() {
     },
     {
       name: 'FMC Ocean Transportation Intermediaries (OTI)',
-      query: 'Retrieve ocean freight forwarder nvocc registry FMC shipping license for Altis Shipping Forwarder',
+      query: 'Retrieve ocean freight forwarder nvocc registry FMC shipping license for Inso AIs Shipping Forwarder',
       expectedId: 'fmc_oti_ocean_shipping'
     }
   ];

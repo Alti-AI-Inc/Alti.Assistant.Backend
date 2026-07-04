@@ -82,7 +82,7 @@ describe('GcpKnowledgeGraphService', () => {
       vi.spyOn(config, 'google_search_api_key', 'get').mockReturnValue(undefined);
 
       await expect(GcpKnowledgeGraphService.lookupEntity('test')).rejects.toThrow(
-        'Google Search API Key is not configured.'
+        'Web Search API Key is not configured.'
       );
       expect(axios.get).not.toHaveBeenCalled();
       expect(logger.error).toHaveBeenCalled();

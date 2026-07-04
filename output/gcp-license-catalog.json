@@ -6435,11 +6435,11 @@
     "domain": "github.com/GoogleCloudPlatform"
   },
   {
-    "name": "realtime-embeddings-matching",
+    "name": "reinsoaime-embeddings-matching",
     "description": "No description provided.",
     "license": "Apache 2.0",
-    "html_url": "https://github.com/GoogleCloudPlatform/realtime-embeddings-matching",
-    "clone_url": "https://github.com/GoogleCloudPlatform/realtime-embeddings-matching.git",
+    "html_url": "https://github.com/GoogleCloudPlatform/reinsoaime-embeddings-matching",
+    "clone_url": "https://github.com/GoogleCloudPlatform/reinsoaime-embeddings-matching.git",
     "stars": 127,
     "forks": 29,
     "language": "Python",
@@ -8814,11 +8814,11 @@
     "domain": "github.com/GoogleCloudPlatform"
   },
   {
-    "name": "redis-dataflow-realtime-analytics",
+    "name": "redis-dataflow-reinsoaime-analytics",
     "description": "Build a real-time website analytics dashboard on GCP using Dataflow, Cloud Memorystore (Redis) and Spring Boot",
     "license": "Apache 2.0",
-    "html_url": "https://github.com/GoogleCloudPlatform/redis-dataflow-realtime-analytics",
-    "clone_url": "https://github.com/GoogleCloudPlatform/redis-dataflow-realtime-analytics.git",
+    "html_url": "https://github.com/GoogleCloudPlatform/redis-dataflow-reinsoaime-analytics",
+    "clone_url": "https://github.com/GoogleCloudPlatform/redis-dataflow-reinsoaime-analytics.git",
     "stars": 28,
     "forks": 14,
     "language": "Java",
@@ -11323,11 +11323,11 @@
     "domain": "github.com/GoogleCloudPlatform"
   },
   {
-    "name": "dataflow-twitter-realtime-leaderboard",
+    "name": "dataflow-twitter-reinsoaime-leaderboard",
     "description": "Demonstrating the processing and analysis of unstructured tweet like data in batch and real-time using Cloud DataFlow.",
     "license": "Apache 2.0",
-    "html_url": "https://github.com/GoogleCloudPlatform/dataflow-twitter-realtime-leaderboard",
-    "clone_url": "https://github.com/GoogleCloudPlatform/dataflow-twitter-realtime-leaderboard.git",
+    "html_url": "https://github.com/GoogleCloudPlatform/dataflow-twitter-reinsoaime-leaderboard",
+    "clone_url": "https://github.com/GoogleCloudPlatform/dataflow-twitter-reinsoaime-leaderboard.git",
     "stars": 8,
     "forks": 2,
     "language": "Python",
@@ -18993,11 +18993,11 @@
     "domain": "github.com/google"
   },
   {
-    "name": "realtime-help",
+    "name": "reinsoaime-help",
     "description": "No description provided.",
     "license": "Apache 2.0",
-    "html_url": "https://github.com/google/realtime-help",
-    "clone_url": "https://github.com/google/realtime-help.git",
+    "html_url": "https://github.com/google/reinsoaime-help",
+    "clone_url": "https://github.com/google/reinsoaime-help.git",
     "stars": 19,
     "forks": 9,
     "language": "Python",

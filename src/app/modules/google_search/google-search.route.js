@@ -1,8 +1,8 @@
 /**
- * @file Google Search API routes.
+ * @file Web Search API routes.
  * @module app/modules/google_search/google-search.route
  * @author Your Name/Organization
- * @description Defines the API routes for interacting with Google Search functionalities.
+ * @description Defines the API routes for interacting with Web Search functionalities.
  */
 
 import express from 'express';
@@ -20,7 +20,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 
 /**
- * Express router to handle Google Search related API requests.
+ * Express router to handle Web Search related API requests.
  * @type {express.Router}
  */
 const router = express.Router();
@@ -31,13 +31,13 @@ router
    * @swagger
    * /api/v1/google-search/get-response-anonymously:
    *   post:
-   *     summary: Get a Google Search response anonymously.
+   *     summary: Get a Web Search response anonymously.
    *     description: >
    *       Initiates a Google search query and retrieves the results.
    *       This endpoint allows users to perform searches without direct user identification.
    *       The request body should contain the search query and any other relevant parameters.
    *     tags:
-   *       - Google Search
+   *       - Web Search
    *     requestBody:
    *       required: true
    *       content:
@@ -61,7 +61,7 @@ router
    *               - query
    *     responses:
    *       200:
-   *         description: Successfully retrieved Google Search results.
+   *         description: Successfully retrieved Web Search results.
    *         content:
    *           application/json:
    *             schema:
@@ -72,10 +72,10 @@ router
    *                   example: true
    *                 message:
    *                   type: string
-   *                   example: "Google Search results retrieved successfully."
+   *                   example: "Web Search results retrieved successfully."
    *                 data:
    *                   type: object
-   *                   description: The search results object, structure depends on the Google Search API response.
+   *                   description: The search results object, structure depends on the Web Search API response.
    *                   example: { "organic_results": [...], "knowledge_graph": {...} }
    *       400:
    *         description: Bad request, e.g., missing query parameter.
@@ -102,12 +102,12 @@ router
    *                   example: false
    *                 message:
    *                   type: string
-   *                   example: "Failed to retrieve Google Search results due to an internal error."
+   *                   example: "Failed to retrieve Web Search results due to an internal error."
    */
   .post(asyncHandler(GoogleSearchController.GoogleSearchGetResponse)); // Wrap the async controller to handle errors
 
 /**
- * Exports the Google Search API routes.
+ * Exports the Web Search API routes.
  * @type {express.Router}
  */
 export const googleSearchRoutes = router;

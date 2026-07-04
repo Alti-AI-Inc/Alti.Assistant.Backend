@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 // (e.g., config/db.js), not in a model file. It is included here to
 // demonstrate a resilient configuration for a GCP environment.
 
-const dbUri = process.env.MONGO_URI || 'mongodb://localhost:27017/altidatabase';
+const dbUri = process.env.MONGO_URI || 'mongodb://localhost:27017/insoaidatabase';
 
 const connectionOptions = {
   // --- Connection Pooling ---

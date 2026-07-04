@@ -85,7 +85,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
   /**
    * @property {string} description - A detailed description of what the tool does, aiding LLMs in understanding its utility.
    */
-  description = 'Search the web using Google Search Grounding and Custom Search APIs for real-time information';
+  description = 'Search the web using Live Web Grounding and Custom Search APIs for real-time information';
 
   /**
    * @property {number} maxResults - The maximum number of search results (citations) to return.
@@ -191,7 +191,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           logger.warn(`[GoogleSearchGroundingTool] CSE search failed for sub-query "${subQ}": ${cseErr.message}`);
         }
 
-        // Route B: Native Google Search Grounding (Gemini native tools)
+        // Route B: Native Live Web Grounding (Gemini native tools)
         try {
           const geminiResult = await callGeminiWithResilience({
             model: 'gemini-3.5-flash',
@@ -204,7 +204,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
             // High-fidelity fallback search results when billing/quota fails
             let mockText = `Standard web grounding details for: "${subQ}".`;
             let mockUri = 'https://news.google.com';
-            let mockTitle = 'Google Search News';
+            let mockTitle = 'Web Search News';
             
             if (subQ.toLowerCase().includes('nvidia') || subQ.toLowerCase().includes('blackwell')) {
               mockText = `NVIDIA Blackwell chips production is fully on track, with mass shipments beginning in late 2026. The chips feature high-density architecture and support liquid cooling configurations for intensive training and inference workloads.`;
@@ -401,7 +401,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
 
     } catch (error) {
       logger.error('[GoogleSearchGroundingTool] Execution Error:', error);
-      throw new Error(`Failed to search with advanced Google Search Grounding: ${error.message}`);
+      throw new Error(`Failed to search with advanced Live Web Grounding: ${error.message}`);
     }
   }
 

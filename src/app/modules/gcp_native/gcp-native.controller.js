@@ -72,7 +72,7 @@ const importSubmodule = catchAsync(async (req, res) => {
 });
 
 /**
- * Handles Google Search Grounded Chat generation requests.
+ * Handles Web Search Grounded Chat generation requests.
  */
 const groundedChat = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
@@ -854,7 +854,7 @@ const businessListReviews = catchAsync(async (req, res) => {
 });
 
 /**
- * Handles publishing update posts to Google Search & Maps.
+ * Handles publishing update posts to Web Search & Maps.
  */
 const businessCreatePost = catchAsync(async (req, res) => {
   const { accountId, locationId, postPayload } = req.body;

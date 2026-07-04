@@ -20,7 +20,7 @@ const RESET = '\x1b[0m';
 
 async function runPreflightChecks() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}   Alti Assistant Production Preflight Suite    ${RESET}`);
+  console.log(`${CYAN}   Inso AI Production Preflight Suite    ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   let failed = false;

@@ -158,14 +158,14 @@ const formatGeminiContents = (conversationHistory, finalPrompt) => {
   return finalized;
 };
 /**
- * Gemini Grounding Service with Native Google Search
+ * Gemini Grounding Service with Native Web Search
  * Uses Google's built-in grounding for simpler, more reliable search
  */
 
 // Legacy GoogleGenerativeAI removed to standardize on GoogleGenAI client
 
 /**
- * Create a grounded Gemini model with native Google Search
+ * Create a grounded Gemini model with native Web Search
  * @param {string} modelName - Model to use (default: gemini-3.5-flash)
  * @returns {GenerativeModel} Configured model instance
  */
@@ -1251,7 +1251,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_realtime'
+                ? 'massive_reinsoaime'
                 : 'native_grounding',
           }
         : {
@@ -1259,7 +1259,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_realtime'
+                ? 'massive_reinsoaime'
                 : 'native_grounding',
           };
 
@@ -2146,7 +2146,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_realtime'
+                ? 'massive_reinsoaime'
                 : 'native_grounding',
           }
         : {
@@ -2154,7 +2154,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
             searchMethod: isVideoQuery
               ? 'youtube_search'
               : isFinancialQuery
-                ? 'massive_realtime'
+                ? 'massive_reinsoaime'
                 : 'native_grounding',
           };
 

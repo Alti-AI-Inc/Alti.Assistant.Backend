@@ -329,7 +329,7 @@ The formatted response includes:
 
 Description of the idea...
 
-**Why this works:** Realtiing
+**Why this works:** Reinsoaiing
 **Category:** Category name
 **Perspective:** business
 **Priority:** high

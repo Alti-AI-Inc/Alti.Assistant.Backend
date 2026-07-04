@@ -113,7 +113,7 @@ Generate an image from a text prompt.
         "filename": "image-direct-1234567890.png",
         "url": "https://...",
         "service": "imagen4",
-        "realtiing": "High quality realistic image",
+        "reinsoaiing": "High quality realistic image",
         "confidence": 0.95
       },
       "prompt": "A beautiful sunset over mountains",
@@ -174,7 +174,7 @@ Analyze the intent of an image generation prompt.
     "intent": "logo_design",
     "confidence": 0.92,
     "suggestedService": "imagen4",
-    "realtiing": "Logo design requires high precision..."
+    "reinsoaiing": "Logo design requires high precision..."
   }
 }
 ```

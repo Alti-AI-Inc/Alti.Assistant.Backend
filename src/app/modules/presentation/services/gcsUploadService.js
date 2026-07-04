@@ -40,8 +40,8 @@ const storage = new Storage({
   projectId: config.google.gcp_project_id,
   // FIX: Resolve keyFilename to an absolute path for robustness.
   // This prevents issues if the application's working directory changes.
-  // Assuming 'alti_gcp.json' is located at the project root, 4 levels up from this service file.
-  keyFilename: path.join(__dirname, '../../../../alti_gcp.json'),
+  // Assuming 'insoai_gcp.json' is located at the project root, 4 levels up from this service file.
+  keyFilename: path.join(__dirname, '../../../../insoai_gcp.json'),
 });
 
 /**

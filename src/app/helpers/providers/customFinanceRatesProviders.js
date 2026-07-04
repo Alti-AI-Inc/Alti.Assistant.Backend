@@ -135,7 +135,7 @@ export const OccDecisionsProvider = {
   category: 'premium_public',
   cacheTTL: 7200,
   citationLabel: 'Office of the Comptroller of the Currency (OCC) Bulletins',
-  mandatoryRule: '▸ Cite national bank interest rate risk warnings and civil penalties in **BOLD** (e.g. **High Risk Alert**, **$15,000,000**)',
+  mandatoryRule: '▸ Cite national bank interest rate risk warnings and civil peninsoaies in **BOLD** (e.g. **High Risk Alert**, **$15,000,000**)',
 
   detectIntent: (query) => {
     return /\bocc\s+bulletin\b|\bcomptroller\s+of\s+the\s+currency\b|\bocc\s+enforcement\b|\bocc\s+penalty\b|\bocc\s+interest\s+rate\s+risk\b/i.test(query);
@@ -147,7 +147,7 @@ export const OccDecisionsProvider = {
   },
 
   fetch: async (topic) => {
-    const markdown = `### ⚖️ OCC National Bank Interest Risk Ratings & Civil Penalties
+    const markdown = `### ⚖️ OCC National Bank Interest Risk Ratings & Civil Peninsoaies
 *Retrieved active interest rate risk warnings, federal bank supervisory bulletins, and consent enforcement actions from the OCC.*
 
 | National Bank Monitored | Supervisory Interest Risk | Docket / Bulletin ID | Civil Penalty Settlement | Core Compliance Standing |
@@ -190,13 +190,13 @@ export const FfiecCraProvider = {
 
 | Insured Financial Entity | FFIEC CRA Performance Grade | Annual FFIEC Asset Threshold | Active Compliance Period | Supervising Agency Filer |
 |---------------------------|-----------------------------|------------------------------|--------------------------|--------------------------|
-| **Altis Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
+| **Inso AIs Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
 | **Vanguard Home Federal** | **SATISFACTORY** | **$376 Million (Small Bank)** | 2023 - 2025 Audit Cycle | FDIC Financial Board |
 | **Pacific Premier Credit**| **OUTSTANDING** | **$2.450 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | OCC National Bureau |`;
 
     const metadata = {
       domain: 'ffiec_cra',
-      auditedBank: 'Altis Citizens Bank',
+      auditedBank: 'Inso AIs Citizens Bank',
       craPerformanceGrade: 'OUTSTANDING',
       assetSizeThreshold: '$1.502 Billion'
     };
@@ -307,9 +307,9 @@ export const UsptoTrademarksProvider = {
 
 | Trademark Wordmark Name | Filer Serial Number | Registration Number | Active Trademark Status | Goods & Services Class Category | Primary Owner Corporate Entity |
 |-------------------------|---------------------|---------------------|--------------------------|---------------------------------|--------------------------------|
-| **ALTIS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Altis Holdings LLC (US)** |
+| **ALTIS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Inso AIs Holdings LLC (US)** |
 | **ALTIGRAVITY** | **Serial #9802451** | **Reg #7240118** | **Registered** | Class 09 - AI Neural Copilots | **DeepMind Coding Corp (US)** |
-| **ALTIS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Altis Wealth Group Inc** |`;
+| **ALTIS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Inso AIs Wealth Group Inc** |`;
 
     const metadata = {
       domain: 'uspto_trademarks',
@@ -317,7 +317,7 @@ export const UsptoTrademarksProvider = {
       serialNumber: 'Serial #9784012',
       registrationNumber: 'Reg #7124950',
       status: 'Registered',
-      ownerEntity: 'Altis Holdings LLC'
+      ownerEntity: 'Inso AIs Holdings LLC'
     };
 
     return { markdown, metadata };
@@ -348,7 +348,7 @@ export const WipoIpProvider = {
 | WIPO Publication Number | PCT International Filing Date | Primary Filer / Applicant | Core IPC Patent Classification Code | Summary Invention Title |
 |-------------------------|--------------------------------|---------------------------|-------------------------------------|--------------------------|
 | **WO/2026/094200** | **April 12, 2026** | **DeepMind Technologies Ltd** | **G06N 3/04 (Neural Networks)** | Dynamic Agentic Code Refactoring |
-| **WO/2026/104505** | **May 19, 2026** | **Altis Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
+| **WO/2026/104505** | **May 19, 2026** | **Inso AIs Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
 | **WO/2026/084201** | **March 04, 2026** | **Nokia Telecommunications**| **H04W 12/06 (Wireless Security)** | Dynamic Quantum Key Exchange |`;
 
     const metadata = {

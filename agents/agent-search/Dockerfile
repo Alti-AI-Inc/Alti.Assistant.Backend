@@ -27,10 +27,10 @@ COPY --from=builder /app/agents/agent-search ./agents/agent-search
 RUN mv ./agents/agent-search/node_modules ./node_modules
 
 # Create non-root user
-RUN groupadd -r alti && useradd -r -g alti -d /app -s /sbin/nologin alti \
-    && chown -R alti:alti /app
+RUN groupadd -r insoai && useradd -r -g insoai -d /app -s /sbin/nologin insoai \
+    && chown -R insoai:insoai /app
 
-USER alti
+USER insoai
 
 WORKDIR /app/agents/agent-search
 

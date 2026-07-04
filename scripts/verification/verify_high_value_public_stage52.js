@@ -1,7 +1,7 @@
 /**
  * verify_high_value_public_stage52.js
  *
- * Verification script for testing Alti's Stage 52 Premium High-Value Public Grounding Channels.
+ * Verification script for testing Inso AI's Stage 52 Premium High-Value Public Grounding Channels.
  */
 
 import { SearchEngineRegistry } from './src/app/helpers/SearchEngineRegistry.js';

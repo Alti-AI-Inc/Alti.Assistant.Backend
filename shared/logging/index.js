@@ -1,11 +1,11 @@
 /**
- * @fileoverview Shared Winston logger for all Alti agent microservices.
+ * @fileoverview Shared Winston logger for all Inso AI agent microservices.
  * Provides structured JSON logging for Cloud Logging in production
  * and human-readable format in development. Includes log sanitization
  * to prevent secret leakage.
  *
  * Usage:
- *   import { logger, errorLogger } from '@alti/shared/logging';
+ *   import { logger, errorLogger } from '@insoai/shared/logging';
  *   logger.info('Processing request', { userId, agentName: 'search' });
  */
 
@@ -49,7 +49,7 @@ const sanitizeFormat = format((info) => {
  * @param {string} serviceName - The name of the agent (e.g., 'agent-search')
  * @returns {{ logger: winston.Logger, errorLogger: winston.Logger }}
  */
-export function createLogger(serviceName = 'alti-agent') {
+export function createLogger(serviceName = 'insoai-agent') {
   const isProduction = process.env.NODE_ENV === 'production';
 
   const localFormat = combine(
@@ -88,7 +88,7 @@ export function createLogger(serviceName = 'alti-agent') {
 
 // Default logger instance for backward compatibility
 const { logger, errorLogger } = createLogger(
-  process.env.SERVICE_NAME || 'Alti Core Service'
+  process.env.SERVICE_NAME || 'Inso AI Core Service'
 );
 
 export { logger, errorLogger };

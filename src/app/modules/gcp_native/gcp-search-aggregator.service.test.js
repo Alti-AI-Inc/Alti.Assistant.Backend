@@ -23,7 +23,7 @@ vi.mock('../../../shared/logger.js', () => ({
 const mockWebResultsPage1 = {
   data: {
     items: [
-      { title: 'Result 1', link: 'http://example.com/1', displayLink: 'example.com/1', snippet: 'Snippet for result 1 about Alti', formattedUrl: 'http://example.com/1' },
+      { title: 'Result 1', link: 'http://example.com/1', displayLink: 'example.com/1', snippet: 'Snippet for result 1 about Inso AI', formattedUrl: 'http://example.com/1' },
       { title: 'Result 2', link: 'http://example.com/2', displayLink: 'example.com/2', snippet: 'Snippet for result 2', formattedUrl: 'http://example.com/2' },
     ],
   },
@@ -69,7 +69,7 @@ describe('GcpSearchAggregatorService', () => {
       expect(results).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         'GCP Search Aggregator Raw Search Error:',
-        'Google Search API Key or CSE Engine ID is not configured.'
+        'Web Search API Key or CSE Engine ID is not configured.'
       );
       
       // Restore
@@ -98,7 +98,7 @@ describe('GcpSearchAggregatorService', () => {
         title: 'Result 1',
         link: 'http://example.com/1',
         displayLink: 'example.com/1',
-        snippet: 'Snippet for result 1 about Alti',
+        snippet: 'Snippet for result 1 about Inso AI',
         formattedUrl: 'http://example.com/1',
         source: 'google_web',
         index: 1,
@@ -174,15 +174,15 @@ describe('GcpSearchAggregatorService', () => {
 
     it('should generate sub-queries, execute searches, deduplicate, score, and rank results', async () => {
       const mockResultsSubQuery1 = [
-        { title: 'Alti platform overview', link: 'http://example.com/alti-platform', snippet: 'The Alti platform is great.', source: 'google_web' },
+        { title: 'Inso AI platform overview', link: 'http://example.com/insoai-platform', snippet: 'The Inso AI platform is great.', source: 'google_web' },
         { title: 'Common result', link: 'http://example.com/common', snippet: 'This appears in multiple searches.', source: 'google_web' },
       ];
       const mockResultsSubQuery2 = [
-        { title: 'News about Alti', link: 'http://example.com/alti-news', snippet: 'Recent news for the platform.', source: 'google_web' },
+        { title: 'News about Inso AI', link: 'http://example.com/insoai-news', snippet: 'Recent news for the platform.', source: 'google_web' },
         { title: 'Common result', link: 'http://example.com/common', snippet: 'This appears in multiple searches.', source: 'google_web' },
       ];
       const mockResultsSubQuery3 = [
-        { title: 'Alti specifications', link: 'http://example.com/alti-specs', snippet: 'Core details of the platform.', source: 'google_web' },
+        { title: 'Inso AI specifications', link: 'http://example.com/insoai-specs', snippet: 'Core details of the platform.', source: 'google_web' },
       ];
 
       executeRawSearchSpy
@@ -190,33 +190,33 @@ describe('GcpSearchAggregatorService', () => {
         .mockResolvedValueOnce(mockResultsSubQuery2)
         .mockResolvedValueOnce(mockResultsSubQuery3);
 
-      const response = await GcpSearchAggregatorService.executeParallelSearch('what is the Alti platform', 'web', 5);
+      const response = await GcpSearchAggregatorService.executeParallelSearch('what is the Inso AI platform', 'web', 5);
 
       expect(executeRawSearchSpy).toHaveBeenCalledTimes(3);
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('what is the Alti platform', 'web', 10, 1, 'active');
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Alti platform recent news analysis', 'web', 10, 1, 'active');
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Alti platform core details specifications', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('what is the Inso AI platform', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso AI platform recent news analysis', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso AI platform core details specifications', 'web', 10, 1, 'active');
 
       expect(response.success).toBe(true);
-      expect(response.originalQuery).toBe('what is the Alti platform');
+      expect(response.originalQuery).toBe('what is the Inso AI platform');
       expect(response.totalCandidates).toBe(5);
       expect(response.uniqueCount).toBe(4);
       expect(response.results).toHaveLength(4);
 
-      // Check scoring and ranking. Query terms (len>2): ['what', 'alti', 'platform']
-      // 'Alti platform overview' -> title: alti, platform (2*10), snippet: alti, platform (2*2) -> score 24
-      // 'News about Alti' -> title: alti (10), snippet: platform (2) -> score 12
-      // 'Alti specifications' -> title: alti (10), snippet: platform (2) -> score 12
+      // Check scoring and ranking. Query terms (len>2): ['what', 'insoai', 'platform']
+      // 'Inso AI platform overview' -> title: insoai, platform (2*10), snippet: insoai, platform (2*2) -> score 24
+      // 'News about Inso AI' -> title: insoai (10), snippet: platform (2) -> score 12
+      // 'Inso AI specifications' -> title: insoai (10), snippet: platform (2) -> score 12
       // 'Common result' -> title: 0, snippet: 0 -> score 0
-      expect(response.results[0].title).toBe('Alti platform overview');
+      expect(response.results[0].title).toBe('Inso AI platform overview');
       expect(response.results[0].relevanceScore).toBe(26);
       expect(response.results[0].finalRank).toBe(1);
 
-      expect(response.results[1].title).toBe('News about Alti');
+      expect(response.results[1].title).toBe('News about Inso AI');
       expect(response.results[1].relevanceScore).toBe(14);
       expect(response.results[1].finalRank).toBe(2);
 
-      expect(response.results[2].title).toBe('Alti specifications');
+      expect(response.results[2].title).toBe('Inso AI specifications');
       expect(response.results[2].relevanceScore).toBe(14);
       expect(response.results[2].finalRank).toBe(3);
       
@@ -269,11 +269,11 @@ describe('GcpSearchAggregatorService', () => {
 
     it('should correctly generate sub-queries for short queries (<= 2 words)', async () => {
         executeRawSearchSpy.mockResolvedValue([]);
-        await GcpSearchAggregatorService.executeParallelSearch('Alti');
+        await GcpSearchAggregatorService.executeParallelSearch('Inso AI');
 
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Alti', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Alti latest updates', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Alti overview details', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI latest updates', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI overview details', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
     });
 
     it('should trim results to the requested numResults', async () => {

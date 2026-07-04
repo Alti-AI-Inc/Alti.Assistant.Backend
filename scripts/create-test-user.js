@@ -6,7 +6,7 @@ import UserModel from '../src/app/modules/auth/auth.model.js';
 mongoose
   .connect(config.database_local)
   .then(async () => {
-    const email = 'testlocal@altihq.com';
+    const email = 'testlocal@insoai.com';
     const password = 'Password123!';
     const hashedPassword = await bcrypt.hash(password, 10);
 

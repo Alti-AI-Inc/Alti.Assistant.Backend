@@ -21,7 +21,7 @@ export const OpenCorporatesProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:corporate registry for|company lookup for|is registered in|opencorporates)\s+([^?]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'Altis');
+    return sanitizeQueryString(match ? match[1] : 'Inso AIs');
   },
 
   fetch: async (topic) => {
@@ -30,13 +30,13 @@ export const OpenCorporatesProvider = {
 
 | Audited Entity | Jurisdiction State | Corporate Registry ID | Active Standing | Registered Headquarters |
 |----------------|--------------------|-----------------------|-----------------|-------------------------|
-| **Altis Holdings LLC** | **Delaware (US)** | **DE-7984210** | **ACTIVE / GOOD STANDING** | 1209 Orange St, Wilmington, DE |
-| **Altis Technology Corp** | **California (US)**| **CA-9452011** | **ACTIVE** | 500 Capitol Mall, Sacramento, CA |
-| **Altis Global LTD** | **United Kingdom** | **UK-0952210** | **ACTIVE** | 25 Canada Square, London, UK |`;
+| **Inso AIs Holdings LLC** | **Delaware (US)** | **DE-7984210** | **ACTIVE / GOOD STANDING** | 1209 Orange St, Wilmington, DE |
+| **Inso AIs Technology Corp** | **California (US)**| **CA-9452011** | **ACTIVE** | 500 Capitol Mall, Sacramento, CA |
+| **Inso AIs Global LTD** | **United Kingdom** | **UK-0952210** | **ACTIVE** | 25 Canada Square, London, UK |`;
 
     const metadata = {
       domain: 'opencorporates',
-      companyName: 'Altis Holdings LLC',
+      companyName: 'Inso AIs Holdings LLC',
       jurisdiction: 'Delaware (US)',
       registryId: 'DE-7984210',
       standing: 'ACTIVE'

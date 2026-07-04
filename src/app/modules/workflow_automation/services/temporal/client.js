@@ -103,7 +103,7 @@ class TemporalClientCoordinator {
     } else {
       handle = await this.client.workflow.start(runDurableWorkflow, {
         args: [workflow, userId, context, options.startStepIndex || 0],
-        taskQueue: 'alti-workflows-queue',
+        taskQueue: 'insoai-workflows-queue',
         workflowId
       });
 

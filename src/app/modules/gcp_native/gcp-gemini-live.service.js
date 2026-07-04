@@ -67,7 +67,7 @@ const buildLiveSessionSetup = (sessionConfig = {}) => {
   const {
     model = LIVE_API_MODELS.FLASH_LIVE,
     voice = VOICE_OPTIONS.AOEDE,
-    systemInstruction = 'You are Alti, a helpful AI assistant. Respond naturally, concisely, and in a conversational tone.',
+    systemInstruction = 'You are Inso AI, a helpful AI assistant. Respond naturally, concisely, and in a conversational tone.',
     responseModality = 'AUDIO',
     languageCode = 'en-US',
     tools = [],
@@ -106,7 +106,7 @@ const buildLiveSessionSetup = (sessionConfig = {}) => {
   }
 
   // Voice Activity Detection (VAD) configuration
-  setup.realtimeInputConfig = {
+  setup.reinsoaimeInputConfig = {
     automaticActivityDetection: {
       disabled: false,
       startOfSpeechSensitivity: speechActivityThreshold > 0.7 ? 'START_SENSITIVITY_HIGH' : 'START_SENSITIVITY_LOW',
@@ -123,7 +123,7 @@ const buildLiveSessionSetup = (sessionConfig = {}) => {
  *
  * @param {Buffer|string} audioData - Raw PCM audio buffer or base64-encoded audio string.
  * @param {string} [mimeType='audio/pcm;rate=16000'] - MIME type of the audio data.
- * @returns {object} A JSON-serializable realtime input message.
+ * @returns {object} A JSON-serializable reinsoaime input message.
  */
 const buildAudioInputMessage = (audioData, mimeType = 'audio/pcm;rate=16000') => {
   const base64Audio = Buffer.isBuffer(audioData)
@@ -131,7 +131,7 @@ const buildAudioInputMessage = (audioData, mimeType = 'audio/pcm;rate=16000') =>
     : audioData;
 
   return {
-    realtimeInput: {
+    reinsoaimeInput: {
       audio: {
         mimeType,
         data: base64Audio
@@ -146,7 +146,7 @@ const buildAudioInputMessage = (audioData, mimeType = 'audio/pcm;rate=16000') =>
  *
  * @param {Buffer|string} frameData - Image buffer or base64-encoded frame data.
  * @param {string} [mimeType='image/jpeg'] - MIME type of the image frame.
- * @returns {object} A JSON-serializable realtime input message.
+ * @returns {object} A JSON-serializable reinsoaime input message.
  */
 const buildVideoFrameMessage = (frameData, mimeType = 'image/jpeg') => {
   const base64Frame = Buffer.isBuffer(frameData)
@@ -154,7 +154,7 @@ const buildVideoFrameMessage = (frameData, mimeType = 'image/jpeg') => {
     : frameData;
 
   return {
-    realtimeInput: {
+    reinsoaimeInput: {
       video: {
         mimeType,
         data: base64Frame
@@ -243,8 +243,8 @@ const getLiveApiConnectionInfo = async () => {
     instructions: {
       connect: 'Establish a WebSocket connection to vertexAiWebSocketUrl with Authorization: Bearer {accessToken}',
       setup: 'Send the setup payload (from buildLiveSessionSetup) as the first message after connection.',
-      audio: 'Send PCM 16kHz 16-bit mono audio chunks as realtimeInput.audio messages.',
-      video: 'Send JPEG frames as realtimeInput.video messages at up to 1fps.',
+      audio: 'Send PCM 16kHz 16-bit mono audio chunks as reinsoaimeInput.audio messages.',
+      video: 'Send JPEG frames as reinsoaimeInput.video messages at up to 1fps.',
       text: 'Send clientContent messages with turnComplete: true to trigger responses.'
     }
   };
@@ -268,7 +268,7 @@ const generateTextResponse = async (text, sessionConfig = {}) => {
 
   const model = sessionConfig.model || LIVE_API_MODELS.FLASH_LIVE;
   const systemInstruction = sessionConfig.systemInstruction
-    || 'You are Alti, a helpful AI assistant. Respond naturally and concisely.';
+    || 'You are Inso AI, a helpful AI assistant. Respond naturally and concisely.';
 
   logger.info(`GCP GeminiLive: Generating text response using model: ${model}`);
   const client = await auth.getClient();

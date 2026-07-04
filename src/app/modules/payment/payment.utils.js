@@ -47,7 +47,7 @@ export const purchasePlanTemplate = (email, user, subscription) => {
             </p>
           </div>
           <p style="color: #999999; margin-top: 20px; text-align: center;">
-            This message was sent by Alti AI. If you have any questions, feel free to contact our support team.
+            This message was sent by Inso AI. If you have any questions, feel free to contact our support team.
           </p>
         </div>
       `,
@@ -91,7 +91,7 @@ export const purchasePlanManagerNotificationTemplate = (manager, user, subscript
             </p>
           </div>
           <p style="color: #999999; margin-top: 20px; text-align: center;">
-            This message was sent by Alti AI.
+            This message was sent by Inso AI.
           </p>
         </div>
       `,
@@ -132,7 +132,7 @@ export const purchasePlanAdminNotificationTemplate = (admin, user, subscription,
             </p>
           </div>
           <p style="color: #999999; margin-top: 20px; text-align: center;">
-            This message was sent by Alti AI.
+            This message was sent by Inso AI.
           </p>
         </div>
       `,

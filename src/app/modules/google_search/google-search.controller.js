@@ -106,7 +106,7 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
   }
 
   try {
-    // Use Gemini with Google Search Grounding
+    // Use Gemini with Live Web Grounding
     const result = await ai.models.generateContent({
       model: 'gemini-3.5-flash',
       contents: prompt,
@@ -163,8 +163,8 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
       });
 
       // Bug Fix: Changed 'llamaAiSessions' to 'googleSearchSessions'
-      // to correctly associate Google Search related sessions with the user,
-      // as this module is specifically for Google Search integration.
+      // to correctly associate Web Search related sessions with the user,
+      // as this module is specifically for Web Search integration.
       await UserModel.findByIdAndUpdate(userId, {
         $push: { googleSearchSessions: session._id },
       });

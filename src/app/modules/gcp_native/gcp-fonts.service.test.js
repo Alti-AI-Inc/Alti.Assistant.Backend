@@ -91,7 +91,7 @@ describe('GcpFontsService - resolveGoogleFonts', () => {
     );
   });
 
-  it('should throw an error if Google Search/Fonts API Key is not configured', async () => {
+  it('should throw an error if Web Search/Fonts API Key is not configured', async () => {
     config.google_search_api_key = undefined;
     delete process.env.GOOGLE_SEARCH_API_KEY;
 

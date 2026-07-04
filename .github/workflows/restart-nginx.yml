@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  VM_USER: alti_deployer
+  VM_USER: insoai_deployer
   VM_HOST: 35.239.192.33
 
 jobs:
@@ -19,13 +19,13 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
-          chmod 600 ~/.ssh/alti-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/insoai-vm-key
+          chmod 600 ~/.ssh/insoai-vm-key
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deep diagnostics
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
+          ssh -i ~/.ssh/insoai-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
             echo "=== Main nginx.conf (proxy_cache settings) ===";
             grep -n "proxy_cache\|cache_path\|cache_zone" /etc/nginx/nginx.conf || echo "No proxy_cache in nginx.conf";
             echo "";
@@ -33,16 +33,16 @@ jobs:
             cat /etc/nginx/nginx.conf;
             echo "";
             echo "=== Full site config ===";
-            cat /etc/nginx/sites-enabled/alti.frontend.conf;
+            cat /etc/nginx/sites-enabled/insoai.frontend.conf;
             echo "";
             echo "=== Test: curl localhost from VM ===";
             curl -sI http://localhost:3000 2>&1 | head -5 || echo "localhost:3000 not responding";
             echo "";
             echo "=== Test: curl Cloud Run from VM ===";
-            curl -sI https://alti-assistant-frontend-366561755636.us-central1.run.app 2>&1 | head -10;
+            curl -sI https://insoai-assistant-frontend-366561755636.us-central1.run.app 2>&1 | head -10;
             echo "";
-            echo "=== Test: curl altihq.com from VM ===";
-            curl -sI https://altihq.com 2>&1 | head -10;
+            echo "=== Test: curl insoai.com from VM ===";
+            curl -sI https://insoai.com 2>&1 | head -10;
             echo "";
             echo "=== Purge ALL nginx cache ===";
             sudo find /var/cache/nginx -type f -delete 2>/dev/null || echo "No nginx cache dir";
@@ -56,16 +56,16 @@ jobs:
             echo "";
             echo "=== Final test from VM ===";
             sleep 2;
-            curl -sI https://altihq.com 2>&1 | grep -i "server\|cache\|x-cloud\|pragma" || echo "curl failed"'
+            curl -sI https://insoai.com 2>&1 | grep -i "server\|cache\|x-cloud\|pragma" || echo "curl failed"'
 
       - name: Verify from runner
         run: |
           sleep 5
-          echo "=== altihq.com CSS ==="
-          curl -s https://altihq.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          echo "=== insoai.com CSS ==="
+          curl -s https://insoai.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
           echo "=== Cloud Run CSS ==="
-          curl -s https://alti-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          curl -s https://insoai-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: rm -f ~/.ssh/insoai-vm-key

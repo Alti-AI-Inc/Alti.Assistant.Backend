@@ -109,7 +109,7 @@ function formatTitle(slug) {
 }
 
 function generateDescription(title) {
-  return `Integrate ${title} to seamlessly execute automated workflows, synchronize data, and orchestrate ${title} actions directly within Alti.`;
+  return `Integrate ${title} to seamlessly execute automated workflows, synchronize data, and orchestrate ${title} actions directly within Inso AI.`;
 }
 
 // 1. Process available_apps.json

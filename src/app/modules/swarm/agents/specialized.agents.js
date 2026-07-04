@@ -150,7 +150,7 @@ Synthesize findings into clean, concise tabular breakdowns and actionable summar
     { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
     { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
   ],
-  tools: ['massive-realtime-tick'],
+  tools: ['massive-reinsoaime-tick'],
   keywords: ['stock', 'ticker', 'price', 'quote', 'market', 'financial', 'shares', 'googl', 'aapl']
 };
 

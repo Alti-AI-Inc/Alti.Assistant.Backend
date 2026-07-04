@@ -144,7 +144,7 @@ rl.on('line', (line) => {
     // ----------------------------------------------------
     console.log('\n--- 3. Testing Dynamic Tool Call Routing ---');
     const callResult = await mcpOrchestratorService.callTool(tenantId, serverId, 'sequential_think', {
-      thought: 'Refactoring Alti backend for multi-server parallel serving'
+      thought: 'Refactoring Inso AI backend for multi-server parallel serving'
     });
 
     if (callResult.success && callResult.result.content?.[0]?.text?.includes('sequential_think')) {

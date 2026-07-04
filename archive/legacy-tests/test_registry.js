@@ -66,7 +66,7 @@ async function run() {
   await testQuery('OpenSecrets PAC & Lobbying Inflows', 'Corporate political donations on OpenSecrets');
 
   // Test SAM.gov provider
-  await testQuery('SAM.gov Vendor Exclusion Lookup', 'Debarment status of Altis on SAM');
+  await testQuery('SAM.gov Vendor Exclusion Lookup', 'Debarment status of Inso AIs on SAM');
 
   // Test GAO Reports provider
   await testQuery('GAO Federal Oversight Audit Reports', 'GAO report on defense spending');
