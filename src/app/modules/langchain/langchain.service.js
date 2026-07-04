@@ -97,33 +97,7 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
 //    LangchainRepository.index({ name: 1 });
 //    LangchainRepository.index({ description: 1 });
 //
-// For demonstration purposes, and to ensure these indexes are created if not already present,
-// we will add a call to create them here. In a production environment,
-// this call should typically be part of your application's initialization logic
-// and not run on every module import to avoid unnecessary overhead.
-/**
- * Immediately-invoked async function to ensure MongoDB indexes are created for the LangchainRepository model.
- * This improves query performance for search, filtering, and aggregation operations.
- * In a production environment, this should ideally be part of the application's initialization logic.
- * @private
- */
-(async () => {
-  try {
-    // Using collection.createIndex for explicit index creation outside of schema definition.
-    // This method is idempotent for identical index definitions.
-    await LangchainRepository.collection.createIndex({ name: 'text', description: 'text' }, { name: 'text_name_description' }); // Text index for full-text search
-    await LangchainRepository.collection.createIndex({ license: 1 }, { name: 'license_1' });                       // Index for license filtering and aggregation
-    await LangchainRepository.collection.createIndex({ language: 1 }, { name: 'language_1' });                      // Index for language filtering and aggregation
-    await LangchainRepository.collection.createIndex({ stars: -1 }, { name: 'stars_-1' });                        // Index for sorting by stars
-    await LangchainRepository.collection.createIndex({ name: 1 }, { name: 'name_1' });                           // Index for regex search on name
-    await LangchainRepository.collection.createIndex({ description: 1 }, { name: 'description_1' });             // Index for regex search on description
-    logger.info('LangchainRepository indexes ensured.');
-  } catch (error) {
-    // Log the error if index creation fails for reasons other than the index already existing.
-    // MongoDB's createIndex is idempotent, so it won't error if an identical index already exists.
-    logger.error('Failed to ensure LangchainRepository indexes.', { error });
-  }
-})();
+
 
 /**
  * Helper function to escape special characters in a string for use in a regular expression.

@@ -15,13 +15,13 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/insoai-vm-key
-          chmod 600 ~/.ssh/insoai-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
       - name: Update GEMINI_API_KEY in VM .env
         run: |
-          ssh -i ~/.ssh/insoai-vm-key insoai_deployer@35.239.192.33 bash <<'EOF'
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
             set -e
             echo "=== Current GEMINI_API_KEY ==="
             grep "GEMINI_API_KEY" .env | head -1
@@ -55,4 +55,4 @@ jobs:
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/insoai-vm-key
+        run: rm -f ~/.ssh/alti-vm-key

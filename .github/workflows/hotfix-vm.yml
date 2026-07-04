@@ -18,8 +18,8 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/insoai-vm-key
-          chmod 600 ~/.ssh/insoai-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
       - name: Package application code
@@ -43,18 +43,18 @@ jobs:
 
       - name: Upload code to VM
         run: |
-          scp -i ~/.ssh/insoai-vm-key /tmp/app-code.tar.gz \
-            insoai_deployer@35.239.192.33:/tmp/app-code.tar.gz
-          scp -i ~/.ssh/insoai-vm-key docker-compose.presenton.yml \
-            insoai_deployer@35.239.192.33:~/docker-compose.presenton.yml 2>/dev/null || true
+          scp -i ~/.ssh/alti-vm-key /tmp/app-code.tar.gz \
+            alti_deployer@35.239.192.33:/tmp/app-code.tar.gz
+          scp -i ~/.ssh/alti-vm-key docker-compose.presenton.yml \
+            alti_deployer@35.239.192.33:~/docker-compose.presenton.yml 2>/dev/null || true
 
       - name: Deploy into container and restart
         run: |
-          ssh -i ~/.ssh/insoai-vm-key insoai_deployer@35.239.192.33 bash <<'DEPLOY'
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
             set -e
 
-            CONTAINER="insoai-backend"
-            APP_ROOT="/app/insoai-core-service"
+            CONTAINER="alti-backend"
+            APP_ROOT="/app/alti-core-service"
 
             # ── Clean up disk space (safely - don't remove running containers) ──
             echo "=== Cleaning disk space ==="
@@ -88,7 +88,7 @@ jobs:
               cd ~
               # IMPORTANT: Use presenton compose file (only backend + presenton)
               # NOT the full docker-compose.yml which includes ES, kibana, mongo, etc.
-              docker compose -f docker-compose.presenton.yml up -d insoai-backend
+              docker compose -f docker-compose.presenton.yml up -d alti-backend
               sleep 5
               echo "Container recreated"
               # Stop it so we can update files
@@ -176,5 +176,5 @@ jobs:
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/insoai-vm-key
+        run: rm -f ~/.ssh/alti-vm-key
 
