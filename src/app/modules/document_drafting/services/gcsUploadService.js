@@ -3,6 +3,86 @@ import path from 'path';
 import { pipeline } from 'stream/promises'; // BUG FIX: Imported for robust stream handling.
 import { logger } from '../../../../shared/logger.js';
 import { GCS_CONFIG } from '../document.constant.js';
+import SubscriptionModel from '../../subscription/subscription.model.js';
+import UserUsageModel from '../../usage/userUsage.model.js';
+import TenantModel from '../../tenant/tenant.model.js';
+import emailService from '../../../shared/email.service.js';
+import mongoose from 'mongoose';
+
+/**
+ * Checks if the user or workspace is within the storage limit quota.
+ * Sends email notifications to workspace admins if limits are reached/exceeded.
+ * 
+ * @param {object} user - The user context.
+ */
+const checkAndNotifyStorageLimit = async (user) => {
+  try {
+    const userId = user.id;
+    const tenantId = user.tenantId;
+
+    // 1. Fetch user's/tenant's active subscription
+    const query = tenantId
+      ? { tenantId, status: 'active' }
+      : { userId, tenantId: null, status: 'active' };
+    const subscription = await SubscriptionModel.findOne(query);
+
+    if (!subscription) {
+      return; // If no active subscription, let it fail-open or follow default limits
+    }
+
+    // Determine storage limit from subscription
+    const storageLimit =
+      subscription.limits?.knowledgeLimit ??
+      subscription.limits?.storagePerUser ??
+      0;
+
+    if (storageLimit <= 0) return;
+
+    // Fetch storage used in bytes
+    const storageUsed = await UserUsageModel.getTotalStorage(userId, tenantId);
+
+    // If storageUsed exceeds the limit, block the upload and notify admins
+    if (storageUsed >= storageLimit) {
+      // Find workspace admins/owner
+      let adminEmails = [];
+      if (tenantId) {
+        const tenant = await TenantModel.findById(tenantId);
+        if (tenant && tenant.ownerId) {
+          const owner = await mongoose.model('User').findById(tenant.ownerId);
+          if (owner && owner.email) {
+            adminEmails.push(owner.email);
+          }
+        }
+      } else {
+        const owner = await mongoose.model('User').findById(userId);
+        if (owner && owner.email) {
+          adminEmails.push(owner.email);
+        }
+      }
+
+      // Send storage limit alerts
+      const tenantName = user.tenantName || 'Workspace';
+      for (const email of adminEmails) {
+        try {
+          await emailService.sendStorageLimitAlert({
+            to: email,
+            tenantName,
+            storageUsed,
+            storageLimit,
+          });
+        } catch (err) {
+          logger.error(`Failed to send storage limit alert to ${email}:`, err);
+        }
+      }
+
+      throw new Error(`Storage limit reached for this workspace (${(storageUsed / (1024 * 1024)).toFixed(2)}MB / ${(storageLimit / (1024 * 1024)).toFixed(2)}MB). Upload blocked.`);
+    }
+  } catch (error) {
+    logger.error('Error in checkAndNotifyStorageLimit:', error);
+    throw error;
+  }
+};
+
 
 // Initialize Google Cloud Storage
 let storage;
@@ -57,13 +137,8 @@ export const generateV4UploadSignedUrl = async (
     throw new Error('User context is required for this operation.');
   }
 
-  // INTEGRATION: Placeholder for checking usage limits against the user or workspace.
-  // This check prevents abuse and enforces subscription limits before the upload occurs.
-  // Example:
-  // const canUpload = await usageService.canUploadDocument(user.workspaceId);
-  // if (!canUpload) {
-  //   throw new Error('Storage or document limit exceeded for this workspace.');
-  // }
+  // INTEGRATION: Verify storage limits before generating the signed upload URL.
+  await checkAndNotifyStorageLimit(user);
 
   // SECURITY: Sanitize filename to prevent path traversal attacks (e.g., '.._.._file.txt').
   const safeFileName = path.basename(fileName);
@@ -133,11 +208,8 @@ export const uploadDocumentStreamToGCS = async (
     throw new Error('User context is required for this operation.');
   }
 
-  // INTEGRATION: Placeholder for checking usage limits.
-  // const canUpload = await usageService.canUploadDocument(user.workspaceId);
-  // if (!canUpload) {
-  //   throw new Error('Storage or document limit exceeded for this workspace.');
-  // }
+  // INTEGRATION: Verify storage limits before initiating the upload stream.
+  await checkAndNotifyStorageLimit(user);
 
   // SECURITY: Sanitize filename to prevent path traversal attacks.
   const safeFileName = path.basename(fileName);

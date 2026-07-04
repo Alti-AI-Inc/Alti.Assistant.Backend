@@ -156,11 +156,52 @@ export const sendStorageLimitAlert = async ({ to, tenantName, storageUsed, stora
   }
 };
 
+/**
+ * Sends an email to notify a user that their subscription payment has failed.
+ * 
+ * @param {Object} data
+ * @param {string} data.to - Recipient email.
+ * @param {string} data.hostedInvoiceUrl - The URL to Stripe's hosted invoice page.
+ * @param {string} data.amountDue - The formatted amount due (e.g., "$10.00 USD").
+ */
+export const sendPaymentFailedEmail = async ({ to, hostedInvoiceUrl, amountDue }) => {
+  const htmlContent = `
+    <h1>Subscription Payment Failed</h1>
+    <p>We were unable to complete your subscription payment of <strong>${amountDue}</strong>.</p>
+    <p>To keep your account active and avoid any service interruptions, please update your payment details or complete the payment manually:</p>
+    <div style="margin: 20px 0;">
+      <a href="${hostedInvoiceUrl}" style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">Update Payment Details</a>
+    </div>
+    <p>If the button doesn't work, copy and paste this URL into your browser:</p>
+    <p><a href="${hostedInvoiceUrl}">${hostedInvoiceUrl}</a></p>
+  `;
+  const textContent = `Your subscription payment of ${amountDue} failed. Please visit: ${hostedInvoiceUrl} to update payment details and keep your account active.`;
+  const subject = `Urgent: Your subscription payment has failed`;
+
+  const mailData = {
+    sub: subject,
+    message: htmlContent,
+    userEmail: to,
+    text: textContent,
+  };
+
+  try {
+    const result = await sendMailWithNodeMailer(mailData);
+    logger.info(`Payment failed email sent to ${to}`);
+    return result;
+  } catch (error) {
+    logger.error(`Failed to send payment failed email to ${to}:`, error);
+    throw error;
+  }
+};
+
 export const emailService = {
   sendWorkspaceInvitation,
   sendPaymentActionRequiredEmail,
+  sendPaymentFailedEmail,
   sendTrialEndingEmail,
   sendStorageLimitAlert,
 };
 
 export default emailService;
+

@@ -119,7 +119,7 @@ export const writingTask = async (req, res) => {
   }
 
   try {
-    const inputs = { initialTopic: message, userInput: message };
+    const inputs = { initialTopic: message, userInput: message, user: req.user };
     const result = await writingAssistantApp.invoke(inputs, {
       configurable: { thread_id: conversationId },
     });

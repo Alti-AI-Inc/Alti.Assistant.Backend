@@ -293,6 +293,18 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         logger.error(`Payment failed for invoice: ${invoice.id}`);
 
         await subscriptionService.handleInvoicePaymentFailed(invoice);
+
+        const email = invoice.customer_email || (invoice.customer ? (await stripe.customers.retrieve(invoice.customer)).email : null);
+        if (email) {
+          const amountDueStr = `$${(invoice.amount_due / 100).toFixed(2)} ${invoice.currency.toUpperCase()}`;
+          await emailService.sendPaymentFailedEmail({
+            to: email,
+            hostedInvoiceUrl: invoice.hosted_invoice_url,
+            amountDue: amountDueStr
+          });
+        } else {
+          logger.error(`Could not determine customer email for payment failed webhook. Invoice: ${invoice.id}`);
+        }
         break;
       }
 

@@ -3,6 +3,37 @@ import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { llm } from '../llm.js';
 import config from '../../../../../config/index.js';
 import { getAgent, getAgentList } from './specializedAgents.js';
+import subscriptionService from '../../subscription/subscription.service.js';
+import { usageLogService } from '../../usage/usageLog.service.js';
+import { logger } from '../../../../shared/logger.js';
+
+/**
+ * Checks if the user has sufficient credits/permissions.
+ */
+async function checkLimit(user, actionName = 'write') {
+  if (!user) return; // Fail open if no user context is provided (e.g., tests/guests)
+  const userId = user.id || user.userId || user._id;
+  const tenantId = user.tenantId || user.workspaceId;
+  if (!userId) return;
+
+  const check = await subscriptionService.checkMonthlyUsageLimit(userId, tenantId, actionName);
+  if (!check.allowed) {
+    throw new Error(check.message || `Monthly ${actionName} limit reached. Please upgrade your plan.`);
+  }
+}
+
+/**
+ * Increments the user's monthly usage count on success.
+ */
+async function trackLimit(user, actionName = 'write') {
+  if (!user) return;
+  const userId = user.id || user.userId || user._id;
+  const tenantId = user.tenantId || user.workspaceId;
+  if (!userId) return;
+
+  await subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, actionName, 1);
+}
+
 
 /**
  * A generic function to interact with a generative AI model for writing tasks.
@@ -15,8 +46,6 @@ import { getAgent, getAgentList } from './specializedAgents.js';
  * @throws {Error} If the API call fails or an error occurs during processing.
  */
 async function runGenerativeTask(systemPrompt, message, stream = false, user = null) {
-  // TODO: Implement input/output token usage tracking for the user.
-  // e.g., const usage = await usageService.recordUsage(user.id, 'gemini-3.5-flash', { inputTokens, outputTokens });
   try {
     const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -59,14 +88,24 @@ async function runGenerativeTask(systemPrompt, message, stream = false, user = n
     if (stream) {
       const resultStream = await model.generateContentStream({ contents });
       
+      let inputTokens = 0;
+      try {
+        const countResult = await model.countTokens({ contents });
+        inputTokens = countResult.totalTokens || 0;
+      } catch (err) {
+        logger.error('Failed to count input tokens for streaming writing:', err);
+      }
+
       // Adapt the Gemini stream to a generic format expected by the frontend/client.
       // This adapter mimics the Anthropic streaming format for compatibility.
       const adaptedStream = {
         async *[Symbol.asyncIterator]() {
+          let accumulatedText = '';
           for await (const chunk of resultStream.stream) {
             // Ensure chunk and text() exist to prevent runtime errors on empty chunks.
             const chunkText = chunk && typeof chunk.text === 'function' ? chunk.text() : '';
             if (chunkText) {
+              accumulatedText += chunkText;
               yield {
                 type: 'content_block_delta',
                 delta: {
@@ -76,13 +115,46 @@ async function runGenerativeTask(systemPrompt, message, stream = false, user = n
               };
             }
           }
+
+          // Stream finished: Log token usage
+          if (user) {
+            const outputTokens = Math.ceil(accumulatedText.length / 4);
+            const userId = user.id || user.userId || user._id;
+            const tenantId = user.tenantId || user.workspaceId;
+            await usageLogService.logRequest({
+              userId,
+              tenantId,
+              model: 'gemini-3.5-flash',
+              action: 'write',
+              inputTokens,
+              outputTokens,
+            }).catch(err => logger.error('Failed to log streaming writing token usage:', err));
+          }
         }
       };
       return adaptedStream;
     }
 
     const result = await model.generateContent({ contents });
-    return result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const responseText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Log token usage for non-streaming
+    if (user) {
+      const inputTokens = result?.response?.usageMetadata?.promptTokenCount || 0;
+      const outputTokens = result?.response?.usageMetadata?.candidatesTokenCount || 0;
+      const userId = user.id || user.userId || user._id;
+      const tenantId = user.tenantId || user.workspaceId;
+      await usageLogService.logRequest({
+        userId,
+        tenantId,
+        model: 'gemini-3.5-flash',
+        action: 'write',
+        inputTokens,
+        outputTokens,
+      }).catch(err => logger.error('Failed to log non-streaming writing token usage:', err));
+    }
+
+    return responseText;
   } catch (error) {
     console.error('Error calling Generative AI API in writing service:', error);
     // Throw a new error with a user-friendly message.
@@ -98,10 +170,8 @@ async function runGenerativeTask(systemPrompt, message, stream = false, user = n
  * @throws {Error} If the LLM call fails or the response cannot be parsed.
  */
 export const generateWritingQuestions = async (topic, user) => {
-  // TODO: Verify user has sufficient credits/permissions to perform this action.
-  // e.g., if (!await usageService.canPerformAction(user.id, 'generate_writing_questions')) {
-  //   throw new Error('Usage limit exceeded. Please upgrade your plan.');
-  // }
+  // Verify user has sufficient credits/permissions to perform this action.
+  await checkLimit(user, 'write');
 
   const prompt = `A user wants to write something about: "${topic}".
     To help them, generate 3-5 insightful, open-ended questions to understand their needs better.
@@ -113,13 +183,13 @@ export const generateWritingQuestions = async (topic, user) => {
     const chain = llm.pipe(parser);
     const result = await chain.invoke(prompt);
 
-    // TODO: Record the action in user usage metrics after a successful call.
-    // e.g., await usageService.recordAction(user.id, 'generate_writing_questions', { ...usage_details });
+    // Record the action in user usage metrics after a successful call.
+    await trackLimit(user, 'write');
 
     return result.questions || [];
   } catch (error) {
     console.error('Error generating writing questions:', error);
-    throw new Error('Failed to generate clarifying questions. Please try again.');
+    throw new Error(error.message || 'Failed to generate clarifying questions. Please try again.');
   }
 };
 
@@ -138,10 +208,8 @@ export const updateWritingBrief = async (
   history,
   user
 ) => {
-  // TODO: Verify user has sufficient credits/permissions.
-  // e.g., if (!await usageService.canPerformAction(user.id, 'update_writing_brief')) {
-  //   throw new Error('Usage limit exceeded.');
-  // }
+  // Verify user has sufficient credits/permissions.
+  await checkLimit(user, 'write');
 
   const historyString = history
     .map((h) => `${h.role}: ${h.content}`)
@@ -156,19 +224,19 @@ export const updateWritingBrief = async (
     
     Full Conversation History (for context):
     ${historyString}
-
+ 
     Return ONLY the new, updated brief.`;
   
   try {
     const result = await llm.invoke(prompt);
     
-    // TODO: Record the action in user usage metrics.
-    // e.g., await usageService.recordAction(user.id, 'update_writing_brief', { ...usage_details });
+    // Record the action in user usage metrics.
+    await trackLimit(user, 'write');
 
     return result.content;
   } catch (error) {
     console.error('Error updating writing brief:', error);
-    throw new Error('Failed to update the writing brief. Please try again.');
+    throw new Error(error.message || 'Failed to update the writing brief. Please try again.');
   }
 };
 
@@ -385,7 +453,7 @@ ${polished}`;
  * @param {boolean} [isSwarm=false] - Whether to run swarm orchestration.
  * @returns {Promise<any>} - The generated content as a string or a stream.
  */
-export const generateFinalContent = (
+export const generateFinalContent = async (
   brief,
   history,
   stream,
@@ -395,7 +463,11 @@ export const generateFinalContent = (
   selectedPurposeId = 'general',
   isSwarm = false
 ) => {
-  // TODO: Verify user has sufficient credits/permissions for final generation.
+  // Verify user has sufficient credits/permissions for final generation.
+  await checkLimit(user, 'write');
+
+  // Track the usage count on success.
+  await trackLimit(user, 'write');
   
   if (isSwarm) {
     return generateSwarmContent(

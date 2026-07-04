@@ -13,9 +13,11 @@ const {
 } = vi.hoisted(() => {
   const mockGenerateContent = vi.fn();
   const mockGenerateContentStream = vi.fn();
+  const mockCountTokens = vi.fn().mockResolvedValue({ totalTokens: 10 });
   const mockGetGenerativeModel = vi.fn().mockImplementation(() => ({
     generateContent: mockGenerateContent,
     generateContentStream: mockGenerateContentStream,
+    countTokens: mockCountTokens,
   }));
 
   const mockGoogleGenerativeAI = vi.fn().mockImplementation(function() {
@@ -62,6 +64,16 @@ vi.mock('@google/generative-ai', () => ({
 vi.mock('../../../../../config/index.js', () => ({
   default: {
     gemini_secret_key: 'TEST_GEMINI_API_KEY',
+    stripe: {
+      stripe_secret_key: 'test_stripe_secret',
+      webhook_secret: 'test_webhook_secret',
+    },
+    gcp: {
+      projectId: 'test-gcp-project',
+      pubsub: {
+        subscriptionTopic: 'test-subscription-topic',
+      },
+    },
   },
 }));
 

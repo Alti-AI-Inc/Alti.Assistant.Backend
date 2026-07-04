@@ -12,13 +12,13 @@ import {
 } from '../middleware/rateLimiter.js'; // Enterprise-grade Redis-backed rate limiters for DDOS/abuse protection.
 
 export const analyzeTopicNode = async (state) => {
-  const { initialTopic, userId } = state; // userId is essential for rate-limiting.
+  const { initialTopic, userId, user } = state; // userId is essential for rate-limiting.
 
   // [DDOS Guard]: Protects the expensive initial topic analysis LLM call.
   // Limits how many new writing projects a user can start in a given time frame.
   await startWritingLimiter.consume(userId);
 
-  const questions = await generateWritingQuestions(initialTopic);
+  const questions = await generateWritingQuestions(initialTopic, user);
   const firstQuestion = questions.shift();
   return {
     writingBrief: `Topic: ${initialTopic}`,
@@ -29,7 +29,7 @@ export const analyzeTopicNode = async (state) => {
 };
 
 export const processResponseNode = async (state) => {
-  const { writingBrief, userInput, history, userId } = state;
+  const { writingBrief, userInput, history, userId, user } = state;
 
   // [DDOS Guard]: Protects the conversational brief-updating LLM call.
   // Prevents rapid-fire messages and API abuse during the brief refinement phase.
@@ -38,7 +38,8 @@ export const processResponseNode = async (state) => {
   const updatedBrief = await updateWritingBrief(
     writingBrief,
     userInput,
-    history
+    history,
+    user
   );
   return {
     writingBrief: updatedBrief,
@@ -68,7 +69,7 @@ export const getConfirmationNode = async (state) => {
 
 export const writeContentNode = async (state) => {
   console.log('--- Node: writeContentNode ---', state);
-  const { initialTopic, userInput, userId, selectedAgent, selectedStyle, selectedPurpose, isSwarm, history } = state;
+  const { initialTopic, userInput, userId, selectedAgent, selectedStyle, selectedPurpose, isSwarm, history, user } = state;
 
   // [DDOS Guard]: Critical. Protects the most expensive final content generation endpoint.
   // Strictly limits how many full articles a user can generate to prevent cost runaway.
@@ -92,7 +93,7 @@ export const writeContentNode = async (state) => {
     initialTopic || userInput,
     history || [],
     true,
-    null,
+    user,
     typeAgent,
     styleAgent,
     purposeAgent,

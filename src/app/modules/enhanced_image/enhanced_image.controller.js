@@ -603,6 +603,15 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
           history = conversation.messages
             .map((msg) => `${msg.role}: ${msg.content}`)
             .join('\n');
+        } else if (conversation) {
+          // Conversation exists in DB but has no messages. Save the initial prompt.
+          await enhancedImageService.addImageRequestMessage(
+            conversationId,
+            userId,
+            prompt,
+            { type: 'initial_message' },
+            isGuest
+          );
         }
       } catch (error) {
         logger.warn(`Could not load conversation history: ${error.message}`);
