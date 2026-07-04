@@ -157,6 +157,8 @@ jobs:
             fi
 
             echo "=== Step 4: Authenticate with Artifact Registry ==="
+            mkdir -p ~/.docker
+            echo '{}' > ~/.docker/config.json
             echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
 
             echo "=== Step 5: Pull latest images ==="
