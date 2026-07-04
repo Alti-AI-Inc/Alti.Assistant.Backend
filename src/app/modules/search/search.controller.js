@@ -90,6 +90,17 @@ export const performSearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+    const shouldPreferLiveMarketData =
+      /(?:stock|stocks|crypto|forex|currency|commodit|oil|gold|silver|market|price|quote|latest|today|live|intraday|bet|odds|spread|futures|nasdaq|sp500|dow|s&p)/i.test(
+        message
+      );
+    const liveDataHint = shouldPreferLiveMarketData
+      ? '\n\n[Live Market Data Preference: Provide full market context, exact numeric values, and up-to-date quotes or odds. Avoid terse conclusions and include concrete details from the live provider.]'
+      : '';
+    const queryForSearch = shouldPreferLiveMarketData
+      ? `${message}${liveDataHint}`
+      : message;
+
     const inputs = {
       query: message,
       conversationContext: conversationHistory,
@@ -106,7 +117,10 @@ export const performSearch = catchAsync(async (req, res) => {
       logger.warn(
         'SEARCH_AGENT_URL is not configured. Falling back to native grounded search for /assistant_v2.'
       );
-      resultData = await executeGroundedSearch(message, conversationHistory);
+      resultData = await executeGroundedSearch(
+        queryForSearch,
+        conversationHistory
+      );
     } else {
       const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
       try {
@@ -114,7 +128,7 @@ export const performSearch = catchAsync(async (req, res) => {
           'search',
           '/execute',
           {
-            prompt: message,
+            prompt: queryForSearch,
             conversationHistory: conversationHistory,
             options: { depth: deepSearch ? deepSearch : 'standard' },
           },
@@ -131,18 +145,14 @@ export const performSearch = catchAsync(async (req, res) => {
           'Search Agent proxy failed. Falling back to native grounded search for /assistant_v2.',
           proxyError
         );
-        resultData = await executeGroundedSearch(message, conversationHistory);
+        resultData = await executeGroundedSearch(
+          queryForSearch,
+          conversationHistory
+        );
       }
     }
 
     const answer = resultData.content || resultData.answer || '';
-    const shouldPreferLiveMarketData =
-      /(?:stock|stocks|crypto|forex|currency|commodit|oil|gold|silver|market|price|quote|latest|today|live|intraday|bet|odds|spread|futures|nasdaq|sp500|dow|s&p)/i.test(
-        message
-      );
-    const liveDataHint = shouldPreferLiveMarketData
-      ? '\n\n[Live Market Data Preference: Use the freshest available market data feed and avoid assumptions. If multiple values are present, prefer the latest verified quote or odds from the live provider.]'
-      : '';
     const reference = resultData.references || resultData.reference || [];
     const citationMetadata =
       resultData.metadata || resultData.citationMetadata || null;

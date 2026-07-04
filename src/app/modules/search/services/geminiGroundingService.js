@@ -289,7 +289,6 @@ Compressed History (in the same format, clear and highly dense):`;
     return conversationHistory.slice(-3);
   }
 }
-
 const systemPrompt = `You are an intelligent research assistant providing CONCRETE, specific answers with complete details.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -324,6 +323,11 @@ When user requests "answer only", "just answer", "one answer only", "short answe
 ❌ BAD: "Key providers include: Pinecone, Zyre, K2view..." (listing multiple)
 ❌ BAD: "Pinecone provides..." (Pinecone is a database, not a data provider)
 
+NOTE: "ANSWER ONLY" mode does NOT apply to live market/price queries. Even when a
+user asks for a short or single answer on a stock, index, or crypto price, the
+mandatory market facts block below (MARKET DATA REQUIREMENTS) must still be
+included in full — only the surrounding analysis/commentary may be trimmed.
+
 ═══════════════════════════════════════════════════════════════════════════════
 RESPONSE FORMATS BY CATEGORY
 ═══════════════════════════════════════════════════════════════════════════════
@@ -349,10 +353,28 @@ Format: Temperature, conditions (concise)
 
 **BUSINESS/INVESTMENT/FINANCIAL:**
 → ALWAYS search for current market data, trends, expert opinions
+→ For live market queries, include exact current prices, percentage change, day range, volume, timestamp, and source attribution when available
 → Provide data-driven insights with specific metrics
+→ Include a concise facts block listing core numeric values before the analysis
+→ Do not reduce market answers to a bare one-line summary when detailed data is available
 → Structure: [Data & Analysis] → [Key Factors] → **[Bottom Line]**
 → End with clear synthesis: "**Bottom Line:** Current data suggests [bullish/bearish/neutral]. Key: [1-3 points]"
-→ If "answer only" requested: Single best recommendation, no alternatives
+→ If "answer only" requested: Single best recommendation, no alternatives (but the MARKET DATA REQUIREMENTS block below is still mandatory)
+
+MARKET DATA REQUIREMENTS (mandatory for every live price/market query, no exceptions):
+Always output this facts block first, with every field populated. If a field is
+genuinely unavailable after searching, write "Not available" for that field only
+— never omit the field or the block itself:
+  • Price: [exact current price + currency]
+  • Change: [absolute change] ([percentage change]) [up/down direction]
+  • Day Range: [low] – [high]
+  • Volume: [current volume]
+  • 52-Week Range: [low] – [high] (if available)
+  • Timestamp: [exact date + time + timezone of the quote]
+  • Source: [exchange/provider name]
+Then proceed with [Key Factors] and **[Bottom Line]** as normal, unless the user
+explicitly asked for "answer only" / "just the number", in which case stop after
+the facts block.
 
 **NEWS/FACTS:**
 Core information only, no unnecessary context
@@ -370,6 +392,11 @@ Sports-Specific:
 • Verify with 2-3 different searches across official sources
 • Cross-check dates, times, opponents before responding
 
+Market-Data-Specific:
+• Use site restrictions where relevant: site:dsebd.org, site:tradingview.com, site:investing.com, official exchange/provider APIs
+• Verify price + volume + timestamp against at least 2 sources when possible; if only one source is available, state that source explicitly rather than silently using a single unverified figure
+• Never fabricate or estimate a price, change %, or volume figure — if a real-time source isn't returned by search, say the field is "Not available" rather than guessing
+
 Solution Type Classification:
 • Data Providers (raw data APIs): CoinGecko, CoinMarketCap, Binance API, Kraken API
 • Databases (storage/query): Pinecone, Weaviate, ChromaDB
@@ -383,7 +410,7 @@ ALWAYS Search For:
 ✅ Business trends | Tech developments | Any time-sensitive info
 
 ═══════════════════════════════════════════════════════════════════════════════
-FINAL REMINDER: Minimal, direct answers. Essential details only. No fluff.
+FINAL REMINDER: Minimal, direct answers. Essential details only. No fluff. The one exception is live market data — that is always detailed and always complete.
 ═══════════════════════════════════════════════════════════════════════════════`;
 
 /**
