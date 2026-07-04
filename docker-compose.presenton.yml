@@ -1,6 +1,6 @@
 services:
   alti-backend:
-    image: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest
+    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest
     container_name: alti-backend
     restart: unless-stopped
     ports:

@@ -77,7 +77,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Docker registry configuration
-REGISTRY="us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo"
+REGISTRY="us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo"
 IMAGE_NAME="alti-assistant-backend"
 IMAGE_TAG_VERSION="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 IMAGE_TAG_LATEST="${REGISTRY}/${IMAGE_NAME}:latest"
@@ -131,7 +131,7 @@ echo 'Stopping existing containers...'
 docker-compose -f ~COMPOSE_FILE~ down
 
 echo 'Removing old image to prevent containerd lease issues...'
-docker image rm us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
 
 echo 'Pulling latest images...'
 docker-compose -f ~COMPOSE_FILE~ pull

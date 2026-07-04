@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Docker registry configuration
-$REGISTRY = "us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo"
+$REGISTRY = "us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo"
 $IMAGE_NAME = "alti-assistant-backend"
 $IMAGE_TAG_VERSION = "${REGISTRY}/${IMAGE_NAME}:${Version}"
 $IMAGE_TAG_LATEST = "${REGISTRY}/${IMAGE_NAME}:latest"
