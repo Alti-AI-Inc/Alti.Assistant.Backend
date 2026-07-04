@@ -61,12 +61,21 @@ jobs:
             echo "Waiting for VM to boot and run startup script (approx 60s)..."
             sleep 60
           else
-            echo "Instance $INSTANCE_NAME is already running."
+            echo "Instance $INSTANCE_NAME exists."
+            STATUS=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --format='get(status)')
+            echo "Current status: $STATUS"
+            if [ "$STATUS" != "RUNNING" ]; then
+              echo "Starting stopped instance $INSTANCE_NAME..."
+              gcloud compute instances start $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --quiet
+              echo "Waiting for VM to boot (approx 30s)..."
+              sleep 30
+            fi
           fi
           
           VM_IP=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
           echo "Discovered dynamic IP: $VM_IP"
           echo "VM_HOST=$VM_IP" >> $GITHUB_ENV
+
 
       - name: Ensure Artifact Registry repository exists
         continue-on-error: true
