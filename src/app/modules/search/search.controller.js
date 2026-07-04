@@ -938,6 +938,7 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
+    res.flushHeaders();
 
     // Handle conversation creation/retrieval
     // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`

@@ -229,6 +229,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
+    res.flushHeaders();
 
     // Handle conversation creation/retrieval
     // OPTIMIZATION: If 'searchService.handleSearchConversation' primarily retrieves data for reading

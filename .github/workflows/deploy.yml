@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
+  REGISTRY: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo
   IMAGE_NAME: alti-assistant-backend
   VM_USER: alti_deployer
   COMPOSE_DIR: '~'
@@ -46,10 +46,10 @@ jobs:
           ZONE="us-central1-a"
           
           echo "Checking if instance $INSTANCE_NAME exists..."
-          if ! gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod > /dev/null 2>&1; then
+          if ! gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=gen-lang-client-0273900650 > /dev/null 2>&1; then
             echo "Instance $INSTANCE_NAME does not exist. Provisioning..."
             gcloud compute instances create $INSTANCE_NAME \
-              --project=alti-assistant-prod \
+              --project=gen-lang-client-0273900650 \
               --zone=$ZONE \
               --machine-type=e2-medium \
               --image-family=ubuntu-2204-lts \
@@ -62,28 +62,28 @@ jobs:
             sleep 60
           else
             echo "Instance $INSTANCE_NAME exists."
-            STATUS=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --format='get(status)')
+            STATUS=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=gen-lang-client-0273900650 --format='get(status)')
             echo "Current status: $STATUS"
             if [ "$STATUS" != "RUNNING" ]; then
               echo "Starting stopped instance $INSTANCE_NAME..."
-              gcloud compute instances start $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --quiet
+              gcloud compute instances start $INSTANCE_NAME --zone=$ZONE --project=gen-lang-client-0273900650 --quiet
               echo "Waiting for VM to boot (approx 30s)..."
               sleep 30
             fi
           fi
           
-          VM_IP=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=alti-assistant-prod --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+          VM_IP=$(gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=gen-lang-client-0273900650 --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
           echo "Discovered dynamic IP: $VM_IP"
           echo "VM_HOST=$VM_IP" >> $GITHUB_ENV
-
-
+          
+          
       - name: Ensure Artifact Registry repository exists
         continue-on-error: true
         run: |
           gcloud artifacts repositories create alti-assistant-core-backend-repo \
             --repository-format=docker \
             --location=us-central1 \
-            --project=alti-assistant-prod \
+            --project=gen-lang-client-0273900650 \
             --description="Alti assistant core backend Docker images" --quiet || true
 
       - name: Log in to Google Artifact Registry
@@ -116,7 +116,7 @@ jobs:
           
           ssh-keygen -y -f ~/.ssh/alti-vm-key > ~/.ssh/alti-vm-key.pub
           echo "${{ env.VM_USER }}:$(cat ~/.ssh/alti-vm-key.pub)" > /tmp/ssh_keys
-          gcloud compute instances add-metadata alti-sandbox-vm --project=alti-assistant-prod --zone=us-central1-a --metadata-from-file=ssh-keys=/tmp/ssh_keys
+          gcloud compute instances add-metadata alti-sandbox-vm --project=gen-lang-client-0273900650 --zone=us-central1-a --metadata-from-file=ssh-keys=/tmp/ssh_keys
           
           sleep 10
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
@@ -135,7 +135,7 @@ jobs:
 
             echo "=== Step 2: Aggressive disk cleanup BEFORE pulling new image ==="
             docker container prune -f 2>/dev/null || true
-            docker image rm us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+            docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
             docker image prune -af 2>/dev/null || true
             docker volume prune -f 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true

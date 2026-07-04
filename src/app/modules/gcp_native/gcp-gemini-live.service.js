@@ -67,7 +67,7 @@ const buildLiveSessionSetup = (sessionConfig = {}) => {
   const {
     model = LIVE_API_MODELS.FLASH_LIVE,
     voice = VOICE_OPTIONS.AOEDE,
-    systemInstruction = 'You are Alti, a helpful AI assistant powered by Google Gemini. Respond naturally, concisely, and in a conversational tone.',
+    systemInstruction = 'You are Alti, a helpful AI assistant. Respond naturally, concisely, and in a conversational tone.',
     responseModality = 'AUDIO',
     languageCode = 'en-US',
     tools = [],

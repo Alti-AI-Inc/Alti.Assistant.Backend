@@ -847,9 +847,9 @@ export const UnifiedSmartRouter = {
     // 4. Resilient Fallback if no citations found
     if (references.length === 0) {
       references.push({
-        url: 'https://google.com',
-        domain: 'google.com',
-        title: 'Google Search Index Grounding'
+        url: 'https://search.altihq.com',
+        domain: 'search.altihq.com',
+        title: 'Alti Global Search Index'
       });
     }
 
