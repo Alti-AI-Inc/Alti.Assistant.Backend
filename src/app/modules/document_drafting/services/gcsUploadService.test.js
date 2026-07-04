@@ -4,12 +4,28 @@ import fs from 'fs'; // Import fs to mock its methods
 // Mock external dependencies
 // Mock GCS_CONFIG first, as it's used in the module's top-level initialization
 // This initial mock is a placeholder; it will be overridden in beforeEach or specific tests.
-vi.mock('../document.constant.js', () => ({
+vi.doMock('../document.constant.js', () => ({
   GCS_CONFIG: {
     KEY_FILE: '/path/to/mock-key.json',
     PROJECT_ID: 'mock-project-id',
     BUCKET_NAME: 'mock-bucket-name',
     FOLDER_PREFIX: 'test-uploads/',
+  },
+}));
+
+vi.mock('../../subscription/subscription.model.js', () => ({
+  default: {
+    findOne: vi.fn(),
+  },
+}));
+vi.mock('../../usage/userUsage.model.js', () => ({
+  default: {
+    findOne: vi.fn(),
+  },
+}));
+vi.mock('../../tenant/tenant.model.js', () => ({
+  default: {
+    findOne: vi.fn(),
   },
 }));
 
@@ -30,7 +46,9 @@ const {
   mockStorageConstructor,
   mockLogger
 } = vi.hoisted(() => {
-  const mockStorageConstructor = vi.fn().mockImplementation(() => mockStorage);
+  const mockStorageConstructor = vi.fn().mockImplementation(function() {
+    return mockStorage;
+  });
 
   // Mock logger
   const mockLogger = {
@@ -50,9 +68,15 @@ vi.mock('@google-cloud/storage', () => ({
 }));
 
 // Mock fs for existsSync
-vi.mock('fs', () => ({
-  existsSync: vi.fn(),
-}));
+vi.mock('fs', () => {
+  const existsSyncFn = vi.fn();
+  return {
+    default: {
+      existsSync: existsSyncFn,
+    },
+    existsSync: existsSyncFn,
+  };
+});
 
 vi.mock('../../../../shared/logger.js', () => ({
   logger: mockLogger,
@@ -60,9 +84,17 @@ vi.mock('../../../../shared/logger.js', () => ({
 
 // Helper to re-import the module under test for different GCS_CONFIG scenarios
 // This is crucial because the GCS initialization logic runs immediately on module load.
-const importService = async () => {
+const importService = async (customGcsConfig) => {
   vi.resetModules(); // Reset module cache to allow re-importing with new mocks
-  // Re-import GCS_CONFIG to ensure the latest mock is applied before the service
+  const configToUse = customGcsConfig || {
+    KEY_FILE: '/path/to/mock-key.json',
+    PROJECT_ID: 'mock-project-id',
+    BUCKET_NAME: 'mock-bucket-name',
+    FOLDER_PREFIX: 'test-uploads/',
+  };
+  vi.doMock('../document.constant.js', () => ({
+    GCS_CONFIG: configToUse,
+  }));
   const { GCS_CONFIG } = await import('../document.constant.js');
   const service = await import('./gcsUploadService.js');
   return { service, GCS_CONFIG };
@@ -75,17 +107,6 @@ describe('gcsUploadService', () => {
 
     // Default mock for fs.existsSync to true for key file presence
     vi.mocked(fs.existsSync).mockReturnValue(true);
-
-    // Set default GCS_CONFIG for most tests. This will be overridden in specific tests
-    // where different config scenarios are needed.
-    vi.mock('../document.constant.js', () => ({
-      GCS_CONFIG: {
-        KEY_FILE: '/path/to/mock-key.json',
-        PROJECT_ID: 'mock-project-id',
-        BUCKET_NAME: 'mock-bucket-name',
-        FOLDER_PREFIX: 'test-uploads/',
-      },
-    }));
   });
 
   afterEach(() => {
@@ -93,21 +114,15 @@ describe('gcsUploadService', () => {
   });
 
   describe('GCS Initialization', () => {
-    it('should initialize GCS with keyFilename if KEY_FILE exists', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: '/path/to/mock-key.json',
-          PROJECT_ID: 'mock-project-id',
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
-
-      await importService();
+    it('should initialize GCS if PROJECT_ID is present', async () => {
+      await importService({
+        KEY_FILE: '/path/to/mock-key.json',
+        PROJECT_ID: 'mock-project-id',
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
+      });
 
       expect(mockStorageConstructor).toHaveBeenCalledWith({
-        keyFilename: '/path/to/mock-key.json',
         projectId: 'mock-project-id',
       });
       expect(mockStorage.bucket).toHaveBeenCalledWith('mock-bucket-name');
@@ -116,17 +131,12 @@ describe('gcsUploadService', () => {
     });
 
     it('should initialize GCS with projectId if KEY_FILE does not exist but PROJECT_ID is present', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false); // Key file does not exist
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: '/path/to/mock-key.json', // Still defined, but existsSync is false
-          PROJECT_ID: 'mock-project-id',
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
-
-      await importService();
+      await importService({
+        KEY_FILE: undefined,
+        PROJECT_ID: 'mock-project-id',
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
+      });
 
       expect(mockStorageConstructor).toHaveBeenCalledWith({
         projectId: 'mock-project-id',
@@ -137,42 +147,33 @@ describe('gcsUploadService', () => {
     });
 
     it('should not initialize GCS if no credentials are provided', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: undefined, // No key file
-          PROJECT_ID: undefined, // No project ID
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
-
-      await importService();
+      await importService({
+        KEY_FILE: undefined,
+        PROJECT_ID: undefined,
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
+      });
 
       expect(mockStorageConstructor).not.toHaveBeenCalled();
       expect(mockStorage.bucket).not.toHaveBeenCalled();
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'GCS credentials not configured. Document uploads will be stored locally only.'
+        'GCS_PROJECT_ID not configured. GCS services will be unavailable.'
       );
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     it('should log an error if GCS initialization fails', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
       const initError = new Error('GCS Init Failed');
-      mockStorageConstructor.mockImplementationOnce(() => {
+      mockStorageConstructor.mockImplementationOnce(function() {
         throw initError;
       });
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: '/path/to/mock-key.json',
-          PROJECT_ID: 'mock-project-id',
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
 
-      await importService();
+      await importService({
+        KEY_FILE: '/path/to/mock-key.json',
+        PROJECT_ID: 'mock-project-id',
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
+      });
 
       expect(mockStorageConstructor).toHaveBeenCalled();
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -191,16 +192,12 @@ describe('gcsUploadService', () => {
     };
 
     it('should return local path if GCS is not configured', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: undefined,
-          PROJECT_ID: undefined,
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
-      const { service } = await importService();
+      const { service } = await importService({
+        KEY_FILE: undefined,
+        PROJECT_ID: undefined,
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
+      });
 
       const result = await service.uploadDocumentToGCS(
         localFilePath,
@@ -353,7 +350,7 @@ describe('gcsUploadService', () => {
         { file: 'doc.txt', expected: 'text/plain' },
         { file: 'doc.html', expected: 'text/html' },
         { file: 'doc.md', expected: 'text/markdown' },
-        { file: 'doc.jpg', expected: 'application/octet-stream' }, // Unknown
+        { file: 'doc.jpg', expected: 'image/jpeg' }, // Supported
         { file: 'doc', expected: 'application/octet-stream' }, // No extension
       ];
 
@@ -370,27 +367,24 @@ describe('gcsUploadService', () => {
   });
 
   describe('deleteDocumentFromGCS', () => {
-    const gcsPath = 'gs://mock-bucket-name/test-uploads/user123/document.pdf';
-    const expectedFilePath = 'test-uploads/user123/document.pdf';
+    const gcsPath = 'gs://mock-bucket-name/test-uploads/tenant123/workspace123/user123/document.pdf';
+    const expectedFilePath = 'test-uploads/tenant123/workspace123/user123/document.pdf';
+    const mockUser = {
+      id: 'user123',
+      tenantId: 'tenant123',
+      workspaceId: 'workspace123',
+      role: 'user',
+    };
 
-    it('should return failure if GCS is not configured', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mock('../document.constant.js', () => ({
-        GCS_CONFIG: {
-          KEY_FILE: undefined,
-          PROJECT_ID: undefined,
-          BUCKET_NAME: 'mock-bucket-name',
-          FOLDER_PREFIX: 'test-uploads/',
-        },
-      }));
-      const { service } = await importService();
-
-      const result = await service.deleteDocumentFromGCS(gcsPath);
-
-      expect(result).toEqual({
-        success: false,
-        message: 'GCS not configured',
+    it('should throw failure if GCS is not configured', async () => {
+      const { service } = await importService({
+        KEY_FILE: undefined,
+        PROJECT_ID: undefined,
+        BUCKET_NAME: 'mock-bucket-name',
+        FOLDER_PREFIX: 'test-uploads/',
       });
+
+      await expect(service.deleteDocumentFromGCS(gcsPath, mockUser)).rejects.toThrow('GCS not configured.');
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'GCS not configured. Cannot delete from GCS.'
       );
@@ -401,12 +395,12 @@ describe('gcsUploadService', () => {
     it('should successfully delete a document from GCS', async () => {
       const { service } = await importService();
 
-      const result = await service.deleteDocumentFromGCS(gcsPath);
+      const result = await service.deleteDocumentFromGCS(gcsPath, mockUser);
 
       expect(mockBucket.file).toHaveBeenCalledWith(expectedFilePath);
       expect(mockFile.delete).toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith(
-        `Document deleted from GCS: ${expectedFilePath}`
+        `Document deleted from GCS by user ${mockUser.id}: ${expectedFilePath}`
       );
       expect(result).toEqual({
         success: true,
@@ -419,18 +413,14 @@ describe('gcsUploadService', () => {
       mockFile.delete.mockRejectedValueOnce(deleteError);
       const { service } = await importService();
 
-      const result = await service.deleteDocumentFromGCS(gcsPath);
+      await expect(service.deleteDocumentFromGCS(gcsPath, mockUser)).rejects.toThrow('Could not delete document.');
 
       expect(mockBucket.file).toHaveBeenCalledWith(expectedFilePath);
       expect(mockFile.delete).toHaveBeenCalled();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error deleting document from GCS:',
-        deleteError
+        `Error deleting document from GCS for path ${gcsPath}:`,
+        deleteError.message
       );
-      expect(result).toEqual({
-        success: false,
-        message: deleteError.message,
-      });
     });
   });
 });

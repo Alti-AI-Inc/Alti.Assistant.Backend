@@ -6,7 +6,7 @@ import { GCS_CONFIG } from '../document.constant.js';
 import SubscriptionModel from '../../subscription/subscription.model.js';
 import UserUsageModel from '../../usage/userUsage.model.js';
 import TenantModel from '../../tenant/tenant.model.js';
-import emailService from '../../../shared/email.service.js';
+import emailService from '../../../../shared/email.service.js';
 import mongoose from 'mongoose';
 
 /**
