@@ -301,12 +301,17 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         src.relevanceScore = score;
       });
 
-      // Sort by score descending and slice to maximum results size
+      // Sort by score descending and keep only sources with a positive relevance score (unless all are 0, fallback to top 3)
       deduplicatedList.sort((a, b) => b.relevanceScore - a.relevanceScore);
-      const topSources = deduplicatedList.slice(0, this.maxResults);
+      let topSources = deduplicatedList.filter(src => src.relevanceScore > 0);
+      if (topSources.length === 0) {
+        topSources = deduplicatedList.slice(0, 3);
+      } else {
+        topSources = topSources.slice(0, this.maxResults);
+      }
 
       // Clean up snippets inside each source for final display
-      const finalResults = topSources.map((src, idx) => ({
+      let finalResults = topSources.map((src, idx) => ({
         index: idx + 1,
         title: src.title,
         url: src.url,
@@ -340,9 +345,10 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           1. Give ONLY the direct answer. No preambles, no introductions, no closing remarks.
           2. If the answer is one sentence, give ONE sentence.
           3. Maximum 100 words for simple factual questions. Up to 200 words for complex questions.
-          4. NO bracketed citations, source indices, or URLs in the response.
+          4. NO bracketed citations, source indices, or URLs in the body of the response.
           5. NO markdown headers.
-          6. Be factual, neutral, professional.`,
+          6. Be factual, neutral, professional.
+          7. At the very end of your response, on a new line, write "Used Sources: " followed by a JSON array of the Source # indices that you actually used to compile the answer. For example: "Used Sources: [1, 3]". Only list the sources that were strictly necessary to answer.`,
           config: {
             temperature: 0.05,
             maxOutputTokens: 4096
@@ -365,10 +371,29 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           };
         });
 
-        synthesizedAnswer = synthesisResponse?.candidates?.[0]?.content?.parts
+        const rawText = synthesisResponse?.candidates?.[0]?.content?.parts
           ?.filter((p) => p.text && !p.thought)
           ?.map((p) => p.text)
           ?.join('') || 'Unable to synthesize response context.';
+
+        // Parse referenced indices and filter finalResults accordingly
+        const match = rawText.match(/Used Sources:\s*(\[[\d,\s,]*\])/i);
+        if (match) {
+          try {
+            const usedIndices = JSON.parse(match[1]);
+            if (Array.isArray(usedIndices) && usedIndices.length > 0) {
+              const filtered = finalResults.filter(r => usedIndices.includes(r.index));
+              if (filtered.length > 0) {
+                finalResults = filtered.map((r, idx) => ({ ...r, index: idx + 1 }));
+              }
+            }
+          } catch (e) {
+            logger.warn(`[GoogleSearchGroundingTool] Failed to parse used sources JSON array: ${e.message}`);
+          }
+          synthesizedAnswer = rawText.replace(/Used Sources:\s*\[[\d,\s,]*\]/i, '').trim();
+        } else {
+          synthesizedAnswer = rawText.trim();
+        }
       } else if (includeAnswer) {
         synthesizedAnswer = `No web search results could be retrieved to answer: "${query}".`;
       }
