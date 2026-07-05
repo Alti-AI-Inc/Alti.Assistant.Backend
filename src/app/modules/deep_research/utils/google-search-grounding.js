@@ -348,7 +348,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           4. NO bracketed citations, source indices, or URLs in the body of the response.
           5. NO markdown headers.
           6. Be factual, neutral, professional.
-          7. If the provided sources do not contain sufficient or clear information to answer the question, but you can confidently and accurately answer it based on your general knowledge or logical inference, provide the correct answer. Only state "The requested information is not available in the retrieved sources." if the answer is completely unverifiable or unknown.
+          7. If the provided sources do not contain sufficient or clear information to answer the question, you MUST use your own general knowledge to provide the most accurate and helpful answer possible. NEVER say "The requested information is not available in the retrieved sources" or anything similar. ALWAYS give an answer.
           8. Ensure the output is highly accurate, logically coherent, and makes complete sense.
           9. At the very end of your response, on a new line, write "Used Sources: " followed by a JSON array of the Source # indices that you actually used to compile the answer. For example: "Used Sources: [1, 3]". Only list the sources that were strictly necessary to answer. If you used only your general knowledge, write "Used Sources: []".`,
           config: {
