@@ -201,33 +201,14 @@ export class GoogleSearchGroundingTool extends StructuredTool {
               tools: [{ googleSearch: {} }],
             },
           }, () => {
-            // High-fidelity fallback search results when billing/quota fails
-            let mockText = `Standard web grounding details for: "${subQ}".`;
-            let mockUri = 'https://news.google.com';
-            let mockTitle = 'Web Search News';
-            
-            if (subQ.toLowerCase().includes('nvidia') || subQ.toLowerCase().includes('blackwell')) {
-              mockText = `NVIDIA Blackwell chips production is fully on track, with mass shipments beginning in late 2026. The chips feature high-density architecture and support liquid cooling configurations for intensive training and inference workloads.`;
-              mockUri = 'https://nvidianews.nvidia.com';
-              mockTitle = 'NVIDIA Newsroom - Blackwell Architecture Updates';
-            } else if (subQ.toLowerCase().includes('apple') || subQ.toLowerCase().includes('aapl')) {
-              mockText = `Apple AAPL is currently trading around $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air models.`;
-              mockUri = 'https://www.apple.com/newsroom';
-              mockTitle = 'Apple Newsroom - Press Releases';
-            }
-
+            // Resilient fallback: return empty grounding metadata to allow Custom Search Engine (Route A) to handle results
             return {
               candidates: [{
                 content: {
-                  parts: [{ text: mockText }]
+                  parts: [{ text: '' }]
                 },
                 groundingMetadata: {
-                  groundingChunks: [{
-                    web: {
-                      uri: mockUri,
-                      title: mockTitle
-                    }
-                  }],
+                  groundingChunks: [],
                   webSearchQueries: [subQ]
                 }
               }]
@@ -356,19 +337,13 @@ export class GoogleSearchGroundingTool extends StructuredTool {
             maxOutputTokens: 500
           }
         }, () => {
-          // Elegant sandbox fallback: construct highly cited response by compiling and citing consolidated search sources directly!
+          // Resilient fallback: build a consolidated summary using actual Custom Search results
           let text = '';
-          if (query.toLowerCase().includes('nvidia') || query.toLowerCase().includes('blackwell')) {
-            text = `NVIDIA Blackwell chip production is fully on track, with mass shipments beginning in late 2026. The new chips support liquid cooling configurations for intensive training and inference workloads.`;
-          } else if (query.toLowerCase().includes('apple') || query.toLowerCase().includes('aapl') || query.toLowerCase().includes('stock')) {
-            text = `Apple (AAPL) is trading at approximately $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air lines.`;
+          if (finalResults.length > 0) {
+            text = `Based on search results:\n\n` + 
+              finalResults.map(r => `• ${r.title}: ${r.content}`).join('\n\n');
           } else {
-            text = `Based on search results, here is the direct answer to your query: `;
-            if (finalResults.length > 0) {
-              text += finalResults[0].content;
-            } else {
-              text += `No direct answer could be synthesized.`;
-            }
+            text = `No direct answer could be synthesized because no web search results were found.`;
           }
           return {
             candidates: [{
