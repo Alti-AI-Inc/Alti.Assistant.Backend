@@ -493,7 +493,7 @@ Instructions: ${agent.systemInstruction}`;
             contents,
             generationConfig: {
               temperature: isPrimary ? 0.15 : 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
+              maxOutputTokens: 8192
             }
           });
 
@@ -876,7 +876,7 @@ Instructions: ${agent.systemInstruction}`;
                 contents,
                 generationConfig: {
                   temperature: isPrimary ? 0.15 : 0.05,
-                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
+                  maxOutputTokens: 8192
                 }
               });
               for await (const chunk of streamResult.stream) {
@@ -922,7 +922,7 @@ Instructions: ${agent.systemInstruction}`;
                 contents,
                 generationConfig: {
                   temperature: isPrimary ? 0.15 : 0.05,
-                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
+                  maxOutputTokens: 8192
                 }
               });
 

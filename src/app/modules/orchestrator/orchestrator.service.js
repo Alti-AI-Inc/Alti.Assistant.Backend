@@ -964,8 +964,7 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
       try {
         const query = { conversationId: finalConversationId, userId };
         const conversationDoc = await Conversation.findOne(
-          tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query,
-          { messages: { $slice: -6 } }
+          tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
         ).lean();
         const decryptedDoc = decryptConversation(conversationDoc);
         if (decryptedDoc?.messages?.length > 0) {
