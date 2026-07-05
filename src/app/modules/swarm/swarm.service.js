@@ -635,6 +635,37 @@ Please try again shortly — your request has been received and understood.`;
    * @yields {Object} Chunks containing streaming text, thoughts, or metadata
    */
   static async* executeSwarmStream(query, conversationHistory = [], userId = null, options = {}) {
+    let activeQuery = query;
+    if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      try {
+        console.log(`[Swarm Engine] Contextualizing query "${query}" using conversation history...`);
+        const formattedHistory = conversationHistory.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n');
+        
+        const rewriteResult = await ai.models.generateContent({
+          model: config.gemini_model || 'gemini-3.5-flash',
+          contents: `Given the conversation history and the latest user query, rewrite the latest user query to be a standalone, self-contained search query. If the query is already standalone or self-contained, return it exactly as-is. Do not include any explanations or preambles.
+          
+Conversation History:
+${formattedHistory}
+
+Latest User Query: "${query}"`,
+          config: {
+            temperature: 0.1,
+            maxOutputTokens: 200,
+          }
+        });
+        
+        const rewritten = rewriteResult?.text?.trim();
+        if (rewritten && rewritten.length > 0) {
+          console.log(`[Swarm Engine] Query rewritten from "${query}" to "${rewritten}"`);
+          activeQuery = rewritten;
+        }
+      } catch (err) {
+        console.warn(`[Swarm Engine] Query contextualization failed, using raw query: ${err.message}`);
+      }
+    }
+    query = activeQuery;
+
     console.log(`📡 Swarm Engine: Building execution pipeline for query "${query}"`);
     
     // 1. Scan and register custom OpenClaw skills in the user workspace
