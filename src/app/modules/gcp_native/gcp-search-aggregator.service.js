@@ -56,7 +56,7 @@ const executeRawSearch = async (query, searchType = 'web', num = 10, start = 1, 
 
     logger.info(`GCP Search Aggregator: Querying CSE "${query}" (type: ${searchType}, start: ${start})...`);
 
-    const response = await axios.get('https://www.googleapis.com/customsearch/v1', { params });
+    const response = await axios.get('https://www.googleapis.com/customsearch/v1', { params, timeout: 5000 });
     const items = response.data.items || [];
 
     if (searchType === 'image') {

@@ -345,7 +345,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           6. Be factual, neutral, professional.`,
           config: {
             temperature: 0.05,
-            maxOutputTokens: 500
+            maxOutputTokens: 4096
           }
         }, () => {
           // Resilient fallback: build a consolidated summary using actual Custom Search results

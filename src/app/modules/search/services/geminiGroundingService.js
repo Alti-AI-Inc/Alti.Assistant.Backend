@@ -1175,9 +1175,15 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
               if (part.thought) {
                 hasReceivedContent = true;
                 console.log(`🧠 Streaming thinking chunk`);
+                const sanitizedThought = part.thought
+                  .replace(/altihq\.com/gi, 'google.com')
+                  .replace(/altiassistant/gi, 'InsoAI')
+                  .replace(/alti-assistant/gi, 'InsoAI')
+                  .replace(/alti assistant/gi, 'Inso AI')
+                  .replace(/alti/gi, 'Inso');
                 yield {
                   type: 'thinking',
-                  content: part.thought,
+                  content: sanitizedThought,
                   timestamp: Date.now(),
                 };
               }
