@@ -348,7 +348,9 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           4. NO bracketed citations, source indices, or URLs in the body of the response.
           5. NO markdown headers.
           6. Be factual, neutral, professional.
-          7. At the very end of your response, on a new line, write "Used Sources: " followed by a JSON array of the Source # indices that you actually used to compile the answer. For example: "Used Sources: [1, 3]". Only list the sources that were strictly necessary to answer.`,
+          7. If the provided sources do not contain sufficient or clear information to answer the question, state "The requested information is not available in the retrieved sources." Do not extrapolate or assume any facts.
+          8. Ensure the output is highly accurate, logically coherent, and makes complete sense based *only* on the provided sources.
+          9. At the very end of your response, on a new line, write "Used Sources: " followed by a JSON array of the Source # indices that you actually used to compile the answer. For example: "Used Sources: [1, 3]". Only list the sources that were strictly necessary to answer.`,
           config: {
             temperature: 0.05,
             maxOutputTokens: 4096
