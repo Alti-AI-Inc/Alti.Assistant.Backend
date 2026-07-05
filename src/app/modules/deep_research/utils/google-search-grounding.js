@@ -127,8 +127,16 @@ export class GoogleSearchGroundingTool extends StructuredTool {
       onProgressUpdate, // Optional streaming callback for interactive phase update
     } = params;
 
+    const currentDateString = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'America/New_York'
+    });
+
     try {
-      logger.info(`[GoogleSearchGroundingTool] Running advanced search grounding for: "${query}"`);
+      logger.info(`[GoogleSearchGroundingTool] Running advanced search grounding for: "${query}" (Today: ${currentDateString})`);
 
       // 1. DYNAMIC QUERY DECONSTRUCTION (Multi-Query Expansion)
       let subQueries = [query];
@@ -138,6 +146,8 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         const deconstructResponse = await callGeminiWithResilience({
           model: 'gemini-3.5-flash',
           contents: `Analyze the user's search query and deconstruct it into exactly 2-3 distinct, highly targeted, and non-overlapping search engine queries to gather complete, multi-turn factual details. Respond strictly with a valid JSON array of strings. Do not use markdown blocks.
+          
+          Current Date Context: Today is ${currentDateString}
           Query: "${query}"`,
           config: {
             temperature: 0.05,
@@ -320,6 +330,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           model: 'gemini-3.5-flash',
           contents: `Answer the user's question using ONLY the provided sources. Be extremely concise.
           
+          Current Date Context: Today is ${currentDateString}
           User Query: "${query}"
           
           Sources:

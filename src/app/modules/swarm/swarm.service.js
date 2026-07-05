@@ -371,8 +371,29 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
     for (let index = 0; index < pipeline.chain.length; index++) {
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
+      const currentDateString = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/New_York'
+      });
+      const currentTimeString = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+        timeZone: 'America/New_York'
+      });
+      const dateInstruction = `\n\n[SYSTEM CONTEXT: CURRENT DATE & TIME]
+- Current Date: ${currentDateString}
+- Current Time: ${currentTimeString}
+- Today is: ${currentDateString.split(',')[0]}
+Use this context to resolve relative date queries (e.g. "today", "yesterday", "tomorrow", "next week", "this weekend", "scheduled games").
+`;
+
       let systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
-      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction;
+      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction + dateInstruction;
 
       let customGcpGroundingBlock = '';
       if (agent.id === 'gcp_grounding') {
@@ -716,8 +737,29 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
       const isLast = index === pipeline.chain.length - 1;
+      const currentDateString = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/New_York'
+      });
+      const currentTimeString = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+        timeZone: 'America/New_York'
+      });
+      const dateInstruction = `\n\n[SYSTEM CONTEXT: CURRENT DATE & TIME]
+- Current Date: ${currentDateString}
+- Current Time: ${currentTimeString}
+- Today is: ${currentDateString.split(',')[0]}
+Use this context to resolve relative date queries (e.g. "today", "yesterday", "tomorrow", "next week", "this weekend", "scheduled games").
+`;
+
       let systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
-      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction;
+      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction + dateInstruction;
 
       console.log(`📡 Swarm Executor: Running agent [${agent.name}] (${index + 1}/${pipeline.chain.length})`);
 
