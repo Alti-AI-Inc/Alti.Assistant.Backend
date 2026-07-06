@@ -64,7 +64,7 @@ vi.mock('@langchain/google-genai', () => ({
 vi.mock('../knowledge.constant.js', () => ({
   KNOWLEDGE_CONFIG: {
     MODEL: 'gemini-3.5-flash',
-    COMPLEX_MODEL: 'gemini-2.5-pro',
+    COMPLEX_MODEL: 'gemini-3.1-pro',
     TEMPERATURE: 0.7,
     COMPLEXITY_THRESHOLD: 0.5,
   },
@@ -424,7 +424,7 @@ describe('knowledgeQueryService', () => {
       );
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Model Selection - Complexity: HIGH'));
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(`Using Model: ${KNOWLEDGE_CONFIG.COMPLEX_MODEL}`));
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with gemini-2.5-pro'));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Initializing RAG with gemini-3.1-pro'));
     });
 
     it('should use the default model for simple queries', async () => {

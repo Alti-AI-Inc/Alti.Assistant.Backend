@@ -134,7 +134,7 @@ Analyze the request and determine the appropriate service based on the current r
  * @param {object} options - Configuration options for the classification.
  * @param {string} options.sessionId - A unique identifier for the user's session. This is REQUIRED to maintain isolated conversation histories.
  * @param {string} [options.apiKey] - Google API key. Defaults to configured value.
- * @param {string} [options.modelName='gemini-1.5-flash'] - The name of the Google Generative AI model to use for classification.
+ * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the Google Generative AI model to use for classification.
  * @returns {Promise<IntentSchema>} A promise that resolves to an object containing the classified service, reasoning, and confidence score.
  * @throws {Error} If `sessionId` is not provided, the API key is missing, or the model fails to respond.
  */

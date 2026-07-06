@@ -71,7 +71,7 @@ Formatting Guidelines:
   2. Body: Support the purpose with structured, evidence-based paragraphs.
   3. Conclusion: Restate the desired outcome, next steps, and express appreciation.
 - Maintain an authoritative, polite, and professional tone throughout.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['letter', 'cover letter', 'recommendation letter', 'formal letter', 'business letter', 'official memo']
 };
@@ -100,7 +100,7 @@ Formatting Guidelines:
 - Focus on rhythm, cadence, flow, and emotional resonance.
 - Inject sensory details, creative metaphors, and strong imagery.
 - Adhere strictly to the requested rhyme scheme, mood, and genre.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['song', 'lyrics', 'poem', 'poetry', 'rhyme', 'verse', 'chorus', 'ballad', 'rap', 'sonnet']
 };
@@ -131,7 +131,7 @@ Formatting Guidelines:
 - Use transitional words and phrases to connect paragraphs.
 - Avoid informal language, contractions, and first-person pronouns unless explicitly requested.
 - Cite placeholders (e.g., "[Author, Year]") where claims require evidence.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['essay', 'thesis', 'research paper', 'argumentative', 'literature review', 'academic writing', 'dissertation']
 };
@@ -222,7 +222,7 @@ Formatting Guidelines:
 - Use structured tables for API parameters, responses, configurations, or options.
 - Maintain a clear, concise, and objective tone.
 - Avoid ambiguity; verify that all command examples and syntax blocks are accurate and clean.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['technical documentation', 'readme', 'api reference', 'manual', 'software spec', 'developer guide']
 };
@@ -255,7 +255,7 @@ Formatting Guidelines:
   5. Pricing/Budget: Clear cost breakdown.
   6. Call to Action / Next Steps: How to get started.
 - Maintain a highly professional, persuasive, and authoritative tone. Use tables for timelines and costs.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['proposal', 'rfp', 'business proposal', 'grant proposal', 'project pitch', 'rfp response']
 };
@@ -284,7 +284,7 @@ Formatting Guidelines:
 - Inject rhetorical devices (rule of three, anaphora, contrasting pairs) to make key points memorable.
 - Build a clear narrative arc: hook -> core message -> supporting stories/data -> emotional climax -> call to action.
 - Add delivery notes in brackets (e.g., "[Pause for effect]", "[Speak slowly]") to guide the speaker.`,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.1-pro',
   tools: [],
   keywords: ['speech', 'toast', 'keynote', 'script', 'voiceover', 'presentation script', 'monologue']
 };

@@ -128,7 +128,7 @@ export const CONVERSATION_CATEGORY = 'legal_contract';
 /**
  * @constant {string} CONVERSATION_MODEL - The AI model to use for general conversation within the legal contract module.
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 // Output formats
 /**

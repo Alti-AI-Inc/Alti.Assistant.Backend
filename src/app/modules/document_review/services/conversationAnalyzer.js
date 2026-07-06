@@ -265,7 +265,7 @@ const summarizeConversation = async (
     const model = genAI.getGenerativeModel({
       // Use a powerful model for nuanced summarization tasks.
       // Model name should be configurable.
-      model: config.gemini_pro_model || 'gemini-2.5-pro',
+      model: config.gemini_pro_model || 'gemini-3.1-pro',
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 1024,

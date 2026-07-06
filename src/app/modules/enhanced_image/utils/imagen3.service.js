@@ -212,10 +212,10 @@ export async function generateImageWithImagen3(
   const ai = new GoogleGenAI({ apiKey });
 
   try {
-    // Correctly interact with imagen-3.0-generate-002 using generateContent for image generation.
+    // Correctly interact with imagen-4.0-generate-002 using generateContent for image generation.
     // The chat API is generally for conversational models, not direct image generation.
     const response = await ai.models.generateContent({
-      model: 'imagen-3.0-generate-002',
+      model: 'imagen-4.0-generate-002',
       contents: [{ text: prompt }], // Pass the prompt as text content
       // Configuration like responseModalities and tools are not typically used
       // for direct image generation models via generateContent and can be omitted.

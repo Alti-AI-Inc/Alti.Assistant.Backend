@@ -116,7 +116,7 @@ Analyze the request and determine the user's intent.`
  * @param {string} [context='No previous context.'] - The preceding conversation context or history.
  * @param {object} [options={}] - Configuration options for the analysis.
  * @param {string} [options.apiKey] - A unique key for the user/request, used for authenticated rate-limiting. Can represent a tenant or a specific user.
- * @param {string} [options.modelName='gemini-1.5-flash'] - The name of the generative model to use.
+ * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the generative model to use.
  * @param {string} [options.ip='global_anon_user'] - The user's IP address for more granular anonymous rate-limiting.
  * @returns {Promise<z.infer<typeof imageIntentSchema>>} A promise that resolves to the intent analysis result, matching the `imageIntentSchema`.
  * @throws {Error} Throws an error with status 429 if the rate limit is exceeded. The error will include a `headers` property with a `Retry-After` value.

@@ -8,7 +8,7 @@
  * @property {string} name - Human-readable name of the agent.
  * @property {string} description - A brief description of the agent's capabilities.
  * @property {string} systemInstruction - The core system prompt that defines the agent's persona and rules.
- * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-1.5-flash-001').
+ * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-3.5-flash-001').
  * @property {object[]} safetySettings - Configuration for content safety filters.
  * @property {string} safetySettings.category - The category of harmful content to filter.
  * @property {string} safetySettings.threshold - The threshold for blocking harmful content.

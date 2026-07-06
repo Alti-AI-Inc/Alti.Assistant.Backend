@@ -67,7 +67,7 @@ describe('Image Generation Services', () => {
 
   describe('generateImage', () => {
     const prompt = 'A futuristic city at sunset, highly detailed, cinematic.';
-    const expectedEndpoint = `projects/${mockConfig.gcpProjectId}/locations/${mockConfig.gcpLocation}/publishers/google/models/imagen-3.0-generate-002`;
+    const expectedEndpoint = `projects/${mockConfig.gcpProjectId}/locations/${mockConfig.gcpLocation}/publishers/google/models/imagen-4.0-generate-002`;
     const mockBase64Image = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // 1x1 transparent PNG
 
     it('should return a base64 image URL on successful generation', async () => {

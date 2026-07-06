@@ -59,7 +59,7 @@ async function runGeminiTask(systemPrompt, history) {
         }));
 
       const result = await ai.models.generateContent({
-        model: config.gemini_pro_model || 'gemini-2.5-pro', // Specifies the Gemini Pro model
+        model: config.gemini_pro_model || 'gemini-3.1-pro', // Specifies the Gemini Pro model
         contents: contents,
         config: {
           systemInstruction: systemPrompt,
@@ -107,7 +107,7 @@ Respond ONLY with a valid JSON object matching the following structure. Do not w
 }`;
 
     const result = await ai.models.generateContent({
-      model: config.gemini_pro_model || 'gemini-2.5-pro',
+      model: config.gemini_pro_model || 'gemini-3.1-pro',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         temperature: 0.1,

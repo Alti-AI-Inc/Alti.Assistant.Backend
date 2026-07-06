@@ -211,7 +211,7 @@ class GcpEventsService {
       const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
       
       const response = await aiClient.models.generateContent({
-        model: config.gemini_pro_model || 'gemini-2.5-pro', // Structured schema outputs are best optimized on Pro models
+        model: config.gemini_pro_model || 'gemini-3.1-pro', // Structured schema outputs are best optimized on Pro models
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

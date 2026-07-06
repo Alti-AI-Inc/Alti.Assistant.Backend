@@ -10,7 +10,7 @@
  * @property {string} name - Display name of the agent.
  * @property {string} description - Brief description of the agent's capabilities and purpose.
  * @property {string} systemInstruction - System prompt/instructions guiding the agent's behavior, formatting, and constraints.
- * @property {string} model - The AI model used by the agent (e.g., 'gemini-1.5-flash-001').
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-3.5-flash-001').
  * @property {Array<Object>} safetySettings - Configuration for Vertex AI safety filters.
  * @property {string[]} tools - List of tools enabled for the agent (e.g., 'google-search', 'youtube-search').
  * @property {string[]} keywords - Keywords that trigger this agent within the swarm routing system.

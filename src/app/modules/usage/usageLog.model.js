@@ -229,7 +229,7 @@ const UsageLogSchema = new mongoose.Schema(
     modelUsed: {
       type: String,
       default: null,
-      // Example: 'gpt-4-turbo', 'claude-3-opus', 'gemini-1.5-pro'
+      // Example: 'gpt-4-turbo', 'claude-3-opus', 'gemini-3.1-pro'
     },
     cost: {
       type: Number,

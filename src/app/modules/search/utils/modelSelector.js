@@ -297,22 +297,22 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // Use Gemini 2.5 Pro for complex scenarios
   if (complexityScore >= 6) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 2.5 Pro';
     modelReason = 'High complexity requires advanced reasoning';
   } else if (
     complexityScore >= 4 &&
     category === QueryCategory.COMPLEX_ANALYTICAL
   ) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 2.5 Pro';
     modelReason = 'Analytical query requires deeper reasoning';
   } else if (category === QueryCategory.MULTI_STEP_RESEARCH) {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 2.5 Pro';
     modelReason = 'Multi-step research benefits from advanced capabilities';
   } else if (searchDepth === 'deep') {
-    recommendedModel = 'gemini-2.5-pro';
+    recommendedModel = 'gemini-3.1-pro';
     modelName = 'Gemini 2.5 Pro';
     modelReason = 'Deep search mode requires comprehensive analysis';
   } else {
@@ -327,7 +327,7 @@ export const analyzeQueryForModel = (query, context = {}) => {
     reasoning,
     modelReason,
     useFlash: recommendedModel === 'gemini-3.5-flash',
-    usePro: recommendedModel === 'gemini-2.5-pro',
+    usePro: recommendedModel === 'gemini-3.1-pro',
     analysis: {
       queryLength: wordCount,
       conversationLength: conversationHistory.length,

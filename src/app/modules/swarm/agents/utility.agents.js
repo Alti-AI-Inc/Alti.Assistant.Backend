@@ -39,7 +39,7 @@ const logger = winston.createLogger({
  * @property {string} name - Human-readable name of the agent.
  * @property {string} description - A brief description of what the agent does.
  * @property {string} systemInstruction - The core system prompt/instruction for the agent, defining its persona and task.
- * @property {string} model - The AI model used by the agent (e.g., 'gemini-1.5-flash-001').
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-3.5-flash-001').
  * @property {Array<object>} safetySettings - Configuration for content safety filters. All model calls must include this.
  * @property {Array<string>} tools - A list of tools the agent can use (e.g., 'web_search', 'code_interpreter').
  * @property {Array<string>} keywords - A list of keywords associated with the agent for search and discovery.
@@ -69,7 +69,7 @@ const defaultSafetySettings = [
  */
 export const globalAgentOverrides = {
   enabled: true, // A master switch to enable/disable the entire override system. If false, all agents revert to their default definitions.
-  globalModelOverride: null, // e.g., 'gemini-1.5-pro-001' to upgrade all agents globally for performance or feature reasons.
+  globalModelOverride: null, // e.g., 'gemini-3.1-pro-001' to upgrade all agents globally for performance or feature reasons.
   globalSafetySettingsOverride: null, // e.g., to enforce stricter (BLOCK_LOW_AND_ABOVE) or looser safety settings platform-wide.
   overrides: {}, // Map of agentId -> Partial<AgentDefinition> for global, agent-specific overrides.
   tenantOverrides: {}, // Map of tenantId -> Map of agentId -> Partial<AgentDefinition> for tenant-specific customizations.

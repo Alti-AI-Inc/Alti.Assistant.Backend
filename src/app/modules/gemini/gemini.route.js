@@ -278,7 +278,7 @@ router.get(
  *             properties:
  *               defaultModel:
  *                 type: string
- *                 example: "gemini-1.5-pro-latest"
+ *                 example: "gemini-3.1-pro-latest"
  *               globalRequestLimit:
  *                 type: number
  *                 example: 10000

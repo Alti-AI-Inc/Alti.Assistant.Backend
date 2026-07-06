@@ -98,7 +98,7 @@ const performIntentAnalysis = async (
 ) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: config.gemini_pro_model || 'gemini-2.5-pro',
+      model: config.gemini_pro_model || 'gemini-3.1-pro',
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 2048,

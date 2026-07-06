@@ -478,7 +478,7 @@ describe('KnowledgebaseService', () => {
       expect(mockUploadFile).toHaveBeenCalledWith(mockFilePath, { mimeType: mockMimeType });
       expect(mockGetFile).toHaveBeenCalledWith('files/mock-file-id'); // Check for processing state
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3.1-pro',
         generationConfig: { responseMimeType: 'application/json' },
       });
       expect(mockGenerateContent).toHaveBeenCalledWith([

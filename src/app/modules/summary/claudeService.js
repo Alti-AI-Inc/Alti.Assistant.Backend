@@ -18,7 +18,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Executes a task using the Gemini API, handling chat history and content.
  * It constructs the conversation history, applies a system prompt, and sends a request
- * to the 'gemini-1.5-flash' model.
+ * to the 'gemini-3.5-flash' model.
  *
  * @private
  * @param {string} content - The current user's input or prompt for the Gemini model.
@@ -46,7 +46,7 @@ async function runGeminiTask(content, history, systemPrompt = null) {
 
   try {
     // Get the generative model instance.
-    // Using gemini-1.5-flash as it's a recent, fast, and capable model.
+    // Using gemini-3.5-flash as it's a recent, fast, and capable model.
     const model = genAI.getGenerativeModel({
       model: config.gemini_model || 'gemini-3.5-flash',
       // The systemInstruction provides high-level guidance for the model's behavior.

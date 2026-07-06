@@ -53,7 +53,7 @@ export const generateImage = async (prompt, user) => {
     const workspace = await WorkspaceService.getById(user.workspaceId);
     const projectId = workspace?.gcpSettings?.projectId || config.gcpProjectId || (config.google && config.google.gcp_project_id);
     const location = workspace?.gcpSettings?.location || config.gcpLocation || (config.google && config.google.vertex_ai_region);
-    const modelId = workspace?.gcpSettings?.imageModelId || config.google?.image_model_id || 'imagen-3.0-generate-002';
+    const modelId = workspace?.gcpSettings?.imageModelId || config.google?.image_model_id || 'imagen-4.0-generate-002';
 
     if (!projectId || !location) {
       console.error(`GCP Project ID or Location is not configured for workspace ${user.workspaceId}.`);
@@ -155,7 +155,7 @@ export const generateImageUsingVertexAI = async (prompt, user) => {
     const workspace = await WorkspaceService.getById(user.workspaceId);
     const imageEndpoint = workspace?.gcpSettings?.vertexAiEndpoint || (config.google && config.google.vertex_ai_endpoint) || 'us-central1-aiplatform.googleapis.com';
     const location = workspace?.gcpSettings?.location || (config.google && config.google.vertex_ai_region) || config.gcpLocation;
-    const modelId = workspace?.gcpSettings?.imageModelId || (config.google && config.google.model_id) || 'imagen-3.0-generate-002';
+    const modelId = workspace?.gcpSettings?.imageModelId || (config.google && config.google.model_id) || 'imagen-4.0-generate-002';
     const projectId = workspace?.gcpSettings?.projectId || (config.google && config.google.gcp_project_id) || config.gcpProjectId;
 
     if (!projectId || !location) {

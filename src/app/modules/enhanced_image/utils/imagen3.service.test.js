@@ -205,7 +205,7 @@ describe('imagen3.service.js', () => {
       );
 
       expect(mockGenerateContent).toHaveBeenCalledWith({
-        model: 'imagen-3.0-generate-002',
+        model: 'imagen-4.0-generate-002',
         contents: [{ text: 'a beautiful sunset' }],
       });
 

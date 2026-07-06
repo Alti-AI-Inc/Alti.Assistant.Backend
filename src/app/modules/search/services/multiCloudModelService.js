@@ -106,7 +106,7 @@ const gcpFlash = new ChatGoogleGenerativeAI({
 });
 
 const gcpPro = new ChatGoogleGenerativeAI({
-  model: config.gemini_pro_model || 'gemini-2.5-pro',
+  model: config.gemini_pro_model || 'gemini-3.1-pro',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

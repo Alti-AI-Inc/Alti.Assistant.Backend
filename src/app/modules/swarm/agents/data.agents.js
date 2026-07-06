@@ -44,7 +44,7 @@ const defaultSafetySettings = [
  * @property {string} name - The display name of the agent.
  * @property {string} description - A brief summary of the agent's capabilities.
  * @property {string} systemInstruction - The detailed system prompt defining the agent's persona, rules, and objectives.
- * @property {string} model - The identifier for the underlying AI model (e.g., 'gemini-1.5-flash-001').
+ * @property {string} model - The identifier for the underlying AI model (e.g., 'gemini-3.5-flash-001').
  * @property {Array<object>} tools - A list of tools the agent is equipped with.
  * @property {Array<object>} safetySettings - Configuration for content safety filtering.
  * @property {Array<string>} keywords - Keywords used for agent discovery, routing, and suggestion.

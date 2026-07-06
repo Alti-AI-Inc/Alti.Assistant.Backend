@@ -45,7 +45,7 @@ if (!config.google.gcp_project_id) {
  * @param {object} [options={}] - Configuration options for the LLM instance.
  * @param {number} [options.temperature] - The sampling temperature to use.
  * @param {number} [options.maxOutputTokens] - The maximum number of tokens to generate.
- * @param {string} [options.model] - The specific model to use (e.g., 'gemini-1.5-flash').
+ * @param {string} [options.model] - The specific model to use (e.g., 'gemini-3.5-flash').
  * @returns {ChatGoogleGenerativeAI} A new instance of the LLM.
  */
 export const createLlmInstance = (options = {}) => {

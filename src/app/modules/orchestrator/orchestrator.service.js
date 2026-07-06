@@ -534,7 +534,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 
     // Determine the target model name based on model_tier
     const targetModel = model_tier === 'pro' 
-      ? (config.gemini_pro_model || 'gemini-2.5-pro') 
+      ? (config.gemini_pro_model || 'gemini-3.1-pro') 
       : (config.gemini_model || 'gemini-3.5-flash');
 
     // Decide if search/grounding is required
@@ -877,7 +877,7 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
     const data_sources = intentPayload.data_sources || [];
     const dispatchConfig = MODULE_REGISTRY[target_module] || MODULE_REGISTRY.general_chat;
     const targetModel = model_tier === 'pro' 
-      ? (config.gemini_pro_model || 'gemini-2.5-pro') 
+      ? (config.gemini_pro_model || 'gemini-3.1-pro') 
       : (config.gemini_model || 'gemini-3.5-flash');
 
     const requireSearch = !!parameters?.require_search || !!dispatchConfig.requireSearch || data_sources.includes('web_search');
