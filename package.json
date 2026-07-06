@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "alti-backend",
-  "version": "1.29.0",
+  "version": "1.29.1",
   "repository": "https://github.com/shohidul-jaman-anik/Alti Assistant-Backend-Core-Service",
   "description": "",
   "main": "index.js",
