@@ -7,7 +7,7 @@ import mongoose, { Schema } from 'mongoose';
 
 /**
  * @typedef {object} CodeChatSession
- * @property {string} thread_id - The unique identifier for the OpenAI assistant thread.
+ * @property {string} thread_id - The unique identifier for the AI assistant thread.
  * @property {mongoose.Types.ObjectId} user_id - The ID of the user associated with this chat session.
  * @property {Array<object>} history - An array storing the conversation history (messages, roles, content).
  * @property {mongoose.Types.ObjectId | null} tenantId - The ID of the tenant this session belongs to, or null for global sessions.
@@ -18,13 +18,13 @@ import mongoose, { Schema } from 'mongoose';
  *
  * This schema defines the structure for storing chat sessions related to code generation
  * or analysis, typically involving an AI assistant. It includes references to the
- * OpenAI thread, the user, the conversation history, and supports multi-tenancy.
+ * Vertex AI thread, the user, the conversation history, and supports multi-tenancy.
  *
  * @constant {mongoose.Schema<CodeChatSession>} CodeChatSessionSchema
  */
 export const CodeChatSessionSchema = new mongoose.Schema({
   /**
-   * The unique identifier for the OpenAI assistant thread associated with this chat session.
+   * The unique identifier for the AI assistant thread associated with this chat session.
    * This is crucial for resuming conversations with the AI.
    * @type {string}
    * @required

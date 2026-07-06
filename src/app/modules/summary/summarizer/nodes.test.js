@@ -27,7 +27,7 @@ const {
   };
 });
 
-vi.mock('../openAIService.js', () => ({
+vi.mock('../geminiSummaryService.js', () => ({
   getUrlFromUserInputUsingAi: mockGetUrlFromUserInputUsingAi,
 }));
 

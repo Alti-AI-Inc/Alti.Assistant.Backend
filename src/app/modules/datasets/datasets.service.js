@@ -157,7 +157,7 @@ const searchHFDatasets = async (query = '', limit = 10) => {
  * Fetches detailed information of a dataset from Hugging Face.
  * This includes metadata from the main Hub API and splits/configurations from the datasets-server.
  *
- * @param {string} datasetId - The full ID of the dataset (e.g., 'openai/webgpt_comparisons').
+ * @param {string} datasetId - The full ID of the dataset (e.g., 'username/dataset_name').
  * @returns {Promise<object>} A promise that resolves to a detailed dataset information object,
  *   including `datasetId`, `name`, `author`, `description`, `downloads`, `likes`, `tags`,
  *   `configs` (array of config names), `splits` (object mapping config names to arrays of split info),

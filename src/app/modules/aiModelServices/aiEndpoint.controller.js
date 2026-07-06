@@ -731,13 +731,13 @@ const deleteAiEndpoint = async (req, res) => {
  *         - history
  *         - delete
  *       properties:
- *         title: { type: string, example: "New OpenAI GPT-4o Endpoint" }
+ *         title: { type: string, example: "New Vertex GPT-4o Endpoint" }
  *         nickName: { type: string, example: "GPT-4o" }
  *         enabled: { type: boolean, default: true }
  *         default: { type: boolean, default: false }
- *         add: { type: string, example: "/openai/add-interaction" }
- *         history: { type: string, example: "/openai/get-history" }
- *         delete: { type: string, example: "/openai/delete-interaction" }
+ *         add: { type: string, example: "/vertex/add-interaction" }
+ *         history: { type: string, example: "/vertex/get-history" }
+ *         delete: { type: string, example: "/vertex/delete-interaction" }
  *     AiEndpointUpdateInput:
  *       type: object
  *       properties:

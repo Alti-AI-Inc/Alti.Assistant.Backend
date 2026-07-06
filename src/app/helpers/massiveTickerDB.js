@@ -730,7 +730,6 @@ export const STOCK_NAME_MAP = {
   'jack henry': 'JKHY',
   jkhy: 'JKHY',
   veritiv: 'VRTV',
-  openai: 'MSFT',
   anthropic: 'AMZN',
   xai: 'TSLA',
   perplexity: 'PRXY',

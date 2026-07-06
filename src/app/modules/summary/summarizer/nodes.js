@@ -5,7 +5,7 @@ import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/
 import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
 import { promises as dns } from 'dns';
 import { isIP } from 'net';
-import { getUrlFromUserInputUsingAi } from '../openAIService.js';
+import { getUrlFromUserInputUsingAi } from '../geminiSummaryService.js';
 import { generateSummary } from '../summarizerService.js';
 
 // --- Rate Limiter Definitions ---

@@ -177,15 +177,15 @@ router.get(
  *               name:
  *                 type: string
  *                 description: The name of the AI model.
- *                 example: "OpenAI GPT-4"
+ *                 example: "Gemini 1.5 Pro"
  *               endpointUrl:
  *                 type: string
  *                 description: The URL of the AI model endpoint.
- *                 example: "https://api.openai.com/v1/chat/completions"
+ *                 example: "https://us-central1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-central1/publishers/google/models/gemini-1.5-pro:predict"
  *               description:
  *                 type: string
  *                 description: A description for the AI model.
- *                 example: "Generative AI model by OpenAI"
+ *                 example: "Generative AI model by Google"
  *               modelType:
  *                 type: string
  *                 description: The type of AI model (e.g., 'LLM', 'Embedding').
@@ -277,15 +277,15 @@ router.post(
  *               name:
  *                 type: string
  *                 description: The updated name of the AI model.
- *                 example: "Updated OpenAI GPT-4"
+ *                 example: "Updated Gemini 1.5 Pro"
  *               endpointUrl:
  *                 type: string
  *                 description: The updated URL of the AI model endpoint.
- *                 example: "https://api.openai.com/v1/chat/completions-new"
+ *                 example: "https://us-central1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-central1/publishers/google/models/gemini-1.5-pro-new:predict"
  *               description:
  *                 type: string
  *                 description: An updated description for the AI model.
- *                 example: "Updated generative AI model by OpenAI"
+ *                 example: "Updated generative AI model by Google"
  *               modelType:
  *                 type: string
  *                 description: The updated type of AI model.

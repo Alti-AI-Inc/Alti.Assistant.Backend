@@ -3,6 +3,12 @@
 All notable changes to Alti Assistant are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Versioning.
 
+## [1.27.192] — 2026-07-06
+
+### 🧹 Removed — Legacy OpenAI Nomenclature
+- **100% OpenAI Clean Codebase**: Renamed the remaining legacy file references from `openAIService.js` to `geminiSummaryService.js` and updated all internal logic.
+- **Nomenclature Sanitization**: Cleaned up and removed all other occurrences of `openai` and `OpenAI` references in configurations, controllers, schemas, ticker DBs, and swagger routes across the backend codebase, fully replacing them with Vertex AI, Google AI, or Gemini references.
+
 ## [1.27.191] — 2026-06-20
 
 ### 🚀 Added — Phase 18: Smart Routing Code Swarms & Multi-Agent Coding Orchestration

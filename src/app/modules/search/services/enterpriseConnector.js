@@ -331,9 +331,9 @@ export class EnterpriseConnector {
         apiToken: 'mock_ping_token',
         endpoint: 'https://api.pingidentity.com/v1'
       },
-      openai: {
-        apiToken: 'mock_openai_token',
-        endpoint: 'https://api.openai.com/v1'
+      google_ai: {
+        apiToken: 'mock_google_token',
+        endpoint: 'https://generativelanguage.googleapis.com/v1'
       },
       weights_biases: {
         apiToken: 'mock_wandb_token',
@@ -553,7 +553,7 @@ export class EnterpriseConnector {
       'isolateCrowdStrikeEndpoint',
       'remediateSentinelOneThreat',
       'updateZscalerAccessControlRule',
-      'createOpenAIFinetuningJob',
+      'createGoogleAIFinetuningJob',
       'stopWandBExperimentRun',
       'deletePineconeIndexNamespace',
       'deleteSharePointFolder',
@@ -1782,23 +1782,23 @@ export class EnterpriseConnector {
           };
           break;
 
-        // --- OpenAI ---
-        case 'getOpenAIAssistantUsage':
+        // --- Google AI ---
+        case 'getGoogleAIAssistantUsage':
           result = {
             success: true,
-            assistantId: sanitizedParams.assistantId || 'asst-openai-3392',
+            assistantId: sanitizedParams.assistantId || 'asst-google-3392',
             runsCreated: 4200,
             totalTokensConsumed: 12500400,
-            trainingpayload: 'OpenAI assistant interaction telemetry and performance metrics.',
+            trainingpayload: 'Google AI assistant interaction telemetry and performance metrics.',
             status: 'USAGE_RETRIEVED'
           };
           break;
 
-        case 'createOpenAIFinetuningJob':
+        case 'createGoogleAIFinetuningJob':
           result = {
             success: true,
             jobId: `ftjob-${Math.floor(Math.random() * 900000 + 100000)}`,
-            model: sanitizedParams.model || 'gpt-4o-mini',
+            model: sanitizedParams.model || 'gemini-1.5-flash',
             finetuningdata: 'Fine-tuning dataset verified. Model fine-tuning job queued successfully.',
             status: 'FINETUNING_JOB_CREATED'
           };

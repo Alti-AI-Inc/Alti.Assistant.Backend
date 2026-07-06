@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getUrlFromUserInputUsingAi } from './openAIService';
+import { getUrlFromUserInputUsingAi } from './geminiSummaryService';
 
 // Mock Langchain components to control the chain's behavior
 const mockInvoke = vi.fn(); // This will be the final 'invoke' method of the mocked chain
