@@ -11,8 +11,8 @@ class ImageService {
     this.ai = new GoogleGenAI({ 
       vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion } 
     });
-    this.model = 'gemini-1.5-pro'; // Migrated to Gemini 1.5 Pro on Vertex AI
-    this.conversationalModel = 'gemini-1.5-flash'; // Migrated to Gemini 1.5 Flash on Vertex AI
+    this.model = 'imagen-4.0-generate-001'; // Migrated to Imagen 4 on Vertex AI
+    this.conversationalModel = 'gemini-3.5-flash'; // Migrated to Gemini 3.5 Flash on Vertex AI
   }
 
   async generateImage(prompt, userContext, options = {}) {

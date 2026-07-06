@@ -9,8 +9,8 @@ class AudioService {
     this.ai = new GoogleGenAI({ 
       vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion } 
     });
-    this.ttsModel = 'gemini-1.5-pro';
-    this.scriptModel = 'gemini-1.5-pro';
+    this.ttsModel = 'gemini-3.1-pro';
+    this.scriptModel = 'gemini-3.1-pro';
     this.voices = {
       professional: 'Kore',
       warm: 'Aoede',

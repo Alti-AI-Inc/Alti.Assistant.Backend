@@ -13,8 +13,8 @@ const agentConfig = {
   agentName: 'image',
 
   // ── Model Selection ─────────────────────────────────────────────────────────
-  // Primary: Gemini native image generation (text+image in, text+image out)
-  primaryModel: 'gemini-3.1-flash-image',
+  // Primary: Imagen 4 native image generation (text+image in, text+image out)
+  primaryModel: 'imagen-4.0-generate-001',
   // Conversational: Used for prompt analysis and refinement
   conversationalModel: 'gemini-3.5-flash',
 

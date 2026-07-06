@@ -37,7 +37,8 @@ const maskPII = (text) => {
 const getResponseFromGemini = async (prompt) => {
   try {
     const ai = new GoogleGenAI({ vertexai: { location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1' } });
-    const modelName = config.gemini?.model_name || 'gemini-1.5-flash-002';
+    const modelName = config.gemini?.model_name || 'gemini-3.5-flash';
+    logger.info(`Sending prompt to Vertex AI Gemini (${modelName})`);
 
     const maskedPrompt = maskPII(prompt);
 

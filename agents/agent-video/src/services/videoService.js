@@ -9,7 +9,7 @@ class VideoService {
     this.ai = new GoogleGenAI({ 
       vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion } 
     });
-    this.scriptModel = 'gemini-1.5-pro';
+    this.scriptModel = 'gemini-3.1-pro';
   }
 
   async enhancePrompt(prompt) {
@@ -43,9 +43,9 @@ class VideoService {
   }
 
   selectModel(tier) {
-    // Default to veo-2.0
+    // Default to veo-3.1
     return {
-      modelName: 'veo-2.0-generate-001',
+      modelName: 'veo-3.1-generate-preview',
       config: {
         numberOfVideos: 1,
         durationSeconds: 8,

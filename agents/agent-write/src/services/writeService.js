@@ -35,7 +35,7 @@ export class WriteService {
     this.ai = new GoogleGenAI({ 
       vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion || 'us-central1' } 
     });
-    this.modelId = 'gemini-1.5-pro';
+    this.modelId = 'gemini-3.1-pro';
 
     logger.info('WriteService initialized with Vertex AI Gemini', {
       model: this.modelId,
