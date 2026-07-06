@@ -6,8 +6,10 @@ const { logger } = createLogger('videoService');
 
 class VideoService {
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: config.gemini.apiKey });
-    this.scriptModel = 'gemini-3.5-flash';
+    this.ai = new GoogleGenAI({ 
+      vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion } 
+    });
+    this.scriptModel = 'gemini-1.5-pro';
   }
 
   async enhancePrompt(prompt) {

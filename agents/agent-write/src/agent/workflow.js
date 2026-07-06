@@ -1,12 +1,12 @@
 /**
  * @fileoverview LangGraph workflow for the Write Agent — production implementation.
  *
- * 5-node pipeline calling Claude 4.5 Sonnet via Vertex AI at each stage:
+ * 5-node pipeline calling Gemini 1.5 Pro via Vertex AI at each stage:
  *
  *   START → analyzeWritingIntent → planDocumentStructure → generateDraft
  *         → reviewAndRefine → formatAndExport → END
  *
- * Each node calls WriteService.callClaude() with stage-specific prompts.
+ * Each node calls WriteService.callGemini() with stage-specific prompts.
  * State channels carry data between nodes via LangGraph Annotation reducers.
  */
 
@@ -19,7 +19,7 @@ const { logger } = createLogger('write-workflow');
 // ── Shared service instance for all nodes ────────────────────────────────────
 const writeService = new WriteService();
 
-// ── System prompt (injected into every Claude call) ──────────────────────────
+// ── System prompt (injected into every Gemini call) ──────────────────────────
 const SYSTEM_PROMPT = `You are an expert professional writer and document creator. You produce polished,
 well-structured documents tailored to the audience and purpose.
 
@@ -88,7 +88,7 @@ ${state.prompt}
 """` },
   ];
 
-  const { text, usage } = await writeService.callClaude(messages, { maxTokens: 1024, temperature: 0.1 });
+  const { text, usage } = await writeService.callGemini(SYSTEM_PROMPT, messages[1].content, { maxTokens: 1024, temperature: 0.1 });
 
   // Parse the structured response
   const parsed = {};
@@ -149,7 +149,7 @@ Create a comprehensive outline with:
 Output ONLY the outline in markdown format. Do not include any preamble or explanation.` },
   ];
 
-  const { text, usage } = await writeService.callClaude(messages, { maxTokens: 2048, temperature: 0.3 });
+  const { text, usage } = await writeService.callGemini(SYSTEM_PROMPT, messages[1].content, { maxTokens: 2048, temperature: 0.3 });
 
   logger.info('Document outline generated', { outlineLength: text.length });
 
@@ -197,7 +197,7 @@ Instructions:
 Write the COMPLETE document now. Output ONLY the document content in markdown.` },
   ];
 
-  const { text, usage } = await writeService.callClaude(messages, {
+  const { text, usage } = await writeService.callGemini(SYSTEM_PROMPT, messages[1].content, {
     maxTokens: 8192,
     temperature: 0.4,
   });
@@ -224,7 +224,7 @@ async function reviewAndRefine(state) {
       { role: 'system', content: 'You are an expert editor.' },
       { role: 'user', content: `Critique the following draft as a ${critic.name}. Focus ONLY on: ${critic.focus}.\n\nDraft:\n${state.draft}` }
     ];
-    return writeService.callClaude(messages, { maxTokens: 1024, temperature: 0.2 });
+    return writeService.callGemini(messages[0].content, messages[1].content, { maxTokens: 1024, temperature: 0.2 });
   });
 
   const critiqueResults = await Promise.all(critiquePromises);
@@ -253,7 +253,7 @@ ${state.draft}
 Output the IMPROVED version of the full document in markdown. Apply all refinements directly — do not list the changes separately. If the draft is already excellent despite critiques, output it with only minor polish.` },
   ];
 
-  const { text, usage } = await writeService.callClaude(messages, {
+  const { text, usage } = await writeService.callGemini(SYSTEM_PROMPT, messages[1].content, {
     maxTokens: 8192,
     temperature: 0.2,
   });
@@ -301,7 +301,7 @@ async function formatAndExport(state) {
   ];
   let extractedMetadata = {};
   try {
-    const metaRes = await writeService.callClaude(metadataMessages, { maxTokens: 256, temperature: 0.0 });
+    const metaRes = await writeService.callGemini('', metadataMessages[0].content, { maxTokens: 256, temperature: 0.0 });
     const jsonStr = metaRes.text.replace(/```json/g, '').replace(/```/g, '').trim();
     extractedMetadata = JSON.parse(jsonStr);
   } catch (err) {

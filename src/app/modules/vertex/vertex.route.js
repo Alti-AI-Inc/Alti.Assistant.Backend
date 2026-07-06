@@ -1,16 +1,16 @@
 import express from 'express';
-import { OpenAiController } from './openai.controller.js';
+import { VertexController } from './vertex.controller.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/v1/openai/anonymous-response:
+ * /api/v1/vertex/anonymous-response:
  *   post:
- *     summary: Get a response from the public Gemini model without authentication.
+ *     summary: Get a response from the public Gemini model without authentication via Vertex AI.
  *     description: Accepts a prompt and returns a response. Protected by IP-based rate limiter.
  *     tags:
- *       - Public OpenAI / Guest Chat
+ *       - Public Vertex AI / Guest Chat
  *     requestBody:
  *       required: true
  *       content:
@@ -54,6 +54,6 @@ const router = express.Router();
  *       500:
  *         description: Internal Server Error.
  */
-router.post('/anonymous-response', OpenAiController.getAnonymousResponse);
+router.post('/anonymous-response', VertexController.getAnonymousResponse);
 
-export const openaiRoutes = router;
+export const vertexRoutes = router;

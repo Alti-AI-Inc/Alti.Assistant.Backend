@@ -6,9 +6,11 @@ const { logger } = createLogger('audioService');
 
 class AudioService {
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: config.gemini.apiKey });
-    this.ttsModel = 'gemini-2.5-flash-preview-tts';
-    this.scriptModel = 'gemini-3.5-flash';
+    this.ai = new GoogleGenAI({ 
+      vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion } 
+    });
+    this.ttsModel = 'gemini-1.5-pro';
+    this.scriptModel = 'gemini-1.5-pro';
     this.voices = {
       professional: 'Kore',
       warm: 'Aoede',

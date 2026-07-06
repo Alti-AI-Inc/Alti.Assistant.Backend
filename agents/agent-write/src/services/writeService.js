@@ -1,12 +1,11 @@
 /**
  * @fileoverview Write Agent service layer — production implementation.
  *
- * Calls Claude 4.5 Sonnet via Vertex AI rawPredict for high-quality
- * document generation. Uses the same GoogleAuth + rawPredict pattern
- * proven in the monolith's vertexClaudeService.js.
+ * Calls Gemini 1.5 Pro via Vertex AI for high-quality
+ * document generation.
  */
 
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger } from '../../../../shared/logging/index.js';
 import config from '../../../../shared/config/index.js';
 import agentConfig from '../config/index.js';
@@ -31,122 +30,70 @@ Rules:
 - Ensure logical flow and coherent arguments
 - Use markdown formatting for structure`;
 
-// ── GoogleAuth singleton ─────────────────────────────────────────────────────
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-});
-
 export class WriteService {
   constructor() {
-    this.modelId = agentConfig.primaryModel || config.models.claudeSonnet;
-    this.location = agentConfig.vertexAiRegion || 'us-east5';
-    this.projectId = config.gcp.projectId;
+    this.ai = new GoogleGenAI({ 
+      vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion || 'us-central1' } 
+    });
+    this.modelId = 'gemini-1.5-pro';
+
+    logger.info('WriteService initialized with Vertex AI Gemini', {
+      model: this.modelId,
+      location: config.gcp.vertexAiRegion || 'us-central1',
+      projectId: config.gcp.projectId ? '***' : 'NOT SET',
+    });
   }
 
-  // ── Message Formatting ───────────────────────────────────────────────────
+  // ── Core Gemini Call ─────────────────────────────────────────────────────
   /**
-   * Converts a generic messages array (with optional system messages)
-   * into the Anthropic rawPredict format: { system, messages }.
-   * Handles consecutive same-role merging and leading-assistant fixups.
+   * Sends a request to Gemini on Vertex AI.
    *
-   * @param {Array<{ role: string, content: string | object[] }>} messages
-   * @returns {{ systemPrompt: string, formattedMessages: Array<{ role: string, content: string }> }}
-   */
-  preparePayload(messages) {
-    const systemParts = [];
-    const chatMessages = [];
-
-    for (const msg of messages) {
-      if (msg.role === 'system') {
-        const text = typeof msg.content === 'string'
-          ? msg.content
-          : (msg.content?.[0]?.text || '');
-        if (text) systemParts.push(text);
-      } else {
-        chatMessages.push(msg);
-      }
-    }
-
-    const systemPrompt = systemParts.length > 0
-      ? systemParts.join('\n\n')
-      : '';
-
-    const formattedMessages = [];
-    for (const msg of chatMessages) {
-      const role = (msg.role === 'assistant' || msg.role === 'model')
-        ? 'assistant'
-        : 'user';
-      const text = typeof msg.content === 'string'
-        ? msg.content
-        : (msg.content?.[0]?.text || '');
-      if (!text) continue;
-
-      // Merge consecutive same-role messages (Anthropic requires alternating)
-      if (
-        formattedMessages.length > 0 &&
-        formattedMessages[formattedMessages.length - 1].role === role
-      ) {
-        formattedMessages[formattedMessages.length - 1].content += '\n\n' + text;
-      } else {
-        formattedMessages.push({ role, content: text });
-      }
-    }
-
-    // Anthropic requires the first message to be from the user
-    if (formattedMessages.length > 0 && formattedMessages[0].role === 'assistant') {
-      formattedMessages.unshift({ role: 'user', content: 'Hello' });
-    }
-
-    return { systemPrompt, formattedMessages };
-  }
-
-  // ── Core Claude Call ─────────────────────────────────────────────────────
-  /**
-   * Sends a rawPredict request to Claude 4.5 Sonnet on Vertex AI.
-   *
-   * @param {Array<{ role: string, content: string }>} messages - Conversation messages
+   * @param {string} systemInstruction - The system instructions
+   * @param {string} userPrompt - The user's prompt
    * @param {{ maxTokens?: number, temperature?: number }} options
    * @returns {Promise<{ text: string, usage: object }>}
    */
-  async callClaude(messages, options = {}) {
-    const client = await auth.getClient();
-    const endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/anthropic/models/${this.modelId}:rawPredict`;
-
-    const { systemPrompt, formattedMessages } = this.preparePayload(messages);
-
-    const requestBody = {
-      anthropic_version: 'vertex-2023-10-16',
-      messages: formattedMessages,
-      max_tokens: options.maxTokens || 4096,
-      temperature: options.temperature !== undefined ? options.temperature : 0.2,
-    };
-    if (systemPrompt) {
-      requestBody.system = systemPrompt;
+  async callGemini(systemInstruction, userPrompt, options = {}) {
+    if (!config.gcp.projectId) {
+      throw new Error('GCP_PROJECT_ID is not set — cannot call Vertex AI.');
     }
 
-    logger.info('Calling Claude via Vertex AI rawPredict', {
+    const requestConfig = {
+      systemInstruction: systemInstruction,
+      maxOutputTokens: options.maxTokens || 4096,
+      temperature: options.temperature !== undefined ? options.temperature : 0.2,
+    };
+
+    logger.info('Calling Gemini via Vertex AI', {
       model: this.modelId,
-      location: this.location,
-      messageCount: formattedMessages.length,
-      maxTokens: requestBody.max_tokens,
+      maxTokens: requestConfig.maxOutputTokens,
     });
 
-    const response = await client.request({
-      url: endpoint,
-      method: 'POST',
-      data: requestBody,
+    const startTime = Date.now();
+    const result = await this.ai.models.generateContent({
+      model: this.modelId,
+      contents: userPrompt,
+      config: requestConfig
     });
+    const latencyMs = Date.now() - startTime;
 
-    const replyText = response.data?.content?.[0]?.text || '';
-    const usage = response.data?.usage || {};
+    const replyText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const usage = result.usageMetadata || {};
 
-    logger.info('Claude response received', {
-      inputTokens: usage.input_tokens,
-      outputTokens: usage.output_tokens,
+    logger.info('Gemini response received', {
+      latencyMs,
+      inputTokens: usage.promptTokenCount,
+      outputTokens: usage.candidatesTokenCount,
       responseLength: replyText.length,
     });
 
-    return { text: replyText, usage };
+    return { 
+      text: replyText, 
+      usage: {
+        input_tokens: usage.promptTokenCount || 0,
+        output_tokens: usage.candidatesTokenCount || 0
+      }
+    };
   }
 
   // ── Document Generation ──────────────────────────────────────────────────

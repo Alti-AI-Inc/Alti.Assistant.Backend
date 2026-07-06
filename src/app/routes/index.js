@@ -67,7 +67,7 @@ import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 import { dockerRoutes } from './docker.route.js';
 import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
-import { openaiRoutes } from '../modules/openai/openai.route.js';
+import { vertexRoutes } from '../modules/vertex/vertex.route.js';
 
 const router = express.Router();
 
@@ -142,8 +142,8 @@ const moduleRoutes = [
     route: geminiAiRoutes,
   },
   {
-    path: '/openai',
-    route: openaiRoutes,
+    path: '/vertex',
+    route: vertexRoutes,
   },
   {
     path: '/llama4',

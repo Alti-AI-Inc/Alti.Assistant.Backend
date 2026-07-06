@@ -1,15 +1,16 @@
 /**
  * @fileoverview Code generation service for the Code Agent.
- * Calls Claude Sonnet 4.5 via Vertex AI rawPredict for all code operations.
+ * Calls Gemini 1.5 Pro via Vertex AI.
  *
  * Usage:
  *   const service = new CodeService();
  *   const result = await service.generateCode(prompt, userCtx, options);
  */
 
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleGenAI } from '@google/genai';
 import { createLogger } from '../../../../shared/logging/index.js';
 import agentConfig from '../config/index.js';
+import config from '../../../../shared/config/index.js';
 
 const { logger } = createLogger('code-service');
 
@@ -38,114 +39,68 @@ Rules:
 
 export class CodeService {
   constructor() {
-    this.auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    this.ai = new GoogleGenAI({ 
+      vertexai: { project: config.gcp.projectId, location: config.gcp.vertexAiRegion || 'us-central1' } 
     });
-    this.modelId = agentConfig.primaryModel;
-    this.location = agentConfig.vertexAiRegion;
-    this.projectId = agentConfig.gcp?.projectId;
+    this.modelId = 'gemini-1.5-pro';
 
-    logger.info('CodeService initialized', {
+    logger.info('CodeService initialized with Vertex AI Gemini', {
       model: this.modelId,
-      location: this.location,
-      projectId: this.projectId ? '***' : 'NOT SET',
+      location: config.gcp.vertexAiRegion || 'us-central1',
+      projectId: config.gcp.projectId ? '***' : 'NOT SET',
     });
   }
 
-  // ── Core Claude Caller ──────────────────────────────────────────────────
+  // ── Core Gemini Caller ──────────────────────────────────────────────────
 
   /**
-   * Send messages to Claude via Vertex AI rawPredict.
-   * @param {Array<{role: string, content: string}>} messages - Conversation messages
+   * Send messages to Gemini via Vertex AI.
+   * @param {string} systemInstruction - The system instructions
+   * @param {string} userPrompt - The user's prompt
    * @param {object} [options] - Generation options
    * @param {number} [options.maxTokens=8192]
    * @param {number} [options.temperature=0.1]
    * @returns {Promise<{text: string, usage: object}>}
    */
-  async callClaude(messages, options = {}) {
-    const projectId = this.projectId;
-    if (!projectId) {
+  async callGemini(systemInstruction, userPrompt, options = {}) {
+    if (!config.gcp.projectId) {
       throw new Error('GCP_PROJECT_ID is not set — cannot call Vertex AI.');
     }
 
-    const client = await this.auth.getClient();
-    const endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${this.location}/publishers/anthropic/models/${this.modelId}:rawPredict`;
-
-    // Separate system messages and format user/assistant alternation
-    let systemPrompt = '';
-    const formattedMessages = [];
-
-    for (const msg of messages) {
-      if (msg.role === 'system') {
-        systemPrompt += msg.content + '\n\n';
-        continue;
-      }
-
-      let role = (msg.role === 'assistant' || msg.role === 'model')
-        ? 'assistant'
-        : 'user';
-      const text = typeof msg.content === 'string'
-        ? msg.content
-        : (msg.content?.[0]?.text || '');
-
-      if (!text) continue;
-
-      // Merge consecutive same-role messages
-      if (formattedMessages.length > 0 && formattedMessages.at(-1).role === role) {
-        formattedMessages.at(-1).content += '\n\n' + text;
-      } else {
-        formattedMessages.push({ role, content: text });
-      }
-    }
-
-    // Ensure conversation starts with a user message
-    if (formattedMessages[0]?.role === 'assistant') {
-      formattedMessages.unshift({ role: 'user', content: 'Hello' });
-    }
-
-    const requestBody = {
-      anthropic_version: 'vertex-2023-10-16',
-      messages: formattedMessages,
-      max_tokens: options.maxTokens || agentConfig.defaults.maxOutputTokens,
+    const requestConfig = {
+      systemInstruction: systemInstruction,
+      maxOutputTokens: options.maxTokens || agentConfig.defaults.maxOutputTokens,
       temperature: options.temperature ?? agentConfig.defaults.temperature,
     };
 
-    if (systemPrompt.trim()) {
-      requestBody.system = systemPrompt.trim();
-    }
-
     const startTime = Date.now();
-
-    const response = await client.request({
-      url: endpoint,
-      method: 'POST',
-      data: requestBody,
+    const result = await this.ai.models.generateContent({
+      model: this.modelId,
+      contents: userPrompt,
+      config: requestConfig
     });
-
     const latencyMs = Date.now() - startTime;
-    const usage = response.data?.usage || {};
 
-    logger.info('Claude call completed', {
+    const replyText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const usage = result.usageMetadata || {};
+
+    logger.info('Gemini call completed', {
       latencyMs,
-      inputTokens: usage.input_tokens,
-      outputTokens: usage.output_tokens,
+      inputTokens: usage.promptTokenCount,
+      outputTokens: usage.candidatesTokenCount,
     });
 
     return {
-      text: response.data?.content?.[0]?.text || '',
-      usage,
+      text: replyText,
+      usage: {
+        input_tokens: usage.promptTokenCount || 0,
+        output_tokens: usage.candidatesTokenCount || 0
+      },
     };
   }
 
   // ── Generate Code ───────────────────────────────────────────────────────
 
-  /**
-   * Generate code from a natural-language prompt.
-   * @param {string} prompt - The user's code generation request
-   * @param {object} userContext - Forwarded user context from gateway
-   * @param {object} [options] - Generation options (language, framework, etc.)
-   * @returns {Promise<object>} { code, language, explanation, metadata }
-   */
   async generateCode(prompt, userContext, options = {}) {
     logger.info('generateCode called', {
       userId: userContext?.userId,
@@ -153,12 +108,7 @@ export class CodeService {
     });
 
     const language = options.language || 'javascript';
-
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Generate ${language} code for the following request.
+    const userPrompt = `Generate ${language} code for the following request.
 
 Request: ${prompt}
 
@@ -168,11 +118,9 @@ Respond with a JSON object (and nothing else) with these fields:
   "language": "<programming language>",
   "explanation": "<brief explanation of the code>",
   "tests": "<unit tests for the code, or empty string if not applicable>"
-}`,
-      },
-    ];
+}`;
 
-    const result = await this.callClaude(messages, {
+    const result = await this.callGemini(SYSTEM_PROMPT, userPrompt, {
       maxTokens: options.maxTokens,
       temperature: options.temperature,
     });
@@ -201,21 +149,10 @@ Respond with a JSON object (and nothing else) with these fields:
 
   // ── Debug Code ──────────────────────────────────────────────────────────
 
-  /**
-   * Debug code given an error message / stack trace.
-   * @param {string} code - The buggy code
-   * @param {string} error - The error message or stack trace
-   * @param {object} userContext - Forwarded user context
-   * @returns {Promise<object>} { fixedCode, explanation, rootCause, metadata }
-   */
   async debugCode(code, error, userContext) {
     logger.info('debugCode called', { userId: userContext?.userId });
 
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Debug the following code. An error is occurring.
+    const userPrompt = `Debug the following code. An error is occurring.
 
 ## Code
 \`\`\`
@@ -233,11 +170,9 @@ Respond with a JSON object (and nothing else) with these fields:
   "rootCause": "<concise root cause of the bug>",
   "explanation": "<detailed explanation of what was wrong and what you fixed>",
   "changesApplied": ["<list of changes made>"]
-}`,
-      },
-    ];
+}`;
 
-    const result = await this.callClaude(messages);
+    const result = await this.callGemini(SYSTEM_PROMPT, userPrompt);
 
     const parsed = this._parseJSON(result.text, {
       fixedCode: code,
@@ -265,20 +200,10 @@ Respond with a JSON object (and nothing else) with these fields:
 
   // ── Review Code ─────────────────────────────────────────────────────────
 
-  /**
-   * Review code for quality, security, and best practices.
-   * @param {string} code - The code to review
-   * @param {object} userContext - Forwarded user context
-   * @returns {Promise<object>} { review, issues, suggestions, score, metadata }
-   */
   async reviewCode(code, userContext) {
     logger.info('reviewCode called', { userId: userContext?.userId });
 
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Review the following code for quality, security, performance, and best practices.
+    const userPrompt = `Review the following code for quality, security, performance, and best practices.
 
 \`\`\`
 ${code}
@@ -293,11 +218,9 @@ Respond with a JSON object (and nothing else) with these fields:
   ],
   "suggestions": ["<improvement suggestion>"],
   "securityFlags": ["<security concern, if any>"]
-}`,
-      },
-    ];
+}`;
 
-    const result = await this.callClaude(messages);
+    const result = await this.callGemini(SYSTEM_PROMPT, userPrompt);
 
     const parsed = this._parseJSON(result.text, {
       summary: result.text,
@@ -326,20 +249,10 @@ Respond with a JSON object (and nothing else) with these fields:
 
   // ── Explain Code ────────────────────────────────────────────────────────
 
-  /**
-   * Explain code in plain language.
-   * @param {string} code - The code to explain
-   * @param {object} userContext - Forwarded user context
-   * @returns {Promise<object>} { explanation, metadata }
-   */
   async explainCode(code, userContext) {
     logger.info('explainCode called', { userId: userContext?.userId });
 
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Explain the following code clearly and thoroughly.
+    const userPrompt = `Explain the following code clearly and thoroughly.
 
 \`\`\`
 ${code}
@@ -353,11 +266,9 @@ Respond with a JSON object (and nothing else) with these fields:
   ],
   "complexity": "<time/space complexity if applicable, otherwise null>",
   "keyConcepts": ["<programming concept used>"]
-}`,
-      },
-    ];
+}`;
 
-    const result = await this.callClaude(messages);
+    const result = await this.callGemini(SYSTEM_PROMPT, userPrompt);
 
     const parsed = this._parseJSON(result.text, {
       explanation: result.text,
@@ -384,23 +295,15 @@ Respond with a JSON object (and nothing else) with these fields:
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
-  /**
-   * Attempt to parse a JSON response from Claude.
-   * Falls back to a default object if parsing fails.
-   * @param {string} text - Raw response text
-   * @param {object} fallback - Fallback object
-   * @returns {object}
-   */
   _parseJSON(text, fallback) {
     try {
-      // Strip markdown fences if Claude wraps in ```json ... ```
       const cleaned = text
         .replace(/^```(?:json)?\s*\n?/i, '')
         .replace(/\n?```\s*$/i, '')
         .trim();
       return JSON.parse(cleaned);
     } catch {
-      logger.warn('Failed to parse Claude JSON response, using fallback', {
+      logger.warn('Failed to parse Gemini JSON response, using fallback', {
         textLength: text?.length,
         textPreview: text?.substring(0, 200),
       });

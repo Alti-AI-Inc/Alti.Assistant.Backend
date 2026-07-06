@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { OpenAiService } from './openai.service.js';
+import { VertexService } from './vertex.service.js';
 import { rateLimiter } from '../../../shared/rateLimiter.js';
 
 /**
@@ -27,7 +27,7 @@ const getAnonymousResponse = catchAsync(async (req, res) => {
     errorMessage: 'Too many anonymous chat requests. Please register or try again later.',
   });
 
-  const reply = await OpenAiService.getResponseFromGemini(prompt);
+  const reply = await VertexService.getResponseFromGemini(prompt);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -39,6 +39,6 @@ const getAnonymousResponse = catchAsync(async (req, res) => {
   });
 });
 
-export const OpenAiController = {
+export const VertexController = {
   getAnonymousResponse,
 };

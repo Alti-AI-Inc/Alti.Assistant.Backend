@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
@@ -30,28 +30,23 @@ const maskPII = (text) => {
 };
 
 /**
- * Generates an AI response from Gemini 1.5 Flash.
+ * Generates an AI response from Gemini 1.5 Flash via Vertex AI.
  * @param {string} prompt The user's query.
  * @returns {Promise<string>} The generated text reply.
  */
 const getResponseFromGemini = async (prompt) => {
   try {
-    const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        'Gemini API Key is not configured in the application environment.'
-      );
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = config.gemini?.model_name || 'gemini-3.5-flash';
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const ai = new GoogleGenAI({ vertexai: { location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1' } });
+    const modelName = config.gemini?.model_name || 'gemini-1.5-flash-002';
 
     const maskedPrompt = maskPII(prompt);
 
-    const result = await model.generateContent(maskedPrompt);
-    const reply = result.response.text() || 'No response generated.';
+    const result = await ai.models.generateContent({
+      model: modelName,
+      contents: maskedPrompt,
+    });
+    
+    const reply = result.text || 'No response generated.';
 
     return reply;
   } catch (error) {
@@ -63,6 +58,6 @@ const getResponseFromGemini = async (prompt) => {
   }
 };
 
-export const OpenAiService = {
+export const VertexService = {
   getResponseFromGemini,
 };
