@@ -10,6 +10,7 @@ const VideoState = Annotation.Root({
   prompt: Annotation(),
   conversationHistory: Annotation({ default: () => [] }),
   state: Annotation(), // 'gather', 'confirm', 'generate'
+  referenceImage: Annotation(),
   reply: Annotation(),
   enhancedPrompt: Annotation(),
   qualityTier: Annotation(),

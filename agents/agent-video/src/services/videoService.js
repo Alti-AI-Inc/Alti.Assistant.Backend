@@ -61,11 +61,23 @@ class VideoService {
       const enhancedPrompt = await this.enhancePrompt(prompt);
       const { modelName, config: modelConfig } = this.selectModel('standard');
 
-      const operation = await this.ai.models.generateVideos({
+      const generateParams = {
         model: modelName,
         prompt: enhancedPrompt,
         config: modelConfig
-      });
+      };
+
+      if (options.referenceImage) {
+        logger.info('Adding reference image to Veo video generation');
+        generateParams.image = {
+          // If it's a gs:// URL, use gcsUri. If base64, use bytesBase64.
+          ...(options.referenceImage.startsWith('gs://') 
+                ? { gcsUri: options.referenceImage, mimeType: 'image/png' }
+                : { bytesBase64: options.referenceImage, mimeType: 'image/png' })
+        };
+      }
+
+      const operation = await this.ai.models.generateVideos(generateParams);
 
       // Poll for completion
       logger.info(`Polling for operation ${operation.name}`);

@@ -37,7 +37,9 @@ export async function createStoryboard(state) {
 export async function generateVideo(state) {
   logger.info('Generating video');
   const finalPrompt = state.enhancedPrompt || state.prompt;
-  const result = await videoService.generateVideo(finalPrompt, {});
+  const result = await videoService.generateVideo(finalPrompt, { 
+    referenceImage: state.referenceImage 
+  });
   return { 
     videoUrl: result.videoUrl,
     operationName: result.metadata.operationName,
