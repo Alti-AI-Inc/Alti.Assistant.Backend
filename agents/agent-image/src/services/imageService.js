@@ -57,6 +57,7 @@ class ImageService {
 
       return { 
         imageUrl, 
+        imageBase64: imageBuffer.toString('base64'),
         prompt, 
         text: accompanimentText,
         metadata: {

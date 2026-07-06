@@ -7,8 +7,13 @@ const codeService = new CodeService();
 export async function generateCode(state) {
   logger.info('generateCode sub-agent', { language: state.language });
 
+  // If in swarm mode, explanation holds the architecture design from architectAgent
+  const promptToUse = state.isSwarm && state.explanation 
+    ? `Architecture Design:\n${state.explanation}\n\nTask:\n${state.prompt}`
+    : state.prompt;
+
   const result = await codeService.generateCode(
-    state.prompt,
+    promptToUse,
     state.userContext,
     { language: state.language }
   );

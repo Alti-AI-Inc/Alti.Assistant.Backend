@@ -147,6 +147,35 @@ Respond with a JSON object (and nothing else) with these fields:
     };
   }
 
+  // ── Architect Code ──────────────────────────────────────────────────────
+
+  async architectCode(prompt, userContext, options = {}) {
+    logger.info('architectCode called', {
+      userId: userContext?.userId,
+    });
+
+    const userPrompt = `Provide a high-level technical design, architecture, and implementation plan for the following request.
+Do not write the final code, only provide the structure, components, data flow, and design patterns to be used.
+
+Request: ${prompt}`;
+
+    const result = await this.callGemini(SYSTEM_PROMPT, userPrompt, {
+      maxTokens: options.maxTokens,
+      temperature: options.temperature,
+    });
+
+    return {
+      intent: 'architect',
+      explanation: result.text,
+      model: this.modelId,
+      metadata: {
+        tokensUsed: (result.usage.input_tokens || 0) + (result.usage.output_tokens || 0),
+        inputTokens: result.usage.input_tokens || 0,
+        outputTokens: result.usage.output_tokens || 0,
+      },
+    };
+  }
+
   // ── Debug Code ──────────────────────────────────────────────────────────
 
   async debugCode(code, error, userContext) {
