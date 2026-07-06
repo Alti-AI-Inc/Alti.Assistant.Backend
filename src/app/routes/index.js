@@ -347,4 +347,29 @@ moduleRoutes.forEach((route) => {
   return router.use(route.path, route.route);
 });
 
+router.get('/logos/:app_name', (req, res) => {
+  const appName = req.params.app_name || '';
+  const cleanName = appName.replace(/[^a-zA-Z0-9]/g, '');
+  const initial = cleanName.charAt(0).toUpperCase() || 'A';
+  
+  let hash = 0;
+  for (let i = 0; i < appName.length; i++) {
+    hash = appName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
+    '#EC4899', '#06B6D4', '#14B8A6', '#6366F1', '#84CC16'
+  ];
+  const color = colors[Math.abs(hash) % colors.length];
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+    <rect width="100" height="100" rx="24" fill="${color}"/>
+    <text x="50" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="bold" fill="#ffffff" text-anchor="middle">${initial}</text>
+  </svg>`;
+
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(svg);
+});
+
 export default router;

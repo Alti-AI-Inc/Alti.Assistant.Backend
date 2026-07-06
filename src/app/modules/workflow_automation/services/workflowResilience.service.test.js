@@ -84,7 +84,7 @@ describe('WorkflowResilienceService', () => {
 
   beforeEach(() => {
     // Spy on the internal execution method to control its behavior
-    vi.spyOn(workflowResilienceService, '_executeComposioAction').mockResolvedValue({ data: 'success' });
+    vi.spyOn(workflowResilienceService, '_executeMcpAction').mockResolvedValue({ data: 'success' });
     vi.spyOn(workflowResilienceService, '_scheduleWorkflowStepTask').mockResolvedValue({ name: 'task-123' });
   });
 
@@ -101,13 +101,13 @@ describe('WorkflowResilienceService', () => {
       expect(result.status).toBe('SUCCESS');
       expect(result.result).toEqual({ data: 'success' });
       expect(result.attempts).toBe(1);
-      expect(workflowResilienceService._executeComposioAction).toHaveBeenCalledWith('gmail', 'send_email', stepDetails.parameters);
+      expect(workflowResilienceService._executeMcpAction).toHaveBeenCalledWith('gmail', 'send_email', stepDetails.parameters);
       expect(workflowResilienceService._scheduleWorkflowStepTask).not.toHaveBeenCalled();
     });
 
     it('should return FAILED after max attempts with a non-retryable error', async () => {
       const nonRetryableError = new Error('Invalid API Key');
-      workflowResilienceService._executeComposioAction.mockRejectedValue(nonRetryableError);
+      workflowResilienceService._executeMcpAction.mockRejectedValue(nonRetryableError);
       RedisClient.eval.mockResolvedValue([1, 0]);
 
       const result = await workflowResilienceService.handleWorkflowStep(stepDetails);
@@ -120,7 +120,7 @@ describe('WorkflowResilienceService', () => {
 
     it('should schedule a retry for a retryable error', async () => {
       const retryableError = new Error('503 Service Unavailable');
-      workflowResilienceService._executeComposioAction.mockRejectedValue(retryableError);
+      workflowResilienceService._executeMcpAction.mockRejectedValue(retryableError);
       RedisClient.eval.mockResolvedValue([1, 0]);
 
       const result = await workflowResilienceService.handleWorkflowStep(stepDetails, { currentAttempt: 1 });
@@ -137,7 +137,7 @@ describe('WorkflowResilienceService', () => {
 
     it('should return FAILED if the last retry attempt fails', async () => {
       const retryableError = new Error('ETIMEDOUT');
-      workflowResilienceService._executeComposioAction.mockRejectedValue(retryableError);
+      workflowResilienceService._executeMcpAction.mockRejectedValue(retryableError);
       RedisClient.eval.mockResolvedValue([1, 0]);
 
       const options = { currentAttempt: 3, actionType: 'network' }; // maxAttempts is 3 for network
@@ -157,7 +157,7 @@ describe('WorkflowResilienceService', () => {
       expect(result.status).toBe('THROTTLED');
       expect(result.scheduled).toBe(true);
       expect(result.waitTimeMs).toBe(5000);
-      expect(workflowResilienceService._executeComposioAction).not.toHaveBeenCalled();
+      expect(workflowResilienceService._executeMcpAction).not.toHaveBeenCalled();
       expect(workflowResilienceService._scheduleWorkflowStepTask).toHaveBeenCalledOnce();
       const [taskDetails, taskOptions, delay] = workflowResilienceService._scheduleWorkflowStepTask.mock.calls[0];
       expect(taskDetails).toEqual(stepDetails);

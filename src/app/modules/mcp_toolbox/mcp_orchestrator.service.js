@@ -620,7 +620,7 @@ class McpOrchestratorService {
   /**
    * Boots up a specific MCP server for a given tenant's workspace.
    * If the server is already running, it returns its current status.
-   * It also injects dynamic environment variables for specific servers (e.g., Composio).
+   * It also injects dynamic environment variables for specific servers (e.g., third-party API keys).
    * @param {string} tenantId - The ID of the tenant.
    * @param {string} serverId - The ID of the server to start.
    * @returns {Promise<object>} A promise that resolves with the server's status and a success message.

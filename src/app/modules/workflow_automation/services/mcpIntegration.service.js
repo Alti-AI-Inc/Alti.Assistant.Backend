@@ -1,11 +1,11 @@
 import { logger } from '../../../../shared/logger.js';
 
-class ComposioIntegrationService {
+class McpIntegrationService {
   /**
    * Retrieves a list of available apps (Stubbed).
    */
   async getUserAvailableApps(userId) {
-    logger.info(`ComposioIntegration: getUserAvailableApps for user ${userId} (stubbed)`);
+    logger.info(`McpIntegration: getUserAvailableApps for user ${userId} (stubbed)`);
     return {
       success: true,
       apps: [],
@@ -18,7 +18,7 @@ class ComposioIntegrationService {
    * Retrieves tools by app (Stubbed).
    */
   async getUserAvailableTools(userId, appNames = []) {
-    logger.info(`ComposioIntegration: getUserAvailableTools for user ${userId} (stubbed)`);
+    logger.info(`McpIntegration: getUserAvailableTools for user ${userId} (stubbed)`);
     return {
       success: true,
       toolsByApp: {},
@@ -32,7 +32,7 @@ class ComposioIntegrationService {
    * Checks app connections status (Stubbed).
    */
   async checkAppConnections(userId, requiredApps = []) {
-    logger.info(`ComposioIntegration: checkAppConnections for user ${userId} (stubbed)`);
+    logger.info(`McpIntegration: checkAppConnections for user ${userId} (stubbed)`);
     return {
       success: true,
       allConnected: true,
@@ -50,7 +50,7 @@ class ComposioIntegrationService {
    * Retrieves apps list available for LLM detection (Stubbed).
    */
   async getAvailableAppsForDetection() {
-    logger.info('ComposioIntegration: getAvailableAppsForDetection (stubbed)');
+    logger.info('McpIntegration: getAvailableAppsForDetection (stubbed)');
     return {
       success: true,
       availableApps: [],
@@ -63,7 +63,7 @@ class ComposioIntegrationService {
    * Validates detected apps (Stubbed).
    */
   async validateDetectedApps(detectedApps = [], userId = null) {
-    logger.info(`ComposioIntegration: validateDetectedApps (stubbed)`);
+    logger.info(`McpIntegration: validateDetectedApps (stubbed)`);
     return {
       success: true,
       validApps: detectedApps,
@@ -77,7 +77,7 @@ class ComposioIntegrationService {
    * Generates authentication connection URL (Stubbed).
    */
   async getConnectionUrl(userId, appName) {
-    logger.info(`ComposioIntegration: getConnectionUrl for app ${appName} (stubbed)`);
+    logger.info(`McpIntegration: getConnectionUrl for app ${appName} (stubbed)`);
     return {
       success: true,
       alreadyConnected: true,
@@ -93,7 +93,7 @@ class ComposioIntegrationService {
    * Handles tool sync background events (Stubbed).
    */
   async handleToolsSyncEvent({ userId, appNames }) {
-    logger.info(`ComposioIntegration: handleToolsSyncEvent (stubbed)`);
+    logger.info(`McpIntegration: handleToolsSyncEvent (stubbed)`);
     return { success: true };
   }
 
@@ -101,9 +101,9 @@ class ComposioIntegrationService {
    * Triggers tool sync via Pub/Sub (Stubbed).
    */
   async _triggerToolsSync(userId, appNames) {
-    logger.info(`ComposioIntegration: _triggerToolsSync (stubbed)`);
+    logger.info(`McpIntegration: _triggerToolsSync (stubbed)`);
     return { success: true };
   }
 }
 
-export const composioIntegrationService = new ComposioIntegrationService();
+export const mcpIntegrationService = new McpIntegrationService();

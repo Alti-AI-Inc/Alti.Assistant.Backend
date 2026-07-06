@@ -555,7 +555,7 @@ describe('orchestratorService.classifyAndDispatch', () => {
     expect(mockProcessUserInputService).not.toHaveBeenCalled();
   });
 
-  it('should dispatch to SwarmService for connected_apps module (since Composio is disabled)', async () => {
+  it('should dispatch to SwarmService for connected_apps module (since MCP is disabled)', async () => {
     const prompt = 'Send an email to support.';
     mockGenerateContent.mockResolvedValueOnce({
       response: {

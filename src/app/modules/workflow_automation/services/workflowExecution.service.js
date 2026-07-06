@@ -1,7 +1,7 @@
 import Workflow from '../models/workflow.model.js';
 import WorkflowExecution from '../models/workflowExecution.model.js';
 import WorkflowApproval from '../models/workflowApproval.model.js';
-import { composioIntegrationService } from './composioIntegration.service.js';
+import { mcpIntegrationService } from './mcpIntegration.service.js';
 import { workflowResilienceService } from './workflowResilience.service.js';
 
 import config from '../../../../../config/index.js';
@@ -2689,7 +2689,7 @@ class WorkflowExecutionService {
       }
 
       // Get user's available tools for this app
-      const userTools = await composioIntegrationService.getUserAvailableTools(
+      const userTools = await mcpIntegrationService.getUserAvailableTools(
         userId,
         [step.app]
       );
@@ -2721,7 +2721,7 @@ class WorkflowExecutionService {
         );
       }
 
-      throw new Error(`External integration execution is disabled: Composio has been removed. Cannot execute ${tool.name || step.action}`);
+      throw new Error(`External integration execution is disabled. Cannot execute ${tool.name || step.action}`);
 
       // Prepare parameters by merging step parameters with context
       const parameters = this.prepareParameters(step.parameters, context);

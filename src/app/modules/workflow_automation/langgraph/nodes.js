@@ -2,7 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
-import { composioIntegrationService } from '../services/composioIntegration.service.js';
+import { mcpIntegrationService } from '../services/mcpIntegration.service.js';
 import { workflowExecutionService } from '../services/workflowExecution.service.js';
 import Workflow from '../models/workflow.model.js';
 
@@ -22,7 +22,7 @@ export const analyzeIntentNode = async (state) => {
 
     // Get available apps for this context
     const availableAppsResult =
-      await composioIntegrationService.getAvailableAppsForDetection();
+      await mcpIntegrationService.getAvailableAppsForDetection();
     const availableApps = availableAppsResult.success
       ? availableAppsResult.availableApps
       : [];
@@ -68,7 +68,7 @@ Respond with a JSON object only.`;
 
     // Validate detected apps against available apps
     const validationResult =
-      await composioIntegrationService.validateDetectedApps(
+      await mcpIntegrationService.validateDetectedApps(
         analysis.detectedApps || [],
         state.userId
       );
@@ -110,7 +110,7 @@ export const planWorkflowNode = async (state) => {
     logger.info('Starting workflow planning');
 
     // Get available tools for the user's connected apps
-    const userTools = await composioIntegrationService.getUserAvailableTools(
+    const userTools = await mcpIntegrationService.getUserAvailableTools(
       state.userId,
       state.detectedApps
     );
@@ -147,7 +147,7 @@ In addition to external third-party apps, you have access to these core Alti Ass
    - Actions:
      * "query_rag": Search document banks/knowledge bases. Parameters: { query: string }.
      * "index_file": Index a new file path into pgvector. Parameters: { filePath: string, originalName: string (optional) }.
-5. "apps": Discover and execute external Composio actions.
+5. "apps": Discover and execute external MCP actions.
 6. "google_cloud" (or "gcp"): Natively execute Google Cloud tasks.
    - Actions:
      * "vertex_ai_generate": Ask Vertex AI / Gemini to generate text or structured details. Parameters: { prompt: string, model: string (optional), temperature: number (optional) }.
@@ -234,7 +234,7 @@ Respond with a JSON object containing:
 
     // Validate the planned apps against available ones
     const validationResult =
-      await composioIntegrationService.validateDetectedApps(
+      await mcpIntegrationService.validateDetectedApps(
         plan.requiredApps || [],
         state.userId
       );
@@ -424,7 +424,7 @@ export const validateWorkflowNode = async (state) => {
     // Check app connections if user ID is available
     if (state.userId && state.detectedApps?.length > 0) {
       const connectionCheck =
-        await composioIntegrationService.checkAppConnections(
+        await mcpIntegrationService.checkAppConnections(
           state.userId,
           state.detectedApps
         );
@@ -441,7 +441,7 @@ export const validateWorkflowNode = async (state) => {
           for (const appName of connectionCheck.missingConnections) {
             try {
               const connectionResult =
-                await composioIntegrationService.getConnectionUrl(
+                await mcpIntegrationService.getConnectionUrl(
                   state.userId,
                   appName
                 );

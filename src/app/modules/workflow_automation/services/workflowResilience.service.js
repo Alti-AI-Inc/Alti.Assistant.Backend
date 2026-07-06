@@ -182,7 +182,7 @@ class WorkflowResilienceService {
       logger.info(`Resilience: executing step ${stepId} (execution: ${executionId}), attempt ${currentAttempt}/${maxAttempts}`);
 
       // In a real application, this would call the actual tool execution service.
-      const result = await this._executeComposioAction(app, action, parameters);
+      const result = await this._executeMcpAction(app, action, parameters);
 
       return {
         status: 'SUCCESS',
@@ -317,9 +317,9 @@ class WorkflowResilienceService {
    * @private
    * Placeholder for the actual tool/action execution logic.
    */
-  async _executeComposioAction(app, action, parameters) {
-    // In a real application, this would integrate with the Composio tool execution logic.
-    // e.g., return await composioTool.execute(app, action, parameters);
+  async _executeMcpAction(app, action, parameters) {
+    // In a real application, this would integrate with the MCP tool execution logic.
+    // e.g., return await mcpTool.execute(app, action, parameters);
     logger.info(`Simulating execution: ${app}.${action} with params:`, parameters);
     if (Math.random() < 0.3) { // Simulate a 30% chance of a transient error
       const err = new Error("Simulated network error: 503 service unavailable");

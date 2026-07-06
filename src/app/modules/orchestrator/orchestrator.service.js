@@ -56,10 +56,9 @@ const model = client.getGenerativeModel({
  * This object serves as the single source of truth for routing decisions.
  * Each key is a unique module name, and the value is an object containing:
  * - `description`: A brief explanation of the module's capability, used to build the LLM prompt.
- * - `dispatch`: The target service to which the request should be routed ('swarm' or 'composio').
- * - `requireSearch`: (Optional) A boolean indicating if the module inherently requires a web search.
+ * - `dispatch`: The target service to which the request should be routed ('swarm' or 'mcp').
  * @constant
- * @type {Object.<string, {description: string, dispatch: 'swarm' | 'composio', requireSearch?: boolean}>}
+ * @type {Object.<string, {description: string, dispatch: 'swarm' | 'mcp', requireSearch?: boolean}>}
  */
 const MODULE_REGISTRY = {
   general_chat:      { description: 'Standard conversational AI queries, greetings, opinions, explanations, Q&A', dispatch: 'swarm' },
@@ -68,7 +67,7 @@ const MODULE_REGISTRY = {
   document_analysis: { description: 'Requests to summarize, analyze, extract from, or read uploaded files and documents', dispatch: 'swarm' },
   legal_contract:    { description: 'Drafting, reviewing, or analyzing legal contracts, NDAs, terms of service, legal agreements', dispatch: 'swarm' },
   code_generation:   { description: 'Writing, debugging, refactoring, or explaining code in any programming language', dispatch: 'swarm' },
-  connected_apps:    { description: 'Actions on third-party apps: sending emails (Gmail), posting to Slack, creating GitHub/Jira issues, HubSpot contacts, calendar events, etc.', dispatch: 'composio' },
+  connected_apps:    { description: 'Actions on third-party apps: sending emails (Gmail), posting to Slack, creating GitHub/Jira issues, HubSpot contacts, calendar events, etc.', dispatch: 'mcp' },
   deep_research:     { description: 'In-depth research requiring multiple searches, analysis, and synthesis of complex topics', dispatch: 'swarm', requireSearch: true },
   brainstorm:        { description: 'Brainstorming sessions, ideation, generating creative ideas, mind mapping, exploring possibilities', dispatch: 'swarm' },
   presentation:      { description: 'Creating slide decks, presentations, pitch decks, PowerPoint-style content', dispatch: 'swarm' },
@@ -555,9 +554,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     let finalResponse;
 
     try {
-      if (dispatchConfig.dispatch === 'composio') {
-        // Connected apps path — Composio has been removed, fall back to Swarm
-        logger.info({ message: 'Dispatching to connected apps, but Composio is disabled. Falling back to Swarm.', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
+      if (dispatchConfig.dispatch === 'mcp') {
+        // Connected apps path — MCP SDK has been integrated, fall back to Swarm if disabled
+        logger.info({ message: 'Dispatching to connected apps, but MCP SDK is disabled. Falling back to Swarm.', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
         finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId, { model: targetModel });
       } else {
         // Swarm path — for all other modules
@@ -609,7 +608,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
             case 'code_generation':
               return 'code';
             case 'connected_apps':
-              return 'composio';
+              return 'mcp';
             case 'document_analysis':
               return 'document_analysis';
             case 'legal_contract':
@@ -623,7 +622,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
             case 'translation':
               return 'translation';
             case 'transcription':
-              return 'composio';
+              return 'mcp';
             case 'creative_writing':
               return 'creative_writing';
             case 'article_writer':

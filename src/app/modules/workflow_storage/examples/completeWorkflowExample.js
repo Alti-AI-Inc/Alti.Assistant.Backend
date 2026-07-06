@@ -2,7 +2,7 @@
  * Complete Workflow Storage to Execution Example
  *
  * This example demonstrates the full workflow from analyzing user input,
- * storing the workflow, and then executing it using the integration with Composio v2.
+ * storing the workflow, and then executing it using the integration with MCP.
  */
 
 import { workflowStorageService } from './services/workflowStorage.service.js';
@@ -17,7 +17,7 @@ import { workflowExecutionIntegrationService } from './services/workflowExecutio
  * 2.  **Manage Workflow**: Retrieves and updates metadata for the stored workflow.
  * 3.  **Check Execution Readiness**: Verifies if the workflow has all necessary connections for execution.
  * 4.  **Prepare for Execution**: Generates an executable plan for the workflow.
- * 5.  **Execute Workflow**: Initiates the workflow execution via Composio v2 integration.
+ * 5.  **Execute Workflow**: Initiates the workflow execution via MCP integration.
  * 6.  **Schedule Workflow (Optional)**: Sets up recurring execution for the workflow.
  * 7.  **Get Workflow Statistics**: Retrieves overall statistics for workflows managed by the user.
  * 8.  **Cleanup (Optional)**: Placeholder for post-demonstration cleanup actions.
@@ -211,7 +211,7 @@ export const completeWorkflowExample = async () => {
         `   - Stored Workflow ID: ${executionResult.data.storedWorkflowId}`
       );
       console.log(
-        `   - Composio Workflow ID: ${executionResult.data.composioWorkflowId}`
+        `   - MCP Workflow ID: ${executionResult.data.mcpWorkflowId || executionResult.data.composioWorkflowId || 'N/A'}`
       );
       console.log(
         `   - Execution ID: ${executionResult.data.executionId || 'Pending'}`
@@ -227,9 +227,9 @@ export const completeWorkflowExample = async () => {
         `   - Total Steps: ${executionResult.data.metadata.totalSteps}`
       );
 
-      console.log('\n🎉 Workflow is now running in Composio v2!');
+      console.log('\n🎉 Workflow is now running in MCP Engine!');
       console.log(
-        '   📊 You can monitor its progress in the Composio v2 dashboard'
+        '   📊 You can monitor its progress in the dashboard'
       );
     } else {
       console.log('❌ Failed to execute workflow:', executionResult.error);
@@ -249,7 +249,7 @@ export const completeWorkflowExample = async () => {
       }
 
       console.log('\n💡 To execute this workflow:');
-      console.log('   1. Connect the required apps in Composio');
+      console.log('   1. Connect the required apps via MCP');
       console.log('   2. Refresh the workflow connections');
       console.log('   3. Try execution again');
       return; // Critical failure, stop example
@@ -326,12 +326,12 @@ export const completeWorkflowExample = async () => {
     console.log('🎉 Complete workflow example finished successfully!');
     console.log('');
     console.log('📋 What we accomplished:');
-    console.log('   ✅ Analyzed user input using Composio v2 planWorkflow');
+    console.log('   ✅ Analyzed user input using MCP planWorkflow');
     console.log('   ✅ Stored workflow with metadata and planning details');
     console.log('   ✅ Updated workflow information');
     console.log('   ✅ Checked execution readiness');
     console.log('   ✅ Prepared workflow for execution');
-    console.log('   ✅ Executed workflow using Composio v2 integration');
+    console.log('   ✅ Executed workflow using MCP integration');
     console.log('   ✅ Scheduled workflow for recurring execution');
     console.log('   ✅ Retrieved workflow statistics');
     console.log('');
@@ -348,7 +348,7 @@ export const completeWorkflowExample = async () => {
     console.error('💥 Error in complete workflow example:', error);
     console.log('\n🔧 Troubleshooting:');
     console.log('   1. Ensure MongoDB is running and connected');
-    console.log('   2. Check that Composio v2 module is properly installed');
+    console.log('   2. Check that MCP module is properly installed');
     console.log('   3. Verify that required models are imported');
     console.log('   4. Check network connectivity for external API calls');
 
