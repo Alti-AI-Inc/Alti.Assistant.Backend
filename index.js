@@ -49,11 +49,9 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import config from './config/index.js';
 import './src/app/middlewares/resetUsage/resetUsage.js';
-import './src/app/cron/usage/cleanupOldUsage.js';
 import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
-import { initializeCronJobs } from './src/app/cron/index.js';
 import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
 import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
@@ -224,7 +222,6 @@ const connectDB = (retries = 5, delay = 5000) => {
     connectionPromise
       .then(() => {
         logger.info('✅ Database connection successfully');
-        initializeCronJobs();
         
         // Start background Temporal Worker
         temporalWorkerCoordinator.start().catch((err) =>

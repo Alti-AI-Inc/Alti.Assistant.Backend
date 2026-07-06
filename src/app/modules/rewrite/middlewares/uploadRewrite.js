@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { REWRITE_CONFIG, STORAGE_CONFIG } from '../rewrite.constant.js';
+import { REWRITE_CONFIG } from '../rewrite.constant.js';
+import { GCSStorageEngine } from '../../../../app/middlewares/uploder/uploder.js';
 
 /**
  * @typedef {import('express').Request} Express.Request
@@ -9,49 +9,6 @@ import { REWRITE_CONFIG, STORAGE_CONFIG } from '../rewrite.constant.js';
  * @typedef {import('express').NextFunction} Express.NextFunction
  * @typedef {import('multer').File} Express.Multer.File
  */
-
-/**
- * The directory where temporary files will be uploaded.
- * This path is derived from `STORAGE_CONFIG.TEMP_FOLDER`.
- * The directory is created if it does not already exist.
- * @type {string}
- */
-const uploadDir = STORAGE_CONFIG.TEMP_FOLDER;
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-/**
- * Configures the storage for Multer, specifying the destination and filename generation logic.
- * Files will be stored on disk in the `uploadDir`.
- * @type {multer.StorageEngine}
- */
-const storage = multer.diskStorage({
-  /**
-   * Sets the destination directory for uploaded files.
-   * @param {Express.Request} req - The Express request object.
-   * @param {Express.Multer.File} file - The file object being uploaded.
-   * @param {function(Error|null, string): void} cb - The callback function to set the destination.
-   * @returns {void}
-   */
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  /**
-   * Generates a unique filename for the uploaded file.
-   * The filename will be prefixed with 'rewrite-' followed by a unique suffix
-   * (timestamp + random number) and the original file extension.
-   * @param {Express.Request} req - The Express request object.
-   * @param {Express.Multer.File} file - The file object being uploaded.
-   * @param {function(Error|null, string): void} cb - The callback function to set the filename.
-   * @returns {void}
-   */
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `rewrite-${uniqueSuffix}${ext}`);
-  },
-});
 
 /**
  * Filters files based on their extension.
@@ -82,7 +39,7 @@ const fileFilter = (req, file, cb) => {
  * @type {multer.Multer}
  */
 export const uploadRewrite = multer({
-  storage: storage,
+  storage: new GCSStorageEngine({ folder: 'rewrite' }),
   fileFilter: fileFilter,
   limits: {
     fileSize: REWRITE_CONFIG.MAX_FILE_SIZE,

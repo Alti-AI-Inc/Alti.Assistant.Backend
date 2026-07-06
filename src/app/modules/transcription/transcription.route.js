@@ -28,32 +28,14 @@ import { transcriptionController } from './transcription.controller.js';
  */
 const router = express.Router();
 
+import { GCSStorageEngine } from '../../middlewares/uploder/uploder.js';
+
 /**
- * Configures Multer for disk storage of audio files.
- * Files are stored in 'uploads/audio/' with a unique filename.
+ * Configures Multer for storage of audio files.
+ * Files are streamed directly to GCS in 'uploads/audio/'.
  * @type {multer.StorageEngine}
  */
-const storage = multer.diskStorage({
-  /**
-   * Determines the destination directory for uploaded files.
-   * @param {import('express').Request} req - The Express request object.
-   * @param {Express.Multer.File} file - The file being uploaded.
-   * @param {(error: Error | null, destination: string) => void} cb - The callback function to set the destination.
-   */
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/audio/');
-  },
-  /**
-   * Determines the filename for uploaded files.
-   * @param {import('express').Request} req - The Express request object.
-   * @param {Express.Multer.File} file - The file being uploaded.
-   * @param {(error: Error | null, filename: string) => void} cb - The callback function to set the filename.
-   */
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'audio-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+const storage = new GCSStorageEngine({ folder: 'uploads/audio' });
 
 /**
  * Filters incoming files to ensure only allowed audio MIME types are accepted.

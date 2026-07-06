@@ -90,7 +90,6 @@
     "mongoose": "^8.1.0",
     "mongoose-encryption": "^2.1.2",
     "multer": "^2.0.1",
-    "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.1",
     "otp-generator": "^4.0.1",

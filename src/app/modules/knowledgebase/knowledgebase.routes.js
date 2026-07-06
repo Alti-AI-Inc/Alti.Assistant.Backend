@@ -10,23 +10,14 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 
 const router = express.Router();
 
-import os from 'os';
+import { GCSStorageEngine } from '../../middlewares/uploder/uploder.js';
 
 /**
  * @constant {multer.StorageEngine} storage
- * @description Configures the disk storage for multer.
- * Files are temporarily stored in the operating system's temporary directory
- * with a unique filename to prevent collisions.
+ * @description Configures the storage engine for multer.
+ * Files are streamed directly to Google Cloud Storage.
  */
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, os.tmpdir());
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = new GCSStorageEngine({ folder: 'knowledgebase' });
 
 /**
  * @function fileFilter

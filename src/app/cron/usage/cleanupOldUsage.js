@@ -1,18 +1,12 @@
-import cron from 'node-cron';
 import { logger } from '../../../shared/logger.js';
 import UserUsageModel from '../../modules/usage/userUsage.model.js';
 import SubscriptionModel from '../../modules/payment/payment.model.js';
 
-/**
- * Cleanup Cron Job
- * Schedule: 0 2 * * * — runs at 2:00 AM UTC daily
- *
- * Tasks:
- * 1. Delete UserUsage documents older than 90 days
- * 2. Expire subscriptions where expiresAt < now
- */
-cron.schedule('0 2 * * *', async () => {
-  logger.info('[Cleanup Cron] Starting daily cleanup job');
+export const cleanupOldUsage = async (req, res) => {
+  logger.info('[Cleanup Cron] Starting daily cleanup job (HTTP trigger)');
+
+  let deletedUsage = 0;
+  let expiredSubs = 0;
 
   // ── 1. Delete UserUsage docs older than 90 days ──────────────────────────
   try {
@@ -23,9 +17,8 @@ cron.schedule('0 2 * * *', async () => {
       date: { $lt: cutoff },
     });
 
-    logger.info(
-      `[Cleanup Cron] Deleted ${usageResult.deletedCount} UserUsage records older than 90 days`
-    );
+    deletedUsage = usageResult.deletedCount;
+    logger.info(`[Cleanup Cron] Deleted ${deletedUsage} UserUsage records older than 90 days`);
   } catch (err) {
     logger.error('[Cleanup Cron] Error deleting old UserUsage records:', err);
   }
@@ -42,14 +35,12 @@ cron.schedule('0 2 * * *', async () => {
       }
     );
 
-    logger.info(
-      `[Cleanup Cron] Expired ${expireResult.modifiedCount} subscriptions`
-    );
+    expiredSubs = expireResult.modifiedCount;
+    logger.info(`[Cleanup Cron] Expired ${expiredSubs} subscriptions`);
   } catch (err) {
     logger.error('[Cleanup Cron] Error expiring subscriptions:', err);
   }
 
   logger.info('[Cleanup Cron] Daily cleanup job complete');
-});
-
-logger.info('[Cleanup Cron] Daily cleanup cron job scheduled (0 2 * * *)');
+  if (res) res.status(200).json({ success: true, message: 'Cleanup complete', deletedUsage, expiredSubs });
+};

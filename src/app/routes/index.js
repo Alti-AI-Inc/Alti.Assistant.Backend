@@ -68,10 +68,15 @@ import { dockerRoutes } from './docker.route.js';
 import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
 import { vertexRoutes } from '../modules/vertex/vertex.route.js';
+import { cronRoutes } from '../cron/cron.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/cron',
+    route: cronRoutes,
+  },
   {
     path: '/datasets',
     route: datasetsRoutes,

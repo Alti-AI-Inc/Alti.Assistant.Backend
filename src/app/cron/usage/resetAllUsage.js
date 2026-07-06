@@ -1,13 +1,10 @@
-import cron from 'node-cron';
 import SubscriptionModel from '../../modules/payment/payment.model.js';
 import UserModel from '../../modules/auth/auth.model.js';
+import { logger } from '../../../shared/logger.js';
 
-cron.schedule(
-  '0 0 * * *', // Runs at midnight (12:00 AM) Bangladesh Time
-  async () => {
-    console.log(
-      `⏳ Running scheduled task at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })}`
-    );
+export const resetAllUsage = async (req, res) => {
+  try {
+    logger.info(`⏳ Running scheduled resetAllUsage task (HTTP trigger)`);
 
     // ✅ 1. Reset daily usage for all active subscriptions (paid & not expired)
     const activeSubscriptions = await SubscriptionModel.find({
@@ -21,9 +18,7 @@ cron.schedule(
       await subscription.save();
     }
 
-    console.log(
-      `✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`
-    );
+    logger.info(`✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`);
 
     // ✅ 2. Expire subscriptions that have reached their expiry date:-
     const expiredSubscriptions = await SubscriptionModel.find({
@@ -42,7 +37,7 @@ cron.schedule(
       );
     }
 
-    console.log(`✅ Expired ${expiredSubscriptions.length} subscriptions.`);
+    logger.info(`✅ Expired ${expiredSubscriptions.length} subscriptions.`);
 
     // ✅ 3. Reset free plan usage for all users
     await UserModel.updateMany(
@@ -56,7 +51,7 @@ cron.schedule(
       }
     );
 
-    console.log('✅ Reset free plan usage for all users.');
+    logger.info('✅ Reset free plan usage for all users.');
 
     // ✅ 4. Reset daily request limits for all users at midnight
     await UserModel.updateMany(
@@ -69,10 +64,11 @@ cron.schedule(
       }
     );
 
-    console.log('✅ Reset daily request limits for all users.');
-  },
-  {
-    scheduled: true,
-    timezone: 'Asia/Dhaka', // ⬅️ Ensure it runs in Bangladesh Time
+    logger.info('✅ Reset daily request limits for all users.');
+
+    if (res) res.status(200).json({ success: true, message: 'All usage reset successfully' });
+  } catch (error) {
+    logger.error('Error resetting all usage:', error);
+    if (res) res.status(500).json({ success: false, message: error.message });
   }
-);
+};

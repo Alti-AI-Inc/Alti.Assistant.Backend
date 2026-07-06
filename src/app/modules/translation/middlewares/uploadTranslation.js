@@ -31,6 +31,7 @@ import UsageService from '../../usage/usage.service.js'; // Assumed path and ser
 import ApiError from '../../../../errors/ApiError.js'; // Assumed path to a custom error class
 
 import { createRateLimiter } from '../../../../shared/rateLimiter.js';
+import { GCSStorageEngine } from '../../../../app/middlewares/uploder/uploder.js';
 
 // --- Rate Limiting Configuration ---
 
@@ -177,15 +178,8 @@ export const translationUploadMiddleware = async (req, res, next) => {
     }
 
     // --- 2. Dynamic Multer Configuration ---
-    const storage = multer.diskStorage({
-      destination: (req, file, cb) => {
-        cb(null, uploadContext.destinationDir);
-      },
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-        cb(null, `translation-${uniqueSuffix}${ext}`);
-      },
+    const storage = new GCSStorageEngine({
+      folder: `translation/${uploadContext.workspaceId || 'super_admin'}`
     });
 
     const fileFilter = (req, file, cb) => {

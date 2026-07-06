@@ -1,25 +1,19 @@
-import cron from 'node-cron';
 import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 import { logger } from '../../../shared/logger.js';
 
-/**
- * Daily Usage Reset Cron Job
- * Resets webSearchUsedToday and deepResearchUsedToday counters at midnight
- * Runs every day at 00:00 (midnight)
- */
-
 let isRunning = false;
 
-const resetDailyUsage = async () => {
+export const resetDailyUsage = async (req, res) => {
   if (isRunning) {
     logger.warn('Daily usage reset already running, skipping...');
+    if (res) res.status(409).json({ success: false, message: 'Already running' });
     return;
   }
 
   isRunning = true;
 
   try {
-    logger.info('Starting daily usage reset...');
+    logger.info('Starting daily usage reset (HTTP trigger)...');
 
     const result = await SubscriptionModel.updateMany(
       { status: 'active' },
@@ -32,9 +26,7 @@ const resetDailyUsage = async () => {
       }
     );
 
-    logger.info(
-      `Daily usage reset completed: ${result.modifiedCount} active subscriptions updated`
-    );
+    logger.info(`Daily usage reset completed: ${result.modifiedCount} active subscriptions updated`);
 
     // Also reset expired/cancelled subscriptions (in case they're reactivated)
     const allResult = await SubscriptionModel.updateMany(
@@ -46,43 +38,16 @@ const resetDailyUsage = async () => {
       }
     );
 
-    logger.info(
-      `Updated lastResetAt for ${allResult.modifiedCount} total subscriptions`
-    );
+    logger.info(`Updated lastResetAt for ${allResult.modifiedCount} total subscriptions`);
+    if (res) res.status(200).json({ success: true, message: 'Daily usage reset completed', count: result.modifiedCount });
   } catch (error) {
     logger.error('Error resetting daily usage:', error);
+    if (res) res.status(500).json({ success: false, message: error.message });
   } finally {
     isRunning = false;
   }
 };
 
-/**
- * Schedule the cron job
- * Cron expression: '0 0 * * *' = Every day at midnight (00:00)
- * Timezone: UTC
- */
-export const startDailyUsageResetCron = () => {
-  // Run at midnight every day
-  cron.schedule('0 0 * * *', resetDailyUsage, {
-    scheduled: true,
-    timezone: 'UTC',
-  });
-
-  logger.info('Daily usage reset cron job scheduled (00:00 UTC)');
-
-  // Optional: Run immediately on startup for testing
-  // resetDailyUsage();
-};
-
-/**
- * Manual trigger for testing
- */
-export const triggerDailyUsageReset = async () => {
-  logger.info('Manually triggering daily usage reset...');
-  await resetDailyUsage();
-};
-
 export default {
-  startDailyUsageResetCron,
-  triggerDailyUsageReset,
+  resetDailyUsage,
 };

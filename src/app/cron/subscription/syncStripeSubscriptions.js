@@ -1,4 +1,3 @@
-import cron from 'node-cron';
 import Stripe from 'stripe';
 import config from '../../../../config/index.js';
 import SubscriptionModel from '../../modules/subscription/subscription.model.js';
@@ -26,24 +25,19 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
-/**
- * Stripe Subscription Sync Cron Job
- * Syncs database subscriptions with Stripe to catch any missed webhooks
- * Runs every hour
- */
-
 let isRunning = false;
 
-const syncStripeSubscriptions = async () => {
+export const syncStripeSubscriptions = async (req, res) => {
   if (isRunning) {
     logger.warn('Stripe sync already running, skipping...');
+    if (res) res.status(409).json({ success: false, message: 'Already running' });
     return;
   }
 
   isRunning = true;
 
   try {
-    logger.info('Starting Stripe subscription sync...');
+    logger.info('Starting Stripe subscription sync (HTTP trigger)...');
 
     // Get all active subscriptions from database
     const dbSubscriptions = await SubscriptionModel.find({
@@ -156,9 +150,8 @@ const syncStripeSubscriptions = async () => {
       }
     }
 
-    logger.info(
-      `Stripe sync completed: ${synced} checked, ${updated} updated, ${errors} errors`
-    );
+    logger.info(`Stripe sync completed: ${synced} checked, ${updated} updated, ${errors} errors`);
+    if (res) res.status(200).json({ success: true, message: 'Stripe sync completed', synced, updated, errors });
   } catch (error) {
     logger.error('Error during Stripe sync:', error);
     sendSecurityAlert(
@@ -169,42 +162,12 @@ const syncStripeSubscriptions = async () => {
         stack: error.stack ? error.stack.substring(0, 500) : 'none'
       }
     ).catch(() => {});
+    if (res) res.status(500).json({ success: false, message: error.message });
   } finally {
     isRunning = false;
   }
 };
 
-/**
- * Schedule the cron job
- * Cron expression: '0 * * * *' = Every hour at minute 0
- * Timezone: UTC
- */
-export const startStripeSyncCron = () => {
-  // Run every hour
-  cron.schedule('0 * * * *', syncStripeSubscriptions, {
-    scheduled: true,
-    timezone: 'UTC',
-  });
-
-  logger.info(
-    'Stripe subscription sync cron job scheduled (every hour at :00)'
-  );
-
-  // Optional: Run on startup after 5 minutes
-  // setTimeout(() => {
-  //   syncStripeSubscriptions();
-  // }, 5 * 60 * 1000);
-};
-
-/**
- * Manual trigger for testing
- */
-export const triggerStripeSync = async () => {
-  logger.info('Manually triggering Stripe sync...');
-  await syncStripeSubscriptions();
-};
-
 export default {
-  startStripeSyncCron,
-  triggerStripeSync,
+  syncStripeSubscriptions,
 };
