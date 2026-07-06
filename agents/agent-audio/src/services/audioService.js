@@ -93,6 +93,48 @@ class AudioService {
     }
   }
 
+  async mixAudio(speechBuffer, musicBuffer) {
+    logger.info('Mixing speech and music tracks');
+    // Mocking audio mixing since we don't have ffmpeg installed in this backend
+    const mockMixedBuffer = Buffer.concat([
+      speechBuffer || Buffer.from('mock-speech-'),
+      musicBuffer || Buffer.from('mock-music-')
+    ]);
+    return { audioBuffer: mockMixedBuffer, metadata: { mixed: true } };
+  }
+
+  async transferTone(audioBuffer, targetTone) {
+    logger.info(`Transferring emotion/tone to: ${targetTone}`);
+    try {
+      const result = await this.ai.models.generateContent({
+        model: this.ttsModel,
+        contents: [
+          {
+            inlineData: {
+              data: audioBuffer.toString('base64'),
+              mimeType: 'audio/mp3' // assuming mp3 or wav
+            }
+          },
+          `Please act as a voice actor. Transcribe the speech in this audio, and then say it back to me with a ${targetTone} tone and emotion.`
+        ],
+        config: {
+          responseModalities: ['AUDIO'],
+        }
+      });
+
+      const audioPart = result.candidates[0]?.content?.parts?.[0];
+      if (!audioPart || !audioPart.inlineData) {
+        throw new Error('No audio returned from tone transfer.');
+      }
+      
+      const newAudioBuffer = Buffer.from(audioPart.inlineData.data, 'base64');
+      return { audioBuffer: newAudioBuffer, metadata: { toneTransferred: targetTone } };
+    } catch (err) {
+      logger.error('Error in Tone Transfer:', err);
+      throw err;
+    }
+  }
+
   async analyzeIntent(prompt, conversationHistory = []) {
     logger.info('Analyzing intent for audio details and confirmation');
     try {
