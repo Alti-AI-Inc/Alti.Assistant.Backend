@@ -7,7 +7,6 @@ import { workflowResilienceService } from './workflowResilience.service.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
-import cron from 'node-cron';
 import path from 'path';
 import { runIngestionWorkflow } from '../llamaindex/indexPipeline.js';
 import { runSearchWorkflow } from '../llamaindex/searchPipeline.js';
@@ -3030,26 +3029,9 @@ class WorkflowExecutionService {
       this.unscheduleWorkflow(workflowId);
 
       // Schedule new job
-      const job = cron.schedule(
-        cronExpression,
-        async () => {
-          try {
-            logger.info(`Executing scheduled workflow: ${workflowId}`);
-            await this.executeWorkflow(workflowId, workflow.userId, {
-              triggeredBy: 'schedule',
-              scheduledAt: new Date(),
-            });
-          } catch (error) {
-            logger.error(`Error in scheduled workflow ${workflowId}:`, error);
-          }
-        },
-        {
-          scheduled: true,
-          timezone: scheduleConfig.timezone || 'UTC',
-        }
-      );
-
-      this.scheduledJobs.set(workflowId, job);
+      // We are fully migrating to GCP Cloud Scheduler native dynamic tasks.
+      // Dynamic in-memory node-cron scheduling is disabled for Cloud Run compatibility.
+      logger.info(`[GCP Migration] Scheduled workflow ${workflowId} with cron: ${cronExpression}. Awaiting Google Cloud Scheduler provisioning.`);
 
       // Update workflow with next execution time
       const nextExecution = this.calculateNextExecution(scheduleConfig);
@@ -3069,12 +3051,7 @@ class WorkflowExecutionService {
    * Unschedule a workflow
    */
   unscheduleWorkflow(workflowId) {
-    const job = this.scheduledJobs.get(workflowId);
-    if (job) {
-      job.stop();
-      this.scheduledJobs.delete(workflowId);
-      logger.info(`Unscheduled workflow: ${workflowId}`);
-    }
+    logger.info(`[GCP Migration] Unscheduled workflow: ${workflowId}`);
   }
 
   /**

@@ -48,7 +48,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import config from './config/index.js';
-import './src/app/middlewares/resetUsage/resetUsage.js';
+
 import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';

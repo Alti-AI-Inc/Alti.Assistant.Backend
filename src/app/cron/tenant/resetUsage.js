@@ -118,7 +118,7 @@ export const sendUsageWarnings = async (req, res) => {
 
         try {
           await sendMailWithNodeMailer({
-            sub: \`[Action Required] Alti Assistant Workspace API Usage Warning - \${percentageUsed}% Limit Reached\`,
+            sub: `[Action Required] Alti Assistant Workspace API Usage Warning - ${percentageUsed}% Limit Reached`,
             message: emailMessage,
             userEmail: tenant.ownerId.email,
           });
