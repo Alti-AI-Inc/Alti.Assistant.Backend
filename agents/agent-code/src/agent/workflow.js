@@ -12,6 +12,10 @@
 import { StateGraph, Annotation, END } from '@langchain/langgraph';
 import { createLogger } from '../../../../shared/logging/index.js';
 import { CodeService } from '../services/codeService.js';
+import { generateCode } from './subagents/generatorAgent.js';
+import { debugCode } from './subagents/debuggerAgent.js';
+import { explainCode } from './subagents/explainerAgent.js';
+import { reviewCode } from './subagents/reviewerAgent.js';
 
 const { logger } = createLogger('code-workflow');
 
@@ -179,78 +183,7 @@ async function _classifyWithClaude(prompt) {
   return 'generate';
 }
 
-/**
- * Generate code from the prompt via CodeService → Claude.
- */
-async function generateCode(state) {
-  logger.info('generateCode node', { language: state.language });
 
-  const result = await codeService.generateCode(
-    state.prompt,
-    state.userContext,
-    { language: state.language },
-  );
-
-  return {
-    code: result.code,
-    tests: result.tests,
-    explanation: result.explanation,
-    metadata: result.metadata,
-  };
-}
-
-/**
- * Debug code — analyze the error and produce a fix via CodeService → Claude.
- */
-async function debugCode(state) {
-  logger.info('debugCode node', { error: state.error?.substring(0, 80) });
-
-  // The prompt may contain inline code, or the caller sends code separately
-  const codeToDebug = _extractCodeBlock(state.prompt) || state.prompt;
-  const result = await codeService.debugCode(codeToDebug, state.error, state.userContext);
-
-  return {
-    code: result.fixedCode,
-    explanation: result.explanation,
-    metadata: result.metadata,
-  };
-}
-
-/**
- * Explain the provided code via CodeService → Claude.
- */
-async function explainCode(state) {
-  logger.info('explainCode node');
-
-  const codeToExplain = _extractCodeBlock(state.prompt) || state.prompt;
-  const result = await codeService.explainCode(codeToExplain, state.userContext);
-
-  return {
-    explanation: result.explanation,
-    metadata: result.metadata,
-  };
-}
-
-/**
- * Review the provided code via CodeService → Claude.
- */
-async function reviewCode(state) {
-  logger.info('reviewCode node');
-
-  const codeToReview = _extractCodeBlock(state.prompt) || state.prompt;
-  const result = await codeService.reviewCode(codeToReview, state.userContext);
-
-  return {
-    review: {
-      summary: result.review,
-      issues: result.issues,
-      suggestions: result.suggestions,
-      securityFlags: result.securityFlags,
-      score: result.score,
-    },
-    metadata: result.metadata,
-  };
-}
 
 async function testAndValidate(state) {
   logger.info('testAndValidate node', { intent: state.intent });
@@ -329,17 +262,7 @@ async function testAndValidate(state) {
   };
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Extract the first fenced code block from a prompt string.
- * @param {string} text
- * @returns {string|null}
- */
-function _extractCodeBlock(text) {
-  const match = text.match(/```(?:\w+)?\s*\n([\s\S]*?)\n```/);
-  return match ? match[1].trim() : null;
-}
 
 // ── Conditional Router ───────────────────────────────────────────────────────
 
