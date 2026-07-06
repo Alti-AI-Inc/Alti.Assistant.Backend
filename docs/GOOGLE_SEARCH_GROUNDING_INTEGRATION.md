@@ -160,7 +160,7 @@ export async function executeSmartSearch(
 ```javascript
 // Changed from gemini-3-pro-preview to stable model
 export const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-1.5-pro', // Stable model
+  model: 'gemini-3.1-pro', 
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -285,7 +285,7 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
 
 1. ✅ Create `geminiGroundingService.js`
 2. ✅ Create `smartSearchRouter.js`
-3. ✅ Fix ReAct agent (change to `gemini-1.5-pro`)
+3. ✅ Fix ReAct agent (change to `gemini-3.1-pro`)
 4. ⏳ Test via new endpoint `/search-grounded`
 
 ### Phase 2: A/B Testing

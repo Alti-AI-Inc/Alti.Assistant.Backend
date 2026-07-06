@@ -11,6 +11,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Ve
 - **LangGraph State Channels Expansion**: Added `selectedAgent`, `selectedStyle`, `selectedPurpose`, and `isSwarm` state channels, integrating state updates with the MongoDB saver checkpointer.
 - **Node Integration**: Updated the asynchronous task offloader nodes to route user requests and attach routing variables to enqueued GCP Pub/Sub payloads.
 
+### 🗑️ Removed — OpenAI Dependency
+- **100% Google Cloud Native**: Removed the legacy `openai` module (`src/app/modules/openai`) entirely.
+- Renamed the module and core controllers to `vertex` (`src/app/modules/vertex`).
+- All orchestration agents (Code, Image, Video, Audio) are now strictly and exclusively running on Google Vertex AI using the `@google/genai` SDK.
+
 ---
 
 ## [Unreleased] — 2026-06-17
@@ -120,8 +125,10 @@ available models as of June 2026:
 
 | Tier | Previous | Updated |
 |------|----------|---------|
-| **Flash** (fast, cost-efficient) | `gemini-2.5-flash` | **`gemini-3.5-flash`** |
-| **Pro** (deep reasoning) | `gemini-2.5-pro` | **`gemini-3.1-pro`** |
+| **Flash** (fast, cost-efficient) | `gemini-2.5-flash` / `gemini-1.5-flash` | **`gemini-3.5-flash`** |
+| **Pro** (deep reasoning) | `gemini-2.5-pro` / `gemini-1.5-pro` | **`gemini-3.1-pro`** |
+| **Image Generation** (high fidelity) | `gemini-3.1-flash-image` / `imagen-3` | **`imagen-4.0-generate-001`** |
+| **Video Generation** (cinematic) | `veo-2.0` | **`veo-3.1-generate-preview`** |
 
 **Scope:** 88 files updated (65 source + 23 test files) including:
 - All module constants (`document_analysis`, `document_drafting`, `document_review`,

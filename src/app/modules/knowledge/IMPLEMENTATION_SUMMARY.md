@@ -143,7 +143,7 @@ src/app/modules/knowledge/          ← Unified system
 | -------------------- | --------------------- | ------------------------ |
 | **Modules**          | 2 separate            | 1 unified                |
 | **Ownership**        | Separate models       | Single `ownerType` field |
-| **AI Provider**      | Mixed (Gemini/OpenAI) | Pure Gemini              |
+| **AI Provider**      | Mixed (Gemini/Google Vertex AI) | Pure Gemini              |
 | **Embeddings**       | 1536 dimensions       | 768 dimensions           |
 | **Code Duplication** | High                  | Zero                     |
 | **Maintenance**      | 2 codebases           | 1 codebase               |

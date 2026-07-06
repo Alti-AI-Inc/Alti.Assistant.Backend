@@ -160,8 +160,8 @@ RAG_DB_NAME=rag_database
 RAG_DB_USER=postgres
 RAG_DB_PASSWORD=Em0nd4r0ck@2
 
-# OpenAI (for embeddings and RAG)
-OPENAI_API_KEY=your_openai_key
+# Google Vertex AI (for embeddings and RAG)
+GEMINI_API_KEY=your_Google Vertex AI_key
 ```
 
 ### GCS Bucket Setup
@@ -227,7 +227,7 @@ OPENAI_API_KEY=your_openai_key
 ### Processing Fails
 
 - Check RAG database connection
-- Verify OpenAI API key
+- Verify Google Vertex AI API key
 - Review `processingError` field in file record
 
 ### File Not Found

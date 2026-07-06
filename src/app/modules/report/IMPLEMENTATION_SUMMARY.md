@@ -27,7 +27,7 @@ A complete, production-ready AI-powered report generation module has been succes
 #### `report.service.js`
 
 - Core business logic for report generation
-- Conversational AI integration using OpenAI
+- Conversational AI integration using Google Vertex AI
 - Multi-turn conversation support
 - File processing and analysis
 - Report content generation with AI
@@ -188,7 +188,7 @@ src/app/modules/report/
 
 ## 🔧 Technical Stack
 
-- **AI**: OpenAI GPT-4o
+- **AI**: Google Gemini 3.1 Pro
 - **Validation**: Zod schemas
 - **File Upload**: Multer
 - **PDF Generation**: PDFKit
@@ -200,7 +200,7 @@ src/app/modules/report/
 
 ### Already Available
 
-- `openai` - AI model integration
+- `Google Vertex AI` - AI model integration
 - `multer` - File upload handling
 - `pdfkit` - PDF generation
 - `zod` - Schema validation
@@ -305,7 +305,7 @@ output/
 Add to your `.env` file:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_GEMINI_API_KEY_here
 REPORT_AI_MODEL=gpt-4o  # Optional, defaults to gpt-4o
 ```
 

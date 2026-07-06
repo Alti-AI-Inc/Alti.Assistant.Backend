@@ -35,7 +35,7 @@ src/app/modules/report/
 
 ### Technology Stack
 
-- **AI Model**: OpenAI GPT-4o (configurable)
+- **AI Model**: Google Gemini 3.1 Pro (configurable)
 - **File Upload**: Multer with disk storage
 - **PDF Generation**: PDFKit
 - **Conversation Management**: Integrated with existing conversation service
@@ -276,8 +276,8 @@ Modify an existing report.
 Add the following to your `.env` file:
 
 ```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key
+# Google Vertex AI Configuration
+GEMINI_API_KEY=your_GEMINI_API_KEY
 
 # Report Configuration (optional)
 REPORT_AI_MODEL=gpt-4o
@@ -475,7 +475,7 @@ The module uses several npm packages. Some advanced features require additional 
 
 ### Required (already in package.json):
 
-- `openai`
+- `Google Vertex AI`
 - `multer`
 - `pdfkit`
 - `zod`
@@ -549,7 +549,7 @@ curl -O http://localhost:5000/api/v1/reports/download/report_xxx.pdf
 
 3. **AI generation errors**
 
-   - Verify `OPENAI_API_KEY` is set
+   - Verify `GEMINI_API_KEY` is set
    - Check API quota/limits
    - Review content length
 

@@ -171,7 +171,7 @@ These are auth/billing/admin/utility endpoints that should never be rate-limited
 | `serper/serper.route.js`                     | Internal search tool                                           |
 | `tavily/tavily.route.js`                     | Internal research tool                                         |
 | `gemini/gemini.route.js`                     | Internal AI provider route                                     |
-| `openAi/openAi.route.js`                     | Internal AI provider route                                     |
+| `vertex/vertex.route.js`                     | Internal AI provider route                                     |
 | `groq/groq.route.js`                         | Internal AI provider route                                     |
 | `deepseek/deepseek.route.js`                 | Internal AI provider route                                     |
 | `qwen/qwen.route.js`                         | Internal AI provider route                                     |

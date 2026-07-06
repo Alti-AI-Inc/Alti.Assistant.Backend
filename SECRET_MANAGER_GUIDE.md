@@ -82,7 +82,6 @@ gh secret set VM_SSH_KEY --repo=Alti-AI-Inc/Alti.Assistant.Backend < ~/.ssh/your
 | Secret Name | Service |
 |-------------|---------|
 | `GEMINI_API_KEY` | Google Gemini |
-| `OPENAI_API_KEY` | OpenAI GPT |
 | `ANTHROPIC_API_KEY` | Claude |
 | `GROQ_API_KEY` | Groq |
 | `DEEPSEEK_API_KEY` | DeepSeek |

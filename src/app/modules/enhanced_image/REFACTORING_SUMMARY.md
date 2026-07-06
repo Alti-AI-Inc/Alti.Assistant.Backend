@@ -125,7 +125,7 @@ enhanced_image/
 └── utils/ (KEPT)
     ├── imagegen2.5.service.js
     ├── imagegen4.service.js
-    ├── imagen3.service.js
+    ├── imagen4.service.js
     ├── imageIntentAnalyzer.js
     ├── intentClassifier.js
     └── promptEvaluator.js

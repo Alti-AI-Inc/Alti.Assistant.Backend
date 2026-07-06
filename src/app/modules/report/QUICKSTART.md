@@ -4,10 +4,10 @@
 
 ### Prerequisites
 
-1. OpenAI API Key configured in `.env`:
+1. Google Vertex AI API Key configured in `.env`:
 
    ```env
-   OPENAI_API_KEY=your_openai_api_key_here
+   GEMINI_API_KEY=your_GEMINI_API_KEY_here
    ```
 
 2. Server running:
@@ -256,12 +256,12 @@ Default rate limits (configurable in routes):
 
 ## 🐛 Troubleshooting
 
-### Error: "OPENAI_API_KEY not set"
+### Error: "GEMINI_API_KEY not set"
 
 **Solution:**
 
 ```bash
-echo "OPENAI_API_KEY=your_key_here" >> .env
+echo "GEMINI_API_KEY=your_key_here" >> .env
 ```
 
 ### Error: "File format not supported"
