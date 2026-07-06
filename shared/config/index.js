@@ -104,4 +104,37 @@ const config = {
   },
 };
 
+/**
+ * Dynamically loads missing critical secrets from GCP Secret Manager.
+ * Should be called at application startup before relying on these secrets.
+ */
+export async function loadMissingSecrets() {
+  if (config.env !== 'production') return;
+  
+  try {
+    const { getSecret } = await import('./secrets.js');
+    
+    if (config.internal.serviceSecret === 'alti-internal-dev-secret') {
+      const secret = await getSecret('INTERNAL_SERVICE_SECRET');
+      if (secret) {
+        config.internal.serviceSecret = secret;
+      }
+    }
+    if (!config.gemini.apiKey) {
+      const key = await getSecret('GEMINI_API_KEY');
+      if (key) {
+        config.gemini.apiKey = key;
+      }
+    }
+    if (!config.jwt.accessToken) {
+      const token = await getSecret('JWT_ACCESS_TOKEN');
+      if (token) {
+        config.jwt.accessToken = token;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not load secrets dynamically:', error.message);
+  }
+}
+
 export default config;

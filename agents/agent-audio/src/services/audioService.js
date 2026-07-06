@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import config from '../../../../shared/config/index.js';
 import { createLogger } from '../../../../shared/logging/index.js';
+import { uploadBuffer } from '../../../../shared/storage/index.js';
 
 const { logger } = createLogger('audioService');
 
@@ -49,7 +50,15 @@ class AudioService {
     // Placeholder for MusicFX / external music generation API
     // Since native sdk doesn't support MusicFX yet, we mock a response
     const mockAudioBuffer = Buffer.from('mock-music-data');
-    return { audioBuffer: mockAudioBuffer, duration: 30, metadata: { type: 'music', prompt } };
+    
+    // Upload to GCS
+    const destination = `audio/music_${Date.now()}.mp3`;
+    const uploadResult = await uploadBuffer(mockAudioBuffer, destination, {
+      contentType: 'audio/mpeg',
+      public: true,
+    });
+    
+    return { audioBuffer: mockAudioBuffer, audioUrl: uploadResult.url, duration: 30, metadata: { type: 'music', prompt } };
   }
 
   async generateScript(prompt, audioType, options = {}) {
@@ -86,7 +95,15 @@ class AudioService {
       }
       
       const audioBuffer = Buffer.from(audioPart.inlineData.data, 'base64');
-      return { audioBuffer, duration: 0, metadata: { model: this.ttsModel } };
+      
+      // Upload to GCS
+      const destination = `audio/speech_${Date.now()}.mp3`;
+      const uploadResult = await uploadBuffer(audioBuffer, destination, {
+        contentType: 'audio/mpeg',
+        public: true,
+      });
+
+      return { audioBuffer, audioUrl: uploadResult.url, duration: 0, metadata: { model: this.ttsModel } };
     } catch (err) {
       logger.error('Error in TTS generation:', err);
       throw err;
@@ -100,7 +117,15 @@ class AudioService {
       speechBuffer || Buffer.from('mock-speech-'),
       musicBuffer || Buffer.from('mock-music-')
     ]);
-    return { audioBuffer: mockMixedBuffer, metadata: { mixed: true } };
+    
+    // Upload to GCS
+    const destination = `audio/mix_${Date.now()}.mp3`;
+    const uploadResult = await uploadBuffer(mockMixedBuffer, destination, {
+      contentType: 'audio/mpeg',
+      public: true,
+    });
+    
+    return { audioBuffer: mockMixedBuffer, audioUrl: uploadResult.url, metadata: { mixed: true } };
   }
 
   async transferTone(audioBuffer, targetTone) {
@@ -128,7 +153,15 @@ class AudioService {
       }
       
       const newAudioBuffer = Buffer.from(audioPart.inlineData.data, 'base64');
-      return { audioBuffer: newAudioBuffer, metadata: { toneTransferred: targetTone } };
+      
+      // Upload to GCS
+      const destination = `audio/tone_${Date.now()}.mp3`;
+      const uploadResult = await uploadBuffer(newAudioBuffer, destination, {
+        contentType: 'audio/mpeg',
+        public: true,
+      });
+
+      return { audioBuffer: newAudioBuffer, audioUrl: uploadResult.url, metadata: { toneTransferred: targetTone } };
     } catch (err) {
       logger.error('Error in Tone Transfer:', err);
       throw err;

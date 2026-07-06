@@ -9,6 +9,7 @@ export async function generateMusic(state) {
   const result = await audioService.generateMusic(finalPrompt);
   return {
     audioBase64: result.audioBuffer.toString('base64'),
+    audioUrl: result.audioUrl,
     metadata: result.metadata
   };
 }

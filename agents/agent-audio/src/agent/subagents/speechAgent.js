@@ -27,6 +27,7 @@ export async function synthesizeSpeech(state) {
   const result = await audioService.synthesizeSpeech(state.script, state.voiceConfig);
   return { 
     audioBase64: result.audioBuffer.toString('base64'),
+    audioUrl: result.audioUrl,
     metadata: result.metadata
   };
 }

@@ -10,6 +10,7 @@
  */
 
 import winston, { format } from 'winston';
+import { LoggingWinston } from '@google-cloud/logging-winston';
 
 const { combine, timestamp, label, printf, json } = format;
 
@@ -71,16 +72,32 @@ export function createLogger(serviceName = 'alti-agent') {
 
   const logFormat = isProduction ? cloudFormat : localFormat;
 
+  const loggerTransports = [new winston.transports.Console({ format: logFormat })];
+  const errorTransports = [new winston.transports.Console({ format: logFormat })];
+
+  if (isProduction) {
+    try {
+      const gcpTransport = new LoggingWinston({
+        logName: serviceName,
+        // Will automatically detect GCP project config when running on GCP
+      });
+      loggerTransports.push(gcpTransport);
+      errorTransports.push(gcpTransport);
+    } catch (err) {
+      console.warn(`Failed to initialize LoggingWinston for ${serviceName}:`, err.message);
+    }
+  }
+
   const logger = winston.createLogger({
     level: 'info',
     format: logFormat,
-    transports: [new winston.transports.Console({ format: logFormat })],
+    transports: loggerTransports,
   });
 
   const errorLogger = winston.createLogger({
     level: 'error',
     format: logFormat,
-    transports: [new winston.transports.Console({ format: logFormat })],
+    transports: errorTransports,
   });
 
   return { logger, errorLogger };

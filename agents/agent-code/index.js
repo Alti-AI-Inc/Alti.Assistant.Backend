@@ -73,6 +73,10 @@ const port = config.port || 8080;
 
 async function start() {
   try {
+    const { loadMissingSecrets } = await import('../../shared/config/index.js');
+    await loadMissingSecrets();
+
+    logger.info('Connecting to MongoDB...');
     await connectDB();
     logger.info('✅ MongoDB connected');
   } catch (err) {

@@ -39,7 +39,10 @@ app.use('/', internalRouter);
 // ── Startup ─────────────────────────────────────────────────────────────────
 async function start() {
   try {
-    // Connect to MongoDB
+    const { loadMissingSecrets } = await import('../../shared/config/index.js');
+    await loadMissingSecrets();
+
+    logger.info('Connecting to MongoDB...');
     await connectDB();
     logger.info('MongoDB connected for agent-research');
 

@@ -1,8 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import config from '../../../../shared/config/index.js';
 import { createLogger } from '../../../../shared/logging/index.js';
-// Assuming shared storage module exists as per instructions
-// import { uploadBuffer, getSignedUrl } from '../../../../shared/storage/index.js';
+import { uploadBuffer } from '../../../../shared/storage/index.js';
 
 const { logger } = createLogger('imageService');
 
@@ -52,11 +51,15 @@ class ImageService {
         throw new Error('No image was returned by the model.');
       }
 
-      // Placeholder for GCS upload
-      const imageUrl = `https://storage.googleapis.com/placeholder-bucket/images/generated_${Date.now()}.png`;
+      // Upload to GCS
+      const destination = `images/generated_${Date.now()}.png`;
+      const uploadResult = await uploadBuffer(imageBuffer, destination, {
+        contentType: 'image/png',
+        public: true, // Generate a public URL for frontend consumption
+      });
 
       return { 
-        imageUrl, 
+        imageUrl: uploadResult.url, 
         imageBase64: imageBuffer.toString('base64'),
         prompt, 
         text: accompanimentText,

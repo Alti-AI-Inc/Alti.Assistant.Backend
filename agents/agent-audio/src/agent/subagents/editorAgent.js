@@ -14,6 +14,7 @@ export async function editAudio(state) {
     const result = await audioService.mixAudio(speechBuffer, musicBuffer);
     return {
       audioBase64: result.audioBuffer.toString('base64'),
+      audioUrl: result.audioUrl,
       metadata: { ...state.metadata, ...result.metadata }
     };
   } else if (action === 'transferTone') {
@@ -25,6 +26,7 @@ export async function editAudio(state) {
     const result = await audioService.transferTone(audioBuffer, targetTone);
     return {
       audioBase64: result.audioBuffer.toString('base64'),
+      audioUrl: result.audioUrl,
       metadata: { ...state.metadata, ...result.metadata }
     };
   }
