@@ -392,6 +392,7 @@ app.use((req, res) => {
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
+logger.info('DEBUG: About to call app.listen()');
 const server = app.listen(port, '0.0.0.0', () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
   logger.info(`   Environment: ${process.env.NODE_ENV || 'development'}`);

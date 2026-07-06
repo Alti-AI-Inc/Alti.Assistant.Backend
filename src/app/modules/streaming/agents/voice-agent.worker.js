@@ -1,4 +1,4 @@
-import { WorkerOptions, cli, VoicePipelineAgent, llm } from '@livekit/agents';
+import { Worker, WorkerOptions, VoicePipelineAgent, llm } from '@livekit/agents';
 import * as silero from '@livekit/agents-plugin-silero';
 import * as google from '@livekit/agents-plugin-google';
 import { logger } from '../../../../shared/logger.js';
@@ -11,7 +11,7 @@ export async function runVoiceAgentWorker() {
   try {
     logger.info('Initializing LiveKit Google Cloud Voice Agent Worker...');
     
-    cli.runApp(new WorkerOptions({
+    const worker = new Worker(new WorkerOptions({
       agent: async (ctx) => {
         logger.info(`Voice Agent connecting to room: ${ctx.room.name}`);
 
@@ -38,6 +38,8 @@ export async function runVoiceAgentWorker() {
       apiSecret: config.livekit_secret_key,
       wsUrl: config.livekit_ws_url || 'ws://localhost:7880',
     }));
+
+    await worker.start();
   } catch (error) {
     logger.error('Failed to initialize LiveKit Voice Agent Worker', error);
   }
