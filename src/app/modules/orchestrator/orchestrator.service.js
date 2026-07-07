@@ -409,7 +409,25 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
   let classificationMs = 0;
 
   try {
-    // ── 0. INPUT VALIDATION ──
+    // ── 0. CHECK FOR ISOLATED APP WORKSPACE CONTEXT ──
+    let activeMcpServerId = req?.body?.metadata?.customData?.mcpServerId || req?.body?.mcpServerId;
+    let conversationDocForContext = null;
+
+    if (conversationId && conversationId !== 'new-chat') {
+      try {
+        const query = { conversationId, userId };
+        conversationDocForContext = await Conversation.findOne(
+          tenantId ? { ...query, $or: [{ tenantId }, { tenantId: null }, { tenantId: { $exists: false } }] } : query
+        ).lean();
+        if (conversationDocForContext?.metadata?.customData?.mcpServerId) {
+          activeMcpServerId = conversationDocForContext.metadata.customData.mcpServerId;
+        }
+      } catch (histErr) {
+        logger.warn({ message: 'Failed to load conversation for isolated app check', component: 'Orchestrator', error: histErr.message });
+      }
+    }
+
+    // ── 0a. INPUT VALIDATION ──
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return {
         conversationId: conversationId || null,
@@ -433,7 +451,19 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     const isTimeQuery = timeQueries.includes(cleanedPrompt);
     
     let intentPayload;
-    if (isShortQuery || isCommonGreeting || isTimeQuery) {
+    if (activeMcpServerId) {
+      classificationSource = 'isolated-app-override';
+      classificationMs = 0;
+      logger.info({ message: `Bypassing classification for isolated app: ${activeMcpServerId}`, component: 'Orchestrator' });
+      intentPayload = {
+        target_module: 'connected_apps',
+        confidence: 1.0,
+        complexity: 'simple',
+        model_tier: 'fast',
+        data_sources: [],
+        parameters: { query: prompt }
+      };
+    } else if (isShortQuery || isCommonGreeting || isTimeQuery) {
       classificationSource = 'fast-path';
       classificationMs = Date.now() - startTime;
       // GCP Logging: Use structured JSON for logs.
@@ -523,6 +553,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 
       classificationMs = Date.now() - classifyStart;
     }
+  }
 
     const { target_module, parameters, confidence } = intentPayload;
     const complexity = intentPayload.complexity || 'simple';
@@ -554,10 +585,15 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
     let finalResponse;
 
     try {
-      if (dispatchConfig.dispatch === 'mcp') {
-        // Connected apps path — MCP SDK has been integrated, fall back to Swarm if disabled
-        logger.info({ message: 'Dispatching to connected apps, but MCP SDK is disabled. Falling back to Swarm.', component: 'Orchestrator', prompt_snippet: `${prompt.substring(0, 60)}...` });
-        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId, { model: targetModel });
+      if (dispatchConfig.dispatch === 'mcp' || activeMcpServerId) {
+        const syncOptions = { model: targetModel };
+        if (activeMcpServerId) {
+          syncOptions.mcpServerId = activeMcpServerId;
+        } else {
+          syncOptions.loadMcpTools = true;
+        }
+        logger.info({ message: `Dispatching to connected apps (isolated: ${!!activeMcpServerId})`, component: 'Orchestrator' });
+        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId, syncOptions);
       } else {
         // Swarm path — for all other modules
         finalResponse = await SwarmService.executeSwarmSync(
@@ -690,10 +726,15 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
           const cleanTitle = prompt.length > 40 ? `${prompt.substring(0, 40)}...` : prompt;
           const finalTitle = `${formattedPrefix}${cleanTitle}`;
 
+          const conversationMetadata = { category: resolvedCategory };
+          if (activeMcpServerId) {
+            conversationMetadata.customData = { mcpServerId: activeMcpServerId };
+          }
+
           const createdConvData = await conversationService.createConversation({
             userId,
             title: finalTitle,
-            metadata: { category: resolvedCategory },
+            metadata: conversationMetadata,
             is_deep_search: false,
             initialMessage: { role: 'user', content: prompt }
           }, finalConversationId, req);
@@ -941,10 +982,15 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
       const cleanTitle = prompt.length > 40 ? `${prompt.substring(0, 40)}...` : prompt;
       const finalTitle = `${formattedPrefix}${cleanTitle}`;
 
+      const conversationMetadata = { category: resolvedCategory };
+      if (activeMcpServerId) {
+        conversationMetadata.customData = { mcpServerId: activeMcpServerId };
+      }
+
       await conversationService.createConversation({
         userId,
         title: finalTitle,
-        metadata: { category: resolvedCategory },
+        metadata: conversationMetadata,
         is_deep_search: false,
         initialMessage: { role: 'user', content: prompt }
       }, finalConversationId, req);
@@ -991,6 +1037,11 @@ const classifyAndDispatchStream = async (prompt, sessionId, userId, conversation
       model: targetModel,
       requireSearch: requireSearch
     };
+    if (activeMcpServerId) {
+      streamOptions.mcpServerId = activeMcpServerId;
+    } else if (target_module === 'connected_apps') {
+      streamOptions.loadMcpTools = true;
+    }
 
     try {
       for await (const chunk of SwarmService.executeSwarmStream(

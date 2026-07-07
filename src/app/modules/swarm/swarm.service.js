@@ -19,6 +19,7 @@ import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
 import { logger } from '../../../shared/logger.js';
 import { VOICE_OF_THE_SPIRIT } from '../../shared/spirit.prompt.js';
+import { mcpOrchestratorService } from '../mcp_toolbox/mcp_orchestrator.service.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -280,6 +281,61 @@ const stripPreambles = (text) => {
   return cleaned;
 };
 
+/**
+ * Translates JSON Schema specifications recursively to standard Gemini parameter schemas.
+ */
+const convertJsonSchemaToGeminiSchema = (schema) => {
+  if (!schema) return null;
+  const result = {};
+  if (schema.type) {
+    result.type = String(schema.type).toUpperCase();
+  } else if (schema.properties) {
+    result.type = 'OBJECT';
+  } else {
+    result.type = 'STRING';
+  }
+
+  if (schema.description) {
+    result.description = schema.description;
+  }
+
+  if (schema.enum) {
+    result.enum = schema.enum;
+  }
+
+  if (result.type === 'OBJECT' && schema.properties) {
+    result.properties = {};
+    for (const [key, val] of Object.entries(schema.properties)) {
+      result.properties[key] = convertJsonSchemaToGeminiSchema(val);
+    }
+    if (Array.isArray(schema.required)) {
+      result.required = schema.required;
+    }
+  }
+
+  if (result.type === 'ARRAY' && schema.items) {
+    result.items = convertJsonSchemaToGeminiSchema(schema.items);
+  }
+
+  return result;
+};
+
+/**
+ * Formats a list of MCP tools into standard Google Gemini Function Declarations.
+ */
+const compileMcpToolsToGemini = (mcpTools) => {
+  if (!Array.isArray(mcpTools)) return [];
+  return mcpTools.map(tool => {
+    const rawSchema = tool.inputSchema || tool.parameters || {};
+    const geminiParams = convertJsonSchemaToGeminiSchema(rawSchema);
+    return {
+      name: tool.name,
+      description: tool.description || `MCP Tool ${tool.name}`,
+      parameters: geminiParams && geminiParams.type === 'OBJECT' ? geminiParams : { type: 'OBJECT', properties: {} }
+    };
+  });
+};
+
 
 export class SwarmService {
   /**
@@ -295,6 +351,26 @@ export class SwarmService {
     const userSkills = userId ? dynamicSkillService.scanUserSkills(userId) : [];
     const userTools = dynamicSkillService.compileGeminiTools(userSkills);
 
+    // Fetch active MCP tools if requested
+    let mcpTools = [];
+    if (userId && (options.mcpServerId || options.loadMcpTools)) {
+      try {
+        if (options.mcpServerId) {
+          const userServers = mcpOrchestratorService.getUserServers(userId);
+          const activeServer = userServers.get(options.mcpServerId);
+          if (activeServer && activeServer.initialized) {
+            mcpTools = activeServer.tools || [];
+            console.log(`[Swarm Engine Sync] Loaded ${mcpTools.length} isolated MCP tools for: ${options.mcpServerId}`);
+          }
+        } else {
+          mcpTools = await mcpOrchestratorService.getUnifiedTools(userId);
+          console.log(`[Swarm Engine Sync] Loaded ${mcpTools.length} unified MCP tools.`);
+        }
+      } catch (mcpErr) {
+        console.warn(`[Swarm Engine Sync] Failed to retrieve MCP tools: ${mcpErr.message}`);
+      }
+    }
+
     // Fetch user persistent memory profile block (Hermes-style)
     let userProfileBlock = '';
     if (userId) {
@@ -305,7 +381,25 @@ export class SwarmService {
       }
     }
 
-    const pipeline = SynapseRouter.buildExecutionPipeline(query);
+    let pipeline;
+    if (options.mcpServerId) {
+      const appTitle = options.mcpServerId.charAt(0).toUpperCase() + options.mcpServerId.slice(1);
+      pipeline = {
+        chain: [{
+          id: `mcp_isolated_${options.mcpServerId}`,
+          name: `${appTitle} Isolated Assistant`,
+          description: `Direct assistant for executing tasks and retrieving information in ${appTitle} with zero hallucinations.`,
+          systemInstruction: `You are the dedicated ${appTitle} Assistant, running in a secure, isolated space.
+You have direct, exclusive access to the ${appTitle} integration tools.
+Your primary role is to execute queries, perform operations, and display data from ${appTitle} using the provided tools.
+Because this is an isolated session, you MUST NOT reference or attempt to use tools for other applications. If a task cannot be completed using only ${appTitle} tools, explain this limitation clearly to the user.
+Always respond in a helpful, structured, and premium enterprise format.`,
+          model: options.model || config.gemini_model || 'gemini-3.5-flash'
+        }]
+      };
+    } else {
+      pipeline = SynapseRouter.buildExecutionPipeline(query);
+    }
 
     // ════ RAG GROUNDING: Pull context from user's indexed documents ════
     let ragGroundingBlock = '';
@@ -503,12 +597,23 @@ Instructions: ${agent.systemInstruction}`;
         while (currentIteration < maxToolCallingIterations && !stopLoop) {
           currentIteration++;
 
-          const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
-          const modelInstance = genAI.getGenerativeModel({
+          let activeTools = [];
+          if (options.mcpServerId) {
+            activeTools = compileMcpToolsToGemini(mcpTools);
+          } else if (options.loadMcpTools) {
+            activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools, ...compileMcpToolsToGemini(mcpTools)];
+          } else {
+            activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+          }
+
+          const modelConfig = {
             model: options.model || config.gemini_model || agent.model || 'gemini-3.5-flash',
-            systemInstruction: systemInstruction,
-            tools: [{ functionDeclarations: activeTools }]
-          });
+            systemInstruction: systemInstruction
+          };
+          if (activeTools && activeTools.length > 0) {
+            modelConfig.tools = [{ functionDeclarations: activeTools }];
+          }
+          const modelInstance = genAI.getGenerativeModel(modelConfig);
 
           const result = await modelInstance.generateContent({
             contents,
@@ -541,31 +646,61 @@ Instructions: ${agent.systemInstruction}`;
               let toolResultText = '';
               let isError = false;
 
-              if (call.name === 'save_custom_skill') {
-                try {
-                  dynamicSkillService.saveGeneratedSkill(userId, call.args);
-                  toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
-                } catch (err) {
-                  toolResultText = `Failed to save custom skill: ${err.message}`;
-                  isError = true;
-                }
-              } else {
-                const matchedSkill = userSkills.find(s => s.name === call.name);
-                if (matchedSkill) {
-                  try {
-                    toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
-                    if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                  if (call.name === 'save_custom_skill') {
+                    try {
+                      dynamicSkillService.saveGeneratedSkill(userId, call.args);
+                      toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
+                    } catch (err) {
+                      toolResultText = `Failed to save custom skill: ${err.message}`;
                       isError = true;
                     }
-                  } catch (err) {
-                    toolResultText = `Execution error: ${err.message}`;
-                    isError = true;
+                  } else if (mcpTools && mcpTools.some(t => t.name === call.name)) {
+                    try {
+                      console.log(`[Swarm Engine Sync] Invoking MCP tool: ${call.name}`);
+                      let mcpResult;
+                      if (options.mcpServerId) {
+                        mcpResult = await mcpOrchestratorService.callTool(userId, options.mcpServerId, call.name, call.args);
+                      } else {
+                        mcpResult = await mcpOrchestratorService.callUnifiedTool(userId, call.name, call.args);
+                      }
+                      toolResultText = JSON.stringify(mcpResult.result || mcpResult);
+                    } catch (err) {
+                      toolResultText = `Error calling MCP tool ${call.name}: ${err.message}`;
+                      isError = true;
+                    }
+                  } else {
+                    const matchedSkill = userSkills.find(s => s.name === call.name);
+                    if (matchedSkill) {
+                      try {
+                        toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                        if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                          isError = true;
+                        }
+                      } catch (err) {
+                        toolResultText = `Execution error: ${err.message}`;
+                        isError = true;
+                      }
+                    } else {
+                      // Fallback check for general active MCP tools
+                      let isMcpTool = false;
+                      try {
+                        const allMcpTools = await mcpOrchestratorService.getUnifiedTools(userId);
+                        if (allMcpTools.some(t => t.name === call.name)) {
+                          isMcpTool = true;
+                          console.log(`[Swarm Engine Sync] Invoking unified MCP tool fallback: ${call.name}`);
+                          const mcpResult = await mcpOrchestratorService.callUnifiedTool(userId, call.name, call.args);
+                          toolResultText = JSON.stringify(mcpResult.result || mcpResult);
+                        }
+                      } catch (err) {
+                        console.warn(`[Swarm Engine Sync] Fallback MCP lookup failed: ${err.message}`);
+                      }
+
+                      if (!isMcpTool) {
+                        toolResultText = `Error: Skill or tool "${call.name}" not found in discovered user skills or active MCP integrations.`;
+                        isError = true;
+                      }
+                    }
                   }
-                } else {
-                  toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
-                  isError = true;
-                }
-              }
 
               // Nous Hermes-style Self-Correcting Reflection
               if (isError) {
@@ -672,6 +807,26 @@ Latest User Query: "${query}"`,
     const userSkills = userId ? dynamicSkillService.scanUserSkills(userId) : [];
     const userTools = dynamicSkillService.compileGeminiTools(userSkills);
 
+    // Fetch active MCP tools if requested
+    let mcpTools = [];
+    if (userId && (options.mcpServerId || options.loadMcpTools)) {
+      try {
+        if (options.mcpServerId) {
+          const userServers = mcpOrchestratorService.getUserServers(userId);
+          const activeServer = userServers.get(options.mcpServerId);
+          if (activeServer && activeServer.initialized) {
+            mcpTools = activeServer.tools || [];
+            console.log(`[Swarm Engine] Loaded ${mcpTools.length} isolated MCP tools for: ${options.mcpServerId}`);
+          }
+        } else {
+          mcpTools = await mcpOrchestratorService.getUnifiedTools(userId);
+          console.log(`[Swarm Engine] Loaded ${mcpTools.length} unified MCP tools.`);
+        }
+      } catch (mcpErr) {
+        console.warn(`[Swarm Engine] Failed to retrieve MCP tools: ${mcpErr.message}`);
+      }
+    }
+
     // Fetch user persistent memory profile block (Hermes-style)
     let userProfileBlock = '';
     if (userId) {
@@ -682,7 +837,25 @@ Latest User Query: "${query}"`,
       }
     }
 
-    const pipeline = SynapseRouter.buildExecutionPipeline(query);
+    let pipeline;
+    if (options.mcpServerId) {
+      const appTitle = options.mcpServerId.charAt(0).toUpperCase() + options.mcpServerId.slice(1);
+      pipeline = {
+        chain: [{
+          id: `mcp_isolated_${options.mcpServerId}`,
+          name: `${appTitle} Isolated Assistant`,
+          description: `Direct assistant for executing tasks and retrieving information in ${appTitle} with zero hallucinations.`,
+          systemInstruction: `You are the dedicated ${appTitle} Assistant, running in a secure, isolated space.
+You have direct, exclusive access to the ${appTitle} integration tools.
+Your primary role is to execute queries, perform operations, and display data from ${appTitle} using the provided tools.
+Because this is an isolated session, you MUST NOT reference or attempt to use tools for other applications. If a task cannot be completed using only ${appTitle} tools, explain this limitation clearly to the user.
+Always respond in a helpful, structured, and premium enterprise format.`,
+          model: options.model || config.gemini_model || 'gemini-3.5-flash'
+        }]
+      };
+    } else {
+      pipeline = SynapseRouter.buildExecutionPipeline(query);
+    }
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
     // Yield Nous Hermes-style Cognitive Plan stream chunk immediately to the client
@@ -984,12 +1157,23 @@ Instructions: ${agent.systemInstruction}`;
             while (currentIteration < maxToolCallingIterations && !stopLoop) {
               currentIteration++;
 
-              const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
-              const modelInstance = genAI.getGenerativeModel({
+              let activeTools = [];
+              if (options.mcpServerId) {
+                activeTools = compileMcpToolsToGemini(mcpTools);
+              } else if (options.loadMcpTools) {
+                activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools, ...compileMcpToolsToGemini(mcpTools)];
+              } else {
+                activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+              }
+
+              const modelConfig = {
                 model: config.gemini_model || agent.model || 'gemini-3.5-flash',
-                systemInstruction: systemInstruction,
-                tools: [{ functionDeclarations: activeTools }]
-              });
+                systemInstruction: systemInstruction
+              };
+              if (activeTools && activeTools.length > 0) {
+                modelConfig.tools = [{ functionDeclarations: activeTools }];
+              }
+              const modelInstance = genAI.getGenerativeModel(modelConfig);
 
               streamResult = await modelInstance.generateContentStream({
                 contents,
@@ -1065,6 +1249,20 @@ Instructions: ${agent.systemInstruction}`;
                       toolResultText = `Failed to save custom skill: ${err.message}`;
                       isError = true;
                     }
+                  } else if (mcpTools && mcpTools.some(t => t.name === call.name)) {
+                    try {
+                      console.log(`[Swarm Engine Sync] Invoking MCP tool: ${call.name}`);
+                      let mcpResult;
+                      if (options.mcpServerId) {
+                        mcpResult = await mcpOrchestratorService.callTool(userId, options.mcpServerId, call.name, call.args);
+                      } else {
+                        mcpResult = await mcpOrchestratorService.callUnifiedTool(userId, call.name, call.args);
+                      }
+                      toolResultText = JSON.stringify(mcpResult.result || mcpResult);
+                    } catch (err) {
+                      toolResultText = `Error calling MCP tool ${call.name}: ${err.message}`;
+                      isError = true;
+                    }
                   } else {
                     const matchedSkill = userSkills.find(s => s.name === call.name);
                     if (matchedSkill) {
@@ -1078,8 +1276,24 @@ Instructions: ${agent.systemInstruction}`;
                         isError = true;
                       }
                     } else {
-                      toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
-                      isError = true;
+                      // Fallback check for general active MCP tools
+                      let isMcpTool = false;
+                      try {
+                        const allMcpTools = await mcpOrchestratorService.getUnifiedTools(userId);
+                        if (allMcpTools.some(t => t.name === call.name)) {
+                          isMcpTool = true;
+                          console.log(`[Swarm Engine Sync] Invoking unified MCP tool fallback: ${call.name}`);
+                          const mcpResult = await mcpOrchestratorService.callUnifiedTool(userId, call.name, call.args);
+                          toolResultText = JSON.stringify(mcpResult.result || mcpResult);
+                        }
+                      } catch (err) {
+                        console.warn(`[Swarm Engine] Fallback MCP lookup failed: ${err.message}`);
+                      }
+
+                      if (!isMcpTool) {
+                        toolResultText = `Error: Skill or tool "${call.name}" not found in discovered user skills or active MCP integrations.`;
+                        isError = true;
+                      }
                     }
                   }
 
