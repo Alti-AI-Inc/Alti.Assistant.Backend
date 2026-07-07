@@ -553,7 +553,6 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId, te
 
       classificationMs = Date.now() - classifyStart;
     }
-  }
 
     const { target_module, parameters, confidence } = intentPayload;
     const complexity = intentPayload.complexity || 'simple';
