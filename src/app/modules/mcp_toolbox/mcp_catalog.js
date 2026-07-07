@@ -464,5 +464,1372 @@ export const mcpCatalog = {
     "env": {
       "EVERNOTE_API_KEY": ""
     }
+  },
+  "notion": {
+    "id": "notion",
+    "name": "Notion Integration",
+    "description": "Read, query, write, and manage pages and databases inside Notion workspaces programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@notionhq/notion-mcp-server"
+    ],
+    "requiredEnv": [
+      "NOTION_API_KEY"
+    ],
+    "env": {
+      "NOTION_API_KEY": ""
+    }
+  },
+  "jira": {
+    "id": "jira",
+    "name": "Jira System Connector",
+    "description": "Query, create, update, and manage Jira issues, sprints, and project tickets programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "jira-mcp"
+    ],
+    "requiredEnv": [
+      "JIRA_URL",
+      "JIRA_API_TOKEN",
+      "JIRA_EMAIL"
+    ],
+    "env": {
+      "JIRA_URL": "",
+      "JIRA_API_TOKEN": "",
+      "JIRA_EMAIL": ""
+    }
+  },
+  "figma": {
+    "id": "figma",
+    "name": "Figma Integration",
+    "description": "Access Figma files, nodes, images, and comments programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-figma"
+    ],
+    "requiredEnv": [
+      "FIGMA_PERSONAL_ACCESS_TOKEN"
+    ],
+    "env": {
+      "FIGMA_PERSONAL_ACCESS_TOKEN": ""
+    }
+  },
+  "resend": {
+    "id": "resend",
+    "name": "Resend Email Service",
+    "description": "Send high-deliverability transactional emails, manage domains, and track email stats via Resend API.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-resend"
+    ],
+    "requiredEnv": [
+      "RESEND_API_KEY"
+    ],
+    "env": {
+      "RESEND_API_KEY": ""
+    }
+  },
+  "mongodb": {
+    "id": "mongodb",
+    "name": "MongoDB Connector",
+    "description": "Query, map, insert, and update documents inside MongoDB collections natively.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-mongodb"
+    ],
+    "requiredEnv": [
+      "MONGODB_URI"
+    ],
+    "env": {
+      "MONGODB_URI": ""
+    }
+  },
+  "airtable": {
+    "id": "airtable",
+    "name": "Airtable Connector",
+    "description": "Read, query, write, and manage bases, tables, and records in Airtable workspaces.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-airtable"
+    ],
+    "requiredEnv": [
+      "AIRTABLE_API_KEY"
+    ],
+    "env": {
+      "AIRTABLE_API_KEY": ""
+    }
+  },
+  "shopify": {
+    "id": "shopify",
+    "name": "Shopify Store Integration",
+    "description": "Access, search, and manage products, orders, collections, and customer details programmatically inside Shopify stores.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-shopify"
+    ],
+    "requiredEnv": [
+      "SHOPIFY_SHOP_NAME",
+      "SHOPIFY_API_PASSWORD"
+    ],
+    "env": {
+      "SHOPIFY_SHOP_NAME": "",
+      "SHOPIFY_API_PASSWORD": ""
+    }
+  },
+  "hubspot": {
+    "id": "hubspot",
+    "name": "HubSpot CRM Connector",
+    "description": "Access, search, and manage contacts, companies, deals, and engagement history inside HubSpot accounts.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-hubspot"
+    ],
+    "requiredEnv": [
+      "HUBSPOT_ACCESS_TOKEN"
+    ],
+    "env": {
+      "HUBSPOT_ACCESS_TOKEN": ""
+    }
+  },
+  "asana": {
+    "id": "asana",
+    "name": "Asana Workspace Connector",
+    "description": "Query, create, update, and manage tasks, projects, and portfolios inside Asana trackers.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-asana"
+    ],
+    "requiredEnv": [
+      "ASANA_PAT"
+    ],
+    "env": {
+      "ASANA_PAT": ""
+    }
+  },
+  "clickup": {
+    "id": "clickup",
+    "name": "ClickUp Task Management",
+    "description": "Read, query, write, and manage spaces, folders, lists, and tasks in ClickUp workspaces.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-clickup"
+    ],
+    "requiredEnv": [
+      "CLICKUP_API_TOKEN"
+    ],
+    "env": {
+      "CLICKUP_API_TOKEN": ""
+    }
+  },
+  "zendesk": {
+    "id": "zendesk",
+    "name": "Zendesk Support Desk",
+    "description": "Access, query, create, and manage support tickets, customers, and replies inside Zendesk tickets.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-zendesk"
+    ],
+    "requiredEnv": [
+      "ZENDESK_SUBDOMAIN",
+      "ZENDESK_EMAIL",
+      "ZENDESK_API_TOKEN"
+    ],
+    "env": {
+      "ZENDESK_SUBDOMAIN": "",
+      "ZENDESK_EMAIL": "",
+      "ZENDESK_API_TOKEN": ""
+    }
+  },
+  "mailchimp": {
+    "id": "mailchimp",
+    "name": "Mailchimp Marketing Connector",
+    "description": "Access, search, and manage email campaigns, marketing lists, and subscribers in Mailchimp.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-mailchimp"
+    ],
+    "requiredEnv": [
+      "MAILCHIMP_API_KEY"
+    ],
+    "env": {
+      "MAILCHIMP_API_KEY": ""
+    }
+  },
+  "intercom": {
+    "id": "intercom",
+    "name": "Intercom Customer Messaging",
+    "description": "Access, search, and manage customer conversations, users, and leads in Intercom accounts.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-intercom"
+    ],
+    "requiredEnv": [
+      "INTERCOM_ACCESS_TOKEN"
+    ],
+    "env": {
+      "INTERCOM_ACCESS_TOKEN": ""
+    }
+  },
+  "pipedrive": {
+    "id": "pipedrive",
+    "name": "Pipedrive CRM Connector",
+    "description": "Access, search, and manage deals, organizations, persons, and activities in Pipedrive accounts.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-pipedrive"
+    ],
+    "requiredEnv": [
+      "PIPEDRIVE_API_TOKEN"
+    ],
+    "env": {
+      "PIPEDRIVE_API_TOKEN": ""
+    }
+  },
+  "salesforce": {
+    "id": "salesforce",
+    "name": "Salesforce CRM Connector",
+    "description": "Access, search, and manage leads, accounts, contacts, and opportunities inside Salesforce orgs.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-salesforce"
+    ],
+    "requiredEnv": [
+      "SALESFORCE_USERNAME",
+      "SALESFORCE_PASSWORD",
+      "SALESFORCE_TOKEN",
+      "SALESFORCE_CLIENT_ID",
+      "SALESFORCE_CLIENT_SECRET"
+    ],
+    "env": {
+      "SALESFORCE_USERNAME": "",
+      "SALESFORCE_PASSWORD": "",
+      "SALESFORCE_TOKEN": "",
+      "SALESFORCE_CLIENT_ID": "",
+      "SALESFORCE_CLIENT_SECRET": ""
+    }
+  },
+  "discord": {
+    "id": "discord",
+    "name": "Discord Bot Integration",
+    "description": "Send channel messages, read histories, and manage guild channels programmatically inside Discord guilds.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-discord"
+    ],
+    "requiredEnv": [
+      "DISCORD_BOT_TOKEN"
+    ],
+    "env": {
+      "DISCORD_BOT_TOKEN": ""
+    }
+  },
+  "twilio": {
+    "id": "twilio",
+    "name": "Twilio SMS & Messaging",
+    "description": "Send SMS messages, make phone calls, and check messaging statuses via Twilio API.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-twilio"
+    ],
+    "requiredEnv": [
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN"
+    ],
+    "env": {
+      "TWILIO_ACCOUNT_SID": "",
+      "TWILIO_AUTH_TOKEN": ""
+    }
+  },
+  "pinecone": {
+    "id": "pinecone",
+    "name": "Pinecone Vector DB",
+    "description": "Upsert, query, and search high-dimensional vector embeddings inside Pinecone indexes.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-pinecone"
+    ],
+    "requiredEnv": [
+      "PINECONE_API_KEY"
+    ],
+    "env": {
+      "PINECONE_API_KEY": ""
+    }
+  },
+  "supabase": {
+    "id": "supabase",
+    "name": "Supabase Service Engine",
+    "description": "Read, query, write, and manage database tables and storage buckets inside Supabase projects.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-supabase"
+    ],
+    "requiredEnv": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY"
+    ],
+    "env": {
+      "SUPABASE_URL": "",
+      "SUPABASE_SERVICE_ROLE_KEY": ""
+    }
+  },
+  "gmail": {
+    "id": "gmail",
+    "name": "Gmail Inbox Integration",
+    "description": "Access, search, read, send, and draft emails inside Gmail inboxes programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-gmail"
+    ],
+    "requiredEnv": [
+      "GMAIL_CREDENTIALS"
+    ],
+    "env": {
+      "GMAIL_CREDENTIALS": ""
+    }
+  },
+  "kubernetes": {
+    "id": "kubernetes",
+    "name": "Kubernetes K8s Cluster",
+    "description": "Query, inspect, and deploy services, pods, and logs inside Kubernetes clusters.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-kubernetes"
+    ],
+    "requiredEnv": [],
+    "env": {}
+  },
+  "trello": {
+    "id": "trello",
+    "name": "Trello Boards Connector",
+    "description": "Access, search, and manage boards, lists, and cards programmatically in Trello.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-trello"
+    ],
+    "requiredEnv": [
+      "TRELLO_API_KEY",
+      "TRELLO_API_TOKEN"
+    ],
+    "env": {
+      "TRELLO_API_KEY": "",
+      "TRELLO_API_TOKEN": ""
+    }
+  },
+  "google-sheets": {
+    "id": "google-sheets",
+    "name": "Google Sheets Integration",
+    "description": "Read, query, write, and manage sheets and spreadsheets inside Google Drive programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-google-sheets"
+    ],
+    "requiredEnv": [
+      "GOOGLE_SHEETS_CREDENTIALS"
+    ],
+    "env": {
+      "GOOGLE_SHEETS_CREDENTIALS": ""
+    }
+  },
+  "google-docs": {
+    "id": "google-docs",
+    "name": "Google Docs Integration",
+    "description": "Access, read, write, and format documents inside Google Docs programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-google-docs"
+    ],
+    "requiredEnv": [
+      "GOOGLE_DOCS_CREDENTIALS"
+    ],
+    "env": {
+      "GOOGLE_DOCS_CREDENTIALS": ""
+    }
+  },
+  "mysql": {
+    "id": "mysql",
+    "name": "MySQL Database Connector",
+    "description": "Read, query, write, and inspect schemas inside MySQL database engines.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-mysql"
+    ],
+    "requiredArgs": [
+      "databaseUrl"
+    ],
+    "requiredEnv": [],
+    "env": {}
+  },
+  "aws-s3": {
+    "id": "aws-s3",
+    "name": "AWS S3 Cloud Storage",
+    "description": "Securely list, read, upload, and manage files inside AWS S3 buckets programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-s3"
+    ],
+    "requiredEnv": [
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_S3_BUCKET",
+      "AWS_REGION"
+    ],
+    "env": {
+      "AWS_ACCESS_KEY_ID": "",
+      "AWS_SECRET_ACCESS_KEY": "",
+      "AWS_S3_BUCKET": "",
+      "AWS_REGION": ""
+    }
+  },
+  "microsoft-teams": {
+    "id": "microsoft-teams",
+    "name": "Microsoft Teams Spoke",
+    "description": "Send channel messages, query chats, and post hooks inside Microsoft Teams workspaces programmatically.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-ms-teams"
+    ],
+    "requiredEnv": [
+      "TEAMS_CLIENT_ID",
+      "TEAMS_CLIENT_SECRET",
+      "TEAMS_TENANT_ID"
+    ],
+    "env": {
+      "TEAMS_CLIENT_ID": "",
+      "TEAMS_CLIENT_SECRET": "",
+      "TEAMS_TENANT_ID": ""
+    }
+  },
+  "outlook": {
+    "id": "outlook",
+    "name": "Microsoft Outlook Mail",
+    "description": "Access, search, read, send, and draft emails inside Outlook email accounts securely.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-outlook"
+    ],
+    "requiredEnv": [
+      "OUTLOOK_CLIENT_ID",
+      "OUTLOOK_CLIENT_SECRET"
+    ],
+    "env": {
+      "OUTLOOK_CLIENT_ID": "",
+      "OUTLOOK_CLIENT_SECRET": ""
+    }
+  },
+  "sendgrid": {
+    "id": "sendgrid",
+    "name": "SendGrid Email Marketing",
+    "description": "Send transactional emails, manage contacts, and track delivery stats via SendGrid API.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-sendgrid"
+    ],
+    "requiredEnv": [
+      "SENDGRID_API_KEY"
+    ],
+    "env": {
+      "SENDGRID_API_KEY": ""
+    }
+  },
+  "firecrawl": {
+    "id": "firecrawl",
+    "name": "Firecrawl Web Scraper",
+    "description": "Crawl entire websites, convert pages to clean markdown, and extract structured data via Firecrawl.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-firecrawl"
+    ],
+    "requiredEnv": [
+      "FIRECRAWL_API_KEY"
+    ],
+    "env": {
+      "FIRECRAWL_API_KEY": ""
+    }
+  },
+  "tavily": {
+    "id": "tavily",
+    "name": "Tavily Search Engine",
+    "description": "Conduct deep web search, extract real-time facts, and crawl web content optimized for LLM agents.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-tavily"
+    ],
+    "requiredEnv": [
+      "TAVILY_API_KEY"
+    ],
+    "env": {
+      "TAVILY_API_KEY": ""
+    }
+  },
+  "perplexity": {
+    "id": "perplexity",
+    "name": "Perplexity AI search",
+    "description": "Query Perplexity's citation-backed web search engine to gather real-time factual knowledge.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-perplexity"
+    ],
+    "requiredEnv": [
+      "PERPLEXITY_API_KEY"
+    ],
+    "env": {
+      "PERPLEXITY_API_KEY": ""
+    }
+  },
+  "exa": {
+    "id": "exa",
+    "name": "Exa Neural Search",
+    "description": "Perform semantic, neural web searches, resolve page contents, and retrieve similar URLs.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-exa"
+    ],
+    "requiredEnv": [
+      "EXA_API_KEY"
+    ],
+    "env": {
+      "EXA_API_KEY": ""
+    }
+  },
+  "serpapi": {
+    "id": "serpapi",
+    "name": "SerpApi Google Search",
+    "description": "Scrape structured search engine results (SERP) from Google, Bing, Yahoo, and Baidu.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-serpapi"
+    ],
+    "requiredEnv": [
+      "SERPAPI_API_KEY"
+    ],
+    "env": {
+      "SERPAPI_API_KEY": ""
+    }
+  },
+  "datadog": {
+    "id": "datadog",
+    "name": "Datadog Observability",
+    "description": "Retrieve metrics, logs, traces, and monitor alerts inside Datadog APM consoles.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-datadog"
+    ],
+    "requiredEnv": [
+      "DATADOG_API_KEY",
+      "DATADOG_APP_KEY"
+    ],
+    "env": {
+      "DATADOG_API_KEY": "",
+      "DATADOG_APP_KEY": ""
+    }
+  },
+  "activecampaign": {
+    "id": "activecampaign",
+    "name": "ActiveCampaign CRM",
+    "description": "Access, search, and manage email campaigns, marketing lists, deals, and contacts in ActiveCampaign.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-activecampaign"
+    ],
+    "requiredEnv": [
+      "ACTIVECAMPAIGN_API_URL",
+      "ACTIVECAMPAIGN_API_KEY"
+    ],
+    "env": {
+      "ACTIVECAMPAIGN_API_URL": "",
+      "ACTIVECAMPAIGN_API_KEY": ""
+    }
+  },
+  "zoom": {
+    "id": "zoom",
+    "name": "Zoom Meetings Connector",
+    "description": "Schedule, update, manage, and sync meetings and webinars programmatically inside Zoom.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-zoom"
+    ],
+    "requiredEnv": [
+      "ZOOM_ACCOUNT_ID",
+      "ZOOM_CLIENT_ID",
+      "ZOOM_CLIENT_SECRET"
+    ],
+    "env": {
+      "ZOOM_ACCOUNT_ID": "",
+      "ZOOM_CLIENT_ID": "",
+      "ZOOM_CLIENT_SECRET": ""
+    }
+  },
+  "webflow": {
+    "id": "webflow",
+    "name": "Webflow CMS Connector",
+    "description": "Read, query, write, and publish CMS collections, pages, and store items inside Webflow domains.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-webflow"
+    ],
+    "requiredEnv": [
+      "WEBFLOW_API_TOKEN"
+    ],
+    "env": {
+      "WEBFLOW_API_TOKEN": ""
+    }
+  },
+  "cal": {
+    "id": "cal",
+    "name": "Cal.com Scheduler Spoke",
+    "description": "Manage, check bookings, and schedule appointments programmatically inside Cal.com.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-cal"
+    ],
+    "requiredEnv": [
+      "CAL_API_KEY"
+    ],
+    "env": {
+      "CAL_API_KEY": ""
+    }
+  },
+  "openai": {
+    "id": "openai",
+    "name": "OpenAI Service Connector",
+    "description": "Interact with OpenAI assistants, manage file stores, fine-tune models, and track token usage.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-openai"
+    ],
+    "requiredEnv": [
+      "OPENAI_API_KEY"
+    ],
+    "env": {
+      "OPENAI_API_KEY": ""
+    }
+  },
+  "netsuite": {
+    "id": "netsuite",
+    "name": "Oracle NetSuite ERP",
+    "description": "Access, query, and synchronize financial ledgers, customer directories, invoices, and corporate entities in NetSuite ERP.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-netsuite"
+    ],
+    "requiredEnv": [
+      "NETSUITE_ACCOUNT",
+      "NETSUITE_CONSUMER_KEY",
+      "NETSUITE_CONSUMER_SECRET",
+      "NETSUITE_TOKEN_ID",
+      "NETSUITE_TOKEN_SECRET"
+    ],
+    "env": {
+      "NETSUITE_ACCOUNT": "",
+      "NETSUITE_CONSUMER_KEY": "",
+      "NETSUITE_CONSUMER_SECRET": "",
+      "NETSUITE_TOKEN_ID": "",
+      "NETSUITE_TOKEN_SECRET": ""
+    }
+  },
+  "workday": {
+    "id": "workday",
+    "name": "Workday Enterprise Suite",
+    "description": "Read, query, and manage employee directories, organizational charts, recruiting data, and benefit reports inside Workday.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-workday"
+    ],
+    "requiredEnv": [
+      "WORKDAY_TENANT",
+      "WORKDAY_USERNAME",
+      "WORKDAY_PASSWORD",
+      "WORKDAY_CLIENT_ID",
+      "WORKDAY_CLIENT_SECRET"
+    ],
+    "env": {
+      "WORKDAY_TENANT": "",
+      "WORKDAY_USERNAME": "",
+      "WORKDAY_PASSWORD": "",
+      "WORKDAY_CLIENT_ID": "",
+      "WORKDAY_CLIENT_SECRET": ""
+    }
+  },
+  "snowflake": {
+    "id": "snowflake",
+    "name": "Snowflake Data Warehouse",
+    "description": "Execute high-performance analytical queries, map tables, and inspect schemas inside Snowflake warehouses.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-snowflake"
+    ],
+    "requiredEnv": [
+      "SNOWFLAKE_ACCOUNT",
+      "SNOWFLAKE_USERNAME",
+      "SNOWFLAKE_PASSWORD",
+      "SNOWFLAKE_DATABASE",
+      "SNOWFLAKE_SCHEMA"
+    ],
+    "env": {
+      "SNOWFLAKE_ACCOUNT": "",
+      "SNOWFLAKE_USERNAME": "",
+      "SNOWFLAKE_PASSWORD": "",
+      "SNOWFLAKE_DATABASE": "",
+      "SNOWFLAKE_SCHEMA": ""
+    }
+  },
+  "google-bigquery": {
+    "id": "google-bigquery",
+    "name": "Google BigQuery Analytics",
+    "description": "Query Google BigQuery databases, list datasets, map table columns, and extract structural facts.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-bigquery"
+    ],
+    "requiredEnv": [
+      "BIGQUERY_CREDENTIALS"
+    ],
+    "env": {
+      "BIGQUERY_CREDENTIALS": ""
+    }
+  },
+  "quickbooks": {
+    "id": "quickbooks",
+    "name": "QuickBooks Online Finance",
+    "description": "Query, synchronize, and report bookkeeping accounts, invoices, payments, and vendor ledger databases inside QuickBooks.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-quickbooks"
+    ],
+    "requiredEnv": [
+      "QUICKBOOKS_CLIENT_ID",
+      "QUICKBOOKS_CLIENT_SECRET",
+      "QUICKBOOKS_REALM_ID"
+    ],
+    "env": {
+      "QUICKBOOKS_CLIENT_ID": "",
+      "QUICKBOOKS_CLIENT_SECRET": "",
+      "QUICKBOOKS_REALM_ID": ""
+    }
+  },
+  "xero": {
+    "id": "xero",
+    "name": "Xero Accounting Hub",
+    "description": "Read, query, write, and manage corporate banking ledger accounts, invoices, and bank statements inside Xero.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-xero"
+    ],
+    "requiredEnv": [
+      "XERO_CLIENT_ID",
+      "XERO_CLIENT_SECRET",
+      "XERO_TENANT_ID"
+    ],
+    "env": {
+      "XERO_CLIENT_ID": "",
+      "XERO_CLIENT_SECRET": "",
+      "XERO_TENANT_ID": ""
+    }
+  },
+  "servicenow": {
+    "id": "servicenow",
+    "name": "ServiceNow Enterprise Desk",
+    "description": "Create, query, update, and route corporate service tickets, incident requests, and hardware assets inside ServiceNow.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-servicenow"
+    ],
+    "requiredEnv": [
+      "SERVICENOW_INSTANCE",
+      "SERVICENOW_USERNAME",
+      "SERVICENOW_PASSWORD"
+    ],
+    "env": {
+      "SERVICENOW_INSTANCE": "",
+      "SERVICENOW_USERNAME": "",
+      "SERVICENOW_PASSWORD": ""
+    }
+  },
+  "okta": {
+    "id": "okta",
+    "name": "Okta IAM Directory",
+    "description": "Inspect user directory logins, manage application groups, revoke access policies, and audit authentication logs in Okta.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-okta"
+    ],
+    "requiredEnv": [
+      "OKTA_DOMAIN",
+      "OKTA_API_TOKEN"
+    ],
+    "env": {
+      "OKTA_DOMAIN": "",
+      "OKTA_API_TOKEN": ""
+    }
+  },
+  "adp": {
+    "id": "adp",
+    "name": "ADP workforce Portal",
+    "description": "Access, query, and synchronize corporate payroll profiles, benefit schedules, and tax reports inside ADP directories.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-adp"
+    ],
+    "requiredEnv": [
+      "ADP_CLIENT_ID",
+      "ADP_CLIENT_SECRET"
+    ],
+    "env": {
+      "ADP_CLIENT_ID": "",
+      "ADP_CLIENT_SECRET": ""
+    }
+  },
+  "rippling": {
+    "id": "rippling",
+    "name": "Rippling Payroll & IT",
+    "description": "Read, synchronize, and update corporate payroll profiles, hardware inventory, and employee benefits inside Rippling.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-rippling"
+    ],
+    "requiredEnv": [
+      "RIPPLING_ACCESS_TOKEN"
+    ],
+    "env": {
+      "RIPPLING_ACCESS_TOKEN": ""
+    }
+  },
+  "gusto": {
+    "id": "gusto",
+    "name": "Gusto Modern Payroll",
+    "description": "Access payroll profiles, calculate tax withholding, and schedule employee payroll payouts inside Gusto.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-gusto"
+    ],
+    "requiredEnv": [
+      "GUSTO_ACCESS_TOKEN"
+    ],
+    "env": {
+      "GUSTO_ACCESS_TOKEN": ""
+    }
+  },
+  "bamboohr": {
+    "id": "bamboohr",
+    "name": "BambooHR workforce Portal",
+    "description": "Read employee directories, approve time-off bookings, and sync organizational files inside BambooHR.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-bamboohr"
+    ],
+    "requiredEnv": [
+      "BAMBOOHR_SUBDOMAIN",
+      "BAMBOOHR_API_KEY"
+    ],
+    "env": {
+      "BAMBOOHR_SUBDOMAIN": "",
+      "BAMBOOHR_API_KEY": ""
+    }
+  },
+  "dynamics365": {
+    "id": "dynamics365",
+    "name": "Microsoft Dynamics 365 CRM",
+    "description": "Access, search, and manage leads, accounts, contacts, and custom CRM objects inside Microsoft Dynamics 365.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-dynamics365"
+    ],
+    "requiredEnv": [
+      "DYNAMICS_ORG_URL",
+      "DYNAMICS_CLIENT_ID",
+      "DYNAMICS_CLIENT_SECRET",
+      "DYNAMICS_TENANT_ID"
+    ],
+    "env": {
+      "DYNAMICS_ORG_URL": "",
+      "DYNAMICS_CLIENT_ID": "",
+      "DYNAMICS_CLIENT_SECRET": "",
+      "DYNAMICS_TENANT_ID": ""
+    }
+  },
+  "marketo": {
+    "id": "marketo",
+    "name": "Adobe Marketo Automation",
+    "description": "Query, synchronize, and update marketing campaigns, leads databases, and newsletter subscribers inside Marketo.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-marketo"
+    ],
+    "requiredEnv": [
+      "MARKETO_ENDPOINT",
+      "MARKETO_CLIENT_ID",
+      "MARKETO_CLIENT_SECRET"
+    ],
+    "env": {
+      "MARKETO_ENDPOINT": "",
+      "MARKETO_CLIENT_ID": "",
+      "MARKETO_CLIENT_SECRET": ""
+    }
+  },
+  "klaviyo": {
+    "id": "klaviyo",
+    "name": "Klaviyo E-Commerce Marketing",
+    "description": "Create and track email segments, query newsletter subscribers, and trigger marketing flows inside Klaviyo.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-klaviyo"
+    ],
+    "requiredEnv": [
+      "KLAVIYO_API_KEY"
+    ],
+    "env": {
+      "KLAVIYO_API_KEY": ""
+    }
+  },
+  "azure-ad": {
+    "id": "azure-ad",
+    "name": "Azure AD (Entra ID)",
+    "description": "Access, query, and manage Microsoft Entra ID (Azure Active Directory) users, groups, and security roles.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-azure-ad"
+    ],
+    "requiredEnv": [
+      "AZURE_AD_CLIENT_ID",
+      "AZURE_AD_CLIENT_SECRET",
+      "AZURE_AD_TENANT_ID"
+    ],
+    "env": {
+      "AZURE_AD_CLIENT_ID": "",
+      "AZURE_AD_CLIENT_SECRET": "",
+      "AZURE_AD_TENANT_ID": ""
+    }
+  },
+  "box": {
+    "id": "box",
+    "name": "Box Cloud Content Hub",
+    "description": "Securely list, read, upload, and format directories and documents programmatically inside Box storage.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-box"
+    ],
+    "requiredEnv": [
+      "BOX_DEVELOPER_TOKEN"
+    ],
+    "env": {
+      "BOX_DEVELOPER_TOKEN": ""
+    }
+  },
+  "dropbox": {
+    "id": "dropbox",
+    "name": "Dropbox Storage Spoke",
+    "description": "Access, search, download, and manage folders and documents programmatically inside Dropbox.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-dropbox"
+    ],
+    "requiredEnv": [
+      "DROPBOX_ACCESS_TOKEN"
+    ],
+    "env": {
+      "DROPBOX_ACCESS_TOKEN": ""
+    }
+  },
+  "vault": {
+    "id": "vault",
+    "name": "HashiCorp Vault Security",
+    "description": "Securely read, write, update, and manage sensitive credentials, tokens, and encryption keys inside Vault instances.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-vault"
+    ],
+    "requiredEnv": [
+      "VAULT_ADDR",
+      "VAULT_TOKEN"
+    ],
+    "env": {
+      "VAULT_ADDR": "",
+      "VAULT_TOKEN": ""
+    }
+  },
+  "onelogin": {
+    "id": "onelogin",
+    "name": "OneLogin Directory Spoke",
+    "description": "Read, query, and manage users, application security groups, and logins policies inside OneLogin IAM directories.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-onelogin"
+    ],
+    "requiredEnv": [
+      "ONELOGIN_CLIENT_ID",
+      "ONELOGIN_CLIENT_SECRET",
+      "ONELOGIN_REGION"
+    ],
+    "env": {
+      "ONELOGIN_CLIENT_ID": "",
+      "ONELOGIN_CLIENT_SECRET": "",
+      "ONELOGIN_REGION": "us"
+    }
+  },
+  "pingidentity": {
+    "id": "pingidentity",
+    "name": "Ping Identity Directory",
+    "description": "Inspect, search, and manage corporate employee directories, single sign-on logs, and application permissions inside Ping Identity.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-pingidentity"
+    ],
+    "requiredEnv": [
+      "PING_CLIENT_ID",
+      "PING_CLIENT_SECRET",
+      "PING_ENV_ID"
+    ],
+    "env": {
+      "PING_CLIENT_ID": "",
+      "PING_CLIENT_SECRET": "",
+      "PING_ENV_ID": ""
+    }
+  },
+  "cyberark": {
+    "id": "cyberark",
+    "name": "CyberArk Vault Privileged Access",
+    "description": "Retrieve corporate developer passwords, private SSH keys, and system API secrets securely from CyberArk vault stores.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-cyberark"
+    ],
+    "requiredEnv": [
+      "CYBERARK_URL",
+      "CYBERARK_USERNAME",
+      "CYBERARK_PASSWORD"
+    ],
+    "env": {
+      "CYBERARK_URL": "",
+      "CYBERARK_USERNAME": "",
+      "CYBERARK_PASSWORD": ""
+    }
+  },
+  "sharepoint": {
+    "id": "sharepoint",
+    "name": "Microsoft SharePoint Portal",
+    "description": "Access, query, organize, download, and manage document libraries, page content, and site lists inside SharePoint sites.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-sharepoint"
+    ],
+    "requiredEnv": [
+      "SHAREPOINT_CLIENT_ID",
+      "SHAREPOINT_CLIENT_SECRET",
+      "SHAREPOINT_TENANT"
+    ],
+    "env": {
+      "SHAREPOINT_CLIENT_ID": "",
+      "SHAREPOINT_CLIENT_SECRET": "",
+      "SHAREPOINT_TENANT": ""
+    }
+  },
+  "confluence": {
+    "id": "confluence",
+    "name": "Atlassian Confluence Portal",
+    "description": "Read, query, write, and structure wiki spaces, layout templates, and page directories inside Confluence sites.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-confluence"
+    ],
+    "requiredEnv": [
+      "CONFLUENCE_URL",
+      "CONFLUENCE_USERNAME",
+      "CONFLUENCE_API_TOKEN"
+    ],
+    "env": {
+      "CONFLUENCE_URL": "",
+      "CONFLUENCE_USERNAME": "",
+      "CONFLUENCE_API_TOKEN": ""
+    }
+  },
+  "onedrive": {
+    "id": "onedrive",
+    "name": "Microsoft OneDrive Storage",
+    "description": "Read, list, search, download, and manage folders and corporate documents inside OneDrive drives securely.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-onedrive"
+    ],
+    "requiredEnv": [
+      "ONEDRIVE_CLIENT_ID",
+      "ONEDRIVE_CLIENT_SECRET"
+    ],
+    "env": {
+      "ONEDRIVE_CLIENT_ID": "",
+      "ONEDRIVE_CLIENT_SECRET": ""
+    }
+  },
+  "databricks": {
+    "id": "databricks",
+    "name": "Databricks Analytics Portal",
+    "description": "Execute queries, trigger analytical jobs, list schemas, and read database notebooks inside Databricks clusters.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-databricks"
+    ],
+    "requiredEnv": [
+      "DATABRICKS_HOST",
+      "DATABRICKS_TOKEN"
+    ],
+    "env": {
+      "DATABRICKS_HOST": "",
+      "DATABRICKS_TOKEN": ""
+    }
+  },
+  "redshift": {
+    "id": "redshift",
+    "name": "Amazon Redshift Data Warehouse",
+    "description": "Execute high-performance analytics, map schema tables, and read database columns inside Amazon Redshift clusters.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-redshift"
+    ],
+    "requiredEnv": [
+      "REDSHIFT_HOST",
+      "REDSHIFT_PORT",
+      "REDSHIFT_USER",
+      "REDSHIFT_PASSWORD",
+      "REDSHIFT_DB"
+    ],
+    "env": {
+      "REDSHIFT_HOST": "",
+      "REDSHIFT_PORT": "5439",
+      "REDSHIFT_USER": "",
+      "REDSHIFT_PASSWORD": "",
+      "REDSHIFT_DB": ""
+    }
+  },
+  "elasticsearch": {
+    "id": "elasticsearch",
+    "name": "Elasticsearch Analytics Engine",
+    "description": "Perform full-text searches, filter document indexes, retrieve indices, and map document templates inside Elasticsearch.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-elasticsearch"
+    ],
+    "requiredEnv": [
+      "ELASTICSEARCH_URL",
+      "ELASTICSEARCH_API_KEY"
+    ],
+    "env": {
+      "ELASTICSEARCH_URL": "",
+      "ELASTICSEARCH_API_KEY": ""
+    }
+  },
+  "kafka": {
+    "id": "kafka",
+    "name": "Apache Kafka Streaming Engine",
+    "description": "Consume live stream messages, publish messages to topics, and check broker connections inside Apache Kafka instances.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-kafka"
+    ],
+    "requiredEnv": [
+      "KAFKA_BROKERS",
+      "KAFKA_CLIENT_ID"
+    ],
+    "env": {
+      "KAFKA_BROKERS": "",
+      "KAFKA_CLIENT_ID": "alti-mcp-client"
+    }
+  },
+  "aws": {
+    "id": "aws",
+    "name": "AWS Cloud Console",
+    "description": "List active instances, read EC2 console logs, query S3 buckets, and view CloudWatch alert metrics inside AWS console panels.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-aws"
+    ],
+    "requiredEnv": [
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_REGION"
+    ],
+    "env": {
+      "AWS_ACCESS_KEY_ID": "",
+      "AWS_SECRET_ACCESS_KEY": "",
+      "AWS_REGION": ""
+    }
+  },
+  "gcp": {
+    "id": "gcp",
+    "name": "Google Cloud Platform Console",
+    "description": "Inspect GCP VM profiles, query cloud storage buckets, retrieve cloud logging events, and audit project metrics inside Google Cloud.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-gcp"
+    ],
+    "requiredEnv": [
+      "GCP_PROJECT_ID",
+      "GCP_SA_KEY"
+    ],
+    "env": {
+      "GCP_PROJECT_ID": "",
+      "GCP_SA_KEY": ""
+    }
+  },
+  "terraform": {
+    "id": "terraform",
+    "name": "HashiCorp Terraform Cloud",
+    "description": "Trigger workspace plan runs, check state status, approve resource runs, and read workspace outputs inside Terraform Cloud.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-terraform"
+    ],
+    "requiredEnv": [
+      "TERRAFORM_TOKEN",
+      "TERRAFORM_ORG"
+    ],
+    "env": {
+      "TERRAFORM_TOKEN": "",
+      "TERRAFORM_ORG": ""
+    }
+  },
+  "jenkins": {
+    "id": "jenkins",
+    "name": "Jenkins CI/CD Automation",
+    "description": "List build jobs, trigger pipeline runs, download console output logs, and verify build state inside Jenkins CI/CD servers.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-jenkins"
+    ],
+    "requiredEnv": [
+      "JENKINS_URL",
+      "JENKINS_USER",
+      "JENKINS_TOKEN"
+    ],
+    "env": {
+      "JENKINS_URL": "",
+      "JENKINS_USER": "",
+      "JENKINS_TOKEN": ""
+    }
+  },
+  "stripe": {
+    "id": "stripe",
+    "name": "Stripe Payments Portal",
+    "description": "Create, query, refund, and manage customer transaction invoices, subscriptions, and payouts inside Stripe.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-stripe"
+    ],
+    "requiredEnv": [
+      "STRIPE_API_KEY"
+    ],
+    "env": {
+      "STRIPE_API_KEY": ""
+    }
+  },
+  "chargebee": {
+    "id": "chargebee",
+    "name": "Chargebee Subscription Billing",
+    "description": "Query subscriptions, create discount coupons, manage customer invoices, and audit customer accounts inside Chargebee.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-chargebee"
+    ],
+    "requiredEnv": [
+      "CHARGEBEE_SITE",
+      "CHARGEBEE_API_KEY"
+    ],
+    "env": {
+      "CHARGEBEE_SITE": "",
+      "CHARGEBEE_API_KEY": ""
+    }
+  },
+  "zuora": {
+    "id": "zuora",
+    "name": "Zuora Subscription Management",
+    "description": "Manage, check subscriptions, query accounts, and track complex billing transactions programmatically inside Zuora.",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-server-zuora"
+    ],
+    "requiredEnv": [
+      "ZUORA_CLIENT_ID",
+      "ZUORA_CLIENT_SECRET",
+      "ZUORA_SUBDOMAIN"
+    ],
+    "env": {
+      "ZUORA_CLIENT_ID": "",
+      "ZUORA_CLIENT_SECRET": "",
+      "ZUORA_SUBDOMAIN": "sandbox"
+    }
   }
 };
