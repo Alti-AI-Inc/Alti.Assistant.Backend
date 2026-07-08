@@ -223,14 +223,14 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     // If no subscription or usage is not defined, default to 0 credits.
     const remainingDeepResearchCredits = userSubscription ? userSubscription.usage : 0;
 
-    if (remainingDeepResearchCredits <= 0) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your deep research limit for this month. Please upgrade your plan to continue.',
-      });
-    }
+    // if (remainingDeepResearchCredits <= 0) {
+    //   return sendResponse(res, {
+    //     statusCode: httpStatus.FORBIDDEN,
+    //     success: false,
+    //     message:
+    //       'You have reached your deep research limit for this month. Please upgrade your plan to continue.',
+    //   });
+    // }
   }
 
   if (!message) {

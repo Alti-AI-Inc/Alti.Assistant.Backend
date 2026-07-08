@@ -86,7 +86,7 @@ router.post(
   extractTenantContext, // Extract tenant context after auth
   createRateLimiter(10, 15), // Rate limit first to prevent DB load/abuse from spam requests
   validateRequest(AppValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
-  checkDeepResearchLimit, // Check subscription limits only after passing rate limiting and validation
+  // checkDeepResearchLimit, // Check subscription limits only after passing rate limiting and validation
   deepResearchController.performDeepResearch
 );
 

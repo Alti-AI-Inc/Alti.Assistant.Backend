@@ -208,7 +208,7 @@ const moduleRoutes = [
   },
   {
     path: '/deep-research',
-    route: createAgentProxy('agent-research', 8084),
+    route: deepResearchRoute,
   },
   {
     path: '/conversations',
