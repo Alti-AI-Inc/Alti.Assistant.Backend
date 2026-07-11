@@ -339,6 +339,10 @@ const moduleRoutes = [
     path: '/chatbots',
     route: chatbotRoutes,
   },
+  {
+    path: '/writing',
+    route: writingRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => {

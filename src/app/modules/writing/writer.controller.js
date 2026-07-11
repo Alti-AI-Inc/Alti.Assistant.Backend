@@ -1,173 +1,293 @@
-// This file has been updated to export only the writing task handler.
+// This file has been updated to export the writing task handlers.
 // Server startup, health endpoints, and shutdown are handled by the main index.js.
 
 import { writingAssistantApp } from './writing_assistant/workflow.js';
-
+import { getAgentList, specializedAgents } from './service/specializedAgents.js';
 
 /**
  * @typedef {object} WritingTaskRequestBody
- * @property {string} message - The initial message or topic for the writing assistant.
- * @property {string} [conversationId] - An optional ID to continue an existing conversation thread.
+ * @property {string} message - The user's message (initial topic, an answer to a clarifying question, or "go ahead").
+ * @property {string} [conversationId] - An optional ID to continue an existing conversation thread. Omit to start a new one.
  */
 
 /**
- * @typedef {object} WritingTaskStreamingResponseChunk
- * @property {string} chunk - A piece of the streamed text content from the writing assistant.
+ * Generates a unique conversation ID.
+ * @returns {string} A unique string representing a conversation ID.
  */
+const generateConversationId = () => {
+  return `conv-${Date.now()}`;
+};
 
 /**
- * @typedef {object} WritingTaskNonStreamingResponse
- * @property {string} responseMessage - The complete response message from the writing assistant.
- * @property {string} thread_id - The ID of the conversation thread.
- */
-
-/**
- * @typedef {object} ErrorResponse
- * @property {string} error - A descriptive error message.
- */
-
-/**
- * Handles requests to the writing assistant, processing user messages and managing conversation threads.
- * It supports both streaming and non-streaming responses based on the assistant's output.
- *
- * @function
- * @async
- * @param {import('express').Request} req - The Express request object.
- * @param {import('express').Response} res - The Express response object.
- * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ * Handles requests to the writing assistant, processing user messages and managing
+ * conversation threads. Supports both streaming (final content) and non-streaming
+ * (clarifying questions / confirmation) responses.
  *
  * @openapi
- * /api/writing-task:
+ * /api/writing/assistant:
  *   post:
- *     summary: Interact with the AI writing assistant.
- *     description: Sends a message to the AI writing assistant and receives a response, which can be streamed or a single message.
- *     tags:
- *       - Writing Assistant
+ *     summary: Send a message to the AI writing assistant.
+ *     description: |
+ *       Start a new writing conversation, or continue one by passing the same `conversationId`.
+ *       - If the assistant is still gathering details, the response is a normal JSON object
+ *         containing the next clarifying question (`isFinal: false`).
+ *       - Once the brief is complete (or the user says they're done), the response is streamed
+ *         back as Server-Sent Events (`text/event-stream`) containing the final generated content.
+ *     tags: [Writing Assistant]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/WritingTaskRequestBody'
+ *             type: object
+ *             required: [message]
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: "Write a short story about a cat who learns to fly."
+ *               conversationId:
+ *                 type: string
+ *                 example: "conv-1678886400000"
  *     responses:
  *       200:
- *         description: Successful response from the writing assistant.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/WritingTaskNonStreamingResponse'
- *           text/event-stream:
- *             schema:
- *               type: string
- *               description: A stream of JSON objects, each containing a 'chunk' of text.
- *               example: "data: {\"chunk\":\"Hello\"}\n\ndata: {\"chunk\":\" world\"}\n\n"
+ *         description: Either a JSON clarifying-question response or an SSE content stream.
  *       400:
- *         description: Bad Request - Message is required.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               error: 'Message and conversationId are required.'
+ *         description: Bad Request - message is required.
+ *       429:
+ *         description: Rate limit / usage limit exceeded.
  *       500:
  *         description: Internal Server Error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               error: 'An internal error occurred.'
- * components:
- *   schemas:
- *     WritingTaskRequestBody:
- *       type: object
- *       required:
- *         - message
- *       properties:
- *         message:
- *           type: string
- *           description: The initial message or topic for the writing assistant.
- *           example: "Write a short story about a cat who learns to fly."
- *         conversationId:
- *           type: string
- *           description: An optional ID to continue an existing conversation thread.
- *           example: "conv-1678886400000"
- *     WritingTaskNonStreamingResponse:
- *       type: object
- *       properties:
- *         responseMessage:
- *           type: string
- *           description: The complete response message from the writing assistant.
- *           example: "Once upon a time, there was a cat named Whiskers..."
- *         thread_id:
- *           type: string
- *           description: The ID of the conversation thread.
- *           example: "conv-1678886400000"
- *     ErrorResponse:
- *       type: object
- *       properties:
- *         error:
- *           type: string
- *           description: A descriptive error message.
  */
 export const writingTask = async (req, res) => {
-  const { message, conversationId } = req.body;
-  if (!message) {
-    return res
-      .status(400)
-      .json({ error: 'Message and conversationId are required.' });
+  const { message, conversationId } = req.body || {};
+
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'A non-empty "message" field is required.' });
   }
+
+  // Always resolve the thread_id up front so the caller gets it back even on the
+  // very first message (previously it was only computed after the invoke resolved,
+  // and was absent from the streaming response entirely).
+  const thread_id = conversationId || generateConversationId();
 
   try {
     const inputs = { initialTopic: message, userInput: message, user: req.user };
     const result = await writingAssistantApp.invoke(inputs, {
-      configurable: { thread_id: conversationId },
+      configurable: { thread_id },
     });
-    const thread_id = conversationId || generateConversationId();
-    // Handle streaming for the final content
+
     if (result.finalContent) {
+      // --- Final content: stream it back as Server-Sent Events ---
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Conversation-Id', thread_id);
       res.flushHeaders();
 
-      const stream = result.finalContent;
-      let fullResponse = '';
-      for await (const event of stream) {
-        if (
-          event.type === 'content_block_delta' &&
-          event.delta.type === 'text_delta'
-        ) {
-          const chunk = event.delta.text;
-          fullResponse += chunk;
-          res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      // Send metadata (which agents were used) before the content itself so the
+      // client can render "Writing with: Legal / NDA agent" style UI immediately.
+      res.write(`event: meta\ndata: ${JSON.stringify({
+        thread_id,
+        selectedAgent: result.selectedAgent || null,
+        selectedStyle: result.selectedStyle || null,
+        selectedPurpose: result.selectedPurpose || null,
+        isSwarm: !!result.isSwarm,
+      })}\n\n`);
+
+      try {
+        for await (const event of result.finalContent) {
+          if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+            res.write(`data: ${JSON.stringify({ chunk: event.delta.text })}\n\n`);
+          }
         }
+      } catch (streamError) {
+        console.error('Writing Assistant Stream Error:', streamError);
+        res.write(`event: error\ndata: ${JSON.stringify({ error: 'Streaming interrupted. Please retry.' })}\n\n`);
+      } finally {
+        res.write('event: done\ndata: {}\n\n');
+        res.end();
       }
-      // Save the final content to memory
-      // await writingAssistantApp.invoke({ history: [{ role: 'assistant', content: fullResponse }] }, { configurable: { thread_id: thread_id } });
-      res.end();
     } else {
-      // If not streaming, send the conversational response
-      res.json({
+      // --- Still gathering the brief: normal JSON response ---
+      res.status(200).json({
+        thread_id,
+        isFinal: false,
         responseMessage: result.responseMessage,
-        thread_id: thread_id,
+        pendingQuestions: result.questions || [],
       });
     }
   } catch (error) {
     console.error('Writing Assistant Error:', error);
-    res.status(500).json({ error: 'An internal error occurred.' });
+    const isLimitError = /limit reached|too many/i.test(error.message || '');
+    res.status(isLimitError ? 429 : 500).json({
+      error: error.message && isLimitError ? error.message : 'An internal error occurred.',
+    });
   }
 };
 
 /**
- * Generates a unique conversation ID.
- * This function currently uses a timestamp to create a simple unique ID.
+ * Retrieves the current state (history, brief, status) of an existing conversation.
  *
- * @returns {string} A unique string representing a conversation ID.
+ * @openapi
+ * /api/writing/assistant/{conversationId}:
+ *   get:
+ *     summary: Get the current state of a writing conversation.
+ *     tags: [Writing Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Conversation state. }
+ *       404: { description: No conversation found for that ID. }
+ *       500: { description: Internal Server Error. }
  */
-const generateConversationId = () => {
-  // Generate a unique conversation ID, e.g., using a UUID or timestamp
-  return `conv-${Date.now()}`;
+export const getConversation = async (req, res) => {
+  const { conversationId } = req.params;
+  if (!conversationId) {
+    return res.status(400).json({ error: 'conversationId is required.' });
+  }
+
+  try {
+    const state = await writingAssistantApp.getState({ configurable: { thread_id: conversationId } });
+
+    if (!state || !state.values || Object.keys(state.values).length === 0) {
+      return res.status(404).json({ error: `No conversation found for id "${conversationId}".` });
+    }
+
+    const {
+      history,
+      writingBrief,
+      responseMessage,
+      questions,
+      selectedAgent,
+      selectedStyle,
+      selectedPurpose,
+      isSwarm,
+    } = state.values;
+
+    res.status(200).json({
+      thread_id: conversationId,
+      // `next` is populated with nodes still queued to run; an empty array means the
+      // graph has reached an END and is waiting on the next user message.
+      status: state.next && state.next.length > 0 ? 'in_progress' : 'awaiting_input',
+      history: history || [],
+      writingBrief: writingBrief || '',
+      responseMessage: responseMessage || null,
+      pendingQuestions: questions || [],
+      selectedAgent: selectedAgent || null,
+      selectedStyle: selectedStyle || null,
+      selectedPurpose: selectedPurpose || null,
+      isSwarm: !!isSwarm,
+    });
+  } catch (error) {
+    console.error('Get Conversation Error:', error);
+    res.status(500).json({ error: 'An internal error occurred while retrieving the conversation.' });
+  }
 };
 
-
+/**
+ * Deletes a conversation thread and its checkpoint history.
+ *
+ * @openapi
+ * /api/writing/assistant/{conversationId}:
+ *   delete:
+ *     summary: Delete a writing conversation and its stored history.
+ *     tags: [Writing Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Deleted. }
+ *       400: { description: conversationId is required. }
+ *       501: { description: The active checkpointer does not support deletion. }
+ *       500: { description: Internal Server Error. }
+ */
+export const deleteConversation = async (req, res) => {
+  const { conversationId } = req.params;
+  if (!conversationId) {
+    return res.status(400).json({ error: 'conversationId is required.' });
+  }
+
+  try {
+    const checkpointer = writingAssistantApp.checkpointer;
+
+    // LangGraph JS doesn't standardize a thread-deletion method across checkpointer
+    // implementations, so we defensively probe for one. To support this fully,
+    // add a `deleteThread(threadId)` (or `delete(threadId)`) method to MongoDBSaver
+    // that removes all checkpoint documents whose thread_id matches.
+    if (typeof checkpointer?.deleteThread === 'function') {
+      await checkpointer.deleteThread(conversationId);
+    } else if (typeof checkpointer?.delete === 'function') {
+      await checkpointer.delete(conversationId);
+    } else {
+      return res.status(501).json({
+        error: 'Deletion is not supported by the active checkpointer yet. Add a deleteThread(threadId) method to MongoDBSaver to enable this endpoint.',
+      });
+    }
+
+    res.status(200).json({ success: true, thread_id: conversationId, message: 'Conversation deleted.' });
+  } catch (error) {
+    console.error('Delete Conversation Error:', error);
+    res.status(500).json({ error: 'An internal error occurred while deleting the conversation.' });
+  }
+};
+
+/**
+ * Lists all specialized writing agents (metadata only), optionally filtered by category.
+ *
+ * @openapi
+ * /api/writing/assistant/agents:
+ *   get:
+ *     summary: List all specialized writing agents.
+ *     tags: [Writing Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         required: false
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: List of agents. }
+ */
+export const listAgents = (req, res) => {
+  try {
+    const { category } = req.query;
+    let agents = getAgentList();
+    if (category) {
+      agents = agents.filter((a) => a.category.toLowerCase() === String(category).toLowerCase());
+    }
+    res.status(200).json({ count: agents.length, agents });
+  } catch (error) {
+    console.error('List Agents Error:', error);
+    res.status(500).json({ error: 'An internal error occurred while listing agents.' });
+  }
+};
+
+/**
+ * Gets full details (including systemPrompt) for a single specialized agent by ID.
+ *
+ * @openapi
+ * /api/writing/assistant/agents/{agentId}:
+ *   get:
+ *     summary: Get full details for a single specialized writing agent.
+ *     tags: [Writing Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: agentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Agent details. }
+ *       404: { description: Agent not found. }
+ */
+export const getAgentDetails = (req, res) => {
+  const { agentId } = req.params;
+  const agent = specializedAgents.find((a) => a.id === agentId);
+  if (!agent) {
+    return res.status(404).json({ error: `Agent "${agentId}" not found.` });
+  }
+  res.status(200).json(agent);
+};

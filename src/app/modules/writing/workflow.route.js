@@ -1,12 +1,14 @@
 import express from 'express';
-import { writingTask } from './writer.controller.js';
+import {
+  writingTask,
+  getConversation,
+  deleteConversation,
+  listAgents,
+  getAgentDetails,
+} from './writer.controller.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
-
-
-
-// --- Original Application Routes ---
 
 /**
  * @module writingWorkflowRoutes
@@ -16,9 +18,44 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /assistant/agents:
+ *   get:
+ *     summary: List all specialized writing agents.
+ *     tags: [Writing, Assistant]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema: { type: string }
+ *         required: false
+ *         description: Optional category filter (e.g. "Legal Drafting").
+ *     responses:
+ *       200:
+ *         description: List of available agents.
+ */
+router.get('/assistant/agents', optionalAuth(), listAgents);
+
+/**
+ * @swagger
+ * /assistant/agents/{agentId}:
+ *   get:
+ *     summary: Get full details (including system prompt) for one specialized agent.
+ *     tags: [Writing, Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: agentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Agent details. }
+ *       404: { description: Agent not found. }
+ */
+router.get('/assistant/agents/:agentId', optionalAuth(), getAgentDetails);
+
+/**
+ * @swagger
  * /assistant:
  *   post:
- *     summary: Initiate a writing assistant request.
+ *     summary: Initiate or continue a writing assistant conversation.
  *     description: |
  *       Handles requests to the AI writing assistant. This endpoint applies several middlewares:
  *       - `optionalAuth()`: Authenticates the user if a token is provided, making user-specific features available.
@@ -34,53 +71,30 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             description: Input for the writing assistant. The specific schema is defined by the writingController.
- *             example:
- *               prompt: "Write a short story about a cat who learns to fly."
- *               options:
- *                 tone: "whimsical"
- *                 length: "short"
+ *             required: [message]
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: "Write a short story about a cat who learns to fly."
+ *               conversationId:
+ *                 type: string
+ *                 description: Omit to start a new conversation; pass it back to continue one.
+ *                 example: "conv-1678886400000"
  *     responses:
  *       200:
- *         description: Successfully generated content from the writing assistant.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: string
- *                   description: The generated text content.
- *                   example: "Once upon a time, there was a cat named Whiskers..."
+ *         description: Either a JSON clarifying-question response or an SSE stream of final content.
  *       400:
- *         description: Bad request, e.g., missing or invalid prompt.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *         description: Bad request, e.g., missing message.
  *       401:
  *         description: Unauthorized if authentication is required for certain features and not provided.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Forbidden, e.g., daily request limit exceeded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Monthly/plan usage limit exceeded.
  *       500:
  *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *     security:
- *       - bearerAuth: [] # Indicates that a bearer token can optionally be used for authentication.
+ *       - bearerAuth: []
  */
 router.post(
   '/assistant',
@@ -88,6 +102,50 @@ router.post(
   extractTenantContext,
   checkDailyRequestLimit,
   writingTask
+);
+
+/**
+ * @swagger
+ * /assistant/{conversationId}:
+ *   get:
+ *     summary: Get the current state/history of a conversation.
+ *     tags: [Writing, Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Conversation state. }
+ *       404: { description: Conversation not found. }
+ */
+router.get(
+  '/assistant/:conversationId',
+  optionalAuth(),
+  extractTenantContext,
+  getConversation
+);
+
+/**
+ * @swagger
+ * /assistant/{conversationId}:
+ *   delete:
+ *     summary: Delete a conversation and its stored history.
+ *     tags: [Writing, Assistant]
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Deleted. }
+ *       501: { description: Checkpointer doesn't support deletion. }
+ */
+router.delete(
+  '/assistant/:conversationId',
+  optionalAuth(),
+  extractTenantContext,
+  deleteConversation
 );
 
 export const writingRoutes = router;
