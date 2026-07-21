@@ -3,72 +3,68 @@ import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
 
-import { subscriptionRoutes } from '../modules/payment/payment.route.js';
-import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
-import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
-import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
 import { aiModelEndpointRoutes } from '../modules/aiModelServices/aiEndpoint.route.js';
+import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
+import { subscriptionRoutes } from '../modules/payment/payment.route.js';
+import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
+import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 
-import { wishperAiRoutes } from '../modules/wishper/wishper.route.js';
 import { adminRoutes } from '../modules/admin/admin.route.js';
 import { llama4AiRoutes } from '../modules/Llama4/llama4.route.js';
 import { notificationRoutes } from '../modules/notification/notification.route.js';
 import { socialLoginRotes } from '../modules/social-login/social-login.route.js';
 import { supportRoutes } from '../modules/support/support.route.js';
+import { wishperAiRoutes } from '../modules/wishper/wishper.route.js';
 
 import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
-import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
-import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
-import { codeRoutes } from '../modules/code/code.route.js';
-import { writingRoutes } from '../modules/writing/workflow.route.js';
-import { summaryRoutes } from '../modules/summary/summary.route.js';
-import { searchRoute } from '../modules/search/search.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
-import { imageRoutes } from '../modules/image/image.route.js';
-import { audioRoutes } from '../modules/audio/audio.route.js';
-import { videoRoutes } from '../modules/video/video.route.js';
+import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
+import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
+import { searchRoute } from '../modules/search/search.route.js';
+import { summaryRoutes } from '../modules/summary/summary.route.js';
+import { writingRoutes } from '../modules/writing/workflow.route.js';
 import { createAgentProxy } from './agentProxy.js';
 
-import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
-import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
-import { stripeRoutes } from '../modules/stripe/stripe.route.js';
-import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes.js';
-import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.route.js';
-import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
-import presentationRoutes from '../modules/presentation/presentation.route.js';
-import reportRoutes from '../modules/report/report.route.js';
+import { articleWriterRoutes } from '../modules/article_writer/article_writer.route.js';
+import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
+import { brainstormRoutes } from '../modules/brainstorm/brainstorm.route.js';
+import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
+import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
+import { documentAnalysisRoutes } from '../modules/document_analysis/document_analysis.route.js';
 import documentRoutes from '../modules/document_drafting/document.route.js';
 import { documentReviewRoutes } from '../modules/document_review/document_review.route.js';
-import translationRoutes from '../modules/translation/translation.route.js';
-import { rewriteRoutes } from '../modules/rewrite/rewrite.route.js';
-import { brainstormRoutes } from '../modules/brainstorm/brainstorm.route.js';
-import { planGeneratorRoutes } from '../modules/plan_generator/plan_generator.route.js';
-import { documentAnalysisRoutes } from '../modules/document_analysis/document_analysis.route.js';
-import { articleWriterRoutes } from '../modules/article_writer/article_writer.route.js';
+import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.route.js';
+import { exploriumRoutes } from '../modules/explorium/explorium.route.js';
+import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
+import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
+import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes.js';
+import { knowledgeCatalogRoutes } from '../modules/knowledge_catalog/knowledge_catalog.route.js';
+import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
+import { langchainRoutes } from '../modules/langchain/langchain.route.js';
 import { legalContractRoutes } from '../modules/legal_contract/legal_contract.route.js';
 import { legalContractReviewRoutes } from '../modules/legal_contract_review/legal_contract_review.route.js';
-import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
-import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
-import { knowledgeCatalogRoutes } from '../modules/knowledge_catalog/knowledge_catalog.route.js';
-import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
-import { predictionDataRoutes } from '../modules/predictiondata/predictiondata.route.js';
-import { exploriumRoutes } from '../modules/explorium/explorium.route.js';
 import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
+import { planGeneratorRoutes } from '../modules/plan_generator/plan_generator.route.js';
+import { predictionDataRoutes } from '../modules/predictiondata/predictiondata.route.js';
+import presentationRoutes from '../modules/presentation/presentation.route.js';
+import reportRoutes from '../modules/report/report.route.js';
+import { rewriteRoutes } from '../modules/rewrite/rewrite.route.js';
+import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
-import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
-import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
-import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
-import { langchainRoutes } from '../modules/langchain/langchain.route.js';
+import { tenantRoutes } from '../modules/tenant/tenant.route.js';
+import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
+import translationRoutes from '../modules/translation/translation.route.js';
+import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 
-import { temporalRoutes } from '../modules/temporal/temporal.route.js';
-import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
-import { dockerRoutes } from './docker.route.js';
+import { cronRoutes } from '../cron/cron.route.js';
 import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
+import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
+import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
 import { vertexRoutes } from '../modules/vertex/vertex.route.js';
-import { cronRoutes } from '../cron/cron.route.js';
+import { dockerRoutes } from './docker.route.js';
 
 const router = express.Router();
 
@@ -189,6 +185,10 @@ const moduleRoutes = [
   {
     path: '/code',
     route: createAgentProxy('agent-code', 8081),
+  },
+  {
+    path: '/review',
+    route: createAgentProxy('agent-review', 8088),
   },
   {
     path: '/writing',
@@ -355,14 +355,22 @@ router.get('/logos/:app_name', (req, res) => {
   const appName = req.params.app_name || '';
   const cleanName = appName.replace(/[^a-zA-Z0-9]/g, '');
   const initial = cleanName.charAt(0).toUpperCase() || 'A';
-  
+
   let hash = 0;
   for (let i = 0; i < appName.length; i++) {
     hash = appName.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
-    '#EC4899', '#06B6D4', '#14B8A6', '#6366F1', '#84CC16'
+    '#3B82F6',
+    '#EF4444',
+    '#10B981',
+    '#F59E0B',
+    '#8B5CF6',
+    '#EC4899',
+    '#06B6D4',
+    '#14B8A6',
+    '#6366F1',
+    '#84CC16',
   ];
   const color = colors[Math.abs(hash) % colors.length];
 

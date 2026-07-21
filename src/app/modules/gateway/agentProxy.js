@@ -7,7 +7,7 @@
  *   Client → Gateway (auth/billing) → Agent Service (AI processing) → Gateway → Client
  *
  * Each agent service URL is configured via environment variables:
- *   SEARCH_AGENT_URL, RESEARCH_AGENT_URL, WRITE_AGENT_URL, CODE_AGENT_URL,
+ *   SEARCH_AGENT_URL, RESEARCH_AGENT_URL, WRITE_AGENT_URL, CODE_AGENT_URL, REVIEW_AGENT_URL,
  *   IMAGE_AGENT_URL, AUDIO_AGENT_URL, VIDEO_AGENT_URL
  */
 
@@ -35,6 +35,11 @@ const AGENT_REGISTRY = {
     url: process.env.CODE_AGENT_URL,
     name: 'Code Agent',
     model: 'Claude Sonnet 4.5 (Vertex AI)',
+  },
+  review: {
+    url: process.env.REVIEW_AGENT_URL,
+    name: 'Review Agent',
+    model: 'Gemini 3.1 Pro (Structured Review)',
   },
   image: {
     url: process.env.IMAGE_AGENT_URL,
@@ -72,7 +77,7 @@ export async function proxyToAgent(agentName, path, body, user, options = {}) {
   if (!agent.url) {
     throw new Error(
       `Agent service URL not configured for ${agent.name}. ` +
-      `Set ${agentName.toUpperCase()}_AGENT_URL environment variable.`
+        `Set ${agentName.toUpperCase()}_AGENT_URL environment variable.`
     );
   }
 
@@ -97,7 +102,9 @@ export async function proxyToAgent(agentName, path, body, user, options = {}) {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      logger.error(`Agent ${agent.name} returned ${response.status}: ${errorBody}`);
+      logger.error(
+        `Agent ${agent.name} returned ${response.status}: ${errorBody}`
+      );
       throw new Error(`Agent service error (${response.status}): ${errorBody}`);
     }
 
@@ -117,11 +124,14 @@ export async function proxyToAgent(agentName, path, body, user, options = {}) {
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    logger.error(`Agent ${agent.name} request failed after ${duration}ms: ${error.message}`, {
-      agent: agentName,
-      durationMs: duration,
-      error: error.message,
-    });
+    logger.error(
+      `Agent ${agent.name} request failed after ${duration}ms: ${error.message}`,
+      {
+        agent: agentName,
+        durationMs: duration,
+        error: error.message,
+      }
+    );
     throw error;
   }
 }
@@ -147,7 +157,11 @@ export async function checkAgentHealth() {
         const data = await response.json();
         results[name] = { status: 'healthy', model: agent.model, ...data };
       } catch (error) {
-        results[name] = { status: 'unhealthy', model: agent.model, error: error.message };
+        results[name] = {
+          status: 'unhealthy',
+          model: agent.model,
+          error: error.message,
+        };
       }
     })
   );

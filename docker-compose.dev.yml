@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:8080"
+      - '5000:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -21,6 +21,7 @@ services:
       - RESEARCH_AGENT_URL=http://agent-research:8080
       - WRITE_AGENT_URL=http://agent-write:8080
       - CODE_AGENT_URL=http://agent-code:8080
+      - REVIEW_AGENT_URL=http://agent-review:8080
       - IMAGE_AGENT_URL=http://agent-image:8080
       - AUDIO_AGENT_URL=http://agent-audio:8080
       - VIDEO_AGENT_URL=http://agent-video:8080
@@ -32,6 +33,7 @@ services:
       - agent-research
       - agent-write
       - agent-code
+      - agent-review
       - agent-image
       - agent-audio
       - agent-video
@@ -44,7 +46,7 @@ services:
       context: .
       dockerfile: agents/agent-search/Dockerfile
     ports:
-      - "8081:8080"
+      - '8081:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -64,7 +66,7 @@ services:
       context: .
       dockerfile: agents/agent-research/Dockerfile
     ports:
-      - "8082:8080"
+      - '8082:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -84,7 +86,7 @@ services:
       context: .
       dockerfile: agents/agent-write/Dockerfile
     ports:
-      - "8083:8080"
+      - '8083:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -104,11 +106,31 @@ services:
       context: .
       dockerfile: agents/agent-code/Dockerfile
     ports:
-      - "8084:8080"
+      - '8084:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-code
+      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - REDIS_URL=redis://redis:6379
+      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - alti-network
+
+  # ── Agent 5: Image (Gemini 3.1 Flash Image) ───────────────────────────────
+  agent-review:
+    build:
+      context: .
+      dockerfile: agents/agent-review/Dockerfile
+    ports:
+      - '8088:8080'
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - SERVICE_NAME=agent-review
       - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
       - REDIS_URL=redis://redis:6379
       - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
@@ -124,7 +146,7 @@ services:
       context: .
       dockerfile: agents/agent-image/Dockerfile
     ports:
-      - "8085:8080"
+      - '8085:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -144,7 +166,7 @@ services:
       context: .
       dockerfile: agents/agent-audio/Dockerfile
     ports:
-      - "8086:8080"
+      - '8086:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -164,7 +186,7 @@ services:
       context: .
       dockerfile: agents/agent-video/Dockerfile
     ports:
-      - "8087:8080"
+      - '8087:8080'
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -182,7 +204,7 @@ services:
   mongodb:
     image: mongo:7
     ports:
-      - "27017:27017"
+      - '27017:27017'
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -191,8 +213,8 @@ services:
   redis:
     image: redis/redis-stack:7.4.0-v3
     ports:
-      - "6379:6379"
-      - "8001:8001"
+      - '6379:6379'
+      - '8001:8001'
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
       - alti-network
