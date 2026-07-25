@@ -85,7 +85,7 @@ jobs:
             --repository-format=docker \
             --location=us-central1 \
             --project=gen-lang-client-0273900650 \
-            --description="Inso Assistant assistant core backend Docker images" --quiet || true
+            --description="Inso AI assistant core backend Docker images" --quiet || true
 
       - name: Log in to Google Artifact Registry
         uses: docker/login-action@v3

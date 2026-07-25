@@ -259,4 +259,4 @@ For detailed API documentation, see [KNOWLEDGE_BANK_API.md](../../docs/KNOWLEDGE
 
 ## License
 
-Proprietary - Inso Assistant Core Service Backend
+Proprietary - Inso AI Core Service Backend

@@ -191,7 +191,7 @@ export async function processSingleOutboxRecord(record) {
     const source = (marketplaceSource || '').toLowerCase();
     
     if (source === 'aws_marketplace' || source === 'azure_marketplace') {
-      throw new Error(`CloudMarketplaceExclusivityError: Billing reporting to "${marketplaceSource}" is deprecated. Inso Assistant runs exclusively on Google Cloud. Please route billing records via "gcp_marketplace".`);
+      throw new Error(`CloudMarketplaceExclusivityError: Billing reporting to "${marketplaceSource}" is deprecated. Inso AI runs exclusively on Google Cloud. Please route billing records via "gcp_marketplace".`);
     } else if (source === 'gcp_marketplace') {
       // ----------------------------------------------------
       // GCP Marketplace: Partner Procurement Service

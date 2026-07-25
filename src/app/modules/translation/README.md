@@ -1,6 +1,6 @@
 # Translation Module
 
-A comprehensive translation module for the Inso Assistant Core Service Backend that provides intelligent, conversational translation capabilities with support for multiple file formats and languages.
+A comprehensive translation module for the Inso AI Core Service Backend that provides intelligent, conversational translation capabilities with support for multiple file formats and languages.
 
 ## Features
 
@@ -472,7 +472,7 @@ curl -X GET http://localhost:5000/api/v1/translation/languages
 
 ## License
 
-Part of the Inso Assistant Core Service Backend.
+Part of the Inso AI Core Service Backend.
 
 ## Support
 

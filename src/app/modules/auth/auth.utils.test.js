@@ -92,9 +92,9 @@ describe('Auth Utils', () => {
       const result = registrationOtpTemplate(testEmail, testToken);
       expect(result.message).toContain('Email Verification');
       expect(result.message).toContain('Dear user,');
-      expect(result.message).toContain('Thank you for signing up on Inso Assistant!');
+      expect(result.message).toContain('Thank you for signing up on Inso AI!');
       expect(result.message).toContain('Verify Account');
-      expect(result.message).toContain('This email was sent by Inso Assistant.');
+      expect(result.message).toContain('This email was sent by Inso AI.');
     });
   });
 
@@ -133,7 +133,7 @@ describe('Auth Utils', () => {
       expect(result.message).toContain('Verify Your OTP');
       expect(result.message).toContain('To complete your reset password, please enter the following OTP:');
       expect(result.message).toContain('This code is valid for 10 minutes.');
-      expect(result.message).toContain('This email was sent by Inso Assistant.');
+      expect(result.message).toContain('This email was sent by Inso AI.');
     });
   });
 
@@ -180,7 +180,7 @@ describe('Auth Utils', () => {
       expect(result.message).toContain('Verify Your OTP');
       expect(result.message).toContain('To proceed with deleting your account, please enter the following OTP:');
       expect(result.message).toContain('This code is valid for 10 minutes.');
-      expect(result.message).toContain('This email was sent by Inso Assistant.');
+      expect(result.message).toContain('This email was sent by Inso AI.');
     });
   });
 });

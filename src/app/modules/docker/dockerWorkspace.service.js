@@ -96,7 +96,7 @@ class DockerWorkspaceService {
       }
 
       if (!imageExists) {
-        logger.info(`[DOCKER] Compiling custom Inso Assistant Sandbox Image "${this.imageName}"...`);
+        logger.info(`[DOCKER] Compiling custom Inso AI Sandbox Image "${this.imageName}"...`);
         const dockerfilePath = path.join(this.dockerfileDir, 'Workspace.Dockerfile');
         execSync(`docker build -t ${this.imageName} -f ${dockerfilePath} ${this.dockerfileDir}`, {
           stdio: 'inherit'

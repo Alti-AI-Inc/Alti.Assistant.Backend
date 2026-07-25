@@ -1,6 +1,6 @@
 # Tenant Module
 
-Multi-tenant functionality for Inso Assistant Core Service.
+Multi-tenant functionality for Inso AI Core Service.
 
 ## Overview
 

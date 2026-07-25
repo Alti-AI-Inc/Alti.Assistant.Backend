@@ -2,7 +2,7 @@
  * stage25PremiumProviders.js — Stage 25 Premium Global Macroeconomics & WEF Grounding Channels
  *
  * Implements the World Economic Forum (WEF) GCI, IMF World Economic Outlook,
- * and OECD Leading Indicators search providers for Inso Assistant's RAG/Grounding engine.
+ * and OECD Leading Indicators search providers for Inso AI's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

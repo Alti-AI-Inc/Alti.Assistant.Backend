@@ -21,7 +21,7 @@ export const OpenCorporatesProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:corporate registry for|company lookup for|is registered in|opencorporates)\s+([^?]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'Inso Assistants');
+    return sanitizeQueryString(match ? match[1] : 'Inso AI');
   },
 
   fetch: async (topic) => {
@@ -30,13 +30,13 @@ export const OpenCorporatesProvider = {
 
 | Audited Entity | Jurisdiction State | Corporate Registry ID | Active Standing | Registered Headquarters |
 |----------------|--------------------|-----------------------|-----------------|-------------------------|
-| **Inso Assistants Holdings LLC** | **Delaware (US)** | **DE-7984210** | **ACTIVE / GOOD STANDING** | 1209 Orange St, Wilmington, DE |
-| **Inso Assistants Technology Corp** | **California (US)**| **CA-9452011** | **ACTIVE** | 500 Capitol Mall, Sacramento, CA |
-| **Inso Assistants Global LTD** | **United Kingdom** | **UK-0952210** | **ACTIVE** | 25 Canada Square, London, UK |`;
+| **Inso AI Holdings LLC** | **Delaware (US)** | **DE-7984210** | **ACTIVE / GOOD STANDING** | 1209 Orange St, Wilmington, DE |
+| **Inso AI Technology Corp** | **California (US)**| **CA-9452011** | **ACTIVE** | 500 Capitol Mall, Sacramento, CA |
+| **Inso AI Global LTD** | **United Kingdom** | **UK-0952210** | **ACTIVE** | 25 Canada Square, London, UK |`;
 
     const metadata = {
       domain: 'opencorporates',
-      companyName: 'Inso Assistants Holdings LLC',
+      companyName: 'Inso AI Holdings LLC',
       jurisdiction: 'Delaware (US)',
       registryId: 'DE-7984210',
       standing: 'ACTIVE'

@@ -314,13 +314,13 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           finalReferences = [{
             url: 'https://search.insohq.com',
             domain: 'search.insohq.com',
-            title: 'Inso Assistant Global Search Index'
+            title: 'Inso AI Global Search Index'
           }];
           finalCitations = [{
             index: 1,
             url: 'https://search.insohq.com',
             domain: 'search.insohq.com',
-            title: 'Inso Assistant Global Search Index'
+            title: 'Inso AI Global Search Index'
           }];
         }
 
@@ -339,13 +339,13 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       finalReferences = [{
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       }];
       finalCitations = [{
         index: 1,
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       }];
       res.write(
         `data: ${JSON.stringify({

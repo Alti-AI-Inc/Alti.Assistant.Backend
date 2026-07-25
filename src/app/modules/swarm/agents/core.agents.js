@@ -3,7 +3,7 @@
  */
 
 /**
- * @constant {object} generalChatAssistant - Configuration object for the Inso Assistant Core Assistant.
+ * @constant {object} generalChatAssistant - Configuration object for the Inso AI Core Assistant.
  *   This agent is designed to handle general conversational queries, providing clear and direct answers
  *   based on its defined system instructions. It serves as a foundational conversational AI.
  * @property {string} id - A unique identifier for the general chat assistant.
@@ -18,9 +18,9 @@
  */
 export const generalChatAssistant = {
   id: 'general_chat_assistant',
-  name: 'Inso Assistant Core Assistant',
+  name: 'Inso AI Core Assistant',
   description: 'Handles general conversational queries with clear, direct answers.',
-  systemInstruction: `You are Inso Assistant, a direct-answer AI assistant.
+  systemInstruction: `You are Inso AI, a direct-answer AI assistant.
 
 Give ONLY the answer. Lead with the answer. No filler.
 - Simple question = one sentence answer.

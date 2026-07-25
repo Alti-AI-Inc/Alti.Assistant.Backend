@@ -33,14 +33,14 @@ export const NtiaSpectrumBroadbandProvider = {
 
 | Monitored Geographic State | Total Licensed Spectrum Band | Active Broadband Project Name | Sponsoring State Allocation | NTIA Registry Status |
 |-----------------------------|------------------------------|-------------------------------|-----------------------------|----------------------|
-| **Michigan State (NTIA)** | **5.9 GHz Spectrum Band** | **Inso Assistants High-Speed Network** | **$1.45 Billion BEAD Grant**| Verified Active Filer|
+| **Michigan State (NTIA)** | **5.9 GHz Spectrum Band** | **Inso AI High-Speed Network** | **$1.45 Billion BEAD Grant**| Verified Active Filer|
 | **Ohio State (NTIA)** | **5.9 GHz Spectrum Band** | Hawthorne Mesh Network | **$850 Million BEAD Grant** | Verified Active Filer|
 | **Indiana State (NTIA)** | **5.9 GHz Spectrum Band** | Vance Fiber Project | **$620 Million BEAD Grant** | Verified Active Filer|`;
 
     const metadata = {
       domain: 'ntia_spectrum_broadband',
       spectrumBand: '5.9 GHz',
-      projectName: 'Inso Assistants High-Speed Network',
+      projectName: 'Inso AI High-Speed Network',
       beadGrant: '$1.45 Billion',
       status: 'Active'
     };
@@ -172,7 +172,7 @@ export const FwsCriticalHabitatsProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'FWS Critical Threatened & Endangered Species Habitats',
-  mandatoryRule: '▸ Cite FWS critical habitats, threatened species, and conservation statuses in **BOLD** (e.g. **Inso Assistants River Critical Habitat**, **Threatened Specie**, **Endangered Species list**)',
+  mandatoryRule: '▸ Cite FWS critical habitats, threatened species, and conservation statuses in **BOLD** (e.g. **Inso AI River Critical Habitat**, **Threatened Specie**, **Endangered Species list**)',
 
   detectIntent: (query) => {
     return /\bcritical\s+habitat\s+fws\b|\bendangered\s+species\s+list\b|\bfws\s+threatened\s+species\b|\bspecies\s+recovery\s+plan\b/i.test(query);
@@ -189,14 +189,14 @@ export const FwsCriticalHabitatsProvider = {
 
 | Threatened Species Specie | FWS Critical Habitat Name | Total Critical Acreage | Listed Wildlife Status | Active FWS Recovery Plan |
 |---------------------------|----------------------------|------------------------|------------------------|--------------------------|
-| **Bald Eagle (FWS List)** | **Inso Assistants River Critical Habitat**| **124,500 Acres Protected**| **Threatened Specie** | **Active Recovery Plan** |
+| **Bald Eagle (FWS List)** | **Inso AI River Critical Habitat**| **124,500 Acres Protected**| **Threatened Specie** | **Active Recovery Plan** |
 | **Eastern Massasauga** | Shiawassee Critical Basin | **45,800 Acres Protected** | **Threatened Specie** | **Active Recovery Plan** |
 | **Kirtland's Warbler** | Jack Pine Forest Reserve | **12,000 Acres Protected** | Endangered Species | **Active Recovery Plan** |`;
 
     const metadata = {
       domain: 'fws_critical_habitats',
       speciesName: 'Bald Eagle',
-      habitatName: 'Inso Assistants River Critical Habitat',
+      habitatName: 'Inso AI River Critical Habitat',
       acreage: 124500,
       status: 'Active Recovery Plan'
     };
@@ -230,7 +230,7 @@ export const NhtsaEwrDefectsProvider = {
 |-------------------------|--------------------------|----------------------------|------------------------|--------------------------|
 | **Tesla Model Y (EWR)** | **Autopilot Sensor Array**| **12 Defect Death Claims** | **124 Property Damage**| **NHTSA EWR Warning** |
 | **Ford Explorer (EWR)** | Rear Suspension Weld Fail| **4 Defect Death Claims** | **45 Property Damage** | Verified Active Defect |
-| **Inso Assistants EV Sedan (EWR)**| Battery Pack Thermal Vent| 0 Defect Death Claims | 12 Property Damage | Verified Active Defect |`;
+| **Inso AI EV Sedan (EWR)**| Battery Pack Thermal Vent| 0 Defect Death Claims | 12 Property Damage | Verified Active Defect |`;
 
     const metadata = {
       domain: 'nhtsa_ewr_defects',
@@ -267,13 +267,13 @@ export const OfacFiftyPercentRuleProvider = {
 
 | Corporate Blocked Entity | Blocked Owner (SDN List) | Sanctioned Owner Stake | Regulatory OFAC Status | Filer Compliance Directive |
 |---------------------------|--------------------------|------------------------|-------------------------|-----------------------------|
-| **Inso Assistants Oil Transport** | **Blocked Entity** | **51% Sanctioned Stake**| **OFAC 50% Rule Registry**| Forbid U.S. Transaction |
+| **Inso AI Oil Transport** | **Blocked Entity** | **51% Sanctioned Stake**| **OFAC 50% Rule Registry**| Forbid U.S. Transaction |
 | **Hawthorne Steelworks** | Blocked Entity | **50% Sanctioned Stake**| **OFAC 50% Rule Registry**| Forbid U.S. Transaction |
 | **Vance Trading Ltd** | Blocked Entity | 45% Sanctioned Stake | Under Investigation | Enhanced Due Diligence |`;
 
     const metadata = {
       domain: 'ofac_fifty_percent_rule',
-      companyName: 'Inso Assistants Oil Transport',
+      companyName: 'Inso AI Oil Transport',
       ownershipStake: '51%',
       status: 'OFAC 50% Rule Registry',
       complianceDirective: 'Forbid Transaction'

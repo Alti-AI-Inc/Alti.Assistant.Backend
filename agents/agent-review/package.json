@@ -1,8 +1,8 @@
 {
-  "name": "@alti/agent-review",
+  "name": "@insoai/agent-review",
   "version": "1.0.0",
   "type": "module",
-  "description": "Alti Assistant Review Agent - production-grade review and quality assessment microservice",
+  "description": "Inso AI Assistant Review Agent - production-grade review and quality assessment microservice",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

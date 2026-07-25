@@ -2,7 +2,7 @@
   "type": "module",
   "name": "inso-backend",
   "version": "1.29.111",
-  "repository": "https://github.com/shohidul-jaman-anik/Inso Assistant-Backend-Core-Service",
+  "repository": "https://github.com/shohidul-jaman-anik/InsoAI-Backend-Core-Service",
   "description": "",
   "main": "index.js",
   "scripts": {

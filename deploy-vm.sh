@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deployment script for Inso Assistant Backend (Mac/Linux)
+# Deployment script for Inso AI Backend (Mac/Linux)
 # Usage: ./deploy-vm.sh [options]
 # Options:
 #   -v, --version VERSION     Set version tag (default: v0.1.0)
@@ -92,7 +92,7 @@ GRAY='\033[0;90m'
 NC='\033[0m' # No Color
 
 echo -e "\n${MAGENTA}========================================"
-echo -e "   Inso Assistant Deployment Script"
+echo -e "   Inso AI Deployment Script"
 echo -e "========================================${NC}\n"
 
 echo -e "${CYAN}Version: ${VERSION}"

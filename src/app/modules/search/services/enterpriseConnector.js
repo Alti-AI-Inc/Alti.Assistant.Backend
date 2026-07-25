@@ -901,7 +901,7 @@ export class EnterpriseConnector {
           result = {
             success: true,
             trialId: sanitizedParams.trialId || 'tr-veeva-402',
-            molecule: 'Inso Assistant-990-compound',
+            molecule: 'Inso AI-990-compound',
             phase: 'Phase IIb',
             siteCount: 18,
             enrollmentTarget: 450,
@@ -1565,7 +1565,7 @@ export class EnterpriseConnector {
           result = {
             success: true,
             storeId: sanitizedParams.storeId || 'shop-plus-1002',
-            storeName: 'Inso Assistant Enterprise Merchandise',
+            storeName: 'Inso AI Enterprise Merchandise',
             monthlyRevenue: 154200.50,
             activeCarts: 124,
             cartdata: 'Shopify Checkout cart details with customer IDs and token logs.',
@@ -2342,31 +2342,31 @@ export class EnterpriseConnector {
 
         // --- Phase 27: Marketing & Social Platforms ---
         case 'getGoogleAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'ga1', name: 'Inso Assistant Launch Search Campaign', dailyBudget: 150.00 }], status: 'GOOGLE_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'ga1', name: 'Inso AI Launch Search Campaign', dailyBudget: 150.00 }], status: 'GOOGLE_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustGoogleAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'ga1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'GOOGLE_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getFacebookAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'fb1', name: 'Inso Assistant Brand Video Campaign', dailyBudget: 200.00 }], status: 'FACEBOOK_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'fb1', name: 'Inso AI Brand Video Campaign', dailyBudget: 200.00 }], status: 'FACEBOOK_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustFacebookAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'fb1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'FACEBOOK_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getLinkedInAdsCampaigns':
-          result = { success: true, campaigns: [{ id: 'li1', name: 'Inso Assistant Enterprise ABM Campaign', dailyBudget: 500.00 }], status: 'LINKEDIN_ADS_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'li1', name: 'Inso AI Enterprise ABM Campaign', dailyBudget: 500.00 }], status: 'LINKEDIN_ADS_CAMPAIGNS_LOADED' };
           break;
         case 'adjustLinkedInAdsBudget':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'li1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'LINKEDIN_ADS_BUDGET_ADJUSTED' };
           break;
         case 'getTwitterTweets':
-          result = { success: true, tweets: [{ id: 'tw1', text: 'Inso Assistant v1.27.11 is now live!' }], status: 'TWITTER_TWEETS_LOADED' };
+          result = { success: true, tweets: [{ id: 'tw1', text: 'Inso AI v1.27.11 is now live!' }], status: 'TWITTER_TWEETS_LOADED' };
           break;
         case 'postTwitterTweet':
-          result = { success: true, text: sanitizedParams.text || 'Inso Assistant Swarms are taking over!', tweetId: 'tw2', status: 'TWITTER_TWEET_POSTED' };
+          result = { success: true, text: sanitizedParams.text || 'Inso AI Swarms are taking over!', tweetId: 'tw2', status: 'TWITTER_TWEET_POSTED' };
           break;
         case 'getMailchimpCampaigns':
-          result = { success: true, campaigns: [{ id: 'mc1', subject: 'Inso Assistant Monthly Update' }], status: 'MAILCHIMP_CAMPAIGNS_LOADED' };
+          result = { success: true, campaigns: [{ id: 'mc1', subject: 'Inso AI Monthly Update' }], status: 'MAILCHIMP_CAMPAIGNS_LOADED' };
           break;
         case 'sendMailchimpCampaign':
           result = { success: true, campaignId: sanitizedParams.campaignId || 'mc1', status: 'MAILCHIMP_CAMPAIGN_SENT' };
@@ -2374,13 +2374,13 @@ export class EnterpriseConnector {
 
         // --- Phase 28: Customer Feedback & Survey Core ---
         case 'getSurveyMonkeySurveys':
-          result = { success: true, surveys: [{ id: 'sm1', name: 'Inso Assistant Customer Satisfaction 2026' }], status: 'SURVEYMONKEY_SURVEYS_LOADED' };
+          result = { success: true, surveys: [{ id: 'sm1', name: 'Inso AI Customer Satisfaction 2026' }], status: 'SURVEYMONKEY_SURVEYS_LOADED' };
           break;
         case 'deleteSurveyMonkeySurvey':
           result = { success: true, surveyId: sanitizedParams.surveyId || 'sm1', status: 'SURVEYMONKEY_SURVEY_DELETED' };
           break;
         case 'getTypeformForms':
-          result = { success: true, forms: [{ id: 'tf1', title: 'Inso Assistant Beta Feedback Form' }], status: 'TYPEFORM_FORMS_LOADED' };
+          result = { success: true, forms: [{ id: 'tf1', title: 'Inso AI Beta Feedback Form' }], status: 'TYPEFORM_FORMS_LOADED' };
           break;
         case 'deleteTypeformForm':
           result = { success: true, formId: sanitizedParams.formId || 'tf1', status: 'TYPEFORM_FORM_DELETED' };
@@ -2424,13 +2424,13 @@ export class EnterpriseConnector {
           result = { success: true, containerName: sanitizedParams.containerName || 'inso-temp-azure-sandbox', status: 'AZURE_CONTAINER_DELETED' };
           break;
         case 'getDropboxFiles':
-          result = { success: true, files: [{ path: '/Shared/Inso AssistantDocs', size: 1048576 }], status: 'DROPBOX_FILES_LOADED' };
+          result = { success: true, files: [{ path: '/Shared/Inso AIDocs', size: 1048576 }], status: 'DROPBOX_FILES_LOADED' };
           break;
         case 'deleteDropboxFolder':
-          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared/Inso AssistantTemp', status: 'DROPBOX_FOLDER_DELETED' };
+          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared/Inso AITemp', status: 'DROPBOX_FOLDER_DELETED' };
           break;
         case 'getDriveFiles':
-          result = { success: true, files: [{ id: 'gd1', name: 'Inso Assistant Budget 2026.xlsx' }], status: 'GDRIVE_FILES_LOADED' };
+          result = { success: true, files: [{ id: 'gd1', name: 'Inso AI Budget 2026.xlsx' }], status: 'GDRIVE_FILES_LOADED' };
           break;
         case 'deleteDriveFile':
           result = { success: true, fileId: sanitizedParams.fileId || 'gd1', status: 'GDRIVE_FILE_DELETED' };
@@ -2630,13 +2630,13 @@ export class EnterpriseConnector {
 
         // --- Phase 36: Modern Workspace Collaboration & Project Spoke ---
         case 'getFigmaFileMetadata':
-          result = { success: true, file: { key: 'fig-file-889', name: 'Inso Assistant UI Layout Prototype', version: 'v2.4' }, status: 'FIGMA_FILE_LOADED' };
+          result = { success: true, file: { key: 'fig-file-889', name: 'Inso AI UI Layout Prototype', version: 'v2.4' }, status: 'FIGMA_FILE_LOADED' };
           break;
         case 'deleteFigmaFile':
           result = { success: true, fileKey: sanitizedParams.fileKey || 'fig-file-889', status: 'FIGMA_FILE_DELETED' };
           break;
         case 'getAirtableRecords':
-          result = { success: true, records: [{ id: 'recAirtable99', fields: { Company: 'Inso Assistant Inc', Value: 5000000 } }], status: 'AIRTABLE_RECORDS_LOADED' };
+          result = { success: true, records: [{ id: 'recAirtable99', fields: { Company: 'Inso AI Inc', Value: 5000000 } }], status: 'AIRTABLE_RECORDS_LOADED' };
           break;
         case 'deleteAirtableBase':
           result = { success: true, baseId: sanitizedParams.baseId || 'appAirtable302', status: 'AIRTABLE_BASE_DELETED' };

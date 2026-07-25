@@ -2,7 +2,7 @@
   "name": "@inso/agent-code",
   "version": "1.0.0",
   "type": "module",
-  "description": "Inso Assistant Code Agent — code generation, debugging, review, and explanation microservice",
+  "description": "Inso AI Code Agent — code generation, debugging, review, and explanation microservice",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

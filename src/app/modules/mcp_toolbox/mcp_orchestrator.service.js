@@ -226,7 +226,7 @@ class McpGenericServerInstance {
                 sampling: {}
               },
               clientInfo: {
-                name: 'Inso Assistant-Backend-Orchestrator',
+                name: 'Inso AI-Backend-Orchestrator',
                 version: '1.2.0'
               }
             });

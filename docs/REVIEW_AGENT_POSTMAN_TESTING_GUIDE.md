@@ -27,7 +27,7 @@ Example raw JSON before Base64 for `X-User-Context`:
 ```json
 {
   "userId": "test-user-123",
-  "email": "qa@alti.ai",
+  "email": "qa@inso.ai",
   "plan": "pro",
   "tenantId": "tenant-001"
 }

@@ -3,7 +3,7 @@ import axios from 'axios';
 import fs from 'fs';
 
 async function main() {
-  const credentialsPath = 'C:\\Users\\hyper\\AppData\\Roaming\\gcloud\\legacy_credentials\\alti-assistant-service@alti-assistant-prod.iam.gserviceaccount.com\\adc.json';
+  const credentialsPath = 'C:\\Users\\hyper\\AppData\\Roaming\\gcloud\\legacy_credentials\\inso-assistant-service@inso-assistant-prod.iam.gserviceaccount.com\\adc.json';
   const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
 
   const tokenUrl = credentials.token_uri || 'https://oauth2.googleapis.com/token';

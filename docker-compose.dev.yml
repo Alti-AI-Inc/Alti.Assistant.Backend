@@ -1,4 +1,4 @@
-# ─── Inso Assistant — Agent Microservices (Local Development) ─────────────────
+# ─── Inso AI — Agent Microservices (Local Development) ─────────────────
 # Run all 7 agents + gateway + infrastructure locally with:
 #   docker compose -f docker-compose.dev.yml up --build
 # ─────────────────────────────────────────────────────────────────────────────
@@ -131,14 +131,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-review
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 5: Image (Gemini 3.1 Flash Image) ───────────────────────────────
   agent-image:

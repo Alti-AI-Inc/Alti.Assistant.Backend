@@ -1,4 +1,4 @@
-# Inso Assistant — Secrets & Deployment Guide
+# Inso AI — Secrets & Deployment Guide
 
 > **Single Source of Truth** for all production secrets, GCP configuration, and CI/CD deployment.
 
@@ -195,4 +195,4 @@ gcloud run services update-traffic inso-assistant-backend \
 
 ---
 
-*Last updated: 2026-05-21 · Maintained by the Inso Assistant Engineering team*
+*Last updated: 2026-05-21 · Maintained by the Inso AI Engineering team*

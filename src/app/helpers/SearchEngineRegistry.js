@@ -1,7 +1,7 @@
 /**
  * SearchEngineRegistry.js — Dynamic GCP-Native Search & Grounding Registry
  *
- * Centralized, high-performance coordinator managing Inso Assistant's 110+ data integrations
+ * Centralized, high-performance coordinator managing Inso AI's 110+ data integrations
  * dynamically. Bypasses hardcoded smart routing via a modular plug-and-play provider
  * architecture, providing concurrent parallel scanning, dual-layer SWR caching,
  * timeout circuit breakers, and semantic validation.
@@ -549,7 +549,7 @@ class SearchEngineCoordinator {
 
   /**
    * Registers a modular SearchProvider.
-   * @param {Object} provider - The SearchProvider object conforming to Inso Assistant contract.
+   * @param {Object} provider - The SearchProvider object conforming to Inso AI contract.
    */
   register(provider) {
     if (!provider || !provider.id) {
@@ -1398,7 +1398,7 @@ function loadDynamicProviders() {
                 // Bypass if already live in memory to prevent redundancies
                 if (SearchEngineRegistry.providers.has(uniqueId)) return;
 
-                // Construct active grounding provider conforming to Inso Assistant contract
+                // Construct active grounding provider conforming to Inso AI contract
                 const dynamicProvider = {
                   id: uniqueId,
                   category: p.category || 'premium_public',

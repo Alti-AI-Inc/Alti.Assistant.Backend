@@ -16,7 +16,7 @@ export const SecForm13fPortfoliosProvider = {
   category: 'financial_regulatory',
   cacheTTL: 86400,
   citationLabel: 'SEC Form 13F Institutional Investment Holdings',
-  mandatoryRule: '▸ Highlight institutional holdings, share counts, value sizes, and symbols in **BOLD** (e.g. **1.25 Million Apple (AAPL) Shares**, **Inso Assistants Capital Management**, **Form 13F Quarterly Holdings**)',
+  mandatoryRule: '▸ Highlight institutional holdings, share counts, value sizes, and symbols in **BOLD** (e.g. **1.25 Million Apple (AAPL) Shares**, **Inso AI Capital Management**, **Form 13F Quarterly Holdings**)',
 
   detectIntent: (query) => {
     return /\bsec\s+form\s+13f\b|\binstitutional\s+holding\s+portfolio\b|\bform\s+13f\s+quarterly\s+holdings\b|\b13f\s+stock\s+position\b/i.test(query);
@@ -33,13 +33,13 @@ export const SecForm13fPortfoliosProvider = {
 
 | Monitored Institutional Manager | Stock Symbol Filer | Total Staged Share Count | Staged Valuation Size | SEC Form 13F Filing Quarter |
 |----------------------------------|--------------------|---------------------------|-----------------------|------------------------------|
-| **Inso Assistants Capital Management** | AAPL (Apple Inc) | **1.25 Million AAPL Shares**| **$245 Million Value** | **Form 13F Quarterly Holdings**|
+| **Inso AI Capital Management** | AAPL (Apple Inc) | **1.25 Million AAPL Shares**| **$245 Million Value** | **Form 13F Quarterly Holdings**|
 | **Hawthorne Capital Partners**| MSFT (Microsoft) | **850,000 MSFT Shares** | **$310 Million Value** | **Form 13F Quarterly Holdings**|
 | Vance Asset Management | GOOGL (Alphabet) | 620,000 GOOGL Shares | $112 Million Value | Form 13F Quarterly Holdings |`;
 
     const metadata = {
       domain: 'sec_form_13f_portfolios',
-      manager: 'Inso Assistants Capital Management',
+      manager: 'Inso AI Capital Management',
       symbol: 'AAPL',
       shares: 1250000,
       value: '$245 Million',
@@ -56,7 +56,7 @@ export const CdcWonderVaersProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'CDC WONDER Vaccine Adverse Event Reporting System (VAERS)',
-  mandatoryRule: '▸ Cite adverse event report counts, vaccine manufacturer, and safety status in **BOLD** (e.g. **5 Adverse Event Reports**, **Inso Assistants mRNA Vaccine**, **CDC VAERS Log**)',
+  mandatoryRule: '▸ Cite adverse event report counts, vaccine manufacturer, and safety status in **BOLD** (e.g. **5 Adverse Event Reports**, **Inso AI mRNA Vaccine**, **CDC VAERS Log**)',
 
   detectIntent: (query) => {
     return /\bcdc\s+wonder\s+vaers\b|\bvaccine\s+adverse\s+event\s+report\b|\bvaers\s+safety\s+log\b|\bvaccine\s+injury\s+reports\b/i.test(query);
@@ -73,14 +73,14 @@ export const CdcWonderVaersProvider = {
 
 | Monitored Vaccine Type | Vaccine Manufacturer | Staged Adverse Event Count | Staged Clinical Outcome | CDC VAERS Registry Standing |
 |-------------------------|----------------------|----------------------------|-------------------------|-----------------------------|
-| **Inso Assistants mRNA Vaccine** | **Inso Assistants BioLabs** | **5 Adverse Event Reports**| Mild Sore Arm / Resolved| **CDC VAERS Log** Record |
+| **Inso AI mRNA Vaccine** | **Inso AI BioLabs** | **5 Adverse Event Reports**| Mild Sore Arm / Resolved| **CDC VAERS Log** Record |
 | Hawthorne Flu Vaccine | Hawthorne Pharma | **12 Adverse Event Reports**| Low Fever / Resolved | **CDC VAERS Log** Record |
 | Vance Shingles Vaccine | Vance Health Corp | 2 Adverse Event Reports | Mild Redness / Resolved | CDC VAERS Log Record |`;
 
     const metadata = {
       domain: 'cdc_wonder_vaers',
-      vaccineName: 'Inso Assistants mRNA Vaccine',
-      manufacturer: 'Inso Assistants BioLabs',
+      vaccineName: 'Inso AI mRNA Vaccine',
+      manufacturer: 'Inso AI BioLabs',
       events: 5,
       status: 'CDC VAERS Log'
     };
@@ -114,7 +114,7 @@ export const CbpEapaViolationsProvider = {
 |-------------------------|--------------------------|----------------------------|------------------------------|---------------------------|
 | **CBP EAPA Investigation #1245**| **Hawthorne Steelworks** | Steel Pipeline Flanges | **Active Duty Evasion Flag** | Enforce Antidumping Duty |
 | **CBP EAPA Investigation #1842**| **Vance Trading Ltd** | Aluminum Wire Rods | **Active Duty Evasion Flag** | **CBP EAPA Violator Registry**|
-| CBP EAPA Investigation #2004 | Inso Assistants Logistics Group | Solar Panels (Passed Stand) | Verified Active Filer | No Violations Found |`;
+| CBP EAPA Investigation #2004 | Inso AI Logistics Group | Solar Panels (Passed Stand) | Verified Active Filer | No Violations Found |`;
 
     const metadata = {
       domain: 'cbp_eapa_violations',
@@ -173,7 +173,7 @@ export const EiaElectricPowerPlantsProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'EIA Electric Power Plant Operations & Capacities',
-  mandatoryRule: '▸ Highlight megawatt generation outputs, power plant names, and fuel types in **BOLD** (e.g. **1,245 Megawatt Net Generation**, **Inso Assistants Solar Power Plant**, **EIA Active Power Plant**)',
+  mandatoryRule: '▸ Highlight megawatt generation outputs, power plant names, and fuel types in **BOLD** (e.g. **1,245 Megawatt Net Generation**, **Inso AI Solar Power Plant**, **EIA Active Power Plant**)',
 
   detectIntent: (query) => {
     return /\beia\s+electric\s+power\s+plant\b|\bpower\s+generationcapacity\b|\bnet\s+electricity\s+generation\s+output\b|\beia\s+active\s+power\s+plant\b/i.test(query);
@@ -190,13 +190,13 @@ export const EiaElectricPowerPlantsProvider = {
 
 | Operating Power Plant Name | Fuel Resource Capacity Type | Monthly Net Generation Output | Total Operating Capacity | EIA Power Plant Standing |
 |-----------------------------|-----------------------------|--------------------------------|--------------------------|--------------------------|
-| **Inso Assistants Solar Power Plant**| Solar Photovoltaic (PV) | **1,245 Megawatt Net Generation**| 1,500 Megawatts Capacity | **EIA Active Power Plant**|
+| **Inso AI Solar Power Plant**| Solar Photovoltaic (PV) | **1,245 Megawatt Net Generation**| 1,500 Megawatts Capacity | **EIA Active Power Plant**|
 | Hawthorne Wind Farm | Onshore Wind Power Array | **845 Megawatt Net Generation** | 1,000 Megawatts Capacity | **EIA Active Power Plant**|
 | Vance Gas Facility | Natural Gas Combined Cycle | 682 Megawatt Net Generation | 800 Megawatts Capacity | EIA Active Power Plant |`;
 
     const metadata = {
       domain: 'eia_electric_power_plants',
-      plantName: 'Inso Assistants Solar Power Plant',
+      plantName: 'Inso AI Solar Power Plant',
       fuelType: 'Solar Photovoltaic',
       output: '1,245 Megawatt',
       capacity: '1,500 Megawatts'
@@ -307,13 +307,13 @@ export const FccOetExperimentalProvider = {
 
 | Monitored Research Filer | OE Case Docket Number | Testing Frequency Range | Staged Transmit Power ERP | FCC OET Experimental Status |
 |--------------------------|-----------------------|-------------------------|---------------------------|-----------------------------|
-| **Inso Assistants Labs (FCC)** | **FCC Experimental License #0124-EX**| **3.4 GHz Experimental Band**| 120 Watts ERP Power | **FCC OET Active License** |
+| **Inso AI Labs (FCC)** | **FCC Experimental License #0124-EX**| **3.4 GHz Experimental Band**| 120 Watts ERP Power | **FCC OET Active License** |
 | Hawthorne Systems (FCC) | FCC Experimental License #0852-EX| **3.4 GHz Experimental Band**| 85 Watts ERP Power | **FCC OET Active License** |
 | Vance Technologies (FCC) | FCC Experimental License #0620-EX| 2.4 GHz Experimental Band| 50 Watts ERP Power | Verified Active License |`;
 
     const metadata = {
       domain: 'fcc_oet_experimental',
-      filer: 'Inso Assistants Labs',
+      filer: 'Inso AI Labs',
       licenseNumber: 'FCC Experimental License #0124-EX',
       frequencyBand: '3.4 GHz',
       status: 'FCC OET Active License'
@@ -329,7 +329,7 @@ export const NpsHistoricPlacesProvider = {
   category: 'premium_public',
   cacheTTL: 86400,
   citationLabel: 'NPS National Register of Historic Places',
-  mandatoryRule: '▸ Highlight historic site names, national register sites, and preservation status in **BOLD** (e.g. **Inso Assistants Historic Landmark**, **National Register Site**, **Historic Preservation Active**)',
+  mandatoryRule: '▸ Highlight historic site names, national register sites, and preservation status in **BOLD** (e.g. **Inso AI Historic Landmark**, **National Register Site**, **Historic Preservation Active**)',
 
   detectIntent: (query) => {
     return /\bnps\s+historic\s+places\b|\bnational\s+register\s+of\s+historic\s+sites\b|\bhistoric\s+landmark\s+preservation\b|\bnps\s+historic\s+register\b/i.test(query);
@@ -346,14 +346,14 @@ export const NpsHistoricPlacesProvider = {
 
 | Historic Site Location | Targeted Historic Site Name | National Register Reference Number | National Register Category | Historic Preservation Standing |
 |------------------------|-----------------------------|------------------------------------|----------------------------|--------------------------------|
-| **Ann Arbor, Michigan**| **Inso Assistants Historic Landmark** | Ref #12459873 (NPS Ref) | Historic Building | **Historic Preservation Active**|
+| **Ann Arbor, Michigan**| **Inso AI Historic Landmark** | Ref #12459873 (NPS Ref) | Historic Building | **Historic Preservation Active**|
 | Columbus, Ohio | Hawthorne Mill Site | **National Register Site** (#8456) | Historic Archeology Site | **Historic Preservation Active**|
 | Indianapolis, Indiana | Vance Historical Manor | National Register Site (#6204) | Historic Manor House | Verified Active Landmark |`;
 
     const metadata = {
       domain: 'nps_historic_places',
       location: 'Ann Arbor, Michigan',
-      siteName: 'Inso Assistants Historic Landmark',
+      siteName: 'Inso AI Historic Landmark',
       referenceNumber: 'Ref #12459873',
       status: 'Historic Preservation Active'
     };

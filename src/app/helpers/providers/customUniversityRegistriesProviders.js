@@ -149,13 +149,13 @@ export const StanfordHelmProvider = {
 
 | Target Evaluation Model | Stanford HELM Benchmark Category | CRFM Holistic Accuracy Score | Safety & Bias Audit Status | Foundation Model CRFM Class |
 |-------------------------|-----------------------------------|------------------------------|----------------------------|-----------------------------|
-| **Inso Assistants LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
+| **Inso AI LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
 | **Stanford Base Model** | Core Commonsense Logic Bench | **HELM Accuracy: 78.2%** | **Passed Safety Audit** | Medium General Foundation |
 | **Vance Logic Array** | Mathematics & Code Synthesis | HELM Accuracy: 72.1% | Under Examination | Small Specialist Foundation |`;
 
     const metadata = {
       domain: 'stanford_helm_benchmarks',
-      evaluatedModel: 'Inso Assistants LLM-V2-Premium',
+      evaluatedModel: 'Inso AI LLM-V2-Premium',
       benchmarkCategory: 'Core RAG Reasoning',
       accuracyScore: '84.5%',
       safetyStatus: 'Passed Safety Audit'

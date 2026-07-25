@@ -94,7 +94,7 @@ const listLocationReviews = async (accountId, locationId) => {
  * 
  * @param {string} accountId - Business Account ID
  * @param {string} locationId - Specific Location ID
- * @param {object} postPayload - Post details (e.g. { summary: "Join us for Inso Assistant launch!", callToAction: { actionType: "LEARN_MORE", url: "https://inso.assistant" } })
+ * @param {object} postPayload - Post details (e.g. { summary: "Join us for Inso AI launch!", callToAction: { actionType: "LEARN_MORE", url: "https://inso.assistant" } })
  * @returns {Promise<object>} Local post publication report
  */
 const createLocalPost = async (accountId, locationId, postPayload) => {

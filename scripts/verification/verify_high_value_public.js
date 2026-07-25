@@ -1,7 +1,7 @@
 /**
  * verify_high_value_public.js
  *
- * Verification script for testing Inso Assistant's Stage 49 Premium High-Value Public Grounding Channels.
+ * Verification script for testing Inso AI's Stage 49 Premium High-Value Public Grounding Channels.
  */
 
 import { SearchEngineRegistry } from './src/app/helpers/SearchEngineRegistry.js';

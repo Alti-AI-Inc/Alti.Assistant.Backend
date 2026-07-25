@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared MongoDB connection manager for all Inso Assistant agent microservices.
+ * @fileoverview Shared MongoDB connection manager for all Inso AI agent microservices.
  * Provides a singleton connection with automatic reconnection, health checks,
  * and graceful shutdown.
  *

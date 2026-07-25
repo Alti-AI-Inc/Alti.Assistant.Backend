@@ -227,7 +227,7 @@ const MOCK_PROPERTIES = [
     city: 'Atlanta',
     state: 'GA',
     zip: '30303',
-    ownerName: 'Inso Assistants Holdings LLC',
+    ownerName: 'Inso AI Holdings LLC',
     yearBuilt: 2012,
     beds: 4,
     baths: 3.5,
@@ -382,7 +382,7 @@ const MOCK_MLS = [
  */
 const MOCK_SKIP = {
   prop_90210_1: {
-    owner: 'Inso Assistants Holdings LLC',
+    owner: 'Inso AI Holdings LLC',
     phoneNumbers: ['(404) 555-0199', '(404) 555-0144'],
     emails: ['admin@insosholdings.com', 'acquisitions@insosholdings.com'],
     currentAddress: '990 Peach Tree St, Suite 400, Atlanta, GA 30309',

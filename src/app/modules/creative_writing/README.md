@@ -341,4 +341,4 @@ For issues, questions, or feature requests, please contact the development team 
 
 ## License
 
-This module is part of the Inso Assistant Core Service Backend and follows the same license terms.
+This module is part of the Inso AI Core Service Backend and follows the same license terms.

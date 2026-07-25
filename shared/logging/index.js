@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared Winston logger for all Inso Assistant agent microservices.
+ * @fileoverview Shared Winston logger for all Inso AI agent microservices.
  * Provides structured JSON logging for Cloud Logging in production
  * and human-readable format in development. Includes log sanitization
  * to prevent secret leakage.
@@ -105,7 +105,7 @@ export function createLogger(serviceName = 'inso-agent') {
 
 // Default logger instance for backward compatibility
 const { logger, errorLogger } = createLogger(
-  process.env.SERVICE_NAME || 'Inso Assistant Core Service'
+  process.env.SERVICE_NAME || 'Inso AI Core Service'
 );
 
 export { logger, errorLogger };

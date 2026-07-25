@@ -22,7 +22,7 @@
 ### 1. Install Dependencies
 
 ```bash
-cd d:\inso\Inso Assistant-Core-Service-Backend
+cd d:\inso\Inso AI-Core-Service-Backend
 npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xlsx
 ```
 

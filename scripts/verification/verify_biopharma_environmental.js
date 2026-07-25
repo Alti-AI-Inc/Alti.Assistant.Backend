@@ -1,7 +1,7 @@
 /**
  * verify_biopharma_environmental.js
  *
- * Verification script for testing Inso Assistant's Stage 44 Premium Biopharma, Environmental,
+ * Verification script for testing Inso AI's Stage 44 Premium Biopharma, Environmental,
  * and Public Registry grounding channels.
  */
 
@@ -33,7 +33,7 @@ async function runVerification() {
     },
     {
       name: 'FEC Real-Time Raw Campaign Filings Feed',
-      query: 'What are the real-time fec raw campaign filings for Inso Assistants PAC?',
+      query: 'What are the real-time fec raw campaign filings for Inso AI PAC?',
       expectedId: 'fec_raw_filings'
     },
     {
@@ -53,12 +53,12 @@ async function runVerification() {
     },
     {
       name: 'NHTSA VPIC Manufacturer Registry',
-      query: 'Check nhtsa manufacturer registrations and plant locations for Inso Assistants EV Corp',
+      query: 'Check nhtsa manufacturer registrations and plant locations for Inso AI EV Corp',
       expectedId: 'nhtsa_manufacturers'
     },
     {
       name: 'USDA NOP Organic Integrity Database',
-      query: 'Query usda organic integrity database certified operations for Inso Assistants Organic Farms',
+      query: 'Query usda organic integrity database certified operations for Inso AI Organic Farms',
       expectedId: 'usda_organic'
     }
   ];

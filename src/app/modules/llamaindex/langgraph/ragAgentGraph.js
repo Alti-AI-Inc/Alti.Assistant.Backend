@@ -219,7 +219,7 @@ const llm = {
 2. **Encryption**: All document ingestion and vector embeddings are encrypted at rest using Customer-Managed Encryption Keys (CMEK) and in transit [Source #1].
 3. **Data Residency**: Supports regulatory compliance by pinning ingestion pipelines and document index storages to specific regional buckets [Source #2].`;
           } else {
-            content = `Hello! I am Inso Assistant, your premium RAG-enabled digital assistant. How can I help you explore your enterprise knowledge base or coordinate active automation today?`;
+            content = `Hello! I am Inso AI, your premium RAG-enabled digital assistant. How can I help you explore your enterprise knowledge base or coordinate active automation today?`;
           }
         }
         
@@ -562,7 +562,7 @@ Google Vertex AI Search and stateful cognitive architectures deliver highly accu
 async function conversationalNode(state) {
   logger.info(`[LangGraph RAG] Processing off-topic/friendly conversational query: "${state.query}"`);
   
-  const systemPrompt = `You are Inso Assistant, a premium, helpful, and highly intelligent AI assistant. 
+  const systemPrompt = `You are Inso AI, a premium, helpful, and highly intelligent AI assistant. 
 Answer the user's friendly chat query directly. Keep it professional, concise, and helpful.`;
 
   try {

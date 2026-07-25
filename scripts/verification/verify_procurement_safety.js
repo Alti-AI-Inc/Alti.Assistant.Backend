@@ -1,7 +1,7 @@
 /**
  * verify_procurement_safety.js
  *
- * Verification script for testing Inso Assistant's Batch 3 EU TED, USDA FAS,
+ * Verification script for testing Inso AI's Batch 3 EU TED, USDA FAS,
  * NTSB CAROL, CFPB Enforcement, and EPA IRIS grounding channels.
  */
 

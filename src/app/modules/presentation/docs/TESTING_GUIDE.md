@@ -311,7 +311,7 @@ wait
 ### Run Automated Test
 
 ```bash
-cd d:\inso\Inso Assistant-Core-Service-Backend
+cd d:\inso\Inso AI-Core-Service-Backend
 node scripts/test-gcs-upload.js
 ```
 

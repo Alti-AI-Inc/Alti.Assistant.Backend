@@ -2,7 +2,7 @@
  * stage33PremiumProviders.js — Stage 33 Premium Global Sovereign Open Data Grounding Channels
  *
  * Implements the GDP, inflation, property, and monetary policy search providers
- * for Finland, Portugal, Greece, New Zealand, and Poland for Inso Assistant's RAG/Grounding engine.
+ * for Finland, Portugal, Greece, New Zealand, and Poland for Inso AI's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

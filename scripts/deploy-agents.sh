@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy all 7 Inso Assistant microservices to Google Cloud Run
+# Deploy all 7 Inso AI microservices to Google Cloud Run
 
 set -e
 
@@ -9,7 +9,7 @@ REGION=${GCP_REGION:-"us-central1"}
 AGENTS=("search" "research" "write" "code" "image" "audio" "video")
 
 echo "=========================================================="
-echo " Deploying Inso Assistant Agents to Google Cloud Run"
+echo " Deploying Inso AI Agents to Google Cloud Run"
 echo " Project: $PROJECT_ID"
 echo " Region: $REGION"
 echo "=========================================================="

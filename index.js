@@ -373,7 +373,7 @@ app.use(globalErrorHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('Inso Assistant is working! YaY!');
+  res.send('Inso AI is working! YaY!');
 });
 
 // 404 Handler

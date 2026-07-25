@@ -23,7 +23,7 @@ vi.mock('../../../shared/logger.js', () => ({
 const mockWebResultsPage1 = {
   data: {
     items: [
-      { title: 'Result 1', link: 'http://example.com/1', displayLink: 'example.com/1', snippet: 'Snippet for result 1 about Inso Assistant', formattedUrl: 'http://example.com/1' },
+      { title: 'Result 1', link: 'http://example.com/1', displayLink: 'example.com/1', snippet: 'Snippet for result 1 about Inso AI', formattedUrl: 'http://example.com/1' },
       { title: 'Result 2', link: 'http://example.com/2', displayLink: 'example.com/2', snippet: 'Snippet for result 2', formattedUrl: 'http://example.com/2' },
     ],
   },
@@ -98,7 +98,7 @@ describe('GcpSearchAggregatorService', () => {
         title: 'Result 1',
         link: 'http://example.com/1',
         displayLink: 'example.com/1',
-        snippet: 'Snippet for result 1 about Inso Assistant',
+        snippet: 'Snippet for result 1 about Inso AI',
         formattedUrl: 'http://example.com/1',
         source: 'google_web',
         index: 1,
@@ -174,15 +174,15 @@ describe('GcpSearchAggregatorService', () => {
 
     it('should generate sub-queries, execute searches, deduplicate, score, and rank results', async () => {
       const mockResultsSubQuery1 = [
-        { title: 'Inso Assistant platform overview', link: 'http://example.com/inso-platform', snippet: 'The Inso Assistant platform is great.', source: 'google_web' },
+        { title: 'Inso AI platform overview', link: 'http://example.com/inso-platform', snippet: 'The Inso AI platform is great.', source: 'google_web' },
         { title: 'Common result', link: 'http://example.com/common', snippet: 'This appears in multiple searches.', source: 'google_web' },
       ];
       const mockResultsSubQuery2 = [
-        { title: 'News about Inso Assistant', link: 'http://example.com/inso-news', snippet: 'Recent news for the platform.', source: 'google_web' },
+        { title: 'News about Inso AI', link: 'http://example.com/inso-news', snippet: 'Recent news for the platform.', source: 'google_web' },
         { title: 'Common result', link: 'http://example.com/common', snippet: 'This appears in multiple searches.', source: 'google_web' },
       ];
       const mockResultsSubQuery3 = [
-        { title: 'Inso Assistant specifications', link: 'http://example.com/inso-specs', snippet: 'Core details of the platform.', source: 'google_web' },
+        { title: 'Inso AI specifications', link: 'http://example.com/inso-specs', snippet: 'Core details of the platform.', source: 'google_web' },
       ];
 
       executeRawSearchSpy
@@ -190,33 +190,33 @@ describe('GcpSearchAggregatorService', () => {
         .mockResolvedValueOnce(mockResultsSubQuery2)
         .mockResolvedValueOnce(mockResultsSubQuery3);
 
-      const response = await GcpSearchAggregatorService.executeParallelSearch('what is the Inso Assistant platform', 'web', 5);
+      const response = await GcpSearchAggregatorService.executeParallelSearch('what is the Inso AI platform', 'web', 5);
 
       expect(executeRawSearchSpy).toHaveBeenCalledTimes(3);
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('what is the Inso Assistant platform', 'web', 10, 1, 'active');
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso Assistant platform recent news analysis', 'web', 10, 1, 'active');
-      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso Assistant platform core details specifications', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('what is the Inso AI platform', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso AI platform recent news analysis', 'web', 10, 1, 'active');
+      expect(executeRawSearchSpy).toHaveBeenCalledWith('the Inso AI platform core details specifications', 'web', 10, 1, 'active');
 
       expect(response.success).toBe(true);
-      expect(response.originalQuery).toBe('what is the Inso Assistant platform');
+      expect(response.originalQuery).toBe('what is the Inso AI platform');
       expect(response.totalCandidates).toBe(5);
       expect(response.uniqueCount).toBe(4);
       expect(response.results).toHaveLength(4);
 
       // Check scoring and ranking. Query terms (len>2): ['what', 'inso', 'platform']
-      // 'Inso Assistant platform overview' -> title: inso, platform (2*10), snippet: inso, platform (2*2) -> score 24
-      // 'News about Inso Assistant' -> title: inso (10), snippet: platform (2) -> score 12
-      // 'Inso Assistant specifications' -> title: inso (10), snippet: platform (2) -> score 12
+      // 'Inso AI platform overview' -> title: inso, platform (2*10), snippet: inso, platform (2*2) -> score 24
+      // 'News about Inso AI' -> title: inso (10), snippet: platform (2) -> score 12
+      // 'Inso AI specifications' -> title: inso (10), snippet: platform (2) -> score 12
       // 'Common result' -> title: 0, snippet: 0 -> score 0
-      expect(response.results[0].title).toBe('Inso Assistant platform overview');
+      expect(response.results[0].title).toBe('Inso AI platform overview');
       expect(response.results[0].relevanceScore).toBe(26);
       expect(response.results[0].finalRank).toBe(1);
 
-      expect(response.results[1].title).toBe('News about Inso Assistant');
+      expect(response.results[1].title).toBe('News about Inso AI');
       expect(response.results[1].relevanceScore).toBe(14);
       expect(response.results[1].finalRank).toBe(2);
 
-      expect(response.results[2].title).toBe('Inso Assistant specifications');
+      expect(response.results[2].title).toBe('Inso AI specifications');
       expect(response.results[2].relevanceScore).toBe(14);
       expect(response.results[2].finalRank).toBe(3);
       
@@ -269,11 +269,11 @@ describe('GcpSearchAggregatorService', () => {
 
     it('should correctly generate sub-queries for short queries (<= 2 words)', async () => {
         executeRawSearchSpy.mockResolvedValue([]);
-        await GcpSearchAggregatorService.executeParallelSearch('Inso Assistant');
+        await GcpSearchAggregatorService.executeParallelSearch('Inso AI');
 
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso Assistant', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso Assistant latest updates', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
-        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso Assistant overview details', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI latest updates', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
+        expect(executeRawSearchSpy).toHaveBeenCalledWith('Inso AI overview details', expect.any(String), expect.any(Number), expect.any(Number), expect.any(String));
     });
 
     it('should trim results to the requested numResults', async () => {

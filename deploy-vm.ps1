@@ -1,4 +1,4 @@
-# Deployment script for Inso Assistant Backend
+# Deployment script for Inso AI Backend
 param(
     [string]$Version = "v0.1.0",
     [string]$VMUser = "inso_deployer",
@@ -18,7 +18,7 @@ $IMAGE_TAG_VERSION = "${REGISTRY}/${IMAGE_NAME}:${Version}"
 $IMAGE_TAG_LATEST = "${REGISTRY}/${IMAGE_NAME}:latest"
 
 Write-Host "`n========================================" -ForegroundColor Magenta
-Write-Host "   Inso Assistant Deployment Script" -ForegroundColor Magenta
+Write-Host "   Inso AI Deployment Script" -ForegroundColor Magenta
 Write-Host "========================================`n" -ForegroundColor Magenta
 
 Write-Host "Version: $Version" -ForegroundColor Cyan

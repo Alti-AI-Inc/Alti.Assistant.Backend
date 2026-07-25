@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully created a comprehensive translation module for the Inso Assistant Core Service Backend that provides intelligent, conversational translation capabilities with support for text and file uploads.
+Successfully created a comprehensive translation module for the Inso AI Core Service Backend that provides intelligent, conversational translation capabilities with support for text and file uploads.
 
 ## Created Files
 

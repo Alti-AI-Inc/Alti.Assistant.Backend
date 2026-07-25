@@ -2,7 +2,7 @@
   "name": "@inso/shared",
   "version": "1.0.0",
   "type": "module",
-  "description": "Shared libraries for Inso Assistant agent microservices",
+  "description": "Shared libraries for Inso AI agent microservices",
   "exports": {
     "./config": "./config/index.js",
     "./logging": "./logging/index.js",

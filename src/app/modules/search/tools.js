@@ -798,7 +798,7 @@ Input: A natural language query or topic to search global news intelligence (e.g
 });
 
 /**
- * Inso Assistant Greenlight Public Intelligence Search Tool
+ * Inso AI Greenlight Public Intelligence Search Tool
  */
 export const insoGreenlightIntelligenceSearch = new DynamicStructuredTool({
   name: 'inso_greenlight_intelligence_search',
@@ -838,7 +838,7 @@ Input: The domain enum name (politics_campaign, legislation_tracking, civic_repr
 });
 
 /**
- * Inso Assistant Premium Public Intelligence Search Tool
+ * Inso AI Premium Public Intelligence Search Tool
  */
 export const insoPremiumIntelligenceSearch = new DynamicStructuredTool({
   name: 'inso_premium_intelligence_search',
@@ -914,7 +914,7 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
 });
 
 /**
- * Inso Assistant Strategic Enterprise & High-Stakes Search Tool
+ * Inso AI Strategic Enterprise & High-Stakes Search Tool
  */
 export const insoEnterpriseIntelligenceSearch = new DynamicStructuredTool({
   name: 'inso_enterprise_intelligence_search',

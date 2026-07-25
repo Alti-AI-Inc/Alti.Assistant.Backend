@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# GCP Cloud Run Deployment Script for Inso Assistant Backend
+# GCP Cloud Run Deployment Script for Inso AI Backend
 # Usage: ./deploy-gcp.sh [PROJECT_ID] [REGION] [SERVICE_NAME]
 
 # Color codes
@@ -23,7 +23,7 @@ TIMEOUT=300
 ENV_FILE="env.yaml"
 
 echo -e "${CYAN}================================================${NC}"
-echo -e "${CYAN}Deploying Inso Assistant to GCP Cloud Run${NC}"
+echo -e "${CYAN}Deploying Inso AI to GCP Cloud Run${NC}"
 echo -e "${CYAN}================================================${NC}"
 echo ""
 

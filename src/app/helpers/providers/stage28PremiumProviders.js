@@ -2,7 +2,7 @@
  * stage28PremiumProviders.js — Stage 28 Premium Global Sovereign Open Data Grounding Channels
  *
  * Implements the macroeconomic and central bank search providers for China,
- * India, Japan, Australia, and Brazil for Inso Assistant's RAG/Grounding engine.
+ * India, Japan, Australia, and Brazil for Inso AI's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

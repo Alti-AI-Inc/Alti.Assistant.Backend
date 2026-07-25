@@ -8,7 +8,7 @@ param(
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Enterprise Deployment: Inso Assistant Backend + Agents" -ForegroundColor Cyan
+Write-Host " Enterprise Deployment: Inso AI Backend + Agents" -ForegroundColor Cyan
 Write-Host " Project: $ProjectId" -ForegroundColor Cyan
 Write-Host " Region: $Region" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan

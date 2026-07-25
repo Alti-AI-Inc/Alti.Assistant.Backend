@@ -2,7 +2,7 @@
 
 ## ✅ Module Complete
 
-Successfully created a comprehensive AI-powered legal contract review module for the Inso Assistant Core Service Backend.
+Successfully created a comprehensive AI-powered legal contract review module for the Inso AI Core Service Backend.
 
 ---
 

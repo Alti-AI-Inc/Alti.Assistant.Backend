@@ -101,7 +101,7 @@ const VALID_MODULES = Object.keys(MODULE_REGISTRY);
  * @constant
  * @type {string}
  */
-const ORCHESTRATOR_SYSTEM_PROMPT = `You are the Master Orchestrator (Synapse) for the Inso Assistant platform.
+const ORCHESTRATOR_SYSTEM_PROMPT = `You are the Master Orchestrator (Synapse) for the Inso AI platform.
 Your job is to analyze the user's prompt, classify it into one of the supported modules, judge its complexity, select the appropriate model tier and required data sources, and extract query parameters.
 
 Supported Modules:

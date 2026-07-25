@@ -33,7 +33,7 @@ The agent uses internal auth middleware. You must send:
 ```json
 {
   "userId": "test-user-123",
-  "email": "tester@alti.ai",
+  "email": "tester@inso.ai",
   "plan": "pro",
   "tenantId": "tenant-001"
 }
@@ -42,7 +42,7 @@ The agent uses internal auth middleware. You must send:
 Generate Base64 quickly:
 
 ```bash
-echo -n '{"userId":"test-user-123","email":"tester@alti.ai","plan":"pro","tenantId":"tenant-001"}' | base64
+echo -n '{"userId":"test-user-123","email":"tester@inso.ai","plan":"pro","tenantId":"tenant-001"}' | base64
 ```
 
 ## Endpoints

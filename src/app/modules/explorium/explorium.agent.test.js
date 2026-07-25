@@ -543,7 +543,7 @@ describe('explorium.agent', () => {
     };
     const sender = {
       name: 'Jane Smith',
-      company: 'Inso Assistant',
+      company: 'Inso AI',
       product: 'AI Assistant',
       value_prop: 'helps sales teams close more deals',
     };

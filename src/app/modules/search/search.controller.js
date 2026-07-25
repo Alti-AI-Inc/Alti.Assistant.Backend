@@ -161,7 +161,7 @@ export const performSearch = catchAsync(async (req, res) => {
       reference = [{
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       }];
     }
     const citationMetadata =
@@ -1034,13 +1034,13 @@ const performStreamingSearch = catchAsync(async (req, res) => {
           referenceList = [{
             url: 'https://search.insohq.com',
             domain: 'search.insohq.com',
-            title: 'Inso Assistant Global Search Index'
+            title: 'Inso AI Global Search Index'
           }];
           citationList = [{
             index: 1,
             url: 'https://search.insohq.com',
             domain: 'search.insohq.com',
-            title: 'Inso Assistant Global Search Index'
+            title: 'Inso AI Global Search Index'
           }];
         }
         res.write(
@@ -1064,13 +1064,13 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       finalReferences = [{
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       }];
       finalCitations = [{
         index: 1,
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       }];
       // Send fallback metadata event if metadata wasn't sent or was empty
       res.write(

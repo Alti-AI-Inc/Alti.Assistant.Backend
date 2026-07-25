@@ -1,6 +1,6 @@
 # SaaS Tenant Management - Core Implementation Guide
 
-This guide focuses on the core implementation tasks for multi-tenant functionality in Inso Assistant Core Service.
+This guide focuses on the core implementation tasks for multi-tenant functionality in Inso AI Core Service.
 
 **Focus:** Implementation only (excludes testing, documentation, and migration phases)
 

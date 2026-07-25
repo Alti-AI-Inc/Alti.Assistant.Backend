@@ -1,5 +1,5 @@
 /**
- * UnifiedSmartRouter.js — The Modern Core Router for Inso Assistant's Data-Grounding Engine
+ * UnifiedSmartRouter.js — The Modern Core Router for Inso AI's Data-Grounding Engine
  *
  * Serves as a backward-compatible drop-in replacement for the massive legacy promise-tree
  * smart routers. Dispatches all grounding query audits directly to the high-performance,
@@ -849,7 +849,7 @@ export const UnifiedSmartRouter = {
       references.push({
         url: 'https://search.insohq.com',
         domain: 'search.insohq.com',
-        title: 'Inso Assistant Global Search Index'
+        title: 'Inso AI Global Search Index'
       });
     }
 

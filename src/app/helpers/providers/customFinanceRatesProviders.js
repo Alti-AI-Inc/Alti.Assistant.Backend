@@ -190,13 +190,13 @@ export const FfiecCraProvider = {
 
 | Insured Financial Entity | FFIEC CRA Performance Grade | Annual FFIEC Asset Threshold | Active Compliance Period | Supervising Agency Filer |
 |---------------------------|-----------------------------|------------------------------|--------------------------|--------------------------|
-| **Inso Assistants Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
+| **Inso AI Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
 | **Vanguard Home Federal** | **SATISFACTORY** | **$376 Million (Small Bank)** | 2023 - 2025 Audit Cycle | FDIC Financial Board |
 | **Pacific Premier Credit**| **OUTSTANDING** | **$2.450 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | OCC National Bureau |`;
 
     const metadata = {
       domain: 'ffiec_cra',
-      auditedBank: 'Inso Assistants Citizens Bank',
+      auditedBank: 'Inso AI Citizens Bank',
       craPerformanceGrade: 'OUTSTANDING',
       assetSizeThreshold: '$1.502 Billion'
     };
@@ -307,9 +307,9 @@ export const UsptoTrademarksProvider = {
 
 | Trademark Wordmark Name | Filer Serial Number | Registration Number | Active Trademark Status | Goods & Services Class Category | Primary Owner Corporate Entity |
 |-------------------------|---------------------|---------------------|--------------------------|---------------------------------|--------------------------------|
-| **INSOS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Inso Assistants Holdings LLC (US)** |
+| **INSOS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Inso AI Holdings LLC (US)** |
 | **INSOGRAVITY** | **Serial #9802451** | **Reg #7240118** | **Registered** | Class 09 - AI Neural Copilots | **DeepMind Coding Corp (US)** |
-| **INSOS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Inso Assistants Wealth Group Inc** |`;
+| **INSOS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Inso AI Wealth Group Inc** |`;
 
     const metadata = {
       domain: 'uspto_trademarks',
@@ -317,7 +317,7 @@ export const UsptoTrademarksProvider = {
       serialNumber: 'Serial #9784012',
       registrationNumber: 'Reg #7124950',
       status: 'Registered',
-      ownerEntity: 'Inso Assistants Holdings LLC'
+      ownerEntity: 'Inso AI Holdings LLC'
     };
 
     return { markdown, metadata };
@@ -348,7 +348,7 @@ export const WipoIpProvider = {
 | WIPO Publication Number | PCT International Filing Date | Primary Filer / Applicant | Core IPC Patent Classification Code | Summary Invention Title |
 |-------------------------|--------------------------------|---------------------------|-------------------------------------|--------------------------|
 | **WO/2026/094200** | **April 12, 2026** | **DeepMind Technologies Ltd** | **G06N 3/04 (Neural Networks)** | Dynamic Agentic Code Refactoring |
-| **WO/2026/104505** | **May 19, 2026** | **Inso Assistants Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
+| **WO/2026/104505** | **May 19, 2026** | **Inso AI Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
 | **WO/2026/084201** | **March 04, 2026** | **Nokia Telecommunications**| **H04W 12/06 (Wireless Security)** | Dynamic Quantum Key Exchange |`;
 
     const metadata = {

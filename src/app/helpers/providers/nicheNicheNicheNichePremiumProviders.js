@@ -69,12 +69,12 @@ export const OpenstreetmapBuildingsProvider = {
 
 | Zoned Building Outline | Building Footprint Class | Building Height Index | Outline Polygon Center | Zoned Occupancy | Zoning Code |
 |------------------------|--------------------------|-----------------------|-------------------------|-----------------|-------------|
-| **Inso Assistant HQ Tower** | Commercial Highrise | **320 feet (24 floors)**| **25.7617, -80.1918** | Commercial | US-MIA-COM1 |
+| **Inso AI HQ Tower** | Commercial Highrise | **320 feet (24 floors)**| **25.7617, -80.1918** | Commercial | US-MIA-COM1 |
 | **Biscayne Residency**| Residential Midrise | **120 feet (10 floors)**| **25.7820, -80.1850** | Residential | US-MIA-RES1 |`;
 
     const metadata = {
       domain: 'openstreetmap_buildings',
-      buildingName: 'Inso Assistant HQ Tower',
+      buildingName: 'Inso AI HQ Tower',
       class: 'Commercial Highrise',
       heightFt: 320
     };

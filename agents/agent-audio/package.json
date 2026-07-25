@@ -1,7 +1,7 @@
 {
   "name": "@inso/agent-audio",
   "version": "1.0.0",
-  "description": "Inso Assistant Audio Agent — voice synthesis, music generation, and audio production microservice powered by LangGraph",
+  "description": "Inso AI Audio Agent — voice synthesis, music generation, and audio production microservice powered by LangGraph",
   "type": "module",
   "main": "index.js",
   "scripts": {

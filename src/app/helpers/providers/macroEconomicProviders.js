@@ -1,7 +1,7 @@
 /**
  * macroEconomicProviders.js — Modular Macroeconomic & Climate Search Providers
  *
- * Implements self-registering SearchProvider configurations for Inso Assistant's macroeconomic and environmental databases:
+ * Implements self-registering SearchProvider configurations for Inso AI's macroeconomic and environmental databases:
  * FRED Economic database, HUD Fair Market Rents (FMR), FHFA Home Price Index, College Scorecard,
  * NOAA/USGS Climate Risk, EIA Commodities spot pricing, and SEC EDGAR Filings History.
  */

@@ -180,13 +180,13 @@ export const FccBroadbandSpeedsProvider = {
 
 | FCC Census Block Code | Carrier Name | Max advertised Speed | Connection Technology | Service Availability |
 |-----------------------|--------------|----------------------|-----------------------|----------------------|
-| **BLOCK1234567** | **Inso Assistanta Telecom** | **1000/1000 Mbps** | **Fiber to the Home** | **Active Service** |
+| **BLOCK1234567** | **Inso AIa Telecom** | **1000/1000 Mbps** | **Fiber to the Home** | **Active Service** |
 | **BLOCK7654321** | **ComCast Cable**| **1200/50 Mbps** | **Coaxial Cable** | **Active Service** |`;
 
     const metadata = {
       domain: 'fcc_broadband_speeds',
       censusBlockCode: 'BLOCK1234567',
-      carrierName: 'Inso Assistanta Telecom',
+      carrierName: 'Inso AIa Telecom',
       maxDownloadSpeed: '1000 Mbps'
     };
 

@@ -16,7 +16,7 @@ export const UscisH1bEmployersProvider = {
   category: 'premium_public',
   cacheTTL: 43200,
   citationLabel: 'USCIS H-1B Employer Data Hub',
-  mandatoryRule: '▸ Cite approved visa counts, employer name, and sponsorship status in **BOLD** (e.g. **1,245 H-1B Approvals**, **Inso Assistants Tech Corp**, **Approved Sponsorship**)',
+  mandatoryRule: '▸ Cite approved visa counts, employer name, and sponsorship status in **BOLD** (e.g. **1,245 H-1B Approvals**, **Inso AI Tech Corp**, **Approved Sponsorship**)',
 
   detectIntent: (query) => {
     return /\buscis\s+h-1b\b|\bh1b\s+visa\s+approval\b|\bh1b\s+employer\s+sponsorship\b|\buscis\s+visa\s+data\s+hub\b/i.test(query);
@@ -33,13 +33,13 @@ export const UscisH1bEmployersProvider = {
 
 | Monitored Sponsoring Employer | Sponsoring Zip Code | Total Approved H-1B Petitions | Total Denied H-1B Petitions | H-1B Sponsorship Status |
 |--------------------------------|---------------------|--------------------------------|-----------------------------|-------------------------|
-| **Inso Assistants Tech Corp** | 48104 (Ann Arbor) | **1,245 H-1B Approvals** | 2 Denied Petitions | **Approved Sponsorship** |
+| **Inso AI Tech Corp** | 48104 (Ann Arbor) | **1,245 H-1B Approvals** | 2 Denied Petitions | **Approved Sponsorship** |
 | **Hawthorne Software** | 94105 (San Francisco)| **620 H-1B Approvals** | 1 Denied Petition | **Approved Sponsorship** |
 | **Vance Analytics Ltd** | 10011 (New York) | 480 H-1B Approvals | 0 Denied Petitions | **Approved Sponsorship** |`;
 
     const metadata = {
       domain: 'uscis_h1b_employers',
-      employerName: 'Inso Assistants Tech Corp',
+      employerName: 'Inso AI Tech Corp',
       approvals: 1245,
       denials: 2,
       status: 'Approved Sponsorship'
@@ -74,7 +74,7 @@ export const GsaSamExclusionsProvider = {
 |----------------------------|------------------------|--------------------------|-----------------------|-----------------------------|
 | **Hawthorne Trading Ltd** | HAWN12459873 | Department of Defense | **Active SAM Exclusion**| Procurement Fraud |
 | **Vance Trading Group** | VNCE48201235 | General Services Admin | **Active SAM Exclusion**| **SAM Debarred** Filer |
-| **Inso Assistants Heavy Machinery** | INSO04810982 | None (Active Standing) | Verified Active Filer | No Exclusions Found |`;
+| **Inso AI Heavy Machinery** | INSO04810982 | None (Active Standing) | Verified Active Filer | No Exclusions Found |`;
 
     const metadata = {
       domain: 'gsa_sam_exclusions',
@@ -111,7 +111,7 @@ export const UsptoPtabDecisionsProvider = {
 
 | Challenged Patent Record | PTAB Active Trial Number | Sponsoring Petitioner | Trial Outcome Status | PTAB Validity Decision |
 |--------------------------|---------------------------|-----------------------|----------------------|------------------------|
-| **US Patent #9,450,123** | **PTAB Trial #IPR2024-0012**| Inso Assistants Tech Corp | **Claims Banned/Invalid**| Trial Concluded |
+| **US Patent #9,450,123** | **PTAB Trial #IPR2024-0012**| Inso AI Tech Corp | **Claims Banned/Invalid**| Trial Concluded |
 | **US Patent #8,124,458** | PTAB Trial #IPR2024-0045 | Hawthorne Research | Claims Partially Invalid | Under Rehearing |
 | US Patent #7,890,124 | PTAB Trial #IPR2025-0002 | Vance Software | Claims Upheld/Valid | Trial Concluded |`;
 
@@ -133,7 +133,7 @@ export const SecFormAdvAdvisersProvider = {
   category: 'financial_regulatory',
   cacheTTL: 86400,
   citationLabel: 'SEC Form ADV Investment Adviser Registry',
-  mandatoryRule: '▸ Highlight advisory assets, firm name, and registration status in **BOLD** (e.g. **$24.5 Billion AUM**, **Inso Assistants Asset Management**, **SEC Registered RIA**)',
+  mandatoryRule: '▸ Highlight advisory assets, firm name, and registration status in **BOLD** (e.g. **$24.5 Billion AUM**, **Inso AI Asset Management**, **SEC Registered RIA**)',
 
   detectIntent: (query) => {
     return /\bsec\s+form\s+adv\b|\bregistered\s+investment\s+adviser\s+aum\b|\bria\s+assets\s+under\s+management\b|\bsec\s+adv\s+disclosures\b/i.test(query);
@@ -150,13 +150,13 @@ export const SecFormAdvAdvisersProvider = {
 
 | Monitored Firm Name | CRD Identifier | Total Advisory Assets (AUM) | Primary Advisory Fee Model | Filer SEC ADV Status |
 |----------------------|----------------|-----------------------------|----------------------------|----------------------|
-| **Inso Assistants Asset Management**| CRD #124598 | **$24.5 Billion AUM** | Assets Under Management Fee| **SEC Registered RIA**|
+| **Inso AI Asset Management**| CRD #124598 | **$24.5 Billion AUM** | Assets Under Management Fee| **SEC Registered RIA**|
 | **Hawthorne Capital** | CRD #845612 | **$12.8 Billion AUM** | Assets Under Management Fee| **SEC Registered RIA**|
 | Vance Wealth Group | CRD #620458 | $8.2 Billion AUM | Fixed Planning Fees | **SEC Registered RIA** |`;
 
     const metadata = {
       domain: 'sec_form_adv_advisers',
-      firmName: 'Inso Assistants Asset Management',
+      firmName: 'Inso AI Asset Management',
       crd: 124598,
       aum: '$24.5 Billion',
       status: 'SEC Registered RIA'
@@ -290,7 +290,7 @@ export const HudLihtcHousingProvider = {
   category: 'scientific',
   cacheTTL: 43200,
   citationLabel: 'HUD Low-Income Housing Tax Credit (LIHTC) Database',
-  mandatoryRule: '▸ Highlight credit allocations, housing projects, and unit counts in **BOLD** (e.g. **$1.45 Million Tax Credit**, **Inso Assistants Gardens Housing**, **120 Affordable Units**)',
+  mandatoryRule: '▸ Highlight credit allocations, housing projects, and unit counts in **BOLD** (e.g. **$1.45 Million Tax Credit**, **Inso AI Gardens Housing**, **120 Affordable Units**)',
 
   detectIntent: (query) => {
     return /\bhud\s+lihtc\b|\blow\s+income\s+housing\s+tax\s+credit\b|\blihtc\s+credit\s+allocation\b|\baffordable\s+housing\s+lihtc\b/i.test(query);
@@ -307,14 +307,14 @@ export const HudLihtcHousingProvider = {
 
 | Project Geographic State | Target Affordable Housing Project | Total LIHTC Unit Count | Sponsoring Annual Tax Credit | HUD LIHTC Data Record |
 |---------------------------|-----------------------------------|------------------------|------------------------------|-----------------------|
-| **Michigan State (HUD)** | **Inso Assistants Gardens Housing** | **120 Affordable Units**| **$1.45 Million Tax Credit** | Verified Active LIHTC |
+| **Michigan State (HUD)** | **Inso AI Gardens Housing** | **120 Affordable Units**| **$1.45 Million Tax Credit** | Verified Active LIHTC |
 | **Ohio State (HUD)** | Hawthorne Court Apartments | **95 Affordable Units** | **$850,000 Tax Credit** | Verified Active LIHTC |
 | Indiana State (HUD) | Vance Senior Apartments | 68 Affordable Units | $620,000 Tax Credit | Verified Active LIHTC |`;
 
     const metadata = {
       domain: 'hud_lihtc_housing',
       state: 'Michigan State (HUD)',
-      projectName: 'Inso Assistants Gardens Housing',
+      projectName: 'Inso AI Gardens Housing',
       units: 120,
       taxCredit: '$1.45 Million'
     };

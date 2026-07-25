@@ -1,5 +1,5 @@
 /**
- * @fileoverview Alti Assistant Review Agent microservice entry point.
+ * @fileoverview Inso AI Assistant Review Agent microservice entry point.
  * Handles content, code, and document review with structured findings.
  */
 

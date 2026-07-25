@@ -52,7 +52,7 @@ const myFormat = printf(({ level, message, label, timestamp }) => {
 
 // Base format for local development
 const localFormat = combine(
-  label({ label: 'Inso Assistant Core Service' }),
+  label({ label: 'Inso AI Core Service' }),
   timestamp(),
   sanitizeFormat(),
   myFormat,
@@ -61,7 +61,7 @@ const localFormat = combine(
 
 // Structured JSON format for Google Cloud Logging (production)
 const cloudFormat = combine(
-  label({ label: 'Inso Assistant Core Service' }),
+  label({ label: 'Inso AI Core Service' }),
   timestamp(),
   sanitizeFormat(),
   json()

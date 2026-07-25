@@ -114,7 +114,7 @@ describe('Audio Service', () => {
       conversationHelpers.getConversationMessages.mockResolvedValue({ messages: [] });
       
       vertexClaudeService.generateText.mockResolvedValue({
-        text: 'Background info... [SCRIPT_START] Welcome to Inso Assistant! [SCRIPT_END] extra info...',
+        text: 'Background info... [SCRIPT_START] Welcome to Inso AI! [SCRIPT_END] extra info...',
       });
 
       GcpSpeechService.synthesizeSpeech.mockResolvedValue({
@@ -129,7 +129,7 @@ describe('Audio Service', () => {
       const result = await audioService.generateAudio(
         'user123',
         'aud-conv-123',
-        'Write a commercial voiceover for Inso Assistant',
+        'Write a commercial voiceover for Inso AI',
         false,
         req
       );
@@ -140,7 +140,7 @@ describe('Audio Service', () => {
       // Verify Speech Synthesis
       expect(GcpSpeechService.synthesizeSpeech).toHaveBeenCalledWith(
         { userId: 'user123', tenantId: 'tenant456' },
-        'Welcome to Inso Assistant!',
+        'Welcome to Inso AI!',
         expect.any(Object)
       );
 
@@ -152,7 +152,7 @@ describe('Audio Service', () => {
       expect(result).toEqual({
         conversationId: 'aud-conv-123',
         responseMessage: {
-          text: 'Background info... [SCRIPT_START] Welcome to Inso Assistant! [SCRIPT_END] extra info...',
+          text: 'Background info... [SCRIPT_START] Welcome to Inso AI! [SCRIPT_END] extra info...',
           audioUrl: 'http://mock-signed-url.mp3',
         },
       });

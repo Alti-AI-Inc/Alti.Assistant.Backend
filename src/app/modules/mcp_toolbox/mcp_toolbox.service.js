@@ -134,7 +134,7 @@ class McpStdioBridge {
                 sampling: {}
               },
               clientInfo: {
-                name: 'Inso Assistant-Backend-Core',
+                name: 'Inso AI-Backend-Core',
                 version: '1.11.0'
               }
             });

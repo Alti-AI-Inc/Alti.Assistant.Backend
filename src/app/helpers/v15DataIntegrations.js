@@ -403,7 +403,7 @@ const generateAviationDelaysData = (query, hash) => {
   const delay = hash % 2 === 0 ? (hash % 120) + 15 : 0; // 0 or 15 - 135 mins
   const statuses = delay > 45 ? ['GROUND STOP', 'REDUCED FLOW', 'WEATHER DELAY'] : ['NORMAL OPERATIONS', 'OPEN / ON-TIME'];
   const status = statuses[hash % statuses.length];
-  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High Inso Assistanttude Turbulence', 'Runway Maintenance Grid'];
+  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High altitude Turbulence', 'Runway Maintenance Grid'];
   const reason = delay > 0 ? reasons[hash % reasons.length] : 'No Delay Active';
   const weathers = ['Clear Sky / Calm Winds', 'Scattered Showers', 'Dense Fog / Light Winds', 'Thunderstorms / Gusty', 'Freezing Rain / Low Temp'];
   const weather = weathers[hash % weathers.length];

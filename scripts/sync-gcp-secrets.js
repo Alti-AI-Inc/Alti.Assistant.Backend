@@ -13,7 +13,7 @@ const PROJECT_ID = config.google.gcp_project_id || process.env.GCP_PROJECT_ID ||
 
 function runSecretsSync() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}   Inso Assistant DevOps Google Cloud Secret Synchronizer  ${RESET}`);
+  console.log(`${CYAN}   Inso AI DevOps Google Cloud Secret Synchronizer  ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   console.log(`${YELLOW}GCP Target Project: ${PROJECT_ID}${RESET}`);

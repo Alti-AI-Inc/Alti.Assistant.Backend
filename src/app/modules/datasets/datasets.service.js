@@ -135,7 +135,7 @@ const searchHFDatasets = async (query = '', limit = 10) => {
         direction: '-1'
       },
       headers: {
-        'User-Agent': 'Inso Assistant-Assistant-Backend'
+        'User-Agent': 'Inso AI-Assistant-Backend'
       }
     });
 
@@ -168,7 +168,7 @@ const getHFDatasetInfo = async (datasetId) => {
   try {
     // 1. Get main metadata from HF Hub API
     const hubResponse = await axios.get(`https://huggingface.co/api/datasets/${datasetId}`, {
-      headers: { 'User-Agent': 'Inso Assistant-Assistant-Backend' }
+      headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
     });
 
     const meta = hubResponse.data;
@@ -233,7 +233,7 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
     if (!datasetId.includes('/')) {
       try {
         const hubResponse = await axios.get(`https://huggingface.co/api/datasets/${datasetId}`, {
-          headers: { 'User-Agent': 'Inso Assistant-Assistant-Backend' }
+          headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
         });
         canonicalId = hubResponse.data.id;
       } catch (e) {
@@ -249,7 +249,7 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
         offset,
         limit
       },
-      headers: { 'User-Agent': 'Inso Assistant-Assistant-Backend' }
+      headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
     });
 
     return {
@@ -371,7 +371,7 @@ const archiveDatasetToGCSCore = async (datasetId) => {
         method: 'GET',
         url: downloadUrl,
         responseType: 'stream',
-        headers: { 'User-Agent': 'Inso Assistant-Assistant-Backend' }
+        headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
       });
 
       await new Promise((resolve, reject) => {

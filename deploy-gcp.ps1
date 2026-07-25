@@ -1,4 +1,4 @@
-# GCP Cloud Run Deployment Script for Inso Assistant Backend
+# GCP Cloud Run Deployment Script for Inso AI Backend
 # Usage: .\deploy-gcp.ps1 -ProjectId "your-project-id"
 
 param(
@@ -15,7 +15,7 @@ param(
 )
 
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "Deploying Inso Assistant to GCP Cloud Run" -ForegroundColor Cyan
+Write-Host "Deploying Inso AI to GCP Cloud Run" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 

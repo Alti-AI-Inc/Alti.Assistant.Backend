@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared configuration module for all Inso Assistant agent microservices.
+ * @fileoverview Shared configuration module for all Inso AI agent microservices.
  * Each agent imports this to get a consistent view of environment variables
  * without duplicating config parsing logic.
  *

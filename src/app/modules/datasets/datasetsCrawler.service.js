@@ -142,7 +142,7 @@ const scanHuggingFaceHub = async (user, maxDatasetsToScan = 500) => {
     while (nextPageUrl && scannedCount < maxDatasetsToScan) {
       console.log(`[HF Scanner] Querying HF Hub endpoint: ${nextPageUrl}`);
       const response = await axios.get(nextPageUrl, {
-        headers: { 'User-Agent': 'Inso Assistant-Assistant-Backend' }
+        headers: { 'User-Agent': 'Inso AI-Assistant-Backend' }
       });
 
       const datasets = response.data;
