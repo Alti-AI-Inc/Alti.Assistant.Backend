@@ -2,7 +2,7 @@
  * stage21PremiumProviders.js — Stage 21 Premium Open Grounding Channels
  *
  * Implements the USGS Earthquakes, OpenCorporates, and NASA FIRMS environmental
- * and corporate search providers for Alti Assistant's RAG/Grounding engine.
+ * and corporate search providers for Inso Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

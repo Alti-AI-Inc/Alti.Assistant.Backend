@@ -388,7 +388,7 @@ describe('fileProcessor', () => {
 
       expect(mockStorage).toHaveBeenCalledWith({
         projectId: config.google.gcp_project_id,
-        keyFilename: 'alti_gcp.json',
+        keyFilename: 'inso_gcp.json',
       });
       expect(mockBucket).toHaveBeenCalledWith(STORAGE_CONFIG.GCS_BUCKET);
       expect(mockFile).toHaveBeenCalledWith(expectedGcsPath);
@@ -574,7 +574,7 @@ describe('fileProcessor', () => {
 
       expect(mockStorage).toHaveBeenCalledWith({
         projectId: config.google.gcp_project_id,
-        keyFilename: 'alti_gcp.json',
+        keyFilename: 'inso_gcp.json',
       });
       expect(mockBucket).toHaveBeenCalledWith(STORAGE_CONFIG.GCS_BUCKET);
       expect(mockFile).toHaveBeenCalledWith(gcsPath);

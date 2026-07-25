@@ -1667,7 +1667,7 @@ curl -X POST https://your-api.com/api/stripe/subscription \
         "enabled": false,
         "status": null
       },
-      "billing_realti": "subscription_create",
+      "billing_reinso": "subscription_create",
       "charge": "ch_xxxxxxxxxxxxxxxx",
       "collection_method": "charge_automatically",
       "created": 1704585600,

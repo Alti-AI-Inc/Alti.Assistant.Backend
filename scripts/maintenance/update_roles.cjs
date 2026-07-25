@@ -19,15 +19,15 @@ async function run() {
     const meramAfter = await db.collection('users').findOne({ email: 'meram.michael@gmail.com' });
     console.log("After update meram:", meramAfter?.role);
 
-    const adminUser = await db.collection('users').findOne({ email: 'admin@altihq.com' });
+    const adminUser = await db.collection('users').findOne({ email: 'admin@insohq.com' });
     console.log("Before update admin:", adminUser?.role);
     
     await db.collection('users').updateOne(
-      { email: 'admin@altihq.com' },
+      { email: 'admin@insohq.com' },
       { $set: { role: 'super_admin' } }
     );
 
-    const adminAfter = await db.collection('users').findOne({ email: 'admin@altihq.com' });
+    const adminAfter = await db.collection('users').findOne({ email: 'admin@insohq.com' });
     console.log("After update admin:", adminAfter?.role);
     
   } finally {

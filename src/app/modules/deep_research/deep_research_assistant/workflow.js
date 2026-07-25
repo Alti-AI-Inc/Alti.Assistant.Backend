@@ -96,7 +96,7 @@ if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
   // Construct the full connection URI with resiliency parameters.
   // This ensures that even if the base URI from config doesn't have these, they are applied.
   // It uses URLSearchParams to correctly format the query string.
-  const baseUri = config.database_local || process.env.DATABASE_LOCAL || 'mongodb://localhost:27017/alti-assistant';
+  const baseUri = config.database_local || process.env.DATABASE_LOCAL || 'mongodb://localhost:27017/inso-assistant';
   let resilientMongoUri = baseUri;
   const params = Object.entries(mongoResiliencyOptions)
     .map(([key, value]) => `${key}=${value}`)

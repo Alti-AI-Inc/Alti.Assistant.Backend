@@ -102,7 +102,7 @@ describe('Streaming Controller', () => {
       expect(mockAddGrant).toHaveBeenCalledOnce();
       expect(mockAddGrant).toHaveBeenCalledWith({
         roomJoin: true,
-        room: 'alti-ai-room',
+        room: 'inso-ai-room',
       });
 
       // 4. Verify the token was generated

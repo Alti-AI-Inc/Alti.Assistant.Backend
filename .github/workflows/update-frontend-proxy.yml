@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  VM_USER: alti_deployer
+  VM_USER: inso_deployer
   VM_HOST: 35.239.192.33
 
 jobs:
@@ -19,20 +19,20 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
-          chmod 600 ~/.ssh/alti-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+          chmod 600 ~/.ssh/inso-vm-key
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Write nginx config file locally
         run: |
-          cat > /tmp/alti.frontend.conf << 'EOF'
+          cat > /tmp/inso.frontend.conf << 'EOF'
           server {
-              server_name alti.com www.alti.com;
+              server_name inso.com www.inso.com;
 
               location / {
-                  proxy_pass https://alti-assistant-frontend-366561755636.us-central1.run.app;
+                  proxy_pass https://inso-assistant-frontend-366561755636.us-central1.run.app;
                   proxy_ssl_server_name on;
-                  proxy_set_header Host alti-assistant-frontend-366561755636.us-central1.run.app;
+                  proxy_set_header Host inso-assistant-frontend-366561755636.us-central1.run.app;
                   proxy_set_header X-Real-IP $remote_addr;
                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto $scheme;
@@ -55,46 +55,46 @@ jobs:
               }
 
               listen 443 ssl; # managed by Certbot
-              ssl_certificate /etc/letsencrypt/live/alti.com/fullchain.pem; # managed by Certbot
-              ssl_certificate_key /etc/letsencrypt/live/alti.com/privkey.pem; # managed by Certbot
+              ssl_certificate /etc/letsencrypt/live/inso.com/fullchain.pem; # managed by Certbot
+              ssl_certificate_key /etc/letsencrypt/live/inso.com/privkey.pem; # managed by Certbot
               include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
               ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
           }
 
           server {
-              if ($host = www.alti.com) {
+              if ($host = www.inso.com) {
                   return 301 https://$host$request_uri;
               } # managed by Certbot
 
-              if ($host = alti.com) {
+              if ($host = inso.com) {
                   return 301 https://$host$request_uri;
               } # managed by Certbot
 
               listen 80;
-              server_name alti.com www.alti.com;
+              server_name inso.com www.inso.com;
               return 404; # managed by Certbot
           }
           EOF
 
       - name: Upload and apply to BOTH sites-available AND sites-enabled
         run: |
-          scp -i ~/.ssh/alti-vm-key /tmp/alti.frontend.conf ${{ env.VM_USER }}@${{ env.VM_HOST }}:/tmp/alti.frontend.conf.new
+          scp -i ~/.ssh/inso-vm-key /tmp/inso.frontend.conf ${{ env.VM_USER }}@${{ env.VM_HOST }}:/tmp/inso.frontend.conf.new
 
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
+          ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
             echo "=== Backing up configs ===";
-            sudo cp /etc/nginx/sites-available/alti.frontend.conf /etc/nginx/sites-available/alti.frontend.conf.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
-            sudo cp /etc/nginx/sites-enabled/alti.frontend.conf /etc/nginx/sites-enabled/alti.frontend.conf.bak2.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+            sudo cp /etc/nginx/sites-available/inso.frontend.conf /etc/nginx/sites-available/inso.frontend.conf.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+            sudo cp /etc/nginx/sites-enabled/inso.frontend.conf /etc/nginx/sites-enabled/inso.frontend.conf.bak2.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
             echo "";
             echo "=== Installing to sites-available ===";
-            sudo cp /tmp/alti.frontend.conf.new /etc/nginx/sites-available/alti.frontend.conf;
+            sudo cp /tmp/inso.frontend.conf.new /etc/nginx/sites-available/inso.frontend.conf;
             echo "=== Installing to sites-enabled ===";
-            sudo cp /tmp/alti.frontend.conf.new /etc/nginx/sites-enabled/alti.frontend.conf;
-            rm /tmp/alti.frontend.conf.new;
+            sudo cp /tmp/inso.frontend.conf.new /etc/nginx/sites-enabled/inso.frontend.conf;
+            rm /tmp/inso.frontend.conf.new;
             echo "";
             echo "=== Verify sites-available config ===";
-            grep "proxy_pass" /etc/nginx/sites-available/alti.frontend.conf;
+            grep "proxy_pass" /etc/nginx/sites-available/inso.frontend.conf;
             echo "=== Verify sites-enabled config ===";
-            grep "proxy_pass" /etc/nginx/sites-enabled/alti.frontend.conf;
+            grep "proxy_pass" /etc/nginx/sites-enabled/inso.frontend.conf;
             echo "";
             echo "=== Testing nginx config ===";
             sudo nginx -t;
@@ -112,14 +112,14 @@ jobs:
       - name: Verify live site serves Cloud Run content
         run: |
           sleep 5
-          echo "=== alti.com CSS ==="
-          curl -s https://alti.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          echo "=== inso.com CSS ==="
+          curl -s https://inso.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
           echo "=== Cloud Run CSS ==="
-          curl -s https://alti-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          curl -s https://inso-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
           echo ""
-          echo "=== alti.com headers ==="
-          curl -sI https://alti.com | grep -i "server\|cache-control\|pragma\|x-cloud"
+          echo "=== inso.com headers ==="
+          curl -sI https://inso.com | grep -i "server\|cache-control\|pragma\|x-cloud"
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: rm -f ~/.ssh/inso-vm-key

@@ -141,7 +141,7 @@ describe('researchStorageService', () => {
   it('should initialize GCS Storage client on import', () => {
     expect(Storage).toHaveBeenCalledWith({
       projectId: 'mock-project-id',
-      keyFilename: 'alti_gcp.json',
+      keyFilename: 'inso_gcp.json',
     });
   });
 
@@ -587,7 +587,7 @@ describe('researchStorageService', () => {
     const mockFilename = 'report.pdf';
     const mockUserId = 'testUser';
     const mockConversationId = 'testConv';
-    const DEEP_RESEARCH_BUCKET = 'alti_assistant_reports';
+    const DEEP_RESEARCH_BUCKET = 'inso_assistant_reports';
 
     let mockStorageInstance;
     let mockBucketInstance;

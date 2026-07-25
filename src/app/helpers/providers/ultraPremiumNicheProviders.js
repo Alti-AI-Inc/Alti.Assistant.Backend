@@ -23,7 +23,7 @@ export const GithubCommitsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:commits for|commit history of|changesets in)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'altiapp');
+    return sanitizeQueryString(match ? match[1] : 'insoapp');
   },
 
   fetch: async (topic) => {
@@ -32,7 +32,7 @@ export const GithubCommitsProvider = {
 
 | Commit SHA Hash | Author Profile | Commit Message Summary | Changed Files Count | Lines Added / Deleted | Commit Timestamp |
 |-----------------|----------------|------------------------|---------------------|-----------------------|------------------|
-| **2fef1e14** | **hyper** | **feat(submodule): bump Alti.Assistant.Backend** | 1 file | **+1 / -1 lines** | **2026-05-24** |
+| **2fef1e14** | **hyper** | **feat(submodule): bump Inso.Assistant.Backend** | 1 file | **+1 / -1 lines** | **2026-05-24** |
 | **c177847a** | **hyper** | **feat(rag): implement Stage 11 channels** | 3 files | **+454 / -0 lines** | **2026-05-24** |`;
 
     const metadata = {

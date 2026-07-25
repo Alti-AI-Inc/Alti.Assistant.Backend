@@ -1,9 +1,9 @@
 /**
  * @file This file defines Zod schemas for validating various image-related requests and data
- *       within the Alti.Assistant backend. These schemas are used to ensure that incoming
+ *       within the Inso.Assistant backend. These schemas are used to ensure that incoming
  *       request bodies, parameters, and file uploads conform to expected structures and constraints.
  * @module ImageValidation
- * @author Alti.Assistant Backend Team
+ * @author Inso.Assistant Backend Team
  */
 
 import * as zod from 'zod';
@@ -375,7 +375,7 @@ const generateUploadUrlSchema = z.object({
 /**
  * @namespace ImageValidation
  * @description A collection of Zod schemas used for validating various image-related
- *              requests and data throughout the Alti.Assistant backend.
+ *              requests and data throughout the Inso.Assistant backend.
  *              These schemas ensure data integrity and proper request formatting.
  */
 export const ImageValidation = {

@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 import config from '../../../../config/index.js';
 
 const storage = new Storage();
-const bucketName = config.gcs?.uploads_bucket || config.cloud_storage_bucket || 'alti_assistant_uploads';
+const bucketName = config.gcs?.uploads_bucket || config.cloud_storage_bucket || 'inso_assistant_uploads';
 
 /**
  * Custom Multer storage engine for Google Cloud Storage.

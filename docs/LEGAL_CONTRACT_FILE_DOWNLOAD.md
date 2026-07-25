@@ -10,7 +10,7 @@ This feature allows users to generate and download legal contracts as files, wit
 
 1. **GCS Upload Service** (`services/gcsUploadService.js`)
 
-   - Uploads contract files to GCS bucket: `alti_assistant_documents`
+   - Uploads contract files to GCS bucket: `inso_assistant_documents`
    - Folder structure: `contract/{userId}/{filename}`
    - Generates public URLs for downloads
    - Fallback to local storage if GCS not configured
@@ -96,7 +96,7 @@ if (downloadIntent.wantsFile && currentContract) {
 Set these environment variables:
 
 ```bash
-GCS_BUCKET_NAME=alti_assistant_documents
+GCS_BUCKET_NAME=inso_assistant_documents
 GCP_PROJECT_ID=your-project-id
 GCS_KEY_FILE=/path/to/service-account-key.json
 ```
@@ -106,7 +106,7 @@ GCS_KEY_FILE=/path/to/service-account-key.json
 GCS folder structure:
 
 ```
-alti_assistant_documents/
+inso_assistant_documents/
   contract/
     {userId}/
       employment_1234567890.txt
@@ -143,7 +143,7 @@ output/
 ```
 Here's your contract file!
 
-Download Link: https://storage.googleapis.com/alti_assistant_documents/contract/user123/employment_1735500000.txt
+Download Link: https://storage.googleapis.com/inso_assistant_documents/contract/user123/employment_1735500000.txt
 
 File Name: employment_1735500000.txt
 Format: TXT

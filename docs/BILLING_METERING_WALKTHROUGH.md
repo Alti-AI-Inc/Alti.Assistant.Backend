@@ -1,4 +1,4 @@
-# Alti Assistant: Full Metering and Overage Billing System
+# Inso Assistant: Full Metering and Overage Billing System
 
 This document outlines the hybrid seat-based subscription and monthly metered overage billing architecture for all 11 user-facing features (sidebar toggle tabs, sub-tabs, and knowledge storage).
 
@@ -27,17 +27,17 @@ Every sidebar toggle tab and sub-tab has its own dedicated resource limits and o
 ## 🛠️ Architecture & Implementation Details
 
 ### 1. Database Configuration Seeding
-Subscription limits and Stripe metered price IDs for all 11 features are synced into MongoDB from [stripe-products.json](file:///c:/Users/hyper/workspace/Alti.Assistant/Alti.Assistant.Backend/config/stripe-products.json) by running:
+Subscription limits and Stripe metered price IDs for all 11 features are synced into MongoDB from [stripe-products.json](file:///c:/Users/hyper/workspace/Inso.Assistant/Inso.Assistant.Backend/config/stripe-products.json) by running:
 ```bash
 node scripts/seed-products-to-db.js
 ```
 
 ### 2. Gating Middlewares
-* **Plan Limit Gating**: Enforced in [planLimit.middleware.js](file:///c:/Users/hyper/workspace/Alti.Assistant/Alti.Assistant.Backend/src/app/modules/billing/planLimit.middleware.js).
+* **Plan Limit Gating**: Enforced in [planLimit.middleware.js](file:///c:/Users/hyper/workspace/Inso.Assistant/Inso.Assistant.Backend/src/app/modules/billing/planLimit.middleware.js).
   * Automatically handles guest bypass when `req.isGuest || req.user?.isGuest || !req.user` is true (allowing optional authentication routes to function without blocking guest access).
   * Resolves `chatbot` limit checks dynamically to `models` (if shared/model, i.e., `isShared === true`) or `projects` (if personal/project).
   * Resolves `search` limit checks dynamically to `research` (if deep research, i.e., `deepSearch === true`).
-* **Storage Gating**: Enforced in [checkStorageLimit.js](file:///c:/Users/hyper/workspace/Alti.Assistant/Alti.Assistant.Backend/src/app/middlewares/checkStorageLimit/checkStorageLimit.js).
+* **Storage Gating**: Enforced in [checkStorageLimit.js](file:///c:/Users/hyper/workspace/Inso.Assistant/Inso.Assistant.Backend/src/app/middlewares/checkStorageLimit/checkStorageLimit.js).
   * Uses the new subscription model querying with `status: 'active'`.
   * Checks cumulative storage against `limits.knowledgeLimit` or `limits.storagePerUser`.
 

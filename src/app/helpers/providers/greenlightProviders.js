@@ -1,7 +1,7 @@
 /**
  * greenlightProviders.js — Modular Greenlight Search Providers
  *
- * Implements self-registering SearchProvider configurations for Alti Assistant's v14 Greenlight databases:
+ * Implements self-registering SearchProvider configurations for Inso Assistant's v14 Greenlight databases:
  * FEC Campaign Finance, LegiScan Bill Tracker, Google Civic address lookup, DBnomics aggregations,
  * CFPB HMDA analytics, OpenFEMA hazard assessment, NIH RePORTER grant metrics, Companies House UK,
  * and OpenCorporates.

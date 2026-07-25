@@ -94,7 +94,7 @@ vi.mock('@toolbox-sdk/core', () => {
   };
   const mockClient = {
     loadToolset: vi.fn().mockImplementation((toolsetName = 'test-toolset') => {
-      if (toolsetName === 'test-toolset' || toolsetName === 'alti-default-postgres') {
+      if (toolsetName === 'test-toolset' || toolsetName === 'inso-default-postgres') {
         return [mockTool];
       }
       return [];
@@ -340,7 +340,7 @@ describe('GcpMcpService', () => {
 
       expect(logger.info).toHaveBeenCalledWith('GCP MCP: Compiling tools.yaml configuration specifications for MCP Toolbox...');
       expect(yaml).toContain('kind: source');
-      expect(yaml).toContain('name: alti-default-postgres');
+      expect(yaml).toContain('name: inso-default-postgres');
       expect(yaml).toContain('kind: tool');
       expect(yaml).toContain('name: fetch-recent-alerts');
       const expectedPath = path.dirname(path.resolve(process.cwd(), 'mcp-toolbox', 'tools.yaml'));
@@ -499,7 +499,7 @@ describe('GcpMcpService', () => {
     });
 
     it('should call executeMcpTool and return results in production mode', async () => {
-      const mockTool = ToolboxClient().loadToolset('alti-default-postgres')[0];
+      const mockTool = ToolboxClient().loadToolset('inso-default-postgres')[0];
       mockTool.getName.mockReturnValue('execute_sql');
       mockTool.call.mockResolvedValue({
         rows: [[10, 'ACTIVE'], [5, 'INACTIVE']],
@@ -523,7 +523,7 @@ describe('GcpMcpService', () => {
     });
 
     it('should return an error if executeMcpTool fails in production mode', async () => {
-      const mockTool = ToolboxClient().loadToolset('alti-default-postgres')[0];
+      const mockTool = ToolboxClient().loadToolset('inso-default-postgres')[0];
       mockTool.getName.mockReturnValue('execute_sql');
       mockTool.call.mockRejectedValueOnce(new Error('Database query failed'));
 

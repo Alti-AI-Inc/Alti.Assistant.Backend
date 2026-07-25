@@ -9,11 +9,11 @@ const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
 const RESET = '\x1b[0m';
 
-const PROJECT_ID = config.google.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant-prod';
+const PROJECT_ID = config.google.gcp_project_id || process.env.GCP_PROJECT_ID || 'inso-assistant-prod';
 
 function runSecretsSync() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}   Alti Assistant DevOps Google Cloud Secret Synchronizer  ${RESET}`);
+  console.log(`${CYAN}   Inso Assistant DevOps Google Cloud Secret Synchronizer  ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   console.log(`${YELLOW}GCP Target Project: ${PROJECT_ID}${RESET}`);

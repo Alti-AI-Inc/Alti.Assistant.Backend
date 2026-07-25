@@ -116,7 +116,7 @@ export const sendInvitationEmail = async (invitationData) => {
   }
 
   // Generate invitation link
-  const baseUrl = config.app?.frontend_url || 'https://app.altihq.com';
+  const baseUrl = config.app?.frontend_url || 'https://app.insohq.com';
   const invitationLink = `${baseUrl}/accept-invite/${token}`;
 
   // Prepare email data
@@ -220,7 +220,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
     expiryDays = 7,
   } = invitationData;
 
-  const baseUrl = config.app?.frontend_url || 'https://app.altihq.com';
+  const baseUrl = config.app?.frontend_url || 'https://app.insohq.com';
   // BUG FIX: Changed invitationLink path to '/accept-invite/' for consistency with initial invitation email.
   const invitationLink = `${baseUrl}/accept-invite/${token}`;
 

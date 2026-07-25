@@ -5,7 +5,7 @@ env
 env.yaml
 app_data/
 output/
-alti_gcp.json
+inso_gcp.json
 db_data/
 *.log
 data/

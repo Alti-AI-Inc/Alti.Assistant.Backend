@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 // Set dummy environment variables to prevent fatal process.exit() calls during module initialization in testing
 process.env.REDIS_URL = 'redis://localhost:6379';
-process.env.MONGODB_URI = 'mongodb://localhost:27017/alti_test';
+process.env.MONGODB_URI = 'mongodb://localhost:27017/inso_test';
 process.env.CHAT_ENCRYPTION_KEY = 'test_encryption_key_32_bytes_long_string';
 
 const mockRedisClient = {

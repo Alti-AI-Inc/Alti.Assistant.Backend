@@ -71,14 +71,14 @@ export const HarvardDataverseProvider = {
 
 | Dataverse Repository Title | Dataverse Filer DOI Identifier | Target Academic Discipline | Operating License Type | File Transfer Integrity |
 |----------------------------|--------------------------------|----------------------------|------------------------|-------------------------|
-| **Harvard Dataverse Network**| **DOI: 10.7910/DVN/ALTIS** | **Physical Sciences / Med**| Creative Commons CC0 | **100% Transfer Verified**|
+| **Harvard Dataverse Network**| **DOI: 10.7910/DVN/INSOS** | **Physical Sciences / Med**| Creative Commons CC0 | **100% Transfer Verified**|
 | **Harvard Political Data** | DOI: 10.7910/DVN/POLIT | Social Sciences | CC-BY Open Access Data | **100% Transfer Verified**|
 | **Harvard Genomics Vault**| DOI: 10.7910/DVN/GENOM | Molecular Biology | Creative Commons CC0 | **100% Transfer Verified**|`;
 
     const metadata = {
       domain: 'harvard_dataverse',
       repository: 'Harvard Dataverse Network',
-      doi: 'DOI: 10.7910/DVN/ALTIS',
+      doi: 'DOI: 10.7910/DVN/INSOS',
       discipline: 'Physical Sciences',
       license: 'CC0'
     };
@@ -149,13 +149,13 @@ export const StanfordHelmProvider = {
 
 | Target Evaluation Model | Stanford HELM Benchmark Category | CRFM Holistic Accuracy Score | Safety & Bias Audit Status | Foundation Model CRFM Class |
 |-------------------------|-----------------------------------|------------------------------|----------------------------|-----------------------------|
-| **Alti Assistants LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
+| **Inso Assistants LLM-V2-Premium** | Core RAG Reasoning Benchmark | **HELM Accuracy: 84.5%** | **Passed Safety Audit** | Large Reasoning Foundation |
 | **Stanford Base Model** | Core Commonsense Logic Bench | **HELM Accuracy: 78.2%** | **Passed Safety Audit** | Medium General Foundation |
 | **Vance Logic Array** | Mathematics & Code Synthesis | HELM Accuracy: 72.1% | Under Examination | Small Specialist Foundation |`;
 
     const metadata = {
       domain: 'stanford_helm_benchmarks',
-      evaluatedModel: 'Alti Assistants LLM-V2-Premium',
+      evaluatedModel: 'Inso Assistants LLM-V2-Premium',
       benchmarkCategory: 'Core RAG Reasoning',
       accuracyScore: '84.5%',
       safetyStatus: 'Passed Safety Audit'

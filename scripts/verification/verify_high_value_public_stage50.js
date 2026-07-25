@@ -1,7 +1,7 @@
 /**
  * verify_high_value_public_stage50.js
  *
- * Verification script for testing Alti Assistant's Stage 50 Premium High-Value Public Grounding Channels.
+ * Verification script for testing Inso Assistant's Stage 50 Premium High-Value Public Grounding Channels.
  */
 
 import { SearchEngineRegistry } from './src/app/helpers/SearchEngineRegistry.js';
@@ -12,7 +12,7 @@ async function runVerification() {
   const testQueries = [
     {
       name: 'USCIS H-1B Employer Data Hub',
-      query: 'Retrieve uscis h-1b employer visa approval count and sponsorships for Alti Assistants Tech Corp',
+      query: 'Retrieve uscis h-1b employer visa approval count and sponsorships for Inso Assistants Tech Corp',
       expectedId: 'uscis_h1b_employers'
     },
     {
@@ -27,7 +27,7 @@ async function runVerification() {
     },
     {
       name: 'SEC Form ADV Investment Advisers & AUM',
-      query: 'Retrieve registered investment adviser aum from sec form adv disclosures for Alti Assistants Asset Management',
+      query: 'Retrieve registered investment adviser aum from sec form adv disclosures for Inso Assistants Asset Management',
       expectedId: 'sec_form_adv_advisers'
     },
     {

@@ -67,7 +67,7 @@ const buildLiveSessionSetup = (sessionConfig = {}) => {
   const {
     model = LIVE_API_MODELS.FLASH_LIVE,
     voice = VOICE_OPTIONS.AOEDE,
-    systemInstruction = 'You are Alti Assistant, a helpful AI assistant. Respond naturally, concisely, and in a conversational tone.',
+    systemInstruction = 'You are Inso Assistant, a helpful AI assistant. Respond naturally, concisely, and in a conversational tone.',
     responseModality = 'AUDIO',
     languageCode = 'en-US',
     tools = [],
@@ -268,7 +268,7 @@ const generateTextResponse = async (text, sessionConfig = {}) => {
 
   const model = sessionConfig.model || LIVE_API_MODELS.FLASH_LIVE;
   const systemInstruction = sessionConfig.systemInstruction
-    || 'You are Alti Assistant, a helpful AI assistant. Respond naturally and concisely.';
+    || 'You are Inso Assistant, a helpful AI assistant. Respond naturally and concisely.';
 
   logger.info(`GCP GeminiLive: Generating text response using model: ${model}`);
   const client = await auth.getClient();

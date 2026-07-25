@@ -1,7 +1,7 @@
 /**
  * premiumPublicProviders.js — Modular Premium Public Search Providers
  *
- * Implements self-registering SearchProvider configurations for Alti Assistant's v15 premium public databases:
+ * Implements self-registering SearchProvider configurations for Inso Assistant's v15 premium public databases:
  * ClinicalTrials.gov, openFDA, WHO GHO, U.S. Treasury Daily Ledger, USAspending.gov,
  * CMS NPPES NPI Registry, USDA FoodData Central, IRS Charities, FAA Airport Delay Monitor,
  * RxNorm clinical drug resolver, DailyMed package inserts, Open Food Facts, and PubChem.
@@ -536,7 +536,7 @@ const generateAviationDelaysData = (query, hash) => {
   const delay = hash % 2 === 0 ? (hash % 120) + 15 : 0;
   const statuses = delay > 45 ? ['GROUND STOP', 'REDUCED FLOW', 'WEATHER DELAY'] : ['NORMAL OPERATIONS', 'OPEN / ON-TIME'];
   const status = statuses[hash % statuses.length];
-  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High Alti Assistanttude Turbulence', 'Runway Maintenance Grid'];
+  const reasons = ['Volume Air Traffic Density', 'Heavy Meteorological Precipitation', 'Low Visibility Fog', 'High Inso Assistanttude Turbulence', 'Runway Maintenance Grid'];
   const reason = delay > 0 ? reasons[hash % reasons.length] : 'No Delay Active';
   const weathers = ['Clear Sky / Calm Winds', 'Scattered Showers', 'Dense Fog / Light Winds', 'Thunderstorms / Gusty', 'Freezing Rain / Low Temp'];
   const weather = weathers[hash % weathers.length];
@@ -760,7 +760,7 @@ ${tableRows}
 
 const fetchLiveOpenFoodFacts = async (query) => {
   try {
-    const headers = { 'User-Agent': 'AltiAssistant/1.0 (https://altihq.com)' };
+    const headers = { 'User-Agent': 'InsoAssistant/1.0 (https://insohq.com)' };
     const isBarcode = /^\d{8,14}$/.test(query);
 
     if (isBarcode) {

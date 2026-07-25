@@ -90,7 +90,7 @@ const drawExecutiveDashboardPage = (doc, query, metadata, quantitativeFacts) => 
   doc.rect(0, 0, doc.page.width, 15).fillColor(CONSTANTS.COLORS.PRIMARY).fill();
 
   // Accent Header Brand
-  doc.fontSize(8).font(CONSTANTS.FONTS.BOLD).fillColor(CONSTANTS.COLORS.ACCENT).text('ALTI ASSISTANT | ENTERPRISE DEEP RESEARCH BRIEFING DECK', 50, 30);
+  doc.fontSize(8).font(CONSTANTS.FONTS.BOLD).fillColor(CONSTANTS.COLORS.ACCENT).text('INSO ASSISTANT | ENTERPRISE DEEP RESEARCH BRIEFING DECK', 50, 30);
 
   // Strategic Slide Title
   doc.fontSize(18).font(CONSTANTS.FONTS.BOLD).fillColor(CONSTANTS.COLORS.TEXT_PRIMARY).text('Strategic Briefing Dashboard', 50, 42);

@@ -11,10 +11,10 @@ const router = Router();
 
 /**
  * The frontend application URL used for redirection after authentication.
- * Defaults to 'https://www.altihq.com' if not specified in the configuration.
+ * Defaults to 'https://www.insohq.com' if not specified in the configuration.
  * @type {string}
  */
-const FRONTEND_URL = config.client_url || 'https://www.altihq.com';
+const FRONTEND_URL = config.client_url || 'https://www.insohq.com';
 
 /**
  * The URL to redirect to in case of authentication failure or cancellation.

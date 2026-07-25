@@ -1,5 +1,5 @@
 /**
- * @fileoverview Alti Assistant Image Agent — Express microservice entry point.
+ * @fileoverview Inso Assistant Image Agent — Express microservice entry point.
  * Handles image generation and editing via Gemini native image generation.
  *
  * Cloud Run default port: 8080

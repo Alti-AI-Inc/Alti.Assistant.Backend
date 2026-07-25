@@ -23,7 +23,7 @@ export const GithubDiscussionsProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:discussions for|discussion threads of|answers in)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'altiapp');
+    return sanitizeQueryString(match ? match[1] : 'insoapp');
   },
 
   fetch: async (topic) => {

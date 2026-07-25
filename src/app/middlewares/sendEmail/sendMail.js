@@ -18,7 +18,7 @@ export const sendMailWithNodeMailer = async (mailData) => {
 
   // Send mail with defined transport object
   const info = await transporter.sendMail({
-    from: `"Alti Assistant" <${config.mail.google_smtp_user}>`, // sender address
+    from: `"Inso Assistant" <${config.mail.google_smtp_user}>`, // sender address
     to: userEmail, // list of receivers
     subject: sub, // Subject line
     html: message, // html body

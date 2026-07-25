@@ -1,7 +1,7 @@
 /**
  * verify_scientific_academic.js
  *
- * Verification script for testing Alti Assistant's Stage 48 Premium Scientific
+ * Verification script for testing Inso Assistant's Stage 48 Premium Scientific
  * Academic and Medical Research grounding channels.
  */
 

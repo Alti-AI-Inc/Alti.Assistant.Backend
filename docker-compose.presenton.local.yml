@@ -1,11 +1,11 @@
 version: '3.9'
 
 services:
-  alti-backend:
+  inso-backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: alti-backend
+    container_name: inso-backend
     restart: unless-stopped
     ports:
       - '5100:5100'
@@ -19,8 +19,8 @@ services:
       # Shared volume with Presenton - Presenton's /app_data mounted to backend's /app/presenton_files
       - presenton_data:/app/presenton_files
       # Your application logs and uploads
-      - ./logs:/app/alti-core-service/logs
-      - ./uploads:/app/alti-core-service/uploads
+      - ./logs:/app/inso-core-service/logs
+      - ./uploads:/app/inso-core-service/uploads
     networks:
       - app-network
     depends_on:

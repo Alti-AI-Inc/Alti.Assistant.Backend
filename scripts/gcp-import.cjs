@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const CATALOG_PATH = path.join(__dirname, '../output/gcp-license-catalog.json');
-const ROOT_DIR = path.join(__dirname, '../..'); // Root of Alti.Assistant monorepo
+const ROOT_DIR = path.join(__dirname, '../..'); // Root of Inso.Assistant monorepo
 
 const repoName = process.argv[2];
 

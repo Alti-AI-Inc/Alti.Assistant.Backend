@@ -1,10 +1,10 @@
 /**
- * @fileoverview Shared configuration module for all Alti Assistant agent microservices.
+ * @fileoverview Shared configuration module for all Inso Assistant agent microservices.
  * Each agent imports this to get a consistent view of environment variables
  * without duplicating config parsing logic.
  *
  * Usage:
- *   import config from '@alti/shared/config';
+ *   import config from '@inso/shared/config';
  *   console.log(config.gcp.projectId);
  */
 
@@ -36,7 +36,7 @@ for (const key of Object.keys(process.env)) {
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '8080', 10),
-  serviceName: process.env.SERVICE_NAME || 'alti-agent',
+  serviceName: process.env.SERVICE_NAME || 'inso-agent',
 
   // ── Database ────────────────────────────────────────────────────────────────
   database: {
@@ -67,10 +67,10 @@ const config = {
 
   // ── GCS Buckets ─────────────────────────────────────────────────────────────
   gcs: {
-    uploadsBucket: process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
-    transcriptionBucket: process.env.GCS_TRANSCRIPTION_BUCKET || 'alti_assistant_transcription',
-    knowledgeBankBucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
-    presentationBucket: process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
+    uploadsBucket: process.env.GCS_UPLOADS_BUCKET || 'inso_assistant_uploads',
+    transcriptionBucket: process.env.GCS_TRANSCRIPTION_BUCKET || 'inso_assistant_transcription',
+    knowledgeBankBucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'inso_knowledge_bank_files',
+    presentationBucket: process.env.GCS_PRESENTATION_BUCKET || 'inso_assistant_presentation',
   },
 
   // ── Model Defaults ──────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ const config = {
   // ── Internal Service Auth ───────────────────────────────────────────────────
   internal: {
     // Shared secret for gateway ↔ agent service-to-service auth
-    serviceSecret: process.env.INTERNAL_SERVICE_SECRET || 'alti-internal-dev-secret',
+    serviceSecret: process.env.INTERNAL_SERVICE_SECRET || 'inso-internal-dev-secret',
   },
 
   // ── Privacy ─────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ export async function loadMissingSecrets() {
   try {
     const { getSecret } = await import('./secrets.js');
     
-    if (config.internal.serviceSecret === 'alti-internal-dev-secret') {
+    if (config.internal.serviceSecret === 'inso-internal-dev-secret') {
       const secret = await getSecret('INTERNAL_SERVICE_SECRET');
       if (secret) {
         config.internal.serviceSecret = secret;

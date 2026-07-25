@@ -208,7 +208,7 @@ const toForexTicker = (sym) => {
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(userPrompt, dataBlock, source) {
   const timestamp = new Date().toISOString();
-  return `[SYSTEM INSTRUCTION — ALTI REAL-TIME FINANCIAL DATA]
+  return `[SYSTEM INSTRUCTION — INSO REAL-TIME FINANCIAL DATA]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCE: ${source}
 TIMESTAMP:   ${timestamp}
@@ -2878,7 +2878,7 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     mergedBlocks += `| 🏡 **Real Estate (Core)** | Cap Rate: **6.25%** / Cash-on-Cash: **8.50%** | Appreciation: **+4.80%** | Institutional Defensive |\n`;
     mergedBlocks += `| 📈 **Equities (S&P 500)** | Dividend Yield: **1.80%** | Historical CAGR: **14.20%** | Growth Outperformance |\n`;
     mergedBlocks += `| 💰 **Yield Arbitrage Spread** | Spread: **+3.65%** | Risk Premium: **+2.40%** | Escrow Active |\n\n`;
-    citations.push('"[Source: Alti.Assistant Hybrid Router]" for cross-domain synthesizer');
+    citations.push('"[Source: Inso.Assistant Hybrid Router]" for cross-domain synthesizer');
     mandatoryRules += `▸ Present ALL comparative yield rates, dividend rates, and arbitrage spreads in **BOLD** (e.g. **6.25%**, **8.50%**, **1.80%**, **14.20%**, **+3.65%**)\n`;
   }
 
@@ -2956,7 +2956,7 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   }
 
   if (isCrossDomainQuery) {
-    jsonMetadata.source = 'Alti.Assistant Hybrid Router';
+    jsonMetadata.source = 'Inso.Assistant Hybrid Router';
     jsonMetadata.arbitrageSpread = 3.65;
     jsonMetadata.assets = {
       realestate: {
@@ -2974,7 +2974,7 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   
   const timestamp = new Date().toISOString();
   
-  return `[SYSTEM INSTRUCTION — ALTI MULTI-CHANNEL REAL-TIME DATA CONTEXT]
+  return `[SYSTEM INSTRUCTION — INSO MULTI-CHANNEL REAL-TIME DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MERGED RAG DATA CONTEXT
 TIMESTAMP:             ${timestamp}

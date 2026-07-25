@@ -2,7 +2,7 @@
  * stage29PremiumProviders.js — Stage 29 Premium Global Sovereign Open Data Grounding Channels
  *
  * Implements the macroeconomic and central bank search providers for South Korea,
- * Singapore, Switzerland, South Africa, and Mexico for Alti Assistant's RAG/Grounding engine.
+ * Singapore, Switzerland, South Africa, and Mexico for Inso Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

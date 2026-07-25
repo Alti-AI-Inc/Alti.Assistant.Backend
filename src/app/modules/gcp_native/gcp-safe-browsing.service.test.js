@@ -180,7 +180,7 @@ describe('GcpSafeBrowsingService', () => {
 
       const expectedRequestBody = {
         client: {
-          clientId: 'alti-assistant-backend',
+          clientId: 'inso-assistant-backend',
           clientVersion: '1.0.0'
         },
         threatInfo: {

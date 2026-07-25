@@ -195,7 +195,7 @@ function bookName(id) { return BOOK_NAME_MAP[id] || `Book#${id}`; }
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(userPrompt, dataBlock, source) {
   const timestamp = new Date().toISOString();
-  return `[SYSTEM INSTRUCTION — ALTI REAL-TIME SPORTS BETTING DATA]
+  return `[SYSTEM INSTRUCTION — INSO REAL-TIME SPORTS BETTING DATA]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCE: ${source}
 TIMESTAMP:   ${timestamp}

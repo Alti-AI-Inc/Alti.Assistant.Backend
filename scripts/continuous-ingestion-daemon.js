@@ -22,7 +22,7 @@ let keepRunning = true;
 
 async function runDaemon() {
   console.log('\n======================================================================');
-  console.log('🌙 ALTI PERPLEXITY KILLER - AUTONOMOUS INGESTION & INDEXING DAEMON');
+  console.log('🌙 INSO PERPLEXITY KILLER - AUTONOMOUS INGESTION & INDEXING DAEMON');
   console.log('======================================================================');
   console.log(`Start Time: ${new Date().toLocaleString()}`);
   console.log(`Legal Purity Policy: strictly MIT and Apache 2.0 licenses only`);

@@ -1,7 +1,7 @@
 /**
  * verify_public_health_environmental.js
  *
- * Verification script for testing Alti Assistant's Stage 45 Premium Public Health, Space Weather,
+ * Verification script for testing Inso Assistant's Stage 45 Premium Public Health, Space Weather,
  * and Environmental grounding channels.
  */
 

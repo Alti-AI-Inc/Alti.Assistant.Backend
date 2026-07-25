@@ -23,7 +23,7 @@ export const GithubStargazersProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:stargazers for|star counts in|stars of)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'altiapp');
+    return sanitizeQueryString(match ? match[1] : 'insoapp');
   },
 
   fetch: async (topic) => {

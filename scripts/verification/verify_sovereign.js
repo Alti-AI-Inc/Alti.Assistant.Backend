@@ -9,13 +9,13 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-// Direct imports using relative paths inside Alti.Assistant.Backend
+// Direct imports using relative paths inside Inso.Assistant.Backend
 import { SwarmService } from './src/app/modules/swarm/swarm.service.js';
 import LangchainRepository from './src/app/modules/langchain/langchain-repository.model.js';
 import TemporalRepository from './src/app/modules/temporal/temporal-repository.model.js';
 import GoogleRepository from './src/app/modules/gcp_native/gcp-repository.model.js';
 
-const mongoUrl = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/alti';
+const mongoUrl = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/inso';
 
 async function testSovereignRetrieval() {
   console.log('📡 [Test] Connecting to MongoDB at:', mongoUrl);

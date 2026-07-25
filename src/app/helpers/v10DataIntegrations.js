@@ -1,5 +1,5 @@
 /**
- * v10DataIntegrations.js — Alti.Assistant v10 Deep Data Integrations
+ * v10DataIntegrations.js — Inso.Assistant v10 Deep Data Integrations
  *
  * Implements high-performance intent classifiers and RAG formatting blocks
  * for the four pending public data modules: NOAA/USGS Climate Risk, EIA Commodities,

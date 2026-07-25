@@ -1,7 +1,7 @@
 /**
  * @fileoverview This file contains constants related to creative writing configurations,
  * including model parameters, writing types, styles, tones, intents, system prompts,
- * and response messages for the Alti.Assistant creative writing module.
+ * and response messages for the Inso.Assistant creative writing module.
  * These constants are used to standardize and manage various aspects of the creative
  * writing generation process.
  */

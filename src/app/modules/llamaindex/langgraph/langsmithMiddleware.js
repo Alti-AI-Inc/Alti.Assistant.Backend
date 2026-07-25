@@ -84,8 +84,8 @@ class LangsmithMiddleware {
     try {
       this.apiKey = process.env.LANGCHAIN_API_KEY || config.langchain?.apiKey;
       this.tracingActive = process.env.LANGCHAIN_TRACING_V2 === 'true' || config.langchain?.tracingActive === 'true' || config.langchain?.tracingActive === true;
-      this.platformPrefix = config.langchain?.projectPrefix || 'Alti Assistant-Assistant';
-      this.projectName = process.env.LANGCHAIN_PROJECT || config.langchain?.project || 'Alti Assistant-Assistant-RAG';
+      this.platformPrefix = config.langchain?.projectPrefix || 'Inso Assistant-Assistant';
+      this.projectName = process.env.LANGCHAIN_PROJECT || config.langchain?.project || 'Inso Assistant-Assistant-RAG';
       this.defaultProjectName = this.projectName;
       this.endpoint = process.env.LANGCHAIN_ENDPOINT || config.langchain?.endpoint || 'https://api.smith.langchain.com';
       this.forceTraceForTenants = config.langchain?.forceTraceForTenants || [];

@@ -3,7 +3,7 @@ import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 
 // GDPR: Hash IP addresses before storage to prevent raw PII logging
-const IP_HASH_SALT = process.env.IP_HASH_SALT || 'alti-ip-hash-salt';
+const IP_HASH_SALT = process.env.IP_HASH_SALT || 'inso-ip-hash-salt';
 const hashIp = (ip) => {
   if (!ip) return null;
   return crypto.createHash('sha256').update(`${IP_HASH_SALT}:${ip}`).digest('hex').substring(0, 16);

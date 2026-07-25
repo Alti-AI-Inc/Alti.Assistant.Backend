@@ -1,8 +1,8 @@
 {
-  "name": "@alti/agent-research",
+  "name": "@inso/agent-research",
   "version": "1.0.0",
   "type": "module",
-  "description": "Alti Assistant Research Agent — deep-research pipeline with LangGraph workflow",
+  "description": "Inso Assistant Research Agent — deep-research pipeline with LangGraph workflow",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

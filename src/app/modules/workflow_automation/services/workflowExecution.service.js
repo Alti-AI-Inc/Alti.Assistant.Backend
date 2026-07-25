@@ -1395,7 +1395,7 @@ class WorkflowExecutionService {
           if (isMock) {
             result = {
               success: true,
-              transcript: "Mock transcribed text: Welcome to Google Cloud Vertex AI integrations on Alti Assistant.",
+              transcript: "Mock transcribed text: Welcome to Google Cloud Vertex AI integrations on Inso Assistant.",
               confidence: 0.98,
               mocked: true
             };
@@ -1649,14 +1649,14 @@ class WorkflowExecutionService {
             result = {
               prompt,
               sessionId: sessionId || `sess_ground_${Date.now()}`,
-              reply: "Mocked grounded reply: The Google Cloud Platform integration on Alti Assistant is fully active. Search confirms that all 25 cognitive and geolocation endpoints are successfully configured.",
+              reply: "Mocked grounded reply: The Google Cloud Platform integration on Inso Assistant is fully active. Search confirms that all 25 cognitive and geolocation endpoints are successfully configured.",
               groundingMetadata: {
-                webSearchQueries: ["Alti Assistant Google Cloud integrations", "GCP native automation actions"],
+                webSearchQueries: ["Inso Assistant Google Cloud integrations", "GCP native automation actions"],
                 groundingChunks: [
-                  { title: "Alti Assistant Google Cloud Integration Wiki", uri: "https://wiki.alti.assistant/gcp-native" },
+                  { title: "Inso Assistant Google Cloud Integration Wiki", uri: "https://wiki.inso.assistant/gcp-native" },
                   { title: "Vertex AI Search Grounding Overview", uri: "https://cloud.google.com/vertex-ai" }
                 ],
-                searchEntryPoint: "Alti Assistant GCP Grounding Search Entry Point"
+                searchEntryPoint: "Inso Assistant GCP Grounding Search Entry Point"
               },
               mocked: true
             };
@@ -1815,7 +1815,7 @@ class WorkflowExecutionService {
               locations: [
                 {
                   name: `accounts/${accountId}/locations/loc_992`,
-                  title: "Alti Assistant HQ Silicon Valley",
+                  title: "Inso Assistant HQ Silicon Valley",
                   storefrontAddress: { addressLines: ["100 Enterprise Way"], postalCode: "94043" }
                 }
               ],
@@ -1843,7 +1843,7 @@ class WorkflowExecutionService {
                   reviewId: "rev_mock_881",
                   reviewerName: "Alice Smith",
                   starRating: "FIVE",
-                  comment: "Outstanding integration features on Alti Assistant! Unbelievably fast.",
+                  comment: "Outstanding integration features on Inso Assistant! Unbelievably fast.",
                   createTime: new Date().toISOString()
                 }
               ],
@@ -1863,7 +1863,7 @@ class WorkflowExecutionService {
               success: true,
               postId: `accounts/${accountId}/locations/${locationId}/localPosts/post_mock_773`,
               state: "LIVE",
-              searchUrl: "https://google.com/search?q=Alti Assistant+HQ",
+              searchUrl: "https://google.com/search?q=Inso Assistant+HQ",
               languageCode: "en",
               createTime: new Date().toISOString(),
               mocked: true
@@ -1881,12 +1881,12 @@ class WorkflowExecutionService {
             result = {
               success: true,
               query,
-              name: "Alti Assistant Headquarters",
+              name: "Inso Assistant Headquarters",
               placeId: "place_mock_9921",
               formattedAddress: "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
               phoneNumber: "+1 650-253-0000",
               internationalPhoneNumber: "+1 650-253-0000",
-              website: "https://alti.assistant",
+              website: "https://inso.assistant",
               rating: 5.0,
               userRatingsTotal: 9942,
               location: { lat: 37.422, lng: -122.084 },
@@ -1935,7 +1935,7 @@ class WorkflowExecutionService {
           if (isMock) {
             result = {
               success: true,
-              serviceName: serviceName || 'alti-backend',
+              serviceName: serviceName || 'inso-backend',
               errorMessage,
               user: user || 'user_mock_8811',
               mocked: true
@@ -2030,10 +2030,10 @@ class WorkflowExecutionService {
           if (isMock) {
             result = {
               success: true,
-              taskName: `projects/mock-project/locations/us-central1/queues/${queueName || 'alti-default-tasks'}/tasks/mock-task-7711`,
+              taskName: `projects/mock-project/locations/us-central1/queues/${queueName || 'inso-default-tasks'}/tasks/mock-task-7711`,
               dispatchUrl: url,
               scheduleTime: new Date(Date.now() + (delaySeconds || 0) * 1000).toISOString(),
-              queue: queueName || 'alti-default-tasks',
+              queue: queueName || 'inso-default-tasks',
               delaySeconds: delaySeconds || 0,
               mocked: true
             };
@@ -2176,9 +2176,9 @@ class WorkflowExecutionService {
                   description: 'Google Suggest is the new hot topic.',
                   picture: 'https://example.com/trend-image2.png',
                   newsItem: {
-                    title: 'Alti Assistant integrates Google autocomplete natively',
+                    title: 'Inso Assistant integrates Google autocomplete natively',
                     snippet: 'The new design allows zero-latency completions...',
-                    url: 'https://example.com/alti-news',
+                    url: 'https://example.com/inso-news',
                     source: 'AI Gazette'
                   }
                 },
@@ -2245,7 +2245,7 @@ class WorkflowExecutionService {
             result = {
               success: true,
               parts: [
-                { type: 'text', content: 'Here is a streaming response from Alti Assistant: ' },
+                { type: 'text', content: 'Here is a streaming response from Inso Assistant: ' },
                 {
                   type: 'a2ui_complete',
                   success: true,
@@ -2359,7 +2359,7 @@ class WorkflowExecutionService {
           }
         } else if (action === 'gcp_mcp_bridge') {
           const { toolsetName, toolName, mcpParameters } = parameters;
-          const targetToolset = toolsetName || 'alti-default-postgres';
+          const targetToolset = toolsetName || 'inso-default-postgres';
           const targetTool = toolName || 'execute_sql';
           const toolParams = mcpParameters || {};
 

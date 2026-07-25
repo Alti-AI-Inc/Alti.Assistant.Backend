@@ -1,7 +1,7 @@
 /**
  * verify_macroeconomics_grounding.js
  *
- * Verification script for testing Alti Assistant's Stage 25 and Stage 24 global
+ * Verification script for testing Inso Assistant's Stage 25 and Stage 24 global
  * macroeconomic and legal/customs grounding channels.
  */
 

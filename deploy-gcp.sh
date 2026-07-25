@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# GCP Cloud Run Deployment Script for Alti Assistant Backend
+# GCP Cloud Run Deployment Script for Inso Assistant Backend
 # Usage: ./deploy-gcp.sh [PROJECT_ID] [REGION] [SERVICE_NAME]
 
 # Color codes
@@ -11,10 +11,10 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Default values
-PROJECT_ID="${1:-alti-assistant-prod}"
+PROJECT_ID="${1:-inso-assistant-prod}"
 REGION="${2:-us-central1}"
-SERVICE_NAME="${3:-alti-assistant-backend}"
-VPC_CONNECTOR="${4:-alti-vpc-connector}"
+SERVICE_NAME="${3:-inso-assistant-backend}"
+VPC_CONNECTOR="${4:-inso-vpc-connector}"
 MEMORY="8Gi"
 CPU="4"
 MIN_INSTANCES=1
@@ -23,7 +23,7 @@ TIMEOUT=300
 ENV_FILE="env.yaml"
 
 echo -e "${CYAN}================================================${NC}"
-echo -e "${CYAN}Deploying Alti Assistant to GCP Cloud Run${NC}"
+echo -e "${CYAN}Deploying Inso Assistant to GCP Cloud Run${NC}"
 echo -e "${CYAN}================================================${NC}"
 echo ""
 
@@ -50,10 +50,10 @@ gcloud services enable cloudbuild.googleapis.com
 # Create Artifact Registry repository (if it doesn't exist)
 echo ""
 echo -e "${YELLOW}Creating Artifact Registry repository...${NC}"
-gcloud artifacts repositories create alti-assistant-core-backend-repo \
+gcloud artifacts repositories create inso-assistant-core-backend-repo \
     --repository-format=docker \
     --location="$REGION" \
-    --description="Alti assistant core backend Docker images" 2>/dev/null
+    --description="Inso assistant core backend Docker images" 2>/dev/null
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Repository created successfully${NC}"
@@ -72,7 +72,7 @@ export COMPOSE_HTTP_TIMEOUT=600
 echo -e "${GREEN}Docker timeout set to 600 seconds${NC}"
 
 # Build the Docker image
-IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/alti-assistant-core-backend-repo/$SERVICE_NAME:latest"
+IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/inso-assistant-core-backend-repo/$SERVICE_NAME:latest"
 echo ""
 echo -e "${YELLOW}Building Docker image for linux/amd64 platform: $IMAGE_TAG${NC}"
 docker build --platform linux/amd64 -t "$IMAGE_TAG" .

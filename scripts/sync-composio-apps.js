@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BACKEND_DIR = path.resolve(__dirname, '..');
-const FRONTEND_DIR = path.resolve(BACKEND_DIR, '../Alti.Assistant.Frontend');
+const FRONTEND_DIR = path.resolve(BACKEND_DIR, '../Inso.Assistant.Frontend');
 
 const toolkitsPath = path.join(BACKEND_DIR, 'src/app/modules/composio_simple/toolkits.json');
 const availableAppsPath = path.join(BACKEND_DIR, 'src/app/modules/composio_simple/available_apps.json');
@@ -109,7 +109,7 @@ function formatTitle(slug) {
 }
 
 function generateDescription(title) {
-  return `Integrate ${title} to seamlessly execute automated workflows, synchronize data, and orchestrate ${title} actions directly within Alti Assistant.`;
+  return `Integrate ${title} to seamlessly execute automated workflows, synchronize data, and orchestrate ${title} actions directly within Inso Assistant.`;
 }
 
 // 1. Process available_apps.json

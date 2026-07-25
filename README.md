@@ -1,4 +1,4 @@
-# Alti.Assistant Backend
+# Inso.Assistant Backend
 
 An enterprise-grade, high-performance Swarm & RAG (Retrieval-Augmented Generation) orchestration backend built with Node.js and Express. It powers autonomous agent routing, multi-tenant vector storage, deep web research workflows, and complex third-party API integrations.
 

@@ -1023,7 +1023,7 @@ export async function getCargoHazmatComplianceService(manifestItems) {
 }
 
 /**
- * 8. Jet Stream High-Alti Assistanttude Turbulence (CAT) Forecaster
+ * 8. Jet Stream High-Inso Assistanttude Turbulence (CAT) Forecaster
  */
 export async function getJetStreamTurbulenceService(departureCode, arrivalCode, routePoints) {
   const dep = (departureCode || 'JFK').toUpperCase().trim();

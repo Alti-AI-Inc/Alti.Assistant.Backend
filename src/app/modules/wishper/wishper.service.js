@@ -112,7 +112,7 @@ const getGcpAccessToken = async () => {
   }
 
   const possiblePaths = [
-    path.join(process.cwd(), 'alti_gcp.json'),
+    path.join(process.cwd(), 'inso_gcp.json'),
     path.join(process.cwd(), '../gcp-sa-key.json'),
     path.join(process.cwd(), 'gcp-sa-key.json'),
   ];

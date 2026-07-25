@@ -106,7 +106,7 @@ const getUserIdFromGCSPath = (gcsPath) => {
  */
 const storage = new Storage({
   projectId: config.google.gcp_project_id,
-  keyFilename: 'alti_gcp.json',
+  keyFilename: 'inso_gcp.json',
 });
 
 /**
@@ -114,7 +114,7 @@ const storage = new Storage({
  * @type {string}
  * @constant
  */
-const REPORT_BUCKET = 'alti_assistant_reports';
+const REPORT_BUCKET = 'inso_assistant_reports';
 
 /**
  * Determines the appropriate MIME content type for a file based on its extension.

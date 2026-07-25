@@ -16,7 +16,7 @@
  *         stack:
  *           type: string
  *           description: The error stack trace (only in development).
- *           example: "Error: Invalid input data\n    at Function.createError (C:\\Users\\hyper\\workspace\\Alti.Assistant\\Alti.Assistant.Backend\\node_modules\\http-errors\\index.js:100:15)"
+ *           example: "Error: Invalid input data\n    at Function.createError (C:\\Users\\hyper\\workspace\\Inso.Assistant\\Inso.Assistant.Backend\\node_modules\\http-errors\\index.js:100:15)"
  *   securitySchemes:
  *      bearerAuth:
  *          type: http

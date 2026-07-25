@@ -15,13 +15,13 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
-          chmod 600 ~/.ssh/alti-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+          chmod 600 ~/.ssh/inso-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
       - name: Diagnose VM
         run: |
-          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+          ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
             echo "=== Hostname ==="
             hostname
             
@@ -32,25 +32,25 @@ jobs:
             docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
             
             echo "=== Container Inspect (exit code, OOM, restarts) ==="
-            docker inspect alti-backend --format '{{.State.Status}} | ExitCode={{.State.ExitCode}} | OOMKilled={{.State.OOMKilled}} | RestartCount={{.RestartCount}} | StartedAt={{.State.StartedAt}} | FinishedAt={{.State.FinishedAt}}' 2>/dev/null || echo "Container not found"
+            docker inspect inso-backend --format '{{.State.Status}} | ExitCode={{.State.ExitCode}} | OOMKilled={{.State.OOMKilled}} | RestartCount={{.RestartCount}} | StartedAt={{.State.StartedAt}} | FinishedAt={{.State.FinishedAt}}' 2>/dev/null || echo "Container not found"
             
             echo "=== CRITICAL FIX VERIFICATION ==="
             echo "--- notes.model.js line 58 (should NOT have bare JSDoc) ---"
-            docker exec alti-backend sed -n '55,65p' src/app/modules/notes/notes.model.js 2>/dev/null || echo "FAILED to read file"
+            docker exec inso-backend sed -n '55,65p' src/app/modules/notes/notes.model.js 2>/dev/null || echo "FAILED to read file"
             echo "--- writer.controller.js (should NOT have app.listen) ---"
-            docker exec alti-backend grep -c "app.listen" src/app/modules/writing/writer.controller.js 2>/dev/null && echo "  ❌ STILL HAS app.listen!" || echo "  ✅ app.listen removed"
+            docker exec inso-backend grep -c "app.listen" src/app/modules/writing/writer.controller.js 2>/dev/null && echo "  ❌ STILL HAS app.listen!" || echo "  ✅ app.listen removed"
             echo "--- index.js EXIT DIAGNOSTIC handler ---"
-            docker exec alti-backend grep -c "EXIT DIAGNOSTIC" index.js 2>/dev/null && echo "  ✅ EXIT handler present" || echo "  ❌ EXIT handler MISSING"
+            docker exec inso-backend grep -c "EXIT DIAGNOSTIC" index.js 2>/dev/null && echo "  ✅ EXIT handler present" || echo "  ❌ EXIT handler MISSING"
             
             echo "=== STDERR from container (last 30 lines) ==="
-            docker logs alti-backend 2>&1 1>/dev/null | tail -30
+            docker logs inso-backend 2>&1 1>/dev/null | tail -30
             
             echo "=== ALL logs from container (last 100 lines) ==="
-            docker logs alti-backend --tail=100 2>&1
+            docker logs inso-backend --tail=100 2>&1
             
             echo "=== Try manual node syntax check ==="
-            docker exec alti-backend node -e "try { require('./src/app/modules/notes/notes.model.js') } catch(e) { console.log('IMPORT ERROR:', e.message) }" 2>&1 || true
-            docker exec alti-backend node --check index.js 2>&1 || true
+            docker exec inso-backend node -e "try { require('./src/app/modules/notes/notes.model.js') } catch(e) { console.log('IMPORT ERROR:', e.message) }" 2>&1 || true
+            docker exec inso-backend node --check index.js 2>&1 || true
             
             echo "=== Memory usage ==="
             free -h
@@ -61,5 +61,5 @@ jobs:
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: rm -f ~/.ssh/inso-vm-key
 

@@ -1,7 +1,7 @@
 {
-  "name": "@alti/agent-search",
+  "name": "@inso/agent-search",
   "version": "1.0.0",
-  "description": "Alti.Assistant Search Agent — web search, grounding, and information retrieval microservice",
+  "description": "Inso.Assistant Search Agent — web search, grounding, and information retrieval microservice",
   "type": "module",
   "main": "index.js",
   "scripts": {

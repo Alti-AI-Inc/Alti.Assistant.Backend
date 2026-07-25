@@ -2,10 +2,10 @@
 # Requires: gh CLI authenticated (run `gh auth login` first)
 #
 # Usage:
-#   .\set-secrets.ps1 -GcpKeyFile "path\to\sa-key.json" -SshKeyFile "path\to\alti-vm-key"
+#   .\set-secrets.ps1 -GcpKeyFile "path\to\sa-key.json" -SshKeyFile "path\to\inso-vm-key"
 #
 # Example:
-#   .\set-secrets.ps1 -GcpKeyFile "$env:USERPROFILE\.gcp\alti-sa-key.json" -SshKeyFile "$env:USERPROFILE\.ssh\alti-vm-key"
+#   .\set-secrets.ps1 -GcpKeyFile "$env:USERPROFILE\.gcp\inso-sa-key.json" -SshKeyFile "$env:USERPROFILE\.ssh\inso-vm-key"
 
 param(
     [Parameter(Mandatory = $true)]
@@ -14,7 +14,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SshKeyFile,
 
-    [string]$Repo = "Alti-AI-Inc/Alti.Assistant.Backend"
+    [string]$Repo = "Inso-AI-Inc/Inso.Assistant.Backend"
 )
 
 $ErrorActionPreference = "Stop"

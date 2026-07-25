@@ -71,7 +71,7 @@ describe('gcsUploadService', () => {
       const result = await uploadReportToGCS(localFilePath, fileName, userId, conversationId);
 
       expect(fs.readFile).toHaveBeenCalledWith(localFilePath);
-      expect(mockBucket).toHaveBeenCalledWith('alti_assistant_reports');
+      expect(mockBucket).toHaveBeenCalledWith('inso_assistant_reports');
       expect(mockFile).toHaveBeenCalledWith(`${userId}/${conversationId}/${fileName}`);
       expect(mockSave).toHaveBeenCalledWith(fileBuffer, {
         metadata: { contentType: 'application/pdf' },
@@ -79,9 +79,9 @@ describe('gcsUploadService', () => {
       });
       expect(result).toEqual({
         success: true,
-        publicUrl: `https://storage.googleapis.com/alti_assistant_reports/${userId}/${conversationId}/${fileName}`,
+        publicUrl: `https://storage.googleapis.com/inso_assistant_reports/${userId}/${conversationId}/${fileName}`,
         gcsPath: `${userId}/${conversationId}/${fileName}`,
-        bucket: 'alti_assistant_reports',
+        bucket: 'inso_assistant_reports',
         size: fileBuffer.length,
       });
     });
@@ -172,7 +172,7 @@ describe('gcsUploadService', () => {
 
       const result = await deleteReportFromGCS(gcsPath);
 
-      expect(mockBucket).toHaveBeenCalledWith('alti_assistant_reports');
+      expect(mockBucket).toHaveBeenCalledWith('inso_assistant_reports');
       expect(mockFile).toHaveBeenCalledWith(gcsPath);
       expect(mockDelete).toHaveBeenCalled();
       expect(result).toBe(true);
@@ -195,7 +195,7 @@ describe('gcsUploadService', () => {
 
       const result = await checkReportExistsInGCS(gcsPath);
 
-      expect(mockBucket).toHaveBeenCalledWith('alti_assistant_reports');
+      expect(mockBucket).toHaveBeenCalledWith('inso_assistant_reports');
       expect(mockFile).toHaveBeenCalledWith(gcsPath);
       expect(mockExists).toHaveBeenCalled();
       expect(result).toBe(true);

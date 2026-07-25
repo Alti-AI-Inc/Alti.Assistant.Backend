@@ -1,7 +1,7 @@
 /**
  * verify_expanded_grounding.js
  *
- * Verification script for testing Alti Assistant's Batch 1 Economic, Mortgage,
+ * Verification script for testing Inso Assistant's Batch 1 Economic, Mortgage,
  * and U.S. Treasury par yield interest rate grounding channels.
  */
 

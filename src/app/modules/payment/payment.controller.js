@@ -15,7 +15,7 @@ const USAGE_TRACKING_TOPIC = process.env.USAGE_TRACKING_TOPIC || 'usage-tracking
 // --- GCP Database Resiliency Configuration ---
 // NOTE: It is a best practice to centralize this connection logic in a dedicated module (e.g., /config/database.js)
 // and import it in your main application entry point (e.g., server.js) to ensure the database is connected once.
-const MONGO_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/altidatabase';
+const MONGO_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/insodatabase';
 
 const mongooseOptions = {
   // --- Connection Pooling for Production ---

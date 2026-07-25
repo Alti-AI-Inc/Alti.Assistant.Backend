@@ -15,20 +15,20 @@ import httpStatus from 'http-status';
 
 /**
  * @constant {Storage} storage - Initializes the Google Cloud Storage client.
- * Uses credentials specified in `config.google.google_application_credentials` or a default `alti_gcp.json` file.
+ * Uses credentials specified in `config.google.google_application_credentials` or a default `inso_gcp.json` file.
  * The project ID is also configured via `config.google.gcp_project_id`.
  */
 const storage = new Storage({
   keyFilename:
-    config.google?.google_application_credentials || './alti_gcp.json',
+    config.google?.google_application_credentials || './inso_gcp.json',
   projectId: config.google?.gcp_project_id,
 });
 
 /**
  * @constant {string} BUCKET_NAME - The name of the Google Cloud Storage bucket used for transcription files.
- * Defaults to 'alti_assistant_transcription' if not specified in `config.gcs.transcription_bucket`.
+ * Defaults to 'inso_assistant_transcription' if not specified in `config.gcs.transcription_bucket`.
  */
-const BUCKET_NAME = config.gcs?.transcription_bucket || 'alti_assistant_transcription';
+const BUCKET_NAME = config.gcs?.transcription_bucket || 'inso_assistant_transcription';
 
 /**
  * @constant {Bucket} bucket - A reference to the specific Google Cloud Storage bucket.

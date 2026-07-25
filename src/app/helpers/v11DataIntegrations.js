@@ -1,5 +1,5 @@
 /**
- * v11DataIntegrations.js — Alti.Assistant v11 Deep Data Integrations
+ * v11DataIntegrations.js — Inso.Assistant v11 Deep Data Integrations
  *
  * Implements high-performance intent classifiers and RAG formatting blocks
  * for the four public data modules: FRED economics, HUD Fair Market Rents,

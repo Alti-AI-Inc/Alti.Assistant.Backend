@@ -89,8 +89,8 @@ curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
     },
     "file": {
       "filename": "rewritten_1234567890_document.txt",
-      "path": "gs://alti_files/rewrites/user123/rewritten_1234567890_document.txt",
-      "publicUrl": "https://storage.googleapis.com/alti_files/rewrites/...",
+      "path": "gs://inso_files/rewrites/user123/rewritten_1234567890_document.txt",
+      "publicUrl": "https://storage.googleapis.com/inso_files/rewrites/...",
       "size": 1024,
       "storageType": "gcs"
     },
@@ -371,7 +371,7 @@ Configuration is defined in [rewrite.constant.js](rewrite.constant.js):
 
 The module uploads generated files to Google Cloud Storage (GCS) for reliable storage and accessibility:
 
-- **Bucket Name**: `alti_files` (configurable via `GCS_BUCKET_NAME` environment variable)
+- **Bucket Name**: `inso_files` (configurable via `GCS_BUCKET_NAME` environment variable)
 - **Folder Prefix**: `rewrites/`
 - **Storage Structure**: `rewrites/{userId}/{filename}`
 - **Access**: Files are accessible via signed URLs (valid for 7 days)
@@ -380,7 +380,7 @@ The module uploads generated files to Google Cloud Storage (GCS) for reliable st
 Environment variables needed for GCS:
 
 ```bash
-GCS_BUCKET_NAME=alti_files
+GCS_BUCKET_NAME=inso_files
 GCP_PROJECT_ID=your-project-id
 GCS_KEY_FILE=path/to/service-account-key.json
 ```

@@ -11,7 +11,7 @@ import { proxyToAgent } from '../gateway/agentProxy.js';
 
 // Initialize GCS storage client
 const storage = new Storage();
-const uploadBucketName = config.gcs?.uploads_bucket || 'alti_assistant_uploads';
+const uploadBucketName = config.gcs?.uploads_bucket || 'inso_assistant_uploads';
 
 /**
  * Generates a unique MongoDB ObjectId string to serve as a guest user ID.

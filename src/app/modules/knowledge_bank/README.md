@@ -10,7 +10,7 @@ The Knowledge Bank is a file management system that allows users to upload, stor
 | ---------------- | ------------------------------- | ------------------------------------------- |
 | **Purpose**      | Personal file storage for users | Bot-specific knowledge base                 |
 | **Ownership**    | Files belong to user            | Files belong to specific bot/knowledge base |
-| **GCS Bucket**   | `alti_knowledge_bank_files`     | `alti_assistant_knowledge_bot_files`        |
+| **GCS Bucket**   | `inso_knowledge_bank_files`     | `inso_assistant_knowledge_bot_files`        |
 | **Use Case**     | General document management     | AI chatbot training data                    |
 | **API Endpoint** | `/api/v1/knowledge-bank`        | `/api/v1/knowledgebase`                     |
 
@@ -151,7 +151,7 @@ const result = await response.json();
 
 ```env
 # Google Cloud Storage
-GCS_KNOWLEDGE_BANK_BUCKET=alti_knowledge_bank_files
+GCS_KNOWLEDGE_BANK_BUCKET=inso_knowledge_bank_files
 
 # RAG System (PostgreSQL)
 RAG_DB_HOST=34.135.175.69
@@ -166,9 +166,9 @@ GEMINI_API_KEY=your_Google Vertex AI_key
 
 ### GCS Bucket Setup
 
-1. Create a GCS bucket named `alti_knowledge_bank_files`
+1. Create a GCS bucket named `inso_knowledge_bank_files`
 2. Configure IAM permissions for the service account
-3. Ensure the service account JSON key file (`alti_gcp.json`) is in the project root
+3. Ensure the service account JSON key file (`inso_gcp.json`) is in the project root
 
 ## Processing Flow
 
@@ -259,4 +259,4 @@ For detailed API documentation, see [KNOWLEDGE_BANK_API.md](../../docs/KNOWLEDGE
 
 ## License
 
-Proprietary - Alti Assistant Core Service Backend
+Proprietary - Inso Assistant Core Service Backend

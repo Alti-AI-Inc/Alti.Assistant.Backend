@@ -1,5 +1,5 @@
 /**
- * @file Authentication utility functions for the Alti.Assistant backend.
+ * @file Authentication utility functions for the Inso.Assistant backend.
  * @module app/modules/auth/auth.utils
  * @description This file contains helper functions for authentication-related tasks,
  * including OTP generation, HTML email template creation for various user actions
@@ -56,7 +56,7 @@ export const registrationOtpTemplate = (email, token) => {
       'A valid email string is required for registrationOtpTemplate.',
     );
   }
-  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const frontendUrl = config.client_url || 'https://insoassistant.com';
   const verificationLink = `${frontendUrl}/register?code=${encodeURIComponent(token)}`;
 
   const mailData = {
@@ -66,7 +66,7 @@ export const registrationOtpTemplate = (email, token) => {
                 <div style="max-width: 1050px;  background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
                   <h2 style="color: #333333; text-align: center;">Email Verification</h2>
                   <p style="color: #666666; font-size: 18px;">Dear user,</p>
-                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on Alti Assistant! To complete your registration, please enter the following 6-digit verification code on the registration page:</p>
+                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on Inso Assistant! To complete your registration, please enter the following 6-digit verification code on the registration page:</p>
                   <div style="font-size: 32px; font-weight: bold; color: #242C36; text-align: center; letter-spacing: 5px; margin: 20px 0; background-color: #F5F5F7; padding: 15px; border-radius: 8px; border: 1px solid #E5E5E7;">
                     ${escapeHtml(token)}
                   </div>
@@ -79,7 +79,7 @@ export const registrationOtpTemplate = (email, token) => {
                   </div>
                   <p style="color: #666666; font-size: 18px;">If you didn't sign up for our service, you can ignore this email.</p>
                 </div>
-                <p style="color: #999999; margin-top: 20px;">This email was sent by Alti Assistant.</p>
+                <p style="color: #999999; margin-top: 20px;">This email was sent by Inso Assistant.</p>
               </div>`,
   };
   return mailData;
@@ -123,7 +123,7 @@ export const forgetPassOtpTemplate = (email, user, OTP) => {
           </p>
         </div>
         <p style="color: #999999; margin-top: 20px; text-align: center;">
-          This email was sent by Alti Assistant.
+          This email was sent by Inso Assistant.
         </p>
       </div>
     `,
@@ -172,7 +172,7 @@ export const deleteUserOtpTemplate = (user, OTP) => {
           </p>
         </div>
         <p style="color: #999999; margin-top: 20px; text-align: center;">
-          This email was sent by Alti Assistant.
+          This email was sent by Inso Assistant.
         </p>
       </div>
     `,
@@ -205,18 +205,18 @@ export const teamInvitationTemplate = (
       'A valid inviteeEmail string is required for teamInvitationTemplate.',
     );
   }
-  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const frontendUrl = config.client_url || 'https://insoassistant.com';
   const invitationLink = `${frontendUrl}/accept-invitation?token=${encodeURIComponent(invitationToken)}`;
 
   const mailData = {
     userEmail: inviteeEmail,
-    sub: `You're invited to join ${escapeHtml(workspaceName)} on Alti Assistant`,
+    sub: `You're invited to join ${escapeHtml(workspaceName)} on Inso Assistant`,
     message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
                 <div style="max-width: 1050px; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
                   <h2 style="color: #333333; text-align: center;">You're Invited!</h2>
                   <p style="color: #666666; font-size: 18px;">Hello,</p>
                   <p style="color: #666666; font-size: 18px;">
-                    <b>${escapeHtml(inviterName)}</b> has invited you to join the <b>${escapeHtml(workspaceName)}</b> workspace on Alti Assistant.
+                    <b>${escapeHtml(inviterName)}</b> has invited you to join the <b>${escapeHtml(workspaceName)}</b> workspace on Inso Assistant.
                   </p>
                   <p style="color: #666666; font-size: 18px;">Click the button below to accept the invitation and set up your account.</p>
                   <div style="text-align: center; margin: 20px 0;">
@@ -227,7 +227,7 @@ export const teamInvitationTemplate = (
                   </div>
                   <p style="color: #666666; font-size: 18px;">If you were not expecting this invitation, you can safely ignore this email.</p>
                 </div>
-                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Alti Assistant.</p>
+                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Inso Assistant.</p>
               </div>`,
   };
   return mailData;
@@ -261,7 +261,7 @@ export const roleUpdateNotificationTemplate = (
       'A valid user object with an email property is required for roleUpdateNotificationTemplate.',
     );
   }
-  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const frontendUrl = config.client_url || 'https://insoassistant.com';
   const dashboardLink = `${frontendUrl}/dashboard`;
 
   const mailData = {
@@ -287,7 +287,7 @@ export const roleUpdateNotificationTemplate = (
                   </div>
                   <p style="color: #666666; font-size: 18px;">If you have any questions, please contact your workspace manager.</p>
                 </div>
-                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Alti Assistant.</p>
+                <p style="color: #999999; margin-top: 20px; text-align: center;">This email was sent by Inso Assistant.</p>
               </div>`,
   };
   return mailData;

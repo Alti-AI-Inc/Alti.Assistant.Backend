@@ -1,7 +1,7 @@
 /**
  * SearchEngineRegistry.js — Dynamic GCP-Native Search & Grounding Registry
  *
- * Centralized, high-performance coordinator managing Alti Assistant's 110+ data integrations
+ * Centralized, high-performance coordinator managing Inso Assistant's 110+ data integrations
  * dynamically. Bypasses hardcoded smart routing via a modular plug-and-play provider
  * architecture, providing concurrent parallel scanning, dual-layer SWR caching,
  * timeout circuit breakers, and semantic validation.
@@ -549,7 +549,7 @@ class SearchEngineCoordinator {
 
   /**
    * Registers a modular SearchProvider.
-   * @param {Object} provider - The SearchProvider object conforming to Alti Assistant contract.
+   * @param {Object} provider - The SearchProvider object conforming to Inso Assistant contract.
    */
   register(provider) {
     if (!provider || !provider.id) {
@@ -845,7 +845,7 @@ class SearchEngineCoordinator {
       const jsonBlock = `\n\n<!-- JSON_METADATA: ${JSON.stringify(jsonMetadata)} -->`;
       const timestamp = new Date().toISOString();
 
-      return `[SYSTEM INSTRUCTION — ALTI DYNAMIC MULTI-CHANNEL DATA CONTEXT]
+      return `[SYSTEM INSTRUCTION — INSO DYNAMIC MULTI-CHANNEL DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MERGED RAG DATA CONTEXT
 TIMESTAMP:             ${timestamp}
@@ -1398,7 +1398,7 @@ function loadDynamicProviders() {
                 // Bypass if already live in memory to prevent redundancies
                 if (SearchEngineRegistry.providers.has(uniqueId)) return;
 
-                // Construct active grounding provider conforming to Alti Assistant contract
+                // Construct active grounding provider conforming to Inso Assistant contract
                 const dynamicProvider = {
                   id: uniqueId,
                   category: p.category || 'premium_public',

@@ -1,5 +1,5 @@
 /**
- * v17DataIntegrations.js — Alti.Assistant v17 Premium Legal, Regulatory & Security Integrations
+ * v17DataIntegrations.js — Inso.Assistant v17 Premium Legal, Regulatory & Security Integrations
  *
  * Implements high-performance RAG formatting blocks, live API bridges,
  * and dual-layer caching for 6 premium legal/compliance/security databases:

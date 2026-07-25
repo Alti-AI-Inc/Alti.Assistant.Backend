@@ -25,13 +25,13 @@ echo \
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Ensure alti_deployer user exists
-if ! id "alti_deployer" &>/dev/null; then
-    useradd -m -s /bin/bash alti_deployer
+# Ensure inso_deployer user exists
+if ! id "inso_deployer" &>/dev/null; then
+    useradd -m -s /bin/bash inso_deployer
 fi
 
-# Add alti_deployer to docker group
-usermod -aG docker alti_deployer
+# Add inso_deployer to docker group
+usermod -aG docker inso_deployer
 
 # Ensure the docker service is enabled and running
 systemctl enable docker

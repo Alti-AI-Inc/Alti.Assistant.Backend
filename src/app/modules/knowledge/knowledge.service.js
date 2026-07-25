@@ -28,7 +28,7 @@ import path from 'path'; // Added for path.join in processFile fallback
 // Initialize Google Cloud Storage
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'alti_gcp.json',
+  keyFilename: 'inso_gcp.json',
 });
 
 // Initialize Gemini embeddings
@@ -246,7 +246,7 @@ class KnowledgeService {
 
         const handle = await temporalClientCoordinator.client.workflow.start(resilientRAGIngestionWorkflow, {
           args: [filePath, fileRecord.originalName, fileRecord.ownerId, fileRecord._id.toString()],
-          taskQueue: 'alti-workflows-queue',
+          taskQueue: 'inso-workflows-queue',
           workflowId
         });
 

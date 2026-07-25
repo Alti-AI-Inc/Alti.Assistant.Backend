@@ -47,7 +47,7 @@ const buildPrompt = (originalPrompt, contentBlock, title = 'RealEstateAPI.com Li
     }
   }
 
-  return `[SYSTEM INSTRUCTION — ALTI REAL-TIME PROPERTY DATA CONTEXT]
+  return `[SYSTEM INSTRUCTION — INSO REAL-TIME PROPERTY DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCE: RealEstateAPI.com
 TIMESTAMP:   ${timestamp}

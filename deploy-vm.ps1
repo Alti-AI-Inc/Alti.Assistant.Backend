@@ -1,9 +1,9 @@
-# Deployment script for Alti Assistant Backend
+# Deployment script for Inso Assistant Backend
 param(
     [string]$Version = "v0.1.0",
-    [string]$VMUser = "alti_deployer",
+    [string]$VMUser = "inso_deployer",
     [string]$VMHost = "35.239.192.33",
-    [string]$SSHKey = "$env:USERPROFILE\.ssh\alti-vm-key",
+    [string]$SSHKey = "$env:USERPROFILE\.ssh\inso-vm-key",
     [string]$ComposeFile = "docker-compose.yml",
     [string]$ComposeDir = "~",
     [switch]$SkipBuild
@@ -12,13 +12,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Docker registry configuration
-$REGISTRY = "us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo"
-$IMAGE_NAME = "alti-assistant-backend"
+$REGISTRY = "us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo"
+$IMAGE_NAME = "inso-assistant-backend"
 $IMAGE_TAG_VERSION = "${REGISTRY}/${IMAGE_NAME}:${Version}"
 $IMAGE_TAG_LATEST = "${REGISTRY}/${IMAGE_NAME}:latest"
 
 Write-Host "`n========================================" -ForegroundColor Magenta
-Write-Host "   Alti Assistant Deployment Script" -ForegroundColor Magenta
+Write-Host "   Inso Assistant Deployment Script" -ForegroundColor Magenta
 Write-Host "========================================`n" -ForegroundColor Magenta
 
 Write-Host "Version: $Version" -ForegroundColor Cyan

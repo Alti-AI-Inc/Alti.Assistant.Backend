@@ -190,13 +190,13 @@ export const FfiecCraProvider = {
 
 | Insured Financial Entity | FFIEC CRA Performance Grade | Annual FFIEC Asset Threshold | Active Compliance Period | Supervising Agency Filer |
 |---------------------------|-----------------------------|------------------------------|--------------------------|--------------------------|
-| **Alti Assistants Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
+| **Inso Assistants Citizens Bank** | **OUTSTANDING** | **$1.502 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | Federal Reserve Board |
 | **Vanguard Home Federal** | **SATISFACTORY** | **$376 Million (Small Bank)** | 2023 - 2025 Audit Cycle | FDIC Financial Board |
 | **Pacific Premier Credit**| **OUTSTANDING** | **$2.450 Billion (Large Bank)** | 2024 - 2026 Audit Cycle | OCC National Bureau |`;
 
     const metadata = {
       domain: 'ffiec_cra',
-      auditedBank: 'Alti Assistants Citizens Bank',
+      auditedBank: 'Inso Assistants Citizens Bank',
       craPerformanceGrade: 'OUTSTANDING',
       assetSizeThreshold: '$1.502 Billion'
     };
@@ -290,7 +290,7 @@ export const UsptoTrademarksProvider = {
   category: 'legal_security',
   cacheTTL: 43200,
   citationLabel: 'USPTO Trademark Status & Document Retrieval (TSDR)',
-  mandatoryRule: '▸ Present USPTO trademark wordmarks, serial numbers, and filing statuses in **BOLD** (e.g. **ALTIS**, **Serial #9784012**, **Registered**)',
+  mandatoryRule: '▸ Present USPTO trademark wordmarks, serial numbers, and filing statuses in **BOLD** (e.g. **INSOS**, **Serial #9784012**, **Registered**)',
 
   detectIntent: (query) => {
     return /\btrademark\s+status\b|\buspto\s+trademark\b|\bbrand\s+filing\s+registry\b|\btrademark\s+owner\b|\bwordmark\s+lookup\b/i.test(query);
@@ -298,7 +298,7 @@ export const UsptoTrademarksProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:trademark status of|uspto trademark|trademark lookup for)\s+([^?]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'ALTIS');
+    return sanitizeQueryString(match ? match[1] : 'INSOS');
   },
 
   fetch: async (topic) => {
@@ -307,17 +307,17 @@ export const UsptoTrademarksProvider = {
 
 | Trademark Wordmark Name | Filer Serial Number | Registration Number | Active Trademark Status | Goods & Services Class Category | Primary Owner Corporate Entity |
 |-------------------------|---------------------|---------------------|--------------------------|---------------------------------|--------------------------------|
-| **ALTIS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Alti Assistants Holdings LLC (US)** |
-| **ALTIGRAVITY** | **Serial #9802451** | **Reg #7240118** | **Registered** | Class 09 - AI Neural Copilots | **DeepMind Coding Corp (US)** |
-| **ALTIS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Alti Assistants Wealth Group Inc** |`;
+| **INSOS SEARCH** | **Serial #9784012** | **Reg #7124950** | **Registered** | Class 42 - Software & RAG Search| **Inso Assistants Holdings LLC (US)** |
+| **INSOGRAVITY** | **Serial #9802451** | **Reg #7240118** | **Registered** | Class 09 - AI Neural Copilots | **DeepMind Coding Corp (US)** |
+| **INSOS CAPITAL** | **Serial #9710452** | **N/A (Pending)** | **Under Examination** | Class 36 - Mortgage Lending Rates | **Inso Assistants Wealth Group Inc** |`;
 
     const metadata = {
       domain: 'uspto_trademarks',
-      wordmark: 'ALTIS SEARCH',
+      wordmark: 'INSOS SEARCH',
       serialNumber: 'Serial #9784012',
       registrationNumber: 'Reg #7124950',
       status: 'Registered',
-      ownerEntity: 'Alti Assistants Holdings LLC'
+      ownerEntity: 'Inso Assistants Holdings LLC'
     };
 
     return { markdown, metadata };
@@ -348,7 +348,7 @@ export const WipoIpProvider = {
 | WIPO Publication Number | PCT International Filing Date | Primary Filer / Applicant | Core IPC Patent Classification Code | Summary Invention Title |
 |-------------------------|--------------------------------|---------------------------|-------------------------------------|--------------------------|
 | **WO/2026/094200** | **April 12, 2026** | **DeepMind Technologies Ltd** | **G06N 3/04 (Neural Networks)** | Dynamic Agentic Code Refactoring |
-| **WO/2026/104505** | **May 19, 2026** | **Alti Assistants Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
+| **WO/2026/104505** | **May 19, 2026** | **Inso Assistants Technologies Corp** | **G06F 16/24 (Database Querying)**| Real-time Telemetry Search RAG |
 | **WO/2026/084201** | **March 04, 2026** | **Nokia Telecommunications**| **H04W 12/06 (Wireless Security)** | Dynamic Quantum Key Exchange |`;
 
     const metadata = {

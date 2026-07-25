@@ -20,7 +20,7 @@ import (
 
 	dataplexapi "cloud.google.com/go/dataplex/apiv1"
 	"cloud.google.com/go/dataplex/apiv1/dataplexpb"
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkinso/backoff/v5"
 	"github.com/goccy/go-yaml"
 	"github.com/googleapis/mcp-toolbox/internal/sources"
 	"github.com/googleapis/mcp-toolbox/internal/util"

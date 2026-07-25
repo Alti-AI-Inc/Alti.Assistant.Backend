@@ -37,7 +37,7 @@ describe('GcpVertexSearchService', () => {
   describe('searchDataStore', () => {
     const validDataStoreId = 'projects/test-project/locations/global/dataStores/test-datastore';
     const validWorkspaceProjectId = 'test-project';
-    const validQuery = 'What is Alti.Assistant?';
+    const validQuery = 'What is Inso.Assistant?';
 
     beforeEach(() => {
       vi.clearAllMocks();

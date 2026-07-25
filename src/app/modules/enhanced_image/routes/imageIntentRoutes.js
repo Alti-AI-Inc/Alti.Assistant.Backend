@@ -1,6 +1,6 @@
 import express from 'express';
 import { createImageIntentController } from '../controllers/imageIntentController.js';
-// Alti.Assistant - Improvement: Import necessary middleware for security, rate limiting, and usage quotas.
+// Inso.Assistant - Improvement: Import necessary middleware for security, rate limiting, and usage quotas.
 // These are essential for a robust, multi-user platform to ensure fair use, prevent abuse, and manage costs.
 import { authenticateUser } from '../../auth/middlewares/authMiddleware.js'; // Assumed path for authentication middleware
 import { checkUsageQuota } from '../../billing/middlewares/quotaMiddleware.js'; // Assumed path for usage quota middleware
@@ -24,7 +24,7 @@ const catchAsync = (fn) => (req, res, next) => {
 
 /**
  * Middleware to validate the request body for the /analyze-intent endpoint.
- * Alti.Assistant - Improvement: Enhanced validation to check for prompt length and validate sessionId format.
+ * Inso.Assistant - Improvement: Enhanced validation to check for prompt length and validate sessionId format.
  * This prevents oversized payloads and ensures data integrity, leading to a more stable user experience.
  * @param {object} req - The Express request object.
  * @param {object} res - The Express response object.
@@ -144,7 +144,7 @@ export const createImageIntentRoutes = (sessionManager) => {
    *                   type: string
    *                   example: "Failed to analyze image intent."
    */
-  // Alti.Assistant - Improvement: Added a chain of middleware to secure the endpoint and manage user access.
+  // Inso.Assistant - Improvement: Added a chain of middleware to secure the endpoint and manage user access.
   // 1. applyRateLimiting: Prevents API abuse and ensures service stability for all users.
   // 2. authenticateUser: Verifies user identity, which is crucial for data isolation and tracking usage.
   // 3. checkUsageQuota: Enforces user-level limits based on their subscription plan, managing operational costs.

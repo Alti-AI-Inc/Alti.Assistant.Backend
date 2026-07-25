@@ -1,4 +1,4 @@
-# ─── Alti Assistant — Agent Microservices (Local Development) ─────────────────
+# ─── Inso Assistant — Agent Microservices (Local Development) ─────────────────
 # Run all 7 agents + gateway + infrastructure locally with:
 #   docker compose -f docker-compose.dev.yml up --build
 # ─────────────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
       # Agent service URLs (Docker internal networking)
       - SEARCH_AGENT_URL=http://agent-search:8080
@@ -25,7 +25,7 @@ services:
       - IMAGE_AGENT_URL=http://agent-image:8080
       - AUDIO_AGENT_URL=http://agent-audio:8080
       - VIDEO_AGENT_URL=http://agent-video:8080
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
@@ -38,7 +38,7 @@ services:
       - agent-audio
       - agent-video
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 1: Search (Gemini 3.5 Flash + Live Web Grounding) ───────────
   agent-search:
@@ -51,14 +51,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-search
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 2: Research (Gemini 3.1 Pro, 9-node pipeline) ────────────────────
   agent-research:
@@ -71,14 +71,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-research
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 3: Write (Claude Sonnet 4.5 via Vertex AI) ───────────────────────
   agent-write:
@@ -91,14 +91,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-write
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 4: Code (Claude Sonnet 4.5 via Vertex AI) ────────────────────────
   agent-code:
@@ -111,14 +111,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-code
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 5: Image (Gemini 3.1 Flash Image) ───────────────────────────────
   agent-review:
@@ -151,14 +151,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-image
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 6: Audio (Gemini 3.1 Flash TTS + Lyria 3) ───────────────────────
   agent-audio:
@@ -171,14 +171,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-audio
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Agent 7: Video (Veo 3.1 Tiered) ───────────────────────────────────────
   agent-video:
@@ -191,14 +191,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SERVICE_NAME=agent-video
-      - DATABASE_LOCAL=mongodb://mongodb:27017/alti_assistant
+      - DATABASE_LOCAL=mongodb://mongodb:27017/inso_assistant
       - REDIS_URL=redis://redis:6379
-      - INTERNAL_SERVICE_SECRET=alti-internal-dev-secret
+      - INTERNAL_SERVICE_SECRET=inso-internal-dev-secret
     depends_on:
       - mongodb
       - redis
     networks:
-      - alti-network
+      - inso-network
 
   # ── Infrastructure ─────────────────────────────────────────────────────────
   mongodb:
@@ -208,7 +208,7 @@ services:
     volumes:
       - mongodb_data:/data/db
     networks:
-      - alti-network
+      - inso-network
 
   redis:
     image: redis/redis-stack:7.4.0-v3
@@ -217,11 +217,11 @@ services:
       - '8001:8001'
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
-      - alti-network
+      - inso-network
 
 volumes:
   mongodb_data:
 
 networks:
-  alti-network:
+  inso-network:
     driver: bridge

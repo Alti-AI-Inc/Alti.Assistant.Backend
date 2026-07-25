@@ -1,6 +1,6 @@
 /**
  * @fileoverview This file contains various constants and configurations related to the rewrite module
- * in the Alti.Assistant backend. It defines settings for AI models, storage, Google Cloud Storage,
+ * in the Inso.Assistant backend. It defines settings for AI models, storage, Google Cloud Storage,
  * rewrite intents, styles, modes, output formats, conversation parameters, system prompts,
  * response messages, and keyword mappings for intent detection and file generation.
  */
@@ -74,7 +74,7 @@ export const STORAGE_CONFIG = {
  * @type {GCSConfig}
  */
 export const GCS_CONFIG = {
-  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'alti_files',
+  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'inso_files',
   PROJECT_ID: process.env.GCP_PROJECT_ID,
   KEY_FILE: process.env.GCS_KEY_FILE,
   FOLDER_PREFIX: 'rewrites/',

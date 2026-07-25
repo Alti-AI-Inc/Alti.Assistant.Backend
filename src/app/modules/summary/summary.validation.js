@@ -1,6 +1,6 @@
 /**
  * @file This file defines Zod schemas for validating incoming requests related to summary generation
- * and guest user rate limiting within the Alti.Assistant backend.
+ * and guest user rate limiting within the Inso.Assistant backend.
  * It also defines and configures the rate limiters for summary-related endpoints
  * to protect against DDOS attacks, API abuse, and excessive cost runaway.
  * It uses Zod for robust schema validation and rate-limiter-flexible for DDOS and abuse protection.

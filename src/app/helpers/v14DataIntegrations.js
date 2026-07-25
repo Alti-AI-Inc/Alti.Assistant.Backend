@@ -1,5 +1,5 @@
 /**
- * v14DataIntegrations.js — Alti.Assistant v14 Greenlight Data Integrations
+ * v14DataIntegrations.js — Inso.Assistant v14 Greenlight Data Integrations
  *
  * Implements high-performance RAG formatting blocks, multi-lingual sanitizers,
  * and dual-layer caching for the 9 greenlight public intelligence APIs.

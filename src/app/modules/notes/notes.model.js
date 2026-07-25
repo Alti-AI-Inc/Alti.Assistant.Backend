@@ -16,7 +16,7 @@ const mongoose = require('mongoose');
  * It uses the MONGODB_URI from environment variables or defaults to a local instance.
  * @type {string}
  */
-const dbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/altidb';
+const dbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/insodb';
 
 /**
  * Mongoose connection options optimized for resilient connections, especially in cloud environments like GCP.

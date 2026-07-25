@@ -1,7 +1,7 @@
 /**
  * @file This file defines Zod schemas for validating request bodies and parameters
  *       related to presentation generation, conversational interactions, and management
- *       within the Alti.Assistant backend. These schemas are used by middleware
+ *       within the Inso.Assistant backend. These schemas are used by middleware
  *       to ensure incoming data conforms to expected structures and types.
  * @module PresentationValidation
  */

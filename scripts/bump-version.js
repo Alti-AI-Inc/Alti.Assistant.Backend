@@ -8,13 +8,13 @@ const RESET = '\x1b[0m';
 
 function bumpVersion() {
   console.log(`\n${CYAN}================================================${RESET}`);
-  console.log(`${CYAN}       Alti Assistant Version Increment & Sync Tool       ${RESET}`);
+  console.log(`${CYAN}       Inso Assistant Version Increment & Sync Tool       ${RESET}`);
   console.log(`${CYAN}================================================${RESET}\n`);
 
   const rootDir = path.resolve(process.cwd(), '..');
   const versionMdPath = path.join(rootDir, 'VERSION.md');
   const backendPkgPath = path.join(process.cwd(), 'package.json');
-  const frontendPkgPath = path.join(rootDir, 'Alti.Assistant.Frontend', 'package.json');
+  const frontendPkgPath = path.join(rootDir, 'Inso.Assistant.Frontend', 'package.json');
 
   // 1. Read current version from VERSION.md
   if (!fs.existsSync(versionMdPath)) {

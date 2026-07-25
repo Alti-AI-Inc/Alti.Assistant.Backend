@@ -1,5 +1,5 @@
 /**
- * v13DataIntegrations.js — Alti.Assistant v13 Deep Data Integrations
+ * v13DataIntegrations.js — Inso.Assistant v13 Deep Data Integrations
  *
  * Implements high-performance intent classifiers, dynamic parameter extraction,
  * and RAG formatting blocks for the Event Registry / NewsAPI.ai global news intelligence.

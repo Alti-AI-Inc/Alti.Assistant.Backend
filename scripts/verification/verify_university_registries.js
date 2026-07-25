@@ -1,7 +1,7 @@
 /**
  * verify_university_registries.js
  *
- * Verification script for testing Alti Assistant's Stage 47 Premium Ivy League and
+ * Verification script for testing Inso Assistant's Stage 47 Premium Ivy League and
  * University research data grounding channels.
  */
 
@@ -28,7 +28,7 @@ async function runVerification() {
     },
     {
       name: 'Stanford CRFM HELM Benchmarks',
-      query: 'Check stanford helm benchmarks CRFM holistic evaluation language model accuracy scores for Alti Assistants',
+      query: 'Check stanford helm benchmarks CRFM holistic evaluation language model accuracy scores for Inso Assistants',
       expectedId: 'stanford_helm_benchmarks'
     },
     {

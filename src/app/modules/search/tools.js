@@ -590,7 +590,7 @@ export const googleSearch = new DynamicStructuredTool({
 
     // Perform budget pre-flight check
     try {
-      const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
+      const budget = await checkTenantBudgetStatus('inso-enterprise-tenant-default');
       if (budget.isBlocked) {
         throw new Error(`BillingLimitExceeded: Search execution blocked. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
       }
@@ -603,7 +603,7 @@ export const googleSearch = new DynamicStructuredTool({
 
     const results = await rawGoogle.invoke(finalQuery);
     try {
-      logTenantUsage('alti-enterprise-tenant-default', config.llmProvider || 'gcp', {
+      logTenantUsage('inso-enterprise-tenant-default', config.llmProvider || 'gcp', {
         inputTokens: 0,
         outputTokens: 0,
         webSearchCount: 1,
@@ -798,10 +798,10 @@ Input: A natural language query or topic to search global news intelligence (e.g
 });
 
 /**
- * Alti Assistant Greenlight Public Intelligence Search Tool
+ * Inso Assistant Greenlight Public Intelligence Search Tool
  */
-export const altiGreenlightIntelligenceSearch = new DynamicStructuredTool({
-  name: 'alti_greenlight_intelligence_search',
+export const insoGreenlightIntelligenceSearch = new DynamicStructuredTool({
+  name: 'inso_greenlight_intelligence_search',
   description: `Access nine highly targeted public intelligence databases. Use this tool for ANY query regarding:
 1. "politics_campaign" -> FEC political donations, campaign financing, PAC cash flow.
 2. "legislation_tracking" -> LegiScan state/federal bill tracking, roll call voting records, bill sponsors.
@@ -838,10 +838,10 @@ Input: The domain enum name (politics_campaign, legislation_tracking, civic_repr
 });
 
 /**
- * Alti Assistant Premium Public Intelligence Search Tool
+ * Inso Assistant Premium Public Intelligence Search Tool
  */
-export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
-  name: 'alti_premium_intelligence_search',
+export const insoPremiumIntelligenceSearch = new DynamicStructuredTool({
+  name: 'inso_premium_intelligence_search',
   description: `Access twenty-three high-value premium public intelligence databases. Use this tool for ANY query regarding:
 1. "clinical_trials" -> ClinicalTrials.gov global clinical trial registries, study recruitment, enrollment stats, drug trial phases.
 2. "fda_drug_safety" -> openFDA drug safety warnings, adverse event counts, recall enforcement records, labeling details.
@@ -914,10 +914,10 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
 });
 
 /**
- * Alti Assistant Strategic Enterprise & High-Stakes Search Tool
+ * Inso Assistant Strategic Enterprise & High-Stakes Search Tool
  */
-export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
-  name: 'alti_enterprise_intelligence_search',
+export const insoEnterpriseIntelligenceSearch = new DynamicStructuredTool({
+  name: 'inso_enterprise_intelligence_search',
   description: `Access premium enterprise-focused applications. Use this tool for ANY query regarding:
 1. "autodesk" -> Autodesk BIM 360 Construction sheets, RFIs, sheets coordination, models.
 2. "yardi" -> Yardi Systems property tenant rent history, billing balances, property management ledger update.

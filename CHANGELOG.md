@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Alti Assistant are documented here.
+All notable changes to Inso Assistant are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — Semantic Versioning.
 
 ## [1.27.192] — 2026-07-06
@@ -171,4 +171,4 @@ See commit `1f9ee910` — Reasoning Engine, Gemini Live, Vertex Pipelines
 
 ---
 
-*Alti Assistant — 100% Google Cloud Native — Apache 2.0 / MIT licensed dependencies only*
+*Inso Assistant — 100% Google Cloud Native — Apache 2.0 / MIT licensed dependencies only*

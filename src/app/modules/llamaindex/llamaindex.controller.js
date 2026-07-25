@@ -852,7 +852,7 @@ export const exportSessionPDF = async (req, res) => {
 
     // Set Response Headers for PDF Download
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Alti Assistant_RAG_Analysis_${Date.now()}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="Inso Assistant_RAG_Analysis_${Date.now()}.pdf"`);
 
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     doc.pipe(res);
@@ -870,7 +870,7 @@ export const exportSessionPDF = async (req, res) => {
     doc.fillColor('#FFFFFF')
        .font('Helvetica-Bold')
        .fontSize(22)
-       .text('ALTI RAG ANALYSIS REPORT', 50, 25);
+       .text('INSO RAG ANALYSIS REPORT', 50, 25);
     doc.fontSize(10)
        .font('Helvetica')
        .text(`Session Report | User ID: ${userId} | Compiled: ${new Date().toLocaleDateString()}`, 50, 52);
@@ -906,7 +906,7 @@ export const exportSessionPDF = async (req, res) => {
 
     for (const turn of chatHistory) {
       const isUser = turn.role === 'user';
-      const senderName = isUser ? 'User Inquiry' : 'Alti Assistant real-time AI analyst';
+      const senderName = isUser ? 'User Inquiry' : 'Inso Assistant real-time AI analyst';
       const boxColor = isUser ? lightBg : accentBg;
       const borderTheme = isUser ? strokeColor : '#A7F3D0';
       const containerPadding = 24;
@@ -946,7 +946,7 @@ export const exportSessionPDF = async (req, res) => {
     doc.moveDown(3);
     doc.fontSize(8)
        .fillColor('#9CA3AF')
-       .text('CONFIDENTIAL | Powered by Alti Assistant & LlamaIndex Cognitive RAG Platform © 2026', { align: 'center' });
+       .text('CONFIDENTIAL | Powered by Inso Assistant & LlamaIndex Cognitive RAG Platform © 2026', { align: 'center' });
 
     doc.end();
 

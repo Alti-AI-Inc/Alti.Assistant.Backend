@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 console.log(`\n======================================================================`);
-  console.log(`🌙 ALTI ASSISTANT - OVERNIGHT DAEMON LOOP INITIALIZED`);
+  console.log(`🌙 INSO ASSISTANT - OVERNIGHT DAEMON LOOP INITIALIZED`);
 console.log(`======================================================================`);
 console.log(`The optimization suite will execute continuously once every hour.`);
 console.log(`You can safely leave; this process will run in the background overnight.`);

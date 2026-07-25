@@ -22,7 +22,7 @@
 ### 1. Install Dependencies
 
 ```bash
-cd d:\alti\Alti Assistant-Core-Service-Backend
+cd d:\inso\Inso Assistant-Core-Service-Backend
 npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xlsx
 ```
 
@@ -30,19 +30,19 @@ npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xl
 
 ### 2. Configure Google Cloud Translation API
 
-✅ **Already Configured!** The module uses your existing `alti_gcp.json` credentials file.
+✅ **Already Configured!** The module uses your existing `inso_gcp.json` credentials file.
 
-- Project ID: `alti-assistant-prod`
-- Service Account: `alti-assistant-service@alti-assistant-prod.iam.gserviceaccount.com`
-- Credentials file: `alti_gcp.json` (in project root)
+- Project ID: `inso-assistant-prod`
+- Service Account: `inso-assistant-service@inso-assistant-prod.iam.gserviceaccount.com`
+- Credentials file: `inso_gcp.json` (in project root)
 
 **Just ensure Translation API is enabled in your Google Cloud project:**
 
 1. Go to Google Cloud Console: https://console.cloud.google.com
-2. Select project: `alti-assistant-prod`
+2. Select project: `inso-assistant-prod`
 3. Enable "Cloud Translation API" if not already enabled
 
-**Status:** ✅ Configured (using alti_gcp.json)
+**Status:** ✅ Configured (using inso_gcp.json)
 
 ### 3. Verify Gemini API Key
 

@@ -226,7 +226,7 @@ class McpGenericServerInstance {
                 sampling: {}
               },
               clientInfo: {
-                name: 'Alti Assistant-Backend-Orchestrator',
+                name: 'Inso Assistant-Backend-Orchestrator',
                 version: '1.2.0'
               }
             });

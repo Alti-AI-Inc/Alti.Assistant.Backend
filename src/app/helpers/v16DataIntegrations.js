@@ -1,5 +1,5 @@
 /**
- * v16DataIntegrations.js — Alti.Assistant v16 Premium Data Integrations
+ * v16DataIntegrations.js — Inso.Assistant v16 Premium Data Integrations
  *
  * Implements high-performance RAG formatting blocks, state FIPS mapping,
  * and dual-layer caching for the 4 premium public intelligence databases:

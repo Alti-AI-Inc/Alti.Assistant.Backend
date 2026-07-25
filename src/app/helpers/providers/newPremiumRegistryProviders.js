@@ -262,7 +262,7 @@ export const SamGovProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:debarment status of|sam status of|sam lookup for|debarred)\s+([^?]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'Alti Assistants');
+    return sanitizeQueryString(match ? match[1] : 'Inso Assistants');
   },
 
   fetch: async (topic) => {
@@ -271,7 +271,7 @@ export const SamGovProvider = {
 
 | Audited Corporate Entity | Active Exclusion Status | Registered CAGE Code | Current Procurement Eligibility |
 |--------------------------|-------------------------|----------------------|---------------------------------|
-| **Alti Assistants Holdings LLC** | **ACTIVE - NO EXCLUSIONS FOUND** | **7ABC1** | Fully Eligible for Contracts |
+| **Inso Assistants Holdings LLC** | **ACTIVE - NO EXCLUSIONS FOUND** | **7ABC1** | Fully Eligible for Contracts |
 | **Apex Builders Corp** | **ACTIVE - EXCLUSION DETECTED** | **8XYZ4** | Debarred - Suspension Active |`;
 
     const metadata = {

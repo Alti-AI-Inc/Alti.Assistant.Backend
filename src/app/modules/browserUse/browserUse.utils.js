@@ -1,4 +1,4 @@
-// C:\Users\hyper\workspace\Alti.Assistant\Alti.Assistant.Backend\src\app\modules\browserUse\browserUse.utils.js
+// C:\Users\hyper\workspace\Inso.Assistant\Inso.Assistant.Backend\src\app\modules\browserUse\browserUse.utils.js
 
 const puppeteer = require('puppeteer');
 const ip = require('ip'); // For more robust IP validation.

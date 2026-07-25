@@ -20,10 +20,10 @@ const errorReportingTopic = pubSubClient.topic(config.google.error_reporting_top
  * @param {string} errorMessage - Error description or raw message
  * @param {string} [stackTrace] - Error call stack trace (e.g. error.stack)
  * @param {string} [user] - Unique identifier of the user who encountered the error
- * @param {string} [serviceName] - Microservice identifier (default 'alti-backend')
+ * @param {string} [serviceName] - Microservice identifier (default 'inso-backend')
  * @returns {Promise<object>} An object indicating the outcome of the queueing operation.
  */
-const reportError = async (errorMessage, stackTrace = '', user = '', serviceName = 'alti-backend') => {
+const reportError = async (errorMessage, stackTrace = '', user = '', serviceName = 'inso-backend') => {
   try {
     const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
     if (!projectId) {

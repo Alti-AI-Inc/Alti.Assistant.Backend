@@ -23,7 +23,7 @@ export const GithubSecurityAdvisoriesProvider = {
 
   extractTopic: (query) => {
     const match = query.match(/(?:security advisories for|vulnerabilities in|GHSA details of)\s+([a-zA-Z0-9_-]+)/i);
-    return sanitizeQueryString(match ? match[1] : 'altiapp');
+    return sanitizeQueryString(match ? match[1] : 'insoapp');
   },
 
   fetch: async (topic) => {
@@ -180,13 +180,13 @@ export const FccBroadbandSpeedsProvider = {
 
 | FCC Census Block Code | Carrier Name | Max advertised Speed | Connection Technology | Service Availability |
 |-----------------------|--------------|----------------------|-----------------------|----------------------|
-| **BLOCK1234567** | **Alti Assistanta Telecom** | **1000/1000 Mbps** | **Fiber to the Home** | **Active Service** |
+| **BLOCK1234567** | **Inso Assistanta Telecom** | **1000/1000 Mbps** | **Fiber to the Home** | **Active Service** |
 | **BLOCK7654321** | **ComCast Cable**| **1200/50 Mbps** | **Coaxial Cable** | **Active Service** |`;
 
     const metadata = {
       domain: 'fcc_broadband_speeds',
       censusBlockCode: 'BLOCK1234567',
-      carrierName: 'Alti Assistanta Telecom',
+      carrierName: 'Inso Assistanta Telecom',
       maxDownloadSpeed: '1000 Mbps'
     };
 

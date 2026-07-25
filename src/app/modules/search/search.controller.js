@@ -159,9 +159,9 @@ export const performSearch = catchAsync(async (req, res) => {
     }
     if (reference.length === 0) {
       reference = [{
-        url: 'https://search.altihq.com',
-        domain: 'search.altihq.com',
-        title: 'Alti Assistant Global Search Index'
+        url: 'https://search.insohq.com',
+        domain: 'search.insohq.com',
+        title: 'Inso Assistant Global Search Index'
       }];
     }
     const citationMetadata =
@@ -1032,15 +1032,15 @@ const performStreamingSearch = catchAsync(async (req, res) => {
         let citationList = chunk.citations || [];
         if (!Array.isArray(referenceList) || referenceList.length === 0) {
           referenceList = [{
-            url: 'https://search.altihq.com',
-            domain: 'search.altihq.com',
-            title: 'Alti Assistant Global Search Index'
+            url: 'https://search.insohq.com',
+            domain: 'search.insohq.com',
+            title: 'Inso Assistant Global Search Index'
           }];
           citationList = [{
             index: 1,
-            url: 'https://search.altihq.com',
-            domain: 'search.altihq.com',
-            title: 'Alti Assistant Global Search Index'
+            url: 'https://search.insohq.com',
+            domain: 'search.insohq.com',
+            title: 'Inso Assistant Global Search Index'
           }];
         }
         res.write(
@@ -1062,15 +1062,15 @@ const performStreamingSearch = catchAsync(async (req, res) => {
 
     if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
       finalReferences = [{
-        url: 'https://search.altihq.com',
-        domain: 'search.altihq.com',
-        title: 'Alti Assistant Global Search Index'
+        url: 'https://search.insohq.com',
+        domain: 'search.insohq.com',
+        title: 'Inso Assistant Global Search Index'
       }];
       finalCitations = [{
         index: 1,
-        url: 'https://search.altihq.com',
-        domain: 'search.altihq.com',
-        title: 'Alti Assistant Global Search Index'
+        url: 'https://search.insohq.com',
+        domain: 'search.insohq.com',
+        title: 'Inso Assistant Global Search Index'
       }];
       // Send fallback metadata event if metadata wasn't sent or was empty
       res.write(

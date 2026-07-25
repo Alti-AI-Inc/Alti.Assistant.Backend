@@ -63,12 +63,12 @@ async function runTestSuite() {
     console.log('\n--- 3. Testing Dynamic Tool Call Routing ---');
     const callResult = await mcpOrchestratorService.callTool(tenantId, serverId, 'GITHUB_STAR_A_REPOSITORY', {
       owner: 'mnmballa2323',
-      repo: 'Alti.Assistant'
+      repo: 'Inso.Assistant'
     });
 
     if (callResult.success && callResult.result.content?.[0]?.text) {
       const payload = JSON.parse(callResult.result.content[0].text);
-      if (payload.success && payload.arguments.repo === 'Alti.Assistant') {
+      if (payload.success && payload.arguments.repo === 'Inso.Assistant') {
         console.log(`✅ PASS: Unified JSON-RPC tool call executed successfully.`);
         console.log(`Execution Output Payload:`, JSON.stringify(payload, null, 2));
       } else {

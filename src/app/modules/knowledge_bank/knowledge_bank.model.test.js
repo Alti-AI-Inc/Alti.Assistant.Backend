@@ -65,7 +65,7 @@ describe('KnowledgeBankFile Model', () => {
         userId: new mongoose.Types.ObjectId(),
       });
 
-      expect(file.gcsBucket).toBe('alti_knowledge_bank_files');
+      expect(file.gcsBucket).toBe('inso_knowledge_bank_files');
       expect(file.folderId).toBe(null);
       expect(file.chunkCount).toBe(0);
       expect(file.isProcessed).toBe(false);

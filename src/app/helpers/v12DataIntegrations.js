@@ -1,5 +1,5 @@
 /**
- * v12DataIntegrations.js — Alti.Assistant v12 Deep Data Integrations
+ * v12DataIntegrations.js — Inso.Assistant v12 Deep Data Integrations
  *
  * Implements high-performance intent classifiers and RAG formatting blocks
  * for the six public data modules: GLEIF Entity Registry, USPTO PatentsView,

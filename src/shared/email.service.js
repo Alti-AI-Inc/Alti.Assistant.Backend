@@ -11,12 +11,12 @@ import { logger } from './logger.js';
  */
 export const sendWorkspaceInvitation = async ({ to, tenantName, invitationLink }) => {
   const htmlContent = `
-    <h1>You have been invited to join ${tenantName} on Alti.Assistant</h1>
+    <h1>You have been invited to join ${tenantName} on Inso.Assistant</h1>
     <p>Please click the link below to accept the invitation and set up your account:</p>
     <a href="${invitationLink}">${invitationLink}</a>
   `;
-  const textContent = `You have been invited to join ${tenantName} on Alti.Assistant. Click here to accept: ${invitationLink}`;
-  const subject = `Invitation to join workspace ${tenantName} on Alti.Assistant`;
+  const textContent = `You have been invited to join ${tenantName} on Inso.Assistant. Click here to accept: ${invitationLink}`;
+  const subject = `Invitation to join workspace ${tenantName} on Inso.Assistant`;
 
   const mailData = {
     sub: subject,
@@ -84,12 +84,12 @@ export const sendPaymentActionRequiredEmail = async ({ to, hostedInvoiceUrl, amo
 export const sendTrialEndingEmail = async ({ to, trialEnd }) => {
   const endDate = new Date(trialEnd * 1000).toLocaleDateString();
   const htmlContent = `
-    <h1>Your Alti.Assistant Trial is Ending Soon</h1>
+    <h1>Your Inso.Assistant Trial is Ending Soon</h1>
     <p>Your free trial is scheduled to end on <strong>${endDate}</strong>.</p>
     <p>After this date, your subscription will automatically renew at the regular rate of your selected plan.</p>
-    <p>Thank you for using Alti.Assistant!</p>
+    <p>Thank you for using Inso.Assistant!</p>
   `;
-  const textContent = `Your free trial is ending on ${endDate}. Thank you for using Alti.Assistant!`;
+  const textContent = `Your free trial is ending on ${endDate}. Thank you for using Inso.Assistant!`;
   const subject = `Your free trial is ending soon`;
 
   const mailData = {

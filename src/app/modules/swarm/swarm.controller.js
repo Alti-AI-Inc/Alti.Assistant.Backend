@@ -312,15 +312,15 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
         if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
           finalReferences = [{
-            url: 'https://search.altihq.com',
-            domain: 'search.altihq.com',
-            title: 'Alti Assistant Global Search Index'
+            url: 'https://search.insohq.com',
+            domain: 'search.insohq.com',
+            title: 'Inso Assistant Global Search Index'
           }];
           finalCitations = [{
             index: 1,
-            url: 'https://search.altihq.com',
-            domain: 'search.altihq.com',
-            title: 'Alti Assistant Global Search Index'
+            url: 'https://search.insohq.com',
+            domain: 'search.insohq.com',
+            title: 'Inso Assistant Global Search Index'
           }];
         }
 
@@ -337,15 +337,15 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
       finalReferences = [{
-        url: 'https://search.altihq.com',
-        domain: 'search.altihq.com',
-        title: 'Alti Assistant Global Search Index'
+        url: 'https://search.insohq.com',
+        domain: 'search.insohq.com',
+        title: 'Inso Assistant Global Search Index'
       }];
       finalCitations = [{
         index: 1,
-        url: 'https://search.altihq.com',
-        domain: 'search.altihq.com',
-        title: 'Alti Assistant Global Search Index'
+        url: 'https://search.insohq.com',
+        domain: 'search.insohq.com',
+        title: 'Inso Assistant Global Search Index'
       }];
       res.write(
         `data: ${JSON.stringify({

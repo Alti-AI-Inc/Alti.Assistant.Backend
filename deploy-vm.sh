@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Deployment script for Alti Assistant Backend (Mac/Linux)
+# Deployment script for Inso Assistant Backend (Mac/Linux)
 # Usage: ./deploy-vm.sh [options]
 # Options:
 #   -v, --version VERSION     Set version tag (default: v0.1.0)
-#   -u, --user USER          VM user (default: alti_deployer)
+#   -u, --user USER          VM user (default: inso_deployer)
 #   -h, --host HOST          VM host (default: 35.239.192.33)
-#   -k, --ssh-key KEY        SSH key path (default: ~/.ssh/alti-vm-key)
+#   -k, --ssh-key KEY        SSH key path (default: ~/.ssh/inso-vm-key)
 #   -f, --compose-file FILE  Docker compose file (default: docker-compose.yml)
 #   -d, --compose-dir DIR    Compose directory on VM (default: ~)
 #   -s, --skip-build         Skip Docker build step
@@ -16,9 +16,9 @@ set -e
 
 # Default values
 VERSION="v0.1.0"
-VM_USER="alti_deployer"
+VM_USER="inso_deployer"
 VM_HOST="35.239.192.33"
-SSH_KEY="$HOME/.ssh/alti-vm-key"
+SSH_KEY="$HOME/.ssh/inso-vm-key"
 COMPOSE_FILE="docker-compose.yml"
 COMPOSE_DIR="~"
 SKIP_BUILD=false
@@ -59,9 +59,9 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  -v, --version VERSION     Set version tag (default: v0.1.0)"
-      echo "  -u, --user USER          VM user (default: alti_deployer)"
+      echo "  -u, --user USER          VM user (default: inso_deployer)"
       echo "  -h, --host HOST          VM host (default: 35.239.192.33)"
-      echo "  -k, --ssh-key KEY        SSH key path (default: ~/.ssh/alti-vm-key)"
+      echo "  -k, --ssh-key KEY        SSH key path (default: ~/.ssh/inso-vm-key)"
       echo "  -f, --compose-file FILE  Docker compose file (default: docker-compose.yml)"
       echo "  -d, --compose-dir DIR    Compose directory on VM (default: ~)"
       echo "  -s, --skip-build         Skip Docker build step"
@@ -77,8 +77,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Docker registry configuration
-REGISTRY="us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo"
-IMAGE_NAME="alti-assistant-backend"
+REGISTRY="us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo"
+IMAGE_NAME="inso-assistant-backend"
 IMAGE_TAG_VERSION="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 IMAGE_TAG_LATEST="${REGISTRY}/${IMAGE_NAME}:latest"
 
@@ -92,7 +92,7 @@ GRAY='\033[0;90m'
 NC='\033[0m' # No Color
 
 echo -e "\n${MAGENTA}========================================"
-echo -e "   Alti Assistant Deployment Script"
+echo -e "   Inso Assistant Deployment Script"
 echo -e "========================================${NC}\n"
 
 echo -e "${CYAN}Version: ${VERSION}"
@@ -131,7 +131,7 @@ echo 'Stopping existing containers...'
 docker-compose -f ~COMPOSE_FILE~ down
 
 echo 'Removing old image to prevent containerd lease issues...'
-docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend:latest 2>/dev/null || true
 
 echo 'Pulling latest images...'
 docker-compose -f ~COMPOSE_FILE~ pull

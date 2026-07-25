@@ -93,7 +93,7 @@ describe('LangsmithMiddleware', () => {
 
       expect(middleware.tracingActive).toBe(false);
       expect(middleware.apiKey).toBeUndefined();
-      expect(middleware.projectName).toBe('Alti Assistant-Assistant-RAG');
+      expect(middleware.projectName).toBe('Inso Assistant-Assistant-RAG');
       expect(middleware.endpoint).toBe('https://api.smith.langchain.com');
     });
 
@@ -150,7 +150,7 @@ describe('LangsmithMiddleware', () => {
       mockConfig.langchain.project = undefined;
 
       const middleware = await importLangsmithMiddlewareModule();
-      expect(middleware.projectName).toBe('Alti Assistant-Assistant-RAG');
+      expect(middleware.projectName).toBe('Inso Assistant-Assistant-RAG');
     });
 
     it('should prioritize process.env over default for endpoint', async () => {

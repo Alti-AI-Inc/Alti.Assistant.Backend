@@ -1699,7 +1699,7 @@ export const mcpCatalog = {
     ],
     "env": {
       "KAFKA_BROKERS": "",
-      "KAFKA_CLIENT_ID": "alti-mcp-client"
+      "KAFKA_CLIENT_ID": "inso-mcp-client"
     }
   },
   "aws": {

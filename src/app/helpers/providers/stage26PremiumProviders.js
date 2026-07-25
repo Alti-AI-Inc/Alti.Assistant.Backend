@@ -2,7 +2,7 @@
  * stage26PremiumProviders.js — Stage 26 Premium UK Government Open Data Grounding Channels
  *
  * Implements the UK Office for National Statistics (ONS), Bank of England (BoE),
- * and HM Land Registry (HMLR) search providers for Alti Assistant's RAG/Grounding engine.
+ * and HM Land Registry (HMLR) search providers for Inso Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

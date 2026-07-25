@@ -19,7 +19,7 @@ import Tenant from '../tenant/tenant.model.js';
  * Assumes GCP project ID and location are available in the config.
  */
 const vertex_ai = new VertexAI({
-  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  project: config.gcp?.projectId || config.google?.gcp_project_id || process.env.GCP_PROJECT_ID || 'inso-assistant',
   location: config.gcp?.location || config.google?.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 

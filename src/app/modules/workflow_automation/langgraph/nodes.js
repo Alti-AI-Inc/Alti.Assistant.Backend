@@ -131,7 +131,7 @@ ${availableToolsInfo}
 Connected apps: ${state.connectionStatus?.connectedApps?.join(', ') || 'None'}
 Available apps: ${state.detectedApps?.join(', ') || 'None'}
 
-In addition to external third-party apps, you have access to these core Alti Assistant Platform Services as active workflow apps:
+In addition to external third-party apps, you have access to these core Inso Assistant Platform Services as active workflow apps:
 1. "chat" (or "conversations"): Orchestrate conversation threads and post messages.
    - Actions: 
      * "send_message": Send a chat notification or summary to a thread. Parameters: { content: string, conversationId: string (optional) }.

@@ -22,7 +22,7 @@ function githubRequest(endpoint) {
       hostname: 'api.github.com',
       path: endpoint,
       headers: {
-        'User-Agent': 'Alti-Assistant-Langchain-Scanner',
+        'User-Agent': 'Inso-Assistant-Langchain-Scanner',
         'Accept': 'application/vnd.github.v3+json'
       }
     };

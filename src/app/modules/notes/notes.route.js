@@ -1,5 +1,5 @@
 /**
- * @file This file defines the API routes for managing notes in the Alti.Assistant application.
+ * @file This file defines the API routes for managing notes in the Inso.Assistant application.
  * @module app/modules/notes/notes.route
  * @requires express
  * @requires @google-cloud/pubsub

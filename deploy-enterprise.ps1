@@ -8,7 +8,7 @@ param(
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Enterprise Deployment: Alti Assistant Backend + Agents" -ForegroundColor Cyan
+Write-Host " Enterprise Deployment: Inso Assistant Backend + Agents" -ForegroundColor Cyan
 Write-Host " Project: $ProjectId" -ForegroundColor Cyan
 Write-Host " Region: $Region" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -61,8 +61,8 @@ images: ['$ImageName']
 # 2. Deploy Monolith API Gateway
 Write-Host "`n[Phase 2] Deploying Core Monolith API Gateway..." -ForegroundColor Yellow
 
-$CoreServiceName = "alti-assistant-backend"
-$CoreImageTag = "${Region}-docker.pkg.dev/${ProjectId}/alti-assistant-core-backend-repo/${CoreServiceName}:latest"
+$CoreServiceName = "inso-assistant-backend"
+$CoreImageTag = "${Region}-docker.pkg.dev/${ProjectId}/inso-assistant-core-backend-repo/${CoreServiceName}:latest"
 
 Write-Host "Building Docker image via Cloud Build: $CoreImageTag" -ForegroundColor Yellow
 gcloud builds submit --config cloudbuild-build.yaml --substitutions=_IMAGE_TAG=$CoreImageTag .

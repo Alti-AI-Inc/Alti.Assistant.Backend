@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 env:
-  REGISTRY: us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo
-  IMAGE_NAME: alti-assistant-backend
-  VM_USER: alti_deployer
+  REGISTRY: us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo
+  IMAGE_NAME: inso-assistant-backend
+  VM_USER: inso_deployer
   COMPOSE_DIR: '~'
   COMPOSE_FILE: docker-compose.yml
   # Opt into Node.js 24 for all actions (Node 20 deprecated June 2026)
@@ -42,7 +42,7 @@ jobs:
 
       - name: Ensure Sandbox VM is Provisioned
         run: |
-          INSTANCE_NAME="alti-sandbox-vm"
+          INSTANCE_NAME="inso-sandbox-vm"
           ZONE="us-central1-a"
           
           echo "Checking if instance $INSTANCE_NAME exists..."
@@ -81,11 +81,11 @@ jobs:
       - name: Ensure Artifact Registry repository exists
         continue-on-error: true
         run: |
-          gcloud artifacts repositories create alti-assistant-core-backend-repo \
+          gcloud artifacts repositories create inso-assistant-core-backend-repo \
             --repository-format=docker \
             --location=us-central1 \
             --project=gen-lang-client-0273900650 \
-            --description="Alti Assistant assistant core backend Docker images" --quiet || true
+            --description="Inso Assistant assistant core backend Docker images" --quiet || true
 
       - name: Log in to Google Artifact Registry
         uses: docker/login-action@v3
@@ -112,27 +112,27 @@ jobs:
       - name: Set up SSH key and Metadata
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
-          chmod 600 ~/.ssh/alti-vm-key
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+          chmod 600 ~/.ssh/inso-vm-key
           
-          ssh-keygen -y -f ~/.ssh/alti-vm-key > ~/.ssh/alti-vm-key.pub
-          echo "${{ env.VM_USER }}:$(cat ~/.ssh/alti-vm-key.pub)" > /tmp/ssh_keys
-          gcloud compute instances add-metadata alti-sandbox-vm --project=gen-lang-client-0273900650 --zone=us-central1-a --metadata-from-file=ssh-keys=/tmp/ssh_keys
+          ssh-keygen -y -f ~/.ssh/inso-vm-key > ~/.ssh/inso-vm-key.pub
+          echo "${{ env.VM_USER }}:$(cat ~/.ssh/inso-vm-key.pub)" > /tmp/ssh_keys
+          gcloud compute instances add-metadata inso-sandbox-vm --project=gen-lang-client-0273900650 --zone=us-central1-a --metadata-from-file=ssh-keys=/tmp/ssh_keys
           
           sleep 10
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy docker-compose to VM
         run: |
-          scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:${{ env.COMPOSE_DIR }}/docker-compose.yml
+          scp -i ~/.ssh/inso-vm-key -o StrictHostKeyChecking=no docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:${{ env.COMPOSE_DIR }}/docker-compose.yml
 
       - name: Ensure .env is present on VM
         run: |
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
-          if ! ssh -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ env.VM_HOST }} "[ -f ~/.env ]"; then
+          if ! ssh -i ~/.ssh/inso-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ env.VM_HOST }} "[ -f ~/.env ]"; then
             echo "No .env found on sandbox VM. Fetching .env from persistent VM..."
-            ssh -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ secrets.VM_HOST }} "cat ~/.env" > /tmp/temp_env
-            scp -i ~/.ssh/alti-vm-key -o StrictHostKeyChecking=no /tmp/temp_env ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/.env
+            ssh -i ~/.ssh/inso-vm-key -o StrictHostKeyChecking=no ${{ env.VM_USER }}@${{ secrets.VM_HOST }} "cat ~/.env" > /tmp/temp_env
+            scp -i ~/.ssh/inso-vm-key -o StrictHostKeyChecking=no /tmp/temp_env ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/.env
             rm -f /tmp/temp_env
           else
             echo ".env already exists on sandbox VM."
@@ -140,7 +140,7 @@ jobs:
 
       - name: Deploy to VM
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
+          ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash << 'EOF'
             set -e
 
             echo "=== Step 1: Stop existing containers (release image locks) ==="
@@ -150,7 +150,7 @@ jobs:
             sudo systemctl restart docker || sudo service docker restart || true
             docker system prune -af 2>/dev/null || true
             docker container prune -f 2>/dev/null || true
-            docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo/alti-assistant-backend:latest 2>/dev/null || true
+            docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend:latest 2>/dev/null || true
             docker image prune -af 2>/dev/null || true
             docker volume prune -f 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
@@ -193,15 +193,15 @@ jobs:
         run: |
           echo "Waiting 30s for backend to start..."
           sleep 30
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+          ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
             "curl -sf http://localhost:5100/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
 
       - name: Fetch recent logs
         if: always()
         run: |
-          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+          ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
             "docker compose -f ~/docker-compose.yml logs --tail=30 2>/dev/null || true"
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: rm -f ~/.ssh/inso-vm-key

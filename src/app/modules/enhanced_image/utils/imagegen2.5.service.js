@@ -55,14 +55,14 @@ const MODEL_NAME = config.google.gemini_image_model || config.gemini_model || 'g
  * @description The name of the Google Cloud Storage bucket where generated images will be stored.
  * Pulled from application configuration.
  */
-const GCP_BUCKET_NAME = config.gcp.storage_bucket_name || 'alti_assistant_generated_photo';
+const GCP_BUCKET_NAME = config.gcp.storage_bucket_name || 'inso_assistant_generated_photo';
 
 /**
  * @constant {string} GCP_KEY_PATH
  * @description The local file system path to the GCP service account key file for authentication.
  * Pulled from application configuration.
  */
-const GCP_KEY_PATH = config.gcp.key_file_path || path.join(process.cwd(), 'alti_gcp.json');
+const GCP_KEY_PATH = config.gcp.key_file_path || path.join(process.cwd(), 'inso_gcp.json');
 
 /**
  * @constant {number} MAX_REFERENCE_IMAGES

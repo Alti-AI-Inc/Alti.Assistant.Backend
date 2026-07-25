@@ -6,7 +6,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 
 const CATALOG_PATH = path.join(__dirname, '../output/gcp-license-catalog.json');
-const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/Alti';
+const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/Inso';
 
 // Mongoose schema definition for seeder (ESM model cannot be directly imported in CJS node environment without Babel/register)
 const GoogleRepositorySchema = new mongoose.Schema({

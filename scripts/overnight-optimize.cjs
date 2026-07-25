@@ -6,12 +6,12 @@ const path = require('path');
 const { execSync } = require('child_process');
 const mongoose = require('mongoose');
 
-const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/Alti';
+const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/Inso';
 const ROOT_DIR = path.join(__dirname, '..');
 
 async function runOvernightOptimization() {
   console.log(`\n======================================================================`);
-  console.log(`🌙 ALTI ASSISTANT - OVERNIGHT OPTIMIZATION & DIAGNOSTIC SUITE`);
+  console.log(`🌙 INSO ASSISTANT - OVERNIGHT OPTIMIZATION & DIAGNOSTIC SUITE`);
   console.log(`======================================================================`);
   console.log(`Start Time: ${new Date().toLocaleString()}`);
   
@@ -117,13 +117,13 @@ async function runOvernightOptimization() {
   // ---------------------------------------------------------
   console.log(`\n[STEP 4] Initiating VM Server Cache & Docker Hygiene...`);
   try {
-    const keyPath = 'C:\\Users\\hyper\\.ssh\\alti-vm-key';
+    const keyPath = 'C:\\Users\\hyper\\.ssh\\inso-vm-key';
     if (fs.existsSync(keyPath)) {
       console.log(`-> Connecting to Production VM (35.239.192.33) via secure SSH...`);
       
       // Clean up stopped containers, unused networks, and build caches to improve system latency
       console.log(`-> Running Docker System Prune on VM...`);
-      const pruneCmd = `ssh -i ${keyPath} -o StrictHostKeyChecking=no alti_deployer@35.239.192.33 "docker system prune -f --volumes"`;
+      const pruneCmd = `ssh -i ${keyPath} -o StrictHostKeyChecking=no inso_deployer@35.239.192.33 "docker system prune -f --volumes"`;
       const pruneResult = execSync(pruneCmd, { stdio: 'pipe' }).toString();
       
       console.log(`   ✓ VM Hygiene Completed successfully!`);

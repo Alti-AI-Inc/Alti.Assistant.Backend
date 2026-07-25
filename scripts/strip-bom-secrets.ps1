@@ -2,7 +2,7 @@
 # Reads every secret, strips leading BOM (\ufeff) if present, writes a new version
 # Safe to run multiple times (idempotent)
 
-$project = "alti-assistant-prod"
+$project = "inso-assistant-prod"
 $gcloud  = "C:\Users\hyper\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 
 $secrets = @(

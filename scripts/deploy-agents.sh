@@ -1,15 +1,15 @@
 #!/bin/bash
-# Deploy all 7 Alti Assistant microservices to Google Cloud Run
+# Deploy all 7 Inso Assistant microservices to Google Cloud Run
 
 set -e
 
 # Configuration
-PROJECT_ID=${GCP_PROJECT_ID:-"alti-assistant-prod"}
+PROJECT_ID=${GCP_PROJECT_ID:-"inso-assistant-prod"}
 REGION=${GCP_REGION:-"us-central1"}
 AGENTS=("search" "research" "write" "code" "image" "audio" "video")
 
 echo "=========================================================="
-echo " Deploying Alti Assistant Agents to Google Cloud Run"
+echo " Deploying Inso Assistant Agents to Google Cloud Run"
 echo " Project: $PROJECT_ID"
 echo " Region: $REGION"
 echo "=========================================================="

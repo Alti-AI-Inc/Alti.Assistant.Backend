@@ -98,7 +98,7 @@ describe('langchainStreamService', () => {
   describe('streamChainExecution', () => {
     const chainId = 'chain_123';
     const userId = 'user_abc';
-    const inputs = { query: 'What is Alti.Assistant?' };
+    const inputs = { query: 'What is Inso.Assistant?' };
 
     const mockChain = {
       _id: chainId,
@@ -136,8 +136,8 @@ describe('langchainStreamService', () => {
         success: true,
         executionId: 'exec_12345',
         finalOutputs: {
-          query: 'What is Alti.Assistant?',
-          format_prompt: 'Question: What is Alti.Assistant?',
+          query: 'What is Inso.Assistant?',
+          format_prompt: 'Question: What is Inso.Assistant?',
           call_llm: '```json\n{"answer": "It is an AI assistant."}\n```',
           parse_json: { answer: 'It is an AI assistant.' },
         },

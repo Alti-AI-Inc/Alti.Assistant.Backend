@@ -194,7 +194,7 @@ export const DOCUMENT_TEMPLATES = {
  */
 export const GCS_CONFIG = {
   /** The name of the GCS bucket where documents will be stored. */
-  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'alti_assistant_documents',
+  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'inso_assistant_documents',
   /** The Google Cloud Platform project ID. */
   PROJECT_ID: process.env.GCP_PROJECT_ID,
   /** The path to the GCS key file for authentication. */

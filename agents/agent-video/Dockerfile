@@ -27,10 +27,10 @@ COPY --from=builder /app/agents/agent-video ./agents/agent-video
 RUN mv ./agents/agent-video/node_modules ./node_modules
 
 # Create non-root user
-RUN groupadd -r alti && useradd -r -g alti -d /app -s /sbin/nologin alti \
-    && chown -R alti:alti /app
+RUN groupadd -r inso && useradd -r -g inso -d /app -s /sbin/nologin inso \
+    && chown -R inso:inso /app
 
-USER alti
+USER inso
 
 WORKDIR /app/agents/agent-video
 

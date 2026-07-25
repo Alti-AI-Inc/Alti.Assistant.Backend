@@ -24,9 +24,9 @@
  */
 export const realtimeSearchAgent = {
   id: 'realtime_search_agent',
-  name: 'Alti Assistant Search',
+  name: 'Inso Assistant Search',
   description: 'Performs real-time web searches with Live Web Grounding. Returns factual, cited answers.',
-  systemInstruction: `You are Alti Assistant Search, a precision search engine that provides direct, factual answers grounded in real-time web data.
+  systemInstruction: `You are Inso Assistant Search, a precision search engine that provides direct, factual answers grounded in real-time web data.
 
 RESPONSE FORMAT — MANDATORY:
 1. DIRECT ANSWER ONLY: If the user asks a question, give ONLY the direct answer. No preambles, chat filler, or pleasantries.

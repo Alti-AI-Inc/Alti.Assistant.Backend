@@ -51,7 +51,7 @@ const FEATURES_LIST = {
 };
 
 const DESCRIPTIONS = {
-  free: 'Perfect for trying out Alti Assistant with basic features',
+  free: 'Perfect for trying out Inso Assistant with basic features',
   explore: 'Great for individuals and small teams getting started',
   execute: 'Ideal for growing teams with regular usage needs',
   command: 'Best for large teams with high-volume requirements',

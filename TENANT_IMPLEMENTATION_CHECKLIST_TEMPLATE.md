@@ -1,6 +1,6 @@
 # SaaS Tenant Management - Implementation Checklist
 
-This checklist provides a step-by-step guide for implementing multi-tenant functionality in Alti Assistant Core Service.
+This checklist provides a step-by-step guide for implementing multi-tenant functionality in Inso Assistant Core Service.
 
 ---
 
@@ -316,7 +316,7 @@ router.post(
 1. Admin/Owner sends invitation with email address and role
 2. System generates secure invitation token (JWT with 7-day expiry)
 3. System creates pending invitation record in database
-4. System sends invitation email with link: `https://app.altihq.com/invite/{token}`
+4. System sends invitation email with link: `https://app.insohq.com/invite/{token}`
 5. User clicks link, verifies token
 6. If user exists: Add to tenant with specified role
 7. If user is new: Redirect to signup with pre-filled email and auto-join tenant after registration

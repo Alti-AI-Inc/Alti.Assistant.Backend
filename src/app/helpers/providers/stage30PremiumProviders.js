@@ -2,7 +2,7 @@
  * stage30PremiumProviders.js — Stage 30 Premium Global Sovereign Open Data Grounding Channels
  *
  * Implements the macroeconomic and central bank search providers for Russia,
- * Saudi Arabia, Turkey, Argentina, and Indonesia for Alti Assistant's RAG/Grounding engine.
+ * Saudi Arabia, Turkey, Argentina, and Indonesia for Inso Assistant's RAG/Grounding engine.
  */
 
 import { sanitizeQueryString } from '../SearchEngineRegistry.js';

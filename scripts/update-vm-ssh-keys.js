@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read GCP Service Account Key
-const gcpKeyPath = path.join(__dirname, '../alti_gcp.json');
+const gcpKeyPath = path.join(__dirname, '../inso_gcp.json');
 if (!fs.existsSync(gcpKeyPath)) {
   console.error(`ERROR: Service account key not found at: ${gcpKeyPath}`);
   process.exit(1);
@@ -18,16 +18,16 @@ const gcpKey = JSON.parse(fs.readFileSync(gcpKeyPath, 'utf8'));
 const pubKeys = [];
 const keyPaths = [
   {
-    name: 'alti-vm-key.pub',
-    path: path.join(__dirname, '../../alti-vm-key.pub'),
+    name: 'inso-vm-key.pub',
+    path: path.join(__dirname, '../../inso-vm-key.pub'),
   },
   {
-    name: 'alti_deploy_key.pub',
-    path: path.join(__dirname, '../../alti_deploy_key.pub'),
+    name: 'inso_deploy_key.pub',
+    path: path.join(__dirname, '../../inso_deploy_key.pub'),
   },
   {
-    name: 'alti_backend_key.pub',
-    path: path.join(__dirname, '../../alti_backend_key.pub'),
+    name: 'inso_backend_key.pub',
+    path: path.join(__dirname, '../../inso_backend_key.pub'),
   },
 ];
 
@@ -62,7 +62,7 @@ const compute = google.compute({
 async function main() {
   const project = gcpKey.project_id;
   const targetIp = '35.239.192.33';
-  const username = process.env.VM_USER || 'alti_deployer';
+  const username = process.env.VM_USER || 'inso_deployer';
 
   console.log(`\n========================================`);
   console.log(`Connecting to GCP Project: ${project}`);

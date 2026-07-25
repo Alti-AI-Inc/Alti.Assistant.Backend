@@ -16,11 +16,11 @@ import {
 // Initialize Google Cloud Storage
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'alti_gcp.json',
+  keyFilename: 'inso_gcp.json',
 });
 
 // GCS Bucket for Knowledge Bank (separate from knowledgebot)
-const KNOWLEDGE_BANK_BUCKET = 'alti_assistant_knowledge_bot_files';
+const KNOWLEDGE_BANK_BUCKET = 'inso_assistant_knowledge_bot_files';
 
 // Initialize RAG System for processing files
 const embeddings = new SafeGoogleGenerativeAIEmbeddings({

@@ -1,6 +1,6 @@
 /**
  * @file This file serves as the central aggregation point for all custom AI agents
- * within the Alti.Assistant backend system.
+ * within the Inso.Assistant backend system.
  * It imports various specialized agents from different modules and compiles them
  * into a single, comprehensive list for easy access and global registration.
  *
@@ -226,7 +226,7 @@ import { knowledgeCatalogEnricher, knowledgeDiscoveryAgent } from './catalog.age
 
 /**
  * A comprehensive array containing instances of all custom AI agents available
- * in the Alti.Assistant ecosystem.
+ * in the Inso.Assistant ecosystem.
  * This array is designed for global registry loading, allowing the system to
  * dynamically access and utilize any specialized agent based on task requirements.
  * Agents are grouped by their functional domains for clarity and organization.

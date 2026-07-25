@@ -361,7 +361,7 @@ describe('DatasetsCrawlerService', () => {
           runDatasetIngestionWorkflow,
           expect.objectContaining({
             args: ['test/dataset-temp'],
-            taskQueue: 'alti-workflows-queue'
+            taskQueue: 'inso-workflows-queue'
           })
         );
         expect(mockQueueItem.status).toBe('downloading');

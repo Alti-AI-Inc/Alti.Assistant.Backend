@@ -23,7 +23,7 @@ import TemporalRepository from './temporal-repository.model.js';
  * Reads from the `MONGODB_URI` environment variable, falling back to a local default.
  * @type {string}
  */
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/altidb';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/insodb';
 
 /**
  * Mongoose connection options optimized for resilient, high-performance connections,
@@ -147,7 +147,7 @@ const __dirname = path.dirname(__filename);
 
 /**
  * The root directory of the workspace.
- * Points to: c:/Users/hyper/workspace/Alti.Assistant
+ * Points to: c:/Users/hyper/workspace/Inso.Assistant
  * @type {string}
  */
 const ROOT_DIR = path.join(__dirname, '../../../../..');

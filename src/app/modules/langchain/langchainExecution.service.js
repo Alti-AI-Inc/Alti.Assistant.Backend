@@ -10,7 +10,7 @@ import LangchainExecution from './langchain-execution.model.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 
 const vertex_ai = new VertexAI({
-  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant',
+  project: config.google?.gcp_project_id || config.gcp_project_id || process.env.GCP_PROJECT_ID || 'inso-assistant',
   location: config.google?.gcp_location || config.gcp_location || process.env.GCP_LOCATION || 'us-central1',
 });
 
@@ -371,7 +371,7 @@ const executeChain = async (chainId, inputs, userId) => {
       }
       const logFilePath = path.join(backupDir, `lcel_execution_${execution._id}.json`);
       fs.writeFileSync(logFilePath, JSON.stringify(execution.toJSON(), null, 2));
-      execution.gcsLogUri = `gs://${config.gcs?.presentation_bucket || 'alti_assistant_presentation'}/lcel_logs/lcel_execution_${execution._id}.json`;
+      execution.gcsLogUri = `gs://${config.gcs?.presentation_bucket || 'inso_assistant_presentation'}/lcel_logs/lcel_execution_${execution._id}.json`;
 
       await execution.save();
       return execution;
