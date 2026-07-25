@@ -45,7 +45,7 @@ def main():
     debt_to_equity = total_liabilities / equity if equity != 0 else float('inf')
     equity_ratio = (equity / total_assets) * 100
 
-    print("### 📊 Alti Fundamentals & Valuation Audit Report\n")
+    print("### 📊 Inso Fundamentals & Valuation Audit Report\n")
     print(f"* **Market Capitalization**: ${market_cap:,.2f}")
     print(f"* **Shareholder's Equity (Book Value)**: ${equity:,.2f}")
     print(f"* **Free Cash Flow (FCF)**: ${fcf:,.2f}\n")

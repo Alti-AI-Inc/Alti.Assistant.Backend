@@ -17,7 +17,7 @@ def main():
         print(f"Error: File not found at path: {filepath}")
         sys.exit(1)
 
-    print(f"### Alti Sandboxed Data Analysis: `{filepath}`\n")
+    print(f"### Inso Sandboxed Data Analysis: `{filepath}`\n")
     
     data = []
     if filepath.endswith('.json'):
