@@ -25,3 +25,6 @@ scratch/
 scripts/*-local*
 *.env.local
 *.env.production
+
+# Local GCP service account credentials
+alti_gcp.json

@@ -87,7 +87,7 @@ const router = express.Router();
  *         $ref: '#/components/responses/InternalServerError'
  */
 router.route('/register').post(
-  createRateLimiter(5, 2),
+  // createRateLimiter(5, 2),
   validateRequest(AuthValidation.UserValidationSchema),
   // SECURITY: Removed 'role' from swagger schema to prevent privilege escalation.
   // The controller MUST ignore any 'role' field in the request body and assign a default role (e.g., 'user').

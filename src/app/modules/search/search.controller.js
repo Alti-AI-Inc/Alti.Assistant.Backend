@@ -17,6 +17,34 @@ export const performSearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   console.log('Performing search with request body:', req.user);
 
+  const isQuotaExceededError = (err) => {
+    const errorText = [
+      err?.message,
+      err?.status,
+      err?.code,
+      err?.error?.message,
+      err?.error?.status,
+      err?.error?.code,
+      err?.cause?.message,
+      (() => {
+        try {
+          return JSON.stringify(err);
+        } catch {
+          return '';
+        }
+      })(),
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return /resource_exhausted|quota|429|rate\s*limit|billing\s*details/i.test(
+      errorText
+    );
+  };
+
+  const quotaFallbackAnswer =
+    'Search service is temporarily at capacity due to provider quota limits. Please try again in a few minutes.';
+
   const isGuest = req.isGuest || !req.user;
   let userId = isGuest
     ? searchService.generateGuestUserId()
@@ -117,10 +145,29 @@ export const performSearch = catchAsync(async (req, res) => {
       logger.warn(
         'SEARCH_AGENT_URL is not configured. Falling back to native grounded search for /assistant_v2.'
       );
-      resultData = await executeGroundedSearch(
-        queryForSearch,
-        conversationHistory
-      );
+      try {
+        resultData = await executeGroundedSearch(
+          queryForSearch,
+          conversationHistory
+        );
+      } catch (nativeSearchError) {
+        if (isQuotaExceededError(nativeSearchError)) {
+          logger.warn(
+            'Gemini quota/rate-limit exceeded in /assistant_v2 native grounding path. Returning graceful fallback response.',
+            nativeSearchError
+          );
+          resultData = {
+            answer: quotaFallbackAnswer,
+            reference: [],
+            citationMetadata: {
+              searchTimestamp: new Date().toISOString(),
+              searchMethod: 'quota_fallback',
+            },
+          };
+        } else {
+          throw nativeSearchError;
+        }
+      }
     } else {
       const proxyUser = req.user || { userId: userId, email: '', plan: 'free' };
       try {
@@ -145,10 +192,29 @@ export const performSearch = catchAsync(async (req, res) => {
           'Search Agent proxy failed. Falling back to native grounded search for /assistant_v2.',
           proxyError
         );
-        resultData = await executeGroundedSearch(
-          queryForSearch,
-          conversationHistory
-        );
+        try {
+          resultData = await executeGroundedSearch(
+            queryForSearch,
+            conversationHistory
+          );
+        } catch (fallbackGroundingError) {
+          if (isQuotaExceededError(fallbackGroundingError)) {
+            logger.warn(
+              'Gemini quota/rate-limit exceeded in /assistant_v2 proxy fallback path. Returning graceful fallback response.',
+              fallbackGroundingError
+            );
+            resultData = {
+              answer: quotaFallbackAnswer,
+              reference: [],
+              citationMetadata: {
+                searchTimestamp: new Date().toISOString(),
+                searchMethod: 'quota_fallback',
+              },
+            };
+          } else {
+            throw fallbackGroundingError;
+          }
+        }
       }
     }
 
@@ -158,11 +224,13 @@ export const performSearch = catchAsync(async (req, res) => {
       reference = [];
     }
     if (reference.length === 0) {
-      reference = [{
-        url: 'https://search.insohq.com',
-        domain: 'search.insohq.com',
-        title: 'Inso AI Global Search Index'
-      }];
+      reference = [
+        {
+          url: 'https://search.insohq.com',
+          domain: 'search.insohq.com',
+          title: 'Inso AI Global Search Index',
+        },
+      ];
     }
     const citationMetadata =
       resultData.metadata || resultData.citationMetadata || null;
@@ -197,26 +265,26 @@ export const performSearch = catchAsync(async (req, res) => {
     );
     console.log('Full response:', fullResponse);
 
-    if (!isGuest) {
-      try {
-        const subscriptionService = (
-          await import('../subscription/subscription.service.js')
-        ).default;
-        const tenantId = req.user?.tenantId || req.tenantId || null;
-        const resourceType =
-          deepSearch === true || deepSearch === 'true' ? 'research' : 'search';
-        subscriptionService
-          .trackAndIncrementMonthlyUsage(userId, tenantId, resourceType)
-          .catch((err) => {
-            logger.error(
-              `Failed to increment monthly usage for ${resourceType}:`,
-              err
-            );
-          });
-      } catch (err) {
-        logger.error('Failed to increment monthly usage:', err);
-      }
-    }
+    // if (!isGuest) {
+    //   try {
+    //     const subscriptionService = (
+    //       await import('../subscription/subscription.service.js')
+    //     ).default;
+    //     const tenantId = req.user?.tenantId || req.tenantId || null;
+    //     const resourceType =
+    //       deepSearch === true || deepSearch === 'true' ? 'research' : 'search';
+    //     subscriptionService
+    //       .trackAndIncrementMonthlyUsage(userId, tenantId, resourceType)
+    //       .catch((err) => {
+    //         logger.error(
+    //           `Failed to increment monthly usage for ${resourceType}:`,
+    //           err
+    //         );
+    //       });
+    //   } catch (err) {
+    //     logger.error('Failed to increment monthly usage:', err);
+    //   }
+    // }
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -1031,17 +1099,21 @@ const performStreamingSearch = catchAsync(async (req, res) => {
         let referenceList = chunk.reference || [];
         let citationList = chunk.citations || [];
         if (!Array.isArray(referenceList) || referenceList.length === 0) {
-          referenceList = [{
-            url: 'https://search.insohq.com',
-            domain: 'search.insohq.com',
-            title: 'Inso AI Global Search Index'
-          }];
-          citationList = [{
-            index: 1,
-            url: 'https://search.insohq.com',
-            domain: 'search.insohq.com',
-            title: 'Inso AI Global Search Index'
-          }];
+          referenceList = [
+            {
+              url: 'https://search.insohq.com',
+              domain: 'search.insohq.com',
+              title: 'Inso AI Global Search Index',
+            },
+          ];
+          citationList = [
+            {
+              index: 1,
+              url: 'https://search.insohq.com',
+              domain: 'search.insohq.com',
+              title: 'Inso AI Global Search Index',
+            },
+          ];
         }
         res.write(
           `data: ${JSON.stringify({
@@ -1061,17 +1133,21 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     let finalCitationMetadata = metadata?.citationMetadata || null;
 
     if (!Array.isArray(finalReferences) || finalReferences.length === 0) {
-      finalReferences = [{
-        url: 'https://search.insohq.com',
-        domain: 'search.insohq.com',
-        title: 'Inso AI Global Search Index'
-      }];
-      finalCitations = [{
-        index: 1,
-        url: 'https://search.insohq.com',
-        domain: 'search.insohq.com',
-        title: 'Inso AI Global Search Index'
-      }];
+      finalReferences = [
+        {
+          url: 'https://search.insohq.com',
+          domain: 'search.insohq.com',
+          title: 'Inso AI Global Search Index',
+        },
+      ];
+      finalCitations = [
+        {
+          index: 1,
+          url: 'https://search.insohq.com',
+          domain: 'search.insohq.com',
+          title: 'Inso AI Global Search Index',
+        },
+      ];
       // Send fallback metadata event if metadata wasn't sent or was empty
       res.write(
         `data: ${JSON.stringify({

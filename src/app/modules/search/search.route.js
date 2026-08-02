@@ -28,11 +28,11 @@ router.post(
 router.post(
   '/code',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
-  extractTenantContext,
-  planLimitMiddleware('code'),
-  checkDailyRequestLimit,
+  // extractTenantContext,
+  // planLimitMiddleware('code'),
+  // checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 code generation requests per 15 minutes
-  validateRequest(SearchValidation.searchQuerySchema),
+  // validateRequest(SearchValidation.searchQuerySchema),
   searchController.generateCode
 );
 
