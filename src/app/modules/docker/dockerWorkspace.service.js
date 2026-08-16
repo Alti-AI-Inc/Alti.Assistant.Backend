@@ -79,11 +79,13 @@ class DockerWorkspaceService {
 
     logger.info('[DOCKER] Initializing secure container workspace manager...');
     try {
-      // 1. Verify Docker is installed and running
+      // 1. Verify Docker CLI is installed
       execSync('docker --version', { stdio: 'ignore' });
+      // 2. Verify Docker daemon is reachable (important on Windows named pipe setups)
+      execSync('docker info', { stdio: 'ignore' });
       logger.info('[DOCKER] Docker daemon detected successfully.');
 
-      // 2. Check if the base sandbox image is built
+      // 3. Check if the base sandbox image is built
       let imageExists = false;
       try {
         const images = execSync(`docker images -q ${this.imageName}`, { encoding: 'utf8' }).trim();
@@ -104,7 +106,7 @@ class DockerWorkspaceService {
         logger.info(`[SUCCESS] Custom Sandbox Image "${this.imageName}" successfully built.`);
       }
 
-      // 3. Ensure secure internal bridge network exists with ICC disabled
+      // 4. Ensure secure internal bridge network exists with ICC disabled
       let networkNeedsRecreation = false;
       try {
         const netInspect = execSync('docker network inspect inso_sandbox_net --format "{{json .Options}}"', { encoding: 'utf8' });
@@ -127,7 +129,13 @@ class DockerWorkspaceService {
 
       this.initialized = true;
     } catch (err) {
-      logger.error(`[ERROR] Docker Workspace service initialization failed: ${err.message}`);
+      const message = err?.message || String(err);
+      const daemonUnavailable = /dockerdesktoplinuxengine|is the docker daemon running|error during connect|cannot connect to the docker daemon/i.test(message);
+      if (daemonUnavailable) {
+        logger.warn(`[DOCKER] Docker daemon unavailable. Using local fallback mode. Details: ${message}`);
+      } else {
+        logger.error(`[ERROR] Docker Workspace service initialization failed: ${message}`);
+      }
       logger.warn('[DOCKER] Sandbox fallback active: command execution will route locally with virtual warning.');
     }
   }

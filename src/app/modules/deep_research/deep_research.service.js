@@ -313,6 +313,13 @@ const addErrorMessage = async (
       req
     );
   } catch (error) {
+    if (error?.statusCode === httpStatus.NOT_FOUND) {
+      logger.warn('Skipped adding error message because conversation was not found', {
+        conversationId,
+        userId,
+      });
+      return;
+    }
     logger.error('Error adding error message:', error);
     // Don't throw here to avoid cascading errors
   }

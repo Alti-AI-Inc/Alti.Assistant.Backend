@@ -35,6 +35,8 @@ const PUBSUB_ENABLED =
  * @type {string}
  */
 const TOPIC_NAME = process.env.USAGE_LOG_TOPIC || 'usage-logs';
+const IP_HASH_SALT = process.env.IP_HASH_SALT || 'inso-ip-hash-salt';
+let pubSubPublishDisabled = false;
 
 /**
  * Maps an API endpoint and HTTP method to a specific module and action for usage logging.
@@ -188,17 +190,8 @@ const extractAction = (path, method) => {
  */
 const anonymizeIP = (ip) => {
   if (!ip) return null;
-  const salt = process.env.IP_HASH_SALT;
-  if (!salt) {
-    logger.warn('IP_HASH_SALT is not set. IP anonymization is less secure.');
-    return crypto
-      .createHash('sha256')
-      .update(ip)
-      .digest('hex')
-      .substring(0, 16);
-  }
   return crypto
-    .createHmac('sha256', salt)
+    .createHmac('sha256', IP_HASH_SALT)
     .update(ip)
     .digest('hex')
     .substring(0, 16);
@@ -249,7 +242,7 @@ const getErrorType = (statusCode) => {
 const createLogAsync = (logData) => {
   const dataBuffer = Buffer.from(JSON.stringify(logData));
 
-  if (!PUBSUB_ENABLED) {
+  if (!PUBSUB_ENABLED || pubSubPublishDisabled) {
     logger.warn('Pub/Sub disabled for usage logging; skipping publish.', {
       logContext: {
         userId: logData.userId,
@@ -264,6 +257,11 @@ const createLogAsync = (logData) => {
     .topic(TOPIC_NAME)
     .publishMessage({ data: dataBuffer })
     .catch((error) => {
+      const isTopicMissing = error?.code === 5 && String(error?.details || '').includes('Resource not found');
+      if (isTopicMissing) {
+        pubSubPublishDisabled = true;
+      }
+
       logger.error(
         'Failed to publish usage log to Pub/Sub. Falling back to direct DB write.',
         {
@@ -275,6 +273,13 @@ const createLogAsync = (logData) => {
           },
         }
       );
+
+      if (isTopicMissing) {
+        logger.warn('Disabling Pub/Sub usage log publishing for this process because topic is missing.', {
+          topic: TOPIC_NAME,
+        });
+      }
+
       // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable
       UsageLog.create(logData).catch((dbError) => {
         logger.error(

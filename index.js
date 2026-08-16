@@ -146,8 +146,25 @@ app.use(hpp());
 
 app.disable('x-powered-by');
 
-// Enable trust proxy for Cloud Run behind Google's load balancer
-app.set('trust proxy', true);
+// Configure trust proxy safely for rate-limiting integrity.
+// Never use boolean `true` because it trusts all proxy hops and allows IP spoofing.
+const trustProxyEnv = process.env.TRUST_PROXY;
+if (trustProxyEnv !== undefined) {
+  const normalized = String(trustProxyEnv).trim().toLowerCase();
+  if (normalized === 'false' || normalized === '0') {
+    app.set('trust proxy', false);
+  } else if (/^\d+$/.test(normalized)) {
+    app.set('trust proxy', Number.parseInt(normalized, 10));
+  } else if (normalized === 'loopback') {
+    app.set('trust proxy', 'loopback');
+  } else {
+    // Safe fallback for unrecognized values
+    app.set('trust proxy', 1);
+  }
+} else {
+  // Cloud Run / ingress default: trust the first proxy hop only.
+  app.set('trust proxy', config.env === 'production' ? 1 : false);
+}
 
 // Helmet middleware for robust security headers
 app.use(

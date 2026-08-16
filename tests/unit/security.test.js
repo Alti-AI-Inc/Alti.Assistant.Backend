@@ -60,14 +60,14 @@ describe('Security Middleware', () => {
     expect(content).toContain('app.use(hpp())');
   });
 
-  it('should verify trust proxy is set to true (not loopback)', async () => {
+  it('should verify trust proxy is configured safely (not boolean true)', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const indexPath = path.resolve(process.cwd(), 'index.js');
     const content = fs.readFileSync(indexPath, 'utf-8');
 
-    expect(content).toContain("app.set('trust proxy', true)");
-    expect(content).not.toContain("app.set('trust proxy', 'loopback')");
+    expect(content).toContain('const trustProxyEnv = process.env.TRUST_PROXY');
+    expect(content).not.toContain("app.set('trust proxy', true)");
   });
 
   it('should verify CORS restricts localhost to non-production', async () => {

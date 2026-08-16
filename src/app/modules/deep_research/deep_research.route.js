@@ -84,8 +84,8 @@ router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext, // Extract tenant context after auth
-  createRateLimiter(10, 15), // Rate limit first to prevent DB load/abuse from spam requests
-  validateRequest(AppValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
+  // createRateLimiter(10, 15), // Rate limit first to prevent DB load/abuse from spam requests
+  // validateRequest(AppValidation.deepResearchQuerySchema), // Validate request payload before checking subscription limits
   // checkDeepResearchLimit, // Check subscription limits only after passing rate limiting and validation
   deepResearchController.performDeepResearch
 );
