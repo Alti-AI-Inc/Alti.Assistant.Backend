@@ -1,27 +1,19 @@
 import express from 'express';
 import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
-import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
 
-import { aiModelEndpointRoutes } from '../modules/aiModelServices/aiEndpoint.route.js';
-import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
-import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 
 import { adminRoutes } from '../modules/admin/admin.route.js';
-import { llama4AiRoutes } from '../modules/Llama4/llama4.route.js';
 import { notificationRoutes } from '../modules/notification/notification.route.js';
 import { socialLoginRotes } from '../modules/social-login/social-login.route.js';
 import { supportRoutes } from '../modules/support/support.route.js';
-import { wishperAiRoutes } from '../modules/wishper/wishper.route.js';
 
 import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
-import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
-import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
+// import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
-import { searchRoute } from '../modules/search/search.route.js';
 import { summaryRoutes } from '../modules/summary/summary.route.js';
 import { writingRoutes } from '../modules/writing/workflow.route.js';
 import { createAgentProxy } from './agentProxy.js';
@@ -63,7 +55,6 @@ import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
 import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
-import { vertexRoutes } from '../modules/vertex/vertex.route.js';
 import { dockerRoutes } from './docker.route.js';
 
 const router = express.Router();
@@ -147,10 +138,10 @@ const moduleRoutes = [
     path: '/workflow-automation',
     route: workflowAutomationRoutes,
   },
-  {
-    path: '/cyberdesk',
-    route: cyberdeskRoutes,
-  },
+  // {
+  //   path: '/cyberdesk',
+  //   route: cyberdeskRoutes,
+  // },
   {
     path: '/rag-system',
     route: llamaindexRoutes,
