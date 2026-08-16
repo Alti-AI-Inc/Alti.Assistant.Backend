@@ -134,38 +134,15 @@ const moduleRoutes = [
     route: notificationRoutes,
   },
 
-  {
-    path: '/google-search',
-    route: googleSearchRoutes,
-  },
-  {
-    path: '/gemini',
-    route: geminiAiRoutes,
-  },
-  {
-    path: '/vertex',
-    route: vertexRoutes,
-  },
-  {
-    path: '/llama4',
-    route: llama4AiRoutes,
-  },
-  {
-    path: '/deepseek',
-    route: geminiAiRoutes,
-  },
-  {
-    path: '/qwen',
-    route: qwenAiRoutes,
-  },
-  {
-    path: '/wishper',
-    route: wishperAiRoutes,
-  },
-  {
-    path: '/api-endpoint',
-    route: aiModelEndpointRoutes,
-  },
+  // {
+  //   path: '/google-search',
+  //   route: googleSearchRoutes,
+  // },
+
+  // {
+  //   path: '/api-endpoint',
+  //   route: aiModelEndpointRoutes,
+  // },
   {
     path: '/workflow-automation',
     route: workflowAutomationRoutes,
@@ -198,18 +175,18 @@ const moduleRoutes = [
     path: '/summary',
     route: summaryRoutes,
   },
-  {
-    path: '/search',
-    route: searchRoute,
-  },
-  {
-    path: '/agent-search',
-    route: createAgentProxy('agent-search', 8083),
-  },
-  {
-    path: '/deep-research',
-    route: deepResearchRoute,
-  },
+  // {
+  //   path: '/search',
+  //   route: searchRoute,
+  // },
+  // {
+  //   path: '/agent-search',
+  //   route: createAgentProxy('agent-search', 8083),
+  // },
+  // {
+  //   path: '/deep-research',
+  //   route: deepResearchRoute,
+  // },
   {
     path: '/conversations',
     route: conversationRoutes,
