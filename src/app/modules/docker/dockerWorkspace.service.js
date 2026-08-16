@@ -1,6 +1,6 @@
-import { spawn, execSync } from 'child_process';
-import path from 'path';
+import { execSync, spawn } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 import { logger } from '../../../shared/logger.js';
 
 /**
@@ -42,7 +42,10 @@ class DockerWorkspaceService {
      * @property {number} maxContainers - The maximum number of Docker containers allowed to run concurrently.
      * Configurable via `DOCKER_MAX_CONTAINERS` environment variable.
      */
-    this.maxContainers = parseInt(process.env.DOCKER_MAX_CONTAINERS || '20', 10);
+    this.maxContainers = parseInt(
+      process.env.DOCKER_MAX_CONTAINERS || '20',
+      10
+    );
     /**
      * @property {Array<Function>} concurrencyQueue - A queue for Docker operations that exceed the `maxConcurrentOperations` limit.
      */
@@ -55,7 +58,10 @@ class DockerWorkspaceService {
      * @property {number} maxConcurrentOperations - The maximum number of Docker operations that can run in parallel.
      * Configurable via `DOCKER_MAX_CONCURRENT_OPS` environment variable.
      */
-    this.maxConcurrentOperations = parseInt(process.env.DOCKER_MAX_CONCURRENT_OPS || '3', 10);
+    this.maxConcurrentOperations = parseInt(
+      process.env.DOCKER_MAX_CONCURRENT_OPS || '3',
+      10
+    );
   }
 
   /**
@@ -88,32 +94,53 @@ class DockerWorkspaceService {
       // 3. Check if the base sandbox image is built
       let imageExists = false;
       try {
-        const images = execSync(`docker images -q ${this.imageName}`, { encoding: 'utf8' }).trim();
+        const images = execSync(`docker images -q ${this.imageName}`, {
+          encoding: 'utf8',
+        }).trim();
         if (images) {
           imageExists = true;
-          logger.info(`[DOCKER] Pre-compiled image "${this.imageName}" is ready.`);
+          logger.info(
+            `[DOCKER] Pre-compiled image "${this.imageName}" is ready.`
+          );
         }
       } catch (err) {
-        logger.warn('[DOCKER] Failed to query Docker images via CLI, attempting build directly.');
+        logger.warn(
+          '[DOCKER] Failed to query Docker images via CLI, attempting build directly.'
+        );
       }
 
       if (!imageExists) {
-        logger.info(`[DOCKER] Compiling custom Inso AI Sandbox Image "${this.imageName}"...`);
-        const dockerfilePath = path.join(this.dockerfileDir, 'Workspace.Dockerfile');
-        execSync(`docker build -t ${this.imageName} -f ${dockerfilePath} ${this.dockerfileDir}`, {
-          stdio: 'inherit'
-        });
-        logger.info(`[SUCCESS] Custom Sandbox Image "${this.imageName}" successfully built.`);
+        logger.info(
+          `[DOCKER] Compiling custom Inso AI Sandbox Image "${this.imageName}"...`
+        );
+        const dockerfilePath = path.join(
+          this.dockerfileDir,
+          'Workspace.Dockerfile'
+        );
+        execSync(
+          `docker build -t ${this.imageName} -f ${dockerfilePath} ${this.dockerfileDir}`,
+          {
+            stdio: 'inherit',
+          }
+        );
+        logger.info(
+          `[SUCCESS] Custom Sandbox Image "${this.imageName}" successfully built.`
+        );
       }
 
       // 4. Ensure secure internal bridge network exists with ICC disabled
       let networkNeedsRecreation = false;
       try {
-        const netInspect = execSync('docker network inspect inso_sandbox_net --format "{{json .Options}}"', { encoding: 'utf8' });
+        const netInspect = execSync(
+          'docker network inspect inso_sandbox_net --format "{{json .Options}}"',
+          { encoding: 'utf8' }
+        );
         const options = JSON.parse(netInspect);
         if (options['com.docker.network.bridge.enable_icc'] !== 'false') {
           networkNeedsRecreation = true;
-          logger.info('[DOCKER] Existing sandbox network has ICC enabled. Recreating for secure isolation...');
+          logger.info(
+            '[DOCKER] Existing sandbox network has ICC enabled. Recreating for secure isolation...'
+          );
           execSync('docker network rm inso_sandbox_net', { stdio: 'ignore' });
         }
       } catch {
@@ -122,21 +149,35 @@ class DockerWorkspaceService {
 
       if (networkNeedsRecreation) {
         const isInternal = process.env.DOCKER_NETWORK_INTERNAL === 'true';
-        logger.info(`[DOCKER] Creating secure sandbox network "inso_sandbox_net" (internal/offline: ${isInternal}, ICC: false)...`);
+        logger.info(
+          `[DOCKER] Creating secure sandbox network "inso_sandbox_net" (internal/offline: ${isInternal}, ICC: false)...`
+        );
         const internalFlag = isInternal ? '--internal' : '';
-        execSync(`docker network create -o com.docker.network.bridge.enable_icc=false ${internalFlag} inso_sandbox_net`, { stdio: 'ignore' });
+        execSync(
+          `docker network create -o com.docker.network.bridge.enable_icc=false ${internalFlag} inso_sandbox_net`,
+          { stdio: 'ignore' }
+        );
       }
 
       this.initialized = true;
     } catch (err) {
       const message = err?.message || String(err);
-      const daemonUnavailable = /dockerdesktoplinuxengine|is the docker daemon running|error during connect|cannot connect to the docker daemon/i.test(message);
+      const daemonUnavailable =
+        /dockerdesktoplinuxengine|is the docker daemon running|error during connect|cannot connect to the docker daemon/i.test(
+          message
+        );
       if (daemonUnavailable) {
-        logger.warn(`[DOCKER] Docker daemon unavailable. Using local fallback mode. Details: ${message}`);
+        logger.warn(
+          `[DOCKER] Docker daemon unavailable. Using local fallback mode. Details: ${message}`
+        );
       } else {
-        logger.error(`[ERROR] Docker Workspace service initialization failed: ${message}`);
+        logger.error(
+          `[ERROR] Docker Workspace service initialization failed: ${message}`
+        );
       }
-      logger.warn('[DOCKER] Sandbox fallback active: command execution will route locally with virtual warning.');
+      logger.warn(
+        '[DOCKER] Sandbox fallback active: command execution will route locally with virtual warning.'
+      );
     }
   }
 
@@ -151,7 +192,12 @@ class DockerWorkspaceService {
   _ensureHostUserDir(userId, isolationId) {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
-    const userDir = path.join(this.userWorkspacesDir, sanitizedUserId, 'workspaces', sanitizedIsolationId);
+    const userDir = path.join(
+      this.userWorkspacesDir,
+      sanitizedUserId,
+      'workspaces',
+      sanitizedIsolationId
+    );
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
     }
@@ -171,13 +217,19 @@ class DockerWorkspaceService {
       const containers = execSync(
         `docker ps -a --filter "name=inso_workspace_" --format "{{.Names}}"`,
         { encoding: 'utf8' }
-      ).trim().split('\n').map(n => n.trim()).filter(Boolean);
+      )
+        .trim()
+        .split('\n')
+        .map((n) => n.trim())
+        .filter(Boolean);
 
       if (containers.length < this.maxContainers) {
         return; // Safe, under limit
       }
 
-      logger.info(`[DOCKER LIMIT] Sandbox container ceiling reached (${containers.length}/${this.maxContainers}). Reclaiming slot...`);
+      logger.info(
+        `[DOCKER LIMIT] Sandbox container ceiling reached (${containers.length}/${this.maxContainers}). Reclaiming slot...`
+      );
 
       // 1. Evict any container not registered in activeSessions
       for (const name of containers) {
@@ -186,8 +238,12 @@ class DockerWorkspaceService {
           const sId = match[1]; // sId is the uniqueSessionId
           if (sId === excludeUniqueSessionId) continue;
           if (!this.activeSessions.has(sId)) {
-            logger.info(`[DOCKER EVICT] Evicting unregistered/leaked container: ${name}`);
-            try { execSync(`docker rm -f ${name}`); } catch(e){}
+            logger.info(
+              `[DOCKER EVICT] Evicting unregistered/leaked container: ${name}`
+            );
+            try {
+              execSync(`docker rm -f ${name}`);
+            } catch (e) {}
             return;
           }
         }
@@ -197,7 +253,8 @@ class DockerWorkspaceService {
       let oldestSessionId = null;
       let oldestTime = Infinity;
 
-      for (const [sId, session] of this.activeSessions.entries()) { // sId is uniqueSessionId
+      for (const [sId, session] of this.activeSessions.entries()) {
+        // sId is uniqueSessionId
         if (sId === excludeUniqueSessionId) continue;
         const lastAct = session.lastActivity.getTime();
         if (lastAct < oldestTime) {
@@ -207,8 +264,12 @@ class DockerWorkspaceService {
       }
 
       if (oldestSessionId) {
-        logger.info(`[DOCKER EVICT] Evicting LRU container ${oldestSessionId} (inactive since ${new Date(oldestTime).toISOString()})`);
-        try { execSync(`docker rm -f inso_workspace_${oldestSessionId}`); } catch(e){}
+        logger.info(
+          `[DOCKER EVICT] Evicting LRU container ${oldestSessionId} (inactive since ${new Date(oldestTime).toISOString()})`
+        );
+        try {
+          execSync(`docker rm -f inso_workspace_${oldestSessionId}`);
+        } catch (e) {}
         this.activeSessions.delete(oldestSessionId);
       } else {
         // 3. Fallback eviction if map is empty/unavailable
@@ -217,15 +278,21 @@ class DockerWorkspaceService {
           if (match) {
             const sId = match[1]; // sId is uniqueSessionId
             if (sId !== excludeUniqueSessionId) {
-              logger.info(`[DOCKER EVICT] Fallback evicting container: ${name}`);
-              try { execSync(`docker rm -f ${name}`); } catch(e){}
+              logger.info(
+                `[DOCKER EVICT] Fallback evicting container: ${name}`
+              );
+              try {
+                execSync(`docker rm -f ${name}`);
+              } catch (e) {}
               return;
             }
           }
         }
       }
     } catch (err) {
-      logger.error(`[DOCKER EVICT ERROR] Failed to reclaim container slot: ${err.message}`);
+      logger.error(
+        `[DOCKER EVICT ERROR] Failed to reclaim container slot: ${err.message}`
+      );
     }
   }
 
@@ -258,7 +325,9 @@ class DockerWorkspaceService {
       if (this.activeOperationsCount < this.maxConcurrentOperations) {
         execute();
       } else {
-        logger.info(`[DOCKER QUEUE] Queueing Docker operation due to concurrency limit (${this.activeOperationsCount}/${this.maxConcurrentOperations} active)`);
+        logger.info(
+          `[DOCKER QUEUE] Queueing Docker operation due to concurrency limit (${this.activeOperationsCount}/${this.maxConcurrentOperations} active)`
+        );
         this.concurrencyQueue.push(execute);
       }
     });
@@ -275,12 +344,18 @@ class DockerWorkspaceService {
    * @returns {Promise<{ success: boolean; mode: 'docker-isolated' | 'local-fallback'; containerId: string | null; }>}
    *   An object indicating success, the execution mode, and the container ID if successful.
    */
-  async getOrCreateWorkspace(userId, isolationId = 'default', projectId = null) {
+  async getOrCreateWorkspace(
+    userId,
+    isolationId = 'default',
+    projectId = null
+  ) {
     await this.initialize();
 
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
-    const sanitizedProjectId = projectId ? this._sanitizeIdentifier(projectId) : null;
+    const sanitizedProjectId = projectId
+      ? this._sanitizeIdentifier(projectId)
+      : null;
 
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
     this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() });
@@ -290,12 +365,19 @@ class DockerWorkspaceService {
     }
 
     const containerName = `inso_workspace_${uniqueSessionId}`;
-    const hostVolumePath = this._ensureHostUserDir(sanitizedUserId, sanitizedIsolationId);
-    
+    const hostVolumePath = this._ensureHostUserDir(
+      sanitizedUserId,
+      sanitizedIsolationId
+    );
+
     // Ensure project data directory exists if projectId is provided
     let projectDataMount = '';
     if (sanitizedProjectId) {
-      const projectDataDir = path.join(path.resolve('storage/projects'), sanitizedProjectId, 'data');
+      const projectDataDir = path.join(
+        path.resolve('storage/projects'),
+        sanitizedProjectId,
+        'data'
+      );
       if (!fs.existsSync(projectDataDir)) {
         fs.mkdirSync(projectDataDir, { recursive: true });
       }
@@ -315,9 +397,12 @@ class DockerWorkspaceService {
         ).trim();
 
         if (containerStatus === 'none') {
-          logger.info(`[DOCKER] Creating new workspace container: ${containerName}`);
-          
-          const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
+          logger.info(
+            `[DOCKER] Creating new workspace container: ${containerName}`
+          );
+
+          const skillsBaseDir =
+            'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
           const mcpToolboxDir = path.resolve('mcp-toolbox');
 
           // Spawn container in background with resource constraints (CPU shares, Memory ceiling)
@@ -343,18 +428,30 @@ class DockerWorkspaceService {
             ${this.imageName} sleep infinity`;
 
           execSync(createCmd);
-          logger.info(`[SUCCESS] Created container workspace: ${containerName}`);
+          logger.info(
+            `[SUCCESS] Created container workspace: ${containerName}`
+          );
         } else if (containerStatus === 'paused') {
-          logger.info(`[DOCKER] Unpausing workspace container: ${containerName}`);
+          logger.info(
+            `[DOCKER] Unpausing workspace container: ${containerName}`
+          );
           execSync(`docker unpause ${containerName}`);
         } else if (containerStatus !== 'running') {
-          logger.info(`[DOCKER] Restarting stopped workspace container: ${containerName}`);
+          logger.info(
+            `[DOCKER] Restarting stopped workspace container: ${containerName}`
+          );
           execSync(`docker start ${containerName}`);
         }
 
-        return { success: true, mode: 'docker-isolated', containerId: containerName };
+        return {
+          success: true,
+          mode: 'docker-isolated',
+          containerId: containerName,
+        };
       } catch (err) {
-        logger.error(`[DOCKER] Failed to manage workspace for user ${sanitizedUserId}: ${err.message}`);
+        logger.error(
+          `[DOCKER] Failed to manage workspace for user ${sanitizedUserId}: ${err.message}`
+        );
         return { success: false, mode: 'local-fallback', containerId: null };
       }
     });
@@ -376,12 +473,23 @@ class DockerWorkspaceService {
    * @returns {Promise<{ code: number; stdout: string; stderr: string; mode: 'docker-isolated' | 'local-fallback'; }>}
    *   An object containing the exit code, standard output, standard error, and execution mode.
    */
-  async executeCommand(userId, isolationId = 'default', commandArgs, options = {}) {
+  async executeCommand(
+    userId,
+    isolationId = 'default',
+    commandArgs,
+    options = {}
+  ) {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
     const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
-    const sanitizedProjectId = options.projectId ? this._sanitizeIdentifier(options.projectId) : null;
+    const sanitizedProjectId = options.projectId
+      ? this._sanitizeIdentifier(options.projectId)
+      : null;
 
-    const workspace = await this.getOrCreateWorkspace(sanitizedUserId, sanitizedIsolationId, sanitizedProjectId);
+    const workspace = await this.getOrCreateWorkspace(
+      sanitizedUserId,
+      sanitizedIsolationId,
+      sanitizedProjectId
+    );
     const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
     this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() }); // Update activity for the correct uniqueSessionId
 
@@ -389,12 +497,17 @@ class DockerWorkspaceService {
 
     // A. Local process fallback if Docker layer is unavailable
     if (workspace.mode === 'local-fallback') {
-      logger.warn(`[DOCKER FALLBACK] Running locally for user ${sanitizedUserId}: ${commandArgs.join(' ')}`);
+      logger.warn(
+        `[DOCKER FALLBACK] Running locally for user ${sanitizedUserId}: ${commandArgs.join(' ')}`
+      );
       return new Promise((resolve) => {
         // `spawn` handles commandArgs as separate arguments, preventing shell injection at this level.
         const cmd = commandArgs[0];
         const args = commandArgs.slice(1);
-        const child = spawn(cmd, args, { cwd: options.cwd || process.cwd(), env: process.env });
+        const child = spawn(cmd, args, {
+          cwd: options.cwd || process.cwd(),
+          env: process.env,
+        });
 
         let stdout = '';
         let stderr = '';
@@ -403,8 +516,12 @@ class DockerWorkspaceService {
           child.kill('SIGTERM');
         }, timeoutMs);
 
-        child.stdout.on('data', (d) => { stdout += d.toString(); });
-        child.stderr.on('data', (d) => { stderr += d.toString(); });
+        child.stdout.on('data', (d) => {
+          stdout += d.toString();
+        });
+        child.stderr.on('data', (d) => {
+          stderr += d.toString();
+        });
 
         child.on('close', (code) => {
           clearTimeout(timer);
@@ -415,7 +532,9 @@ class DockerWorkspaceService {
 
     // B. Strict isolated Docker Exec container execution
     const containerName = workspace.containerId; // This is already `inso_workspace_${uniqueSessionId}`
-    logger.info(`[DOCKER EXEC] Running inside ${containerName}: ${commandArgs.join(' ')}`);
+    logger.info(
+      `[DOCKER EXEC] Running inside ${containerName}: ${commandArgs.join(' ')}`
+    );
 
     return new Promise((resolve) => {
       // Execute command under non-root sandbox user inside /workspace folder
@@ -424,10 +543,12 @@ class DockerWorkspaceService {
       // but the container's security profile mitigates risks.
       const execArgs = [
         'exec',
-        '-u', 'sandbox',
-        '-w', '/workspace',
+        '-u',
+        'sandbox',
+        '-w',
+        '/workspace',
         containerName,
-        ...commandArgs
+        ...commandArgs,
       ];
 
       const child = spawn('docker', execArgs);
@@ -440,14 +561,18 @@ class DockerWorkspaceService {
       const timer = setTimeout(() => {
         aborted = true;
         clearInterval(monitorInterval);
-        logger.error(`[DOCKER TIMEOUT] Exec command expired inside ${containerName}`);
+        logger.error(
+          `[DOCKER TIMEOUT] Exec command expired inside ${containerName}`
+        );
         child.kill('SIGTERM');
         // Force kill target container subprocess if unresponsive
         try {
           // containerName is sanitized, so this execSync is safe.
           execSync(`docker exec ${containerName} pkill -u sandbox`);
         } catch (err) {
-          logger.debug(`[DOCKER] Force-kill sandbox processes did not succeed or container is already stopped: ${err.message}`);
+          logger.debug(
+            `[DOCKER] Force-kill sandbox processes did not succeed or container is already stopped: ${err.message}`
+          );
         }
       }, timeoutMs);
 
@@ -456,40 +581,57 @@ class DockerWorkspaceService {
         if (aborted) return;
         try {
           // Call getWorkspaceMetrics with sanitized IDs
-          const metrics = await this.getWorkspaceMetrics(sanitizedUserId, sanitizedIsolationId);
+          const metrics = await this.getWorkspaceMetrics(
+            sanitizedUserId,
+            sanitizedIsolationId
+          );
           if (metrics.connected && !aborted) {
-            const cpu = parseFloat(String(metrics.cpuPercent || '0').replace('%', ''));
-            const mem = parseFloat(String(metrics.memoryPercent || '0').replace('%', ''));
+            const cpu = parseFloat(
+              String(metrics.cpuPercent || '0').replace('%', '')
+            );
+            const mem = parseFloat(
+              String(metrics.memoryPercent || '0').replace('%', '')
+            );
 
             if (mem > 90) {
               aborted = true;
               clearInterval(monitorInterval);
               clearTimeout(timer);
-              logger.error(`[DOCKER RESOURCE CAP] Aborting execution inside ${containerName} due to Memory ceiling violation: ${mem}%`);
-              
+              logger.error(
+                `[DOCKER RESOURCE CAP] Aborting execution inside ${containerName} due to Memory ceiling violation: ${mem}%`
+              );
+
               child.kill('SIGKILL');
               try {
                 // containerName is sanitized, so this execSync is safe.
                 execSync(`docker exec ${containerName} pkill -u sandbox`);
               } catch (err) {
-                logger.debug(`[DOCKER] Failed to force-kill processes during resource cap abort: ${err.message}`);
+                logger.debug(
+                  `[DOCKER] Failed to force-kill processes during resource cap abort: ${err.message}`
+                );
               }
-              
+
               resolve({
                 code: 137, // Out-Of-Memory standard exit code
                 stdout,
                 stderr: `Execution Aborted: Sandbox memory limit exceeded (${mem}% >= 90%).`,
-                mode: 'docker-isolated'
+                mode: 'docker-isolated',
               });
             }
           }
         } catch (err) {
-          logger.debug(`[DOCKER MONITOR] Error checking running container resource levels: ${err.message}`);
+          logger.debug(
+            `[DOCKER MONITOR] Error checking running container resource levels: ${err.message}`
+          );
         }
       }, 3000);
 
-      child.stdout.on('data', (d) => { stdout += d.toString(); });
-      child.stderr.on('data', (d) => { stderr += d.toString(); });
+      child.stdout.on('data', (d) => {
+        stdout += d.toString();
+      });
+      child.stderr.on('data', (d) => {
+        stderr += d.toString();
+      });
 
       child.on('close', (code) => {
         clearInterval(monitorInterval);
@@ -498,8 +640,10 @@ class DockerWorkspaceService {
           resolve({
             code,
             stdout,
-            stderr: stderr.includes('read-only') ? 'Access Denied: Root filesystem restrictions active.' : stderr,
-            mode: 'docker-isolated'
+            stderr: stderr.includes('read-only')
+              ? 'Access Denied: Root filesystem restrictions active.'
+              : stderr,
+            mode: 'docker-isolated',
           });
         }
       });
@@ -521,7 +665,9 @@ class DockerWorkspaceService {
     const containerName = `inso_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker pause ${containerName}`);
-      logger.info(`[DOCKER] Successfully paused workspace container: ${containerName}`);
+      logger.info(
+        `[DOCKER] Successfully paused workspace container: ${containerName}`
+      );
       return true;
     } catch {
       return false;
@@ -543,7 +689,9 @@ class DockerWorkspaceService {
     const containerName = `inso_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker rm -f ${containerName}`);
-      logger.info(`[DOCKER] Safely destroyed workspace container: ${containerName}`);
+      logger.info(
+        `[DOCKER] Safely destroyed workspace container: ${containerName}`
+      );
       this.activeSessions.delete(uniqueSessionId); // Delete the correct uniqueSessionId from the map
       return true;
     } catch {
@@ -561,32 +709,41 @@ class DockerWorkspaceService {
   async auditActiveWorkspaces() {
     logger.info('[DOCKER CRON] Auditing active user container workspaces...');
     const now = new Date();
-    
+
     // Iterate over uniqueSessionId keys in activeSessions map
     for (const [uniqueSessionId, session] of this.activeSessions.entries()) {
-      const idleTimeSec = (now.getTime() - session.lastActivity.getTime()) / 1000;
+      const idleTimeSec =
+        (now.getTime() - session.lastActivity.getTime()) / 1000;
       const containerName = `inso_workspace_${uniqueSessionId}`; // Use the consistent container naming
 
       // Parse userId and isolationId from uniqueSessionId to pass to stop/pause methods
       const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
 
       try {
-        if (idleTimeSec > 1200) { // 20 minutes inactive -> Destroy container
-          logger.info(`[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Destroying container.`);
+        if (idleTimeSec > 1200) {
+          // 20 minutes inactive -> Destroy container
+          logger.info(
+            `[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Destroying container.`
+          );
           await this.stopWorkspace(userId, isolationId); // Await the async call
-        } else if (idleTimeSec > 300) { // 5 minutes inactive -> Pause container to free host CPU
+        } else if (idleTimeSec > 300) {
+          // 5 minutes inactive -> Pause container to free host CPU
           const status = execSync(
             `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
             { encoding: 'utf8' }
           ).trim();
 
           if (status === 'running') {
-            logger.info(`[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Pausing container CPU.`);
+            logger.info(
+              `[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Pausing container CPU.`
+            );
             await this.pauseWorkspace(userId, isolationId); // Await the async call
           }
         }
       } catch (err) {
-        logger.error(`[DOCKER CRON] Audit failed for user workspace ${uniqueSessionId}: ${err.message}`);
+        logger.error(
+          `[DOCKER CRON] Audit failed for user workspace ${uniqueSessionId}: ${err.message}`
+        );
       }
     }
   }
@@ -621,9 +778,15 @@ class DockerWorkspaceService {
         ).trim();
 
         if (containerStatus === 'none') {
-          logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${uniqueSessionId}`);
-          const hostVolumePath = this._ensureHostUserDir(sanitizedUserId, sanitizedIsolationId); // Pass sanitized IDs
-          const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
+          logger.info(
+            `[DOCKER PREWARM] Pre-warming new container for user: ${uniqueSessionId}`
+          );
+          const hostVolumePath = this._ensureHostUserDir(
+            sanitizedUserId,
+            sanitizedIsolationId
+          ); // Pass sanitized IDs
+          const skillsBaseDir =
+            'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
           const mcpToolboxDir = path.resolve('mcp-toolbox');
 
           // All variables interpolated into createCmd (containerName, hostVolumePath)
@@ -646,14 +809,20 @@ class DockerWorkspaceService {
 
           execSync(createCmd);
           execSync(`docker pause ${containerName}`);
-          logger.info(`[SUCCESS] Pre-warmed container ${containerName} and placed in paused state.`);
+          logger.info(
+            `[SUCCESS] Pre-warmed container ${containerName} and placed in paused state.`
+          );
         } else if (containerStatus === 'running') {
-          logger.info(`[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`);
+          logger.info(
+            `[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`
+          );
           execSync(`docker pause ${containerName}`);
         }
         this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() }); // Consistent key
       } catch (err) {
-        logger.error(`[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`);
+        logger.error(
+          `[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`
+        );
       }
     });
   }
@@ -694,7 +863,7 @@ class DockerWorkspaceService {
         memoryPercent: parsed.MemPerc,
         netIO: parsed.NetIO,
         blockIO: parsed.BlockIO,
-        pids: parsed.PIDs
+        pids: parsed.PIDs,
       };
     } catch (err) {
       return { connected: false, error: err.message, uniqueSessionId }; // Return uniqueSessionId
@@ -709,11 +878,13 @@ class DockerWorkspaceService {
    */
   async getAllActiveMetrics() {
     // Collect all promises for metrics concurrently using Promise.all
-    const metricPromises = Array.from(this.activeSessions.keys()).map(async (uniqueSessionId) => {
-      // Parse userId and isolationId from uniqueSessionId to pass to getWorkspaceMetrics
-      const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
-      return this.getWorkspaceMetrics(userId, isolationId);
-    });
+    const metricPromises = Array.from(this.activeSessions.keys()).map(
+      async (uniqueSessionId) => {
+        // Parse userId and isolationId from uniqueSessionId to pass to getWorkspaceMetrics
+        const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
+        return this.getWorkspaceMetrics(userId, isolationId);
+      }
+    );
     return Promise.all(metricPromises); // Execute all metric scraping in parallel
   }
 }

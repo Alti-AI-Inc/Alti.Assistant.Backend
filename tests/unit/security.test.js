@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Health endpoint integration tests.
@@ -35,7 +35,7 @@ describe('Health Endpoints', () => {
     const content = fs.readFileSync(indexPath, 'utf-8');
 
     expect(content).toContain('RedisClient.isEnabled');
-    expect(content).toContain("health:ping");
+    expect(content).toContain('health:ping');
   });
 });
 
@@ -46,7 +46,9 @@ describe('Security Middleware', () => {
     const indexPath = path.resolve(process.cwd(), 'index.js');
     const content = fs.readFileSync(indexPath, 'utf-8');
 
-    expect(content).toContain("import mongoSanitize from 'express-mongo-sanitize'");
+    expect(content).toContain(
+      "import mongoSanitize from 'express-mongo-sanitize'"
+    );
     expect(content).toContain('app.use(mongoSanitize())');
   });
 
@@ -77,7 +79,7 @@ describe('Security Middleware', () => {
     const content = fs.readFileSync(indexPath, 'utf-8');
 
     expect(content).toContain("process.env.NODE_ENV !== 'production'");
-    expect(content).toContain("allowedOrigins.push(");
+    expect(content).toContain('allowedOrigins.push(');
   });
 });
 
@@ -108,7 +110,9 @@ describe('Graceful Shutdown', () => {
     const content = fs.readFileSync(indexPath, 'utf-8');
 
     // Should NOT have process.exit in unhandledRejection handler
-    const unhandledSection = content.split("process.on('unhandledRejection'")[1];
+    const unhandledSection = content.split(
+      "process.on('unhandledRejection'"
+    )[1];
     expect(unhandledSection).toBeDefined();
     // The section up to the next process.on or export should not have process.exit
     const sectionEnd = unhandledSection.indexOf('export default');

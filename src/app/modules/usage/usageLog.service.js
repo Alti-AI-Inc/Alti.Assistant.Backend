@@ -257,7 +257,9 @@ const createLogAsync = (logData) => {
     .topic(TOPIC_NAME)
     .publishMessage({ data: dataBuffer })
     .catch((error) => {
-      const isTopicMissing = error?.code === 5 && String(error?.details || '').includes('Resource not found');
+      const isTopicMissing =
+        error?.code === 5 &&
+        String(error?.details || '').includes('Resource not found');
       if (isTopicMissing) {
         pubSubPublishDisabled = true;
       }
@@ -275,9 +277,12 @@ const createLogAsync = (logData) => {
       );
 
       if (isTopicMissing) {
-        logger.warn('Disabling Pub/Sub usage log publishing for this process because topic is missing.', {
-          topic: TOPIC_NAME,
-        });
+        logger.warn(
+          'Disabling Pub/Sub usage log publishing for this process because topic is missing.',
+          {
+            topic: TOPIC_NAME,
+          }
+        );
       }
 
       // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable

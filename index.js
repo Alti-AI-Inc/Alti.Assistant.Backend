@@ -11,31 +11,34 @@ try {
 
 import compression from 'compression';
 import cors from 'cors';
+import express from 'express';
+import mongoSanitize from 'express-mongo-sanitize';
+import helmet from 'helmet';
+import hpp from 'hpp';
+import httpStatus from 'http-status';
 import { createRequire } from 'module';
+import mongoose from 'mongoose';
+import toobusy from 'toobusy-js';
+import requestIdMiddleware from './src/app/middlewares/requestId.js';
+import tenantGuardrail from './src/shared/tenantGuardrail.js';
 const require = createRequire(import.meta.url);
 require('buffer').SlowBuffer = require('buffer').Buffer;
-import express from 'express';
-import helmet from 'helmet';
-import httpStatus from 'http-status';
-import mongoose from 'mongoose';
 const originalConnect = mongoose.connect.bind(mongoose);
-mongoose.connect = async function(uri, options) {
+mongoose.connect = async function (uri, options) {
   if (uri && uri.includes('localhost')) {
     console.warn(`[Mongoose Patch] Blocked rogue connection to ${uri}`);
     return mongoose;
   }
-  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+  if (
+    mongoose.connection.readyState === 1 ||
+    mongoose.connection.readyState === 2
+  ) {
     console.warn(`[Mongoose Patch] Blocked duplicate connection to ${uri}`);
     return mongoose;
   }
   console.log(`[Mongoose Patch] Allowing initial connection to ${uri}`);
   return originalConnect(uri, options);
 };
-import mongoSanitize from 'express-mongo-sanitize';
-import hpp from 'hpp';
-import toobusy from 'toobusy-js';
-import requestIdMiddleware from './src/app/middlewares/requestId.js';
-import tenantGuardrail from './src/shared/tenantGuardrail.js';
 
 // Enforce tenant isolation boundaries globally on all queries
 mongoose.plugin(tenantGuardrail);
@@ -49,17 +52,21 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import config from './config/index.js';
 
-import passportConfig from './src/app/modules/social-login/config/passport.js';
-import { logger } from './src/shared/logger.js';
-import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
-import { fetchStripeIps } from './src/shared/stripeSecurity.js';
-import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
-import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
-import { requestContextStore } from './src/shared/requestContext.js';
-import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
-import { initSentry, captureException, flushSentry } from './src/shared/sentry.js';
+import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
+import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
+import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
+import passportConfig from './src/app/modules/social-login/config/passport.js';
+import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
+import { logger } from './src/shared/logger.js';
 import { RedisClient } from './src/shared/redis.js';
+import { requestContextStore } from './src/shared/requestContext.js';
+import {
+  captureException,
+  flushSentry,
+  initSentry,
+} from './src/shared/sentry.js';
+import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 
 // Load environment variables (already loaded at entrypoint top)
 
@@ -67,17 +74,25 @@ import { RedisClient } from './src/shared/redis.js';
 // STARTUP ENV VALIDATION — fail fast if critical config is missing
 // ═══════════════════════════════════════════════════════════════════════════════
 const REQUIRED_ENV = ['DATABASE_LOCAL'];
-const RECOMMENDED_ENV = ['GEMINI_API_KEY', 'JWT_ACCESS_TOKEN', 'JWT_REFRESH_REFRESH_TOKEN'];
+const RECOMMENDED_ENV = [
+  'GEMINI_API_KEY',
+  'JWT_ACCESS_TOKEN',
+  'JWT_REFRESH_REFRESH_TOKEN',
+];
 
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
-    logger.error(`❌ FATAL: Required environment variable ${key} is not set. Server cannot start reliably.`);
+    logger.error(
+      `❌ FATAL: Required environment variable ${key} is not set. Server cannot start reliably.`
+    );
     // Don't exit — let Cloud Run accept the revision, but log loudly
   }
 }
 for (const key of RECOMMENDED_ENV) {
   if (!process.env[key]) {
-    logger.warn(`⚠️ Recommended environment variable ${key} is not set. Some features may not work.`);
+    logger.warn(
+      `⚠️ Recommended environment variable ${key} is not set. Some features may not work.`
+    );
   }
 }
 
@@ -88,8 +103,14 @@ initSentry(app);
 
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
+app.use(
+  '/api/v1/subscription/webhook',
+  express.raw({ type: 'application/json' })
+);
+app.use(
+  '/api/v1/subscriptions/webhook',
+  express.raw({ type: 'application/json' })
+);
 
 const allowedOrigins = [
   'https://insohq.com',
@@ -109,7 +130,6 @@ if (process.env.NODE_ENV !== 'production') {
     'http://127.0.0.1:8080'
   );
 }
-
 
 app.use(
   cors({
@@ -208,9 +228,15 @@ app.use((req, res, next) => {
 // accepts the revision. The server starts immediately and DB reconnects.
 const connectDB = (retries = 5, delay = 5000) => {
   const dbUri = config.database_local;
-  
-  if (!dbUri || typeof dbUri !== 'string' || (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://'))) {
-    logger.error(`❌ DB connection failed: Invalid database URI format (got: "${dbUri}").`);
+
+  if (
+    !dbUri ||
+    typeof dbUri !== 'string' ||
+    (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://'))
+  ) {
+    logger.error(
+      `❌ DB connection failed: Invalid database URI format (got: "${dbUri}").`
+    );
     if (retries > 0) {
       setTimeout(() => connectDB(retries - 1, delay), delay);
     } else {
@@ -224,7 +250,9 @@ const connectDB = (retries = 5, delay = 5000) => {
     if (mongoose.connection.readyState === 1) {
       connectionPromise = Promise.resolve();
     } else if (mongoose.connection.readyState === 2) {
-      connectionPromise = new Promise((resolve) => mongoose.connection.once('open', resolve));
+      connectionPromise = new Promise((resolve) =>
+        mongoose.connection.once('open', resolve)
+      );
     } else {
       connectionPromise = mongoose.connect(dbUri, {
         family: 4,
@@ -239,11 +267,16 @@ const connectDB = (retries = 5, delay = 5000) => {
     connectionPromise
       .then(() => {
         logger.info('✅ Database connection successfully');
-        
+
         // Start background Temporal Worker
-        temporalWorkerCoordinator.start().catch((err) =>
-          logger.error('⚠️ Failed to start background Temporal Worker:', err.message)
-        );
+        temporalWorkerCoordinator
+          .start()
+          .catch((err) =>
+            logger.error(
+              '⚠️ Failed to start background Temporal Worker:',
+              err.message
+            )
+          );
 
         fetchStripeIps().catch((err) =>
           logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
@@ -259,11 +292,15 @@ const connectDB = (retries = 5, delay = 5000) => {
         }, 3000); // 3s delay so DB + Redis are fully ready
       })
       .catch((err) => {
-        logger.error(`❌ DB connection failed (${retries} retries left): ${err.message}`);
+        logger.error(
+          `❌ DB connection failed (${retries} retries left): ${err.message}`
+        );
         if (retries > 0) {
           setTimeout(() => connectDB(retries - 1, delay), delay);
         } else {
-          logger.error('❌ All DB retries exhausted. Running without database.');
+          logger.error(
+            '❌ All DB retries exhausted. Running without database.'
+          );
         }
       });
   } catch (err) {
@@ -291,7 +328,10 @@ app.use((req, res, next) => {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1];
-        const verifiedUser = jwtHelpers.verifyToken(token, config.jwt.access_token);
+        const verifiedUser = jwtHelpers.verifyToken(
+          token,
+          config.jwt.access_token
+        );
         const userId = verifiedUser?.userId || verifiedUser?._id;
         if (userId) {
           // Asynchronously warm up container workspace in background
@@ -325,7 +365,8 @@ app.get('/health', async (req, res) => {
 
   // Check MongoDB
   try {
-    checks.mongodb = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    checks.mongodb =
+      mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   } catch {
     checks.mongodb = 'error';
   }
@@ -418,7 +459,11 @@ const server = app.listen(port, '0.0.0.0', () => {
   // Start the Open-Source LiveKit Voice Agent Worker asynchronously
   import('./src/app/modules/streaming/agents/voice-agent.worker.js')
     .then((module) => {
-      module.runVoiceAgentWorker().catch(err => logger.error('Failed to start Voice Agent Worker', err));
+      module
+        .runVoiceAgentWorker()
+        .catch((err) =>
+          logger.error('Failed to start Voice Agent Worker', err)
+        );
     })
     .catch((err) => {
       logger.error('Could not load Voice Agent Worker module', err);
@@ -463,12 +508,16 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Diagnostic: log WHY the process exits (helpful for debugging container restarts)
 process.on('exit', (code) => {
-  console.error(`[EXIT DIAGNOSTIC] Process exiting with code: ${code} at ${new Date().toISOString()}`);
+  console.error(
+    `[EXIT DIAGNOSTIC] Process exiting with code: ${code} at ${new Date().toISOString()}`
+  );
   console.error(`[EXIT DIAGNOSTIC] Stack trace:`, new Error().stack);
 });
 
 process.on('beforeExit', (code) => {
-  console.error(`[BEFORE EXIT] Process about to exit with code: ${code} — event loop empty at ${new Date().toISOString()}`);
+  console.error(
+    `[BEFORE EXIT] Process about to exit with code: ${code} — event loop empty at ${new Date().toISOString()}`
+  );
 });
 
 process.on('uncaughtException', (err) => {

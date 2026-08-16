@@ -1,9 +1,9 @@
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
-import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import mongoose from 'mongoose';
+import { conversationService } from '../conversations/conversation.service.js';
 
 /**
  * Generates a unique guest user ID using MongoDB's ObjectId format.
@@ -79,7 +79,10 @@ const handleDeepResearchConversation = async (
         if (conversation) {
           if (isGuest) {
             // For guest users, verify the conversation belongs to them AND is a guest conversation.
-            if (conversation.userId !== userId || conversation.metadata?.userType !== 'guest') {
+            if (
+              conversation.userId !== userId ||
+              conversation.metadata?.userType !== 'guest'
+            ) {
               logger.warn(
                 `Guest user ${userId} tried to access non-owned or non-guest conversation ${conversationId}. Forcing new conversation.`
               );
@@ -314,10 +317,13 @@ const addErrorMessage = async (
     );
   } catch (error) {
     if (error?.statusCode === httpStatus.NOT_FOUND) {
-      logger.warn('Skipped adding error message because conversation was not found', {
-        conversationId,
-        userId,
-      });
+      logger.warn(
+        'Skipped adding error message because conversation was not found',
+        {
+          conversationId,
+          userId,
+        }
+      );
       return;
     }
     logger.error('Error adding error message:', error);
@@ -463,7 +469,8 @@ const getDeepResearchStats = async (userId, req = null) => {
       );
 
     // BUG FIX: Add null/undefined check for conversations array
-    const deepResearchConversations = deepResearchConversationsResult?.conversations || [];
+    const deepResearchConversations =
+      deepResearchConversationsResult?.conversations || [];
 
     const totalDeepResearches = deepResearchConversations.length;
     const totalMessages = deepResearchConversations.reduce(
