@@ -1,19 +1,18 @@
+import httpStatus from 'http-status';
 import Stripe from 'stripe';
 import config from '../../../../config/index.js';
-import SubscriptionModel from './subscription.model.js';
-import ProductModel from '../products/products.model.js';
-import UserModel from '../auth/auth.model.js';
-import TenantModel from '../tenant/tenant.model.js';
 import {
-  getPlanDetails,
-  getPlanLimits,
   getPlanByPriceId,
+  getPlanDetails,
 } from '../../../../config/subscription-plans.js';
 import ApiError from '../../../errors/ApiError.js';
-import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
-import BillingAuditLog from './billingAuditLog.model.js';
 import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
+import UserModel from '../auth/auth.model.js';
+import ProductModel from '../stripe/products/products.model.js';
+import TenantModel from '../tenant/tenant.model.js';
+import BillingAuditLog from './billingAuditLog.model.js';
+import SubscriptionModel from './subscription.model.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
@@ -24,7 +23,12 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
  * Catch Stripe connection timeouts, API failures, or network drops, logs an 'outage_detected'
  * event in BillingAuditLog, and returns a clean, user-friendly ApiError.
  */
-const executeStripeOperation = async (operationFn, tenantId, userId, action) => {
+const executeStripeOperation = async (
+  operationFn,
+  tenantId,
+  userId,
+  action
+) => {
   try {
     return await operationFn();
   } catch (error) {
@@ -38,11 +42,14 @@ const executeStripeOperation = async (operationFn, tenantId, userId, action) => 
       error.code === 'ECONNRESET';
 
     if (isStripeOutage) {
-      logger.error(`[STRIPE_OUTAGE_DETECTED] Stripe operation failed for action ${action}`, {
-        tenantId,
-        userId,
-        error: error.message,
-      });
+      logger.error(
+        `[STRIPE_OUTAGE_DETECTED] Stripe operation failed for action ${action}`,
+        {
+          tenantId,
+          userId,
+          error: error.message,
+        }
+      );
 
       // Dispatch real-time outage alert to Discord/Slack
       sendSecurityAlert(
@@ -53,7 +60,7 @@ const executeStripeOperation = async (operationFn, tenantId, userId, action) => 
           tenantId: tenantId || 'system',
           userId: userId || 'system',
           errorMessage: error.message,
-          errorType: error.type || 'unknown'
+          errorType: error.type || 'unknown',
         }
       ).catch(() => {});
 
@@ -80,7 +87,6 @@ const executeStripeOperation = async (operationFn, tenantId, userId, action) => 
     throw error;
   }
 };
-
 
 /**
  * Subscription Service
@@ -292,7 +298,12 @@ const upgradeSubscription = async (
       logger.info(
         `Changing plan for user ${userId} from ${existingPaidSubscription.plan} to ${plan.plan}`
       );
-      return await changePlan(existingPaidSubscription, plan, initialSeats, actorInfo);
+      return await changePlan(
+        existingPaidSubscription,
+        plan,
+        initialSeats,
+        actorInfo
+      );
     }
 
     // Create or get Stripe customer
@@ -359,7 +370,12 @@ const upgradeSubscription = async (
  * @param {number} seats - Number of seats
  * @returns {Promise<Object>} Updated subscription
  */
-const changePlan = async (existingSubscription, newPlan, seats = null, actorInfo = null) => {
+const changePlan = async (
+  existingSubscription,
+  newPlan,
+  seats = null,
+  actorInfo = null
+) => {
   try {
     const seatCount = seats || existingSubscription.seats.used;
 
@@ -423,7 +439,10 @@ const changePlan = async (existingSubscription, newPlan, seats = null, actorInfo
 
     if (actorInfo) {
       await BillingAuditLog.create({
-        tenantId: updatedSubscription.tenantId || existingSubscription.tenantId || updatedSubscription.userId,
+        tenantId:
+          updatedSubscription.tenantId ||
+          existingSubscription.tenantId ||
+          updatedSubscription.userId,
         userId: actorInfo.userId,
         action: 'upgrade',
         previousState: existingSubscription.toObject(),
@@ -918,7 +937,11 @@ const processStripeCheckout = async (sessionId) => {
  * @param {boolean} immediate - Cancel immediately (default: false, cancel at period end)
  * @returns {Promise<Object>} Updated subscription
  */
-const cancelSubscription = async (subscriptionId, immediate = false, actorInfo = null) => {
+const cancelSubscription = async (
+  subscriptionId,
+  immediate = false,
+  actorInfo = null
+) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -948,7 +971,9 @@ const cancelSubscription = async (subscriptionId, immediate = false, actorInfo =
           });
 
           if (immediate) {
-            await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+            await stripe.subscriptions.cancel(
+              subscription.stripeSubscriptionId
+            );
           }
         },
         subscription.tenantId || null,
@@ -990,7 +1015,10 @@ const cancelSubscription = async (subscriptionId, immediate = false, actorInfo =
 
     if (actorInfo) {
       await BillingAuditLog.create({
-        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        tenantId:
+          updatedSubscription.tenantId ||
+          subscription.tenantId ||
+          updatedSubscription.userId,
         userId: actorInfo.userId,
         action: 'cancel',
         previousState: subscription.toObject(),
@@ -1017,7 +1045,11 @@ const cancelSubscription = async (subscriptionId, immediate = false, actorInfo =
  * @param {string} userId - User ID being added
  * @returns {Promise<Object>} Updated subscription
  */
-const addSeatToSubscription = async (subscriptionId, userId, actorInfo = null) => {
+const addSeatToSubscription = async (
+  subscriptionId,
+  userId,
+  actorInfo = null
+) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -1096,7 +1128,10 @@ const addSeatToSubscription = async (subscriptionId, userId, actorInfo = null) =
 
     if (actorInfo) {
       await BillingAuditLog.create({
-        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        tenantId:
+          updatedSubscription.tenantId ||
+          subscription.tenantId ||
+          updatedSubscription.userId,
         userId: actorInfo.userId,
         action: 'seat_add',
         previousState: subscription.toObject(),
@@ -1123,7 +1158,11 @@ const addSeatToSubscription = async (subscriptionId, userId, actorInfo = null) =
  * @param {string} userId - User ID being removed
  * @returns {Promise<Object>} Updated subscription
  */
-const removeSeatFromSubscription = async (subscriptionId, userId, actorInfo = null) => {
+const removeSeatFromSubscription = async (
+  subscriptionId,
+  userId,
+  actorInfo = null
+) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -1158,7 +1197,10 @@ const removeSeatFromSubscription = async (subscriptionId, userId, actorInfo = nu
 
     if (actorInfo) {
       await BillingAuditLog.create({
-        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        tenantId:
+          updatedSubscription.tenantId ||
+          subscription.tenantId ||
+          updatedSubscription.userId,
         userId: actorInfo.userId,
         action: 'seat_remove',
         previousState,
@@ -1199,13 +1241,18 @@ const checkUsageLimit = async (userId, limitType) => {
       };
     }
 
-    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
+    if (
+      ['past_due', 'unpaid', 'cancelled', 'suspended'].includes(
+        subscription.status
+      )
+    ) {
       return {
         allowed: false,
         remaining: 0,
         limit: 0,
         used: 0,
-        message: 'Your subscription is suspended due to payment issues. Please update your billing details.'
+        message:
+          'Your subscription is suspended due to payment issues. Please update your billing details.',
       };
     }
 
@@ -1884,22 +1931,26 @@ const handleDisputeCreated = async (dispute) => {
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2022-11-15',
     });
-    
+
     // Retrieve charge to find the customer/invoice
     const charge = await stripeInstance.charges.retrieve(dispute.charge);
     if (!charge || !charge.customer) {
-      logger.warn(`Disputed charge ${dispute.charge} has no customer associated.`);
+      logger.warn(
+        `Disputed charge ${dispute.charge} has no customer associated.`
+      );
       return null;
     }
 
     // Find the subscription by customer ID
     const subscription = await SubscriptionModel.findOne({
       stripeCustomerId: charge.customer,
-      status: 'active'
+      status: 'active',
     });
 
     if (!subscription) {
-      logger.warn(`No active subscription found for disputed customer ID: ${charge.customer}`);
+      logger.warn(
+        `No active subscription found for disputed customer ID: ${charge.customer}`
+      );
       return null;
     }
 
@@ -1908,7 +1959,7 @@ const handleDisputeCreated = async (dispute) => {
       subscription._id,
       {
         status: 'suspended',
-        paymentStatus: 'pending'
+        paymentStatus: 'pending',
       },
       { new: true }
     );
@@ -1920,7 +1971,10 @@ const handleDisputeCreated = async (dispute) => {
 
     // Sync tenant to suspended
     if (subscription.tenantId) {
-      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+      await syncTenantWithSubscription(
+        subscription.tenantId,
+        updatedSubscription
+      );
     }
 
     return updatedSubscription;
@@ -1942,12 +1996,12 @@ const handleDisputeClosed = async (dispute) => {
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2022-11-15',
     });
-    
+
     const charge = await stripeInstance.charges.retrieve(dispute.charge);
     if (!charge || !charge.customer) return null;
 
     const subscription = await SubscriptionModel.findOne({
-      stripeCustomerId: charge.customer
+      stripeCustomerId: charge.customer,
     });
 
     if (!subscription) return null;
@@ -1955,22 +2009,29 @@ const handleDisputeClosed = async (dispute) => {
     let newStatus = 'active';
     if (dispute.status === 'lost') {
       newStatus = 'cancelled';
-      logger.error(`Dispute lost for subscription ${subscription._id}. Revoking access permanently.`);
+      logger.error(
+        `Dispute lost for subscription ${subscription._id}. Revoking access permanently.`
+      );
     } else if (dispute.status === 'won') {
       newStatus = 'active';
-      logger.info(`Dispute won for subscription ${subscription._id}. Restoring access.`);
+      logger.info(
+        `Dispute won for subscription ${subscription._id}. Restoring access.`
+      );
     }
 
     const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
       subscription._id,
       {
-        status: newStatus
+        status: newStatus,
       },
       { new: true }
     );
 
     if (subscription.tenantId) {
-      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+      await syncTenantWithSubscription(
+        subscription.tenantId,
+        updatedSubscription
+      );
     }
 
     return updatedSubscription;
@@ -2067,11 +2128,18 @@ const getLimitsFromPlan = (plan) => {
 /**
  * Report usage overage to Stripe for a metered price ID.
  */
-const reportOverageToStripe = async (subscription, resourceType, quantity = 1) => {
+const reportOverageToStripe = async (
+  subscription,
+  resourceType,
+  quantity = 1
+) => {
   try {
-    const meteredItemId = subscription.stripeMeteredItems[`${resourceType}ItemId`];
+    const meteredItemId =
+      subscription.stripeMeteredItems[`${resourceType}ItemId`];
     if (!meteredItemId) {
-      logger.warn(`No Stripe metered item ID found for ${resourceType} in subscription ${subscription._id}`);
+      logger.warn(
+        `No Stripe metered item ID found for ${resourceType} in subscription ${subscription._id}`
+      );
       return;
     }
 
@@ -2080,7 +2148,9 @@ const reportOverageToStripe = async (subscription, resourceType, quantity = 1) =
       action: 'increment',
       timestamp: Math.floor(Date.now() / 1000),
     });
-    logger.info(`Reported ${quantity} units of ${resourceType} overage to Stripe for subscription ${subscription._id}`);
+    logger.info(
+      `Reported ${quantity} units of ${resourceType} overage to Stripe for subscription ${subscription._id}`
+    );
   } catch (error) {
     logger.error(`Error reporting ${resourceType} overage to Stripe:`, error);
     await BillingAuditLog.create({
@@ -2095,7 +2165,12 @@ const reportOverageToStripe = async (subscription, resourceType, quantity = 1) =
 /**
  * Increments the monthly usage counter for a feature and reports overage if exceeded.
  */
-const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, quantity = 1) => {
+const trackAndIncrementMonthlyUsage = async (
+  userId,
+  tenantId,
+  resourceType,
+  quantity = 1
+) => {
   try {
     const query = tenantId
       ? { tenantId, status: 'active' }
@@ -2103,12 +2178,26 @@ const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, qua
     const subscription = await SubscriptionModel.findOne(query);
 
     if (!subscription) {
-      logger.warn(`No active subscription found to track usage for user ${userId} / tenant ${tenantId}`);
-      return { allowed: false, isOverage: false, message: 'No active subscription found.' };
+      logger.warn(
+        `No active subscription found to track usage for user ${userId} / tenant ${tenantId}`
+      );
+      return {
+        allowed: false,
+        isOverage: false,
+        message: 'No active subscription found.',
+      };
     }
 
-    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
-      return { allowed: false, isOverage: false, message: 'Subscription is suspended or unpaid.' };
+    if (
+      ['past_due', 'unpaid', 'cancelled', 'suspended'].includes(
+        subscription.status
+      )
+    ) {
+      return {
+        allowed: false,
+        isOverage: false,
+        message: 'Subscription is suspended or unpaid.',
+      };
     }
 
     const seats = subscription.seats.total || 1;
@@ -2119,7 +2208,10 @@ const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, qua
     const cycleStart = subscription.usage.cycleStartedAt
       ? new Date(subscription.usage.cycleStartedAt)
       : new Date(subscription.createdAt);
-    const monthsDiff = (now.getFullYear() - cycleStart.getFullYear()) * 12 + now.getMonth() - cycleStart.getMonth();
+    const monthsDiff =
+      (now.getFullYear() - cycleStart.getFullYear()) * 12 +
+      now.getMonth() -
+      cycleStart.getMonth();
 
     if (monthsDiff >= 1) {
       subscription.usage.researchMonthlyUsed = 0;
@@ -2134,7 +2226,9 @@ const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, qua
       subscription.usage.modelsMonthlyUsed = 0;
       subscription.usage.knowledgeMonthlyUsed = 0;
       subscription.usage.cycleStartedAt = now;
-      logger.info(`Reset monthly usage counters for subscription ${subscription._id}`);
+      logger.info(
+        `Reset monthly usage counters for subscription ${subscription._id}`
+      );
     }
 
     // Increment usage
@@ -2147,30 +2241,43 @@ const trackAndIncrementMonthlyUsage = async (userId, tenantId, resourceType, qua
 
     if (isOverage) {
       if (subscription.plan === 'free') {
-        return { allowed: false, isOverage: true, message: `Monthly ${resourceType} limit reached. Please upgrade.` };
+        return {
+          allowed: false,
+          isOverage: true,
+          message: `Monthly ${resourceType} limit reached. Please upgrade.`,
+        };
       }
-      
+
       // Calculate overage quantity
       let overageQuantity = quantity;
       if (oldUsed < limit) {
-        overageQuantity = (oldUsed + quantity) - limit;
+        overageQuantity = oldUsed + quantity - limit;
       }
-      
+
       let stripeQuantity = overageQuantity;
       if (resourceType === 'knowledge') {
         // Convert knowledge bytes to MB for Stripe billing
         stripeQuantity = Math.ceil(overageQuantity / (1024 * 1024));
       }
-      
+
       if (stripeQuantity > 0) {
-        reportOverageToStripe(subscription, resourceType, stripeQuantity).catch(() => {});
+        reportOverageToStripe(subscription, resourceType, stripeQuantity).catch(
+          () => {}
+        );
       }
     }
 
     return { allowed: true, isOverage, message: 'Usage tracked successfully.' };
   } catch (error) {
-    logger.error(`Error in trackAndIncrementMonthlyUsage for ${resourceType}:`, error);
-    return { allowed: true, isOverage: false, message: 'Tracking failed, failing open.' };
+    logger.error(
+      `Error in trackAndIncrementMonthlyUsage for ${resourceType}:`,
+      error
+    );
+    return {
+      allowed: true,
+      isOverage: false,
+      message: 'Tracking failed, failing open.',
+    };
   }
 };
 
@@ -2185,11 +2292,29 @@ const checkMonthlyUsageLimit = async (userId, tenantId, resourceType) => {
     const subscription = await SubscriptionModel.findOne(query);
 
     if (!subscription) {
-      return { allowed: false, remaining: 0, limit: 0, used: 0, isOverage: true, message: 'No active subscription.' };
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: 0,
+        used: 0,
+        isOverage: true,
+        message: 'No active subscription.',
+      };
     }
 
-    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
-      return { allowed: false, remaining: 0, limit: 0, used: 0, isOverage: true, message: 'Subscription is suspended.' };
+    if (
+      ['past_due', 'unpaid', 'cancelled', 'suspended'].includes(
+        subscription.status
+      )
+    ) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: 0,
+        used: 0,
+        isOverage: true,
+        message: 'Subscription is suspended.',
+      };
     }
 
     const seats = subscription.seats.total || 1;
@@ -2207,11 +2332,24 @@ const checkMonthlyUsageLimit = async (userId, tenantId, resourceType) => {
       used,
       isOverage: used >= limit,
       plan: subscription.plan,
-      message: used >= limit ? 'Usage limit exceeded. Overage rates apply.' : 'Usage allowed.',
+      message:
+        used >= limit
+          ? 'Usage limit exceeded. Overage rates apply.'
+          : 'Usage allowed.',
     };
   } catch (error) {
-    logger.error(`Error checking monthly usage limit for ${resourceType}:`, error);
-    return { allowed: true, remaining: 0, limit: 0, used: 0, isOverage: false, message: 'Failed checking limit, failing open.' };
+    logger.error(
+      `Error checking monthly usage limit for ${resourceType}:`,
+      error
+    );
+    return {
+      allowed: true,
+      remaining: 0,
+      limit: 0,
+      used: 0,
+      isOverage: false,
+      message: 'Failed checking limit, failing open.',
+    };
   }
 };
 

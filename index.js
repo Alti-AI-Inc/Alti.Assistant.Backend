@@ -53,19 +53,12 @@ import passport from 'passport';
 import config from './config/index.js';
 
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
-import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
-import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
 import passportConfig from './src/app/modules/social-login/config/passport.js';
-import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
+
 import { logger } from './src/shared/logger.js';
 import { RedisClient } from './src/shared/redis.js';
 import { requestContextStore } from './src/shared/requestContext.js';
-import {
-  captureException,
-  flushSentry,
-  initSentry,
-} from './src/shared/sentry.js';
 import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 
 // Load environment variables (already loaded at entrypoint top)
@@ -98,8 +91,6 @@ for (const key of RECOMMENDED_ENV) {
 
 const app = express();
 
-// Initialize Sentry error tracking (no-op if SENTRY_DSN is not set)
-initSentry(app);
 
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -268,28 +259,9 @@ const connectDB = (retries = 5, delay = 5000) => {
       .then(() => {
         logger.info('✅ Database connection successfully');
 
-        // Start background Temporal Worker
-        temporalWorkerCoordinator
-          .start()
-          .catch((err) =>
-            logger.error(
-              '⚠️ Failed to start background Temporal Worker:',
-              err.message
-            )
-          );
-
         fetchStripeIps().catch((err) =>
           logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
         );
-        // Start PredictionData.io background cache warming
-        setTimeout(() => {
-          try {
-            warmSportsCache();
-            logger.info('✅ PredictionData.io sports cache warming started');
-          } catch (err) {
-            logger.warn('⚠️ Sports cache warm failed to start:', err.message);
-          }
-        }, 3000); // 3s delay so DB + Redis are fully ready
       })
       .catch((err) => {
         logger.error(
@@ -333,10 +305,7 @@ app.use((req, res, next) => {
           config.jwt.access_token
         );
         const userId = verifiedUser?.userId || verifiedUser?._id;
-        if (userId) {
-          // Asynchronously warm up container workspace in background
-          dockerWorkspaceService.prewarmWorkspace(userId).catch(() => {});
-        }
+      
       }
     } catch (e) {
       // Ignore token validation issues for guest/public routes
@@ -450,24 +419,8 @@ app.use((req, res) => {
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
-logger.info('DEBUG: About to call app.listen()');
 const server = app.listen(port, '0.0.0.0', () => {
-  logger.info(`✅ App is running on 0.0.0.0:${port}`);
-  logger.info(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`   Gemini model: ${config.gemini_model}`);
-
-  // Start the Open-Source LiveKit Voice Agent Worker asynchronously
-  import('./src/app/modules/streaming/agents/voice-agent.worker.js')
-    .then((module) => {
-      module
-        .runVoiceAgentWorker()
-        .catch((err) =>
-          logger.error('Failed to start Voice Agent Worker', err)
-        );
-    })
-    .catch((err) => {
-      logger.error('Could not load Voice Agent Worker module', err);
-    });
+  logger.info(`🚀 Server is running on port ${port} in ${config.env} mode`);
 });
 
 // Graceful shutdown handlers
@@ -497,7 +450,6 @@ const gracefulShutdown = async (signal) => {
     } catch (err) {
       logger.error('Error closing Redis connections:', err);
     }
-    await flushSentry();
     clearTimeout(forceExitTimer);
     process.exit(0);
   });
@@ -522,14 +474,10 @@ process.on('beforeExit', (code) => {
 
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught Exception:', err);
-  captureException(err, { fatal: true });
-  flushSentry().finally(() => process.exit(1));
 });
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection:', reason);
-  captureException(reason, { type: 'unhandledRejection' });
-  // Log but don't exit — unhandled rejections shouldn't crash the server
 });
 
 export default app;

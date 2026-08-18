@@ -1,15 +1,15 @@
 import httpStatus from 'http-status';
-import catchAsync from '../../../shared/catchAsync.js';
-import sendResponse from '../../../shared/sendResponse.js';
-import subscriptionService from './subscription.service.js';
-import ProductModel from '../products/products.model.js';
-import ApiError from '../../../errors/ApiError.js';
 import config from '../../../../config/index.js'; // Fixed import path
-import StripeEvent from './stripeEvent.model.js';
-import BillingAuditLog from './billingAuditLog.model.js';
+import ApiError from '../../../errors/ApiError.js';
+import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
+import sendResponse from '../../../shared/sendResponse.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
+import ProductModel from '../stripe/products/products.model.js';
+import BillingAuditLog from './billingAuditLog.model.js';
+import StripeEvent from './stripeEvent.model.js';
+import subscriptionService from './subscription.service.js';
 
 /**
  * @typedef {object} UserAuthInfo
@@ -220,8 +220,14 @@ const getTenantSubscription = catchAsync(async (req, res) => {
   // Authorization check:
   // Only users with 'admin' role can view subscriptions for arbitrary tenants.
   // Regular users can only view subscriptions for their own tenant.
-  if (requestingUserRole !== 'admin' && tenantId !== requestingUserTenantId.toString()) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You are not authorized to view this tenant\'s subscription.');
+  if (
+    requestingUserRole !== 'admin' &&
+    tenantId !== requestingUserTenantId.toString()
+  ) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      "Forbidden: You are not authorized to view this tenant's subscription."
+    );
   }
 
   // Optimization Note: Ensure subscriptionService.getTenantSubscription() uses .lean()
@@ -240,7 +246,10 @@ const getTenantSubscription = catchAsync(async (req, res) => {
   // Defensive check: Ensure the found subscription actually belongs to the requested tenant.
   // This guards against potential issues if `getTenantSubscription` returns an unexpected subscription.
   if (subscription.tenantId.toString() !== tenantId.toString()) {
-      throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Subscription found does not match the requested tenant.');
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Forbidden: Subscription found does not match the requested tenant.'
+    );
   }
 
   // Optimization Note: Ensure subscriptionService.getSubscriptionWithUsage() uses .lean()
@@ -652,8 +661,10 @@ const processCheckout = catchAsync(async (req, res) => {
   // Pass userId to the service layer for authorization and linking.
   // The service method should verify that the sessionId corresponds to a checkout
   // initiated by or associated with this userId to prevent IDOR.
-  const subscription =
-    await subscriptionService.processStripeCheckout(sessionId, userId);
+  const subscription = await subscriptionService.processStripeCheckout(
+    sessionId,
+    userId
+  );
 
   sendResponse(res, {
     success: true,
@@ -1342,7 +1353,9 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   const isValidStripeIp = await isStripeIp(clientIp);
 
   if (!isValidStripeIp) {
-    logger.error(`[STRIPE_SECURITY_ALERT] Webhook request originating from untrusted IP: ${clientIp}`);
+    logger.error(
+      `[STRIPE_SECURITY_ALERT] Webhook request originating from untrusted IP: ${clientIp}`
+    );
 
     // Dispatch real-time security alert to Discord/Slack
     sendSecurityAlert(
@@ -1351,7 +1364,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
       {
         senderIp: clientIp,
         userAgent: req.headers['user-agent'] || 'none',
-        signaturePresent: !!sig
+        signaturePresent: !!sig,
       }
     ).catch(() => {});
 
@@ -1406,15 +1419,23 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     } catch (primaryErr) {
       verificationError = primaryErr;
 
-      const fallbackSecret = config.stripe.webhook_secret_fallback || process.env.STRIPE_WEBHOOK_SECRET_FALLBACK;
+      const fallbackSecret =
+        config.stripe.webhook_secret_fallback ||
+        process.env.STRIPE_WEBHOOK_SECRET_FALLBACK;
       if (fallbackSecret) {
-        logger.info('[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...');
+        logger.info(
+          '[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...'
+        );
         try {
           event = stripe.webhooks.constructEvent(req.body, sig, fallbackSecret);
           verificationError = null; // Verified! Clear error
-          logger.info('[Stripe Security] Webhook signature verified successfully using fallback secret.');
+          logger.info(
+            '[Stripe Security] Webhook signature verified successfully using fallback secret.'
+          );
         } catch (fallbackErr) {
-          verificationError = new Error(`Both primary and fallback secret verifications failed. Fallback error: ${fallbackErr.message}`);
+          verificationError = new Error(
+            `Both primary and fallback secret verifications failed. Fallback error: ${fallbackErr.message}`
+          );
         }
       }
     }
@@ -1424,11 +1445,14 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     }
     console.log('Webhook verified successfully:', event.type);
   } catch (err) {
-    logger.error('[STRIPE_SECURITY_ALERT] Webhook signature verification failed', {
-      message: err.message,
-      ip: clientIp,
-      userAgent: req.headers['user-agent'],
-    });
+    logger.error(
+      '[STRIPE_SECURITY_ALERT] Webhook signature verification failed',
+      {
+        message: err.message,
+        ip: clientIp,
+        userAgent: req.headers['user-agent'],
+      }
+    );
 
     // Dispatch real-time security alert for signature mismatch
     sendSecurityAlert(
@@ -1438,7 +1462,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         senderIp: clientIp,
         errorMessage: err.message,
         userAgent: req.headers['user-agent'] || 'none',
-        signature: sig || 'none'
+        signature: sig || 'none',
       }
     ).catch(() => {});
 
@@ -1605,8 +1629,14 @@ const createBillingPortalSession = catchAsync(async (req, res) => {
   // Authorization check:
   // Only users with 'admin' role can create billing portal sessions for arbitrary tenants.
   // Regular users can only create sessions for their own tenant.
-  if (requestingUserRole !== 'admin' && tenantId.toString() !== requestingUserTenantId.toString()) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You are not authorized to create a billing portal session for this tenant.');
+  if (
+    requestingUserRole !== 'admin' &&
+    tenantId.toString() !== requestingUserTenantId.toString()
+  ) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Forbidden: You are not authorized to create a billing portal session for this tenant.'
+    );
   }
 
   // The service method should ensure that the userId is authorized to act on behalf of the tenantId.

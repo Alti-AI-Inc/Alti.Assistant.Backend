@@ -220,7 +220,9 @@ router
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.route('/register/confirmation').post(createRateLimiter(5, 5), authController.confirmEmail); // verify mail
+router
+  .route('/register/confirmation')
+  .post(createRateLimiter(5, 5), authController.confirmEmail); // verify mail
 
 /**
  * @swagger
@@ -737,20 +739,18 @@ router.route('/change-password').post(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router
-  .route('/update-user/:userId')
-  .put(
-    // FIX: Expanded roles to include all user types that may need to update profiles.
-    auth(
-      ENUM_USER_ROLE.SUPER_ADMIN,
-      ENUM_USER_ROLE.ADMIN,
-      ENUM_USER_ROLE.MANAGER,
-      ENUM_USER_ROLE.USER
-    ),
-    // SECURITY (IDOR): The controller MUST verify that a USER can only update their own profile (req.user.id === req.params.userId).
-    // It must also verify that a MANAGER can only update users they manage, and an ADMIN only within their tenant.
-    authController.updateUser
-  );
+router.route('/update-user/:userId').put(
+  // FIX: Expanded roles to include all user types that may need to update profiles.
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER,
+    ENUM_USER_ROLE.USER
+  ),
+  // SECURITY (IDOR): The controller MUST verify that a USER can only update their own profile (req.user.id === req.params.userId).
+  // It must also verify that a MANAGER can only update users they manage, and an ADMIN only within their tenant.
+  authController.updateUser
+);
 
 /**
  * @swagger
@@ -812,16 +812,14 @@ router
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router
-  .route('/delete-account-otp/:id')
-  .delete(
-    // FIX: Updated roles. Managers typically should not delete accounts.
-    auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    createRateLimiter(5, 2),
-    // SECURITY (IDOR): The controller MUST verify that a USER can only request deletion for their own account (req.user.id === req.params.id).
-    // Admins must be checked against their tenant/workspace boundaries.
-    authController.deleteUserAccountOTP
-  );
+router.route('/delete-account-otp/:id').delete(
+  // FIX: Updated roles. Managers typically should not delete accounts.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  createRateLimiter(5, 2),
+  // SECURITY (IDOR): The controller MUST verify that a USER can only request deletion for their own account (req.user.id === req.params.id).
+  // Admins must be checked against their tenant/workspace boundaries.
+  authController.deleteUserAccountOTP
+);
 
 /**
  * @swagger
@@ -910,16 +908,14 @@ router
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router
-  .route('/delete-account/:id')
-  .delete(
-    // FIX: Updated roles. Managers typically should not delete accounts.
-    auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    // SECURITY (IDOR): The controller MUST verify that a USER can only delete their own account (req.user.id === req.params.id).
-    // Admins must be checked against their tenant/workspace boundaries.
-    // INTEGRATION: Controller should ensure that deleting a user correctly de-allocates resources and updates usage/limits for the parent workspace/tenant.
-    authController.deleteUserAccount
-  );
+router.route('/delete-account/:id').delete(
+  // FIX: Updated roles. Managers typically should not delete accounts.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // SECURITY (IDOR): The controller MUST verify that a USER can only delete their own account (req.user.id === req.params.id).
+  // Admins must be checked against their tenant/workspace boundaries.
+  // INTEGRATION: Controller should ensure that deleting a user correctly de-allocates resources and updates usage/limits for the parent workspace/tenant.
+  authController.deleteUserAccount
+);
 
 // =================================================================
 //                 Manager & Admin Routes
@@ -967,7 +963,11 @@ router
  */
 router.post(
   '/team/invite',
-  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER
+  ),
   validateRequest(AuthValidation.inviteUserValidationSchema),
   // OPTIMIZATION: The controller must check the workspace's current user count against its plan limit before sending the invitation.
   // SECURITY: The controller must ensure a Manager cannot invite another user with a role higher than their own (e.g., Admin).
@@ -996,7 +996,11 @@ router.post(
  */
 router.get(
   '/team/members',
-  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER
+  ),
   // INTEGRATION: The controller must be scoped to only return users from the requester's workspace/tenant.
   authController.getTeamMembers
 );
@@ -1048,54 +1052,16 @@ router.get(
  */
 router.patch(
   '/team/members/:userId/role',
-  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  auth(
+    ENUM_USER_ROLE.SUPER_ADMIN,
+    ENUM_USER_ROLE.ADMIN,
+    ENUM_USER_ROLE.MANAGER
+  ),
   validateRequest(AuthValidation.updateRoleValidationSchema),
   // SECURITY: The controller must verify the `userId` is within the manager's workspace.
   // It must also prevent a manager from assigning a role with higher privileges than their own.
   // It must prevent a user from changing their own role or the workspace owner's role via this endpoint.
   authController.updateTeamMemberRole
-);
-
-/**
- * @swagger
- * /api/v1/auth/workspace/metrics:
- *   get:
- *     summary: Get workspace metrics
- *     description: Retrieves key metrics for the manager's workspace, such as user count, active projects, and resource usage.
- *     tags:
- *       - Manager Dashboard
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Workspace metrics retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userCount:
- *                   type: integer
- *                 planUserLimit:
- *                   type: integer
- *                 activeProjects:
- *                   type: integer
- *                 usagePercentage:
- *                   type: number
- *                   format: float
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router.get(
-  '/workspace/metrics',
-  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
-  // VERIFICATION: The controller must ensure this endpoint NEVER exposes sensitive billing information like subscription cost or payment methods.
-  // It should only return operational metrics relevant to a manager.
-  authController.getWorkspaceMetrics
 );
 
 /**

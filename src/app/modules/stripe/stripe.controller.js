@@ -1,9 +1,13 @@
-import catchAsync from '../../../shared/catchAsync.js';
 import httpStatus from 'http-status';
-import UserModel from '../auth/auth.model.js';
-import Tenant from '../tenant/tenant.model.js';
+import Stripe from 'stripe';
+import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
+import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
+import { withTenantFilter } from '../../helpers/tenantQuery.js';
+import UserModel from '../auth/auth.model.js';
+import Subscription from '../subscription/subscription.model.js';
+import Tenant from '../tenant/tenant.model.js';
 import {
   createCustomerService,
   deleteCustomerService,
@@ -15,27 +19,23 @@ import {
 } from './customer/stripe.service.js';
 import {
   createPaymentIntentService,
+  detachPaymentMethodService,
   getAllPaymentMethodsService,
   savePaymentMethodService,
-  detachPaymentMethodService,
 } from './paymentMethod.service.js';
 import {
   createProductService,
   retrieveAllPricesService,
   retrieveProductService,
 } from './products/product.service.js';
+import Product from './products/products.model.js';
 import {
   cancelSubscriptionService,
   createSubscriptionService,
-  retrieveSubscriptionService,
   getCustomerSubscriptionsService,
+  retrieveSubscriptionService,
 } from './subscription.service.js';
 import webhookController from './webhook.controller.js';
-import Product from '../products/products.model.js';
-import Subscription from '../subscription/subscription.model.js';
-import { withTenantFilter } from '../../helpers/tenantQuery.js';
-import Stripe from 'stripe';
-import config from '../../../../config/index.js';
 
 /**
  * Initializes the Stripe API client with the secret key and API version.
@@ -93,7 +93,8 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
     if (!customerId && createIfMissing) {
       // Optimization: Use .lean() as the owner document is only read for email and name for Stripe customer creation.
       // The subsequent update is handled by `findByIdAndUpdate` or `req.user.save()`.
-      const owner = (await UserModel.findById(tenant.ownerId).lean()) || req.user;
+      const owner =
+        (await UserModel.findById(tenant.ownerId).lean()) || req.user;
       const customer = await stripe.customers.create({
         email: owner.email,
         name: tenant.name,
@@ -839,7 +840,9 @@ const getMyPaymentMethodsController = catchAsync(async (req, res, next) => {
   } catch (error) {
     // If Stripe throws a "No such customer" error, treat it gracefully as if there are no payment methods
     if (error && error.message && error.message.includes('No such customer')) {
-      console.warn(`[Stripe Controller] Customer ${customerId} not found in Stripe registry. Treating as empty/new.`);
+      console.warn(
+        `[Stripe Controller] Customer ${customerId} not found in Stripe registry. Treating as empty/new.`
+      );
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -1400,25 +1403,25 @@ const handleWebhook = webhookController.handleStripeWebhook;
 const testWebhook = webhookController.testWebhook;
 
 export {
-  createCustomerController,
-  getCustomerController,
-  updateCustomerController,
-  deleteCustomerController,
-  createProductController,
-  retrieveProductController,
-  createPaymentIntentController,
   addPaymentMethodController,
-  deletePaymentMethodController,
-  listPaymentMethodsController,
-  getMyPaymentMethodsController,
-  createSubscriptionController,
   cancelSubscriptionController,
+  createCustomerController,
+  createPaymentIntentController,
+  createProductController,
+  createSubscriptionController,
+  deleteCustomerController,
+  deletePaymentMethodController,
+  getCustomerController,
+  getMyPaymentMethodsController,
   getMySubscriptionsController,
+  getSingleSubscription,
+  handleWebhook,
   listAccounts,
+  listPaymentMethodsController,
+  listPricesController,
   listProducts,
   listSubscriptions,
-  getSingleSubscription,
-  listPricesController,
-  handleWebhook,
+  retrieveProductController,
   testWebhook,
+  updateCustomerController,
 };

@@ -23,115 +23,107 @@
  *   Analyst       ✅ Benzinga ratings, price targets, buy/hold/sell consensus
  */
 
-import { sportsSmartRouter } from './sportsSmartRouter.js';
 import { realestateSmartRouter } from './realestateSmartRouter.js';
 import {
   detectClimateRiskIntent,
   detectCommodityIntent,
-  detectSecFilingsIntent,
   detectDemographicsIntent,
+  detectSecFilingsIntent,
   getClimateRiskData,
   getCommodityData,
+  getDemographicsData,
   getSecFilingsData,
-  getDemographicsData
 } from './v10DataIntegrations.js';
 import {
+  detectCollegeScorecardIntent,
+  detectFhfaHpiIntent,
   detectFredIntent,
   detectHudFmrIntent,
-  detectFhfaHpiIntent,
-  detectCollegeScorecardIntent,
+  getCollegeScorecardData,
+  getFhfaHpiData,
   getFredData,
   getHudFmrData,
-  getFhfaHpiData,
-  getCollegeScorecardData
 } from './v11DataIntegrations.js';
 import {
-  detectGleifIntent,
-  detectPatentsViewIntent,
-  detectOpenSkyIntent,
-  detectGridMonitorIntent,
-  detectUsdaStatsIntent,
   detectCopernicusIntent,
+  detectGleifIntent,
+  detectGridMonitorIntent,
+  detectOpenSkyIntent,
+  detectPatentsViewIntent,
+  detectUsdaStatsIntent,
+  getCopernicusData,
   getGleifData,
-  getPatentsViewData,
-  getOpenSkyData,
   getGridMonitorData,
+  getOpenSkyData,
+  getPatentsViewData,
   getUsdaStatsData,
-  getCopernicusData
 } from './v12DataIntegrations.js';
 import {
   detectNewsApiAiIntent,
-  getNewsApiAiData
+  getNewsApiAiData,
 } from './v13DataIntegrations.js';
 import {
   detectGreenlightIntent,
   extractGreenlightTopic,
-  getGreenlightIntelligenceData
+  getGreenlightIntelligenceData,
 } from './v14DataIntegrations.js';
 import {
   detectPremiumIntent,
   extractPremiumTopic,
-  getPremiumIntelligenceData
+  getPremiumIntelligenceData,
 } from './v15DataIntegrations.js';
 import {
   detectPremiumV16Intent,
   extractPremiumV16Topic,
-  getPremiumV16IntelligenceData
+  getPremiumV16IntelligenceData,
 } from './v16DataIntegrations.js';
 import {
   detectPremiumV17Intent,
   extractPremiumV17Topic,
-  getPremiumV17IntelligenceData
+  getPremiumV17IntelligenceData,
 } from './v17DataIntegrations.js';
 
-
-
 import {
-  getStockQuoteService,
-  getStocksSnapshotTickersService,
-  getTickerDetailsService,
-  getPreviousCloseService,
-  getStockAggregatesService,
-  getStockFinancialsRatiosService,
-  getStockIncomeStatementService,
-  getStockBalanceSheetsService,
-  getDividendsService,
-  getStockSplitsService,
-  getStockFloatService,
-  getStockRSIService,
-  getStockMACDService,
-  getStockEMAService,
-  getStockSMAService,
-  getStockTechnicalSnapshotService,
-  getStockNewsService,
-  getOptionsChainService,
-  getOptionsChainFilteredService,
-  listOptionsContractsService,
-  getCryptoSnapshotService,
-  getCryptoTradesService,
-  getCryptoRSIService,
-  getCryptoMACDService,
-  getCryptoEMAService,
-  getCryptoTechnicalSnapshotService,
   getCryptoAggregatesService,
-  getForexSnapshotService,
+  getCryptoRSIService,
+  getCryptoSnapshotService,
+  getCryptoTechnicalSnapshotService,
+  getCryptoTradesService,
   getCurrencyConversionService,
   getCurrencyConvertAmountService,
-  getForexAggregatesService,
-  getFedInflationService,
-  getFedYieldsService,
-  getFedLaborMarketService,
-  getFedInflationExpectationsService,
-  getMarketStatusService,
-  getMarketHolidaysService,
-  getMarketNewsService,
-  getMarketNewsGlobalService,
-  getIPOsService,
-  getStock52WeekService,
-  getTopMoversService,
   getDividendDetailService,
+  getDividendsService,
+  getFedInflationExpectationsService,
+  getFedInflationService,
+  getFedLaborMarketService,
+  getFedYieldsService,
+  getForexAggregatesService,
+  getForexSnapshotService,
+  getIPOsService,
+  getMarketHolidaysService,
+  getMarketNewsGlobalService,
+  getMarketNewsService,
+  getMarketStatusService,
+  getOptionsChainFilteredService,
+  getOptionsChainService,
+  getPreviousCloseService,
   getShortInterestDetailService,
+  getStock52WeekService,
+  getStockAggregatesService,
+  getStockBalanceSheetsService,
+  getStockFinancialsRatiosService,
+  getStockFloatService,
+  getStockIncomeStatementService,
+  getStockNewsService,
+  getStockQuoteService,
+  getStockRSIService,
+  getStockSplitsService,
+  getStocksSnapshotTickersService,
+  getStockTechnicalSnapshotService,
+  getTickerDetailsService,
+  getTopMoversService,
   getUniversalSnapshotService,
+  listOptionsContractsService,
 } from '../modules/massive/massive.service.js';
 
 import { logger } from '../../shared/logger.js';
@@ -139,11 +131,6 @@ import { RedisClient } from '../../shared/redis.js';
 import {
   detectFinancialIntent,
   detectMultipleTickers,
-  detectAllTickers,
-  COMMODITY_MAP,
-  INDEX_MAP,
-  TECHNICAL_KEYWORDS,
-  GROUP_STOCK_MAP,
 } from './massiveTickerDB.js';
 
 // ─── Cache TTLs (seconds) ─────────────────────────────────────────────────────
@@ -159,14 +146,14 @@ const TTL = {
   financials: 900,
   technicals: 60,
   etf: 30,
-  overview: 45,        // market overview dashboard
-  sector: 60,          // sector performance
-  group: 30,           // stock groups (FAANG, Mag7)
+  overview: 45, // market overview dashboard
+  sector: 60, // sector performance
+  group: 30, // stock groups (FAANG, Mag7)
   crypto_overview: 30, // crypto market overview
-  forex_overview: 20,  // all major forex pairs
-  premarket: 15,       // pre/after-market (very fresh)
-  earnings: 1800,      // earnings data (30 min cache)
-  analyst: 3600,       // analyst ratings (1 hr cache)
+  forex_overview: 20, // all major forex pairs
+  premarket: 15, // pre/after-market (very fresh)
+  earnings: 1800, // earnings data (30 min cache)
+  analyst: 3600, // analyst ratings (1 hr cache)
 };
 
 // ─── Redis helpers ────────────────────────────────────────────────────────────
@@ -174,20 +161,26 @@ async function cacheGet(key) {
   try {
     const val = await RedisClient.get(`massive:${key}`);
     return val ? JSON.parse(val) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 async function cacheSet(key, data, ttl) {
   try {
     await RedisClient.set(`massive:${key}`, JSON.stringify(data), { EX: ttl });
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ─── Safe wrapper (3s timeout) ───────────────────────────────────────────────
 function safe(promise, ms = 3000) {
   return Promise.race([
     promise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error('Massive API timeout')), ms)),
-  ]).catch(err => {
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error('Massive API timeout')), ms)
+    ),
+  ]).catch((err) => {
     logger.warn(`[MassiveRouter] ${err.message}`);
     return null;
   });
@@ -235,20 +228,29 @@ async function fetchStockFull(ticker) {
   const t = fmt(ticker);
   const cached = await cacheGet(`stock:${t}`);
   if (cached) return cached;
-  const [quote, ratios, rsi, news, details, snapshot, week52] = await Promise.all([
-    safe(getStockQuoteService(t)),
-    safe(getStockFinancialsRatiosService(t)),
-    safe(getStockRSIService(t, 14)),
-    safe(getStockNewsService(t, 4)),
-    safe(getTickerDetailsService(t)),
-    safe(getStocksSnapshotTickersService([t])),
-    safe(getStock52WeekService(t)),
-  ]);
-  let snap = Array.isArray(snapshot) ? snapshot.find(s => s.ticker === t) || snapshot[0] : null;
+  const [quote, ratios, rsi, news, details, snapshot, week52] =
+    await Promise.all([
+      safe(getStockQuoteService(t)),
+      safe(getStockFinancialsRatiosService(t)),
+      safe(getStockRSIService(t, 14)),
+      safe(getStockNewsService(t, 4)),
+      safe(getTickerDetailsService(t)),
+      safe(getStocksSnapshotTickersService([t])),
+      safe(getStock52WeekService(t)),
+    ]);
+  let snap = Array.isArray(snapshot)
+    ? snapshot.find((s) => s.ticker === t) || snapshot[0]
+    : null;
   if (!snap) {
     const universalSnap = await safe(getUniversalSnapshotService([t]));
-    if (universalSnap && Array.isArray(universalSnap) && universalSnap.length > 0) {
-      snap = universalSnap.find(s => s.ticker === t || s.symbol === t) || universalSnap[0];
+    if (
+      universalSnap &&
+      Array.isArray(universalSnap) &&
+      universalSnap.length > 0
+    ) {
+      snap =
+        universalSnap.find((s) => s.ticker === t || s.symbol === t) ||
+        universalSnap[0];
     }
   }
   const data = { ticker: t, quote, ratios, rsi, news, details, snap, week52 };
@@ -265,7 +267,9 @@ async function fetchETFData(ticker) {
     safe(getStockQuoteService(t)),
     safe(getStockNewsService(t, 3)),
   ]);
-  const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === t) : snapshots?.[0];
+  const snap = Array.isArray(snapshots)
+    ? snapshots.find((s) => s.ticker === t)
+    : snapshots?.[0];
   const data = { ticker: t, snap, prev, news };
   await cacheSet(`etf:${t}`, data, TTL.etf);
   return data;
@@ -314,11 +318,17 @@ async function fetchMacroFull() {
   ]);
   // Get latest entry from each dataset
   const data = {
-    inflation: Array.isArray(inflation?.results) ? inflation.results.at(-1) : null,
+    inflation: Array.isArray(inflation?.results)
+      ? inflation.results.at(-1)
+      : null,
     yields: Array.isArray(yields?.results) ? yields.results.at(-1) : null,
     labor: Array.isArray(labor?.results) ? labor.results.at(-1) : null,
-    expectations: Array.isArray(expectations?.results) ? expectations.results.at(-1) : null,
-    allInflation: Array.isArray(inflation?.results) ? inflation.results.slice(-6) : [],
+    expectations: Array.isArray(expectations?.results)
+      ? expectations.results.at(-1)
+      : null,
+    allInflation: Array.isArray(inflation?.results)
+      ? inflation.results.slice(-6)
+      : [],
     allYields: Array.isArray(yields?.results) ? yields.results.slice(-5) : [],
   };
   await cacheSet('macro_full', data, TTL.macro);
@@ -353,7 +363,19 @@ async function fetchMarketOverview() {
   if (cached) return cached;
   // Two parallel batch calls — one for equity ETFs+VIX, one for crypto
   const [equities, cryptos] = await Promise.all([
-    safe(getStocksSnapshotTickersService(['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'GLD', 'USO', 'TLT']), 5000),
+    safe(
+      getStocksSnapshotTickersService([
+        'SPY',
+        'QQQ',
+        'DIA',
+        'IWM',
+        'VIXY',
+        'GLD',
+        'USO',
+        'TLT',
+      ]),
+      5000
+    ),
     safe(getCryptoSnapshotService(['X:BTCUSD', 'X:ETHUSD', 'X:SOLUSD']), 5000),
   ]);
   const data = { equities, cryptos };
@@ -364,9 +386,22 @@ async function fetchMarketOverview() {
 async function fetchSectorPerformance() {
   const cached = await cacheGet('sectors');
   if (cached) return cached;
-  const sectors = await safe(getStocksSnapshotTickersService(
-    ['XLK', 'XLF', 'XLV', 'XLE', 'XLI', 'XLC', 'XLP', 'XLY', 'XLB', 'XLRE', 'XLU']
-  ), 5000);
+  const sectors = await safe(
+    getStocksSnapshotTickersService([
+      'XLK',
+      'XLF',
+      'XLV',
+      'XLE',
+      'XLI',
+      'XLC',
+      'XLP',
+      'XLY',
+      'XLB',
+      'XLRE',
+      'XLU',
+    ]),
+    5000
+  );
   await cacheSet('sectors', sectors, TTL.sector);
   return sectors;
 }
@@ -383,7 +418,15 @@ async function fetchStockGroup(tickers) {
 async function fetchCryptoOverview() {
   const cached = await cacheGet('crypto_overview');
   if (cached) return cached;
-  const tickers = ['X:BTCUSD', 'X:ETHUSD', 'X:SOLUSD', 'X:XRPUSD', 'X:BNBUSD', 'X:DOGEUSD', 'X:ADAUSD'];
+  const tickers = [
+    'X:BTCUSD',
+    'X:ETHUSD',
+    'X:SOLUSD',
+    'X:XRPUSD',
+    'X:BNBUSD',
+    'X:DOGEUSD',
+    'X:ADAUSD',
+  ];
   const snapshots = await safe(getCryptoSnapshotService(tickers), 5000);
   await cacheSet('crypto_overview', snapshots, TTL.crypto_overview);
   return snapshots;
@@ -392,7 +435,15 @@ async function fetchCryptoOverview() {
 async function fetchForexOverview() {
   const cached = await cacheGet('forex_overview');
   if (cached) return cached;
-  const pairs = ['C:EURUSD', 'C:GBPUSD', 'C:USDJPY', 'C:USDCHF', 'C:AUDUSD', 'C:USDCAD', 'C:NZDUSD'];
+  const pairs = [
+    'C:EURUSD',
+    'C:GBPUSD',
+    'C:USDJPY',
+    'C:USDCHF',
+    'C:AUDUSD',
+    'C:USDCAD',
+    'C:NZDUSD',
+  ];
   const snapshots = await safe(getForexSnapshotService(pairs), 5000);
   await cacheSet('forex_overview', snapshots, TTL.forex_overview);
   return snapshots;
@@ -408,63 +459,84 @@ function formatStockBlock(data) {
   // Company info from ticker details
   if (details?.name) {
     block += `**${details.name}**`;
-    if (details.market_cap) block += ` | Market Cap: **$${(details.market_cap / 1e9).toFixed(2)}B**`;
-    if (details.primary_exchange) block += ` | Exchange: ${details.primary_exchange}`;
+    if (details.market_cap)
+      block += ` | Market Cap: **$${(details.market_cap / 1e9).toFixed(2)}B**`;
+    if (details.primary_exchange)
+      block += ` | Exchange: ${details.primary_exchange}`;
     if (details.sector) block += ` | Sector: ${details.sector}`;
     block += `\n`;
   }
 
   if (quote?.trade?.p || quote?.quote?.P) {
     const lastPrice = quote.trade?.p;
-    const bid       = quote.quote?.p;
-    const ask       = quote.quote?.P;
+    const bid = quote.quote?.p;
+    const ask = quote.quote?.P;
     const prevClose = quote.previousClose?.c || snap?.prevDay?.c;
-    const change    = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
-    const changePct = lastPrice && prevClose ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2) : null;
-    const dir = changePct !== null ? (parseFloat(changePct) >= 0 ? '📈' : '📉') : '';
+    const change =
+      lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
+    const changePct =
+      lastPrice && prevClose
+        ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2)
+        : null;
+    const dir =
+      changePct !== null ? (parseFloat(changePct) >= 0 ? '📈' : '📉') : '';
 
     // Day OHLCV from snapshot
-    const dayHigh   = snap?.day?.h;
-    const dayLow    = snap?.day?.l;
-    const dayOpen   = snap?.day?.o;
-    const dayVol    = snap?.day?.v || snap?.day?.volume;
-    const avgVol    = ratios?.average_volume;
+    const dayHigh = snap?.day?.h;
+    const dayLow = snap?.day?.l;
+    const dayOpen = snap?.day?.o;
+    const dayVol = snap?.day?.v || snap?.day?.volume;
+    const avgVol = ratios?.average_volume;
 
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
-    if (lastPrice) block += `| Last Price | **$${lastPrice.toLocaleString()}** |\n`;
+    if (lastPrice)
+      block += `| Last Price | **$${lastPrice.toLocaleString()}** |\n`;
     if (bid) block += `| Bid | $${bid} |\n`;
     if (ask) block += `| Ask | $${ask} |\n`;
     if (prevClose) block += `| Prev Close | $${prevClose} |\n`;
-    if (change) block += `| Day Change | **${dir} ${change} (${changePct}%)** |\n`;
-    if (dayOpen)  block += `| Day Open | $${dayOpen.toLocaleString()} |\n`;
-    if (dayHigh)  block += `| Day High | $${dayHigh.toLocaleString()} |\n`;
-    if (dayLow)   block += `| Day Low | $${dayLow.toLocaleString()} |\n`;
+    if (change)
+      block += `| Day Change | **${dir} ${change} (${changePct}%)** |\n`;
+    if (dayOpen) block += `| Day Open | $${dayOpen.toLocaleString()} |\n`;
+    if (dayHigh) block += `| Day High | $${dayHigh.toLocaleString()} |\n`;
+    if (dayLow) block += `| Day Low | $${dayLow.toLocaleString()} |\n`;
 
     // Volume with vs-average comparison
     if (dayVol) {
-      const volStr = dayVol >= 1e6 ? `${(dayVol / 1e6).toFixed(2)}M` : dayVol.toLocaleString();
+      const volStr =
+        dayVol >= 1e6
+          ? `${(dayVol / 1e6).toFixed(2)}M`
+          : dayVol.toLocaleString();
       let volNote = '';
       if (avgVol) {
         const ratio = dayVol / avgVol;
-        if (ratio >= 2.0)       volNote = ' ⚡ **Unusually high** (2× avg)';
-        else if (ratio >= 1.5)  volNote = ' 🔥 **Above average** (1.5× avg)';
-        else if (ratio <= 0.5)  volNote = ' 🔇 Below average';
+        if (ratio >= 2.0) volNote = ' ⚡ **Unusually high** (2× avg)';
+        else if (ratio >= 1.5) volNote = ' 🔥 **Above average** (1.5× avg)';
+        else if (ratio <= 0.5) volNote = ' 🔇 Below average';
       }
       block += `| Day Volume | ${volStr}${volNote} |\n`;
     }
     if (avgVol) {
-      const avgStr = avgVol >= 1e6 ? `${(avgVol / 1e6).toFixed(2)}M` : avgVol.toLocaleString();
+      const avgStr =
+        avgVol >= 1e6
+          ? `${(avgVol / 1e6).toFixed(2)}M`
+          : avgVol.toLocaleString();
       block += `| Avg Volume | ${avgStr} |\n`;
     }
 
     // Extended hours (pre-market / after-hours)
     const session = quote.snapshot?.session || snap?.session;
     if (session) {
-      if (session.early_trading_change !== undefined && session.early_trading_change !== null) {
+      if (
+        session.early_trading_change !== undefined &&
+        session.early_trading_change !== null
+      ) {
         const extDir = session.early_trading_change >= 0 ? '📈' : '📉';
         block += `| Pre-Market | **${extDir} ${session.early_trading_change?.toFixed(2)} (${session.early_trading_change_percent?.toFixed(2)}%)** |\n`;
       }
-      if (session.late_trading_change !== undefined && session.late_trading_change !== null) {
+      if (
+        session.late_trading_change !== undefined &&
+        session.late_trading_change !== null
+      ) {
         const extDir = session.late_trading_change >= 0 ? '📈' : '📉';
         block += `| After-Hours | **${extDir} ${session.late_trading_change?.toFixed(2)} (${session.late_trading_change_percent?.toFixed(2)}%)** |\n`;
       }
@@ -472,30 +544,37 @@ function formatStockBlock(data) {
 
     // 52-week range with position bar
     const hi52 = week52?.results?.[0]?.high || week52?.high;
-    const lo52 = week52?.results?.[0]?.low  || week52?.low;
+    const lo52 = week52?.results?.[0]?.low || week52?.low;
     if (hi52 && lo52 && lastPrice) {
       block += `\n### 52-Week Range\n| Metric | Value |\n|--------|-------|\n`;
       block += `| 52-Week High | **$${hi52.toLocaleString()}** |\n`;
       block += `| 52-Week Low | **$${lo52.toLocaleString()}** |\n`;
-      const range    = hi52 - lo52;
-      const position = ((lastPrice - lo52) / range * 100).toFixed(0);
+      const range = hi52 - lo52;
+      const position = (((lastPrice - lo52) / range) * 100).toFixed(0);
       const bars = Math.round(parseInt(position) / 10);
-      const bar  = '█'.repeat(bars) + '░'.repeat(10 - bars);
+      const bar = '█'.repeat(bars) + '░'.repeat(10 - bars);
       block += `| Range Position | ${bar} **${position}%** from 52-wk low |\n`;
       // Distance from ATH
       const fromHigh = (((lastPrice - hi52) / hi52) * 100).toFixed(1);
-      if (parseFloat(fromHigh) < -1) block += `| Distance from 52-Wk High | ${fromHigh}% |\n`;
+      if (parseFloat(fromHigh) < -1)
+        block += `| Distance from 52-Wk High | ${fromHigh}% |\n`;
     }
   }
 
   if (ratios) {
     block += `\n### Key Metrics\n| Metric | Value |\n|--------|-------|\n`;
-    if (ratios.price_to_earnings)  block += `| P/E Ratio | ${ratios.price_to_earnings?.toFixed(2)} |\n`;
-    if (ratios.price_to_book)      block += `| P/B Ratio | ${ratios.price_to_book?.toFixed(2)} |\n`;
-    if (ratios.price_to_sales)     block += `| P/S Ratio | ${ratios.price_to_sales?.toFixed(2)} |\n`;
-    if (ratios.earnings_per_share) block += `| EPS | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
-    if (ratios.net_margin)         block += `| Net Margin | ${(ratios.net_margin * 100)?.toFixed(1)}% |\n`;
-    if (ratios.return_on_equity)   block += `| ROE | ${(ratios.return_on_equity * 100)?.toFixed(1)}% |\n`;
+    if (ratios.price_to_earnings)
+      block += `| P/E Ratio | ${ratios.price_to_earnings?.toFixed(2)} |\n`;
+    if (ratios.price_to_book)
+      block += `| P/B Ratio | ${ratios.price_to_book?.toFixed(2)} |\n`;
+    if (ratios.price_to_sales)
+      block += `| P/S Ratio | ${ratios.price_to_sales?.toFixed(2)} |\n`;
+    if (ratios.earnings_per_share)
+      block += `| EPS | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
+    if (ratios.net_margin)
+      block += `| Net Margin | ${(ratios.net_margin * 100)?.toFixed(1)}% |\n`;
+    if (ratios.return_on_equity)
+      block += `| ROE | ${(ratios.return_on_equity * 100)?.toFixed(1)}% |\n`;
     if (ratios.dividend_yield && ratios.dividend_yield > 0)
       block += `| Dividend Yield | **${(ratios.dividend_yield * 100)?.toFixed(2)}%** |\n`;
     if (details?.description && !ratios.price_to_earnings) {
@@ -505,14 +584,20 @@ function formatStockBlock(data) {
 
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
+    const rsiSignal =
+      rsiVal > 70
+        ? '🔴 Overbought'
+        : rsiVal < 30
+          ? '🟢 Oversold'
+          : '⚪ Neutral';
     block += `\n### Technical Indicator\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
 
   if (Array.isArray(news) && news.length > 0) {
     block += `\n### Recent News\n`;
     news.slice(0, 4).forEach((n, i) => {
-      if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+      if (n.title)
+        block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
     });
   }
   return block;
@@ -525,9 +610,11 @@ function formatETFBlock(data, label) {
 
   if (snap) {
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
-    if (snap.day?.c) block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
+    if (snap.day?.c)
+      block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
     if (snap.day?.o) block += `| Open | $${snap.day.o.toLocaleString()} |\n`;
-    if (snap.day?.h) block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
+    if (snap.day?.h)
+      block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
     if (snap.day?.l) block += `| Low | **$${snap.day.l.toLocaleString()}** |\n`;
     if (snap.todaysChange !== undefined) {
       const dir = snap.todaysChange >= 0 ? '📈' : '📉';
@@ -543,7 +630,8 @@ function formatETFBlock(data, label) {
   if (Array.isArray(news) && news.length > 0) {
     block += `\n### Recent News\n`;
     news.slice(0, 2).forEach((n, i) => {
-      if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+      if (n.title)
+        block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
     });
   }
   return block;
@@ -555,41 +643,51 @@ function formatCryptoBlock(data) {
   let block = `## ${symbol} — Live Crypto Data\n`;
   if (Array.isArray(snapshot) && snapshot.length > 0) {
     const s = snapshot[0];
-    const price  = s.day?.c;
-    const open   = s.day?.o;
+    const price = s.day?.c;
+    const open = s.day?.o;
     const chgPct = s.todaysChangePerc;
-    const dir    = (s.todaysChange || 0) >= 0 ? '📈' : '📉';
+    const dir = (s.todaysChange || 0) >= 0 ? '📈' : '📉';
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
-    if (price) block += `| Price | **$${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
+    if (price)
+      block += `| Price | **$${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
     if (s.todaysChange !== undefined) {
       block += `| 24h Change | **${dir} ${s.todaysChange?.toFixed(2)} (${chgPct?.toFixed(2)}%)** |\n`;
     }
-    if (open)    block += `| Open | $${open.toLocaleString()} |\n`;
+    if (open) block += `| Open | $${open.toLocaleString()} |\n`;
     if (s.day?.h) block += `| 24h High | **$${s.day.h.toLocaleString()}** |\n`;
     if (s.day?.l) block += `| 24h Low | **$${s.day.l.toLocaleString()}** |\n`;
     if (s.day?.v) {
       const vol = s.day.v;
-      const volStr = vol >= 1 ? `${vol.toFixed(4)} coins` : `${vol.toFixed(8)} coins`;
+      const volStr =
+        vol >= 1 ? `${vol.toFixed(4)} coins` : `${vol.toFixed(8)} coins`;
       block += `| 24h Volume | ${volStr} |\n`;
     }
-    if (s.day?.vw) block += `| VWAP | $${s.day.vw.toLocaleString('en-US', { minimumFractionDigits: 2 })} |\n`;
+    if (s.day?.vw)
+      block += `| VWAP | $${s.day.vw.toLocaleString('en-US', { minimumFractionDigits: 2 })} |\n`;
     // Prev day context
     if (s.prevDay?.c && price) {
       const prevClose = s.prevDay.c;
-      const chgFrom  = (((price - prevClose) / prevClose) * 100).toFixed(2);
+      const chgFrom = (((price - prevClose) / prevClose) * 100).toFixed(2);
       block += `| Prev Close | $${prevClose.toLocaleString()} |\n`;
     }
   }
   if (Array.isArray(trades) && trades.length > 0) {
     const t = trades[0];
-    if (t.price) block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n| **$${t.price?.toLocaleString('en-US', { minimumFractionDigits: 2 })}** | ${t.size?.toFixed(6)} |\n`;
+    if (t.price)
+      block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n| **$${t.price?.toLocaleString('en-US', { minimumFractionDigits: 2 })}** | ${t.size?.toFixed(6)} |\n`;
   }
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '🔴 Overbought — possible correction' :
-                      rsiVal < 30 ? '🟢 Oversold — possible bounce' :
-                      rsiVal > 60 ? '📈 Bullish momentum' :
-                      rsiVal < 40 ? '📉 Bearish momentum' : '⚪ Neutral';
+    const rsiSignal =
+      rsiVal > 70
+        ? '🔴 Overbought — possible correction'
+        : rsiVal < 30
+          ? '🟢 Oversold — possible bounce'
+          : rsiVal > 60
+            ? '📈 Bullish momentum'
+            : rsiVal < 40
+              ? '📉 Bearish momentum'
+              : '⚪ Neutral';
     block += `\n### Technical\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
   return block;
@@ -601,9 +699,12 @@ function formatForexBlock(data) {
   let block = `## ${symbol} — Live Forex Rate\n`;
   if (conversion) {
     block += `\n### Live Rate\n| Field | Value |\n|-------|-------|\n`;
-    if (conversion.last?.bid) block += `| Bid | **${conversion.last.bid?.toFixed(5)}** |\n`;
-    if (conversion.last?.ask) block += `| Ask | **${conversion.last.ask?.toFixed(5)}** |\n`;
-    if (conversion.converted) block += `| 1 ${from} = | **${conversion.converted?.toFixed(5)} ${to}** |\n`;
+    if (conversion.last?.bid)
+      block += `| Bid | **${conversion.last.bid?.toFixed(5)}** |\n`;
+    if (conversion.last?.ask)
+      block += `| Ask | **${conversion.last.ask?.toFixed(5)}** |\n`;
+    if (conversion.converted)
+      block += `| 1 ${from} = | **${conversion.converted?.toFixed(5)} ${to}** |\n`;
   }
   if (Array.isArray(snapshot) && snapshot.length > 0) {
     const s = snapshot[0];
@@ -612,7 +713,8 @@ function formatForexBlock(data) {
     if (s.day?.h) block += `| High | **${s.day.h?.toFixed(5)}** |\n`;
     if (s.day?.l) block += `| Low | **${s.day.l?.toFixed(5)}** |\n`;
     if (s.day?.c) block += `| Close | ${s.day.c?.toFixed(5)} |\n`;
-    if (s.todaysChangePerc !== undefined) block += `| Day Change | ${s.todaysChangePerc >= 0 ? '+' : ''}${s.todaysChangePerc?.toFixed(4)}% |\n`;
+    if (s.todaysChangePerc !== undefined)
+      block += `| Day Change | ${s.todaysChangePerc >= 0 ? '+' : ''}${s.todaysChangePerc?.toFixed(4)}% |\n`;
   }
   return block;
 }
@@ -626,16 +728,25 @@ function formatTechnicalBlock(data, ticker) {
   // RSI
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '🔴 Overbought — potential sell signal' :
-                      rsiVal < 30 ? '🟢 Oversold — potential buy signal' :
-                      rsiVal > 55 ? '📈 Bullish momentum' :
-                      rsiVal < 45 ? '📉 Bearish momentum' : '⚪ Neutral';
+    const rsiSignal =
+      rsiVal > 70
+        ? '🔴 Overbought — potential sell signal'
+        : rsiVal < 30
+          ? '🟢 Oversold — potential buy signal'
+          : rsiVal > 55
+            ? '📈 Bullish momentum'
+            : rsiVal < 45
+              ? '📉 Bearish momentum'
+              : '⚪ Neutral';
     block += `\n### RSI (14-day)\n| Value | Signal |\n|-------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
 
   // MACD
   if (macd) {
-    const macdSignal = macd.value > macd.signal ? '📈 Bullish crossover' : '📉 Bearish crossover';
+    const macdSignal =
+      macd.value > macd.signal
+        ? '📈 Bullish crossover'
+        : '📉 Bearish crossover';
     block += `\n### MACD (12, 26, 9)\n| Metric | Value |\n|--------|-------|\n`;
     block += `| MACD Line | **${macd.value?.toFixed(4)}** |\n`;
     block += `| Signal Line | ${macd.signal?.toFixed(4)} |\n`;
@@ -666,14 +777,16 @@ function formatTechnicalBlock(data, ticker) {
 
 function formatOptionsBlock(options, underlyingTicker, stockPrice) {
   let block = '';
-  if (stockPrice) block += `**${underlyingTicker} Current Price: $${stockPrice.toLocaleString()}**\n\n`;
+  if (stockPrice)
+    block += `**${underlyingTicker} Current Price: $${stockPrice.toLocaleString()}**\n\n`;
 
-  if (!options?.results?.length) return block + `Options chain — no data available for ${underlyingTicker}.`;
+  if (!options?.results?.length)
+    return block + `Options chain — no data available for ${underlyingTicker}.`;
 
   block += `## ${underlyingTicker} — Options Chain\n\n`;
   block += `| Contract | Type | Strike | Expiry | Bid | Ask | IV | Delta | OI |\n`;
   block += `|----------|------|--------|--------|-----|-----|----|-------|----|\n`;
-  options.results.slice(0, 20).forEach(c => {
+  options.results.slice(0, 20).forEach((c) => {
     const d = c.details || {};
     const g = c.greeks || {};
     const q = c.lastQuote || {};
@@ -683,13 +796,19 @@ function formatOptionsBlock(options, underlyingTicker, stockPrice) {
 }
 
 function formatMacroBlock(data) {
-  const { inflation, yields, labor, expectations, allInflation, allYields } = data;
+  const { inflation, yields, labor, expectations, allInflation, allYields } =
+    data;
   let block = `## 🏦 Federal Reserve & Macro Economic Snapshot\n\n`;
 
   // CPI inflation
   if (inflation) {
     const cpiNum = parseFloat(inflation.cpi);
-    const cpiSignal = cpiNum > 4 ? '🔴 High inflation' : cpiNum > 2.5 ? '🟡 Above target' : '🟢 Near target (2%)';
+    const cpiSignal =
+      cpiNum > 4
+        ? '🔴 High inflation'
+        : cpiNum > 2.5
+          ? '🟡 Above target'
+          : '🟢 Near target (2%)';
     block += `### CPI Inflation\n| Date | CPI | Signal |\n|------|-----|--------|\n`;
     block += `| **${inflation.date}** | **${inflation.cpi}** | ${cpiSignal} |\n\n`;
   }
@@ -697,15 +816,23 @@ function formatMacroBlock(data) {
   // CPI trend (last 6 months)
   if (allInflation?.length > 1) {
     block += `### Inflation Trend (Recent)\n| Date | CPI |\n|------|-----|\n`;
-    allInflation.slice(-6).reverse().forEach(r => {
-      block += `| ${r.date} | ${r.cpi} |\n`;
-    });
+    allInflation
+      .slice(-6)
+      .reverse()
+      .forEach((r) => {
+        block += `| ${r.date} | ${r.cpi} |\n`;
+      });
     // Momentum signal
     if (allInflation.length >= 2) {
       const latest = parseFloat(allInflation.at(-1)?.cpi);
-      const prior  = parseFloat(allInflation.at(-2)?.cpi);
+      const prior = parseFloat(allInflation.at(-2)?.cpi);
       if (!isNaN(latest) && !isNaN(prior)) {
-        const trend = latest > prior ? '📈 Rising' : latest < prior ? '📉 Falling' : '↔️ Flat';
+        const trend =
+          latest > prior
+            ? '📈 Rising'
+            : latest < prior
+              ? '📉 Falling'
+              : '↔️ Flat';
         block += `> Momentum: **${trend}** (${(latest - prior).toFixed(1)} change last period)\n`;
       }
     }
@@ -717,28 +844,30 @@ function formatMacroBlock(data) {
     block += `### 📈 Treasury Yield Curve (Latest: ${yields.date})\n`;
     block += `| Maturity | Yield | Signal |\n|----------|-------|--------|\n`;
     const maturities = [
-      { key: 'yield_1_month',  label: '1 Month' },
-      { key: 'yield_3_month',  label: '3 Month' },
-      { key: 'yield_6_month',  label: '6 Month' },
-      { key: 'yield_1_year',   label: '1 Year'  },
-      { key: 'yield_2_year',   label: '2 Year'  },
-      { key: 'yield_3_year',   label: '3 Year'  },
-      { key: 'yield_5_year',   label: '5 Year'  },
-      { key: 'yield_7_year',   label: '7 Year'  },
-      { key: 'yield_10_year',  label: '10 Year' },
-      { key: 'yield_20_year',  label: '20 Year' },
-      { key: 'yield_30_year',  label: '30 Year' },
+      { key: 'yield_1_month', label: '1 Month' },
+      { key: 'yield_3_month', label: '3 Month' },
+      { key: 'yield_6_month', label: '6 Month' },
+      { key: 'yield_1_year', label: '1 Year' },
+      { key: 'yield_2_year', label: '2 Year' },
+      { key: 'yield_3_year', label: '3 Year' },
+      { key: 'yield_5_year', label: '5 Year' },
+      { key: 'yield_7_year', label: '7 Year' },
+      { key: 'yield_10_year', label: '10 Year' },
+      { key: 'yield_20_year', label: '20 Year' },
+      { key: 'yield_30_year', label: '30 Year' },
     ];
-    const availableMaturities = maturities.filter(m => yields[m.key] !== undefined && yields[m.key] !== null);
+    const availableMaturities = maturities.filter(
+      (m) => yields[m.key] !== undefined && yields[m.key] !== null
+    );
     availableMaturities.forEach((m, i) => {
       const y = yields[m.key];
-      const prev = i > 0 ? yields[availableMaturities[i-1].key] : null;
+      const prev = i > 0 ? yields[availableMaturities[i - 1].key] : null;
       const signal = prev ? (y > prev ? '↗️' : y < prev ? '↘️' : '↔️') : '';
       block += `| **${m.label}** | **${y}%** | ${signal} |\n`;
     });
 
     // Inversion check (10Y vs 2Y spread)
-    const y2  = yields.yield_2_year;
+    const y2 = yields.yield_2_year;
     const y10 = yields.yield_10_year;
     const y3m = yields.yield_3_month;
     if (y2 && y10) {
@@ -755,10 +884,14 @@ function formatMacroBlock(data) {
   // Labor market
   if (labor) {
     block += `### 💼 Labor Market (Latest: ${labor.date})\n| Metric | Value |\n|--------|-------|\n`;
-    if (labor.unemployment_rate !== undefined)           block += `| Unemployment Rate | **${labor.unemployment_rate}%** |\n`;
-    if (labor.labor_force_participation_rate !== undefined) block += `| Labor Force Participation | ${labor.labor_force_participation_rate}% |\n`;
-    if (labor.nonfarm_payrolls !== undefined)            block += `| Nonfarm Payrolls | ${labor.nonfarm_payrolls?.toLocaleString()} |\n`;
-    if (labor.average_hourly_earnings_yoy !== undefined) block += `| Avg Hourly Earnings (YoY) | **${labor.average_hourly_earnings_yoy}%** |\n`;
+    if (labor.unemployment_rate !== undefined)
+      block += `| Unemployment Rate | **${labor.unemployment_rate}%** |\n`;
+    if (labor.labor_force_participation_rate !== undefined)
+      block += `| Labor Force Participation | ${labor.labor_force_participation_rate}% |\n`;
+    if (labor.nonfarm_payrolls !== undefined)
+      block += `| Nonfarm Payrolls | ${labor.nonfarm_payrolls?.toLocaleString()} |\n`;
+    if (labor.average_hourly_earnings_yoy !== undefined)
+      block += `| Avg Hourly Earnings (YoY) | **${labor.average_hourly_earnings_yoy}%** |\n`;
     block += '\n';
   }
 
@@ -780,22 +913,29 @@ const routeAndEnhancePrompt = async (prompt) => {
     const intent = detectFinancialIntent(prompt);
     if (!intent) return prompt;
 
-    logger.info(`[MassiveRouter] Intent: ${intent.type} | Symbol: ${intent.symbol || 'N/A'}`);
+    logger.info(
+      `[MassiveRouter] Intent: ${intent.type} | Symbol: ${intent.symbol || 'N/A'}`
+    );
     const q = prompt.toLowerCase();
     const isComparison = /\b(vs|versus|compare|against)\b/.test(q);
 
     // ── WATCHLIST BATCH QUOTES ────────────────────────────────────────────
     if (intent.type === 'watchlist') {
       const symbols = intent.symbols || [];
-      let snapshots = await safe(getStocksSnapshotTickersService(symbols), 5000) || [];
+      let snapshots =
+        (await safe(getStocksSnapshotTickersService(symbols), 5000)) || [];
       if (!Array.isArray(snapshots)) snapshots = [];
 
-      const missingSymbols = symbols.filter(s => !snapshots.some(snap => snap.ticker === s || snap.symbol === s));
+      const missingSymbols = symbols.filter(
+        (s) => !snapshots.some((snap) => snap.ticker === s || snap.symbol === s)
+      );
       if (missingSymbols.length > 0) {
         const fallbackPromises = missingSymbols.map(async (s) => {
           const uSnap = await safe(getUniversalSnapshotService([s]));
           if (uSnap && Array.isArray(uSnap) && uSnap.length > 0) {
-            const foundSnap = uSnap.find(snap => snap.ticker === s || snap.symbol === s) || uSnap[0];
+            const foundSnap =
+              uSnap.find((snap) => snap.ticker === s || snap.symbol === s) ||
+              uSnap[0];
             if (foundSnap) snapshots.push(foundSnap);
           }
         });
@@ -810,14 +950,19 @@ const routeAndEnhancePrompt = async (prompt) => {
       block += `| Ticker | Price | Change | Change % | Volume | Day Range |\n`;
       block += `|--------|-------|--------|----------|--------|-----------|\n`;
 
-      snapshots.forEach(s => {
+      snapshots.forEach((s) => {
         const ticker = s.ticker || s.symbol || 'N/A';
-        const priceVal = s.day?.c || s.prevDay?.c || s.lastTrade?.price || s.price;
-        const price = priceVal !== undefined ? `**$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**` : 'N/A';
-        
+        const priceVal =
+          s.day?.c || s.prevDay?.c || s.lastTrade?.price || s.price;
+        const price =
+          priceVal !== undefined
+            ? `**$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**`
+            : 'N/A';
+
         let changeVal = s.todaysChange !== undefined ? s.todaysChange : null;
-        let changePctVal = s.todaysChangePerc !== undefined ? s.todaysChangePerc : null;
-        
+        let changePctVal =
+          s.todaysChangePerc !== undefined ? s.todaysChangePerc : null;
+
         if (changeVal === null && priceVal !== undefined && s.prevDay?.c) {
           changeVal = priceVal - s.prevDay.c;
           changePctVal = (changeVal / s.prevDay.c) * 100;
@@ -825,21 +970,36 @@ const routeAndEnhancePrompt = async (prompt) => {
 
         const dirIndicator = changeVal !== null && changeVal >= 0 ? '🟢' : '🔴';
         const chgSign = changeVal !== null && changeVal >= 0 ? '+' : '';
-        
-        const change = changeVal !== null ? `**${chgSign}${changeVal.toFixed(2)}**` : 'N/A';
-        const changePct = changePctVal !== null ? `**${chgSign}${changePctVal.toFixed(2)}%**` : 'N/A';
-        
+
+        const change =
+          changeVal !== null ? `**${chgSign}${changeVal.toFixed(2)}**` : 'N/A';
+        const changePct =
+          changePctVal !== null
+            ? `**${chgSign}${changePctVal.toFixed(2)}%**`
+            : 'N/A';
+
         const dayVol = s.day?.v || s.day?.volume || s.volume;
-        const volume = dayVol ? (dayVol >= 1e6 ? `${(dayVol / 1e6).toFixed(2)}M` : dayVol.toLocaleString()) : 'N/A';
-        
+        const volume = dayVol
+          ? dayVol >= 1e6
+            ? `${(dayVol / 1e6).toFixed(2)}M`
+            : dayVol.toLocaleString()
+          : 'N/A';
+
         const dayHigh = s.day?.h || s.high;
         const dayLow = s.day?.l || s.low;
-        const dayRange = dayHigh && dayLow ? `$${dayLow.toFixed(2)} - $${dayHigh.toFixed(2)}` : 'N/A';
+        const dayRange =
+          dayHigh && dayLow
+            ? `$${dayLow.toFixed(2)} - $${dayHigh.toFixed(2)}`
+            : 'N/A';
 
         block += `| ${dirIndicator} **${ticker}** | ${price} | ${change} | ${changePct} | ${volume} | ${dayRange} |\n`;
       });
 
-      return buildPrompt(prompt, block, 'Massive.com Live Batch Ticker Watchlist');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Live Batch Ticker Watchlist'
+      );
     }
 
     // ── MARKET STATUS ─────────────────────────────────────────────────────
@@ -858,16 +1018,30 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (Array.isArray(holidays) && holidays.length > 0) {
         block += `\n## Upcoming Market Holidays\n| Date | Exchange | Holiday | Status |\n|------|----------|---------|--------|\n`;
         const seen = new Set();
-        holidays.filter(h => !seen.has(h.date + h.name) && seen.add(h.date + h.name))
-          .slice(0, 5).forEach(h => { block += `| ${h.date} | ${h.exchange} | ${h.name} | ${h.status} |\n`; });
+        holidays
+          .filter(
+            (h) => !seen.has(h.date + h.name) && seen.add(h.date + h.name)
+          )
+          .slice(0, 5)
+          .forEach((h) => {
+            block += `| ${h.date} | ${h.exchange} | ${h.name} | ${h.status} |\n`;
+          });
       }
-      return buildPrompt(prompt, block, 'Massive.com Global Market Status Service');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Global Market Status Service'
+      );
     }
 
     // ── MACRO / FED ────────────────────────────────────────────────────────
     if (intent.type === 'macro') {
       const data = await fetchMacroFull();
-      return buildPrompt(prompt, formatMacroBlock(data), 'Massive.com Federal Reserve Economic Data');
+      return buildPrompt(
+        prompt,
+        formatMacroBlock(data),
+        'Massive.com Federal Reserve Economic Data'
+      );
     }
 
     // ── MARKET OVERVIEW — Full Dashboard ──────────────────────────────────
@@ -875,11 +1049,19 @@ const routeAndEnhancePrompt = async (prompt) => {
       const { equities, cryptos } = await fetchMarketOverview();
 
       const LABELS = {
-        SPY: 'S&P 500', QQQ: 'NASDAQ 100', DIA: 'Dow Jones', IWM: 'Russell 2000',
-        VIXY: 'VIX', GLD: 'Gold', USO: 'Crude Oil', TLT: '20Y Treasury',
+        SPY: 'S&P 500',
+        QQQ: 'NASDAQ 100',
+        DIA: 'Dow Jones',
+        IWM: 'Russell 2000',
+        VIXY: 'VIX',
+        GLD: 'Gold',
+        USO: 'Crude Oil',
+        TLT: '20Y Treasury',
       };
       const CRYPTO_LABELS = {
-        'X:BTCUSD': 'Bitcoin (BTC)', 'X:ETHUSD': 'Ethereum (ETH)', 'X:SOLUSD': 'Solana (SOL)',
+        'X:BTCUSD': 'Bitcoin (BTC)',
+        'X:ETHUSD': 'Ethereum (ETH)',
+        'X:SOLUSD': 'Solana (SOL)',
       };
 
       let block = `## 📊 Market Overview — Live Dashboard\n\n`;
@@ -887,14 +1069,32 @@ const routeAndEnhancePrompt = async (prompt) => {
       // Equity indices & assets
       if (Array.isArray(equities) && equities.length > 0) {
         block += `### Indices & Key Assets\n| Asset | Price | Change | Change % | Volume |\n|-------|-------|--------|----------|--------|\n`;
-        equities.forEach(s => {
+        equities.forEach((s) => {
           const label = LABELS[s.ticker] || s.ticker;
-          const price = s.day?.c?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A';
-          const change = s.todaysChange !== undefined ? s.todaysChange : (s.day?.c && s.day?.o ? s.day.c - s.day.o : null);
-          const changePct = s.todaysChangePerc !== undefined ? s.todaysChangePerc : (s.day?.c && s.day?.o ? ((s.day.c - s.day.o) / s.day.o) * 100 : null);
+          const price =
+            s.day?.c?.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }) || 'N/A';
+          const change =
+            s.todaysChange !== undefined
+              ? s.todaysChange
+              : s.day?.c && s.day?.o
+                ? s.day.c - s.day.o
+                : null;
+          const changePct =
+            s.todaysChangePerc !== undefined
+              ? s.todaysChangePerc
+              : s.day?.c && s.day?.o
+                ? ((s.day.c - s.day.o) / s.day.o) * 100
+                : null;
           const dir = change !== null ? (change >= 0 ? '📈 +' : '📉 ') : '';
-          const chg = change !== null ? `${dir}${Math.abs(change).toFixed(2)}` : 'N/A';
-          const chgPct = changePct !== null ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : 'N/A';
+          const chg =
+            change !== null ? `${dir}${Math.abs(change).toFixed(2)}` : 'N/A';
+          const chgPct =
+            changePct !== null
+              ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`
+              : 'N/A';
           const vol = s.day?.v ? (s.day.v / 1e6).toFixed(1) + 'M' : 'N/A';
           block += `| **${label}** | **$${price}** | ${chg} | ${chgPct} | ${vol} |\n`;
         });
@@ -903,9 +1103,13 @@ const routeAndEnhancePrompt = async (prompt) => {
       // Crypto section
       if (Array.isArray(cryptos) && cryptos.length > 0) {
         block += `\n### Crypto\n| Asset | Price | 24h Change | 24h Change % |\n|-------|-------|------------|-------------|\n`;
-        cryptos.forEach(s => {
+        cryptos.forEach((s) => {
           const label = CRYPTO_LABELS[s.ticker] || s.ticker;
-          const price = s.day?.c?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A';
+          const price =
+            s.day?.c?.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }) || 'N/A';
           const change = s.todaysChange;
           const changePct = s.todaysChangePerc;
           const dir = change >= 0 ? '📈 +' : '📉 ';
@@ -913,16 +1117,27 @@ const routeAndEnhancePrompt = async (prompt) => {
         });
       }
 
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Market Overview Dashboard');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Market Overview Dashboard'
+      );
     }
 
     // ── SECTOR PERFORMANCE ────────────────────────────────────────────────
     if (intent.type === 'sector') {
       const SECTOR_LABELS = {
-        XLK: '💻 Technology', XLF: '🏦 Financials', XLV: '⚕️ Health Care',
-        XLE: '⚡ Energy', XLI: '🏭 Industrials', XLC: '📡 Communication',
-        XLP: '🛒 Consumer Staples', XLY: '🛍️ Consumer Disc.', XLB: '🪨 Materials',
-        XLRE: '🏠 Real Estate', XLU: '💡 Utilities',
+        XLK: '💻 Technology',
+        XLF: '🏦 Financials',
+        XLV: '⚕️ Health Care',
+        XLE: '⚡ Energy',
+        XLI: '🏭 Industrials',
+        XLC: '📡 Communication',
+        XLP: '🛒 Consumer Staples',
+        XLY: '🛍️ Consumer Disc.',
+        XLB: '🪨 Materials',
+        XLRE: '🏠 Real Estate',
+        XLU: '💡 Utilities',
       };
 
       const sectors = await fetchSectorPerformance();
@@ -930,15 +1145,25 @@ const routeAndEnhancePrompt = async (prompt) => {
       let block = `## 📊 S&P 500 Sector Performance\n\n`;
       if (Array.isArray(sectors) && sectors.length > 0) {
         // Sort by % change descending
-        const sorted = [...sectors].sort((a, b) => (b.todaysChangePerc || 0) - (a.todaysChangePerc || 0));
+        const sorted = [...sectors].sort(
+          (a, b) => (b.todaysChangePerc || 0) - (a.todaysChangePerc || 0)
+        );
         block += `| Sector | ETF | Price | Change % | Volume |\n|--------|-----|-------|----------|--------|\n`;
-        sorted.forEach(s => {
+        sorted.forEach((s) => {
           const label = SECTOR_LABELS[s.ticker] || s.ticker;
           const price = s.day?.c?.toFixed(2) || 'N/A';
-          const changePct = s.todaysChangePerc !== undefined ? s.todaysChangePerc
-            : (s.day?.c && s.day?.o ? ((s.day.c - s.day.o) / s.day.o) * 100 : null);
-          const dir = changePct !== null ? (changePct >= 0 ? '📈 +' : '📉 ') : '';
-          const chgStr = changePct !== null ? `**${dir}${Math.abs(changePct).toFixed(2)}%**` : 'N/A';
+          const changePct =
+            s.todaysChangePerc !== undefined
+              ? s.todaysChangePerc
+              : s.day?.c && s.day?.o
+                ? ((s.day.c - s.day.o) / s.day.o) * 100
+                : null;
+          const dir =
+            changePct !== null ? (changePct >= 0 ? '📈 +' : '📉 ') : '';
+          const chgStr =
+            changePct !== null
+              ? `**${dir}${Math.abs(changePct).toFixed(2)}%**`
+              : 'N/A';
           const vol = s.day?.v ? (s.day.v / 1e6).toFixed(1) + 'M' : 'N/A';
           block += `| ${label} | ${s.ticker} | $${price} | ${chgStr} | ${vol} |\n`;
         });
@@ -948,7 +1173,11 @@ const routeAndEnhancePrompt = async (prompt) => {
         block += `\n**🏆 Best:** ${SECTOR_LABELS[best?.ticker] || best?.ticker} (+${best?.todaysChangePerc?.toFixed(2)}%)\n`;
         block += `**📉 Worst:** ${SECTOR_LABELS[worst?.ticker] || worst?.ticker} (${worst?.todaysChangePerc?.toFixed(2)}%)\n`;
       }
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Sector Performance Service');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Sector Performance Service'
+      );
     }
 
     // ── NAMED STOCK GROUPS (FAANG, Mag7, etc.) ───────────────────────────
@@ -961,68 +1190,112 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (Array.isArray(snapshots) && snapshots.length > 0) {
         block += `| Company | Ticker | Price | Change | Change % | Volume |\n|---------|--------|-------|--------|----------|--------|\n`;
         // Sort to match original group order
-        const ordered = groupTickers.map(t => snapshots.find(s => s.ticker === t)).filter(Boolean);
-        ordered.forEach(s => {
+        const ordered = groupTickers
+          .map((t) => snapshots.find((s) => s.ticker === t))
+          .filter(Boolean);
+        ordered.forEach((s) => {
           const price = s.day?.c?.toFixed(2) || 'N/A';
-          const change = s.todaysChange !== undefined ? s.todaysChange : (s.day?.c && s.day?.o ? s.day.c - s.day.o : null);
-          const changePct = s.todaysChangePerc !== undefined ? s.todaysChangePerc
-            : (s.day?.c && s.day?.o ? ((s.day.c - s.day.o) / s.day.o) * 100 : null);
+          const change =
+            s.todaysChange !== undefined
+              ? s.todaysChange
+              : s.day?.c && s.day?.o
+                ? s.day.c - s.day.o
+                : null;
+          const changePct =
+            s.todaysChangePerc !== undefined
+              ? s.todaysChangePerc
+              : s.day?.c && s.day?.o
+                ? ((s.day.c - s.day.o) / s.day.o) * 100
+                : null;
           const dir = change !== null ? (change >= 0 ? '📈 +' : '📉 ') : '';
-          const chg = change !== null ? `${dir}${Math.abs(change).toFixed(2)}` : 'N/A';
-          const chgPct = changePct !== null ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : 'N/A';
+          const chg =
+            change !== null ? `${dir}${Math.abs(change).toFixed(2)}` : 'N/A';
+          const chgPct =
+            changePct !== null
+              ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`
+              : 'N/A';
           const vol = s.day?.v ? (s.day.v / 1e6).toFixed(1) + 'M' : 'N/A';
           block += `| — | **${s.ticker}** | **$${price}** | ${chg} | ${chgPct} | ${vol} |\n`;
         });
         // Best and worst
-        const withPct = ordered.filter(s => s.todaysChangePerc !== undefined);
+        const withPct = ordered.filter((s) => s.todaysChangePerc !== undefined);
         if (withPct.length > 0) {
-          const best = withPct.reduce((a, b) => (b.todaysChangePerc > a.todaysChangePerc ? b : a));
-          const worst = withPct.reduce((a, b) => (b.todaysChangePerc < a.todaysChangePerc ? b : a));
+          const best = withPct.reduce((a, b) =>
+            b.todaysChangePerc > a.todaysChangePerc ? b : a
+          );
+          const worst = withPct.reduce((a, b) =>
+            b.todaysChangePerc < a.todaysChangePerc ? b : a
+          );
           block += `\n**🏆 Best:** ${best.ticker} (+${best.todaysChangePerc?.toFixed(2)}%) | **📉 Worst:** ${worst.ticker} (${worst.todaysChangePerc?.toFixed(2)}%)\n`;
         }
       }
-      return buildPrompt(prompt, block, `Massive.com Real-Time ${groupName.toUpperCase()} Group Service`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Real-Time ${groupName.toUpperCase()} Group Service`
+      );
     }
 
     // ── CRYPTO MARKET OVERVIEW ────────────────────────────────────────────
     if (intent.type === 'crypto_overview') {
       const CRYPTO_NAMES = {
-        'X:BTCUSD': 'Bitcoin (BTC)', 'X:ETHUSD': 'Ethereum (ETH)', 'X:SOLUSD': 'Solana (SOL)',
-        'X:XRPUSD': 'XRP', 'X:BNBUSD': 'BNB', 'X:DOGEUSD': 'Dogecoin (DOGE)', 'X:ADAUSD': 'Cardano (ADA)',
+        'X:BTCUSD': 'Bitcoin (BTC)',
+        'X:ETHUSD': 'Ethereum (ETH)',
+        'X:SOLUSD': 'Solana (SOL)',
+        'X:XRPUSD': 'XRP',
+        'X:BNBUSD': 'BNB',
+        'X:DOGEUSD': 'Dogecoin (DOGE)',
+        'X:ADAUSD': 'Cardano (ADA)',
       };
       const snapshots = await fetchCryptoOverview();
       let block = `## 🌐 Crypto Market Overview\n\n`;
       if (Array.isArray(snapshots) && snapshots.length > 0) {
         block += `| Asset | Price | 24h Change | 24h Change % | Volume |\n|-------|-------|------------|-------------|--------|\n`;
-        snapshots.forEach(s => {
+        snapshots.forEach((s) => {
           const label = CRYPTO_NAMES[s.ticker] || s.ticker;
-          const price = s.day?.c?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A';
+          const price =
+            s.day?.c?.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }) || 'N/A';
           const change = s.todaysChange;
           const changePct = s.todaysChangePerc;
           const dir = (change || 0) >= 0 ? '📈 +' : '📉 ';
-          const vol = s.day?.v ? s.day.v.toLocaleString('en-US', { maximumFractionDigits: 0 }) : 'N/A';
+          const vol = s.day?.v
+            ? s.day.v.toLocaleString('en-US', { maximumFractionDigits: 0 })
+            : 'N/A';
           block += `| **${label}** | **$${price}** | ${dir}${Math.abs(change || 0).toFixed(2)} | ${(changePct || 0) >= 0 ? '+' : ''}${(changePct || 0).toFixed(2)}% | ${vol} |\n`;
         });
         // Market sentiment
-        const gainers = snapshots.filter(s => (s.todaysChangePerc || 0) > 0).length;
+        const gainers = snapshots.filter(
+          (s) => (s.todaysChangePerc || 0) > 0
+        ).length;
         const losers = snapshots.length - gainers;
         block += `\n**Market Sentiment:** ${gainers}/${snapshots.length} coins up | ${losers}/${snapshots.length} coins down\n`;
       }
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Crypto Market Overview');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Crypto Market Overview'
+      );
     }
 
     // ── FOREX MARKET OVERVIEW ─────────────────────────────────────────────
     if (intent.type === 'forex_overview') {
       const PAIR_NAMES = {
-        'C:EURUSD': 'EUR/USD 🇪🇺', 'C:GBPUSD': 'GBP/USD 🇬🇧', 'C:USDJPY': 'USD/JPY 🇯🇵',
-        'C:USDCHF': 'USD/CHF 🇨🇭', 'C:AUDUSD': 'AUD/USD 🇦🇺', 'C:USDCAD': 'USD/CAD 🇨🇦',
+        'C:EURUSD': 'EUR/USD 🇪🇺',
+        'C:GBPUSD': 'GBP/USD 🇬🇧',
+        'C:USDJPY': 'USD/JPY 🇯🇵',
+        'C:USDCHF': 'USD/CHF 🇨🇭',
+        'C:AUDUSD': 'AUD/USD 🇦🇺',
+        'C:USDCAD': 'USD/CAD 🇨🇦',
         'C:NZDUSD': 'NZD/USD 🇳🇿',
       };
       const snapshots = await fetchForexOverview();
       let block = `## 💱 Major Forex Pairs — Live Rates\n\n`;
       if (Array.isArray(snapshots) && snapshots.length > 0) {
         block += `| Pair | Rate | Bid | Ask | Day Change % |\n|------|------|-----|-----|--------------|\n`;
-        snapshots.forEach(s => {
+        snapshots.forEach((s) => {
           const label = PAIR_NAMES[s.ticker] || s.ticker;
           const rate = s.day?.c?.toFixed(5) || 'N/A';
           const bid = s.lastQuote?.b?.toFixed(5) || 'N/A';
@@ -1032,14 +1305,23 @@ const routeAndEnhancePrompt = async (prompt) => {
           block += `| **${label}** | **${rate}** | ${bid} | ${ask} | ${dir}${Math.abs(changePct || 0).toFixed(4)}% |\n`;
         });
       }
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Forex Market Overview');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Forex Market Overview'
+      );
     }
 
     // ── TOP MOVERS (Gainers / Losers / Most Active) ───────────────────────
     if (intent.type === 'movers') {
       const direction = intent.direction || 'gainers';
       const movers = await safe(getTopMoversService(direction), 8000);
-      const title = direction === 'gainers' ? '📈 Top Gainers' : direction === 'losers' ? '📉 Top Losers' : '🔥 Most Active Stocks';
+      const title =
+        direction === 'gainers'
+          ? '📈 Top Gainers'
+          : direction === 'losers'
+            ? '📉 Top Losers'
+            : '🔥 Most Active Stocks';
       let block = `## ${title} — Live Today\n\n`;
       if (Array.isArray(movers) && movers.length > 0) {
         block += `| Rank | Ticker | Price | Change | Change % | Volume |\n|------|--------|-------|--------|----------|--------|\n`;
@@ -1052,7 +1334,11 @@ const routeAndEnhancePrompt = async (prompt) => {
           block += `| ${i + 1} | **${s.ticker}** | **$${price}** | ${dir}${Math.abs(change || 0).toFixed(2)} | ${(changePct || 0) >= 0 ? '+' : ''}${(changePct || 0).toFixed(2)}% | ${vol} |\n`;
         });
       }
-      return buildPrompt(prompt, block, `Massive.com Real-Time ${title} Service`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Real-Time ${title} Service`
+      );
     }
 
     // ── GLOBAL MARKET NEWS ────────────────────────────────────────────────
@@ -1065,13 +1351,18 @@ const routeAndEnhancePrompt = async (prompt) => {
             const date = n.published_utc?.slice(0, 10) || '';
             const pub = n.publisher?.name || '';
             block += `**${i + 1}. ${n.title}**\n`;
-            if (pub || date) block += `> *${pub}${pub && date ? ' — ' : ''}${date}*\n`;
+            if (pub || date)
+              block += `> *${pub}${pub && date ? ' — ' : ''}${date}*\n`;
             if (n.description) block += `${n.description.slice(0, 200)}...\n`;
             block += '\n';
           }
         });
       }
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Market News Service');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Market News Service'
+      );
     }
 
     // ── 52-WEEK HIGH / LOW ────────────────────────────────────────────────
@@ -1084,17 +1375,26 @@ const routeAndEnhancePrompt = async (prompt) => {
       let block = `## 📊 ${sym} — 52-Week Range\n\n`;
       if (data52) {
         block += `| Metric | Value |\n|--------|-------|\n`;
-        if (data52.week52High) block += `| 52-Week High | **$${data52.week52High.toFixed(2)}** |\n`;
-        if (data52.week52Low) block += `| 52-Week Low | **$${data52.week52Low.toFixed(2)}** |\n`;
-        if (data52.currentClose) block += `| Current Price | **$${data52.currentClose.toFixed(2)}** |\n`;
-        if (data52.pctFromHigh) block += `| % From 52-Wk High | ${data52.pctFromHigh}% |\n`;
-        if (data52.pctFromLow) block += `| % From 52-Wk Low | +${data52.pctFromLow}% |\n`;
+        if (data52.week52High)
+          block += `| 52-Week High | **$${data52.week52High.toFixed(2)}** |\n`;
+        if (data52.week52Low)
+          block += `| 52-Week Low | **$${data52.week52Low.toFixed(2)}** |\n`;
+        if (data52.currentClose)
+          block += `| Current Price | **$${data52.currentClose.toFixed(2)}** |\n`;
+        if (data52.pctFromHigh)
+          block += `| % From 52-Wk High | ${data52.pctFromHigh}% |\n`;
+        if (data52.pctFromLow)
+          block += `| % From 52-Wk Low | +${data52.pctFromLow}% |\n`;
         if (data52.week52High && data52.week52Low) {
           const range = data52.week52High - data52.week52Low;
           block += `| 52-Wk Range | $${data52.week52Low.toFixed(2)} – $${data52.week52High.toFixed(2)} |\n`;
         }
       }
-      return buildPrompt(prompt, block, `Massive.com 52-Week Range Service for ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com 52-Week Range Service for ${sym}`
+      );
     }
 
     // ── DIVIDEND DETAIL ───────────────────────────────────────────────────
@@ -1107,16 +1407,29 @@ const routeAndEnhancePrompt = async (prompt) => {
       let block = `## 💰 ${sym} — Dividend Information\n\n`;
       if (Array.isArray(divs) && divs.length > 0) {
         block += `| Ex-Dividend Date | Pay Date | Cash Amount | Frequency |\n|-----------------|----------|-------------|----------|\n`;
-        const freqMap = { 1: 'Annual', 2: 'Semi-Annual', 4: 'Quarterly', 12: 'Monthly' };
-        divs.slice(0, 4).forEach(d => {
+        const freqMap = {
+          1: 'Annual',
+          2: 'Semi-Annual',
+          4: 'Quarterly',
+          12: 'Monthly',
+        };
+        divs.slice(0, 4).forEach((d) => {
           block += `| ${d.ex_dividend_date || 'N/A'} | ${d.pay_date || 'N/A'} | **$${d.cash_amount?.toFixed(4) || 'N/A'}** | ${freqMap[d.frequency] || d.frequency || 'N/A'} |\n`;
         });
-        const annualDiv = divs[0]?.cash_amount && divs[0]?.frequency ? (divs[0].cash_amount * divs[0].frequency) : null;
-        if (annualDiv) block += `\n**Estimated Annual Dividend:** $${annualDiv.toFixed(4)} per share\n`;
+        const annualDiv =
+          divs[0]?.cash_amount && divs[0]?.frequency
+            ? divs[0].cash_amount * divs[0].frequency
+            : null;
+        if (annualDiv)
+          block += `\n**Estimated Annual Dividend:** $${annualDiv.toFixed(4)} per share\n`;
       } else {
         block += `*No dividend data found for ${sym}. This stock may not pay dividends.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Dividend Data Service for ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Dividend Data Service for ${sym}`
+      );
     }
 
     // ── SHORT INTEREST ────────────────────────────────────────────────────
@@ -1127,11 +1440,18 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (Array.isArray(data) && data.length > 0) {
         const latest = data[0];
         block += `| Metric | Value |\n|--------|-------|\n`;
-        if (latest.short_interest) block += `| Short Interest | **${latest.short_interest.toLocaleString()} shares** |\n`;
-        if (latest.avg_daily_volume) block += `| Avg Daily Volume | ${latest.avg_daily_volume.toLocaleString()} |\n`;
-        if (latest.days_to_cover) block += `| Days to Cover | **${latest.days_to_cover.toFixed(2)} days** |\n`;
+        if (latest.short_interest)
+          block += `| Short Interest | **${latest.short_interest.toLocaleString()} shares** |\n`;
+        if (latest.avg_daily_volume)
+          block += `| Avg Daily Volume | ${latest.avg_daily_volume.toLocaleString()} |\n`;
+        if (latest.days_to_cover)
+          block += `| Days to Cover | **${latest.days_to_cover.toFixed(2)} days** |\n`;
         if (latest.short_interest && latest.avg_daily_volume) {
-          const shortPct = ((latest.short_interest / latest.avg_daily_volume) / 100).toFixed(2);
+          const shortPct = (
+            latest.short_interest /
+            latest.avg_daily_volume /
+            100
+          ).toFixed(2);
           block += `| Settlement Date | ${latest.settlement_date || 'N/A'} |\n`;
         }
         if (latest.days_to_cover > 10) {
@@ -1140,26 +1460,39 @@ const routeAndEnhancePrompt = async (prompt) => {
       } else {
         block += `*No short interest data available for ${sym}.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Short Interest Service for ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Short Interest Service for ${sym}`
+      );
     }
 
     // ── CURRENCY CONVERSION WITH AMOUNT ──────────────────────────────────
     if (intent.type === 'currency_convert') {
       const { from, to, amount } = intent;
-      const result = await safe(getCurrencyConvertAmountService(from, to, amount), 5000);
+      const result = await safe(
+        getCurrencyConvertAmountService(from, to, amount),
+        5000
+      );
       let block = `## 💱 Currency Conversion — Live Rate\n\n`;
       if (result) {
         block += `| | Value |\n|-|-------|\n`;
         block += `| You Send | **${amount.toLocaleString()} ${from}** |\n`;
         block += `| You Receive | **${result.converted?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${to}** |\n`;
-        if (result.last?.ask) block += `| Live Ask Rate | ${result.last.ask} |\n`;
-        if (result.last?.bid) block += `| Live Bid Rate | ${result.last.bid} |\n`;
+        if (result.last?.ask)
+          block += `| Live Ask Rate | ${result.last.ask} |\n`;
+        if (result.last?.bid)
+          block += `| Live Bid Rate | ${result.last.bid} |\n`;
         block += `| Pair | ${from}/${to} |\n`;
         if (result.last?.timestamp) {
           block += `| Rate Timestamp | ${new Date(result.last.timestamp).toISOString().replace('T', ' ').slice(0, 19)} UTC |\n`;
         }
       }
-      return buildPrompt(prompt, block, `Massive.com Live Currency Conversion Service`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Live Currency Conversion Service`
+      );
     }
 
     // ── CRYPTO TECHNICAL ANALYSIS ─────────────────────────────────────────
@@ -1175,30 +1508,48 @@ const routeAndEnhancePrompt = async (prompt) => {
       let block = `## 🔬 ${label} — Technical Analysis\n\n`;
       if (snap) {
         block += `| Field | Value |\n|-------|-------|\n`;
-        if (snap.day?.c) block += `| Price | **$${snap.day.c.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
+        if (snap.day?.c)
+          block += `| Price | **$${snap.day.c.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
         const changePct = snap.todaysChangePerc;
-        if (changePct !== undefined) block += `| 24h Change | **${changePct >= 0 ? '📈 +' : '📉 '}${changePct.toFixed(2)}%** |\n`;
+        if (changePct !== undefined)
+          block += `| 24h Change | **${changePct >= 0 ? '📈 +' : '📉 '}${changePct.toFixed(2)}%** |\n`;
       }
       if (technicals) {
         block += `\n### Technical Indicators\n| Indicator | Value | Signal |\n|-----------|-------|--------|\n`;
         if (technicals.rsi?.value) {
           const rsi = technicals.rsi.value;
-          const rsiSignal = rsi > 70 ? '🔴 Overbought' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral';
+          const rsiSignal =
+            rsi > 70
+              ? '🔴 Overbought'
+              : rsi < 30
+                ? '🟢 Oversold'
+                : '⚪ Neutral';
           block += `| RSI-14 | ${rsi.toFixed(2)} | ${rsiSignal} |\n`;
         }
         if (technicals.macd?.value !== undefined) {
-          const macdSignal = technicals.macd.value > 0 ? '🟢 Bullish' : '🔴 Bearish';
+          const macdSignal =
+            technicals.macd.value > 0 ? '🟢 Bullish' : '🔴 Bearish';
           block += `| MACD | ${technicals.macd.value?.toFixed(2)} | ${macdSignal} |\n`;
-          if (technicals.macd.histogram) block += `| MACD Histogram | ${technicals.macd.histogram?.toFixed(2)} | ${technicals.macd.histogram > 0 ? '↑ Expanding' : '↓ Contracting'} |\n`;
+          if (technicals.macd.histogram)
+            block += `| MACD Histogram | ${technicals.macd.histogram?.toFixed(2)} | ${technicals.macd.histogram > 0 ? '↑ Expanding' : '↓ Contracting'} |\n`;
         }
-        if (technicals.ema50?.value) block += `| EMA-50 | $${technicals.ema50.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
-        if (technicals.ema200?.value) block += `| EMA-200 | $${technicals.ema200.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
+        if (technicals.ema50?.value)
+          block += `| EMA-50 | $${technicals.ema50.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
+        if (technicals.ema200?.value)
+          block += `| EMA-200 | $${technicals.ema200.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
         if (technicals.ema50?.value && technicals.ema200?.value) {
-          const cross = technicals.ema50.value > technicals.ema200.value ? '🟢 Golden Cross (Bullish)' : '🔴 Death Cross (Bearish)';
+          const cross =
+            technicals.ema50.value > technicals.ema200.value
+              ? '🟢 Golden Cross (Bullish)'
+              : '🔴 Death Cross (Bearish)';
           block += `| EMA Signal | — | **${cross}** |\n`;
         }
       }
-      return buildPrompt(prompt, block, `Massive.com Crypto Technical Analysis for ${label}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Crypto Technical Analysis for ${label}`
+      );
     }
 
     // ── MARKET INDICES (via ETF proxies) ─────────────────────────────────
@@ -1206,49 +1557,71 @@ const routeAndEnhancePrompt = async (prompt) => {
       const proxy = intent.symbol; // e.g. SPY, QQQ, DIA, IWM
       const indexName = intent.indexName || proxy;
       const displayNames = {
-        SPY: 'S&P 500 (via SPY ETF)', QQQ: 'NASDAQ 100 (via QQQ ETF)',
-        DIA: 'Dow Jones (via DIA ETF)', IWM: 'Russell 2000 (via IWM ETF)',
-        VIXY: 'VIX Volatility (via VIXY ETF)', TLT: '20-Year Treasury (via TLT ETF)',
-        IEF: '10-Year Treasury (via IEF ETF)', EEM: 'Emerging Markets (via EEM ETF)',
+        SPY: 'S&P 500 (via SPY ETF)',
+        QQQ: 'NASDAQ 100 (via QQQ ETF)',
+        DIA: 'Dow Jones (via DIA ETF)',
+        IWM: 'Russell 2000 (via IWM ETF)',
+        VIXY: 'VIX Volatility (via VIXY ETF)',
+        TLT: '20-Year Treasury (via TLT ETF)',
+        IEF: '10-Year Treasury (via IEF ETF)',
+        EEM: 'Emerging Markets (via EEM ETF)',
         EFA: 'Developed Markets (via EFA ETF)',
       };
-      const label = displayNames[proxy] || `${indexName.toUpperCase()} (via ${proxy} ETF)`;
+      const label =
+        displayNames[proxy] || `${indexName.toUpperCase()} (via ${proxy} ETF)`;
 
       const [snapshots, news] = await Promise.all([
         safe(getStocksSnapshotTickersService([proxy])),
         safe(getStockNewsService(proxy, 3)),
       ]);
 
-      const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === proxy) || snapshots[0] : null;
+      const snap = Array.isArray(snapshots)
+        ? snapshots.find((s) => s.ticker === proxy) || snapshots[0]
+        : null;
 
       let block = `## ${label}\n`;
       if (snap) {
         block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
-        if (snap.day?.c) block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
-        if (snap.day?.o) block += `| Open | $${snap.day.o.toLocaleString()} |\n`;
-        if (snap.day?.h) block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
-        if (snap.day?.l) block += `| Low | **$${snap.day.l.toLocaleString()}** |\n`;
-        const change = snap.day?.c && snap.day?.o ? (snap.day.c - snap.day.o) : snap.todaysChange;
-        const changePct = snap.day?.c && snap.day?.o
-          ? (((snap.day.c - snap.day.o) / snap.day.o) * 100)
-          : snap.todaysChangePerc;
+        if (snap.day?.c)
+          block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
+        if (snap.day?.o)
+          block += `| Open | $${snap.day.o.toLocaleString()} |\n`;
+        if (snap.day?.h)
+          block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
+        if (snap.day?.l)
+          block += `| Low | **$${snap.day.l.toLocaleString()}** |\n`;
+        const change =
+          snap.day?.c && snap.day?.o
+            ? snap.day.c - snap.day.o
+            : snap.todaysChange;
+        const changePct =
+          snap.day?.c && snap.day?.o
+            ? ((snap.day.c - snap.day.o) / snap.day.o) * 100
+            : snap.todaysChangePerc;
         if (change !== undefined && change !== null) {
           const dir = change >= 0 ? '📈' : '📉';
           block += `| Day Change | **${dir} ${change?.toFixed(2)} (${changePct?.toFixed(2)}%)** |\n`;
         }
-        if (snap.day?.v) block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
-        if (snap.prevDay?.c) block += `| Prev Close | $${snap.prevDay.c.toLocaleString()} |\n`;
+        if (snap.day?.v)
+          block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
+        if (snap.prevDay?.c)
+          block += `| Prev Close | $${snap.prevDay.c.toLocaleString()} |\n`;
       }
 
       if (Array.isArray(news) && news.length > 0) {
         block += `\n### Recent News\n`;
         news.slice(0, 3).forEach((n, i) => {
-          if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+          if (n.title)
+            block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
         });
       }
 
       block += `\n> ℹ️ Index level data (I:SPX) is proxied via the ${proxy} ETF, which tracks the index 1:1.`;
-      return buildPrompt(prompt, block, 'Massive.com Real-Time Market Index Service');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Real-Time Market Index Service'
+      );
     }
 
     // ── COMMODITIES (via ETF proxies) ─────────────────────────────────────
@@ -1256,13 +1629,19 @@ const routeAndEnhancePrompt = async (prompt) => {
       const proxy = intent.symbol;
       const commodityName = intent.commodityName || proxy;
       const displayNames = {
-        GLD: 'Gold (via GLD ETF)', SLV: 'Silver (via SLV ETF)',
-        USO: 'Crude Oil (via USO ETF)', UNG: 'Natural Gas (via UNG ETF)',
-        GDX: 'Gold Miners (via GDX ETF)', PDBC: 'Commodities (via PDBC ETF)',
-        WEAT: 'Wheat (via WEAT ETF)', CORN: 'Corn (via CORN ETF)',
-        SOYB: 'Soybeans (via SOYB ETF)', CPER: 'Copper (via CPER ETF)',
+        GLD: 'Gold (via GLD ETF)',
+        SLV: 'Silver (via SLV ETF)',
+        USO: 'Crude Oil (via USO ETF)',
+        UNG: 'Natural Gas (via UNG ETF)',
+        GDX: 'Gold Miners (via GDX ETF)',
+        PDBC: 'Commodities (via PDBC ETF)',
+        WEAT: 'Wheat (via WEAT ETF)',
+        CORN: 'Corn (via CORN ETF)',
+        SOYB: 'Soybeans (via SOYB ETF)',
+        CPER: 'Copper (via CPER ETF)',
       };
-      const label = displayNames[proxy] || `${commodityName} (via ${proxy} ETF)`;
+      const label =
+        displayNames[proxy] || `${commodityName} (via ${proxy} ETF)`;
 
       const [snapshots, prev, news] = await Promise.all([
         safe(getStocksSnapshotTickersService([proxy])),
@@ -1270,7 +1649,9 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getStockNewsService(proxy, 3)),
       ]);
 
-      const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === proxy) || snapshots[0] : null;
+      const snap = Array.isArray(snapshots)
+        ? snapshots.find((s) => s.ticker === proxy) || snapshots[0]
+        : null;
 
       let block = `## ${label}\n`;
       if (snap) {
@@ -1279,22 +1660,34 @@ const routeAndEnhancePrompt = async (prompt) => {
         if (snap.day?.o) block += `| Open | $${snap.day.o.toFixed(3)} |\n`;
         if (snap.day?.h) block += `| High | **$${snap.day.h.toFixed(3)}** |\n`;
         if (snap.day?.l) block += `| Low | **$${snap.day.l.toFixed(3)}** |\n`;
-        const change = snap.todaysChange ?? (snap.day?.c && snap.day?.o ? snap.day.c - snap.day.o : null);
-        const changePct = snap.todaysChangePerc ?? (snap.day?.c && snap.day?.o ? ((snap.day.c - snap.day.o) / snap.day.o) * 100 : null);
+        const change =
+          snap.todaysChange ??
+          (snap.day?.c && snap.day?.o ? snap.day.c - snap.day.o : null);
+        const changePct =
+          snap.todaysChangePerc ??
+          (snap.day?.c && snap.day?.o
+            ? ((snap.day.c - snap.day.o) / snap.day.o) * 100
+            : null);
         if (change !== null && change !== undefined) {
           block += `| Day Change | **${change >= 0 ? '📈 +' : '📉 '}${change?.toFixed(3)} (${changePct?.toFixed(2)}%)** |\n`;
         }
-        if (snap.day?.v) block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
+        if (snap.day?.v)
+          block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
       }
 
       if (Array.isArray(news) && news.length > 0) {
         block += `\n### Recent News\n`;
         news.slice(0, 3).forEach((n, i) => {
-          if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+          if (n.title)
+            block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
         });
       }
       block += `\n> ℹ️ Commodity prices are via the ${proxy} ETF proxy (tracks spot price).`;
-      return buildPrompt(prompt, block, `Massive.com Real-Time Commodity Service`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Real-Time Commodity Service`
+      );
     }
 
     // ── TECHNICAL ANALYSIS ────────────────────────────────────────────────
@@ -1305,9 +1698,14 @@ const routeAndEnhancePrompt = async (prompt) => {
       ]);
       let block = '';
       const price = quote?.trade?.p || quote?.ratios?.price;
-      if (price) block += `**${intent.symbol} Current Price: $${price.toLocaleString()}**\n\n`;
+      if (price)
+        block += `**${intent.symbol} Current Price: $${price.toLocaleString()}**\n\n`;
       block += formatTechnicalBlock(technicals, intent.symbol);
-      return buildPrompt(prompt, block, 'Massive.com Technical Analysis Service');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Technical Analysis Service'
+      );
     }
 
     // ── STOCK ─────────────────────────────────────────────────────────────
@@ -1315,19 +1713,37 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (isComparison) {
         const tickers = detectMultipleTickers(prompt);
         if (tickers.length >= 2) {
-          const results = await Promise.all(tickers.filter(t => t.type === 'stock').map(t => fetchStockFull(t.symbol)));
-          const blocks = results.map(r => formatStockBlock(r)).join('\n\n---\n\n');
-          return buildPrompt(prompt, `## Stock Comparison\n\n${blocks}`, 'Massive.com Real-Time Equity Service');
+          const results = await Promise.all(
+            tickers
+              .filter((t) => t.type === 'stock')
+              .map((t) => fetchStockFull(t.symbol))
+          );
+          const blocks = results
+            .map((r) => formatStockBlock(r))
+            .join('\n\n---\n\n');
+          return buildPrompt(
+            prompt,
+            `## Stock Comparison\n\n${blocks}`,
+            'Massive.com Real-Time Equity Service'
+          );
         }
       }
       const data = await fetchStockFull(intent.symbol);
-      return buildPrompt(prompt, formatStockBlock(data), 'Massive.com Real-Time Equity Service');
+      return buildPrompt(
+        prompt,
+        formatStockBlock(data),
+        'Massive.com Real-Time Equity Service'
+      );
     }
 
     // ── ETF ───────────────────────────────────────────────────────────────
     if (intent.type === 'etf' && intent.symbol) {
       const data = await fetchETFData(intent.symbol);
-      return buildPrompt(prompt, formatETFBlock(data, intent.symbol), 'Massive.com Real-Time ETF Service');
+      return buildPrompt(
+        prompt,
+        formatETFBlock(data, intent.symbol),
+        'Massive.com Real-Time ETF Service'
+      );
     }
 
     // ── OPTIONS ───────────────────────────────────────────────────────────
@@ -1335,38 +1751,67 @@ const routeAndEnhancePrompt = async (prompt) => {
       const wantsCalls = /\bcalls?\b/i.test(prompt);
       const wantsPuts = /\bputs?\b/i.test(prompt);
       const type = wantsCalls ? 'call' : wantsPuts ? 'put' : undefined;
-      const expMatch = prompt.match(/20\d{2}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}[\/\-]20\d{2}/);
+      const expMatch = prompt.match(
+        /20\d{2}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}[\/\-]20\d{2}/
+      );
 
       const [options, stockData] = await Promise.all([
-        safe(type || expMatch
-          ? getOptionsChainFilteredService(intent.symbol, { type, expiration: expMatch?.[0], limit: 25 })
-          : getOptionsChainService(intent.symbol, 30), 6000),
+        safe(
+          type || expMatch
+            ? getOptionsChainFilteredService(intent.symbol, {
+                type,
+                expiration: expMatch?.[0],
+                limit: 25,
+              })
+            : getOptionsChainService(intent.symbol, 30),
+          6000
+        ),
         safe(getStockQuoteService(intent.symbol)),
       ]);
 
       const stockPrice = stockData?.trade?.p;
-      return buildPrompt(prompt, formatOptionsBlock(options, intent.symbol, stockPrice), 'Massive.com Options Chain Real-Time Service');
+      return buildPrompt(
+        prompt,
+        formatOptionsBlock(options, intent.symbol, stockPrice),
+        'Massive.com Options Chain Real-Time Service'
+      );
     }
 
     // ── CRYPTO ────────────────────────────────────────────────────────────
     if (intent.type === 'crypto' && intent.symbol) {
       if (isComparison) {
         const tickers = detectMultipleTickers(prompt);
-        const cryptos = tickers.filter(t => t.type === 'crypto');
+        const cryptos = tickers.filter((t) => t.type === 'crypto');
         if (cryptos.length >= 2) {
-          const results = await Promise.all(cryptos.map(t => fetchCryptoFull(t.symbol)));
-          const blocks = results.map(r => formatCryptoBlock(r)).join('\n\n---\n\n');
-          return buildPrompt(prompt, `## Crypto Comparison\n\n${blocks}`, 'Massive.com Real-Time Crypto Service');
+          const results = await Promise.all(
+            cryptos.map((t) => fetchCryptoFull(t.symbol))
+          );
+          const blocks = results
+            .map((r) => formatCryptoBlock(r))
+            .join('\n\n---\n\n');
+          return buildPrompt(
+            prompt,
+            `## Crypto Comparison\n\n${blocks}`,
+            'Massive.com Real-Time Crypto Service'
+          );
         }
       }
       const data = await fetchCryptoFull(intent.symbol);
-      return buildPrompt(prompt, formatCryptoBlock(data), 'Massive.com Real-Time Crypto Service');
+      return buildPrompt(
+        prompt,
+        formatCryptoBlock(data),
+        'Massive.com Real-Time Crypto Service'
+      );
     }
 
     // ── FOREX ─────────────────────────────────────────────────────────────
     if (intent.type === 'forex' && intent.symbol) {
       const data = await fetchForexFull(intent.symbol);
-      return buildPrompt(prompt, formatForexBlock(data), 'Massive.com Real-Time Forex Service');
+      return buildPrompt(
+        prompt,
+        formatForexBlock(data),
+        'Massive.com Real-Time Forex Service'
+      );
     }
 
     // ── NEWS ──────────────────────────────────────────────────────────────
@@ -1374,15 +1819,19 @@ const routeAndEnhancePrompt = async (prompt) => {
       const ticker = intent.symbol;
       const news = await safe(getMarketNewsService(ticker || 'SPY', 5));
       if (!Array.isArray(news) || news.length === 0) return prompt;
-      let block = ticker ? `## Latest News for ${ticker}\n` : `## Latest Market News\n`;
+      let block = ticker
+        ? `## Latest News for ${ticker}\n`
+        : `## Latest Market News\n`;
       news.slice(0, 5).forEach((n, i) => {
         if (!n.title) return;
         block += `\n### ${i + 1}. ${n.title}\n`;
         block += `- **Publisher:** ${n.publisher?.name || 'Unknown'}\n`;
         block += `- **Published:** ${n.published_utc?.slice(0, 19).replace('T', ' ')} UTC\n`;
-        if (n.description) block += `- **Summary:** ${n.description.slice(0, 200)}\n`;
+        if (n.description)
+          block += `- **Summary:** ${n.description.slice(0, 200)}\n`;
         if (n.article_url) block += `- **URL:** ${n.article_url}\n`;
-        if (n.tickers?.length) block += `- **Tickers:** ${n.tickers.slice(0, 5).join(', ')}\n`;
+        if (n.tickers?.length)
+          block += `- **Tickers:** ${n.tickers.slice(0, 5).join(', ')}\n`;
       });
       return buildPrompt(prompt, block, 'Massive.com Market News Service');
     }
@@ -1402,23 +1851,39 @@ const routeAndEnhancePrompt = async (prompt) => {
 
         if (ratios) {
           block += `### Key Financial Metrics\n| Metric | Value |\n|--------|-------|\n`;
-          if (ratios.earnings_per_share) block += `| EPS (TTM) | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
-          if (ratios.price_to_earnings) block += `| P/E Ratio | **${ratios.price_to_earnings?.toFixed(2)}x** |\n`;
-          if (ratios.market_cap) block += `| Market Cap | **$${(ratios.market_cap / 1e9).toFixed(2)}B** |\n`;
-          if (ratios.price) block += `| Current Price | **$${ratios.price}** |\n`;
+          if (ratios.earnings_per_share)
+            block += `| EPS (TTM) | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
+          if (ratios.price_to_earnings)
+            block += `| P/E Ratio | **${ratios.price_to_earnings?.toFixed(2)}x** |\n`;
+          if (ratios.market_cap)
+            block += `| Market Cap | **$${(ratios.market_cap / 1e9).toFixed(2)}B** |\n`;
+          if (ratios.price)
+            block += `| Current Price | **$${ratios.price}** |\n`;
           block += '\n';
         }
 
         const incomeResults = income?.results || income;
         if (Array.isArray(incomeResults) && incomeResults.length > 0) {
           block += `### Historical Earnings & Revenue Trend\n| Period | Revenue | Net Income | EPS |\n|--------|---------|------------|-----|\n`;
-          incomeResults.slice(-4).reverse().forEach(q => {
-            const rev = q.revenues ? `**$${(q.revenues / 1e9).toFixed(2)}B**` : 'N/A';
-            const ni  = q.net_income_loss ? `**$${(q.net_income_loss / 1e9).toFixed(2)}B**` : 'N/A';
-            const eps = q.basic_earnings_per_share ? `**$${q.basic_earnings_per_share.toFixed(2)}**` : 'N/A';
-            const period = q.fiscal_period && q.fiscal_year ? `${q.fiscal_period} ${q.fiscal_year}` : 'N/A';
-            block += `| ${period} | ${rev} | ${ni} | ${eps} |\n`;
-          });
+          incomeResults
+            .slice(-4)
+            .reverse()
+            .forEach((q) => {
+              const rev = q.revenues
+                ? `**$${(q.revenues / 1e9).toFixed(2)}B**`
+                : 'N/A';
+              const ni = q.net_income_loss
+                ? `**$${(q.net_income_loss / 1e9).toFixed(2)}B**`
+                : 'N/A';
+              const eps = q.basic_earnings_per_share
+                ? `**$${q.basic_earnings_per_share.toFixed(2)}**`
+                : 'N/A';
+              const period =
+                q.fiscal_period && q.fiscal_year
+                  ? `${q.fiscal_period} ${q.fiscal_year}`
+                  : 'N/A';
+              block += `| ${period} | ${rev} | ${ni} | ${eps} |\n`;
+            });
           block += '\n';
         }
 
@@ -1426,65 +1891,128 @@ const routeAndEnhancePrompt = async (prompt) => {
           block += `### Recent Earnings-Related News\n`;
           news.slice(0, 3).forEach((n, i) => {
             if (n.title) {
-              const pubDate = n.published_utc ? ` (${n.published_utc.slice(0, 10)})` : '';
+              const pubDate = n.published_utc
+                ? ` (${n.published_utc.slice(0, 10)})`
+                : '';
               block += `${i + 1}. **${n.title}** — ${n.publisher?.name || 'Unknown'}${pubDate}\n`;
             }
           });
         }
 
-        return buildPrompt(prompt, block, 'Massive.com Financial Data & News Service');
+        return buildPrompt(
+          prompt,
+          block,
+          'Massive.com Financial Data & News Service'
+        );
       } else {
-        const megaCaps = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'META'];
-        const snapshots = await safe(getStocksSnapshotTickersService(megaCaps), 5000) || [];
-        
+        const megaCaps = [
+          'AAPL',
+          'MSFT',
+          'NVDA',
+          'TSLA',
+          'AMZN',
+          'GOOGL',
+          'META',
+        ];
+        const snapshots =
+          (await safe(getStocksSnapshotTickersService(megaCaps), 5000)) || [];
+
         let block = `## 🗓️ Upcoming Mega-Cap Earnings Calendar\n\n`;
         block += `| Company | Ticker | Price | Day Change | Estimated Earnings Date | Sentiment |\n`;
         block += `|---------|--------|-------|------------|-------------------------|-----------|\n`;
 
         const calendarMap = {
-          AAPL: { name: 'Apple Inc.', date: 'July 30, 2026', sentiment: '📈 Bullish' },
-          MSFT: { name: 'Microsoft Corp.', date: 'July 28, 2026', sentiment: '📈 Bullish' },
-          NVDA: { name: 'NVIDIA Corp.', date: 'August 19, 2026', sentiment: '🔥 High Volatility' },
-          TSLA: { name: 'Tesla Inc.', date: 'July 22, 2026', sentiment: '⚡ High Volatility' },
-          AMZN: { name: 'Amazon.com Inc.', date: 'July 23, 2026', sentiment: '📈 Bullish' },
-          GOOGL: { name: 'Alphabet Inc.', date: 'July 21, 2026', sentiment: '📈 Bullish' },
-          META: { name: 'Meta Platforms', date: 'July 29, 2026', sentiment: '📈 Bullish' },
+          AAPL: {
+            name: 'Apple Inc.',
+            date: 'July 30, 2026',
+            sentiment: '📈 Bullish',
+          },
+          MSFT: {
+            name: 'Microsoft Corp.',
+            date: 'July 28, 2026',
+            sentiment: '📈 Bullish',
+          },
+          NVDA: {
+            name: 'NVIDIA Corp.',
+            date: 'August 19, 2026',
+            sentiment: '🔥 High Volatility',
+          },
+          TSLA: {
+            name: 'Tesla Inc.',
+            date: 'July 22, 2026',
+            sentiment: '⚡ High Volatility',
+          },
+          AMZN: {
+            name: 'Amazon.com Inc.',
+            date: 'July 23, 2026',
+            sentiment: '📈 Bullish',
+          },
+          GOOGL: {
+            name: 'Alphabet Inc.',
+            date: 'July 21, 2026',
+            sentiment: '📈 Bullish',
+          },
+          META: {
+            name: 'Meta Platforms',
+            date: 'July 29, 2026',
+            sentiment: '📈 Bullish',
+          },
         };
 
-        megaCaps.forEach(ticker => {
-          const s = snapshots.find(snap => snap.ticker === ticker) || {};
+        megaCaps.forEach((ticker) => {
+          const s = snapshots.find((snap) => snap.ticker === ticker) || {};
           const info = calendarMap[ticker];
-          
-          const priceVal = s.day?.c || s.prevDay?.c || s.lastTrade?.price || s.price;
-          const price = priceVal !== undefined ? `**$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**` : 'N/A';
-          
-          let changeVal = s.todaysChangePerc !== undefined ? s.todaysChangePerc : null;
+
+          const priceVal =
+            s.day?.c || s.prevDay?.c || s.lastTrade?.price || s.price;
+          const price =
+            priceVal !== undefined
+              ? `**$${priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**`
+              : 'N/A';
+
+          let changeVal =
+            s.todaysChangePerc !== undefined ? s.todaysChangePerc : null;
           if (changeVal === null && priceVal !== undefined && s.prevDay?.c) {
             changeVal = ((priceVal - s.prevDay.c) / s.prevDay.c) * 100;
           }
-          
-          const dirIndicator = changeVal !== null && changeVal >= 0 ? '🟢' : '🔴';
+
+          const dirIndicator =
+            changeVal !== null && changeVal >= 0 ? '🟢' : '🔴';
           const chgSign = changeVal !== null && changeVal >= 0 ? '+' : '';
-          const change = changeVal !== null ? `**${chgSign}${changeVal.toFixed(2)}%**` : 'N/A';
+          const change =
+            changeVal !== null
+              ? `**${chgSign}${changeVal.toFixed(2)}%**`
+              : 'N/A';
 
           block += `| **${info.name}** | ${ticker} | ${price} | ${dirIndicator} ${change} | **${info.date}** | ${info.sentiment} |\n`;
         });
 
         block += `\n> 📌 Estimated dates are based on standard corporate reporting patterns. Actual reporting dates may vary.\n`;
-        return buildPrompt(prompt, block, 'Massive.com Upcoming Earnings Calendar Dashboard');
+        return buildPrompt(
+          prompt,
+          block,
+          'Massive.com Upcoming Earnings Calendar Dashboard'
+        );
       }
     }
 
     // ── IPO CALENDAR ──────────────────────────────────────────────────────
-    if (intent.type === 'ipo_calendar' || /\bipo\b|\binitial public offering\b/i.test(q)) {
+    if (
+      intent.type === 'ipo_calendar' ||
+      /\bipo\b|\binitial public offering\b/i.test(q)
+    ) {
       const ipos = await safe(getIPOsService(), 8000);
       let block = `## 🚀 Upcoming IPO Calendar\n\n`;
       if (Array.isArray(ipos) && ipos.length > 0) {
         block += `| Company | Ticker | IPO Date | Exchange | Expected Price |
 |---------|--------|----------|----------|----------------|
 `;
-        ipos.slice(0, 15).forEach(ipo => {
-          const price = ipo.ipo_price ? `$${ipo.ipo_price}` : ipo.min_shares_offered ? 'TBD' : 'TBD';
+        ipos.slice(0, 15).forEach((ipo) => {
+          const price = ipo.ipo_price
+            ? `$${ipo.ipo_price}`
+            : ipo.min_shares_offered
+              ? 'TBD'
+              : 'TBD';
           block += `| **${ipo.company_name || 'N/A'}** | ${ipo.ticker || '—'} | ${ipo.ipo_date || 'TBD'} | ${ipo.primary_exchange || 'N/A'} | ${price} |\n`;
         });
         block += `\n> 📌 IPO data sourced live from Massive.com. Dates and pricing subject to change.\n`;
@@ -1497,7 +2025,9 @@ const routeAndEnhancePrompt = async (prompt) => {
     // ── MULTI-TICKER COMPARISON ───────────────────────────────────────────
     if (intent.type === 'compare' && intent.symbols?.length >= 2) {
       const symbols = intent.symbols.slice(0, 3); // max 3-way comparison
-      const results = await Promise.allSettled(symbols.map(sym => fetchStockFull(sym)));
+      const results = await Promise.allSettled(
+        symbols.map((sym) => fetchStockFull(sym))
+      );
       const stocks = results.map((r, i) => ({
         sym: symbols[i],
         data: r.status === 'fulfilled' ? r.value : null,
@@ -1506,76 +2036,98 @@ const routeAndEnhancePrompt = async (prompt) => {
       let block = `## ⚖️ Stock Comparison: ${symbols.join(' vs ')}\n\n`;
 
       // Side-by-side price table
-      block += `### 📊 Price & Performance\n| Metric | ${symbols.map(s => `**${s}**`).join(' | ')} |\n|--------|${symbols.map(() => '--------').join('|')}|\n`;
+      block += `### 📊 Price & Performance\n| Metric | ${symbols.map((s) => `**${s}**`).join(' | ')} |\n|--------|${symbols.map(() => '--------').join('|')}|\n`;
 
-      const priceRow    = (d) => d?.quote?.trade?.p ? `$${d.quote.trade.p.toLocaleString()}` : 'N/A';
-      const changeRow   = (d) => {
+      const priceRow = (d) =>
+        d?.quote?.trade?.p ? `$${d.quote.trade.p.toLocaleString()}` : 'N/A';
+      const changeRow = (d) => {
         const last = d?.quote?.trade?.p;
         const prev = d?.quote?.previousClose?.c;
         if (!last || !prev) return 'N/A';
-        const chg = ((last - prev) / prev * 100).toFixed(2);
+        const chg = (((last - prev) / prev) * 100).toFixed(2);
         return `${chg >= 0 ? '📈 +' : '📉 '}${chg}%`;
       };
-      const mcapRow     = (d) => d?.details?.market_cap ? `$${(d.details.market_cap / 1e9).toFixed(2)}B` : 'N/A';
-      const peRow       = (d) => d?.ratios?.price_to_earnings ? d.ratios.price_to_earnings.toFixed(2) : 'N/A';
-      const epsRow      = (d) => d?.ratios?.earnings_per_share ? `$${d.ratios.earnings_per_share.toFixed(2)}` : 'N/A';
-      const marginRow   = (d) => d?.ratios?.net_profit_margin ? `${(d.ratios.net_profit_margin * 100).toFixed(1)}%` : 'N/A';
-      const rsiRow      = (d) => d?.rsi?.value ? d.rsi.value.toFixed(1) : 'N/A';
-      const exchRow     = (d) => d?.details?.primary_exchange || 'N/A';
-      const sectorRow   = (d) => d?.details?.sic_description || 'N/A';
+      const mcapRow = (d) =>
+        d?.details?.market_cap
+          ? `$${(d.details.market_cap / 1e9).toFixed(2)}B`
+          : 'N/A';
+      const peRow = (d) =>
+        d?.ratios?.price_to_earnings
+          ? d.ratios.price_to_earnings.toFixed(2)
+          : 'N/A';
+      const epsRow = (d) =>
+        d?.ratios?.earnings_per_share
+          ? `$${d.ratios.earnings_per_share.toFixed(2)}`
+          : 'N/A';
+      const marginRow = (d) =>
+        d?.ratios?.net_profit_margin
+          ? `${(d.ratios.net_profit_margin * 100).toFixed(1)}%`
+          : 'N/A';
+      const rsiRow = (d) => (d?.rsi?.value ? d.rsi.value.toFixed(1) : 'N/A');
+      const exchRow = (d) => d?.details?.primary_exchange || 'N/A';
+      const sectorRow = (d) => d?.details?.sic_description || 'N/A';
 
       const rows = [
-        ['Last Price',     priceRow],
-        ['Day Change',     changeRow],
-        ['Market Cap',     mcapRow],
-        ['P/E Ratio',      peRow],
-        ['EPS (TTM)',      epsRow],
-        ['Net Margin',     marginRow],
-        ['RSI-14',         rsiRow],
-        ['Exchange',       exchRow],
-        ['Sector',         sectorRow],
+        ['Last Price', priceRow],
+        ['Day Change', changeRow],
+        ['Market Cap', mcapRow],
+        ['P/E Ratio', peRow],
+        ['EPS (TTM)', epsRow],
+        ['Net Margin', marginRow],
+        ['RSI-14', rsiRow],
+        ['Exchange', exchRow],
+        ['Sector', sectorRow],
       ];
 
       rows.forEach(([label, fn]) => {
-        block += `| ${label} | ${stocks.map(s => fn(s.data)).join(' | ')} |\n`;
+        block += `| ${label} | ${stocks.map((s) => fn(s.data)).join(' | ')} |\n`;
       });
 
       // RSI signal summary
-      const rsiVerdicts = stocks.map(s => {
+      const rsiVerdicts = stocks.map((s) => {
         const rsi = s.data?.rsi?.value;
         if (!rsi) return `${s.sym}: N/A`;
         if (rsi > 70) return `${s.sym}: 🔴 Overbought (${rsi.toFixed(1)})`;
         if (rsi < 30) return `${s.sym}: 🟢 Oversold (${rsi.toFixed(1)})`;
         return `${s.sym}: ⚪ Neutral (${rsi.toFixed(1)})`;
       });
-      block += `\n### 📡 RSI Signals\n${rsiVerdicts.map(v => `- ${v}`).join('\n')}\n`;
+      block += `\n### 📡 RSI Signals\n${rsiVerdicts.map((v) => `- ${v}`).join('\n')}\n`;
 
       // Recent news for each ticker
       block += `\n### 📰 Recent News\n`;
-      stocks.forEach(s => {
+      stocks.forEach((s) => {
         const newsItems = s.data?.news?.slice(0, 2) || [];
         if (newsItems.length > 0) {
           block += `\n**${s.sym}:**\n`;
           newsItems.forEach((n, i) => {
-            if (n?.title) block += `${i + 1}. ${n.title} _(${n.published_utc?.slice(0, 10)})_\n`;
+            if (n?.title)
+              block += `${i + 1}. ${n.title} _(${n.published_utc?.slice(0, 10)})_\n`;
           });
         }
       });
 
-      return buildPrompt(prompt, block, `Massive.com Real-Time Comparison: ${symbols.join(' vs ')}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Real-Time Comparison: ${symbols.join(' vs ')}`
+      );
     }
 
     // ── ANALYST RATINGS ───────────────────────────────────────────────────
     if (intent.type === 'analyst' && intent.symbol) {
       const sym = intent.symbol;
       const [ratings, quote, details] = await Promise.allSettled([
-        safe(getBenzingaRatingsService ? getBenzingaRatingsService(sym, 10) : Promise.resolve(null)),
+        safe(
+          getBenzingaRatingsService
+            ? getBenzingaRatingsService(sym, 10)
+            : Promise.resolve(null)
+        ),
         safe(getStockQuoteService(sym)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const ratingData  = ratings.status  === 'fulfilled' ? ratings.value  : null;
-      const quoteData   = quote.status    === 'fulfilled' ? quote.value    : null;
-      const detailsData = details.status  === 'fulfilled' ? details.value  : null;
+      const ratingData = ratings.status === 'fulfilled' ? ratings.value : null;
+      const quoteData = quote.status === 'fulfilled' ? quote.value : null;
+      const detailsData = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 🏦 ${sym} — Analyst Ratings & Price Targets\n\n`;
 
@@ -1586,29 +2138,43 @@ const routeAndEnhancePrompt = async (prompt) => {
 
       if (Array.isArray(ratingData) && ratingData.length > 0) {
         block += `### Recent Analyst Actions\n| Date | Analyst Firm | Rating | Price Target | Action |\n|------|-------------|--------|-------------|--------|\n`;
-        ratingData.slice(0, 10).forEach(r => {
-          const action = r.rating_current !== r.rating_prior
-            ? (r.rating_current === 'Buy' ? '⬆️ Upgrade' : r.rating_current === 'Sell' ? '⬇️ Downgrade' : '↔️ Reiterate')
-            : '↔️ Reiterate';
+        ratingData.slice(0, 10).forEach((r) => {
+          const action =
+            r.rating_current !== r.rating_prior
+              ? r.rating_current === 'Buy'
+                ? '⬆️ Upgrade'
+                : r.rating_current === 'Sell'
+                  ? '⬇️ Downgrade'
+                  : '↔️ Reiterate'
+              : '↔️ Reiterate';
           const target = r.pt_current ? `**$${r.pt_current}**` : 'N/A';
           block += `| ${r.date?.slice(0, 10) || 'N/A'} | ${r.analyst || 'N/A'} | **${r.rating_current || 'N/A'}** | ${target} | ${action} |\n`;
         });
 
         // Consensus summary
-        const buyCount  = ratingData.filter(r => r.rating_current?.toLowerCase().includes('buy')).length;
-        const sellCount = ratingData.filter(r => r.rating_current?.toLowerCase().includes('sell')).length;
+        const buyCount = ratingData.filter((r) =>
+          r.rating_current?.toLowerCase().includes('buy')
+        ).length;
+        const sellCount = ratingData.filter((r) =>
+          r.rating_current?.toLowerCase().includes('sell')
+        ).length;
         const holdCount = ratingData.length - buyCount - sellCount;
         block += `\n### 📊 Consensus (last ${ratingData.length} ratings)\n`;
         block += `| Buy | Hold | Sell |\n|-----|------|------|\n`;
         block += `| **${buyCount}** | **${holdCount}** | **${sellCount}** |\n`;
         const avgTarget = ratingData
-          .filter(r => r.pt_current)
+          .filter((r) => r.pt_current)
           .reduce((sum, r, _, arr) => sum + r.pt_current / arr.length, 0);
-        if (avgTarget) block += `\n**Average Price Target:** $${avgTarget.toFixed(2)}\n`;
+        if (avgTarget)
+          block += `\n**Average Price Target:** $${avgTarget.toFixed(2)}\n`;
       } else {
         block += `*No analyst ratings available via Benzinga. Check Bloomberg or Refinitiv for additional coverage.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Analyst Ratings Service — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Analyst Ratings Service — ${sym}`
+      );
     }
 
     // ── STOCK FINANCIALS (P/E ratios, margins, valuation) ─────────────────
@@ -1619,38 +2185,57 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getTickerDetailsService(sym)),
         safe(getStockQuoteService(sym)),
       ]);
-      const r = ratios.status  === 'fulfilled' ? ratios.value  : null;
+      const r = ratios.status === 'fulfilled' ? ratios.value : null;
       const d = details.status === 'fulfilled' ? details.value : null;
-      const q2 = quote.status  === 'fulfilled' ? quote.value   : null;
+      const q2 = quote.status === 'fulfilled' ? quote.value : null;
 
       let block = `## 📊 ${sym} — Financial Ratios & Valuation\n\n`;
       if (d?.name) block += `**${d.name}**`;
       if (d?.sic_description) block += ` | ${d.sic_description}`;
-      if (d?.market_cap) block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
+      if (d?.market_cap)
+        block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
       block += '\n\n';
 
       if (r) {
         block += `### Valuation Ratios\n| Metric | Value |\n|--------|-------|\n`;
-        if (r.price_to_earnings)      block += `| P/E Ratio (TTM) | **${r.price_to_earnings?.toFixed(2)}x** |\n`;
-        if (r.price_to_book)          block += `| P/B Ratio | **${r.price_to_book?.toFixed(2)}x** |\n`;
-        if (r.price_to_sales)         block += `| P/S Ratio | **${r.price_to_sales?.toFixed(2)}x** |\n`;
-        if (r.ev_to_ebitda)           block += `| EV/EBITDA | **${r.ev_to_ebitda?.toFixed(2)}x** |\n`;
-        if (r.enterprise_value)       block += `| Enterprise Value | $${(r.enterprise_value / 1e9).toFixed(2)}B |\n`;
+        if (r.price_to_earnings)
+          block += `| P/E Ratio (TTM) | **${r.price_to_earnings?.toFixed(2)}x** |\n`;
+        if (r.price_to_book)
+          block += `| P/B Ratio | **${r.price_to_book?.toFixed(2)}x** |\n`;
+        if (r.price_to_sales)
+          block += `| P/S Ratio | **${r.price_to_sales?.toFixed(2)}x** |\n`;
+        if (r.ev_to_ebitda)
+          block += `| EV/EBITDA | **${r.ev_to_ebitda?.toFixed(2)}x** |\n`;
+        if (r.enterprise_value)
+          block += `| Enterprise Value | $${(r.enterprise_value / 1e9).toFixed(2)}B |\n`;
         block += `\n### Profitability\n| Metric | Value |\n|--------|-------|\n`;
-        if (r.earnings_per_share)     block += `| EPS (TTM) | **$${r.earnings_per_share?.toFixed(2)}** |\n`;
-        if (r.net_profit_margin)      block += `| Net Profit Margin | **${(r.net_profit_margin * 100)?.toFixed(2)}%** |\n`;
-        if (r.gross_profit_margin)    block += `| Gross Margin | **${(r.gross_profit_margin * 100)?.toFixed(2)}%** |\n`;
-        if (r.return_on_equity)       block += `| ROE | **${(r.return_on_equity * 100)?.toFixed(2)}%** |\n`;
-        if (r.return_on_assets)       block += `| ROA | **${(r.return_on_assets * 100)?.toFixed(2)}%** |\n`;
+        if (r.earnings_per_share)
+          block += `| EPS (TTM) | **$${r.earnings_per_share?.toFixed(2)}** |\n`;
+        if (r.net_profit_margin)
+          block += `| Net Profit Margin | **${(r.net_profit_margin * 100)?.toFixed(2)}%** |\n`;
+        if (r.gross_profit_margin)
+          block += `| Gross Margin | **${(r.gross_profit_margin * 100)?.toFixed(2)}%** |\n`;
+        if (r.return_on_equity)
+          block += `| ROE | **${(r.return_on_equity * 100)?.toFixed(2)}%** |\n`;
+        if (r.return_on_assets)
+          block += `| ROA | **${(r.return_on_assets * 100)?.toFixed(2)}%** |\n`;
         block += `\n### Financial Health\n| Metric | Value |\n|--------|-------|\n`;
-        if (r.debt_to_equity !== undefined) block += `| Debt/Equity | **${r.debt_to_equity?.toFixed(2)}** |\n`;
-        if (r.current_ratio)          block += `| Current Ratio | **${r.current_ratio?.toFixed(2)}** |\n`;
-        if (r.dividend_yield)         block += `| Dividend Yield | **${(r.dividend_yield * 100)?.toFixed(2)}%** |\n`;
+        if (r.debt_to_equity !== undefined)
+          block += `| Debt/Equity | **${r.debt_to_equity?.toFixed(2)}** |\n`;
+        if (r.current_ratio)
+          block += `| Current Ratio | **${r.current_ratio?.toFixed(2)}** |\n`;
+        if (r.dividend_yield)
+          block += `| Dividend Yield | **${(r.dividend_yield * 100)?.toFixed(2)}%** |\n`;
       } else {
         block += `*Financial ratios not available for ${sym}.*\n`;
       }
-      if (q2?.trade?.p) block += `\n**Current Price:** $${q2.trade.p.toLocaleString()}\n`;
-      return buildPrompt(prompt, block, `Massive.com Financial Ratios Service — ${sym}`);
+      if (q2?.trade?.p)
+        block += `\n**Current Price:** $${q2.trade.p.toLocaleString()}\n`;
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Financial Ratios Service — ${sym}`
+      );
     }
 
     // ── INCOME STATEMENT ──────────────────────────────────────────────────
@@ -1660,7 +2245,7 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getStockIncomeStatementService(sym, 4)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const incomeData  = income.status  === 'fulfilled' ? income.value  : null;
+      const incomeData = income.status === 'fulfilled' ? income.value : null;
       const detailsData = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 💰 ${sym} — Income Statement\n\n`;
@@ -1670,27 +2255,46 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (Array.isArray(results) && results.length > 0) {
         const latest = results[results.length - 1];
         block += `### Most Recent Quarter\n| Line Item | Value |\n|-----------|-------|\n`;
-        if (latest.revenues)              block += `| Revenue | **$${(latest.revenues / 1e9).toFixed(2)}B** |\n`;
-        if (latest.gross_profit)          block += `| Gross Profit | **$${(latest.gross_profit / 1e9).toFixed(2)}B** |\n`;
-        if (latest.operating_income_loss) block += `| Operating Income | **$${(latest.operating_income_loss / 1e9).toFixed(2)}B** |\n`;
-        if (latest.net_income_loss)       block += `| Net Income | **$${(latest.net_income_loss / 1e9).toFixed(2)}B** |\n`;
-        if (latest.basic_earnings_per_share) block += `| Basic EPS | **$${latest.basic_earnings_per_share?.toFixed(2)}** |\n`;
-        if (latest.fiscal_period)         block += `| Period | ${latest.fiscal_period} ${latest.fiscal_year} |\n`;
+        if (latest.revenues)
+          block += `| Revenue | **$${(latest.revenues / 1e9).toFixed(2)}B** |\n`;
+        if (latest.gross_profit)
+          block += `| Gross Profit | **$${(latest.gross_profit / 1e9).toFixed(2)}B** |\n`;
+        if (latest.operating_income_loss)
+          block += `| Operating Income | **$${(latest.operating_income_loss / 1e9).toFixed(2)}B** |\n`;
+        if (latest.net_income_loss)
+          block += `| Net Income | **$${(latest.net_income_loss / 1e9).toFixed(2)}B** |\n`;
+        if (latest.basic_earnings_per_share)
+          block += `| Basic EPS | **$${latest.basic_earnings_per_share?.toFixed(2)}** |\n`;
+        if (latest.fiscal_period)
+          block += `| Period | ${latest.fiscal_period} ${latest.fiscal_year} |\n`;
 
         // Trend table across quarters
         if (results.length > 1) {
           block += `\n### Revenue Trend (Last ${Math.min(results.length, 4)} Quarters)\n| Period | Revenue | Net Income | EPS |\n|--------|---------|------------|-----|\n`;
-          results.slice(-4).reverse().forEach(q => {
-            const rev = q.revenues ? `$${(q.revenues / 1e9).toFixed(2)}B` : 'N/A';
-            const ni  = q.net_income_loss ? `$${(q.net_income_loss / 1e9).toFixed(2)}B` : 'N/A';
-            const eps = q.basic_earnings_per_share ? `$${q.basic_earnings_per_share.toFixed(2)}` : 'N/A';
-            block += `| ${q.fiscal_period} ${q.fiscal_year} | ${rev} | ${ni} | ${eps} |\n`;
-          });
+          results
+            .slice(-4)
+            .reverse()
+            .forEach((q) => {
+              const rev = q.revenues
+                ? `$${(q.revenues / 1e9).toFixed(2)}B`
+                : 'N/A';
+              const ni = q.net_income_loss
+                ? `$${(q.net_income_loss / 1e9).toFixed(2)}B`
+                : 'N/A';
+              const eps = q.basic_earnings_per_share
+                ? `$${q.basic_earnings_per_share.toFixed(2)}`
+                : 'N/A';
+              block += `| ${q.fiscal_period} ${q.fiscal_year} | ${rev} | ${ni} | ${eps} |\n`;
+            });
         }
       } else {
         block += `*Income statement data not available for ${sym}.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Income Statement Service — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Income Statement Service — ${sym}`
+      );
     }
 
     // ── BALANCE SHEET ─────────────────────────────────────────────────────
@@ -1700,8 +2304,8 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getStockBalanceSheetsService(sym, 2)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const balanceData = balance.status  === 'fulfilled' ? balance.value  : null;
-      const detailsData = details.status  === 'fulfilled' ? details.value  : null;
+      const balanceData = balance.status === 'fulfilled' ? balance.value : null;
+      const detailsData = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 🏛️ ${sym} — Balance Sheet\n\n`;
       if (detailsData?.name) block += `**${detailsData.name}**\n\n`;
@@ -1711,19 +2315,30 @@ const routeAndEnhancePrompt = async (prompt) => {
         const latest = results[results.length - 1];
         block += `### Latest Balance Sheet (${latest.fiscal_period || ''} ${latest.fiscal_year || ''})\n\n`;
         block += `#### Assets\n| Item | Value |\n|------|-------|\n`;
-        if (latest.assets)                    block += `| Total Assets | **$${(latest.assets / 1e9).toFixed(2)}B** |\n`;
-        if (latest.current_assets)            block += `| Current Assets | $${(latest.current_assets / 1e9).toFixed(2)}B |\n`;
-        if (latest.cash)                      block += `| Cash & Equivalents | **$${(latest.cash / 1e9).toFixed(2)}B** |\n`;
-        if (latest.noncurrent_assets)         block += `| Non-Current Assets | $${(latest.noncurrent_assets / 1e9).toFixed(2)}B |\n`;
+        if (latest.assets)
+          block += `| Total Assets | **$${(latest.assets / 1e9).toFixed(2)}B** |\n`;
+        if (latest.current_assets)
+          block += `| Current Assets | $${(latest.current_assets / 1e9).toFixed(2)}B |\n`;
+        if (latest.cash)
+          block += `| Cash & Equivalents | **$${(latest.cash / 1e9).toFixed(2)}B** |\n`;
+        if (latest.noncurrent_assets)
+          block += `| Non-Current Assets | $${(latest.noncurrent_assets / 1e9).toFixed(2)}B |\n`;
         block += `\n#### Liabilities & Equity\n| Item | Value |\n|------|-------|\n`;
-        if (latest.liabilities)               block += `| Total Liabilities | **$${(latest.liabilities / 1e9).toFixed(2)}B** |\n`;
-        if (latest.current_liabilities)       block += `| Current Liabilities | $${(latest.current_liabilities / 1e9).toFixed(2)}B |\n`;
-        if (latest.long_term_debt)            block += `| Long-Term Debt | **$${(latest.long_term_debt / 1e9).toFixed(2)}B** |\n`;
-        if (latest.equity)                    block += `| Shareholders' Equity | **$${(latest.equity / 1e9).toFixed(2)}B** |\n`;
+        if (latest.liabilities)
+          block += `| Total Liabilities | **$${(latest.liabilities / 1e9).toFixed(2)}B** |\n`;
+        if (latest.current_liabilities)
+          block += `| Current Liabilities | $${(latest.current_liabilities / 1e9).toFixed(2)}B |\n`;
+        if (latest.long_term_debt)
+          block += `| Long-Term Debt | **$${(latest.long_term_debt / 1e9).toFixed(2)}B** |\n`;
+        if (latest.equity)
+          block += `| Shareholders' Equity | **$${(latest.equity / 1e9).toFixed(2)}B** |\n`;
 
         // Key ratios derived from balance sheet
         if (latest.assets && latest.liabilities) {
-          const debtRatio = (latest.liabilities / latest.assets * 100).toFixed(1);
+          const debtRatio = (
+            (latest.liabilities / latest.assets) *
+            100
+          ).toFixed(1);
           block += `\n#### Derived Ratios\n| Ratio | Value |\n|-------|-------|\n`;
           block += `| Debt-to-Assets | **${debtRatio}%** |\n`;
           if (latest.equity && latest.long_term_debt) {
@@ -1731,14 +2346,20 @@ const routeAndEnhancePrompt = async (prompt) => {
             block += `| Debt-to-Equity | **${dte}x** |\n`;
           }
           if (latest.cash && latest.current_liabilities) {
-            const cashRatio = (latest.cash / latest.current_liabilities).toFixed(2);
+            const cashRatio = (
+              latest.cash / latest.current_liabilities
+            ).toFixed(2);
             block += `| Cash Ratio | **${cashRatio}** |\n`;
           }
         }
       } else {
         block += `*Balance sheet data not available for ${sym}.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Balance Sheet Service — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Balance Sheet Service — ${sym}`
+      );
     }
 
     // ── STOCK FLOAT ───────────────────────────────────────────────────────
@@ -1750,40 +2371,57 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getStockQuoteService(sym)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const float   = floatData.status  === 'fulfilled' ? floatData.value  : null;
-      const short   = shortData.status  === 'fulfilled' ? shortData.value  : null;
-      const q       = quote.status      === 'fulfilled' ? quote.value      : null;
-      const d       = details.status    === 'fulfilled' ? details.value    : null;
+      const float = floatData.status === 'fulfilled' ? floatData.value : null;
+      const short = shortData.status === 'fulfilled' ? shortData.value : null;
+      const q = quote.status === 'fulfilled' ? quote.value : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 📊 ${sym} — Float & Share Structure\n\n`;
       if (d?.name) block += `**${d.name}**`;
-      if (d?.market_cap) block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
+      if (d?.market_cap)
+        block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
       block += '\n\n';
 
       if (float) {
         block += `### Share Structure\n| Metric | Value |\n|--------|-------|\n`;
-        if (float.float)            block += `| Float Shares | **${(float.float / 1e6).toFixed(2)}M** |\n`;
-        if (float.outstanding)      block += `| Shares Outstanding | ${(float.outstanding / 1e6).toFixed(2)}M |\n`;
-        if (float.insider_percent)  block += `| Insider Ownership | **${float.insider_percent?.toFixed(2)}%** |\n`;
-        if (float.institution_percent) block += `| Institutional Ownership | **${float.institution_percent?.toFixed(2)}%** |\n`;
-        if (float.short_interest)   block += `| Short Interest | ${(float.short_interest / 1e6).toFixed(2)}M shares |\n`;
-        if (float.short_percent)    block += `| Short % of Float | **${float.short_percent?.toFixed(2)}%** |\n`;
-        if (float.days_to_cover)    block += `| Days to Cover | ${float.days_to_cover?.toFixed(1)} |\n`;
+        if (float.float)
+          block += `| Float Shares | **${(float.float / 1e6).toFixed(2)}M** |\n`;
+        if (float.outstanding)
+          block += `| Shares Outstanding | ${(float.outstanding / 1e6).toFixed(2)}M |\n`;
+        if (float.insider_percent)
+          block += `| Insider Ownership | **${float.insider_percent?.toFixed(2)}%** |\n`;
+        if (float.institution_percent)
+          block += `| Institutional Ownership | **${float.institution_percent?.toFixed(2)}%** |\n`;
+        if (float.short_interest)
+          block += `| Short Interest | ${(float.short_interest / 1e6).toFixed(2)}M shares |\n`;
+        if (float.short_percent)
+          block += `| Short % of Float | **${float.short_percent?.toFixed(2)}%** |\n`;
+        if (float.days_to_cover)
+          block += `| Days to Cover | ${float.days_to_cover?.toFixed(1)} |\n`;
       }
 
       const latestShort = Array.isArray(short) ? short[0] : null;
       if (latestShort && !float?.short_interest) {
         block += `\n### Short Interest\n| Metric | Value |\n|--------|-------|\n`;
-        if (latestShort.short_interest)   block += `| Short Interest | **${(latestShort.short_interest / 1e6).toFixed(2)}M** shares |\n`;
-        if (latestShort.short_percent)    block += `| Short % of Float | **${latestShort.short_percent?.toFixed(2)}%** |\n`;
-        if (latestShort.days_to_cover)    block += `| Days to Cover | ${latestShort.days_to_cover?.toFixed(1)} |\n`;
-        if (latestShort.settlement_date)  block += `| Settlement Date | ${latestShort.settlement_date} |\n`;
+        if (latestShort.short_interest)
+          block += `| Short Interest | **${(latestShort.short_interest / 1e6).toFixed(2)}M** shares |\n`;
+        if (latestShort.short_percent)
+          block += `| Short % of Float | **${latestShort.short_percent?.toFixed(2)}%** |\n`;
+        if (latestShort.days_to_cover)
+          block += `| Days to Cover | ${latestShort.days_to_cover?.toFixed(1)} |\n`;
+        if (latestShort.settlement_date)
+          block += `| Settlement Date | ${latestShort.settlement_date} |\n`;
         if (latestShort.days_to_cover > 10) {
           block += `\n> ⚠️ **High short interest** — ${latestShort.days_to_cover.toFixed(1)} days to cover. Potential squeeze risk.\n`;
         }
       }
-      if (q?.trade?.p) block += `\n**Current Price:** $${q.trade.p.toLocaleString()}\n`;
-      return buildPrompt(prompt, block, `Massive.com Float & Share Structure — ${sym}`);
+      if (q?.trade?.p)
+        block += `\n**Current Price:** $${q.trade.p.toLocaleString()}\n`;
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Float & Share Structure — ${sym}`
+      );
     }
 
     // ── STOCK SPLITS ──────────────────────────────────────────────────────
@@ -1793,8 +2431,9 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getStockSplitsService(sym)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const splits = splitsData.status === 'fulfilled' ? splitsData.value : null;
-      const d      = details.status    === 'fulfilled' ? details.value    : null;
+      const splits =
+        splitsData.status === 'fulfilled' ? splitsData.value : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## ✂️ ${sym} — Stock Split History\n\n`;
       if (d?.name) block += `**${d.name}**\n\n`;
@@ -1802,10 +2441,11 @@ const routeAndEnhancePrompt = async (prompt) => {
       const results = Array.isArray(splits) ? splits : splits?.results || [];
       if (results.length > 0) {
         block += `| Split Date | Ratio | Before | After |\n|------------|-------|--------|-------|\n`;
-        results.slice(0, 10).forEach(s => {
-          const ratio = s.split_from && s.split_to
-            ? `${s.split_to}:${s.split_from}`
-            : s.ratio || 'N/A';
+        results.slice(0, 10).forEach((s) => {
+          const ratio =
+            s.split_from && s.split_to
+              ? `${s.split_to}:${s.split_from}`
+              : s.ratio || 'N/A';
           block += `| **${s.execution_date || s.date || 'N/A'}** | **${ratio}** | ${s.split_from || 'N/A'} | ${s.split_to || 'N/A'} |\n`;
         });
         const latest = results[0];
@@ -1816,7 +2456,11 @@ const routeAndEnhancePrompt = async (prompt) => {
       } else {
         block += `*No stock split history found for ${sym}. This may indicate ${sym} has never undergone a split.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Stock Splits History — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Stock Splits History — ${sym}`
+      );
     }
 
     // ── PRE-MARKET / AFTER-HOURS ──────────────────────────────────────────
@@ -1828,33 +2472,47 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getPreviousCloseService(sym)),
         safe(getTickerDetailsService(sym)),
       ]);
-      const q  = quote.status    === 'fulfilled' ? quote.value    : null;
-      const s  = snapshot.status === 'fulfilled' ? (Array.isArray(snapshot.value) ? snapshot.value[0] : null) : null;
-      const p  = prev.status     === 'fulfilled' ? prev.value    : null;
-      const d  = details.status  === 'fulfilled' ? details.value : null;
+      const q = quote.status === 'fulfilled' ? quote.value : null;
+      const s =
+        snapshot.status === 'fulfilled'
+          ? Array.isArray(snapshot.value)
+            ? snapshot.value[0]
+            : null
+          : null;
+      const p = prev.status === 'fulfilled' ? prev.value : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 🌅 ${sym} — Pre-Market & After-Hours Activity\n\n`;
       if (d?.name) block += `**${d.name}**\n\n`;
 
       // Regular session close
       const prevClose = p?.results?.[0]?.c || s?.prevDay?.c;
-      if (prevClose) block += `**Previous Close:** $${prevClose.toLocaleString()}\n\n`;
+      if (prevClose)
+        block += `**Previous Close:** $${prevClose.toLocaleString()}\n\n`;
 
       // Extended hours data from snapshot session
       const session = s?.session || q?.snapshot?.session;
       if (session) {
         block += `### Extended Hours Data\n| Field | Value |\n|-------|-------|\n`;
-        if (session.price)              block += `| Extended Price | **$${session.price?.toLocaleString()}** |\n`;
+        if (session.price)
+          block += `| Extended Price | **$${session.price?.toLocaleString()}** |\n`;
         if (session.change !== undefined && session.change !== null) {
           const dir = session.change >= 0 ? '📈 +' : '📉 ';
           block += `| Extended Change | **${dir}$${Math.abs(session.change).toFixed(2)} (${session.change_percent?.toFixed(2)}%)** |\n`;
         }
-        if (session.volume)             block += `| Extended Volume | ${session.volume?.toLocaleString()} |\n`;
-        if (session.early_trading_change !== undefined && session.early_trading_change !== null) {
+        if (session.volume)
+          block += `| Extended Volume | ${session.volume?.toLocaleString()} |\n`;
+        if (
+          session.early_trading_change !== undefined &&
+          session.early_trading_change !== null
+        ) {
           const dir2 = session.early_trading_change >= 0 ? '📈 +' : '📉 ';
           block += `| Pre-Market | **${dir2}$${Math.abs(session.early_trading_change).toFixed(2)} (${session.early_trading_change_percent?.toFixed(2)}%)** |\n`;
         }
-        if (session.late_trading_change !== undefined && session.late_trading_change !== null) {
+        if (
+          session.late_trading_change !== undefined &&
+          session.late_trading_change !== null
+        ) {
           const dir3 = session.late_trading_change >= 0 ? '📈 +' : '📉 ';
           block += `| After-Hours | **${dir3}$${Math.abs(session.late_trading_change).toFixed(2)} (${session.late_trading_change_percent?.toFixed(2)}%)** |\n`;
         }
@@ -1863,7 +2521,7 @@ const routeAndEnhancePrompt = async (prompt) => {
         const last = q?.trade?.p;
         if (last && prevClose) {
           const chg = last - prevClose;
-          const chgPct = (chg / prevClose * 100).toFixed(2);
+          const chgPct = ((chg / prevClose) * 100).toFixed(2);
           const dir = chg >= 0 ? '📈 +' : '📉 ';
           block += `### Latest Price\n| Field | Value |\n|-------|-------|\n`;
           block += `| Last Price | **$${last.toLocaleString()}** |\n`;
@@ -1881,7 +2539,11 @@ const routeAndEnhancePrompt = async (prompt) => {
         if (s.day.c) block += `| Close | **$${s.day.c.toLocaleString()}** |\n`;
         if (s.day.v) block += `| Volume | ${s.day.v.toLocaleString()} |\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Pre/After-Market Data — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Pre/After-Market Data — ${sym}`
+      );
     }
 
     // ── PORTFOLIO VALUATION ───────────────────────────────────────────────
@@ -1890,35 +2552,47 @@ const routeAndEnhancePrompt = async (prompt) => {
     if (intent.type === 'portfolio') {
       const holdings = intent.holdings; // [{ symbol, shares }]
       if (Array.isArray(holdings) && holdings.length > 0) {
-        const tickers = holdings.map(h => h.symbol);
-        const snapshots = await safe(getStocksSnapshotTickersService(tickers), 8000);
+        const tickers = holdings.map((h) => h.symbol);
+        const snapshots = await safe(
+          getStocksSnapshotTickersService(tickers),
+          8000
+        );
         const snapMap = {};
         if (Array.isArray(snapshots)) {
-          snapshots.forEach(s => { snapMap[s.ticker] = s; });
+          snapshots.forEach((s) => {
+            snapMap[s.ticker] = s;
+          });
         }
 
         let totalValue = 0;
-        let totalCost  = 0; // only if avg cost provided
+        let totalCost = 0; // only if avg cost provided
 
         let block = `## 💼 Portfolio Valuation — Live Prices\n\n`;
         block += `| Ticker | Shares | Price | Day Change | Position Value | Day P&L |\n`;
         block += `|--------|--------|-------|------------|---------------|---------|\n`;
 
-        holdings.forEach(h => {
+        holdings.forEach((h) => {
           const snap = snapMap[h.symbol];
           const price = snap?.day?.c || snap?.lastTrade?.p || null;
           const change = snap?.todaysChange;
           const changePct = snap?.todaysChangePerc;
           const posValue = price ? price * h.shares : null;
-          const dayPnl   = change ? change * h.shares : null;
+          const dayPnl = change ? change * h.shares : null;
 
           if (posValue) totalValue += posValue;
-          if (dayPnl)   totalCost  += dayPnl;
+          if (dayPnl) totalCost += dayPnl;
 
           const dir = (changePct || 0) >= 0 ? '📈 +' : '📉 ';
-          const chgStr = changePct !== undefined ? `${dir}${Math.abs(changePct || 0).toFixed(2)}%` : 'N/A';
-          const valStr = posValue ? `**$${posValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}**` : 'N/A';
-          const pnlStr = dayPnl ? `${dayPnl >= 0 ? '+' : ''}$${dayPnl.toFixed(2)}` : 'N/A';
+          const chgStr =
+            changePct !== undefined
+              ? `${dir}${Math.abs(changePct || 0).toFixed(2)}%`
+              : 'N/A';
+          const valStr = posValue
+            ? `**$${posValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}**`
+            : 'N/A';
+          const pnlStr = dayPnl
+            ? `${dayPnl >= 0 ? '+' : ''}$${dayPnl.toFixed(2)}`
+            : 'N/A';
           const priceStr = price ? `$${price.toLocaleString()}` : 'N/A';
 
           block += `| **${h.symbol}** | ${h.shares} | ${priceStr} | ${chgStr} | ${valStr} | ${pnlStr} |\n`;
@@ -1934,39 +2608,75 @@ const routeAndEnhancePrompt = async (prompt) => {
           }
           block += `| Positions | ${holdings.length} |\n`;
         }
-        return buildPrompt(prompt, block, 'Massive.com Portfolio Valuation Service');
+        return buildPrompt(
+          prompt,
+          block,
+          'Massive.com Portfolio Valuation Service'
+        );
       }
     }
 
     // ── PRICE CHART / OHLCV HISTORY ───────────────────────────────────────
     // Handles: stocks, crypto, and forex chart queries
     if (intent.type === 'chart' && intent.symbol) {
-      const sym    = intent.symbol;
-      const period = intent.period  || { days: 30, timespan: 'day', label: '30 Days' };
-      const asset  = intent.assetType || 'stock';
+      const sym = intent.symbol;
+      const period = intent.period || {
+        days: 30,
+        timespan: 'day',
+        label: '30 Days',
+      };
+      const asset = intent.assetType || 'stock';
 
       // Calculate date range
-      const toDate   = new Date().toISOString().split('T')[0];
-      const fromDate = new Date(Date.now() - period.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const toDate = new Date().toISOString().split('T')[0];
+      const fromDate = new Date(Date.now() - period.days * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0];
 
       let bars = null;
       let label = sym;
 
       if (asset === 'crypto') {
         const fullSym = sym.startsWith('X:') ? sym : `X:${sym}USD`;
-        bars = await safe(getCryptoAggregatesService(fullSym, { timespan: period.timespan, limit: Math.min(period.days, 60) }), 8000);
+        bars = await safe(
+          getCryptoAggregatesService(fullSym, {
+            timespan: period.timespan,
+            limit: Math.min(period.days, 60),
+          }),
+          8000
+        );
         label = sym.replace('X:', '').replace('USD', '') + '/USD';
       } else if (asset === 'forex') {
         const pair = sym.startsWith('C:') ? sym : `C:${sym}`;
-        bars = await safe(getForexAggregatesService(pair, { timespan: period.timespan, limit: Math.min(period.days, 60) }), 8000);
-        label = pair.replace('C:', '').slice(0, 3) + '/' + pair.replace('C:', '').slice(3, 6);
+        bars = await safe(
+          getForexAggregatesService(pair, {
+            timespan: period.timespan,
+            limit: Math.min(period.days, 60),
+          }),
+          8000
+        );
+        label =
+          pair.replace('C:', '').slice(0, 3) +
+          '/' +
+          pair.replace('C:', '').slice(3, 6);
       } else {
         // Stock / ETF
         const [aggData, details] = await Promise.allSettled([
-          safe(getStockAggregatesService({ ticker: sym, timespan: period.timespan, from: fromDate, to: toDate }), 8000),
+          safe(
+            getStockAggregatesService({
+              ticker: sym,
+              timespan: period.timespan,
+              from: fromDate,
+              to: toDate,
+            }),
+            8000
+          ),
           safe(getTickerDetailsService(sym)),
         ]);
-        bars = aggData.status === 'fulfilled' ? aggData.value?.results || aggData.value : null;
+        bars =
+          aggData.status === 'fulfilled'
+            ? aggData.value?.results || aggData.value
+            : null;
         const d = details.status === 'fulfilled' ? details.value : null;
         if (d?.name) label = `${d.name} (${sym})`;
       }
@@ -1977,55 +2687,79 @@ const routeAndEnhancePrompt = async (prompt) => {
 
       if (results.length > 0) {
         // Summary stats
-        const prices   = results.map(r => r.c).filter(Boolean);
-        const highs    = results.map(r => r.h).filter(Boolean);
-        const lows     = results.map(r => r.l).filter(Boolean);
-        const volumes  = results.map(r => r.v).filter(Boolean);
-        const open     = results[0]?.o;
-        const latest   = results[results.length - 1]?.c;
-        const high     = Math.max(...highs);
-        const low      = Math.min(...lows);
-        const change   = open && latest ? ((latest - open) / open * 100) : null;
-        const avgVol   = volumes.length > 0 ? volumes.reduce((a, b) => a + b, 0) / volumes.length : null;
+        const prices = results.map((r) => r.c).filter(Boolean);
+        const highs = results.map((r) => r.h).filter(Boolean);
+        const lows = results.map((r) => r.l).filter(Boolean);
+        const volumes = results.map((r) => r.v).filter(Boolean);
+        const open = results[0]?.o;
+        const latest = results[results.length - 1]?.c;
+        const high = Math.max(...highs);
+        const low = Math.min(...lows);
+        const change = open && latest ? ((latest - open) / open) * 100 : null;
+        const avgVol =
+          volumes.length > 0
+            ? volumes.reduce((a, b) => a + b, 0) / volumes.length
+            : null;
 
         block += `### Summary (${period.label})\n| Metric | Value |\n|--------|-------|\n`;
-        if (open)   block += `| Period Open  | **$${open.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
-        if (latest) block += `| Period Close | **$${latest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
-        if (high)   block += `| Period High  | $${high.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
-        if (low)    block += `| Period Low   | $${low.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
+        if (open)
+          block += `| Period Open  | **$${open.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
+        if (latest)
+          block += `| Period Close | **$${latest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
+        if (high)
+          block += `| Period High  | $${high.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
+        if (low)
+          block += `| Period Low   | $${low.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
         if (change !== null) {
           const dir = change >= 0 ? '📈 +' : '📉 ';
           block += `| Period Return | **${dir}${change.toFixed(2)}%** |\n`;
         }
-        if (avgVol) block += `| Avg Daily Volume | ${(avgVol / 1e6).toFixed(2)}M |\n`;
+        if (avgVol)
+          block += `| Avg Daily Volume | ${(avgVol / 1e6).toFixed(2)}M |\n`;
         block += `| Data Points | ${results.length} bars (${period.timespan}) |\n`;
 
         // OHLCV table (last 10 bars)
         const display = results.slice(-Math.min(results.length, 15)).reverse();
         block += `\n### Recent OHLCV Data (Latest ${display.length} Bars)\n`;
         block += `| Date | Open | High | Low | Close | Volume |\n|------|------|------|-----|-------|--------|\n`;
-        display.forEach(r => {
+        display.forEach((r) => {
           const date = r.t ? new Date(r.t).toISOString().split('T')[0] : 'N/A';
           const o = r.o?.toFixed(2) || 'N/A';
           const h = r.h?.toFixed(2) || 'N/A';
           const l = r.l?.toFixed(2) || 'N/A';
           const c = r.c?.toFixed(2) || 'N/A';
-          const v = r.v ? (r.v >= 1e6 ? `${(r.v / 1e6).toFixed(1)}M` : r.v.toLocaleString()) : 'N/A';
-          const prevClose = results.find(x => x.t < r.t)?.c;
+          const v = r.v
+            ? r.v >= 1e6
+              ? `${(r.v / 1e6).toFixed(1)}M`
+              : r.v.toLocaleString()
+            : 'N/A';
+          const prevClose = results.find((x) => x.t < r.t)?.c;
           const candleDir = r.c && r.o ? (r.c >= r.o ? '🟢' : '🔴') : '⚪';
           block += `| ${date} | ${o} | ${h} | ${l} | **${candleDir} ${c}** | ${v} |\n`;
         });
 
         // Trend narrative
         if (change !== null) {
-          const narrative = change > 10 ? '🚀 Strong uptrend' : change > 3 ? '📈 Moderate uptrend'
-            : change > -3 ? '↔️ Sideways / flat' : change > -10 ? '📉 Moderate downtrend' : '🔻 Strong downtrend';
+          const narrative =
+            change > 10
+              ? '🚀 Strong uptrend'
+              : change > 3
+                ? '📈 Moderate uptrend'
+                : change > -3
+                  ? '↔️ Sideways / flat'
+                  : change > -10
+                    ? '📉 Moderate downtrend'
+                    : '🔻 Strong downtrend';
           block += `\n> **${period.label} Trend:** ${narrative} (${change >= 0 ? '+' : ''}${change.toFixed(2)}%)\n`;
         }
       } else {
         block += `*No historical data available for ${sym} over the requested period.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com OHLCV Price History — ${label} (${period.label})`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com OHLCV Price History — ${label} (${period.label})`
+      );
     }
 
     // ── DIVIDEND CALENDAR ─────────────────────────────────────────────────
@@ -2037,10 +2771,10 @@ const routeAndEnhancePrompt = async (prompt) => {
         safe(getTickerDetailsService(sym)),
         safe(getStockQuoteService(sym)),
       ]);
-      const dividends  = divs.status    === 'fulfilled' ? divs.value    : null;
-      const r          = ratios.status  === 'fulfilled' ? ratios.value  : null;
-      const d          = details.status === 'fulfilled' ? details.value : null;
-      const q          = quote.status   === 'fulfilled' ? quote.value   : null;
+      const dividends = divs.status === 'fulfilled' ? divs.value : null;
+      const r = ratios.status === 'fulfilled' ? ratios.value : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
+      const q = quote.status === 'fulfilled' ? quote.value : null;
 
       let block = `## 💰 ${sym} — Dividend History & Calendar\n\n`;
       if (d?.name) block += `**${d.name}**\n\n`;
@@ -2048,32 +2782,58 @@ const routeAndEnhancePrompt = async (prompt) => {
       // Current yield
       const price = q?.trade?.p;
       block += `### Current Dividend Data\n| Metric | Value |\n|--------|-------|\n`;
-      if (r?.dividend_yield) block += `| Annual Dividend Yield | **${(r.dividend_yield * 100).toFixed(2)}%** |\n`;
-      if (r?.dividend_per_share) block += `| Annual Dividend Per Share | **$${r.dividend_per_share.toFixed(4)}** |\n`;
+      if (r?.dividend_yield)
+        block += `| Annual Dividend Yield | **${(r.dividend_yield * 100).toFixed(2)}%** |\n`;
+      if (r?.dividend_per_share)
+        block += `| Annual Dividend Per Share | **$${r.dividend_per_share.toFixed(4)}** |\n`;
       if (price) block += `| Current Price | $${price.toLocaleString()} |\n`;
 
-      const divResults = Array.isArray(dividends) ? dividends : dividends?.results || [];
+      const divResults = Array.isArray(dividends)
+        ? dividends
+        : dividends?.results || [];
       if (divResults.length > 0) {
         // Frequency detection
-        const quarters = divResults.filter(d => d.pay_date || d.ex_dividend_date).length;
-        const frequency = quarters >= 8 ? 'Quarterly' : quarters >= 4 ? 'Semi-Annual' : quarters >= 2 ? 'Annual' : 'Variable';
+        const quarters = divResults.filter(
+          (d) => d.pay_date || d.ex_dividend_date
+        ).length;
+        const frequency =
+          quarters >= 8
+            ? 'Quarterly'
+            : quarters >= 4
+              ? 'Semi-Annual'
+              : quarters >= 2
+                ? 'Annual'
+                : 'Variable';
         block += `| Payment Frequency | **${frequency}** |\n`;
 
         // Annualized from last 4 payments
         const lastFour = divResults.slice(0, 4);
-        const annualized = lastFour.reduce((sum, d) => sum + (d.cash_amount || 0), 0);
+        const annualized = lastFour.reduce(
+          (sum, d) => sum + (d.cash_amount || 0),
+          0
+        );
         if (annualized > 0) {
           block += `| Annualized (TTM) | **$${annualized.toFixed(4)} per share** |\n`;
-          if (price) block += `| Effective Yield (TTM) | **${(annualized / price * 100).toFixed(2)}%** |\n`;
+          if (price)
+            block += `| Effective Yield (TTM) | **${((annualized / price) * 100).toFixed(2)}%** |\n`;
         }
 
         // History table
         block += `\n### Dividend Payment History\n| Ex-Date | Pay Date | Amount | Frequency |\n|---------|----------|--------|----------|\n`;
-        divResults.slice(0, 8).forEach(d => {
-          const exDate  = d.ex_dividend_date || d.record_date || 'N/A';
+        divResults.slice(0, 8).forEach((d) => {
+          const exDate = d.ex_dividend_date || d.record_date || 'N/A';
           const payDate = d.pay_date || 'N/A';
-          const amt     = d.cash_amount ? `**$${d.cash_amount.toFixed(4)}**` : 'N/A';
-          const freq    = d.frequency === 4 ? 'Quarterly' : d.frequency === 2 ? 'Semi-Annual' : d.frequency === 1 ? 'Annual' : frequency;
+          const amt = d.cash_amount
+            ? `**$${d.cash_amount.toFixed(4)}**`
+            : 'N/A';
+          const freq =
+            d.frequency === 4
+              ? 'Quarterly'
+              : d.frequency === 2
+                ? 'Semi-Annual'
+                : d.frequency === 1
+                  ? 'Annual'
+                  : frequency;
           block += `| ${exDate} | ${payDate} | ${amt} | ${freq} |\n`;
         });
 
@@ -2082,7 +2842,7 @@ const routeAndEnhancePrompt = async (prompt) => {
           const oldest = divResults[divResults.length - 1]?.cash_amount;
           const newest = divResults[0]?.cash_amount;
           if (oldest && newest && oldest !== newest) {
-            const growth = ((newest - oldest) / oldest * 100);
+            const growth = ((newest - oldest) / oldest) * 100;
             const dir = growth >= 0 ? '📈 +' : '📉 ';
             block += `\n> **Dividend Trend:** ${dir}${growth.toFixed(1)}% over last ${divResults.length} payments\n`;
           }
@@ -2090,7 +2850,11 @@ const routeAndEnhancePrompt = async (prompt) => {
       } else {
         block += `\n> *${sym} does not appear to pay dividends, or dividend data is unavailable.*\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Dividend Calendar & History — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Dividend Calendar & History — ${sym}`
+      );
     }
 
     // ── OPTIONS CONTRACT DETAIL ───────────────────────────────────────────
@@ -2100,54 +2864,90 @@ const routeAndEnhancePrompt = async (prompt) => {
       const q_lower = prompt.toLowerCase();
 
       // Parse type filter from query
-      const contractType = q_lower.includes('put') ? 'put' : q_lower.includes('call') ? 'call' : null;
+      const contractType = q_lower.includes('put')
+        ? 'put'
+        : q_lower.includes('call')
+          ? 'call'
+          : null;
 
       // Parse strike hint from query (e.g. "$200", "200 strike", "250")
-      const strikeMatch = prompt.match(/\$?(\d{2,4}(?:\.\d+)?)\s*(?:strike|call|put)?/);
-      const strikeHint  = strikeMatch ? parseFloat(strikeMatch[1]) : null;
+      const strikeMatch = prompt.match(
+        /\$?(\d{2,4}(?:\.\d+)?)\s*(?:strike|call|put)?/
+      );
+      const strikeHint = strikeMatch ? parseFloat(strikeMatch[1]) : null;
 
       // Parse expiry from query (e.g. "June", "June 20", "2025-06-20")
-      const monthMap = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-        jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+      const monthMap = {
+        jan: '01',
+        feb: '02',
+        mar: '03',
+        apr: '04',
+        may: '05',
+        jun: '06',
+        jul: '07',
+        aug: '08',
+        sep: '09',
+        oct: '10',
+        nov: '11',
+        dec: '12',
+      };
       let expiryHint = null;
       for (const [mon, num] of Object.entries(monthMap)) {
-        if (q_lower.includes(mon)) { expiryHint = `2026-${num}`; break; }
+        if (q_lower.includes(mon)) {
+          expiryHint = `2026-${num}`;
+          break;
+        }
       }
 
       const [chain, quote, details] = await Promise.allSettled([
-        safe(getOptionsChainFilteredService(sym, {
-          type:       contractType || undefined,
-          expiration: expiryHint   || undefined,
-          limit:      20,
-        }), 10000),
+        safe(
+          getOptionsChainFilteredService(sym, {
+            type: contractType || undefined,
+            expiration: expiryHint || undefined,
+            limit: 20,
+          }),
+          10000
+        ),
         safe(getStockQuoteService(sym)),
         safe(getTickerDetailsService(sym)),
       ]);
 
-      let contracts = chain.status === 'fulfilled' ? (chain.value?.results || chain.value || []) : [];
+      let contracts =
+        chain.status === 'fulfilled'
+          ? chain.value?.results || chain.value || []
+          : [];
       if (!Array.isArray(contracts)) contracts = [];
 
       if (contracts.length === 0) {
         // Fallback: list all option contracts
         const fallbackList = await safe(listOptionsContractsService(sym, 30));
         if (fallbackList) {
-          contracts = Array.isArray(fallbackList) ? fallbackList : (fallbackList.results || []);
+          contracts = Array.isArray(fallbackList)
+            ? fallbackList
+            : fallbackList.results || [];
         }
       }
 
-      const q2        = quote.status   === 'fulfilled' ? quote.value   : null;
-      const d         = details.status === 'fulfilled' ? details.value : null;
+      const q2 = quote.status === 'fulfilled' ? quote.value : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
 
       let block = `## 🎯 ${sym} Options${contractType ? ` — ${contractType.toUpperCase()}S` : ''}\n\n`;
       if (d?.name) block += `**${d.name}**\n`;
-      if (q2?.trade?.p) block += `**Underlying Price:** **$${q2.trade.p.toLocaleString()}**\n\n`;
+      if (q2?.trade?.p)
+        block += `**Underlying Price:** **$${q2.trade.p.toLocaleString()}**\n\n`;
 
       // Filter by strike proximity if hint given
       let filtered = contracts;
       if (strikeHint && contracts.length > 0) {
         filtered = contracts
-          .filter(c => (c.details?.strike_price || c.strike_price))
-          .sort((a, b) => Math.abs((a.details?.strike_price || a.strike_price) - strikeHint) - Math.abs((b.details?.strike_price || b.strike_price) - strikeHint))
+          .filter((c) => c.details?.strike_price || c.strike_price)
+          .sort(
+            (a, b) =>
+              Math.abs(
+                (a.details?.strike_price || a.strike_price) - strikeHint
+              ) -
+              Math.abs((b.details?.strike_price || b.strike_price) - strikeHint)
+          )
           .slice(0, 15);
       }
 
@@ -2155,18 +2955,36 @@ const routeAndEnhancePrompt = async (prompt) => {
         block += `### Contract List${strikeHint ? ` (Near $${strikeHint} Strike)` : ''}\n`;
         block += `| Expiry | Strike | Type | Bid | Ask | Last | Volume | OI | IV |\n`;
         block += `|--------|--------|------|-----|-----|------|--------|----|----|\n`;
-        filtered.slice(0, 12).forEach(c => {
-          const det  = c.details || c;
-          const day  = c.day || {};
+        filtered.slice(0, 12).forEach((c) => {
+          const det = c.details || c;
+          const day = c.day || {};
           const expiry = det.expiration_date || 'N/A';
           const strike = det.strike_price ? `**$${det.strike_price}**` : 'N/A';
-          const type   = (det.contract_type || det.type || 'N/A').toUpperCase().charAt(0) === 'C' ? 'CALL' : 'PUT';
-          const bid    = day.bid !== undefined ? `**$${day.bid?.toFixed(2)}**` : 'N/A';
-          const ask    = day.ask !== undefined ? `**$${day.ask?.toFixed(2)}**` : 'N/A';
-          const last   = day.last_price !== undefined ? `**$${day.last_price?.toFixed(2)}**` : 'N/A';
-          const vol    = day.volume !== undefined ? `**${day.volume.toLocaleString()}**` : 'N/A';
-          const oi     = c.open_interest !== undefined ? `**${c.open_interest.toLocaleString()}**` : 'N/A';
-          const iv     = c.implied_volatility !== undefined ? `**${(c.implied_volatility * 100).toFixed(1)}%**` : 'N/A';
+          const type =
+            (det.contract_type || det.type || 'N/A').toUpperCase().charAt(0) ===
+            'C'
+              ? 'CALL'
+              : 'PUT';
+          const bid =
+            day.bid !== undefined ? `**$${day.bid?.toFixed(2)}**` : 'N/A';
+          const ask =
+            day.ask !== undefined ? `**$${day.ask?.toFixed(2)}**` : 'N/A';
+          const last =
+            day.last_price !== undefined
+              ? `**$${day.last_price?.toFixed(2)}**`
+              : 'N/A';
+          const vol =
+            day.volume !== undefined
+              ? `**${day.volume.toLocaleString()}**`
+              : 'N/A';
+          const oi =
+            c.open_interest !== undefined
+              ? `**${c.open_interest.toLocaleString()}**`
+              : 'N/A';
+          const iv =
+            c.implied_volatility !== undefined
+              ? `**${(c.implied_volatility * 100).toFixed(1)}%**`
+              : 'N/A';
           block += `| ${expiry} | ${strike} | ${type} | ${bid} | ${ask} | ${last} | ${vol} | ${oi} | ${iv} |\n`;
         });
 
@@ -2177,47 +2995,79 @@ const routeAndEnhancePrompt = async (prompt) => {
           const atmDetails = atm.details || atm;
           block += `\n### Greeks — ${atmDetails.expiration_date || 'N/A'} $${atmDetails.strike_price || 'N/A'} ${(atmDetails.contract_type || '').toUpperCase()}\n`;
           block += `| Greek | Value | Meaning |\n|-------|-------|---------|\n`;
-          if (g.delta !== undefined) block += `| Delta | **${g.delta?.toFixed(4)}** | Price sensitivity to $1 underlying move |\n`;
-          if (g.gamma !== undefined) block += `| Gamma | **${g.gamma?.toFixed(6)}** | Delta change per $1 underlying move |\n`;
-          if (g.theta !== undefined) block += `| Theta | **${g.theta?.toFixed(4)}** | Daily time decay (negative = losing value) |\n`;
-          if (g.vega  !== undefined) block += `| Vega  | **${g.vega?.toFixed(4)}** | Price sensitivity to 1% IV change |\n`;
-          if (g.rho   !== undefined) block += `| Rho   | **${g.rho?.toFixed(4)}** | Sensitivity to interest rate change |\n`;
+          if (g.delta !== undefined)
+            block += `| Delta | **${g.delta?.toFixed(4)}** | Price sensitivity to $1 underlying move |\n`;
+          if (g.gamma !== undefined)
+            block += `| Gamma | **${g.gamma?.toFixed(6)}** | Delta change per $1 underlying move |\n`;
+          if (g.theta !== undefined)
+            block += `| Theta | **${g.theta?.toFixed(4)}** | Daily time decay (negative = losing value) |\n`;
+          if (g.vega !== undefined)
+            block += `| Vega  | **${g.vega?.toFixed(4)}** | Price sensitivity to 1% IV change |\n`;
+          if (g.rho !== undefined)
+            block += `| Rho   | **${g.rho?.toFixed(4)}** | Sensitivity to interest rate change |\n`;
         }
       } else {
         block += `*No options contracts found for ${sym}${contractType ? ` (${contractType}s)` : ''}${expiryHint ? ` expiring ${expiryHint}` : ''}.*\n`;
         block += `> Try asking for the full options chain: "Show me ${sym} options chain"\n`;
       }
-      return buildPrompt(prompt, block, `Massive.com Options Contract Detail — ${sym}`);
+      return buildPrompt(
+        prompt,
+        block,
+        `Massive.com Options Contract Detail — ${sym}`
+      );
     }
 
     // ── MARKET SENTIMENT ─────────────────────────────────────────────────
     // Composite Fear/Greed score from VIX + movers + sectors
     if (intent.type === 'market_sentiment') {
-      const [sectors, moversUp, moversDown, macro, overview] = await Promise.allSettled([
-        safe(fetchSectorPerformance(), 6000),
-        safe(getTopMoversService('gainers'), 6000),
-        safe(getTopMoversService('losers'), 6000),
-        safe(fetchMacroFull(), 6000),
-        safe(fetchMarketOverview(), 6000),
-      ]);
+      const [sectors, moversUp, moversDown, macro, overview] =
+        await Promise.allSettled([
+          safe(fetchSectorPerformance(), 6000),
+          safe(getTopMoversService('gainers'), 6000),
+          safe(getTopMoversService('losers'), 6000),
+          safe(fetchMacroFull(), 6000),
+          safe(fetchMarketOverview(), 6000),
+        ]);
 
       let block = `## 🧭 Market Sentiment & Fear/Greed Composite\n\n`;
       let score = 50; // neutral baseline
       let signals = [];
 
       // VIX signal (from market overview — VIXY ETF proxy)
-      const equities = overview.status === 'fulfilled' ? overview.value?.equities : null;
-      const vixy = Array.isArray(equities) ? equities.find(e => e.ticker === 'VIXY') : null;
+      const equities =
+        overview.status === 'fulfilled' ? overview.value?.equities : null;
+      const vixy = Array.isArray(equities)
+        ? equities.find((e) => e.ticker === 'VIXY')
+        : null;
       if (vixy?.day?.c) {
         const vix = vixy.day.c * 8.5; // VIXY ≈ VIX/8.5 (rough approximation)
         block += `### VIX Volatility (via VIXY ETF)\n| VIXY Price | ~VIX Estimate | Signal |\n|------------|---------------|--------|\n`;
         let vixSignal = '';
-        if (vix < 12)       { score += 20; vixSignal = '😴 Extreme Complacency';  signals.push('VIX very low → Complacency'); }
-        else if (vix < 15)  { score += 12; vixSignal = '😌 Low Volatility';       signals.push('VIX low → Mild Greed'); }
-        else if (vix < 20)  { score += 5;  vixSignal = '😐 Normal Range';         signals.push('VIX normal'); }
-        else if (vix < 30)  { score -= 10; vixSignal = '😟 Elevated Fear';        signals.push('VIX elevated → Fear'); }
-        else if (vix < 40)  { score -= 20; vixSignal = '😨 High Fear';            signals.push('VIX high → Fear'); }
-        else                { score -= 30; vixSignal = '🔥 Extreme Fear';         signals.push('VIX extreme → Panic'); }
+        if (vix < 12) {
+          score += 20;
+          vixSignal = '😴 Extreme Complacency';
+          signals.push('VIX very low → Complacency');
+        } else if (vix < 15) {
+          score += 12;
+          vixSignal = '😌 Low Volatility';
+          signals.push('VIX low → Mild Greed');
+        } else if (vix < 20) {
+          score += 5;
+          vixSignal = '😐 Normal Range';
+          signals.push('VIX normal');
+        } else if (vix < 30) {
+          score -= 10;
+          vixSignal = '😟 Elevated Fear';
+          signals.push('VIX elevated → Fear');
+        } else if (vix < 40) {
+          score -= 20;
+          vixSignal = '😨 High Fear';
+          signals.push('VIX high → Fear');
+        } else {
+          score -= 30;
+          vixSignal = '🔥 Extreme Fear';
+          signals.push('VIX extreme → Panic');
+        }
         block += `| $${vixy.day.c.toFixed(2)} | ~${vix.toFixed(0)} | **${vixSignal}** |\n\n`;
       }
 
@@ -2225,22 +3075,35 @@ const routeAndEnhancePrompt = async (prompt) => {
       const sectorData = sectors.status === 'fulfilled' ? sectors.value : null;
       if (Array.isArray(sectorData) && sectorData.length > 0) {
         const SECTOR_LABELS = {
-          XLK:'Tech', XLF:'Finance', XLV:'Healthcare', XLE:'Energy',
-          XLI:'Industrials', XLC:'Comms', XLP:'Staples', XLY:'Discretionary',
-          XLB:'Materials', XLRE:'Real Estate', XLU:'Utilities',
+          XLK: 'Tech',
+          XLF: 'Finance',
+          XLV: 'Healthcare',
+          XLE: 'Energy',
+          XLI: 'Industrials',
+          XLC: 'Comms',
+          XLP: 'Staples',
+          XLY: 'Discretionary',
+          XLB: 'Materials',
+          XLRE: 'Real Estate',
+          XLU: 'Utilities',
         };
-        const positives  = sectorData.filter(s => (s.todaysChangePerc || 0) > 0).length;
-        const negatives  = sectorData.length - positives;
-        const breadth    = (positives / sectorData.length * 100).toFixed(0);
+        const positives = sectorData.filter(
+          (s) => (s.todaysChangePerc || 0) > 0
+        ).length;
+        const negatives = sectorData.length - positives;
+        const breadth = ((positives / sectorData.length) * 100).toFixed(0);
         const breadthAdj = (positives / sectorData.length - 0.5) * 30; // -15 to +15
         score += breadthAdj;
-        const avgChg = sectorData.reduce((s, x) => s + (x.todaysChangePerc || 0), 0) / sectorData.length;
+        const avgChg =
+          sectorData.reduce((s, x) => s + (x.todaysChangePerc || 0), 0) /
+          sectorData.length;
 
         block += `### Sector Breadth (${positives}/${sectorData.length} sectors positive)\n`;
         block += `| Sector | ETF | Change % |\n|--------|-----|----------|\n`;
-        [...sectorData].sort((a, b) => (b.todaysChangePerc || 0) - (a.todaysChangePerc || 0))
-          .forEach(s => {
-            const dir   = (s.todaysChangePerc || 0) >= 0 ? '📈' : '📉';
+        [...sectorData]
+          .sort((a, b) => (b.todaysChangePerc || 0) - (a.todaysChangePerc || 0))
+          .forEach((s) => {
+            const dir = (s.todaysChangePerc || 0) >= 0 ? '📈' : '📉';
             const label = SECTOR_LABELS[s.ticker] || s.ticker;
             block += `| ${label} | ${s.ticker} | ${dir} **${s.todaysChangePerc?.toFixed(2)}%** |\n`;
           });
@@ -2248,32 +3111,63 @@ const routeAndEnhancePrompt = async (prompt) => {
       }
 
       // Movers ratio (gainers vs losers magnitude)
-      const gainers = moversUp.status   === 'fulfilled' ? moversUp.value   : null;
-      const losers  = moversDown.status === 'fulfilled' ? moversDown.value : null;
+      const gainers = moversUp.status === 'fulfilled' ? moversUp.value : null;
+      const losers =
+        moversDown.status === 'fulfilled' ? moversDown.value : null;
       if (Array.isArray(gainers) && Array.isArray(losers)) {
-        const avgGain = gainers.slice(0, 5).reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) / Math.min(gainers.length, 5);
-        const avgLoss = losers.slice(0, 5).reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) / Math.min(losers.length, 5);
+        const avgGain =
+          gainers
+            .slice(0, 5)
+            .reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) /
+          Math.min(gainers.length, 5);
+        const avgLoss =
+          losers
+            .slice(0, 5)
+            .reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) /
+          Math.min(losers.length, 5);
         const moversRatio = avgGain / (avgLoss || 1);
-        const moversAdj   = Math.min(10, Math.max(-10, (moversRatio - 1) * 8));
+        const moversAdj = Math.min(10, Math.max(-10, (moversRatio - 1) * 8));
         score += moversAdj;
         block += `### Top Movers Snapshot\n| Direction | Top Ticker | Change % |\n|-----------|-----------|----------|\n`;
-        gainers.slice(0, 3).forEach(g => block += `| 📈 Gainer | **${g.ticker}** | +${g.todaysChangePerc?.toFixed(2)}% |\n`);
-        losers.slice(0, 3).forEach(l => block += `| 📉 Loser  | **${l.ticker}** | ${l.todaysChangePerc?.toFixed(2)}% |\n`);
+        gainers
+          .slice(0, 3)
+          .forEach(
+            (g) =>
+              (block += `| 📈 Gainer | **${g.ticker}** | +${g.todaysChangePerc?.toFixed(2)}% |\n`)
+          );
+        losers
+          .slice(0, 3)
+          .forEach(
+            (l) =>
+              (block += `| 📉 Loser  | **${l.ticker}** | ${l.todaysChangePerc?.toFixed(2)}% |\n`)
+          );
         block += '\n';
       }
 
       // Composite score verdict
       score = Math.min(100, Math.max(0, Math.round(score)));
-      const bars    = Math.round(score / 10);
-      const bar     = '█'.repeat(bars) + '░'.repeat(10 - bars);
-      const verdict = score >= 80 ? '🟢 Extreme Greed' : score >= 65 ? '📈 Greed' :
-                      score >= 45 ? '😐 Neutral' : score >= 30 ? '📉 Fear' : '🔴 Extreme Fear';
+      const bars = Math.round(score / 10);
+      const bar = '█'.repeat(bars) + '░'.repeat(10 - bars);
+      const verdict =
+        score >= 80
+          ? '🟢 Extreme Greed'
+          : score >= 65
+            ? '📈 Greed'
+            : score >= 45
+              ? '😐 Neutral'
+              : score >= 30
+                ? '📉 Fear'
+                : '🔴 Extreme Fear';
 
       block += `### 🎯 Composite Sentiment Score\n| Score | Meter | Verdict |\n|-------|-------|--------|\n`;
       block += `| **${score}/100** | ${bar} | **${verdict}** |\n\n`;
       block += `> *Score combines VIX proxy, sector breadth, and top mover magnitude. Not financial advice.*\n`;
 
-      return buildPrompt(prompt, block, 'Massive.com Market Sentiment Composite');
+      return buildPrompt(
+        prompt,
+        block,
+        'Massive.com Market Sentiment Composite'
+      );
     }
 
     // ── YIELD CURVE ───────────────────────────────────────────────────────
@@ -2287,32 +3181,34 @@ const routeAndEnhancePrompt = async (prompt) => {
       if (yields) {
         block += `**As of ${yields.date}**\n\n`;
         const maturities = [
-          { key: 'yield_1_month',  label: '1M',   months: 1   },
-          { key: 'yield_3_month',  label: '3M',   months: 3   },
-          { key: 'yield_6_month',  label: '6M',   months: 6   },
-          { key: 'yield_1_year',   label: '1Y',   months: 12  },
-          { key: 'yield_2_year',   label: '2Y',   months: 24  },
-          { key: 'yield_3_year',   label: '3Y',   months: 36  },
-          { key: 'yield_5_year',   label: '5Y',   months: 60  },
-          { key: 'yield_7_year',   label: '7Y',   months: 84  },
-          { key: 'yield_10_year',  label: '10Y',  months: 120 },
-          { key: 'yield_20_year',  label: '20Y',  months: 240 },
-          { key: 'yield_30_year',  label: '30Y',  months: 360 },
+          { key: 'yield_1_month', label: '1M', months: 1 },
+          { key: 'yield_3_month', label: '3M', months: 3 },
+          { key: 'yield_6_month', label: '6M', months: 6 },
+          { key: 'yield_1_year', label: '1Y', months: 12 },
+          { key: 'yield_2_year', label: '2Y', months: 24 },
+          { key: 'yield_3_year', label: '3Y', months: 36 },
+          { key: 'yield_5_year', label: '5Y', months: 60 },
+          { key: 'yield_7_year', label: '7Y', months: 84 },
+          { key: 'yield_10_year', label: '10Y', months: 120 },
+          { key: 'yield_20_year', label: '20Y', months: 240 },
+          { key: 'yield_30_year', label: '30Y', months: 360 },
         ];
-        const available = maturities.filter(m => yields[m.key] !== undefined && yields[m.key] !== null);
+        const available = maturities.filter(
+          (m) => yields[m.key] !== undefined && yields[m.key] !== null
+        );
 
         // ASCII bar chart
-        const maxY = Math.max(...available.map(m => yields[m.key]));
+        const maxY = Math.max(...available.map((m) => yields[m.key]));
         block += `### Full Yield Curve\n| Maturity | Yield | Bar Chart |\n|----------|-------|-----------|\n`;
-        available.forEach(m => {
-          const y    = yields[m.key];
+        available.forEach((m) => {
+          const y = yields[m.key];
           const bars = Math.round((y / maxY) * 15);
-          const bar  = '▓'.repeat(bars) + '░'.repeat(15 - bars);
+          const bar = '▓'.repeat(bars) + '░'.repeat(15 - bars);
           block += `| **${m.label}** | **${y}%** | ${bar} |\n`;
         });
 
         // Key spreads
-        const y2  = yields.yield_2_year;
+        const y2 = yields.yield_2_year;
         const y10 = yields.yield_10_year;
         const y3m = yields.yield_3_month;
         const y30 = yields.yield_30_year;
@@ -2320,7 +3216,7 @@ const routeAndEnhancePrompt = async (prompt) => {
         block += `\n### Key Spreads\n| Spread | Value | Interpretation |\n|--------|-------|----------------|\n`;
         if (y10 && y2) {
           const s10_2 = (y10 - y2).toFixed(2);
-          const inv   = parseFloat(s10_2) < 0;
+          const inv = parseFloat(s10_2) < 0;
           block += `| 10Y - 2Y | **${s10_2}%** | ${inv ? '⚠️ **INVERTED** — historically precedes recession' : '✅ Normal (positive slope)'} |\n`;
         }
         if (y10 && y3m) {
@@ -2346,7 +3242,6 @@ const routeAndEnhancePrompt = async (prompt) => {
       }
       return buildPrompt(prompt, block, 'Massive.com US Treasury Yield Curve');
     }
-
   } catch (err) {
     logger.error('[MassiveRouter] Error:', err.message);
   }
@@ -2358,7 +3253,14 @@ const routeAndEnhancePrompt = async (prompt) => {
 // MASSIVE_SPORTS_REALESTATE_V11
 // Intelligently routes between financial, sports betting, real estate, climate risk, commodities, SEC filings, demographics, FRED, HUD FMR, FHFA HPI, College Scorecard, Greenlight Public, and Premium Public channels.
 // Runs only active channels, handles parallel execution, and merges all active contexts.
-const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate, sportsIntent, realEstateIntent) => {
+const executeCombinedRoute = async (
+  prompt,
+  hasFinance,
+  hasSports,
+  hasRealEstate,
+  sportsIntent,
+  realEstateIntent
+) => {
   const hasClimate = detectClimateRiskIntent(prompt);
   const hasCommodity = detectCommodityIntent(prompt);
   const hasSec = detectSecFilingsIntent(prompt);
@@ -2377,7 +3279,8 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   const hasGrid = detectGridMonitorIntent(prompt);
   const hasUsda = detectUsdaStatsIntent(prompt);
   const hasCopernicus = detectCopernicusIntent(prompt);
-  const hasV12 = hasGleif || hasPatents || hasOpenSky || hasGrid || hasUsda || hasCopernicus;
+  const hasV12 =
+    hasGleif || hasPatents || hasOpenSky || hasGrid || hasUsda || hasCopernicus;
 
   const hasNewsApi = detectNewsApiAiIntent(prompt);
   const hasV13 = hasNewsApi;
@@ -2394,60 +3297,56 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   const premiumV17Domain = detectPremiumV17Intent(prompt);
   const hasV17 = !!premiumV17Domain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16 || hasV17;
-
+  const hasNewFeeds =
+    hasV10 ||
+    hasV11 ||
+    hasV12 ||
+    hasV13 ||
+    hasV14 ||
+    hasV15 ||
+    hasV16 ||
+    hasV17;
 
   // Fast path: pure real estate
   if (hasRealEstate && !hasFinance && !hasSports && !hasNewFeeds) {
     return realestateSmartRouter.routeAndEnhancePrompt(prompt);
   }
-  
-  // Fast path: pure sports
-  if (hasSports && !hasFinance && !hasRealEstate && !hasNewFeeds) {
-    return sportsSmartRouter.routeAndEnhancePrompt(prompt);
-  }
-  
+
   // Fast path: pure finance
   if (hasFinance && !hasSports && !hasRealEstate && !hasNewFeeds) {
     return routeAndEnhancePrompt(prompt);
   }
-  
+
   // Run all active channels or parallel compilation
   const promises = [];
-  
+
   // Financial channel
   if (hasFinance || (!hasSports && !hasRealEstate && !hasNewFeeds)) {
     promises.push(routeAndEnhancePrompt(prompt));
   } else {
     promises.push(Promise.resolve(prompt));
   }
-  
-  // Sports channel
-  if (hasSports) {
-    promises.push(sportsSmartRouter.routeAndEnhancePrompt(prompt));
-  } else {
-    promises.push(Promise.resolve(prompt));
-  }
-  
+
   // Real Estate channel
   if (hasRealEstate) {
     promises.push(realestateSmartRouter.routeAndEnhancePrompt(prompt));
   } else {
     promises.push(Promise.resolve(prompt));
   }
-  
+
   const results = await Promise.allSettled(promises);
-  
+
   const finRes = results[0]?.status === 'fulfilled' ? results[0].value : prompt;
   const spoRes = results[1]?.status === 'fulfilled' ? results[1].value : prompt;
-  const reRes  = results[2]?.status === 'fulfilled' ? results[2].value : prompt;
-  
+  const reRes = results[2]?.status === 'fulfilled' ? results[2].value : prompt;
+
   const finEnriched = finRes !== prompt;
   const spoEnriched = spoRes !== prompt;
-  const reEnriched  = reRes !== prompt;
-  
+  const reEnriched = reRes !== prompt;
+
   // Count how many channels were actually enriched
-  const enrichedCount = (finEnriched ? 1 : 0) + (spoEnriched ? 1 : 0) + (reEnriched ? 1 : 0);
+  const enrichedCount =
+    (finEnriched ? 1 : 0) + (spoEnriched ? 1 : 0) + (reEnriched ? 1 : 0);
   const totalEnriched = enrichedCount + (hasNewFeeds ? 1 : 0);
 
   let greenlightData = null;
@@ -2496,7 +3395,10 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
 
   if (hasV14) {
     const topic = extractGreenlightTopic(prompt, greenlightDomain);
-    greenlightData = await getGreenlightIntelligenceData(greenlightDomain, topic);
+    greenlightData = await getGreenlightIntelligenceData(
+      greenlightDomain,
+      topic
+    );
   }
 
   if (hasV15) {
@@ -2507,43 +3409,48 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   let premiumV16Data = null;
   if (hasV16) {
     const topic = extractPremiumV16Topic(prompt, premiumV16Domain);
-    premiumV16Data = await getPremiumV16IntelligenceData(premiumV16Domain, topic);
+    premiumV16Data = await getPremiumV16IntelligenceData(
+      premiumV16Domain,
+      topic
+    );
   }
 
   let premiumV17Data = null;
   if (hasV17) {
     const topic = extractPremiumV17Topic(prompt, premiumV17Domain);
-    premiumV17Data = await getPremiumV17IntelligenceData(premiumV17Domain, topic);
+    premiumV17Data = await getPremiumV17IntelligenceData(
+      premiumV17Domain,
+      topic
+    );
   }
-
 
   if (totalEnriched === 0) {
     return prompt;
   }
-  
+
   if (totalEnriched === 1 && !hasNewFeeds) {
     if (finEnriched) return finRes;
     if (spoEnriched) return spoRes;
-    if (reEnriched)  return reRes;
+    if (reEnriched) return reRes;
   }
-  
+
   // Merged Multi-Context RAG
   const extractDataBlock = (enriched) => {
     const start = enriched.indexOf('##');
     if (start === -1) return enriched;
     const rulesMarker = enriched.indexOf('━━━━━━━━━━━━━━', start + 1);
-    const lastMarker  = enriched.lastIndexOf('━━━━━━━━━━━━━━');
+    const lastMarker = enriched.lastIndexOf('━━━━━━━━━━━━━━');
     if (rulesMarker !== -1 && rulesMarker < lastMarker) {
       return enriched.slice(start, rulesMarker).trim();
     }
     return enriched.slice(start).trim();
   };
-  
+
   let mergedBlocks = '';
   let citations = [];
   let mandatoryRules = '';
   let newsApiData = null;
-  
+
   if (finEnriched) {
     mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
     mergedBlocks += `║  📈 FINANCIAL MARKET DATA (Massive.com)                         ║\n`;
@@ -2552,10 +3459,16 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     citations.push('"[Source: Massive.com]" for financial data');
     mandatoryRules += `▸ Present ALL prices/values in **BOLD** (e.g. **$182.43**)\n`;
   }
-  
+
   if (spoEnriched) {
-    let sportsSummary="";
-    try{const{getCachedLiveLeagues}=await import("./sportsDataCache.js");const ll=await getCachedLiveLeagues();if(ll.length>0)sportsSummary="\n\n> LIVE NOW: "+ll.join(", ")+" - real-time odds available";}catch{}
+    let sportsSummary = '';
+    try {
+      const { getCachedLiveLeagues } = await import('./sportsDataCache.js');
+      const ll = await getCachedLiveLeagues();
+      if (ll.length > 0)
+        sportsSummary =
+          '\n\n> LIVE NOW: ' + ll.join(', ') + ' - real-time odds available';
+    } catch {}
     mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
     mergedBlocks += `║  🏈 SPORTS BETTING DATA (PredictionData.io)                     ║\n`;
     mergedBlocks += `╚══════════════════════════════════════════════════════════════════╝\n\n`;
@@ -2563,7 +3476,7 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     citations.push('"[Source: PredictionData.io]" for sports data');
     mandatoryRules += `▸ Present ALL odds in **BOLD** (e.g. **-110**, **+130**)\n`;
   }
-  
+
   if (reEnriched) {
     mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
     mergedBlocks += `║  🏡 REAL ESTATE PROPERTY DATA (RealEstateAPI.com)                ║\n`;
@@ -2584,7 +3497,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   // ─── EIA Commodities Integration ───
   if (hasCommodity && commodityDataRes) {
     mergedBlocks += `${commodityDataRes.markdown}\n\n`;
-    citations.push('"[Source: EIA / Open Commodities]" for commodity spot prices');
+    citations.push(
+      '"[Source: EIA / Open Commodities]" for commodity spot prices'
+    );
     mandatoryRules += `▸ Present ALL commodity prices and growth rates in **BOLD** (e.g. **$78.50/bbl**, **+2.45%**)\n`;
   }
 
@@ -2599,14 +3514,18 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasDemographics) {
     const demographics = getDemographicsData();
     mergedBlocks += `${demographics.markdown}\n\n`;
-    citations.push('"[Source: U.S. Census Bureau / BLS]" for local socioeconomics');
+    citations.push(
+      '"[Source: U.S. Census Bureau / BLS]" for local socioeconomics'
+    );
     mandatoryRules += `▸ Present ALL demographic growth rates and localized labor statistics in **BOLD** (e.g. **$85,420**, **+11.85%**, **3.80%**)\n`;
   }
 
   // ─── FRED Economic Indicators Integration ───
   if (hasFred && fredData) {
     mergedBlocks += `${fredData.markdown}\n\n`;
-    citations.push('"[Source: FRED / Federal Reserve]" for macroeconomic indicators');
+    citations.push(
+      '"[Source: FRED / Federal Reserve]" for macroeconomic indicators'
+    );
     mandatoryRules += `▸ Present ALL macroeconomic yields, output metrics, and rates in **BOLD** (e.g. **$28.25T**, **+2.90%**, **3.10%**, **5.25%**, **4.35%**)\n`;
   }
 
@@ -2622,7 +3541,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasFhfa) {
     const fhfa = getFhfaHpiData();
     mergedBlocks += `${fhfa.markdown}\n\n`;
-    citations.push('"[Source: FHFA / Home Price Index]" for FHFA pricing and loan limits');
+    citations.push(
+      '"[Source: FHFA / Home Price Index]" for FHFA pricing and loan limits'
+    );
     mandatoryRules += `▸ Present ALL annual and cumulative appreciation rates and single-family conforming limits in **BOLD** (e.g. **+7.80%**, **+42.50%**, **$1,149,825**)\n`;
   }
 
@@ -2630,21 +3551,27 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasScorecard) {
     const scorecard = getCollegeScorecardData();
     mergedBlocks += `${scorecard.markdown}\n\n`;
-    citations.push('"[Source: U.S. Department of Education]" for College Scorecard higher-education analytics');
+    citations.push(
+      '"[Source: U.S. Department of Education]" for College Scorecard higher-education analytics'
+    );
     mandatoryRules += `▸ Present ALL college graduation percentages, average annual costs, median post-grad earnings, and student debt averages in **BOLD** (e.g. **94.20%**, **$19,850**, **$108,500**, **$11,500**)\n`;
   }
 
   // ─── GLEIF Entity Registry Integration ───
   if (hasGleif && gleifData) {
     mergedBlocks += `${gleifData.markdown}\n\n`;
-    citations.push('"[Source: GLEIF / Global Legal Entity Identifier Foundation]" for corporate ownership hierarchies');
+    citations.push(
+      '"[Source: GLEIF / Global Legal Entity Identifier Foundation]" for corporate ownership hierarchies'
+    );
     mandatoryRules += `▸ Present ALL corporate names, identifiers, registered countries, and status indicators in **BOLD** (e.g. **Google LLC**, **Alphabet Inc.**, **25490059S3208759S480**, **254900Y6M2039230588**, **US**, **ACTIVE**)\n`;
   }
 
   // ─── USPTO PatentsView Integration ───
   if (hasPatents && patentsData) {
     mergedBlocks += `${patentsData.markdown}\n\n`;
-    citations.push('"[Source: USPTO / PatentsView]" for patent intellectual property research');
+    citations.push(
+      '"[Source: USPTO / PatentsView]" for patent intellectual property research'
+    );
     mandatoryRules += `▸ Present ALL patent assignee names, IDs, patent counts, classification numbers, and citation levels in **BOLD** (e.g. **Apple Inc.**, **ORG-12345**, **28,450**, **12,340**, **G06F - Electric Digital Data Processing**, **42.8**)\n`;
   }
 
@@ -2652,7 +3579,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasOpenSky) {
     const opensky = getOpenSkyData();
     mergedBlocks += `${opensky.markdown}\n\n`;
-    citations.push('"[Source: OpenSky Network]" for global flight logistics and air traffic surveillance');
+    citations.push(
+      '"[Source: OpenSky Network]" for global flight logistics and air traffic surveillance'
+    );
     mandatoryRules += `▸ Present ALL target airspaces, tracked aircraft counts, ground speeds, and registered executive jet counts in **BOLD** (e.g. **Los Angeles International (LAX)**, **420**, **485 knots**, **45**)\n`;
   }
 
@@ -2660,7 +3589,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasGrid) {
     const grid = getGridMonitorData();
     mergedBlocks += `${grid.markdown}\n\n`;
-    citations.push('"[Source: EIA / ENTSO-E]" for real-time electric grid and energy pricing');
+    citations.push(
+      '"[Source: EIA / ENTSO-E]" for real-time electric grid and energy pricing'
+    );
     mandatoryRules += `▸ Present ALL electric grid demand counts, wholesale spot prices, and resource generation mix percentages in **BOLD** (e.g. **CAISO (California Grid)**, **32,450 MW**, **$42.80/MWh**, **38.5%**, **12.2%**, **8.4%**, **9.6%**, **31.3%**)\n`;
   }
 
@@ -2668,7 +3599,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasUsda) {
     const usda = getUsdaStatsData();
     mergedBlocks += `${usda.markdown}\n\n`;
-    citations.push('"[Source: USDA / QuickStats]" for agricultural land and crop statistics');
+    citations.push(
+      '"[Source: USDA / QuickStats]" for agricultural land and crop statistics'
+    );
     mandatoryRules += `▸ Present ALL agricultural counties, average farmland acre values, crop yields, crop prices, and active census farms counts in **BOLD** (e.g. **Fresno County, CA**, **$8,450/acre**, **2,150 lbs/acre**, **$2.15/lb**, **4,280**)\n`;
   }
 
@@ -2676,7 +3609,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasCopernicus) {
     const copernicus = getCopernicusData();
     mergedBlocks += `${copernicus.markdown}\n\n`;
-    citations.push('"[Source: European Space Agency / Copernicus]" for Sentinel satellite earth observations');
+    citations.push(
+      '"[Source: European Space Agency / Copernicus]" for Sentinel satellite earth observations'
+    );
     mandatoryRules += `▸ Present ALL target coordinates, monitored vegetation health indexes, soil moisture values, active construction cranes, and offshore cargo vessels queued in **BOLD** (e.g. **34.0522° N, 118.2437° W**, **0.68**, **24.5%**, **12**, **18**)\n`;
   }
 
@@ -2684,7 +3619,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasNewsApi) {
     newsApiData = await getNewsApiAiData(prompt);
     mergedBlocks += `${newsApiData.markdown}\n\n`;
-    citations.push('"[Source: Event Registry / NewsAPI.ai]" for global news intelligence and event streams');
+    citations.push(
+      '"[Source: Event Registry / NewsAPI.ai]" for global news intelligence and event streams'
+    );
     mandatoryRules += `▸ Present ALL news intelligence metrics (verified article counts, sentiment trends, and social share densities) in **BOLD** (e.g. **2,450**, **+0.68**, **142,500**, **98.2%**, **Tech / Generative Models**, **1**)\n`;
   }
 
@@ -2694,42 +3631,45 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     const greenlightMeta = {
       politics_campaign: {
         source: 'FEC Campaign Finance',
-        rule: '▸ Present ALL FEC contribution values, disbursements, cash on hand, compliance ratings, and primary sectors in **BOLD** (e.g. **$12,500,000**, **COMPLIANT**)\n'
+        rule: '▸ Present ALL FEC contribution values, disbursements, cash on hand, compliance ratings, and primary sectors in **BOLD** (e.g. **$12,500,000**, **COMPLIANT**)\n',
       },
       legislation_tracking: {
         source: 'LegiScan Bill Tracker',
-        rule: '▸ Present ALL LegiScan bill identifiers, action statuses, sponsors, roll call ratios, and trust ratings in **BOLD** (e.g. **HR-1024**, **PASSED HOUSE**, **218-197**)\n'
+        rule: '▸ Present ALL LegiScan bill identifiers, action statuses, sponsors, roll call ratios, and trust ratings in **BOLD** (e.g. **HR-1024**, **PASSED HOUSE**, **218-197**)\n',
       },
       civic_representatives: {
         source: 'Google Civic',
-        rule: '▸ Present ALL civic congressional districts, elected senators, house representatives, and term years in **BOLD** (e.g. **CA-12**, **Sen. Alex Padilla**, **2028**)\n'
+        rule: '▸ Present ALL civic congressional districts, elected senators, house representatives, and term years in **BOLD** (e.g. **CA-12**, **Sen. Alex Padilla**, **2028**)\n',
       },
       macroeconomics_global: {
         source: 'DBnomics',
-        rule: '▸ Present ALL DBnomics macroeconomic consolidated values, annual growth deltas, consensus ratings, and source agencies in **BOLD** (e.g. **142.5**, **+2.45%**)\n'
+        rule: '▸ Present ALL DBnomics macroeconomic consolidated values, annual growth deltas, consensus ratings, and source agencies in **BOLD** (e.g. **142.5**, **+2.45%**)\n',
       },
       mortgage_lending: {
         source: 'CFPB HMDA',
-        rule: '▸ Present ALL CFPB HMDA mortgage loan application counts, approval ratios, loan-to-value percentages, and regional market types in **BOLD** (e.g. **4,250**, **78.5%**, **76.2%**)\n'
+        rule: '▸ Present ALL CFPB HMDA mortgage loan application counts, approval ratios, loan-to-value percentages, and regional market types in **BOLD** (e.g. **4,250**, **78.5%**, **76.2%**)\n',
       },
       disaster_hazards: {
         source: 'OpenFEMA',
-        rule: '▸ Present ALL FEMA flood zones, disaster statuses, hazard mitigation grants, and NFIP risk ratings in **BOLD** (e.g. **Zone AE**, **ACTIVE DECLARATION**, **$1,420,000**)\n'
+        rule: '▸ Present ALL FEMA flood zones, disaster statuses, hazard mitigation grants, and NFIP risk ratings in **BOLD** (e.g. **Zone AE**, **ACTIVE DECLARATION**, **$1,420,000**)\n',
       },
       medical_research: {
         source: 'NIH RePORTER',
-        rule: '▸ Present ALL NIH active research grants, budgets, lead facilities, funding agencies, and clinical trial phases in **BOLD** (e.g. **Phase II / III**, **$45,000,000**, **Stanford School of Medicine**)\n'
+        rule: '▸ Present ALL NIH active research grants, budgets, lead facilities, funding agencies, and clinical trial phases in **BOLD** (e.g. **Phase II / III**, **$45,000,000**, **Stanford School of Medicine**)\n',
       },
       uk_company_registry: {
         source: 'Companies House UK',
-        rule: '▸ Present ALL Companies House registration numbers, lead directors, incorporation years, years active, and filing statuses in **BOLD** (e.g. **01234567**, **Lord Archibald Sterling**)\n'
+        rule: '▸ Present ALL Companies House registration numbers, lead directors, incorporation years, years active, and filing statuses in **BOLD** (e.g. **01234567**, **Lord Archibald Sterling**)\n',
       },
       global_entity_registry: {
         source: 'OpenCorporates',
-        rule: '▸ Present ALL OpenCorporates global jurisdictions, legal statuses, entity codes, and trust grades in **BOLD** (e.g. **Delaware (US)**, **GOOD STANDING**, **OC-123456**)\n'
-      }
+        rule: '▸ Present ALL OpenCorporates global jurisdictions, legal statuses, entity codes, and trust grades in **BOLD** (e.g. **Delaware (US)**, **GOOD STANDING**, **OC-123456**)\n',
+      },
     };
-    const config = greenlightMeta[greenlightDomain] || { source: 'Greenlight Public Registry', rule: '' };
+    const config = greenlightMeta[greenlightDomain] || {
+      source: 'Greenlight Public Registry',
+      rule: '',
+    };
     citations.push(`"[Source: ${config.source}]" for public intelligence data`);
     if (config.rule) {
       mandatoryRules += config.rule;
@@ -2742,59 +3682,64 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     const premiumMeta = {
       clinical_trials: {
         source: 'ClinicalTrials.gov',
-        rule: '▸ Present ALL ClinicalTrials.gov NCT identifiers, enrollment sizes, lead sponsors, recruitment statuses, and trial phases in **BOLD** (e.g. **NCT0123456**, **1,250**, **Phase 3**)\n'
+        rule: '▸ Present ALL ClinicalTrials.gov NCT identifiers, enrollment sizes, lead sponsors, recruitment statuses, and trial phases in **BOLD** (e.g. **NCT0123456**, **1,250**, **Phase 3**)\n',
       },
       fda_drug_safety: {
         source: 'openFDA',
-        rule: '▸ Present ALL openFDA drug safety adverse events, recalls, class ratings, recall enforcement codes, and labeling warnings in **BOLD** (e.g. **Class I**, **F-1234-2026**, **4,250**)\n'
+        rule: '▸ Present ALL openFDA drug safety adverse events, recalls, class ratings, recall enforcement codes, and labeling warnings in **BOLD** (e.g. **Class I**, **F-1234-2026**, **4,250**)\n',
       },
       global_health_observatory: {
         source: 'WHO Global Health Observatory',
-        rule: '▸ Present ALL WHO global health life expectancy numbers, universal health cover indexes, and measles immunization rates in **BOLD** (e.g. **78.2 Yrs**, **Index: 75**, **92%**)\n'
+        rule: '▸ Present ALL WHO global health life expectancy numbers, universal health cover indexes, and measles immunization rates in **BOLD** (e.g. **78.2 Yrs**, **Index: 75**, **92%**)\n',
       },
       us_treasury_fiscal: {
         source: 'U.S. Treasury Fiscal Data',
-        rule: '▸ Present ALL U.S. Treasury operating cash balances, national debt amounts, annual receipts, and statutory ratings in **BOLD** (e.g. **$450,000,000,000**, **$34.20T**, **AAA RATED**)\n'
+        rule: '▸ Present ALL U.S. Treasury operating cash balances, national debt amounts, annual receipts, and statutory ratings in **BOLD** (e.g. **$450,000,000,000**, **$34.20T**, **AAA RATED**)\n',
       },
       federal_spending: {
         source: 'USAspending.gov',
-        rule: '▸ Present ALL USAspending federal award amounts, award IDs, funding agencies, award categories, and contract statuses in **BOLD** (e.g. **$450,000**, **USA-123456**, **Department of Defense (DoD)**)\n'
+        rule: '▸ Present ALL USAspending federal award amounts, award IDs, funding agencies, award categories, and contract statuses in **BOLD** (e.g. **$450,000**, **USA-123456**, **Department of Defense (DoD)**)\n',
       },
       healthcare_npi: {
         source: 'CMS NPPES Registry',
-        rule: '▸ Present ALL CMS NPPES clinician NPI numbers, specialty taxonomies, legal names, practice cities/states, and trust percentages in **BOLD** (e.g. **1928374650**, **Cardiovascular Disease**, **Dr. John Doe**)\n'
+        rule: '▸ Present ALL CMS NPPES clinician NPI numbers, specialty taxonomies, legal names, practice cities/states, and trust percentages in **BOLD** (e.g. **1928374650**, **Cardiovascular Disease**, **Dr. John Doe**)\n',
       },
       food_nutrients: {
         source: 'USDA FoodData Central',
-        rule: '▸ Present ALL USDA FoodData nutritional profiles, calorie counts, macronutrient ratios, brand owners, and health ratings in **BOLD** (e.g. **Whole Foods Co.**, **350 kcal**, **12.5g**)\n'
+        rule: '▸ Present ALL USDA FoodData nutritional profiles, calorie counts, macronutrient ratios, brand owners, and health ratings in **BOLD** (e.g. **Whole Foods Co.**, **350 kcal**, **12.5g**)\n',
       },
       charity_registry: {
         source: 'IRS Charities Database',
-        rule: '▸ Present ALL IRS Publication 78 charity exempt standings, subsection codes, deductibility classifications, and EINs in **BOLD** (e.g. **501(c)(3)**, **12-3456789**, **ACTIVE / IN GOOD STANDING**)\n'
+        rule: '▸ Present ALL IRS Publication 78 charity exempt standings, subsection codes, deductibility classifications, and EINs in **BOLD** (e.g. **501(c)(3)**, **12-3456789**, **ACTIVE / IN GOOD STANDING**)\n',
       },
       aviation_delays: {
         source: 'FAA Airport Status',
-        rule: '▸ Present ALL FAA airport delay minutes, ground stop statuses, meteorological weather conditions, and delay reasons in **BOLD** (e.g. **LAX**, **45 Minutes**, **Dense Fog / Light Winds**, **GROUND STOP**)\n'
+        rule: '▸ Present ALL FAA airport delay minutes, ground stop statuses, meteorological weather conditions, and delay reasons in **BOLD** (e.g. **LAX**, **45 Minutes**, **Dense Fog / Light Winds**, **GROUND STOP**)\n',
       },
       rxnorm: {
         source: 'National Library of Medicine (RxNorm)',
-        rule: '▸ Present ALL RxNorm standardized concepts, RxCUI identifiers, normalized drug names, term types, and synonyms in **BOLD** (e.g. **100123**, **ACETAMINOPHEN**, **Oral Tablet**)\n'
+        rule: '▸ Present ALL RxNorm standardized concepts, RxCUI identifiers, normalized drug names, term types, and synonyms in **BOLD** (e.g. **100123**, **ACETAMINOPHEN**, **Oral Tablet**)\n',
       },
       dailymed: {
         source: 'FDA DailyMed (SPL)',
-        rule: '▸ Present ALL FDA DailyMed Structured Product Labeling (SPL) manufacturer inserts, package titles, SetIDs, and publication dates in **BOLD** (e.g. **spl-1234-5678-9012**, **Manufactured by Premium Pharmaceuticals**, **2026-02-18**)\n'
+        rule: '▸ Present ALL FDA DailyMed Structured Product Labeling (SPL) manufacturer inserts, package titles, SetIDs, and publication dates in **BOLD** (e.g. **spl-1234-5678-9012**, **Manufactured by Premium Pharmaceuticals**, **2026-02-18**)\n',
       },
       open_food_facts: {
         source: 'Open Food Facts',
-        rule: '▸ Present ALL Open Food Facts product barcodes, brand owners, product names, NutriScore grades, and ingredients in **BOLD** (e.g. **7312345678901**, **Healthy Life Brands**, NutriScore: **A**)\n'
+        rule: '▸ Present ALL Open Food Facts product barcodes, brand owners, product names, NutriScore grades, and ingredients in **BOLD** (e.g. **7312345678901**, **Healthy Life Brands**, NutriScore: **A**)\n',
       },
       pubchem: {
         source: 'NCBI PubChem',
-        rule: '▸ Present ALL NCBI PubChem compound CIDs, molecular formulas, molecular weights, XLogP properties, and synonyms in **BOLD** (e.g. **CID: 10000**, **C6H12O6**, **180.16 g/mol**)\n'
-      }
+        rule: '▸ Present ALL NCBI PubChem compound CIDs, molecular formulas, molecular weights, XLogP properties, and synonyms in **BOLD** (e.g. **CID: 10000**, **C6H12O6**, **180.16 g/mol**)\n',
+      },
     };
-    const config = premiumMeta[premiumDomain] || { source: 'Premium Public Database', rule: '' };
-    citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
+    const config = premiumMeta[premiumDomain] || {
+      source: 'Premium Public Database',
+      rule: '',
+    };
+    citations.push(
+      `"[Source: ${config.source}]" for premium intelligence data`
+    );
     if (config.rule) {
       mandatoryRules += config.rule;
     }
@@ -2806,23 +3751,28 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     const premiumMetaV16 = {
       fdic_bankfind: {
         source: 'FDIC BankFind',
-        rule: '▸ Present ALL FDIC **CERT** codes, asset sizes, and net incomes in **BOLD** (e.g. **57432**, **$450,000,000**, **$12,500,000**)\n'
+        rule: '▸ Present ALL FDIC **CERT** codes, asset sizes, and net incomes in **BOLD** (e.g. **57432**, **$450,000,000**, **$12,500,000**)\n',
       },
       cfpb_complaints: {
         source: 'CFPB Consumer Complaints',
-        rule: '▸ Present ALL unique **complaint_id**s, companies, and product categories in **BOLD** (e.g. **1254321**, **Citibank**, **Mortgage**)\n'
+        rule: '▸ Present ALL unique **complaint_id**s, companies, and product categories in **BOLD** (e.g. **1254321**, **Citibank**, **Mortgage**)\n',
       },
       sec_edgar: {
         source: 'SEC EDGAR XBRL Facts',
-        rule: '▸ Present ALL zero-padded corporate **CIK**s and corporate financial metrics like **NetIncomeLoss** and **Revenues** in **BOLD** (e.g. **0000320193**, **$120,500,000,000**, **$24,000,000,000**)\n'
+        rule: '▸ Present ALL zero-padded corporate **CIK**s and corporate financial metrics like **NetIncomeLoss** and **Revenues** in **BOLD** (e.g. **0000320193**, **$120,500,000,000**, **$24,000,000,000**)\n',
       },
       census_bps: {
         source: 'U.S. Census Bureau Building Permits Survey (BPS)',
-        rule: '▸ Present ALL FIPS **State Codes** and authorized **TOTAL_AUTHORIZED_UNITS** and permit valuations in **BOLD** (e.g. **06**, **45,250**, **$12,450,000,000**)\n'
-      }
+        rule: '▸ Present ALL FIPS **State Codes** and authorized **TOTAL_AUTHORIZED_UNITS** and permit valuations in **BOLD** (e.g. **06**, **45,250**, **$12,450,000,000**)\n',
+      },
     };
-    const config = premiumMetaV16[premiumV16Domain] || { source: 'Premium Public Database', rule: '' };
-    citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
+    const config = premiumMetaV16[premiumV16Domain] || {
+      source: 'Premium Public Database',
+      rule: '',
+    };
+    citations.push(
+      `"[Source: ${config.source}]" for premium intelligence data`
+    );
     if (config.rule) {
       mandatoryRules += config.rule;
     }
@@ -2834,39 +3784,53 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     const premiumMetaV17 = {
       courtlistener: {
         source: 'CourtListener RECAP',
-        rule: '▸ Present ALL case names and unique **Docket Numbers** in **BOLD** (e.g. **1:24-cv-10023**, **Silicon Valley Bank Inc. v. Global Technologies LLC**)\n'
+        rule: '▸ Present ALL case names and unique **Docket Numbers** in **BOLD** (e.g. **1:24-cv-10023**, **Silicon Valley Bank Inc. v. Global Technologies LLC**)\n',
       },
       harvard_caselaw: {
         source: 'Harvard Caselaw Access Project (CAP)',
-        rule: '▸ Present ALL judicial case names and official **Citations** in **BOLD** (e.g. **State of California v. Anderson**, **410 U.S. 113**)\n'
+        rule: '▸ Present ALL judicial case names and official **Citations** in **BOLD** (e.g. **State of California v. Anderson**, **410 U.S. 113**)\n',
       },
       cisa_kev: {
         source: 'CISA Known Exploited Vulnerabilities Catalog',
-        rule: '▸ Present ALL unique **CVE-IDs**, product versions, and ransomware campaign designations in **BOLD** (e.g. **CVE-2024-12345**, **Ransomware: Known**)\n'
+        rule: '▸ Present ALL unique **CVE-IDs**, product versions, and ransomware campaign designations in **BOLD** (e.g. **CVE-2024-12345**, **Ransomware: Known**)\n',
       },
       nist_nvd_cve: {
         source: 'NIST National Vulnerability Database (NVD)',
-        rule: '▸ Present ALL unique **CVE-IDs**, base **CVSS Scores**, and severity levels in **BOLD** (e.g. **CVE-2024-21345**, **CVSS Score: 9.8**, **CRITICAL**)\n'
+        rule: '▸ Present ALL unique **CVE-IDs**, base **CVSS Scores**, and severity levels in **BOLD** (e.g. **CVE-2024-21345**, **CVSS Score: 9.8**, **CRITICAL**)\n',
       },
       ofac_sanctions: {
         source: 'U.S. OFAC Sanctions SDN Compliance Registry',
-        rule: '▸ Present ALL fuzzy matched **SDN Names**, unique UID numbers, and target sanctions programs in **BOLD** (e.g. **DMITRY PETROV**, **19823**, **CYBER2**)\n'
+        rule: '▸ Present ALL fuzzy matched **SDN Names**, unique UID numbers, and target sanctions programs in **BOLD** (e.g. **DMITRY PETROV**, **19823**, **CYBER2**)\n',
       },
       fara_foreign_agents: {
         source: 'DOJ FARA Foreign Agent Registration Registry',
-        rule: '▸ Present ALL registrant names, active **Registration Numbers**, and foreign principal clients in **BOLD** (e.g. **Alpine Strategies**, **6789**)\n'
-      }
+        rule: '▸ Present ALL registrant names, active **Registration Numbers**, and foreign principal clients in **BOLD** (e.g. **Alpine Strategies**, **6789**)\n',
+      },
     };
-    const config = premiumMetaV17[premiumV17Domain] || { source: 'Premium Public Database', rule: '' };
-    citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
+    const config = premiumMetaV17[premiumV17Domain] || {
+      source: 'Premium Public Database',
+      rule: '',
+    };
+    citations.push(
+      `"[Source: ${config.source}]" for premium intelligence data`
+    );
     if (config.rule) {
       mandatoryRules += config.rule;
     }
   }
 
-
   // ─── Cross-Domain Investment Synthesizer & Yield Arbitrage Engine ───
-  const isCrossDomainQuery = ['compare', 'arbitrage', 'yield portfolio', 'asset allocation', 'liquidate', 'invest vs', 'portfolio vs'].some(k => prompt.toLowerCase().includes(k)) || (hasFinance && hasRealEstate);
+  const isCrossDomainQuery =
+    [
+      'compare',
+      'arbitrage',
+      'yield portfolio',
+      'asset allocation',
+      'liquidate',
+      'invest vs',
+      'portfolio vs',
+    ].some((k) => prompt.toLowerCase().includes(k)) ||
+    (hasFinance && hasRealEstate);
   if (isCrossDomainQuery) {
     mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
     mergedBlocks += `║  📊 CROSS-DOMAIN INVESTMENT SYNTHESIZER & YIELD ARBITRAGE        ║\n`;
@@ -2878,13 +3842,15 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     mergedBlocks += `| 🏡 **Real Estate (Core)** | Cap Rate: **6.25%** / Cash-on-Cash: **8.50%** | Appreciation: **+4.80%** | Institutional Defensive |\n`;
     mergedBlocks += `| 📈 **Equities (S&P 500)** | Dividend Yield: **1.80%** | Historical CAGR: **14.20%** | Growth Outperformance |\n`;
     mergedBlocks += `| 💰 **Yield Arbitrage Spread** | Spread: **+3.65%** | Risk Premium: **+2.40%** | Escrow Active |\n\n`;
-    citations.push('"[Source: Inso.Assistant Hybrid Router]" for cross-domain synthesizer');
+    citations.push(
+      '"[Source: Inso.Assistant Hybrid Router]" for cross-domain synthesizer'
+    );
     mandatoryRules += `▸ Present ALL comparative yield rates, dividend rates, and arbitrage spreads in **BOLD** (e.g. **6.25%**, **8.50%**, **1.80%**, **14.20%**, **+3.65%**)\n`;
   }
 
   // Merged JSON metadata envelope
   const jsonMetadata = {};
-  
+
   if (finEnriched) {
     jsonMetadata.finance = { active: true };
   }
@@ -2894,7 +3860,7 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (reEnriched) {
     jsonMetadata.realEstate = { active: true };
   }
-  
+
   if (hasClimate) {
     jsonMetadata.climateRisk = getClimateRiskData().metadata;
   }
@@ -2961,19 +3927,19 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     jsonMetadata.assets = {
       realestate: {
         capRate: 6.25,
-        cashOnCash: 8.50
+        cashOnCash: 8.5,
       },
       equities: {
-        dividendYield: 1.80,
-        cagr: 14.20
-      }
+        dividendYield: 1.8,
+        cagr: 14.2,
+      },
     };
   }
 
   const jsonBlock = `\n\n<!-- JSON_METADATA: ${JSON.stringify(jsonMetadata)} -->`;
-  
+
   const timestamp = new Date().toISOString();
-  
+
   return `[SYSTEM INSTRUCTION — INSO MULTI-CHANNEL REAL-TIME DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MERGED RAG DATA CONTEXT
@@ -2996,11 +3962,12 @@ User Query: ${prompt}${jsonBlock}`;
 
 const combinedRouteAndEnhancePrompt = async (prompt) => {
   // Detect intents
-  const { detectSportsIntent } = sportsSmartRouter;
-  const sportsIntent = detectSportsIntent ? detectSportsIntent(prompt) : null;
+  const sportsIntent = null;
   const { detectRealEstateIntent } = realestateSmartRouter;
-  const realEstateIntent = detectRealEstateIntent ? detectRealEstateIntent(prompt) : null;
-  
+  const realEstateIntent = detectRealEstateIntent
+    ? detectRealEstateIntent(prompt)
+    : null;
+
   const hasFinance = detectFinancialIntent(prompt);
   const hasSports = !!sportsIntent;
   const hasRealEstate = !!realEstateIntent;
@@ -3023,7 +3990,8 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   const hasGrid = detectGridMonitorIntent(prompt);
   const hasUsda = detectUsdaStatsIntent(prompt);
   const hasCopernicus = detectCopernicusIntent(prompt);
-  const hasV12 = hasGleif || hasPatents || hasOpenSky || hasGrid || hasUsda || hasCopernicus;
+  const hasV12 =
+    hasGleif || hasPatents || hasOpenSky || hasGrid || hasUsda || hasCopernicus;
 
   const hasNewsApi = detectNewsApiAiIntent(prompt);
   const hasV13 = hasNewsApi;
@@ -3040,32 +4008,51 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   const premiumV17Domain = detectPremiumV17Intent(prompt);
   const hasV17 = !!premiumV17Domain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16 || hasV17;
+  const hasNewFeeds =
+    hasV10 ||
+    hasV11 ||
+    hasV12 ||
+    hasV13 ||
+    hasV14 ||
+    hasV15 ||
+    hasV16 ||
+    hasV17;
 
   // Stale-While-Revalidate (SWR) Cache Protocol
   const sanitized = (prompt || '').trim().toLowerCase();
   const cacheKey = Buffer.from(sanitized).toString('base64').substring(0, 100);
-  
+
   try {
     const cachedStr = await RedisClient.get(`swr:combined:${cacheKey}`);
     if (cachedStr) {
       const cached = JSON.parse(cachedStr);
       const age = Date.now() - cached.timestamp;
-      
+
       // If fresh (< 5 seconds), return immediately
       if (age < 5000) {
         return cached.value;
       }
-      
+
       // If stale (< 5 minutes), return immediately but revalidate asynchronously in background
       if (age < 300000) {
         // Non-blocking background revalidation
-        executeCombinedRoute(prompt, hasFinance, hasSports, hasRealEstate, sportsIntent, realEstateIntent)
+        executeCombinedRoute(
+          prompt,
+          hasFinance,
+          hasSports,
+          hasRealEstate,
+          sportsIntent,
+          realEstateIntent
+        )
           .then(async (fresh) => {
-            await RedisClient.set(`swr:combined:${cacheKey}`, JSON.stringify({ value: fresh, timestamp: Date.now() }), { EX: 3600 });
+            await RedisClient.set(
+              `swr:combined:${cacheKey}`,
+              JSON.stringify({ value: fresh, timestamp: Date.now() }),
+              { EX: 3600 }
+            );
           })
           .catch(() => {}); // catch silently to prevent background leakage crashes
-          
+
         return cached.value;
       }
     }
@@ -3074,10 +4061,21 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   }
 
   // Direct computation
-  const result = await executeCombinedRoute(prompt, hasFinance, hasSports, hasRealEstate, sportsIntent, realEstateIntent);
-  
+  const result = await executeCombinedRoute(
+    prompt,
+    hasFinance,
+    hasSports,
+    hasRealEstate,
+    sportsIntent,
+    realEstateIntent
+  );
+
   try {
-    await RedisClient.set(`swr:combined:${cacheKey}`, JSON.stringify({ value: result, timestamp: Date.now() }), { EX: 3600 });
+    await RedisClient.set(
+      `swr:combined:${cacheKey}`,
+      JSON.stringify({ value: result, timestamp: Date.now() }),
+      { EX: 3600 }
+    );
   } catch (err) {}
 
   return result;
@@ -3093,5 +4091,5 @@ export const massiveSmartRouter = {
   combinedRouteAndEnhancePrompt: async (prompt) => {
     const { UnifiedSmartRouter } = await import('./UnifiedSmartRouter.js');
     return UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
-  }
+  },
 };

@@ -3,11 +3,11 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { tenantService } from '../tenant/tenant.service.js';
 import { tenantInvitationService } from '../tenant/tenantInvitation.service.js';
-import { chatbotService } from '../chatbots/chatbot.service.js';
 
 // Invite member
 export const inviteMember = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId =
+    req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
   const inviterId = req.user?.id || req.user?._id;
   const { email, role } = req.body;
 
@@ -31,7 +31,8 @@ export const inviteTeamMember = inviteMember;
 
 // Get pending invitations
 export const getPendingInvitations = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId =
+    req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20, status = 'pending' } = req.query;
 
   const result = await tenantInvitationService.getTenantInvitations(tenantId, {
@@ -67,7 +68,8 @@ export const revokeInvitation = cancelInvitation;
 
 // Get team members
 export const getTeamMembers = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId =
+    req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20 } = req.query;
 
   const result = await tenantService.getTenantMembers(tenantId, {
@@ -85,12 +87,18 @@ export const getTeamMembers = catchAsync(async (req, res) => {
 
 // Update member role
 export const updateMemberRole = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId =
+    req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
   const { userId } = req.params;
   const { role } = req.body;
   const updaterId = req.user?.id || req.user?._id;
 
-  const result = await tenantService.updateMemberRole(tenantId, userId, role, updaterId);
+  const result = await tenantService.updateMemberRole(
+    tenantId,
+    userId,
+    role,
+    updaterId
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -105,7 +113,8 @@ export const updateTeamMemberRole = updateMemberRole;
 
 // Remove member
 export const removeMember = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId =
+    req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
   const { userId } = req.params;
   const removedBy = req.user?.id || req.user?._id;
 
@@ -122,20 +131,6 @@ export const removeMember = catchAsync(async (req, res) => {
 // Remove team member (alias)
 export const removeTeamMember = removeMember;
 
-// Get workspace metrics
-export const getWorkspaceMetrics = catchAsync(async (req, res) => {
-  const tenantId = req.params.workspaceId || req.user?.currentTenantId || req.user?.tenantId;
-
-  const result = await chatbotService.getWorkspaceMetrics(tenantId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Workspace metrics retrieved successfully',
-    data: result,
-  });
-});
-
 export const managerController = {
   inviteMember,
   inviteTeamMember,
@@ -147,7 +142,6 @@ export const managerController = {
   updateTeamMemberRole,
   removeMember,
   removeTeamMember,
-  getWorkspaceMetrics,
 };
 
 export default managerController;

@@ -7,6 +7,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMail.js';
+import managerController from '../manager/manager.controller.js';
+import TenantInvitation from '../tenant/tenantInvitation.model.js';
 import UserModel from './auth.model.js';
 import { authService } from './auth.service.js';
 import {
@@ -14,8 +16,6 @@ import {
   forgetPassOtpTemplate,
   generateOTP,
 } from './auth.utils.js';
-import TenantInvitation from '../tenant/tenantInvitation.model.js';
-import managerController from '../manager/manager.controller.js';
 
 /**
  * @swagger
@@ -429,7 +429,11 @@ const refreshToken = catchAsync(async (req, res) => {
   };
 
   // Token rotation: set the NEW refresh token from the result
-  res.cookie('refreshToken', result.newRefreshToken || refreshToken, cookieOptions);
+  res.cookie(
+    'refreshToken',
+    result.newRefreshToken || refreshToken,
+    cookieOptions
+  );
 
   sendResponse(res, {
     statusCode: 200,
@@ -683,10 +687,16 @@ const deleteUserAccountOTP = async (req, res, next) => {
   try {
     const userId = req.params?.id;
 
-    if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
+    if (
+      req.user?.role !== 'admin' &&
+      req.user?.role !== 'super_admin' &&
+      req.user?._id?.toString() !== userId
+    ) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(httpStatus.FORBIDDEN).send({ error: 'You are not authorized to perform this action' });
+      return res
+        .status(httpStatus.FORBIDDEN)
+        .send({ error: 'You are not authorized to perform this action' });
     }
 
     if (!userId) {
@@ -810,10 +820,16 @@ const deleteUserAccount = async (req, res, next) => {
     const userId = req.params?.id;
     const { otp } = req.body;
 
-    if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
+    if (
+      req.user?.role !== 'admin' &&
+      req.user?.role !== 'super_admin' &&
+      req.user?._id?.toString() !== userId
+    ) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(httpStatus.FORBIDDEN).send({ error: 'You are not authorized to perform this action' });
+      return res
+        .status(httpStatus.FORBIDDEN)
+        .send({ error: 'You are not authorized to perform this action' });
     }
 
     if (!userId) {
@@ -826,7 +842,8 @@ const deleteUserAccount = async (req, res, next) => {
 
     const user = await UserModel.findById(userId).session(session);
 
-    if (!userId) { // This condition should check `user` not `userId`
+    if (!userId) {
+      // This condition should check `user` not `userId`
       await session.abortTransaction();
       session.endSession();
       return res.status(httpStatus.NOT_FOUND).send({ error: 'User not found' });
@@ -1141,12 +1158,20 @@ const updateUser = catchAsync(async (req, res) => {
   const userId = req.params?.userId;
   const data = req.body;
 
-  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to update this user');
+  if (
+    req.user?.role !== 'admin' &&
+    req.user?.role !== 'super_admin' &&
+    req.user?._id?.toString() !== userId
+  ) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You are not authorized to update this user'
+    );
   }
 
   const result = await authService.updateUserService(userId, data);
-  if (result.modifiedCount == !1) { // This condition should be `result.modifiedCount === 0`
+  if (result.modifiedCount == !1) {
+    // This condition should be `result.modifiedCount === 0`
     throw new ApiError(
       httpStatus.NOT_FOUND,
       'User not found or no changes made'
@@ -1203,5 +1228,4 @@ export const authController = {
   inviteUser: managerController.inviteTeamMember,
   getTeamMembers: managerController.getTeamMembers,
   updateTeamMemberRole: managerController.updateTeamMemberRole,
-  getWorkspaceMetrics: managerController.getWorkspaceMetrics,
 };

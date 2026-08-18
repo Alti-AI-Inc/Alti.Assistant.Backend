@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import httpStatus from 'http-status';
-import subscriptionController from './subscription.controller.js';
-import subscriptionService from './subscription.service.js';
-import ProductModel from '../products/products.model.js';
-import ApiError from '../../../errors/ApiError.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import config from '../../../../config/index.js';
-import StripeEvent from './stripeEvent.model.js';
-import BillingAuditLog from './billingAuditLog.model.js';
+import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
+import ProductModel from '../stripe/products/products.model.js';
+import BillingAuditLog from './billingAuditLog.model.js';
+import StripeEvent from './stripeEvent.model.js';
+import subscriptionController from './subscription.controller.js';
+import subscriptionService from './subscription.service.js';
 
 // Mock shared utilities and external dependencies
 vi.mock('../../../shared/catchAsync.js', () => ({
@@ -25,7 +25,7 @@ vi.mock('../../../shared/sendResponse.js', () => ({
   default: vi.fn(),
 }));
 vi.mock('./subscription.service.js');
-vi.mock('../products/products.model.js');
+vi.mock('../stripe/products/products.model.js');
 vi.mock('../../../errors/ApiError.js');
 vi.mock('../../../../config/index.js', () => ({
   default: {
@@ -50,9 +50,7 @@ vi.mock('../../../shared/stripeSecurity.js', () => ({
   isStripeIp: vi.fn(),
 }));
 
-const {
-  mockStripe
-} = vi.hoisted(() => {
+const { mockStripe } = vi.hoisted(() => {
   // Mock Stripe module
   const mockStripe = {
     webhooks: {
@@ -61,7 +59,7 @@ const {
   };
 
   return {
-    mockStripe
+    mockStripe,
   };
 });
 vi.mock('stripe', () => ({
@@ -146,7 +144,10 @@ describe('Subscription Controller', () => {
     BillingAuditLog.create.mockResolvedValue({});
     isStripeIp.mockResolvedValue(true);
     sendSecurityAlert.mockResolvedValue({});
-    mockStripe.webhooks.constructEvent.mockReturnValue({ id: 'evt_123', type: 'test.event' });
+    mockStripe.webhooks.constructEvent.mockReturnValue({
+      id: 'evt_123',
+      type: 'test.event',
+    });
   });
 
   describe('getAvailablePlans', () => {
@@ -157,21 +158,32 @@ describe('Subscription Controller', () => {
       ];
       ProductModel.getAvailablePlans.mockResolvedValue(mockPlans);
 
-      await catchAsync(subscriptionController.getAvailablePlans)(req, res, next);
+      await catchAsync(subscriptionController.getAvailablePlans)(
+        req,
+        res,
+        next
+      );
 
       expect(ProductModel.getAvailablePlans).toHaveBeenCalledTimes(1);
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: 'Plans retrieved successfully',
-        data: [{ id: 'plan1', name: 'Basic' }, { id: 'plan2', name: 'Premium' }],
+        data: [
+          { id: 'plan1', name: 'Basic' },
+          { id: 'plan2', name: 'Premium' },
+        ],
       });
     });
 
     it('should handle no plans found gracefully', async () => {
       ProductModel.getAvailablePlans.mockResolvedValue([]);
 
-      await catchAsync(subscriptionController.getAvailablePlans)(req, res, next);
+      await catchAsync(subscriptionController.getAvailablePlans)(
+        req,
+        res,
+        next
+      );
 
       expect(ProductModel.getAvailablePlans).toHaveBeenCalledTimes(1);
       expect(sendResponse).toHaveBeenCalledWith(res, {
@@ -186,11 +198,19 @@ describe('Subscription Controller', () => {
   describe('getMySubscription', () => {
     it('should return user subscription successfully', async () => {
       const mockSubscription = { id: 'sub1', userId: 'user123' };
-      subscriptionService.getSubscriptionWithUsage.mockResolvedValue(mockSubscription);
+      subscriptionService.getSubscriptionWithUsage.mockResolvedValue(
+        mockSubscription
+      );
 
-      await catchAsync(subscriptionController.getMySubscription)(req, res, next);
+      await catchAsync(subscriptionController.getMySubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -202,9 +222,15 @@ describe('Subscription Controller', () => {
     it('should throw ApiError if no subscription is found', async () => {
       subscriptionService.getSubscriptionWithUsage.mockResolvedValue(null);
 
-      await catchAsync(subscriptionController.getMySubscription)(req, res, next);
+      await catchAsync(subscriptionController.getMySubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
       expect(next.mock.calls[0][0].message).toBe('No subscription found');
@@ -226,18 +252,30 @@ describe('Subscription Controller', () => {
 
     beforeEach(() => {
       req.params.tenantId = mockTenantId;
-      subscriptionService.getTenantSubscription.mockResolvedValue(mockSubscription);
-      subscriptionService.getSubscriptionWithUsage.mockResolvedValue(mockSubscriptionWithUsage);
+      subscriptionService.getTenantSubscription.mockResolvedValue(
+        mockSubscription
+      );
+      subscriptionService.getSubscriptionWithUsage.mockResolvedValue(
+        mockSubscriptionWithUsage
+      );
     });
 
     it('should allow admin to view any tenant subscription', async () => {
       req.user.role = 'admin';
       req.user.tenantId = 'adminTenant'; // Admin can be in any tenant
 
-      await catchAsync(subscriptionController.getTenantSubscription)(req, res, next);
+      await catchAsync(subscriptionController.getTenantSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(mockTenantId);
-      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(mockSubscription.userId);
+      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(
+        mockTenantId
+      );
+      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(
+        mockSubscription.userId
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -250,10 +288,18 @@ describe('Subscription Controller', () => {
       req.user.role = 'user';
       req.user.tenantId = mockTenantId; // User's tenant matches requested tenant
 
-      await catchAsync(subscriptionController.getTenantSubscription)(req, res, next);
+      await catchAsync(subscriptionController.getTenantSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(mockTenantId);
-      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(mockSubscription.userId);
+      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(
+        mockTenantId
+      );
+      expect(subscriptionService.getSubscriptionWithUsage).toHaveBeenCalledWith(
+        mockSubscription.userId
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -266,24 +312,38 @@ describe('Subscription Controller', () => {
       req.user.role = 'user';
       req.user.tenantId = 'differentTenant';
 
-      await catchAsync(subscriptionController.getTenantSubscription)(req, res, next);
+      await catchAsync(subscriptionController.getTenantSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(subscriptionService.getTenantSubscription).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.FORBIDDEN);
-      expect(next.mock.calls[0][0].message).toBe('Forbidden: You are not authorized to view this tenant\'s subscription.');
+      expect(next.mock.calls[0][0].message).toBe(
+        "Forbidden: You are not authorized to view this tenant's subscription."
+      );
     });
 
     it('should throw NOT_FOUND if no subscription is found for the tenant', async () => {
       req.user.role = 'admin';
       subscriptionService.getTenantSubscription.mockResolvedValue(null);
 
-      await catchAsync(subscriptionController.getTenantSubscription)(req, res, next);
+      await catchAsync(subscriptionController.getTenantSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(mockTenantId);
+      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(
+        mockTenantId
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
-      expect(next.mock.calls[0][0].message).toBe('No subscription found for this tenant');
+      expect(next.mock.calls[0][0].message).toBe(
+        'No subscription found for this tenant'
+      );
     });
 
     it('should throw FORBIDDEN if found subscription tenantId does not match requested tenantId', async () => {
@@ -294,24 +354,45 @@ describe('Subscription Controller', () => {
         userId: 'user456',
       });
 
-      await catchAsync(subscriptionController.getTenantSubscription)(req, res, next);
+      await catchAsync(subscriptionController.getTenantSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(mockTenantId);
+      expect(subscriptionService.getTenantSubscription).toHaveBeenCalledWith(
+        mockTenantId
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.FORBIDDEN);
-      expect(next.mock.calls[0][0].message).toBe('Forbidden: Subscription found does not match the requested tenant.');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Forbidden: Subscription found does not match the requested tenant.'
+      );
     });
   });
 
   describe('createFreeSubscription', () => {
     it('should create a free subscription successfully', async () => {
-      const mockSubscription = { id: 'freeSub', userId: 'user123', tenantId: 'tenant123' };
+      const mockSubscription = {
+        id: 'freeSub',
+        userId: 'user123',
+        tenantId: 'tenant123',
+      };
       req.body.tenantId = 'tenant123';
-      subscriptionService.createFreeSubscription.mockResolvedValue(mockSubscription);
+      subscriptionService.createFreeSubscription.mockResolvedValue(
+        mockSubscription
+      );
 
-      await catchAsync(subscriptionController.createFreeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.createFreeSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.createFreeSubscription).toHaveBeenCalledWith('user123', 'tenant123');
+      expect(subscriptionService.createFreeSubscription).toHaveBeenCalledWith(
+        'user123',
+        'tenant123'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -325,17 +406,27 @@ describe('Subscription Controller', () => {
     it('should throw BAD_REQUEST if neither stripeProductId nor planName is provided', async () => {
       req.body = { tenantId: 'tenant123' };
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.BAD_REQUEST);
-      expect(next.mock.calls[0][0].message).toBe('Either stripeProductId or planName is required');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Either stripeProductId or planName is required'
+      );
     });
 
     it('should throw BAD_REQUEST if seats is less than 1', async () => {
       req.body = { stripeProductId: 'prod1', tenantId: 'tenant123', seats: 0 };
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.BAD_REQUEST);
@@ -343,11 +434,19 @@ describe('Subscription Controller', () => {
     });
 
     it('should handle plan_changed result', async () => {
-      const mockResult = { type: 'plan_changed', message: 'Plan updated', data: { id: 'sub1' } };
+      const mockResult = {
+        type: 'plan_changed',
+        message: 'Plan updated',
+        data: { id: 'sub1' },
+      };
       req.body = { stripeProductId: 'prod1', tenantId: 'tenant123', seats: 2 };
       subscriptionService.upgradeSubscription.mockResolvedValue(mockResult);
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(subscriptionService.upgradeSubscription).toHaveBeenCalledWith(
         'user123',
@@ -369,7 +468,11 @@ describe('Subscription Controller', () => {
       req.body = { planName: 'Premium', tenantId: 'tenant123' };
       subscriptionService.upgradeSubscription.mockResolvedValue(mockResult);
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
@@ -380,11 +483,18 @@ describe('Subscription Controller', () => {
     });
 
     it('should handle requires_action result', async () => {
-      const mockResult = { type: 'requires_action', data: { clientSecret: 'cs_123' } };
+      const mockResult = {
+        type: 'requires_action',
+        data: { clientSecret: 'cs_123' },
+      };
       req.body = { stripeProductId: 'prod1', tenantId: 'tenant123' };
       subscriptionService.upgradeSubscription.mockResolvedValue(mockResult);
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
@@ -395,11 +505,18 @@ describe('Subscription Controller', () => {
     });
 
     it('should handle checkout_session result', async () => {
-      const mockResult = { type: 'checkout_session', data: { url: 'stripe.com/checkout' } };
+      const mockResult = {
+        type: 'checkout_session',
+        data: { url: 'stripe.com/checkout' },
+      };
       req.body = { stripeProductId: 'prod1', tenantId: 'tenant123' };
       subscriptionService.upgradeSubscription.mockResolvedValue(mockResult);
 
-      await catchAsync(subscriptionController.upgradeSubscription)(req, res, next);
+      await catchAsync(subscriptionController.upgradeSubscription)(
+        req,
+        res,
+        next
+      );
 
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
@@ -424,11 +541,15 @@ describe('Subscription Controller', () => {
     it('should confirm payment successfully', async () => {
       const mockSubscription = { id: 'sub1', status: 'active' };
       req.body = { subscriptionId: 'sub1', tenantId: 'tenant123' };
-      subscriptionService.confirmSubscriptionPayment.mockResolvedValue(mockSubscription);
+      subscriptionService.confirmSubscriptionPayment.mockResolvedValue(
+        mockSubscription
+      );
 
       await catchAsync(subscriptionController.confirmPayment)(req, res, next);
 
-      expect(subscriptionService.confirmSubscriptionPayment).toHaveBeenCalledWith('sub1', 'user123', 'tenant123');
+      expect(
+        subscriptionService.confirmSubscriptionPayment
+      ).toHaveBeenCalledWith('sub1', 'user123', 'tenant123');
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -452,11 +573,16 @@ describe('Subscription Controller', () => {
     it('should process checkout successfully', async () => {
       const mockSubscription = { id: 'sub1', status: 'active' };
       req.body = { sessionId: 'cs_123' };
-      subscriptionService.processStripeCheckout.mockResolvedValue(mockSubscription);
+      subscriptionService.processStripeCheckout.mockResolvedValue(
+        mockSubscription
+      );
 
       await catchAsync(subscriptionController.processCheckout)(req, res, next);
 
-      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith('cs_123', 'user123');
+      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith(
+        'cs_123',
+        'user123'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -468,30 +594,51 @@ describe('Subscription Controller', () => {
 
   describe('cancelSubscription', () => {
     const mockSubscription = { _id: 'sub1', status: 'active' };
-    const mockUpdatedSubscription = { _id: 'sub1', status: 'cancelled_at_period_end' };
+    const mockUpdatedSubscription = {
+      _id: 'sub1',
+      status: 'cancelled_at_period_end',
+    };
 
     beforeEach(() => {
-      subscriptionService.getUserSubscription.mockResolvedValue(mockSubscription);
-      subscriptionService.cancelSubscription.mockResolvedValue(mockUpdatedSubscription);
+      subscriptionService.getUserSubscription.mockResolvedValue(
+        mockSubscription
+      );
+      subscriptionService.cancelSubscription.mockResolvedValue(
+        mockUpdatedSubscription
+      );
     });
 
     it('should throw NOT_FOUND if no active subscription is found', async () => {
       subscriptionService.getUserSubscription.mockResolvedValue(null);
 
-      await catchAsync(subscriptionController.cancelSubscription)(req, res, next);
+      await catchAsync(subscriptionController.cancelSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
-      expect(next.mock.calls[0][0].message).toBe('No active subscription found');
+      expect(next.mock.calls[0][0].message).toBe(
+        'No active subscription found'
+      );
     });
 
     it('should cancel subscription at period end by default', async () => {
       req.body = {}; // No immediate flag
 
-      await catchAsync(subscriptionController.cancelSubscription)(req, res, next);
+      await catchAsync(subscriptionController.cancelSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(subscriptionService.cancelSubscription).toHaveBeenCalledWith(
         'sub1',
         false,
@@ -507,11 +654,20 @@ describe('Subscription Controller', () => {
 
     it('should cancel subscription immediately if specified', async () => {
       req.body = { immediate: true };
-      subscriptionService.cancelSubscription.mockResolvedValue({ ...mockUpdatedSubscription, status: 'canceled' });
+      subscriptionService.cancelSubscription.mockResolvedValue({
+        ...mockUpdatedSubscription,
+        status: 'canceled',
+      });
 
-      await catchAsync(subscriptionController.cancelSubscription)(req, res, next);
+      await catchAsync(subscriptionController.cancelSubscription)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(subscriptionService.cancelSubscription).toHaveBeenCalledWith(
         'sub1',
         true,
@@ -539,8 +695,12 @@ describe('Subscription Controller', () => {
     };
 
     beforeEach(() => {
-      subscriptionService.getUserSubscription.mockResolvedValue(mockSubscription);
-      subscriptionService.addSeatToSubscription.mockResolvedValue(mockUpdatedSubscription);
+      subscriptionService.getUserSubscription.mockResolvedValue(
+        mockSubscription
+      );
+      subscriptionService.addSeatToSubscription.mockResolvedValue(
+        mockUpdatedSubscription
+      );
     });
 
     it('should throw NOT_FOUND if no active subscription is found', async () => {
@@ -549,10 +709,14 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.addSeat)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
-      expect(next.mock.calls[0][0].message).toBe('No active subscription found');
+      expect(next.mock.calls[0][0].message).toBe(
+        'No active subscription found'
+      );
     });
 
     it('should add a seat successfully', async () => {
@@ -560,7 +724,9 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.addSeat)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(subscriptionService.addSeatToSubscription).toHaveBeenCalledWith(
         'sub1',
         'newUser',
@@ -593,8 +759,12 @@ describe('Subscription Controller', () => {
     };
 
     beforeEach(() => {
-      subscriptionService.getUserSubscription.mockResolvedValue(mockSubscription);
-      subscriptionService.removeSeatFromSubscription.mockResolvedValue(mockUpdatedSubscription);
+      subscriptionService.getUserSubscription.mockResolvedValue(
+        mockSubscription
+      );
+      subscriptionService.removeSeatFromSubscription.mockResolvedValue(
+        mockUpdatedSubscription
+      );
     });
 
     it('should throw NOT_FOUND if no active subscription is found', async () => {
@@ -603,10 +773,14 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.removeSeat)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
-      expect(next.mock.calls[0][0].message).toBe('No active subscription found');
+      expect(next.mock.calls[0][0].message).toBe(
+        'No active subscription found'
+      );
     });
 
     it('should remove a seat successfully', async () => {
@@ -614,12 +788,15 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.removeSeat)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
-      expect(subscriptionService.removeSeatFromSubscription).toHaveBeenCalledWith(
-        'sub1',
-        'oldUser',
-        { userId: 'user123', ipAddress: '127.0.0.1' }
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
       );
+      expect(
+        subscriptionService.removeSeatFromSubscription
+      ).toHaveBeenCalledWith('sub1', 'oldUser', {
+        userId: 'user123',
+        ipAddress: '127.0.0.1',
+      });
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -642,7 +819,9 @@ describe('Subscription Controller', () => {
 
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.BAD_REQUEST);
-      expect(next.mock.calls[0][0].message).toBe('Invalid or missing limit type');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Invalid or missing limit type'
+      );
     });
 
     it('should check usage limit successfully using params', async () => {
@@ -652,7 +831,10 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.checkUsageLimit)(req, res, next);
 
-      expect(subscriptionService.checkUsageLimit).toHaveBeenCalledWith('user123', 'webSearch');
+      expect(subscriptionService.checkUsageLimit).toHaveBeenCalledWith(
+        'user123',
+        'webSearch'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -668,7 +850,10 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.checkUsageLimit)(req, res, next);
 
-      expect(subscriptionService.checkUsageLimit).toHaveBeenCalledWith('user123', 'deepResearch');
+      expect(subscriptionService.checkUsageLimit).toHaveBeenCalledWith(
+        'user123',
+        'deepResearch'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -694,7 +879,10 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.incrementUsage)(req, res, next);
 
-      expect(subscriptionService.incrementUsage).toHaveBeenCalledWith('user123', 'webSearch');
+      expect(subscriptionService.incrementUsage).toHaveBeenCalledWith(
+        'user123',
+        'webSearch'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -719,7 +907,9 @@ describe('Subscription Controller', () => {
     };
 
     beforeEach(() => {
-      subscriptionService.getUserSubscription.mockResolvedValue(mockSubscription);
+      subscriptionService.getUserSubscription.mockResolvedValue(
+        mockSubscription
+      );
     });
 
     it('should throw NOT_FOUND if no active subscription is found', async () => {
@@ -727,16 +917,22 @@ describe('Subscription Controller', () => {
 
       await catchAsync(subscriptionController.getUsageStats)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.NOT_FOUND);
-      expect(next.mock.calls[0][0].message).toBe('No active subscription found');
+      expect(next.mock.calls[0][0].message).toBe(
+        'No active subscription found'
+      );
     });
 
     it('should return usage statistics successfully', async () => {
       await catchAsync(subscriptionController.getUsageStats)(req, res, next);
 
-      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith('user123');
+      expect(subscriptionService.getUserSubscription).toHaveBeenCalledWith(
+        'user123'
+      );
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -775,7 +971,9 @@ describe('Subscription Controller', () => {
           lastResetAt: new Date('2023-01-01T00:00:00Z'),
         },
       };
-      subscriptionService.getUserSubscription.mockResolvedValue(zeroLimitSubscription);
+      subscriptionService.getUserSubscription.mockResolvedValue(
+        zeroLimitSubscription
+      );
 
       await catchAsync(subscriptionController.getUsageStats)(req, res, next);
 
@@ -797,7 +995,9 @@ describe('Subscription Controller', () => {
 
   describe('handleStripeWebhook', () => {
     const mockStripeSignature = 't=123,v1=abc,v0=def';
-    const mockRawBody = Buffer.from('{"id":"evt_test","type":"checkout.session.completed"}');
+    const mockRawBody = Buffer.from(
+      '{"id":"evt_test","type":"checkout.session.completed"}'
+    );
 
     beforeEach(() => {
       req.headers['stripe-signature'] = mockStripeSignature;
@@ -805,14 +1005,19 @@ describe('Subscription Controller', () => {
       req.ip = '1.2.3.4'; // A trusted IP
       process.env.STRIPE_SECRET_KEY = 'sk_test_123';
       process.env.STRIPE_WEBHOOK_SECRET = 'test_webhook_secret';
-      process.env.STRIPE_WEBHOOK_SECRET_FALLBACK = 'test_webhook_secret_fallback';
+      process.env.STRIPE_WEBHOOK_SECRET_FALLBACK =
+        'test_webhook_secret_fallback';
       isStripeIp.mockResolvedValue(true);
     });
 
     it('should throw FORBIDDEN if IP is not from Stripe', async () => {
       isStripeIp.mockResolvedValue(false);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(isStripeIp).toHaveBeenCalledWith('1.2.3.4');
       expect(logger.error).toHaveBeenCalledWith(
@@ -823,63 +1028,104 @@ describe('Subscription Controller', () => {
         expect.any(String),
         expect.objectContaining({ senderIp: '1.2.3.4' })
       );
-      expect(BillingAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'webhook_failed',
-        newState: expect.objectContaining({ error: 'Untrusted webhook IP address source' }),
-      }));
+      expect(BillingAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'webhook_failed',
+          newState: expect.objectContaining({
+            error: 'Untrusted webhook IP address source',
+          }),
+        })
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.FORBIDDEN);
-      expect(next.mock.calls[0][0].message).toBe('Forbidden: untrusted sender source IP');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Forbidden: untrusted sender source IP'
+      );
     });
 
     it('should throw INTERNAL_SERVER_ERROR if webhook secret is not configured', async () => {
       config.stripe.webhook_secret = null;
       process.env.STRIPE_WEBHOOK_SECRET = null;
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.INTERNAL_SERVER_ERROR);
-      expect(next.mock.calls[0][0].message).toBe('Webhook secret not configured');
+      expect(next.mock.calls[0][0].statusCode).toBe(
+        httpStatus.INTERNAL_SERVER_ERROR
+      );
+      expect(next.mock.calls[0][0].message).toBe(
+        'Webhook secret not configured'
+      );
     });
 
     it('should throw BAD_REQUEST if stripe-signature header is missing', async () => {
       delete req.headers['stripe-signature'];
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.BAD_REQUEST);
-      expect(next.mock.calls[0][0].message).toBe('Missing stripe-signature header');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Missing stripe-signature header'
+      );
     });
 
     it('should throw BAD_REQUEST if signature verification fails', async () => {
       const verificationError = new Error('Invalid signature');
-      mockStripe.webhooks.constructEvent.mockImplementationOnce(() => {
-        throw verificationError;
-      }).mockImplementationOnce(() => {
-        throw verificationError; // Fallback also fails
-      });
+      mockStripe.webhooks.constructEvent
+        .mockImplementationOnce(() => {
+          throw verificationError;
+        })
+        .mockImplementationOnce(() => {
+          throw verificationError; // Fallback also fails
+        });
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledTimes(2); // Tries primary and fallback
       expect(logger.error).toHaveBeenCalledWith(
         '[STRIPE_SECURITY_ALERT] Webhook signature verification failed',
-        expect.objectContaining({ message: 'Both primary and fallback secret verifications failed. Fallback error: Invalid signature' })
+        expect.objectContaining({
+          message:
+            'Both primary and fallback secret verifications failed. Fallback error: Invalid signature',
+        })
       );
       expect(sendSecurityAlert).toHaveBeenCalledWith(
         'Webhook Signature Mismatch',
         expect.any(String),
-        expect.objectContaining({ errorMessage: expect.stringContaining('Both primary and fallback secret verifications failed') })
+        expect.objectContaining({
+          errorMessage: expect.stringContaining(
+            'Both primary and fallback secret verifications failed'
+          ),
+        })
       );
-      expect(BillingAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'webhook_failed',
-        newState: expect.objectContaining({ error: expect.stringContaining('Both primary and fallback secret verifications failed') }),
-      }));
+      expect(BillingAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'webhook_failed',
+          newState: expect.objectContaining({
+            error: expect.stringContaining(
+              'Both primary and fallback secret verifications failed'
+            ),
+          }),
+        })
+      );
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.BAD_REQUEST);
-      expect(next.mock.calls[0][0].message).toBe(expect.stringContaining('Webhook signature verification failed'));
+      expect(next.mock.calls[0][0].message).toBe(
+        expect.stringContaining('Webhook signature verification failed')
+      );
     });
 
     it('should use fallback secret if primary fails', async () => {
@@ -887,116 +1133,224 @@ describe('Subscription Controller', () => {
         .mockImplementationOnce(() => {
           throw new Error('Primary secret failed');
         })
-        .mockReturnValueOnce({ id: 'evt_test', type: 'checkout.session.completed' }); // Fallback succeeds
+        .mockReturnValueOnce({
+          id: 'evt_test',
+          type: 'checkout.session.completed',
+        }); // Fallback succeeds
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledTimes(2);
-      expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledWith(mockRawBody, mockStripeSignature, 'test_webhook_secret');
-      expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledWith(mockRawBody, mockStripeSignature, 'test_webhook_secret_fallback');
-      expect(logger.info).toHaveBeenCalledWith('[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...');
-      expect(logger.info).toHaveBeenCalledWith('[Stripe Security] Webhook signature verified successfully using fallback secret.');
+      expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledWith(
+        mockRawBody,
+        mockStripeSignature,
+        'test_webhook_secret'
+      );
+      expect(mockStripe.webhooks.constructEvent).toHaveBeenCalledWith(
+        mockRawBody,
+        mockStripeSignature,
+        'test_webhook_secret_fallback'
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        '[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...'
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        '[Stripe Security] Webhook signature verified successfully using fallback secret.'
+      );
       expect(StripeEvent.findOne).toHaveBeenCalledWith({ eventId: 'evt_test' });
       expect(StripeEvent.create).toHaveBeenCalledWith({ eventId: 'evt_test' });
-      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith('evt_test'); // session.id is event.id in this mock
+      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith(
+        'evt_test'
+      ); // session.id is event.id in this mock
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should discard duplicate webhook events', async () => {
       StripeEvent.findOne.mockResolvedValue({ eventId: 'evt_test' }); // Event already exists
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
       expect(StripeEvent.findOne).toHaveBeenCalledWith({ eventId: 'evt_test' });
       expect(StripeEvent.create).not.toHaveBeenCalled(); // Should not create duplicate
       expect(subscriptionService.processStripeCheckout).not.toHaveBeenCalled(); // Should not process
-      expect(res.json).toHaveBeenCalledWith({ received: true, duplicate: true });
+      expect(res.json).toHaveBeenCalledWith({
+        received: true,
+        duplicate: true,
+      });
     });
 
     it('should handle checkout.session.completed event', async () => {
-      const mockEvent = { id: 'cs_123', type: 'checkout.session.completed', data: { object: { id: 'cs_123' } } };
+      const mockEvent = {
+        id: 'cs_123',
+        type: 'checkout.session.completed',
+        data: { object: { id: 'cs_123' } },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith('cs_123');
+      expect(subscriptionService.processStripeCheckout).toHaveBeenCalledWith(
+        'cs_123'
+      );
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle customer.subscription.updated event', async () => {
       const mockSubscription = { id: 'sub_123', status: 'active' };
-      const mockEvent = { id: 'evt_123', type: 'customer.subscription.updated', data: { object: mockSubscription } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.updated',
+        data: { object: mockSubscription },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.updateSubscriptionFromStripe).toHaveBeenCalledWith(mockSubscription);
+      expect(
+        subscriptionService.updateSubscriptionFromStripe
+      ).toHaveBeenCalledWith(mockSubscription);
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle customer.subscription.deleted event', async () => {
       const mockSubscription = { id: 'sub_123', status: 'canceled' };
-      const mockEvent = { id: 'evt_123', type: 'customer.subscription.deleted', data: { object: mockSubscription } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'customer.subscription.deleted',
+        data: { object: mockSubscription },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.updateSubscriptionFromStripe).toHaveBeenCalledWith(mockSubscription);
+      expect(
+        subscriptionService.updateSubscriptionFromStripe
+      ).toHaveBeenCalledWith(mockSubscription);
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle invoice.payment_succeeded event', async () => {
       const mockInvoice = { id: 'inv_123', status: 'paid' };
-      const mockEvent = { id: 'evt_123', type: 'invoice.payment_succeeded', data: { object: mockInvoice } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'invoice.payment_succeeded',
+        data: { object: mockInvoice },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.handleInvoicePaymentSucceeded).toHaveBeenCalledWith(mockInvoice);
+      expect(
+        subscriptionService.handleInvoicePaymentSucceeded
+      ).toHaveBeenCalledWith(mockInvoice);
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle invoice.payment_failed event', async () => {
       const mockInvoice = { id: 'inv_123', status: 'failed' };
-      const mockEvent = { id: 'evt_123', type: 'invoice.payment_failed', data: { object: mockInvoice } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'invoice.payment_failed',
+        data: { object: mockInvoice },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.handleInvoicePaymentFailed).toHaveBeenCalledWith(mockInvoice);
+      expect(
+        subscriptionService.handleInvoicePaymentFailed
+      ).toHaveBeenCalledWith(mockInvoice);
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle charge.dispute.created event', async () => {
       const mockDispute = { id: 'dis_123', status: 'created' };
-      const mockEvent = { id: 'evt_123', type: 'charge.dispute.created', data: { object: mockDispute } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'charge.dispute.created',
+        data: { object: mockDispute },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.handleDisputeCreated).toHaveBeenCalledWith(mockDispute);
+      expect(subscriptionService.handleDisputeCreated).toHaveBeenCalledWith(
+        mockDispute
+      );
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should handle charge.dispute.closed event', async () => {
       const mockDispute = { id: 'dis_123', status: 'closed' };
-      const mockEvent = { id: 'evt_123', type: 'charge.dispute.closed', data: { object: mockDispute } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'charge.dispute.closed',
+        data: { object: mockDispute },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.handleDisputeClosed).toHaveBeenCalledWith(mockDispute);
+      expect(subscriptionService.handleDisputeClosed).toHaveBeenCalledWith(
+        mockDispute
+      );
       expect(res.json).toHaveBeenCalledWith({ received: true });
     });
 
     it('should log unhandled event types', async () => {
-      const mockEvent = { id: 'evt_123', type: 'payment_intent.succeeded', data: { object: {} } };
+      const mockEvent = {
+        id: 'evt_123',
+        type: 'payment_intent.succeeded',
+        data: { object: {} },
+      };
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
       const consoleSpy = vi.spyOn(console, 'log');
 
-      await catchAsync(subscriptionController.handleStripeWebhook)(req, res, next);
+      await catchAsync(subscriptionController.handleStripeWebhook)(
+        req,
+        res,
+        next
+      );
 
-      expect(consoleSpy).toHaveBeenCalledWith('Unhandled event type payment_intent.succeeded');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Unhandled event type payment_intent.succeeded'
+      );
       expect(res.json).toHaveBeenCalledWith({ received: true });
       consoleSpy.mockRestore();
     });
@@ -1006,7 +1360,9 @@ describe('Subscription Controller', () => {
     const mockSessionUrl = 'https://billing.stripe.com/session_123';
 
     beforeEach(() => {
-      subscriptionService.createBillingPortalSession.mockResolvedValue({ url: mockSessionUrl });
+      subscriptionService.createBillingPortalSession.mockResolvedValue({
+        url: mockSessionUrl,
+      });
     });
 
     it('should allow admin to create session for any tenant', async () => {
@@ -1014,13 +1370,17 @@ describe('Subscription Controller', () => {
       req.user.tenantId = 'adminTenant';
       req.body.tenantId = 'anotherTenant';
 
-      await catchAsync(subscriptionController.createBillingPortalSession)(req, res, next);
-
-      expect(subscriptionService.createBillingPortalSession).toHaveBeenCalledWith(
-        'user123',
-        'anotherTenant',
-        { ipAddress: '127.0.0.1' }
+      await catchAsync(subscriptionController.createBillingPortalSession)(
+        req,
+        res,
+        next
       );
+
+      expect(
+        subscriptionService.createBillingPortalSession
+      ).toHaveBeenCalledWith('user123', 'anotherTenant', {
+        ipAddress: '127.0.0.1',
+      });
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -1034,13 +1394,17 @@ describe('Subscription Controller', () => {
       req.user.tenantId = 'userTenant';
       req.body.tenantId = 'userTenant';
 
-      await catchAsync(subscriptionController.createBillingPortalSession)(req, res, next);
-
-      expect(subscriptionService.createBillingPortalSession).toHaveBeenCalledWith(
-        'user123',
-        'userTenant',
-        { ipAddress: '127.0.0.1' }
+      await catchAsync(subscriptionController.createBillingPortalSession)(
+        req,
+        res,
+        next
       );
+
+      expect(
+        subscriptionService.createBillingPortalSession
+      ).toHaveBeenCalledWith('user123', 'userTenant', {
+        ipAddress: '127.0.0.1',
+      });
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -1055,13 +1419,17 @@ describe('Subscription Controller', () => {
       req.query.tenantId = 'userTenant';
       req.body = {}; // Ensure body doesn't override
 
-      await catchAsync(subscriptionController.createBillingPortalSession)(req, res, next);
-
-      expect(subscriptionService.createBillingPortalSession).toHaveBeenCalledWith(
-        'user123',
-        'userTenant',
-        { ipAddress: '127.0.0.1' }
+      await catchAsync(subscriptionController.createBillingPortalSession)(
+        req,
+        res,
+        next
       );
+
+      expect(
+        subscriptionService.createBillingPortalSession
+      ).toHaveBeenCalledWith('user123', 'userTenant', {
+        ipAddress: '127.0.0.1',
+      });
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -1070,19 +1438,23 @@ describe('Subscription Controller', () => {
       });
     });
 
-    it('should default to requesting user\'s tenantId if not provided', async () => {
+    it("should default to requesting user's tenantId if not provided", async () => {
       req.user.role = 'user';
       req.user.tenantId = 'userTenant';
       req.body = {};
       req.query = {};
 
-      await catchAsync(subscriptionController.createBillingPortalSession)(req, res, next);
-
-      expect(subscriptionService.createBillingPortalSession).toHaveBeenCalledWith(
-        'user123',
-        'userTenant',
-        { ipAddress: '127.0.0.1' }
+      await catchAsync(subscriptionController.createBillingPortalSession)(
+        req,
+        res,
+        next
       );
+
+      expect(
+        subscriptionService.createBillingPortalSession
+      ).toHaveBeenCalledWith('user123', 'userTenant', {
+        ipAddress: '127.0.0.1',
+      });
       expect(sendResponse).toHaveBeenCalledWith(res, {
         success: true,
         statusCode: httpStatus.OK,
@@ -1096,12 +1468,20 @@ describe('Subscription Controller', () => {
       req.user.tenantId = 'userTenant';
       req.body.tenantId = 'anotherTenant';
 
-      await catchAsync(subscriptionController.createBillingPortalSession)(req, res, next);
+      await catchAsync(subscriptionController.createBillingPortalSession)(
+        req,
+        res,
+        next
+      );
 
-      expect(subscriptionService.createBillingPortalSession).not.toHaveBeenCalled();
+      expect(
+        subscriptionService.createBillingPortalSession
+      ).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].statusCode).toBe(httpStatus.FORBIDDEN);
-      expect(next.mock.calls[0][0].message).toBe('Forbidden: You are not authorized to create a billing portal session for this tenant.');
+      expect(next.mock.calls[0][0].message).toBe(
+        'Forbidden: You are not authorized to create a billing portal session for this tenant.'
+      );
     });
   });
 });
