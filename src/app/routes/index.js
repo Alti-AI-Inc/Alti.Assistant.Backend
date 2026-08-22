@@ -1,5 +1,4 @@
 import express from 'express';
-import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
@@ -13,6 +12,7 @@ import { supportRoutes } from '../modules/support/support.route.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 
+import { SpaceRoutes } from '../modules/ExaSearch/exaSearch.routes.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
 
 const router = express.Router();
@@ -57,6 +57,10 @@ const moduleRoutes = [
   {
     path: '/usage',
     route: usageRoutes,
+  },
+  {
+    path: '/spaces',
+    route: SpaceRoutes,
   },
 ];
 

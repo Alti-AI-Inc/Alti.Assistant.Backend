@@ -46,6 +46,7 @@ export default {
   cloud_storage_access_key: process.env.CLOUD_STORAGE_ACCESS_KEY,
   cloud_storage_bucket: process.env.CLOUD_STORAGE_BUCKET,
   linkup_api_key: process.env.LINKUP_API_KEY,
+  exa_api_key: process.env.EXA_API_KEY,
   redis: {
     url: process.env.REDIS_URL,
     expires_in: process.env.REDIS_TOKEN_EXPIRES_IN,
