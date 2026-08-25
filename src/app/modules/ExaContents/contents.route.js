@@ -8,6 +8,7 @@ import { ContentValidation } from './contents.validation.js';
 // mergeParams so :spaceId from the parent router is visible here
 const router = express.Router({ mergeParams: true });
 
+
 router.post(
   '/create-content',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
