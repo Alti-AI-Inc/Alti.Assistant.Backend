@@ -1,0 +1,381 @@
+{
+  "info": {
+    "name": "Exa Space, Search & Contents Module",
+    "description": "CRUD endpoints for the space-isolated Exa storage modules. Set {{baseUrl}} and {{token}} in the collection variables, run 'Create Space' first, then 'Create Search Record', then 'Create Content Record' — each auto-saves its created id into {{spaceId}} / {{searchId}} / {{contentId}} via test scripts so the rest of the requests work without manual editing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "spaceId", "value": "", "type": "string" },
+    { "key": "searchId", "value": "", "type": "string" },
+    { "key": "contentId", "value": "", "type": "string" },
+    { "key": "memberId", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Space",
+      "item": [
+        {
+          "name": "Create Space",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res?.data?._id) { pm.collectionVariables.set('spaceId', res.data._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Market Research\",\n  \"description\": \"Competitive landscape and industry research\",\n  \"isPrivate\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces"]
+            }
+          }
+        },
+        {
+          "name": "Get All Spaces",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces?page=1&limit=10&sortBy=createdAt&sortOrder=desc&status=active&searchTerm=research",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "status", "value": "active", "disabled": true },
+                { "key": "isPrivate", "value": "true", "disabled": true },
+                { "key": "searchTerm", "value": "research", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Space",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Space",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Market Research - Q3\",\n  \"description\": \"Updated scope for Q3 review\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Add Member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// paste a real user id into the body below before running"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"REPLACE_WITH_USER_ID\",\n  \"role\": \"editor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/members/{{memberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "members", "{{memberId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Space",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Create Search Record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res?.data?._id) { pm.collectionVariables.set('searchId', res.data._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"latest advances in solid-state batteries\",\n  \"searchType\": \"neural\",\n  \"category\": \"research paper\",\n  \"requestParams\": {\n    \"numResults\": 5,\n    \"useAutoprompt\": true,\n    \"includeDomains\": [\"nature.com\", \"arxiv.org\"],\n    \"startPublishedDate\": \"2025-01-01\"\n  },\n  \"results\": [\n    {\n      \"exaId\": \"exa_res_001\",\n      \"title\": \"Breakthrough in Solid-State Battery Density\",\n      \"url\": \"https://www.nature.com/articles/example-battery\",\n      \"author\": \"J. Chen et al.\",\n      \"publishedDate\": \"2025-03-14T00:00:00.000Z\",\n      \"score\": 0.9421,\n      \"text\": \"Researchers report a new solid electrolyte formulation that increases energy density by 40%...\",\n      \"summary\": \"New electrolyte formulation boosts solid-state battery energy density by 40%.\",\n      \"highlights\": [\"energy density by 40%\", \"solid electrolyte formulation\"],\n      \"highlightScores\": [0.88, 0.81],\n      \"image\": \"https://www.nature.com/example-image.jpg\",\n      \"favicon\": \"https://www.nature.com/favicon.ico\"\n    },\n    {\n      \"exaId\": \"exa_res_002\",\n      \"title\": \"Scaling Solid-State Cell Manufacturing\",\n      \"url\": \"https://arxiv.org/abs/2503.example\",\n      \"author\": \"M. Alvarez\",\n      \"publishedDate\": \"2025-02-02T00:00:00.000Z\",\n      \"score\": 0.9017,\n      \"text\": \"This paper discusses manufacturing challenges in scaling solid-state cell production...\",\n      \"summary\": \"Overview of manufacturing bottlenecks in solid-state cell scale-up.\"\n    }\n  ],\n  \"autopromptString\": \"Here is the latest research on solid-state batteries:\",\n  \"resolvedSearchType\": \"neural\",\n  \"requestId\": \"exa_req_abc123\",\n  \"costDollars\": {\n    \"total\": 0.005,\n    \"search\": { \"neural\": 0.005 }\n  },\n  \"status\": \"completed\",\n  \"tags\": [\"batteries\", \"energy\", \"research\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches"]
+            }
+          }
+        },
+        {
+          "name": "Create Search Record (failed status example)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"proprietary internal financial data XYZ\",\n  \"searchType\": \"auto\",\n  \"requestParams\": { \"numResults\": 10 },\n  \"results\": [],\n  \"status\": \"failed\",\n  \"errorMessage\": \"Exa API rate limit exceeded\",\n  \"tags\": [\"finance\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches"]
+            }
+          }
+        },
+        {
+          "name": "Get All Search Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "searchTerm", "value": "battery", "disabled": true },
+                { "key": "searchType", "value": "neural", "disabled": true },
+                { "key": "status", "value": "completed", "disabled": true },
+                { "key": "isFavorite", "value": "true", "disabled": true },
+                { "key": "tags", "value": "batteries", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Search Record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches/{{searchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches", "{{searchId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Search Record (favorite + tags)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFavorite\": true,\n  \"tags\": [\"batteries\", \"energy\", \"research\", \"shortlisted\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches/{{searchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches", "{{searchId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Search Record",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/searches/{{searchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "searches", "{{searchId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contents",
+      "item": [
+        {
+          "name": "Create Content Record (linked to a search)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res?.data?._id) { pm.collectionVariables.set('contentId', res.data._id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceSearch\": \"{{searchId}}\",\n  \"requestIds\": [\n    \"https://www.nature.com/articles/example-battery\",\n    \"https://arxiv.org/abs/2503.example\"\n  ],\n  \"requestOptions\": {\n    \"text\": { \"maxCharacters\": 8000 },\n    \"highlights\": { \"query\": \"methodology and results\" },\n    \"summary\": { \"query\": \"Key takeaways\" },\n    \"maxAgeHours\": 24,\n    \"livecrawlTimeout\": 12000\n  },\n  \"results\": [\n    {\n      \"id\": \"https://www.nature.com/articles/example-battery\",\n      \"url\": \"https://www.nature.com/articles/example-battery\",\n      \"title\": \"Breakthrough in Solid-State Battery Density\",\n      \"author\": \"J. Chen et al.\",\n      \"publishedDate\": \"2025-03-14T00:00:00.000Z\",\n      \"text\": \"# Breakthrough in Solid-State Battery Density\\n\\nResearchers report a new solid electrolyte formulation...\",\n      \"highlights\": [\"increases energy density by 40%\", \"new solid electrolyte formulation\"],\n      \"highlightScores\": [0.91, 0.86],\n      \"summary\": \"New electrolyte formulation boosts solid-state battery energy density by 40%.\",\n      \"image\": \"https://www.nature.com/example-image.jpg\",\n      \"favicon\": \"https://www.nature.com/favicon.ico\"\n    },\n    {\n      \"id\": \"https://arxiv.org/abs/2503.example\",\n      \"url\": \"https://arxiv.org/abs/2503.example\",\n      \"title\": \"Scaling Solid-State Cell Manufacturing\",\n      \"author\": \"M. Alvarez\",\n      \"text\": \"# Scaling Solid-State Cell Manufacturing\\n\\nThis paper discusses manufacturing challenges...\",\n      \"summary\": \"Overview of manufacturing bottlenecks in solid-state cell scale-up.\"\n    }\n  ],\n  \"statuses\": [\n    { \"id\": \"https://www.nature.com/articles/example-battery\", \"status\": \"success\" },\n    { \"id\": \"https://arxiv.org/abs/2503.example\", \"status\": \"success\" }\n  ],\n  \"tags\": [\"batteries\", \"deep-dive\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents"]
+            }
+          }
+        },
+        {
+          "name": "Create Content Record (with a failed url)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestIds\": [\n    \"https://example.com/broken\"\n  ],\n  \"requestOptions\": {\n    \"highlights\": true\n  },\n  \"results\": [],\n  \"statuses\": [\n    {\n      \"id\": \"https://example.com/broken\",\n      \"status\": \"error\",\n      \"errorTag\": \"CRAWL_NOT_FOUND\",\n      \"httpStatusCode\": 404\n    }\n  ],\n  \"tags\": [\"needs-retry\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents"]
+            }
+          }
+        },
+        {
+          "name": "Get All Content Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "searchTerm", "value": "nature.com", "disabled": true },
+                { "key": "status", "value": "completed", "disabled": true },
+                { "key": "isFavorite", "value": "true", "disabled": true },
+                { "key": "tags", "value": "batteries", "disabled": true },
+                { "key": "sourceSearch", "value": "{{searchId}}", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Content Record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents", "{{contentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Content Record (favorite + tags)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFavorite\": true,\n  \"tags\": [\"batteries\", \"deep-dive\", \"shortlisted\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents", "{{contentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Content Record",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/spaces/{{spaceId}}/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["spaces", "{{spaceId}}", "contents", "{{contentId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
