@@ -13,6 +13,7 @@ import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 
 import { ContentRoutes } from '../modules/ExaContents/contents.route.js';
+import { MonitorRoutes } from '../modules/ExaMonitor/monitor.route.js';
 import { SpaceRoutes } from '../modules/ExaSearch/exaSearch.routes.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
 
@@ -62,6 +63,10 @@ const moduleRoutes = [
   {
     path: '/spaces',
     route: SpaceRoutes,
+  },
+  {
+    path: '/spaces/:spaceId/monitors',
+    route: MonitorRoutes,
   },
   {
     path: '/contents',

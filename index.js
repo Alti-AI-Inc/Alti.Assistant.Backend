@@ -45,6 +45,7 @@ mongoose.plugin(tenantGuardrail);
 
 // import config from './config';
 import globalErrorHandler from './src/app/middlewares/globalErrorHandler/globalErrorHandler.js';
+import { MonitorWebhookRoutes } from './src/app/modules/ExaMonitor/monitor.webhook.route.js';
 import router from './src/app/routes/index.js';
 // import { logger } from './src/shared/logger';
 import bodyParser from 'body-parser';
@@ -91,6 +92,7 @@ for (const key of RECOMMENDED_ENV) {
 
 const app = express();
 
+app.use('/api/v1/webhooks/exa/monitors', MonitorWebhookRoutes);
 
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -305,7 +307,6 @@ app.use((req, res, next) => {
           config.jwt.access_token
         );
         const userId = verifiedUser?.userId || verifiedUser?._id;
-      
       }
     } catch (e) {
       // Ignore token validation issues for guest/public routes
