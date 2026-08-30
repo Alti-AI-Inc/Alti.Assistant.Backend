@@ -39,6 +39,12 @@ const exaSearchSchema = new Schema(
       required: true,
       index: true,
     },
+    searchSession: {
+      type: Schema.Types.ObjectId,
+      ref: 'SearchSession',
+      required: true,
+      index: true,
+    },
     query: {
       type: String,
       required: [true, 'Search query is required'],
@@ -104,6 +110,7 @@ const exaSearchSchema = new Schema(
 );
 
 exaSearchSchema.index({ space: 1, createdAt: -1 });
+exaSearchSchema.index({ searchSession: 1, createdAt: -1 });
 exaSearchSchema.index({ space: 1, user: 1 });
 exaSearchSchema.index({ query: 'text', tags: 'text' });
 
@@ -112,4 +119,4 @@ exaSearchSchema.pre('save', function (next) {
   next();
 });
 
-export const ExaSearch = model('ExaSearch', exaSearchSchema);
+export const ExaSearch = model('Exa-Search', exaSearchSchema);

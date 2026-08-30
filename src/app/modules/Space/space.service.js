@@ -6,6 +6,7 @@ import { ExaContent } from '../ExaContents/contents.model.js';
 import { Monitor } from '../ExaMonitor/Monitor.model.js';
 import { MonitorRun } from '../ExaMonitor/monitorRun.model.js';
 import { ExaSearch } from '../ExaSearch/exaSearch.model.js';
+import { SearchSession } from '../ExaSearch/searchSession.model.js';
 import { Space } from './space.model.js';
 
 const assertSpaceAccess = async (spaceId, userId, minRole = 'viewer') => {
@@ -76,7 +77,11 @@ const getAllSpaces = async (userId, query) => {
 const getSingleSpace = async (spaceId, userId) => {
   const space = await assertSpaceAccess(spaceId, userId);
   await space.populate([
-    { path: 'searches', options: { sort: { createdAt: -1 } } },
+    {
+      path: 'searchSessions',
+      options: { sort: { updatedAt: -1 } },
+      populate: { path: 'searches', options: { sort: { createdAt: -1 } } },
+    },
     { path: 'monitors', options: { sort: { createdAt: -1 } } },
   ]);
   return space;
@@ -119,6 +124,7 @@ const deleteSpace = async (spaceId, userId) => {
   const space = await assertSpaceAccess(spaceId, userId, 'owner');
   await Promise.all([
     ExaSearch.deleteMany({ space: spaceId }),
+    SearchSession.deleteMany({ space: spaceId }),
     ExaContent.deleteMany({ space: spaceId }),
     MonitorRun.deleteMany({ space: spaceId }),
     Monitor.deleteMany({ space: spaceId }),

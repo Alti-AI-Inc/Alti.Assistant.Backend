@@ -28,6 +28,7 @@ const createSearchZodSchema = z.object({
       .max(1000),
     searchType: z.enum(EXA_SEARCH_TYPE).optional(),
     category: z.string().optional(),
+    searchSessionId: z.string().optional(),
     contents: contentOptionsZodSchema.optional(),
     requestParams: z.record(z.any()).optional(),
     results: z.array(resultItemZodSchema).optional().default([]),

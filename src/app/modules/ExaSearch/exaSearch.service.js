@@ -4,6 +4,7 @@ import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { EXA_SEARCH_TYPE } from './exaSearch.contant.js';
 import { ExaSearch } from './exaSearch.model.js';
+import { SearchSession } from './searchSession.model.js';
 
 const EXA_BASE_URL = 'https://api.exa.ai';
 
@@ -81,6 +82,36 @@ const parseExaResponse = (responseBody = {}) => {
   };
 };
 
+const resolveSearchSession = async (spaceId, userId, searchSessionId) => {
+  if (!searchSessionId) {
+    return SearchSession.create({ space: spaceId, user: userId });
+  }
+
+  const searchSession = await SearchSession.findOne({
+    _id: searchSessionId,
+    space: spaceId,
+  });
+  if (!searchSession) {
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Search session not found in this space.'
+    );
+  }
+  return searchSession;
+};
+
+const attachSearchToSession = async (spaceId, searchSessionId, searchId) => {
+  await Promise.all([
+    SearchSession.findByIdAndUpdate(searchSessionId, {
+      $addToSet: { searches: searchId },
+      $set: { lastSearchAt: new Date() },
+    }),
+    Space.findByIdAndUpdate(spaceId, {
+      $addToSet: { searchSessions: searchSessionId },
+    }),
+  ]);
+};
+
 const runSearch = async (spaceId, userId, payload = {}) => {
   if (!spaceId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Space ID is required.');
@@ -91,6 +122,11 @@ const runSearch = async (spaceId, userId, payload = {}) => {
   }
 
   await SpaceService.assertSpaceAccess(spaceId, userId, 'viewer');
+  const searchSession = await resolveSearchSession(
+    spaceId,
+    userId,
+    payload.searchSessionId
+  );
 
   const query = String(payload.query).trim();
   const searchType = EXA_SEARCH_TYPE.includes(payload.searchType)
@@ -135,6 +171,7 @@ const runSearch = async (spaceId, userId, payload = {}) => {
     const record = await ExaSearch.create({
       space: spaceId,
       user: userId,
+      searchSession: searchSession._id,
       query,
       searchType,
       requestParams: exaPayload,
@@ -144,10 +181,7 @@ const runSearch = async (spaceId, userId, payload = {}) => {
       resultCount: 0,
     });
 
-    await Space.findByIdAndUpdate(spaceId, {
-      $addToSet: { searches: record._id },
-      $set: { updatedAt: new Date() },
-    });
+    await attachSearchToSession(spaceId, searchSession._id, record._id);
 
     return record;
   }
@@ -156,6 +190,7 @@ const runSearch = async (spaceId, userId, payload = {}) => {
   const saved = await ExaSearch.create({
     space: spaceId,
     user: userId,
+    searchSession: searchSession._id,
     query,
     searchType,
     category: payload.category,
@@ -175,10 +210,10 @@ const runSearch = async (spaceId, userId, payload = {}) => {
     isFavorite: Boolean(payload.isFavorite),
   });
 
-  await Space.findByIdAndUpdate(spaceId, {
-    $addToSet: { searches: saved._id },
-    $inc: { searchCount: 1 },
-  });
+  await Promise.all([
+    attachSearchToSession(spaceId, searchSession._id, saved._id),
+    Space.findByIdAndUpdate(spaceId, { $inc: { searchCount: 1 } }),
+  ]);
 
   return saved;
 };
@@ -192,39 +227,14 @@ const getAllSearchRecords = async (spaceId, userId, query = {}) => {
   const sortBy = query.sortBy || 'createdAt';
   const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
 
-  const searchTerm = String(query.searchTerm || '').trim();
-  const filters = {
-    space: spaceId,
-  };
-
-  if (searchTerm) {
-    filters.query = { $regex: searchTerm, $options: 'i' };
-  }
-
-  if (query.searchType) {
-    filters.searchType = query.searchType;
-  }
-
-  if (query.status) {
-    filters.status = query.status;
-  }
-
-  if (query.isFavorite !== undefined) {
-    filters.isFavorite =
-      query.isFavorite === 'true' || query.isFavorite === true;
-  }
-
-  if (query.tag) {
-    filters.tags = { $in: [query.tag] };
-  }
-
   const [data, total] = await Promise.all([
-    ExaSearch.find(filters)
+    SearchSession.find({ space: spaceId })
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
+      .populate({ path: 'searches', options: { sort: { createdAt: -1 } } })
       .lean(),
-    ExaSearch.countDocuments(filters),
+    SearchSession.countDocuments({ space: spaceId }),
   ]);
 
   return {
@@ -303,8 +313,10 @@ const deleteSearchRecord = async (spaceId, recordId, userId) => {
   }
 
   await Space.findByIdAndUpdate(spaceId, {
-    $pull: { searches: recordId },
     $inc: { searchCount: -1 },
+  });
+  await SearchSession.findByIdAndUpdate(record.searchSession, {
+    $pull: { searches: recordId },
   });
 
   return record;
@@ -319,6 +331,7 @@ export const ExaSearchService = {
   deleteSearchRecord,
   normalizeExaResult,
   buildExaRequestBody,
+  resolveSearchSession,
 };
 
 export default ExaSearchService;

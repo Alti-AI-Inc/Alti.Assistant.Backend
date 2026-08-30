@@ -42,7 +42,7 @@ const getAllSearchRecords = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: 'Search results retrieved successfully',
+    message: 'Search sessions retrieved successfully',
     meta: result.meta,
     data: result.data,
   });

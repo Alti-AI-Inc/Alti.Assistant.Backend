@@ -33,8 +33,8 @@ const spaceSchema = new Schema(
       index: true,
     },
     searchCount: { type: Number, default: 0, min: 0 },
-    searches: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'ExaSearch' }],
+    searchSessions: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'SearchSession' }],
       default: [],
     },
     monitors: {
