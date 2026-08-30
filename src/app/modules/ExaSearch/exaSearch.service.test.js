@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Space } from '../Space/space.model.js';
 import { ExaSearchService } from './exaSearch.service.js';
 import { ExaSearch } from './seaSearch.model.js';
-import { Space } from './space.model.js';
 
-vi.mock('./space.model.js', () => ({
+vi.mock('../Space/space.model.js', () => ({
   Space: {
     findById: vi.fn(),
     findByIdAndUpdate: vi.fn(),
@@ -84,6 +84,11 @@ describe('ExaSearchService', () => {
       query: 'AI automation',
       searchType: 'auto',
       numResults: 5,
+      contents: {
+        text: { maxCharacters: 2000 },
+        highlights: { query: 'automation', highlightsPerUrl: 2 },
+        summary: true,
+      },
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
@@ -94,8 +99,17 @@ describe('ExaSearchService', () => {
           Authorization: 'Bearer test-key',
           'Content-Type': 'application/json',
         }),
+        body: expect.stringContaining('"contents"'),
       })
     );
+
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toMatchObject({
+      contents: {
+        text: { maxCharacters: 2000 },
+        highlights: { query: 'automation', highlightsPerUrl: 2 },
+        summary: true,
+      },
+    });
 
     expect(ExaSearch.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,6 +124,11 @@ describe('ExaSearchService', () => {
         ]),
       })
     );
+
+    expect(Space.findByIdAndUpdate).toHaveBeenCalledWith('space-1', {
+      $addToSet: { searches: 'result-1' },
+      $inc: { searchCount: 1 },
+    });
 
     expect(result).toEqual(savedDoc);
   });

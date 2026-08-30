@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentOptionsZodSchema } from '../ExaContents/contents.validation.js';
 import { EXA_SEARCH_STATUS, EXA_SEARCH_TYPE } from './search.constant.js';
 
 const resultItemZodSchema = z.object({
@@ -27,6 +28,7 @@ const createSearchZodSchema = z.object({
       .max(1000),
     searchType: z.enum(EXA_SEARCH_TYPE).optional(),
     category: z.string().optional(),
+    contents: contentOptionsZodSchema.optional(),
     requestParams: z.record(z.any()).optional(),
     results: z.array(resultItemZodSchema).optional().default([]),
     autopromptString: z.string().optional(),

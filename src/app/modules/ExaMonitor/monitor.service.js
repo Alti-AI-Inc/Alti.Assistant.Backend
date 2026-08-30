@@ -2,14 +2,15 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import paginationHelpers from '../../helpers/paginationHelpers.js';
 import pick from '../../middlewares/other/pick.js';
-import { MonitorRun } from './monitorRun.model.js';
-import { SpaceService } from './space.service.js';
+import { Space } from '../Space/space.model.js';
 import {
   MONITOR_FILTERABLE_FIELDS,
   MONITOR_PAGINATION_FIELDS,
   MONITOR_SEARCHABLE_FIELDS,
 } from './monitor.constant.js';
 import { Monitor } from './Monitor.model.js';
+import { MonitorRun } from './monitorRun.model.js';
+import { SpaceService } from './space.service.js';
 
 const createMonitorRecord = async (spaceId, userId, payload) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
@@ -19,6 +20,9 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
       ...payload,
       space: spaceId,
       user: userId,
+    });
+    await Space.findByIdAndUpdate(spaceId, {
+      $addToSet: { monitors: record._id },
     });
     return record;
   } catch (err) {
@@ -116,6 +120,9 @@ const deleteMonitorRecord = async (spaceId, monitorId, userId) => {
   // Cascade: a monitor's run history is meaningless once the monitor
   // itself is gone locally.
   await MonitorRun.deleteMany({ monitor: monitorId });
+  await Space.findByIdAndUpdate(spaceId, {
+    $pull: { monitors: monitorId },
+  });
 
   return record;
 };

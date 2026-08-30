@@ -28,6 +28,17 @@ const summaryOptionZodSchema = z.union([
   }),
 ]);
 
+export const contentOptionsZodSchema = z.object({
+  text: textOptionZodSchema.optional(),
+  highlights: highlightsOptionZodSchema.optional(),
+  summary: summaryOptionZodSchema.optional(),
+  livecrawl: z.enum(CONTENT_LIVECRAWL_OPTIONS).optional(),
+  livecrawlTimeout: z.number().int().positive().optional(),
+  subpages: z.number().int().min(0).optional(),
+  subpageTarget: z.union([z.string(), z.array(z.string())]).optional(),
+  context: z.union([z.boolean(), z.record(z.any())]).optional(),
+});
+
 // Triggers an Exa POST /contents call for the given ids and persists the
 // response under the target space — this is the actual integration point,
 // the caller supplies request options, not pre-fetched Exa output.
@@ -35,14 +46,7 @@ const createContentZodSchema = z.object({
   body: z.object({
     sourceSearch: z.string().optional(),
     ids: z.array(z.string().min(1)).min(1, 'At least one id/url is required'),
-    text: textOptionZodSchema.optional(),
-    highlights: highlightsOptionZodSchema.optional(),
-    summary: summaryOptionZodSchema.optional(),
-    livecrawl: z.enum(CONTENT_LIVECRAWL_OPTIONS).optional(),
-    livecrawlTimeout: z.number().int().positive().optional(),
-    subpages: z.number().int().min(0).optional(),
-    subpageTarget: z.union([z.string(), z.array(z.string())]).optional(),
-    context: z.union([z.boolean(), z.record(z.any())]).optional(),
+    ...contentOptionsZodSchema.shape,
     tags: z.array(z.string()).optional(),
     isFavorite: z.boolean().optional(),
   }),

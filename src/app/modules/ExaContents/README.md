@@ -9,6 +9,26 @@ Unlike the original draft of this module, `ContentService.createContentRecord`
 options, the service calls `POST https://api.exa.ai/contents`, and stores
 whatever Exa returns (success or failure) as a new `ExaContent` document.
 
+## Query-driven workflow
+
+For a user question, call `POST /api/v1/spaces/:spaceId/searches` with a
+`contents` object. `ExaSearch` forwards that object to Exa's `/search` API,
+which returns search matches enriched with the requested content in the same
+response. Use this module's `/contents` endpoint only when the URLs are
+already known.
+
+```json
+{
+  "query": "What changed in AI safety research?",
+  "contents": {
+    "text": { "maxCharacters": 5000 },
+    "highlights": { "query": "AI safety", "highlightsPerUrl": 3 },
+    "summary": { "query": "Summarize the key findings" },
+    "livecrawl": "preferred"
+  }
+}
+```
+
 ## Data model
 
 **ExaContent** (`contents.model.js`)
@@ -42,14 +62,14 @@ errorMessage, isFavorite, tags[], timestamps
 ## Isolation
 
 Every operation goes through `SpaceService.assertSpaceAccess(spaceId, userId, minRole)`
-(imported from `../ExaSearch/exaSearch.space.service.js` — the single,
-canonical space-access guard shared with the search module). There is no
+(imported from `../Space/space.service.js` — the single, canonical
+space-access guard shared with every space-scoped product). There is no
 path to an `ExaContent` document that bypasses its owning space's access
 check, and deleting a space cascades to its `ExaContent` records.
 
 ## Routes
 
-Mounted under the space router (`ExaSearch/exaSearch.routes.js`), which is
+Mounted under the dedicated space router (`Space/space.route.js`), which is
 itself mounted at `/spaces` in `src/app/routes/index.js`:
 
 ```
@@ -98,8 +118,8 @@ The module previously had several issues that made it non-functional:
   `ExaSearch` model path, `../search/search.model.js`) instead of reusing the
   canonical ones in `../ExaSearch`. The duplicate `space.service.js` file
   has been removed.
-- The route file was never mounted anywhere — it's now wired into
-  `ExaSearch/exaSearch.routes.js` at `/:spaceId/contents`.
+- The route file was never mounted anywhere — it is now wired into
+  `Space/space.route.js` at `/:spaceId/contents`.
 - `createContentRecord` accepted pre-fetched Exa output instead of calling
   Exa — it now performs the real `POST /contents` call.
 - The controller read `req.user.id`, but the JWT payload uses `_id` — now

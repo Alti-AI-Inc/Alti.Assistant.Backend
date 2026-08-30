@@ -2,15 +2,13 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
-import { SearchRoutes } from './exa.search.route.js';
-import { SpaceController } from './exaSearch.space.controller.js';
-import { SpaceValidation } from './exaValidation.model.js';
+import { ContentRoutes } from '../ExaContents/contents.route.js';
+import { MonitorRoutes } from '../ExaMonitor/monitor.route.js';
+import { SearchRoutes } from '../ExaSearch/exa.search.route.js';
+import { SpaceController } from './space.controller.js';
+import { SpaceValidation } from './space.validation.js';
 
 const router = express.Router();
-
-// -----------------------------------------------------------------------
-// Space CRUD
-// -----------------------------------------------------------------------
 router
   .route('/')
   .post(
@@ -22,7 +20,6 @@ router
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
     SpaceController.getAllSpaces
   );
-
 router
   .route('/:id')
   .get(
@@ -38,10 +35,6 @@ router
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
     SpaceController.deleteSpace
   );
-
-// -----------------------------------------------------------------------
-// Space membership (owner-only actions, enforced in the service layer)
-// -----------------------------------------------------------------------
 router
   .route('/:id/members')
   .post(
@@ -49,16 +42,15 @@ router
     validateRequest(SpaceValidation.addMemberZodSchema),
     SpaceController.addMember
   );
-
 router
   .route('/:id/members/:memberId')
   .delete(
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
     SpaceController.removeMember
   );
-
-// Nested search routes are always scoped under a specific space.
 router.use('/:spaceId/searches', SearchRoutes);
+router.use('/:spaceId/contents', ContentRoutes);
+router.use('/:spaceId/monitors', MonitorRoutes);
 
 export const SpaceRoutes = router;
 export default router;

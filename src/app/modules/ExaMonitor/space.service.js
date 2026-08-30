@@ -1,1 +1,1 @@
-export { SpaceService } from '../ExaSearch/exaSearch.space.service.js';
+export { SpaceService } from '../Space/space.service.js';

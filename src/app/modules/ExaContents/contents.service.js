@@ -2,8 +2,8 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import paginationHelpers from '../../helpers/paginationHelpers.js';
 import pick from '../../middlewares/other/pick.js';
-import { SpaceService } from '../ExaSearch/exaSearch.space.service.js';
 import { ExaSearch } from '../ExaSearch/search.model.js';
+import { SpaceService } from '../Space/space.service.js';
 import {
   CONTENT_FILTERABLE_FIELDS,
   CONTENT_PAGINATION_FIELDS,

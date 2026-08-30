@@ -1,9 +1,9 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
-import { SpaceService } from './exaSearch.space.service.js';
+import { Space } from '../Space/space.model.js';
+import { SpaceService } from '../Space/space.service.js';
 import { EXA_SEARCH_TYPE } from './search.constant.js';
 import { ExaSearch } from './seaSearch.model.js';
-import { Space } from './space.model.js';
 
 const EXA_BASE_URL = 'https://api.exa.ai';
 
@@ -48,7 +48,7 @@ const buildExaRequestBody = (payload = {}) => {
     startPublishedDate: payload.startPublishedDate || undefined,
     endPublishedDate: payload.endPublishedDate || undefined,
     category: payload.category || undefined,
-    summary: payload.summary ?? true,
+    contents: payload.contents || { summary: true },
   };
 
   Object.keys(request).forEach((key) => {
@@ -144,7 +144,10 @@ const runSearch = async (spaceId, userId, payload = {}) => {
       resultCount: 0,
     });
 
-    await Space.findByIdAndUpdate(spaceId, { $set: { updatedAt: new Date() } });
+    await Space.findByIdAndUpdate(spaceId, {
+      $addToSet: { searches: record._id },
+      $set: { updatedAt: new Date() },
+    });
 
     return record;
   }
@@ -173,6 +176,7 @@ const runSearch = async (spaceId, userId, payload = {}) => {
   });
 
   await Space.findByIdAndUpdate(spaceId, {
+    $addToSet: { searches: saved._id },
     $inc: { searchCount: 1 },
   });
 
@@ -299,6 +303,7 @@ const deleteSearchRecord = async (spaceId, recordId, userId) => {
   }
 
   await Space.findByIdAndUpdate(spaceId, {
+    $pull: { searches: recordId },
     $inc: { searchCount: -1 },
   });
 
