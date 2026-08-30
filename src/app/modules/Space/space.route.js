@@ -20,6 +20,8 @@ router
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
     SpaceController.getAllSpaces
   );
+
+  
 router
   .route('/:id')
   .get(

@@ -10,3 +10,4 @@ export const SEARCH_FILTERABLE_FIELDS = [
 ];
 export const SEARCH_SEARCHABLE_FIELDS = ['query', 'tags'];
 export const SEARCH_PAGINATION_FIELDS = ['page', 'limit', 'sortBy', 'sortOrder'];
+

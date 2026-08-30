@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { contentOptionsZodSchema } from '../ExaContents/contents.validation.js';
-import { EXA_SEARCH_STATUS, EXA_SEARCH_TYPE } from './search.constant.js';
+import { EXA_SEARCH_STATUS, EXA_SEARCH_TYPE } from './exaSearch.contant.js';
 
 const resultItemZodSchema = z.object({
   exaId: z.string().optional(),

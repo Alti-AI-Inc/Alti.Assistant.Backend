@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Space } from '../Space/space.model.js';
+import { ExaSearch } from './exaSearch.model.js';
 import { ExaSearchService } from './exaSearch.service.js';
-import { ExaSearch } from './seaSearch.model.js';
 
 vi.mock('../Space/space.model.js', () => ({
   Space: {
@@ -10,7 +10,7 @@ vi.mock('../Space/space.model.js', () => ({
   },
 }));
 
-vi.mock('./seaSearch.model.js', () => ({
+vi.mock('./exaSearch.model.js', () => ({
   ExaSearch: {
     create: vi.fn(),
     find: vi.fn(),

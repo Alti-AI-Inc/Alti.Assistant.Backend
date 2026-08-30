@@ -5,7 +5,7 @@ import pick from '../../middlewares/other/pick.js';
 import { ExaContent } from '../ExaContents/contents.model.js';
 import { Monitor } from '../ExaMonitor/Monitor.model.js';
 import { MonitorRun } from '../ExaMonitor/monitorRun.model.js';
-import { ExaSearch } from '../ExaSearch/search.model.js';
+import { ExaSearch } from '../ExaSearch/exaSearch.model.js';
 import { Space } from './space.model.js';
 
 const assertSpaceAccess = async (spaceId, userId, minRole = 'viewer') => {

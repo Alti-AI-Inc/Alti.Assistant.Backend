@@ -2,7 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
-import { SearchController } from './exaSearch.search.controller.js';
+import { SearchController } from './exaSearch.controller.js';
 import { SearchValidation } from './exaSearch.validation.js';
 
 // mergeParams so :spaceId from the parent router is visible here

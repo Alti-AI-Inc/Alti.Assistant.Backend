@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { SearchService } from './search.service.js';
+import { ExaSearchService } from './exaSearch.service.js';
 
 const getAuthenticatedUserId = (req) => {
   const userId = req.user?.id || req.user?._id || req.user?.userId;
@@ -18,7 +18,7 @@ const getAuthenticatedUserId = (req) => {
 };
 
 const createSearchRecord = catchAsync(async (req, res) => {
-  const result = await SearchService.createSearchRecord(
+  const result = await ExaSearchService.createSearchRecord(
     req.params.spaceId,
     getAuthenticatedUserId(req),
     req.body
@@ -33,7 +33,7 @@ const createSearchRecord = catchAsync(async (req, res) => {
 });
 
 const getAllSearchRecords = catchAsync(async (req, res) => {
-  const result = await SearchService.getAllSearchRecords(
+  const result = await ExaSearchService.getAllSearchRecords(
     req.params.spaceId,
     getAuthenticatedUserId(req),
     req.query
@@ -49,7 +49,7 @@ const getAllSearchRecords = catchAsync(async (req, res) => {
 });
 
 const getSingleSearchRecord = catchAsync(async (req, res) => {
-  const result = await SearchService.getSingleSearchRecord(
+  const result = await ExaSearchService.getSingleSearchRecord(
     req.params.spaceId,
     req.params.id,
     getAuthenticatedUserId(req)
@@ -64,7 +64,7 @@ const getSingleSearchRecord = catchAsync(async (req, res) => {
 });
 
 const updateSearchRecord = catchAsync(async (req, res) => {
-  const result = await SearchService.updateSearchRecord(
+  const result = await ExaSearchService.updateSearchRecord(
     req.params.spaceId,
     req.params.id,
     getAuthenticatedUserId(req),
@@ -80,7 +80,7 @@ const updateSearchRecord = catchAsync(async (req, res) => {
 });
 
 const deleteSearchRecord = catchAsync(async (req, res) => {
-  const result = await SearchService.deleteSearchRecord(
+  const result = await ExaSearchService.deleteSearchRecord(
     req.params.spaceId,
     req.params.id,
     getAuthenticatedUserId(req)

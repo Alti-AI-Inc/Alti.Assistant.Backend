@@ -2,8 +2,8 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
-import { EXA_SEARCH_TYPE } from './search.constant.js';
-import { ExaSearch } from './seaSearch.model.js';
+import { EXA_SEARCH_TYPE } from './exaSearch.contant.js';
+import { ExaSearch } from './exaSearch.model.js';
 
 const EXA_BASE_URL = 'https://api.exa.ai';
 

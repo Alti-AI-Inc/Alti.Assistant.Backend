@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { EXA_SEARCH_STATUS, EXA_SEARCH_TYPE } from './search.constant.js';
+import { EXA_SEARCH_STATUS, EXA_SEARCH_TYPE } from './exaSearch.contant.js';
 
 /**
  * One item inside Exa's `results` array.
