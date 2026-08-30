@@ -9,47 +9,52 @@ import { SpaceController } from './space.controller.js';
 import { SpaceValidation } from './space.validation.js';
 
 const router = express.Router();
-router
-  .route('/')
-  .post(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    validateRequest(SpaceValidation.createSpaceZodSchema),
-    SpaceController.createSpace
-  )
-  .get(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    SpaceController.getAllSpaces
-  );
 
-  
-router
-  .route('/:id')
-  .get(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    SpaceController.getSingleSpace
-  )
-  .patch(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    validateRequest(SpaceValidation.updateSpaceZodSchema),
-    SpaceController.updateSpace
-  )
-  .delete(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    SpaceController.deleteSpace
-  );
-router
-  .route('/:id/members')
-  .post(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    validateRequest(SpaceValidation.addMemberZodSchema),
-    SpaceController.addMember
-  );
-router
-  .route('/:id/members/:memberId')
-  .delete(
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-    SpaceController.removeMember
-  );
+router.post(
+  '/create-space',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SpaceValidation.createSpaceZodSchema),
+  SpaceController.createSpace
+);
+
+router.get(
+  '/get-all',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  SpaceController.getAllSpaces
+);
+
+router.get(
+  '/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  SpaceController.getSingleSpace
+);
+
+router.patch(
+  '/update-space/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SpaceValidation.updateSpaceZodSchema),
+  SpaceController.updateSpace
+);
+
+router.delete(
+  '/delete-space/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  SpaceController.deleteSpace
+);
+
+router.post(
+  '/add-member/:id/members',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SpaceValidation.addMemberZodSchema),
+  SpaceController.addMember
+);
+
+router.delete(
+  '/delete-member/:id/members/:memberId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  SpaceController.removeMember
+);
+
 router.use('/:spaceId/searches', SearchRoutes);
 router.use('/:spaceId/contents', ContentRoutes);
 router.use('/:spaceId/monitors', MonitorRoutes);
