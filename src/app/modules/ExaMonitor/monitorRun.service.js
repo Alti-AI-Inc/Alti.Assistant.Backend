@@ -3,7 +3,7 @@ import ApiError from '../../../errors/ApiError.js';
 import paginationHelpers from '../../helpers/paginationHelpers.js';
 import pick from '../../middlewares/other/pick.js';
 import { Monitor } from './Monitor.model.js';
-import { SpaceService } from './space.service.js';
+import { Space } from '../Space/space.model.js';
 import {
   MONITOR_RUN_FILTERABLE_FIELDS,
   MONITOR_RUN_PAGINATION_FIELDS,
@@ -19,7 +19,7 @@ const assertMonitorInSpace = async (spaceId, monitorId) => {
 };
 
 const createMonitorRunRecord = async (spaceId, monitorId, userId, payload) => {
-  await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+  await Space.assertSpaceAccess(spaceId, userId, 'editor');
   await assertMonitorInSpace(spaceId, monitorId);
 
   try {
@@ -41,7 +41,7 @@ const createMonitorRunRecord = async (spaceId, monitorId, userId, payload) => {
 };
 
 const getAllMonitorRunRecords = async (spaceId, monitorId, userId, query) => {
-  await SpaceService.assertSpaceAccess(spaceId, userId, 'viewer');
+  await Space.assertSpaceAccess(spaceId, userId, 'viewer');
   await assertMonitorInSpace(spaceId, monitorId);
 
   const filters = pick(query, MONITOR_RUN_FILTERABLE_FIELDS);
@@ -74,7 +74,7 @@ const getAllMonitorRunRecords = async (spaceId, monitorId, userId, query) => {
 };
 
 const getSingleMonitorRunRecord = async (spaceId, monitorId, runId, userId) => {
-  await SpaceService.assertSpaceAccess(spaceId, userId, 'viewer');
+  await Space.assertSpaceAccess(spaceId, userId, 'viewer');
   await assertMonitorInSpace(spaceId, monitorId);
 
   const record = await MonitorRun.findOne({
@@ -95,7 +95,7 @@ const updateMonitorRunRecord = async (
   userId,
   payload
 ) => {
-  await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+  await Space.assertSpaceAccess(spaceId, userId, 'editor');
   await assertMonitorInSpace(spaceId, monitorId);
 
   const record = await MonitorRun.findOneAndUpdate(
@@ -111,7 +111,7 @@ const updateMonitorRunRecord = async (
 };
 
 const deleteMonitorRunRecord = async (spaceId, monitorId, runId, userId) => {
-  await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+  await Space.assertSpaceAccess(spaceId, userId, 'editor');
   await assertMonitorInSpace(spaceId, monitorId);
 
   const record = await MonitorRun.findOneAndDelete({

@@ -17,7 +17,7 @@ router.post(
 );
 
 router.get(
-  '/get-all',
+  '/get-all-monitors',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   MonitorController.getAllMonitorRecords
 );

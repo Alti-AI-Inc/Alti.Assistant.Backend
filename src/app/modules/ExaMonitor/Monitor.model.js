@@ -115,4 +115,4 @@ monitorSchema.pre('save', function (next) {
   next();
 });
 
-export const Monitor = model('Monitor', monitorSchema);
+export const Monitor = model('exa-monitor', monitorSchema);
