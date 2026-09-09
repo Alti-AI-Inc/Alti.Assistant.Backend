@@ -2,7 +2,6 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
-import { MonitorRunRoutes } from './monitorRun.route.js';
 import { MonitorController } from './monitor.controller.js';
 import { MonitorValidation } from './monitor.validation.js';
 
@@ -42,8 +41,40 @@ router.delete(
 );
 
 // -----------------------------------------------------------------------
-// Run history — /spaces/:spaceId/monitors/:monitorId/runs/...
+// Monitor Run
 // -----------------------------------------------------------------------
-router.use('/:monitorId/runs', MonitorRunRoutes);
+
+
+router.post(
+  '/:monitorId/runs/create-run',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(MonitorValidation.createMonitorRunZodSchema),
+  MonitorController.createMonitorRunRecord
+);
+
+router.get(
+  '/:monitorId/runs/get-all',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  MonitorController.getAllMonitorRunRecords
+);
+
+router.get(
+  '/:monitorId/runs/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  MonitorController.getSingleMonitorRunRecord
+);
+
+router.patch(
+  '/:monitorId/runs/update-run/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(MonitorValidation.updateMonitorRunZodSchema),
+  MonitorController.updateMonitorRunRecord
+);
+
+router.delete(
+  '/:monitorId/runs/delete-run/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  MonitorController.deleteMonitorRunRecord
+);
 
 export const MonitorRoutes = router;

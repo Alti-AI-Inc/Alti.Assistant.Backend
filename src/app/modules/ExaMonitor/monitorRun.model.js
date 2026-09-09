@@ -2,7 +2,7 @@ import { Schema, model } from 'mongoose';
 import {
   MONITOR_RUN_FAIL_REASON,
   MONITOR_RUN_STATUS,
-} from './monitorRun.constant.js';
+} from './monitor.constant.js';
 
 const citationSchema = new Schema(
   { url: { type: String, required: true }, title: { type: String } },

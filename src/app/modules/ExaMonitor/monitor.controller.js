@@ -83,10 +83,106 @@ const deleteMonitorRecord = catchAsync(async (req, res) => {
   });
 });
 
+
+// -----------------------------------------------------------------------
+// Monitor Run Controller
+// -----------------------------------------------------------------------
+
+const getAuthenticatedRunUserId = (req) =>
+  req.user?.id || req.user?._id || req.user?.userId;
+
+const createMonitorRunRecord = catchAsync(async (req, res) => {
+  const result = await MonitorService.createMonitorRunRecord(
+    req.params.spaceId,
+    req.params.monitorId,
+    getAuthenticatedRunUserId(req),
+    req.body
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Run stored successfully',
+    data: result,
+  });
+});
+
+const getAllMonitorRunRecords = catchAsync(async (req, res) => {
+  const result = await MonitorService.getAllMonitorRunRecords(
+    req.params.spaceId,
+    req.params.monitorId,
+    getAuthenticatedRunUserId(req),
+    req.query
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Runs retrieved successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getSingleMonitorRunRecord = catchAsync(async (req, res) => {
+  const result = await MonitorService.getSingleMonitorRunRecord(
+    req.params.spaceId,
+    req.params.monitorId,
+    req.params.id,
+    getAuthenticatedRunUserId(req)
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Run retrieved successfully',
+    data: result,
+  });
+});
+
+const updateMonitorRunRecord = catchAsync(async (req, res) => {
+  const result = await MonitorService.updateMonitorRunRecord(
+    req.params.spaceId,
+    req.params.monitorId,
+    req.params.id,
+    getAuthenticatedRunUserId(req),
+    req.body
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Run updated successfully',
+    data: result,
+  });
+});
+
+const deleteMonitorRunRecord = catchAsync(async (req, res) => {
+  const result = await MonitorService.deleteMonitorRunRecord(
+    req.params.spaceId,
+    req.params.monitorId,
+    req.params.id,
+    getAuthenticatedRunUserId(req)
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Run deleted successfully',
+    data: result,
+  });
+});
+
 export const MonitorController = {
   createMonitorRecord,
   getAllMonitorRecords,
   getSingleMonitorRecord,
   updateMonitorRecord,
   deleteMonitorRecord,
+  createMonitorRunRecord,
+  getAllMonitorRunRecords,
+  getSingleMonitorRunRecord,
+  updateMonitorRunRecord,
+  deleteMonitorRunRecord,
+  getAuthenticatedRunUserId,
 };
