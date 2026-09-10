@@ -13,7 +13,7 @@ import {
 } from './monitor.constant.js';
 import { Monitor } from './Monitor.model.js';
 import { MonitorRun } from './monitorRun.model.js';
-import { MonitorSession } from './monitorSession.model.js';
+import { MonitorSession } from './Monitorsession.model.js';
 import { MonitorExa } from './monitor.exa.js'; 
 
 
