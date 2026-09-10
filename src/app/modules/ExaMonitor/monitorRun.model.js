@@ -20,12 +20,7 @@ const groundingItemSchema = new Schema(
 
 const outputSchema = new Schema(
   {
-    // Array of Exa search result objects (title, url, publishedDate, ...) —
-    // left schemaless per-item, mirroring ExaSearch's approach for
-    // arbitrary Exa response fields.
     results: { type: [Schema.Types.Mixed], default: undefined },
-    // Structured or plain-text synthesized output, shaped by the
-    // parent monitor's outputSchema.
     content: { type: Schema.Types.Mixed },
     grounding: { type: [groundingItemSchema], default: undefined },
   },
@@ -45,7 +40,7 @@ const monitorRunSchema = new Schema(
     },
     monitor: {
       type: Schema.Types.ObjectId,
-      ref: 'Monitor',
+      ref: 'exa-monitor',
       required: true,
       index: true,
     },

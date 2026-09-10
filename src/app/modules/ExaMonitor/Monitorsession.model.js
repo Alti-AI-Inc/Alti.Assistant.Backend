@@ -19,10 +19,8 @@ const monitorSessionSchema = new Schema(
       required: true,
       index: true,
     },
-    // Optional caller-facing label for the session.
-    name: { type: String, trim: true },
     monitors: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'Monitor' }],
+      type: [{ type: Schema.Types.ObjectId, ref: 'exa-monitor' }],
       default: [],
     },
   },

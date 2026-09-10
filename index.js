@@ -92,7 +92,7 @@ for (const key of RECOMMENDED_ENV) {
 
 const app = express();
 
-app.use('/api/v1/webhooks/exa/monitors', MonitorWebhookRoutes);
+app.use('/api/v1/webhooks/exa', MonitorWebhookRoutes);
 
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));

@@ -13,8 +13,9 @@ import {
 } from './monitor.constant.js';
 import { Monitor } from './Monitor.model.js';
 import { MonitorRun } from './monitorRun.model.js';
-import { MonitorSession } from './Monitorsession.model.js';
-// import { MonitorSession } from './monitorSession.model.js';
+import { MonitorSession } from './monitorSession.model.js';
+import { MonitorExa } from './monitor.exa.js'; 
+
 
 /**
  * Resolves which monitor-session a newly created monitor should join.
@@ -23,6 +24,7 @@ import { MonitorSession } from './Monitorsession.model.js';
  *   onto the space.
  * Returns the session document.
  */
+
 const resolveMonitorSession = async (spaceId, userId, monitorSessionId) => {
   if (monitorSessionId) {
     const session = await MonitorSession.findOne({
@@ -48,19 +50,99 @@ const resolveMonitorSession = async (spaceId, userId, monitorSessionId) => {
   return session;
 };
 
+// const createMonitorRecord = async (spaceId, userId, payload) => {
+//   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+
+//   const { monitorSessionId, ...monitorPayload } = payload;
+
+//   let record;
+//   try {
+//     record = await Monitor.create({
+//       ...monitorPayload,
+//       space: spaceId,
+//       user: userId,
+//     });
+//   } catch (err) {
+//     if (err?.code === 11000) {
+//       throw new ApiError(
+//         httpStatus.CONFLICT,
+//         'A monitor with this exaMonitorId is already stored'
+//       );
+//     }
+//     throw err;
+//   }
+//   console.log(record, 'recorddddddd');
+//   try {
+//     const session = await resolveMonitorSession(
+//       spaceId,
+//       userId,
+//       monitorSessionId
+//     );
+//     await MonitorSession.findByIdAndUpdate(session._id, {
+//       $addToSet: { monitors: record._id },
+//     });
+//     // Idempotent — covers the case where the session was passed in
+//     // explicitly but was somehow not yet linked on the space.
+//     await Space.findByIdAndUpdate(spaceId, {
+//       $addToSet: { monitorSessions: session._id },
+//     });
+//   } catch (err) {
+//     // Roll back the orphaned monitor rather than leaving it unlinked
+//     // from any session.
+//     await Monitor.findByIdAndDelete(record._id);
+//     throw err;
+//   }
+
+//   return record;
+// };
+
+
+/**
+ * CHANGED: this used to just save whatever exaMonitorId/webhookSecret
+ * the caller sent in the request body — meaning a client could type in
+ * fake values and nothing would ever actually run on Exa.
+ *
+ * Now: this function calls Exa itself first, and only stores the real
+ * id/secret Exa hands back. The caller no longer sends exaMonitorId or
+ * webhookSecret at all — just name/search/trigger/outputSchema/
+ * metadata/webhook/monitorSessionId. Update your Zod validation
+ * schema (MonitorValidation.createMonitorZodSchema) to match: drop
+ * exaMonitorId and webhookSecret from the expected request body.
+ */
 const createMonitorRecord = async (spaceId, userId, payload) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
-
+ 
   const { monitorSessionId, ...monitorPayload } = payload;
-
+ 
+  // 1. Actually create the monitor on Exa's servers first.
+  const exaMonitor = await MonitorExa.createExaMonitor({
+    name: monitorPayload.name,
+    search: monitorPayload.search,
+    trigger: monitorPayload.trigger,
+    outputSchema: monitorPayload.outputSchema,
+    metadata: monitorPayload.metadata,
+    webhook: monitorPayload.webhook,
+  });
+  // exaMonitor.id and exaMonitor.webhookSecret are REAL, from Exa —
+  // never invented locally, never taken from client input.
+ 
   let record;
   try {
     record = await Monitor.create({
       ...monitorPayload,
+      exaMonitorId: exaMonitor.id,
+      webhookSecret: exaMonitor.webhookSecret,
+      nextRunAt: exaMonitor.nextRunAt,
+      exaCreatedAt: exaMonitor.createdAt,
+      exaUpdatedAt: exaMonitor.updatedAt,
       space: spaceId,
       user: userId,
     });
   } catch (err) {
+    // We already created the monitor on Exa's side — if the local save
+    // fails, clean up the Exa monitor too, or you'll get an orphaned
+    // monitor running on Exa's servers with nowhere local to track it.
+    await MonitorExa.deleteExaMonitor(exaMonitor.id).catch(() => {});
     if (err?.code === 11000) {
       throw new ApiError(
         httpStatus.CONFLICT,
@@ -69,7 +151,7 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
     }
     throw err;
   }
-
+ 
   try {
     const session = await resolveMonitorSession(
       spaceId,
@@ -86,11 +168,12 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
     });
   } catch (err) {
     // Roll back the orphaned monitor rather than leaving it unlinked
-    // from any session.
+    // from any session. Also roll back on Exa's side.
     await Monitor.findByIdAndDelete(record._id);
+    await MonitorExa.deleteExaMonitor(exaMonitor.id).catch(() => {});
     throw err;
   }
-
+ 
   return record;
 };
 
@@ -201,6 +284,21 @@ const deleteMonitorRecord = async (spaceId, monitorId, userId) => {
 
   return record;
 };
+/**
+ * NEW: starts a run on Exa right now, instead of waiting for the
+ * schedule. This is the piece your route/controller never had.
+ */
+const triggerMonitor = async (spaceId, monitorId, userId) => {
+  await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+ 
+  const monitor = await Monitor.findOne({ _id: monitorId, space: spaceId });
+  if (!monitor) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
+  }
+ 
+  await MonitorExa.triggerExaMonitor(monitor.exaMonitorId);
+  return { triggered: true };
+};
 
 // -----------------------------------------------------------------------
 // Monitor Run Service
@@ -214,26 +312,38 @@ const assertMonitorInSpace = async (spaceId, monitorId) => {
   return monitor;
 };
 
+// const createMonitorRunRecord = async (spaceId, monitorId, userId, payload) => {
+//   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
+//   await assertMonitorInSpace(spaceId, monitorId);
+
+//   try {
+//     const record = await MonitorRun.create({
+//       ...payload,
+//       space: spaceId,
+//       monitor: monitorId,
+//     });
+//     return record;
+//   } catch (err) {
+//     if (err?.code === 11000) {
+//       throw new ApiError(
+//         httpStatus.CONFLICT,
+//         'A run with this exaRunId is already stored for this monitor'
+//       );
+//     }
+//     throw err;
+//   }
+// };
+
 const createMonitorRunRecord = async (spaceId, monitorId, userId, payload) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
   await assertMonitorInSpace(spaceId, monitorId);
 
-  try {
-    const record = await MonitorRun.create({
-      ...payload,
-      space: spaceId,
-      monitor: monitorId,
-    });
-    return record;
-  } catch (err) {
-    if (err?.code === 11000) {
-      throw new ApiError(
-        httpStatus.CONFLICT,
-        'A run with this exaRunId is already stored for this monitor'
-      );
-    }
-    throw err;
-  }
+  const record = await MonitorRun.findOneAndUpdate(
+    { space: spaceId, monitor: monitorId, exaRunId: payload.exaRunId },
+    { $set: payload },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+  );
+  return record;
 };
 
 const getAllMonitorRunRecords = async (spaceId, monitorId, userId, query) => {
@@ -328,6 +438,7 @@ export const MonitorService = {
   updateMonitorRecord,
   deleteMonitorRecord,
   assertMonitorInSpace,
+  triggerMonitor,
   createMonitorRunRecord,
   getAllMonitorRunRecords,
   getSingleMonitorRunRecord,

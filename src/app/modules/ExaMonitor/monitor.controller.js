@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { MonitorService } from './monitor.service.js';
+import ApiError from '../../../errors/ApiError.js';
 
 const getAuthenticatedUserId = (req) =>
   req.user?.id || req.user?._id || req.user?.userId;
@@ -79,6 +80,22 @@ const deleteMonitorRecord = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: 'Monitor deleted successfully',
+    data: result,
+  });
+});
+
+// NEW: actually starts a run on Exa right now.
+const triggerMonitorRecord = catchAsync(async (req, res) => {
+  const result = await MonitorService.triggerMonitor(
+    req.params.spaceId,
+    req.params.id,
+    getAuthenticatedUserId(req)
+  );
+ 
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Monitor run triggered on Exa',
     data: result,
   });
 });
@@ -185,4 +202,5 @@ export const MonitorController = {
   updateMonitorRunRecord,
   deleteMonitorRunRecord,
   getAuthenticatedRunUserId,
+  triggerMonitorRecord,
 };

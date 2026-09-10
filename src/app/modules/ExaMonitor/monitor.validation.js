@@ -37,7 +37,7 @@ const webhookZodSchema = z.object({
 // search/contents modules' pattern.
 const createMonitorZodSchema = z.object({
   body: z.object({
-    exaMonitorId: z.string({ required_error: 'exaMonitorId is required' }),
+    // exaMonitorId: z.string({ required_error: 'exaMonitorId is required' }),
     name: z.string().optional(),
     status: z.enum(MONITOR_STATUS).optional(),
     search: searchConfigZodSchema,
@@ -47,7 +47,7 @@ const createMonitorZodSchema = z.object({
     webhook: webhookZodSchema,
     // Only present in the payload immediately after creation — Exa
     // never returns it again after the initial create response.
-    webhookSecret: z.string().optional(),
+    // webhookSecret: z.string().optional(),
     nextRunAt: z.coerce.date().nullable().optional(),
     exaCreatedAt: z.coerce.date().optional(),
     exaUpdatedAt: z.coerce.date().optional(),

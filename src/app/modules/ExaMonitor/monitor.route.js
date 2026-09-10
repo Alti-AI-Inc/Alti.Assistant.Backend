@@ -20,6 +20,15 @@ router.get(
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   MonitorController.getAllMonitorRecords
 );
+// NEW: actually starts a run on Exa right now instead of waiting for
+// the interval schedule. Nothing like this existed before — you had
+// no way to trigger a run except by typing a fake run record directly
+// into your own database.
+router.post(
+  '/trigger/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  MonitorController.triggerMonitorRecord
+);
 
 router.get(
   '/:id',
