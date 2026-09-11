@@ -27,7 +27,7 @@ const createSearchRecord = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: 'Search result stored successfully',
+    message: 'Webset created — search is running',
     data: result,
   });
 });
@@ -59,6 +59,23 @@ const getSingleSearchRecord = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: 'Search result retrieved successfully',
+    data: result,
+  });
+});
+
+// Manually refreshes a record from Exa — fallback path for when the webhook
+// hasn't delivered yet (or isn't configured, e.g. local dev without a public URL).
+const syncSearchRecord = catchAsync(async (req, res) => {
+  const result = await ExaResearchService.syncSearchRecord(
+    req.params.spaceId,
+    req.params.id,
+    getAuthenticatedUserId(req)
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Search result synced successfully',
     data: result,
   });
 });
@@ -98,6 +115,7 @@ export const ResearchController = {
   createSearchRecord,
   getAllSearchRecords,
   getSingleSearchRecord,
+  syncSearchRecord,
   updateSearchRecord,
   deleteSearchRecord,
 };

@@ -8,7 +8,12 @@ export const MONITOR_TRIGGER_PERIOD_REGEX = /^\d+[hd]$/;
 
 export const MONITOR_FILTERABLE_FIELDS = ['searchTerm', 'status'];
 export const MONITOR_SEARCHABLE_FIELDS = ['name', 'search.query'];
-export const MONITOR_PAGINATION_FIELDS = ['page', 'limit', 'sortBy', 'sortOrder'];
+export const MONITOR_PAGINATION_FIELDS = [
+  'page',
+  'limit',
+  'sortBy',
+  'sortOrder',
+];
 
 export const MONITOR_WEBHOOK_EVENTS = [
   'monitor.created',
@@ -26,11 +31,13 @@ export const MONITOR_RUN_STATUS = [
 ];
 
 export const MONITOR_RUN_FAIL_REASON = [
-  'CRAWL_NOT_FOUND',
-  'CRAWL_TIMEOUT',
-  'CRAWL_LIVECRAWL_TIMEOUT',
-  'SOURCE_NOT_AVAILABLE',
-  'CRAWL_UNKNOWN_ERROR',
+  'api_key_invalid',
+  'insufficient_credits',
+  'invalid_params',
+  'rate_limited',
+  'search_unavailable',
+  'search_failed',
+  'internal_error',
 ];
 
 export const MONITOR_RUN_FILTERABLE_FIELDS = ['status', 'failReason'];

@@ -11,11 +11,148 @@ import {
   MONITOR_RUN_PAGINATION_FIELDS,
   MONITOR_SEARCHABLE_FIELDS,
 } from './monitor.constant.js';
+import { MonitorExa } from './monitor.exa.js';
 import { Monitor } from './Monitor.model.js';
 import { MonitorRun } from './monitorRun.model.js';
 import { MonitorSession } from './Monitorsession.model.js';
-import { MonitorExa } from './monitor.exa.js'; 
 
+const isPlainObject = (value) =>
+  Boolean(value) &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  !(value instanceof Date);
+
+const isEmptyPlainObject = (value) =>
+  isPlainObject(value) && Object.keys(value).length === 0;
+
+const sanitizeWebhookConfig = (webhook) => {
+  if (!webhook) return webhook;
+
+  const sanitized = { ...webhook };
+  if (Array.isArray(sanitized.events) && sanitized.events.length === 0) {
+    delete sanitized.events;
+  }
+
+  return sanitized;
+};
+
+const sanitizeMonitorConfigPayload = (payload = {}, options = {}) => {
+  const { mode = 'update' } = options;
+  const sanitized = { ...payload };
+
+  if ('webhook' in sanitized) {
+    sanitized.webhook = sanitizeWebhookConfig(sanitized.webhook);
+  }
+
+  if ('outputSchema' in sanitized) {
+    if (mode === 'create') {
+      if (
+        sanitized.outputSchema === null ||
+        isEmptyPlainObject(sanitized.outputSchema)
+      ) {
+        delete sanitized.outputSchema;
+      }
+    } else if (isEmptyPlainObject(sanitized.outputSchema)) {
+      sanitized.outputSchema = null;
+    }
+  }
+
+  Object.keys(sanitized).forEach((key) => {
+    if (sanitized[key] === undefined) {
+      delete sanitized[key];
+    }
+  });
+
+  return sanitized;
+};
+
+const buildMonitorPersistenceFields = (exaMonitor) => ({
+  name: exaMonitor.name,
+  status: exaMonitor.status,
+  search: exaMonitor.search,
+  trigger: exaMonitor.trigger ?? null,
+  outputSchema: isEmptyPlainObject(exaMonitor.outputSchema)
+    ? null
+    : (exaMonitor.outputSchema ?? null),
+  metadata: exaMonitor.metadata ?? null,
+  webhook: sanitizeWebhookConfig(exaMonitor.webhook),
+  nextRunAt: exaMonitor.nextRunAt,
+  exaCreatedAt: exaMonitor.createdAt,
+  exaUpdatedAt: exaMonitor.updatedAt,
+  lastSyncedAt: new Date(),
+});
+
+const monitorNeedsConfigRepair = (monitor) =>
+  isEmptyPlainObject(monitor?.outputSchema);
+
+const repairMonitorConfigIfNeeded = async (monitor) => {
+  if (!monitorNeedsConfigRepair(monitor)) {
+    return monitor;
+  }
+
+  const repairedExaMonitor = await MonitorExa.updateExaMonitor(
+    monitor.exaMonitorId,
+    sanitizeMonitorConfigPayload({
+      outputSchema: monitor.outputSchema,
+    })
+  );
+
+  return Monitor.findByIdAndUpdate(
+    monitor._id,
+    { $set: buildMonitorPersistenceFields(repairedExaMonitor) },
+    { new: true }
+  );
+};
+
+const normalizeMonitorRun = (run = {}) => ({
+  status: run.status,
+  output: run.output ?? null,
+  failReason: run.failReason ?? null,
+  startedAt: run.startedAt ?? null,
+  completedAt: run.completedAt ?? null,
+  failedAt: run.failedAt ?? null,
+  cancelledAt: run.cancelledAt ?? null,
+  durationMs: run.durationMs ?? null,
+  exaCreatedAt: run.createdAt ?? null,
+  exaUpdatedAt: run.updatedAt ?? null,
+});
+
+const upsertMonitorRunFromExa = async (monitor, run) => {
+  if (!run?.id) return null;
+
+  return MonitorRun.findOneAndUpdate(
+    { monitor: monitor._id, exaRunId: run.id },
+    {
+      $set: {
+        ...normalizeMonitorRun(run),
+        space: monitor.space,
+        monitor: monitor._id,
+        exaRunId: run.id,
+      },
+    },
+    { upsert: true, new: true, runValidators: true }
+  );
+};
+
+const syncMonitorDocumentFromExa = async (monitor, options = {}) => {
+  const { runLimit = 10 } = options;
+  const exaMonitor = await MonitorExa.getExaMonitor(monitor.exaMonitorId);
+
+  const update = buildMonitorPersistenceFields(exaMonitor);
+
+  const [syncedMonitor, runsResponse] = await Promise.all([
+    Monitor.findByIdAndUpdate(monitor._id, { $set: update }, { new: true }),
+    MonitorExa.listExaMonitorRuns(monitor.exaMonitorId, { limit: runLimit }),
+  ]);
+
+  const runs = Array.isArray(runsResponse?.data) ? runsResponse.data : [];
+  await Promise.all(runs.map((run) => upsertMonitorRunFromExa(monitor, run)));
+
+  return {
+    monitor: syncedMonitor,
+    runs,
+  };
+};
 
 /**
  * Resolves which monitor-session a newly created monitor should join.
@@ -96,7 +233,6 @@ const resolveMonitorSession = async (spaceId, userId, monitorSessionId) => {
 //   return record;
 // };
 
-
 /**
  * CHANGED: this used to just save whatever exaMonitorId/webhookSecret
  * the caller sent in the request body — meaning a client could type in
@@ -111,30 +247,30 @@ const resolveMonitorSession = async (spaceId, userId, monitorSessionId) => {
  */
 const createMonitorRecord = async (spaceId, userId, payload) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
- 
+
   const { monitorSessionId, ...monitorPayload } = payload;
- 
+  const sanitizedMonitorPayload = sanitizeMonitorConfigPayload(monitorPayload, {
+    mode: 'create',
+  });
+
   // 1. Actually create the monitor on Exa's servers first.
   const exaMonitor = await MonitorExa.createExaMonitor({
-    name: monitorPayload.name,
-    search: monitorPayload.search,
-    trigger: monitorPayload.trigger,
-    outputSchema: monitorPayload.outputSchema,
-    metadata: monitorPayload.metadata,
-    webhook: monitorPayload.webhook,
+    name: sanitizedMonitorPayload.name,
+    search: sanitizedMonitorPayload.search,
+    trigger: sanitizedMonitorPayload.trigger,
+    outputSchema: sanitizedMonitorPayload.outputSchema,
+    metadata: sanitizedMonitorPayload.metadata,
+    webhook: sanitizedMonitorPayload.webhook,
   });
   // exaMonitor.id and exaMonitor.webhookSecret are REAL, from Exa —
   // never invented locally, never taken from client input.
- 
+
   let record;
   try {
     record = await Monitor.create({
-      ...monitorPayload,
+      ...buildMonitorPersistenceFields(exaMonitor),
       exaMonitorId: exaMonitor.id,
       webhookSecret: exaMonitor.webhookSecret,
-      nextRunAt: exaMonitor.nextRunAt,
-      exaCreatedAt: exaMonitor.createdAt,
-      exaUpdatedAt: exaMonitor.updatedAt,
       space: spaceId,
       user: userId,
     });
@@ -151,7 +287,7 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
     }
     throw err;
   }
- 
+
   try {
     const session = await resolveMonitorSession(
       spaceId,
@@ -173,7 +309,7 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
     await MonitorExa.deleteExaMonitor(exaMonitor.id).catch(() => {});
     throw err;
   }
- 
+
   return record;
 };
 
@@ -239,10 +375,25 @@ const updateMonitorRecord = async (spaceId, monitorId, userId, payload) => {
   // sessions isn't supported by this endpoint.
   const { exaMonitorId, webhookSecret, monitorSessionId, ...safePayload } =
     payload;
+  const sanitizedPayload = sanitizeMonitorConfigPayload(safePayload);
+
+  const existingMonitor = await Monitor.findOne({
+    _id: monitorId,
+    space: spaceId,
+  });
+
+  if (!existingMonitor) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
+  }
+
+  const exaMonitor = await MonitorExa.updateExaMonitor(
+    existingMonitor.exaMonitorId,
+    sanitizedPayload
+  );
 
   const record = await Monitor.findOneAndUpdate(
     { _id: monitorId, space: spaceId },
-    safePayload,
+    { $set: buildMonitorPersistenceFields(exaMonitor) },
     { new: true, runValidators: true }
   );
 
@@ -255,13 +406,22 @@ const updateMonitorRecord = async (spaceId, monitorId, userId, payload) => {
 const deleteMonitorRecord = async (spaceId, monitorId, userId) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
 
-  const record = await Monitor.findOneAndDelete({
+  const record = await Monitor.findOne({
     _id: monitorId,
     space: spaceId,
   });
   if (!record) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
   }
+
+  await MonitorExa.deleteExaMonitor(record.exaMonitorId).catch((error) => {
+    throw new ApiError(
+      httpStatus.BAD_GATEWAY,
+      `Failed to delete monitor on Exa: ${error.message}`
+    );
+  });
+
+  await record.deleteOne();
 
   // Cascade: a monitor's run history is meaningless once the monitor
   // itself is gone locally.
@@ -290,14 +450,28 @@ const deleteMonitorRecord = async (spaceId, monitorId, userId) => {
  */
 const triggerMonitor = async (spaceId, monitorId, userId) => {
   await SpaceService.assertSpaceAccess(spaceId, userId, 'editor');
- 
+
   const monitor = await Monitor.findOne({ _id: monitorId, space: spaceId });
   if (!monitor) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
   }
- 
-  await MonitorExa.triggerExaMonitor(monitor.exaMonitorId);
+
+  const repairedMonitor = await repairMonitorConfigIfNeeded(monitor);
+
+  await MonitorExa.triggerExaMonitor(repairedMonitor.exaMonitorId);
   return { triggered: true };
+};
+
+const syncMonitorRecord = async (spaceId, monitorId, userId) => {
+  await SpaceService.assertSpaceAccess(spaceId, userId, 'viewer');
+
+  const monitor = await Monitor.findOne({ _id: monitorId, space: spaceId });
+  if (!monitor) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
+  }
+
+  const { monitor: syncedMonitor } = await syncMonitorDocumentFromExa(monitor);
+  return syncedMonitor;
 };
 
 // -----------------------------------------------------------------------
@@ -439,6 +613,7 @@ export const MonitorService = {
   deleteMonitorRecord,
   assertMonitorInSpace,
   triggerMonitor,
+  syncMonitorRecord,
   createMonitorRunRecord,
   getAllMonitorRunRecords,
   getSingleMonitorRunRecord,

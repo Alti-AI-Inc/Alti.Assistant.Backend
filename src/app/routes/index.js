@@ -1,5 +1,6 @@
 import express from 'express';
 import { authRoutes } from '../modules/auth/auth.route.js';
+import { ResearchRoutes } from '../modules/ExaResearch/exaResearch.route.js';
 
 
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
@@ -67,6 +68,10 @@ const moduleRoutes = [
   {
     path: '/monitors',
     route: MonitorRoutes,
+  },
+  {
+    path: '/researches',
+    route: ResearchRoutes,
   },
 ];
 

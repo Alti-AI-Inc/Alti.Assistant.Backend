@@ -1,8 +1,10 @@
+import crypto from 'crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Space } from '../Space/space.model.js';
-import { ExaSearch } from './exaResearch.model.js';
-import { ExaSearchService } from './exaSearch.service.js';
-import { SearchSession } from './searchSession.model.js';
+import { SpaceService } from '../Space/space.service.js';
+import { ExaResearch } from './exaResearch.model.js';
+import { ExaResearchService } from './exaResearch.service.js';
+import { SearchSession } from './searchResearch.model.js';
 
 vi.mock('../Space/space.model.js', () => ({
   Space: {
@@ -11,18 +13,27 @@ vi.mock('../Space/space.model.js', () => ({
   },
 }));
 
-vi.mock('./exaSearch.model.js', () => ({
-  ExaSearch: {
-    create: vi.fn(),
-    find: vi.fn(),
-    countDocuments: vi.fn(),
-    findById: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    deleteOne: vi.fn(),
+vi.mock('../Space/space.service.js', () => ({
+  SpaceService: {
+    assertSpaceAccess: vi.fn().mockResolvedValue(true),
   },
 }));
 
-vi.mock('./searchSession.model.js', () => ({
+vi.mock('./exaResearch.model.js', () => ({
+  ExaResearch: {
+    create: vi.fn(),
+    find: vi.fn(),
+    findOne: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+    findOneAndDelete: vi.fn(),
+    findById: vi.fn(),
+    findByIdAndUpdate: vi.fn(),
+    updateOne: vi.fn(),
+    countDocuments: vi.fn(),
+  },
+}));
+
+vi.mock('./searchResearch.model.js', () => ({
   SearchSession: {
     create: vi.fn(),
     findOne: vi.fn(),
@@ -32,155 +43,235 @@ vi.mock('./searchSession.model.js', () => ({
   },
 }));
 
-describe('ExaSearchService', () => {
+describe('ExaResearchService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    SpaceService.assertSpaceAccess.mockResolvedValue(true);
     process.env.EXA_API_KEY = 'test-key';
+    process.env.EXA_WEBHOOK_SECRET = 'whsec_test';
   });
 
-  it('should call the Exa API and persist search results in the space', async () => {
-    const responseBody = {
-      results: [
-        {
-          id: 'exa-1',
-          title: 'Example result',
-          url: 'https://example.com',
-          author: 'Jane Doe',
-          score: 0.91,
-          text: 'This is the page text',
-          summary: 'Useful summary',
-          highlights: ['AI'],
-          highlightScores: [0.98],
-        },
-      ],
-    };
+  describe('runSearch / createSearchRecord', () => {
+    it('creates the DB record first, sends its _id as externalId, and stores the returned webset', async () => {
+      const recordId = 'record-1';
+      ExaResearch.create.mockResolvedValue({ _id: recordId });
+      SearchSession.create.mockResolvedValue({ _id: 'session-1' });
 
-    const spaceDoc = {
-      _id: 'space-1',
-      owner: 'user-1',
-      members: [],
-      searchCount: 0,
-    };
+      const websetResponse = {
+        id: 'ws_abc123',
+        externalId: recordId,
+        status: 'running',
+        searches: [
+          {
+            id: 'ws_search_abc',
+            status: 'running',
+            query: 'AI automation',
+            count: 10,
+            criteria: [{ description: 'Is an AI company', successRate: null }],
+            progress: { found: 0, completion: 0 },
+          },
+        ],
+        enrichments: [],
+      };
 
-    const savedDoc = {
-      _id: 'result-1',
-      space: 'space-1',
-      user: 'user-1',
-      query: 'AI automation',
-      results: [
-        {
-          exaId: 'exa-1',
-          title: 'Example result',
-          url: 'https://example.com',
-          author: 'Jane Doe',
-          score: 0.91,
-          text: 'This is the page text',
-          summary: 'Useful summary',
-          highlights: ['AI'],
-          highlightScores: [0.98],
-        },
-      ],
-      resultCount: 1,
-    };
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => websetResponse,
+      });
 
-    Space.findById.mockResolvedValue(spaceDoc);
-    SearchSession.create.mockResolvedValue({ _id: 'session-1' });
-    ExaSearch.create.mockResolvedValue(savedDoc);
+      const updatedDoc = { _id: recordId, websetId: 'ws_abc123', status: 'running' };
+      ExaResearch.findByIdAndUpdate.mockResolvedValue(updatedDoc);
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => responseBody,
-    });
-
-    const result = await ExaSearchService.runSearch('space-1', 'user-1', {
-      query: 'AI automation',
-      searchType: 'auto',
-      numResults: 5,
-      contents: {
-        text: { maxCharacters: 2000 },
-        highlights: { query: 'automation', highlightsPerUrl: 2 },
-        summary: true,
-      },
-    });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.exa.ai/search',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          Authorization: 'Bearer test-key',
-          'Content-Type': 'application/json',
-        }),
-        body: expect.stringContaining('"contents"'),
-      })
-    );
-
-    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toMatchObject({
-      contents: {
-        text: { maxCharacters: 2000 },
-        highlights: { query: 'automation', highlightsPerUrl: 2 },
-        summary: true,
-      },
-    });
-
-    expect(ExaSearch.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        space: 'space-1',
-        user: 'user-1',
-        searchSession: 'session-1',
+      const result = await ExaResearchService.runSearch('space-1', 'user-1', {
         query: 'AI automation',
-        results: expect.arrayContaining([
-          expect.objectContaining({
-            exaId: 'exa-1',
-            url: 'https://example.com',
+        count: 10,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.exa.ai/websets/v0/websets/',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-key',
+            'Content-Type': 'application/json',
           }),
-        ]),
-      })
-    );
+        })
+      );
 
-    expect(SearchSession.findByIdAndUpdate).toHaveBeenCalledWith('session-1', {
-      $addToSet: { searches: 'result-1' },
-      $set: { lastSearchAt: expect.any(Date) },
-    });
-    expect(Space.findByIdAndUpdate).toHaveBeenCalledWith('space-1', {
-      $addToSet: { searchSessions: 'session-1' },
-    });
-    expect(Space.findByIdAndUpdate).toHaveBeenCalledWith('space-1', {
-      $inc: { searchCount: 1 },
+      const sentBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(sentBody).toMatchObject({
+        search: { query: 'AI automation', count: 10 },
+        externalId: recordId,
+      });
+
+      expect(ExaResearch.findByIdAndUpdate).toHaveBeenCalledWith(
+        recordId,
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            websetId: 'ws_abc123',
+            status: 'running',
+            searches: expect.arrayContaining([
+              expect.objectContaining({ searchId: 'ws_search_abc', query: 'AI automation' }),
+            ]),
+          }),
+        }),
+        { new: true }
+      );
+
+      expect(SearchSession.findByIdAndUpdate).toHaveBeenCalledWith('session-1', {
+        $addToSet: { researches: recordId },
+        $set: { lastSearchAt: expect.any(Date) },
+      });
+      expect(Space.findByIdAndUpdate).toHaveBeenCalledWith('space-1', {
+        $inc: { searchCount: 1 },
+      });
+
+      expect(result).toEqual(updatedDoc);
     });
 
-    expect(result).toEqual(savedDoc);
+    it('marks the record failed when Exa rejects the create request', async () => {
+      ExaResearch.create.mockResolvedValue({ _id: 'record-2' });
+      SearchSession.create.mockResolvedValue({ _id: 'session-2' });
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ message: 'Invalid query' }),
+      });
+
+      const failedDoc = { _id: 'record-2', status: 'failed', errorMessage: 'Invalid query' };
+      ExaResearch.findByIdAndUpdate.mockResolvedValue(failedDoc);
+
+      const result = await ExaResearchService.runSearch('space-1', 'user-1', {
+        query: 'bad query',
+      });
+
+      expect(ExaResearch.findByIdAndUpdate).toHaveBeenCalledWith(
+        'record-2',
+        { $set: { status: 'failed', errorMessage: 'Invalid query', requestParams: expect.any(Object) } },
+        { new: true }
+      );
+      expect(result).toEqual(failedDoc);
+    });
   });
 
-  it('adds a search to the supplied session instead of creating a new one', async () => {
-    Space.findById.mockResolvedValue({
-      _id: 'space-1',
-      owner: 'user-1',
-      members: [],
-    });
-    SearchSession.findOne.mockResolvedValue({ _id: 'session-1' });
-    ExaSearch.create.mockResolvedValue({ _id: 'result-2' });
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ results: [] }),
+  describe('syncSearchRecord', () => {
+    it('pulls current state from Exa and updates the record', async () => {
+      ExaResearch.findOne.mockResolvedValue({ _id: 'record-3', websetId: 'ws_abc123' });
+
+      const websetResponse = {
+        status: 'idle',
+        searches: [],
+        enrichments: [],
+        items: [
+          {
+            id: 'wsi_1',
+            source: 'search',
+            properties: { type: 'company', url: 'https://example.com' },
+            evaluations: [],
+            enrichments: [],
+          },
+        ],
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => websetResponse,
+      });
+
+      const syncedDoc = { _id: 'record-3', status: 'idle' };
+      ExaResearch.findByIdAndUpdate.mockResolvedValue(syncedDoc);
+
+      const result = await ExaResearchService.syncSearchRecord('space-1', 'record-3', 'user-1');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.exa.ai/websets/v0/websets/ws_abc123?expand=items',
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(ExaResearch.findByIdAndUpdate).toHaveBeenCalledWith(
+        'record-3',
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            status: 'idle',
+            items: expect.arrayContaining([
+              expect.objectContaining({ itemId: 'wsi_1' }),
+            ]),
+          }),
+          $unset: { errorMessage: '' },
+        }),
+        { new: true }
+      );
+      expect(result).toEqual(syncedDoc);
     });
 
-    await ExaSearchService.runSearch('space-1', 'user-1', {
-      query: 'Compare their pricing',
-      searchSessionId: 'session-1',
+    it('throws when the record has no websetId yet', async () => {
+      ExaResearch.findOne.mockResolvedValue({ _id: 'record-4', websetId: undefined });
+
+      await expect(
+        ExaResearchService.syncSearchRecord('space-1', 'record-4', 'user-1')
+      ).rejects.toThrow('This record has no associated webset to sync yet.');
+    });
+  });
+
+  describe('webhook handling', () => {
+    it('verifies a correctly signed payload', () => {
+      const secret = 'whsec_test';
+      const rawBody = Buffer.from(JSON.stringify({ type: 'webset.idle' }));
+      const timestamp = '1700000000';
+      const signature = crypto
+        .createHmac('sha256', secret)
+        .update(`${timestamp}.${rawBody.toString('utf8')}`)
+        .digest('hex');
+
+      const isValid = ExaResearchService.verifyWebhookSignature(
+        rawBody,
+        `t=${timestamp},v1=${signature}`,
+        secret
+      );
+
+      expect(isValid).toBe(true);
     });
 
-    expect(SearchSession.create).not.toHaveBeenCalled();
-    expect(SearchSession.findOne).toHaveBeenCalledWith({
-      _id: 'session-1',
-      space: 'space-1',
+    it('rejects a tampered payload', () => {
+      const secret = 'whsec_test';
+      const rawBody = Buffer.from(JSON.stringify({ type: 'webset.idle' }));
+      const isValid = ExaResearchService.verifyWebhookSignature(
+        rawBody,
+        't=1700000000,v1=deadbeef',
+        secret
+      );
+
+      expect(isValid).toBe(false);
     });
-    expect(ExaSearch.create).toHaveBeenCalledWith(
-      expect.objectContaining({ searchSession: 'session-1' })
-    );
-    expect(SearchSession.findByIdAndUpdate).toHaveBeenCalledWith('session-1', {
-      $addToSet: { searches: 'result-2' },
-      $set: { lastSearchAt: expect.any(Date) },
+
+    it('applies a webset.idle event to the matching record by websetId', async () => {
+      ExaResearch.findOneAndUpdate.mockResolvedValue({});
+
+      await ExaResearchService.applyWebsetWebhookEvent('webset.idle', {
+        id: 'ws_abc123',
+        status: 'idle',
+        searches: [],
+        enrichments: [],
+      });
+
+      expect(ExaResearch.findOneAndUpdate).toHaveBeenCalledWith(
+        { websetId: 'ws_abc123' },
+        expect.objectContaining({ $set: expect.objectContaining({ status: 'idle' }) })
+      );
+    });
+
+    it('pushes a new item on webset.item.created', async () => {
+      ExaResearch.findOne.mockResolvedValue({ _id: 'record-5', items: [] });
+
+      await ExaResearchService.applyWebsetWebhookEvent('webset.item.created', {
+        id: 'wsi_1',
+        websetId: 'ws_abc123',
+        source: 'search',
+        properties: { type: 'company', url: 'https://example.com' },
+      });
+
+      expect(ExaResearch.findByIdAndUpdate).toHaveBeenCalledWith('record-5', {
+        $push: { items: expect.objectContaining({ itemId: 'wsi_1' }) },
+      });
     });
   });
 });

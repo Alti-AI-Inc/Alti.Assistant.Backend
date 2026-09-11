@@ -1,7 +1,7 @@
 import express from 'express';
 import { Monitor } from './Monitor.model.js';
-import { MonitorRun } from './monitorRun.model.js';
 import { verifyExaWebhookSignature } from './monitor.webhook.js';
+import { MonitorRun } from './monitorRun.model.js';
 
 const router = express.Router();
 
@@ -12,15 +12,15 @@ const getMonitorId = (eventType, data) =>
 
 const normalizeRun = (data) => ({
   status: data.status,
-  output: data.output,
-  failReason: data.failReason || data.fail_reason,
-  startedAt: data.startedAt || data.started_at,
-  completedAt: data.completedAt || data.completed_at,
-  failedAt: data.failedAt || data.failed_at,
-  cancelledAt: data.cancelledAt || data.cancelled_at,
-  durationMs: data.durationMs || data.duration_ms,
-  exaCreatedAt: data.createdAt || data.created_at,
-  exaUpdatedAt: data.updatedAt || data.updated_at,
+  output: data.output ?? null,
+  failReason: data.failReason || data.fail_reason || null,
+  startedAt: data.startedAt || data.started_at || null,
+  completedAt: data.completedAt || data.completed_at || null,
+  failedAt: data.failedAt || data.failed_at || null,
+  cancelledAt: data.cancelledAt || data.cancelled_at || null,
+  durationMs: data.durationMs || data.duration_ms || null,
+  exaCreatedAt: data.createdAt || data.created_at || null,
+  exaUpdatedAt: data.updatedAt || data.updated_at || null,
 });
 
 router.post(

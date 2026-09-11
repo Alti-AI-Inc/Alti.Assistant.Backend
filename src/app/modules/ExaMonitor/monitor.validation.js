@@ -5,6 +5,7 @@ import {
   MONITOR_STATUS,
   MONITOR_TRIGGER_PERIOD_REGEX,
   MONITOR_TRIGGER_TYPE,
+  MONITOR_WEBHOOK_EVENTS,
 } from './monitor.constant.js';
 const searchConfigZodSchema = z.object({
   query: z.string({ required_error: 'Search query is required' }).min(1),
@@ -29,7 +30,7 @@ const webhookZodSchema = z.object({
     .string({ required_error: 'Webhook url is required' })
     .url()
     .refine((v) => v.startsWith('https://'), 'Webhook url must use https'),
-  events: z.array(z.string()).optional(),
+  events: z.array(z.enum(MONITOR_WEBHOOK_EVENTS)).optional(),
 });
 
 // Persists a Monitor object that was already created on Exa — this

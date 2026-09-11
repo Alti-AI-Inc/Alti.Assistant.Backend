@@ -47,6 +47,14 @@ const updateExaMonitor = async (exaMonitorId, payload) => {
   return exa.monitors.update(exaMonitorId, payload);
 };
 
+const getExaMonitor = async (exaMonitorId) => {
+  return exa.monitors.get(exaMonitorId);
+};
+
+const listExaMonitorRuns = async (exaMonitorId, options) => {
+  return exa.monitors.runs.list(exaMonitorId, options);
+};
+
 /**
  * Deletes the monitor on Exa's side.
  */
@@ -74,6 +82,8 @@ const getExaRun = async (exaMonitorId, exaRunId) => {
 export const MonitorExa = {
   createExaMonitor,
   updateExaMonitor,
+  getExaMonitor,
+  listExaMonitorRuns,
   deleteExaMonitor,
   triggerExaMonitor,
   getExaRun,

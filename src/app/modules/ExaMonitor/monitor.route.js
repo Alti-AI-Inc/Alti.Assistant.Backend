@@ -31,6 +31,12 @@ router.post(
 );
 
 router.get(
+  '/sync-monitor/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  MonitorController.syncMonitorRecord
+);
+
+router.get(
   '/:id',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   MonitorController.getSingleMonitorRecord
@@ -52,7 +58,6 @@ router.delete(
 // -----------------------------------------------------------------------
 // Monitor Run
 // -----------------------------------------------------------------------
-
 
 router.post(
   '/:monitorId/runs/create-run',

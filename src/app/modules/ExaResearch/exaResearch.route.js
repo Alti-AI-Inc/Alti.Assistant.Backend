@@ -9,33 +9,41 @@ import { ResearchValidation } from './exaResearch.validation.js';
 const router = express.Router({ mergeParams: true });
 
 router.post(
-  '/create-search',
+  '/create-research',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ResearchValidation.createSearchZodSchema),
   ResearchController.createSearchRecord
 );
 
 router.get(
-  '/get-all-searches',
+  '/get-all-researches',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   ResearchController.getAllSearchRecords
 );
 
 router.get(
-  '/search-by-id/:id',
+  '/research-by-id/:id',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   ResearchController.getSingleSearchRecord
 );
 
+// Manual refresh from Exa — use while waiting for the webhook, or as a
+// fallback if webhooks aren't set up for this environment.
+router.get(
+  '/sync-research/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.syncSearchRecord
+);
+
 router.patch(
-  '/update-search/:id',
+  '/update-research/:id',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(ResearchValidation.updateSearchZodSchema),
   ResearchController.updateSearchRecord
 );
 
 router.delete(
-  '/delete-search/:id',
+  '/delete-research/:id',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   ResearchController.deleteSearchRecord
 );

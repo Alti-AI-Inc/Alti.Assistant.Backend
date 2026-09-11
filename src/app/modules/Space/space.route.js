@@ -7,6 +7,7 @@ import { MonitorRoutes } from '../ExaMonitor/monitor.route.js';
 import { SearchRoutes } from '../ExaSearch/exa.search.route.js';
 import { SpaceController } from './space.controller.js';
 import { SpaceValidation } from './space.validation.js';
+import { ResearchRoutes } from '../ExaResearch/exaResearch.route.js';
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.delete(
 router.use('/:spaceId/searches', SearchRoutes);
 router.use('/:spaceId/contents', ContentRoutes);
 router.use('/:spaceId/monitors', MonitorRoutes);
+router.use('/:spaceId/researches',ResearchRoutes);
 
 export const SpaceRoutes = router;
 export default router;
