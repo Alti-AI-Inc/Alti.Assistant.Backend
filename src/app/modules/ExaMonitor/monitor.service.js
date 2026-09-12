@@ -104,6 +104,21 @@ const repairMonitorConfigIfNeeded = async (monitor) => {
   );
 };
 
+const triggerPersistedMonitor = async (monitor) => {
+  const repairedMonitor = await repairMonitorConfigIfNeeded(monitor);
+
+  await MonitorExa.triggerExaMonitor(repairedMonitor.exaMonitorId);
+
+  // Exa accepts the trigger before run metadata is always immediately
+  // queryable. Refresh local state opportunistically, but don't fail the
+  // trigger if Exa hasn't materialized the run yet.
+  await syncMonitorDocumentFromExa(repairedMonitor, { runLimit: 1 }).catch(
+    () => null
+  );
+
+  return repairedMonitor;
+};
+
 const normalizeMonitorRun = (run = {}) => ({
   status: run.status,
   output: run.output ?? null,
@@ -310,6 +325,28 @@ const createMonitorRecord = async (spaceId, userId, payload) => {
     throw err;
   }
 
+  try {
+    record = await triggerPersistedMonitor(record);
+  } catch (error) {
+    await Monitor.findByIdAndDelete(record._id).catch(() => {});
+    const session = await MonitorSession.findOneAndUpdate(
+      { space: spaceId, monitors: record._id },
+      { $pull: { monitors: record._id } },
+      { new: true }
+    ).catch(() => null);
+    if (session && session.monitors.length === 0) {
+      await MonitorSession.findByIdAndDelete(session._id).catch(() => {});
+      await Space.findByIdAndUpdate(spaceId, {
+        $pull: { monitorSessions: session._id },
+      }).catch(() => {});
+    }
+    await MonitorExa.deleteExaMonitor(exaMonitor.id).catch(() => {});
+    throw new ApiError(
+      httpStatus.BAD_GATEWAY,
+      `Monitor was created but could not be triggered on Exa: ${error.message}`
+    );
+  }
+
   return record;
 };
 
@@ -456,9 +493,7 @@ const triggerMonitor = async (spaceId, monitorId, userId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Monitor not found in this space');
   }
 
-  const repairedMonitor = await repairMonitorConfigIfNeeded(monitor);
-
-  await MonitorExa.triggerExaMonitor(repairedMonitor.exaMonitorId);
+  await triggerPersistedMonitor(monitor);
   return { triggered: true };
 };
 
