@@ -4,7 +4,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { ExaResearch } from './exaResearch.model.js';
-import { SearchSession } from './Searchresearch.model.js';
+import { SearchSession } from './searchResearch.model.js';
 // import { SearchSession } from './searchResearch.model.js';
 
 const EXA_WEBSETS_BASE_URL = 'https://api.exa.ai/websets/v0';

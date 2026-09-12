@@ -4,7 +4,7 @@ import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { ExaResearch } from './exaResearch.model.js';
 import { ExaResearchService } from './exaResearch.service.js';
-import { SearchSession } from './Searchresearch.model.js';
+import { SearchSession } from './searchResearch.model.js';
 
 vi.mock('../Space/space.model.js', () => ({
   Space: {
@@ -79,7 +79,11 @@ describe('ExaResearchService', () => {
         json: async () => websetResponse,
       });
 
-      const updatedDoc = { _id: recordId, websetId: 'ws_abc123', status: 'running' };
+      const updatedDoc = {
+        _id: recordId,
+        websetId: 'ws_abc123',
+        status: 'running',
+      };
       ExaResearch.findByIdAndUpdate.mockResolvedValue(updatedDoc);
 
       const result = await ExaResearchService.runSearch('space-1', 'user-1', {
@@ -111,17 +115,23 @@ describe('ExaResearchService', () => {
             websetId: 'ws_abc123',
             status: 'running',
             searches: expect.arrayContaining([
-              expect.objectContaining({ searchId: 'ws_search_abc', query: 'AI automation' }),
+              expect.objectContaining({
+                searchId: 'ws_search_abc',
+                query: 'AI automation',
+              }),
             ]),
           }),
         }),
         { new: true }
       );
 
-      expect(SearchSession.findByIdAndUpdate).toHaveBeenCalledWith('session-1', {
-        $addToSet: { researches: recordId },
-        $set: { lastSearchAt: expect.any(Date) },
-      });
+      expect(SearchSession.findByIdAndUpdate).toHaveBeenCalledWith(
+        'session-1',
+        {
+          $addToSet: { researches: recordId },
+          $set: { lastSearchAt: expect.any(Date) },
+        }
+      );
       expect(Space.findByIdAndUpdate).toHaveBeenCalledWith('space-1', {
         $inc: { searchCount: 1 },
       });
@@ -138,7 +148,11 @@ describe('ExaResearchService', () => {
         json: async () => ({ message: 'Invalid query' }),
       });
 
-      const failedDoc = { _id: 'record-2', status: 'failed', errorMessage: 'Invalid query' };
+      const failedDoc = {
+        _id: 'record-2',
+        status: 'failed',
+        errorMessage: 'Invalid query',
+      };
       ExaResearch.findByIdAndUpdate.mockResolvedValue(failedDoc);
 
       const result = await ExaResearchService.runSearch('space-1', 'user-1', {
@@ -147,7 +161,13 @@ describe('ExaResearchService', () => {
 
       expect(ExaResearch.findByIdAndUpdate).toHaveBeenCalledWith(
         'record-2',
-        { $set: { status: 'failed', errorMessage: 'Invalid query', requestParams: expect.any(Object) } },
+        {
+          $set: {
+            status: 'failed',
+            errorMessage: 'Invalid query',
+            requestParams: expect.any(Object),
+          },
+        },
         { new: true }
       );
       expect(result).toEqual(failedDoc);
@@ -156,7 +176,10 @@ describe('ExaResearchService', () => {
 
   describe('syncSearchRecord', () => {
     it('pulls current state from Exa and updates the record', async () => {
-      ExaResearch.findOne.mockResolvedValue({ _id: 'record-3', websetId: 'ws_abc123' });
+      ExaResearch.findOne.mockResolvedValue({
+        _id: 'record-3',
+        websetId: 'ws_abc123',
+      });
 
       const websetResponse = {
         status: 'idle',
@@ -181,7 +204,11 @@ describe('ExaResearchService', () => {
       const syncedDoc = { _id: 'record-3', status: 'idle' };
       ExaResearch.findByIdAndUpdate.mockResolvedValue(syncedDoc);
 
-      const result = await ExaResearchService.syncSearchRecord('space-1', 'record-3', 'user-1');
+      const result = await ExaResearchService.syncSearchRecord(
+        'space-1',
+        'record-3',
+        'user-1'
+      );
 
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.exa.ai/websets/v0/websets/ws_abc123?expand=items',
@@ -204,7 +231,10 @@ describe('ExaResearchService', () => {
     });
 
     it('throws when the record has no websetId yet', async () => {
-      ExaResearch.findOne.mockResolvedValue({ _id: 'record-4', websetId: undefined });
+      ExaResearch.findOne.mockResolvedValue({
+        _id: 'record-4',
+        websetId: undefined,
+      });
 
       await expect(
         ExaResearchService.syncSearchRecord('space-1', 'record-4', 'user-1')
@@ -255,7 +285,9 @@ describe('ExaResearchService', () => {
 
       expect(ExaResearch.findOneAndUpdate).toHaveBeenCalledWith(
         { websetId: 'ws_abc123' },
-        expect.objectContaining({ $set: expect.objectContaining({ status: 'idle' }) })
+        expect.objectContaining({
+          $set: expect.objectContaining({ status: 'idle' }),
+        })
       );
     });
 
