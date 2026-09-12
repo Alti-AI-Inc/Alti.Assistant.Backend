@@ -4,7 +4,7 @@ import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { ExaResearch } from './exaResearch.model.js';
 import { ExaResearchService } from './exaResearch.service.js';
-import { SearchSession } from './searchResearch.model.js';
+import { SearchSession } from './Searchresearch.model.js';
 
 vi.mock('../Space/space.model.js', () => ({
   Space: {
@@ -33,7 +33,7 @@ vi.mock('./exaResearch.model.js', () => ({
   },
 }));
 
-vi.mock('./searchResearch.model.js', () => ({
+vi.mock('./Searchresearch.model.js', () => ({
   SearchSession: {
     create: vi.fn(),
     findOne: vi.fn(),

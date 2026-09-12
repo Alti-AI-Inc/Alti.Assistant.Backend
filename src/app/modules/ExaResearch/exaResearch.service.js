@@ -4,7 +4,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { ExaResearch } from './exaResearch.model.js';
-import { SearchSession } from './searchresearch.model.js';
+import { SearchSession } from './Searchresearch.model.js';
 // import { SearchSession } from './searchResearch.model.js';
 
 const EXA_WEBSETS_BASE_URL = 'https://api.exa.ai/websets/v0';
@@ -143,7 +143,12 @@ const normalizeWebsetEnrichmentConfig = (enrichment = {}) => ({
  * criteria / entity / enrichments are not exposed to callers yet, so Exa
  * auto-detects entity type and criteria from the query.
  */
-const buildCreateWebsetRequestBody = ({ query, count, externalId, metadata }) => {
+const buildCreateWebsetRequestBody = ({
+  query,
+  count,
+  externalId,
+  metadata,
+}) => {
   const request = {
     search: {
       query,
@@ -309,7 +314,8 @@ const syncSearchRecord = async (spaceId, recordId, userId) => {
   );
 
   if (!ok) {
-    const errorMessage = responseBody?.message || 'Failed to sync webset from Exa.';
+    const errorMessage =
+      responseBody?.message || 'Failed to sync webset from Exa.';
     return ExaResearch.findByIdAndUpdate(
       recordId,
       { $set: { errorMessage } },
@@ -394,7 +400,9 @@ const applyWebsetWebhookEvent = async (eventType, data = {}) => {
     case 'webset.search.completed':
     case 'webset.search.canceled': {
       const normalizedSearch = normalizeWebsetSearch(data);
-      const existing = await ExaResearch.findOne({ 'searches.searchId': data.id });
+      const existing = await ExaResearch.findOne({
+        'searches.searchId': data.id,
+      });
       if (existing) {
         await ExaResearch.updateOne(
           { _id: existing._id, 'searches.searchId': data.id },
@@ -409,7 +417,9 @@ const applyWebsetWebhookEvent = async (eventType, data = {}) => {
       const normalizedItem = normalizeWebsetItem(data);
       const record = await ExaResearch.findOne({ websetId: data.websetId });
       if (record) {
-        const alreadyExists = record.items?.some((item) => item.itemId === data.id);
+        const alreadyExists = record.items?.some(
+          (item) => item.itemId === data.id
+        );
         if (alreadyExists) {
           await ExaResearch.updateOne(
             { _id: record._id, 'items.itemId': data.id },

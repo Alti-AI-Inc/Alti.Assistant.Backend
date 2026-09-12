@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SearchSession } from './searchResearch.model.js';
+import { SearchSession } from './Searchresearch.model.js';
 
 describe('SearchSession model', () => {
   it('stores Exa Search record references', () => {
