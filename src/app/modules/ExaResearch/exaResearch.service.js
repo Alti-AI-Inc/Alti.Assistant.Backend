@@ -5,22 +5,23 @@ import { Space } from '../Space/space.model.js';
 import { SpaceService } from '../Space/space.service.js';
 import { ExaResearch } from './exaResearch.model.js';
 import { SearchSession } from './searchResearch.model.js';
+import config from '../../../../config/index.js';
 // import { SearchSession } from './searchResearch.model.js';
 
 const EXA_WEBSETS_BASE_URL = 'https://api.exa.ai/websets/v0';
 
-const getExaApiKey = () => {
-  const key = process.env.EXA_API_KEY || process.env.EXA_KEY;
+// const getExaApiKey = () => {
+//   const key = process.env.EXA_API_KEY || process.env.EXA_KEY;
 
-  if (!key) {
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'EXA_API_KEY is not configured. Set EXA_API_KEY before using Exa Websets.'
-    );
-  }
+//   if (!key) {
+//     throw new ApiError(
+//       httpStatus.INTERNAL_SERVER_ERROR,
+//       'EXA_API_KEY is not configured. Set EXA_API_KEY before using Exa Websets.'
+//     );
+//   }
 
-  return key;
-};
+//   return key;
+// };
 
 /** Shared fetch wrapper for every Websets API call — auth header, JSON parsing, error shape. */
 const exaWebsetsRequest = async (method, path, body) => {
@@ -29,7 +30,7 @@ const exaWebsetsRequest = async (method, path, body) => {
     response = await fetch(`${EXA_WEBSETS_BASE_URL}${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${getExaApiKey()}`,
+        Authorization: `Bearer ${config.exa_api_key}`,
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,

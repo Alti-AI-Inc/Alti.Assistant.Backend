@@ -37,6 +37,14 @@ const spaceSchema = new Schema(
       type: [{ type: Schema.Types.ObjectId, ref: 'SearchSession' }],
       default: [],
     },
+    deepResearchSessions: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'DeepResearchSession' }],
+      default: [],
+    },
+    monitorSessions: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'monitor-session' }],
+      default: [],
+    },
     monitors: {
       type: [{ type: Schema.Types.ObjectId, ref: 'Monitor' }],
       default: [],

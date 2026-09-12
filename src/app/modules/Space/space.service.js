@@ -3,7 +3,9 @@ import ApiError from '../../../errors/ApiError.js';
 import paginationHelpers from '../../helpers/paginationHelpers.js';
 import pick from '../../middlewares/other/pick.js';
 import { ExaContent } from '../ExaContents/contents.model.js';
+import { SearchSession as DeepResearchSession } from '../ExaDeepResearch/exaDeepResearch.session.model.js';
 import { Monitor } from '../ExaMonitor/Monitor.model.js';
+import { MonitorSession } from '../ExaMonitor/Monitorsession.model.js';
 import { MonitorRun } from '../ExaMonitor/monitorRun.model.js';
 import { ExaSearch } from '../ExaSearch/exaSearch.model.js';
 import { SearchSession } from '../ExaSearch/searchSession.model.js';
@@ -82,6 +84,16 @@ const getSingleSpace = async (spaceId, userId) => {
       options: { sort: { updatedAt: -1 } },
       populate: { path: 'searches', options: { sort: { createdAt: -1 } } },
     },
+    {
+      path: 'deepResearchSessions',
+      options: { sort: { updatedAt: -1 } },
+      populate: { path: 'searches', options: { sort: { createdAt: -1 } } },
+    },
+    {
+      path: 'monitorSessions',
+      options: { sort: { createdAt: -1 } },
+      populate: { path: 'monitors', options: { sort: { createdAt: -1 } } },
+    },
     { path: 'monitors', options: { sort: { createdAt: -1 } } },
   ]);
   return space;
@@ -125,7 +137,9 @@ const deleteSpace = async (spaceId, userId) => {
   await Promise.all([
     ExaSearch.deleteMany({ space: spaceId }),
     SearchSession.deleteMany({ space: spaceId }),
+    DeepResearchSession.deleteMany({ space: spaceId }),
     ExaContent.deleteMany({ space: spaceId }),
+    MonitorSession.deleteMany({ space: spaceId }),
     MonitorRun.deleteMany({ space: spaceId }),
     Monitor.deleteMany({ space: spaceId }),
   ]);
