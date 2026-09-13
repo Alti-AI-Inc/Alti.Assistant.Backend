@@ -1,58 +1,58 @@
-name: Update VM Environment Variable
+# name: Update VM Environment Variable
 
-on:
-  workflow_dispatch:
+# on:
+#   workflow_dispatch:
 
-permissions:
-  contents: read
+# permissions:
+#   contents: read
 
-jobs:
-  update-env:
-    name: Update GEMINI_API_KEY on Production VM
-    runs-on: ubuntu-latest
+# jobs:
+#   update-env:
+#     name: Update GEMINI_API_KEY on Production VM
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
-          chmod 600 ~/.ssh/inso-vm-key
-          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
-      - name: Update GEMINI_API_KEY in VM .env
-        run: |
-          ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
-            set -e
-            echo "=== Current GEMINI_API_KEY ==="
-            grep "GEMINI_API_KEY" .env | head -1
+#       - name: Update GEMINI_API_KEY in VM .env
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
+#             set -e
+#             echo "=== Current GEMINI_API_KEY ==="
+#             grep "GEMINI_API_KEY" .env | head -1
 
-            echo "=== Updating GEMINI_API_KEY ==="
-            sed -i 's|GEMINI_API_KEY=.*|GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|' .env
+#             echo "=== Updating GEMINI_API_KEY ==="
+#             sed -i 's|GEMINI_API_KEY=.*|GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|' .env
 
-            echo "=== Current GEMINI_MODEL ==="
-            grep "GEMINI_MODEL" .env || echo "No GEMINI_MODEL"
+#             echo "=== Current GEMINI_MODEL ==="
+#             grep "GEMINI_MODEL" .env || echo "No GEMINI_MODEL"
 
-            echo "=== Updating GEMINI_MODEL ==="
-            if grep -q "GEMINI_MODEL=" .env; then
-              sed -i 's|GEMINI_MODEL=.*|GEMINI_MODEL=gemini-3.5-flash|' .env
-            else
-              echo "GEMINI_MODEL=gemini-3.5-flash" >> .env
-            fi
+#             echo "=== Updating GEMINI_MODEL ==="
+#             if grep -q "GEMINI_MODEL=" .env; then
+#               sed -i 's|GEMINI_MODEL=.*|GEMINI_MODEL=gemini-3.5-flash|' .env
+#             else
+#               echo "GEMINI_MODEL=gemini-3.5-flash" >> .env
+#             fi
 
-            echo "=== Verifying update ==="
-            grep "GEMINI_API_KEY" .env | head -1
-            grep "GEMINI_MODEL" .env | head -1
+#             echo "=== Verifying update ==="
+#             grep "GEMINI_API_KEY" .env | head -1
+#             grep "GEMINI_MODEL" .env | head -1
 
-            echo "=== Restarting containers ==="
-            docker compose down
-            docker compose up -d
+#             echo "=== Restarting containers ==="
+#             docker compose down
+#             docker compose up -d
 
-            echo "=== Container status ==="
-            docker compose ps
+#             echo "=== Container status ==="
+#             docker compose ps
 
-            echo "=== Done! ==="
-          EOF
+#             echo "=== Done! ==="
+#           EOF
 
-      - name: Clean up SSH key
-        if: always()
-        run: rm -f ~/.ssh/inso-vm-key
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
