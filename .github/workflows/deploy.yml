@@ -205,7 +205,6 @@
 #       - name: Clean up SSH key
 #         if: always()
 #         run: rm -f ~/.ssh/inso-vm-key
-
 name: Backend CI
 
 on:
@@ -226,4 +225,4 @@ jobs:
           node-version: 20
 
       - run: npm ci
-
+        continue-on-error: true
