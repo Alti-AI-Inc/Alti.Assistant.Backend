@@ -1,8 +1,7 @@
 import express from 'express';
 import { authRoutes } from '../modules/auth/auth.route.js';
-import { ResearchRoutes } from '../modules/ExaResearch/exaResearch.route.js';
 import { DeepResearchRoutes } from '../modules/ExaDeepResearch/exaDeepResearch.route.js';
-
+import { ResearchRoutes } from '../modules/ExaResearch/exaResearch.route.js';
 
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
@@ -15,9 +14,10 @@ import { supportRoutes } from '../modules/support/support.route.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 
+import { chatAiRoutes } from '../modules/chat/chat.route.js';
+import { MonitorRoutes } from '../modules/ExaMonitor/monitor.route.js';
 import { SpaceRoutes } from '../modules/Space/space.route.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
-import { MonitorRoutes } from '../modules/ExaMonitor/monitor.route.js';
 
 const router = express.Router();
 
@@ -77,6 +77,10 @@ const moduleRoutes = [
   {
     path: '/deep-research',
     route: DeepResearchRoutes,
+  },
+  {
+    path: '/chat',
+    route: chatAiRoutes,
   },
 ];
 
