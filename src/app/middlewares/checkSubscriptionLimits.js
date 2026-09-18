@@ -1,7 +1,7 @@
-import subscriptionService from '../modules/subscription/subscription.service.js';
-import ApiError from '../../errors/ApiError.js';
 import httpStatus from 'http-status';
+import ApiError from '../../errors/ApiError.js';
 import { logger } from '../../shared/logger.js';
+import subscriptionService from '../modules/subscription/subscription.service.js';
 
 /**
  * Middleware to check subscription usage limits
@@ -15,10 +15,15 @@ export const checkWebSearchLimit = async (req, res, next) => {
   try {
     const userId = req.user?._id || req.user?.id;
     if (!userId) {
-      return next(new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated'));
+      return next(
+        new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated')
+      );
     }
 
-    const limitCheck = await subscriptionService.checkUsageLimit(userId, 'webSearch');
+    const limitCheck = await subscriptionService.checkUsageLimit(
+      userId,
+      'webSearch'
+    );
 
     if (!limitCheck.allowed) {
       logger.warn(`User ${userId} reached webSearch limit`);
@@ -48,15 +53,23 @@ export const checkDeepResearchLimit = async (req, res, next) => {
   try {
     const userId = req.user?._id || req.user?.id;
     if (!userId) {
-      return next(new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated'));
+      return next(
+        new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated')
+      );
     }
 
     const tenantId = req.user?.tenantId || req.tenantId || null;
 
-    const check = await subscriptionService.checkMonthlyUsageLimit(userId, tenantId, 'research');
+    const check = await subscriptionService.checkMonthlyUsageLimit(
+      userId,
+      tenantId,
+      'research'
+    );
 
     if (!check.allowed) {
-      logger.warn(`User ${userId} / tenant ${tenantId} reached monthly deep research limit`);
+      logger.warn(
+        `User ${userId} / tenant ${tenantId} reached monthly deep research limit`
+      );
       return next(
         new ApiError(
           httpStatus.PAYMENT_REQUIRED,
@@ -66,9 +79,11 @@ export const checkDeepResearchLimit = async (req, res, next) => {
     }
 
     // Increment usage and track overage
-    subscriptionService.trackAndIncrementMonthlyUsage(userId, tenantId, 'research').catch((err) => {
-      logger.error('Error tracking deep research usage:', err);
-    });
+    subscriptionService
+      .trackAndIncrementMonthlyUsage(userId, tenantId, 'research')
+      .catch((err) => {
+        logger.error('Error tracking deep research usage:', err);
+      });
 
     next();
   } catch (error) {
@@ -77,7 +92,54 @@ export const checkDeepResearchLimit = async (req, res, next) => {
   }
 };
 
+/**
+ * Check monitor monthly limit (ExaMonitor)
+ */
+export const checkMonitorLimit = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) {
+      return next(
+        new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated')
+      );
+    }
+
+    const tenantId = req.user?.tenantId || req.tenantId || null;
+
+    const check = await subscriptionService.checkMonthlyUsageLimit(
+      userId,
+      tenantId,
+      'monitor'
+    );
+
+    if (!check.allowed) {
+      logger.warn(
+        `User ${userId} / tenant ${tenantId} reached monthly monitor limit`
+      );
+      return next(
+        new ApiError(
+          httpStatus.PAYMENT_REQUIRED,
+          `Monthly monitor limit reached (${check.limit}). Please upgrade your plan to continue.`
+        )
+      );
+    }
+
+    // Increment usage and track overage
+    subscriptionService
+      .trackAndIncrementMonthlyUsage(userId, tenantId, 'monitor')
+      .catch((err) => {
+        logger.error('Error tracking monitor usage:', err);
+      });
+
+    next();
+  } catch (error) {
+    logger.error('Error in checkMonitorLimit middleware:', error);
+    next();
+  }
+};
+
 export default {
   checkWebSearchLimit,
   checkDeepResearchLimit,
+  checkMonitorLimit,
 };

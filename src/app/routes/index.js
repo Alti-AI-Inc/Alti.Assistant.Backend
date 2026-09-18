@@ -3,7 +3,7 @@ import { authRoutes } from '../modules/auth/auth.route.js';
 import { DeepResearchRoutes } from '../modules/ExaDeepResearch/exaDeepResearch.route.js';
 import { ResearchRoutes } from '../modules/ExaResearch/exaResearch.route.js';
 
-import { subscriptionRoutes } from '../modules/payment/payment.route.js';
+// import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 
 import { adminRoutes } from '../modules/admin/admin.route.js';
@@ -41,10 +41,6 @@ const moduleRoutes = [
   {
     path: '/support',
     route: supportRoutes,
-  },
-  {
-    path: '/subscription',
-    route: subscriptionRoutes,
   },
   {
     path: '/subscriptions',

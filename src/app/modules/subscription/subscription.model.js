@@ -1,6 +1,6 @@
+import { PubSub } from '@google-cloud/pubsub';
 import mongoose from 'mongoose';
 import Stripe from 'stripe';
-import { PubSub } from '@google-cloud/pubsub';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -105,7 +105,18 @@ const SubscriptionSchema = new mongoose.Schema(
     plan: {
       type: String,
       required: true,
-      enum: ['free', 'explore', 'execute', 'command'],
+      enum: [
+        'free',
+        'explore',
+        'execute',
+        'command',
+        'monthly_5',
+        'monthly_10',
+        'monthly_20',
+        'monthly_50',
+        'monthly_100',
+        'monthly_200',
+      ],
       default: 'free',
       index: true,
     },
@@ -281,6 +292,7 @@ const SubscriptionSchema = new mongoose.Schema(
       },
       // Monthly allowances (pool-based)
       researchLimit: { type: Number, default: 0 },
+      monitorLimit: { type: Number, default: 0 },
       imageLimit: { type: Number, default: 0 },
       videoLimit: { type: Number, default: 0 },
       taskLimit: { type: Number, default: 0 },
@@ -315,6 +327,14 @@ const SubscriptionSchema = new mongoose.Schema(
        * @default 0
        */
       deepResearchUsedToday: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      /**
+       * The number of monitor (ExaMonitor) actions performed today.
+       */
+      monitorUsedToday: {
         type: Number,
         default: 0,
         min: 0,
@@ -473,7 +493,7 @@ SubscriptionSchema.pre('save', function (next) {
  * Automatically resets the daily counters if a new day has started.
  * @memberof Subscription
  * @instance
- * @param {'webSearch' | 'deepResearch'} limitType - The type of limit to check.
+ * @param {'webSearch' | 'deepResearch' | 'monitor'} limitType - The type of limit to check.
  * @returns {boolean} `true` if the limit has been reached, `false` otherwise.
  */
 SubscriptionSchema.methods.hasReachedLimit = function (limitType) {
@@ -494,6 +514,8 @@ SubscriptionSchema.methods.hasReachedLimit = function (limitType) {
     return (
       this.usage.deepResearchUsedToday >= this.limits.dailyDeepResearchLimit
     );
+  } else if (limitType === 'monitor') {
+    return this.usage.monitorUsedToday >= (this.limits.monitorLimit || 0);
   }
 
   return false;
@@ -504,7 +526,7 @@ SubscriptionSchema.methods.hasReachedLimit = function (limitType) {
  * Automatically resets daily counters if a new day has started before incrementing.
  * @memberof Subscription
  * @instance
- * @param {'webSearch' | 'deepResearch'} limitType - The type of usage to increment.
+ * @param {'webSearch' | 'deepResearch' | 'monitor'} limitType - The type of usage to increment.
  * @returns {Promise<void>} A promise that resolves when the subscription is saved.
  */
 SubscriptionSchema.methods.incrementUsage = async function (limitType) {
@@ -523,6 +545,8 @@ SubscriptionSchema.methods.incrementUsage = async function (limitType) {
     this.usage.webSearchUsedToday += 1;
   } else if (limitType === 'deepResearch') {
     this.usage.deepResearchUsedToday += 1;
+  } else if (limitType === 'monitor') {
+    this.usage.monitorUsedToday += 1;
   }
 
   await this.save();

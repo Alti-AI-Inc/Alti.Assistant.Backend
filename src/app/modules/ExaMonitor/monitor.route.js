@@ -1,6 +1,7 @@
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
+import { checkMonitorLimit } from '../../middlewares/checkSubscriptionLimits.js';
 import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
 import { MonitorController } from './monitor.controller.js';
 import { MonitorValidation } from './monitor.validation.js';
@@ -12,6 +13,7 @@ router.post(
   '/create-monitor',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(MonitorValidation.createMonitorZodSchema),
+  checkMonitorLimit,
   MonitorController.createMonitorRecord
 );
 
@@ -27,6 +29,7 @@ router.get(
 router.post(
   '/trigger/:id',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  checkMonitorLimit,
   MonitorController.triggerMonitorRecord
 );
 
@@ -63,6 +66,7 @@ router.post(
   '/:monitorId/runs/create-run',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(MonitorValidation.createMonitorRunZodSchema),
+  checkMonitorLimit,
   MonitorController.createMonitorRunRecord
 );
 

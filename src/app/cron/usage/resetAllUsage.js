@@ -1,6 +1,6 @@
-import SubscriptionModel from '../../modules/payment/payment.model.js';
-import UserModel from '../../modules/auth/auth.model.js';
 import { logger } from '../../../shared/logger.js';
+import UserModel from '../../modules/auth/auth.model.js';
+import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 
 export const resetAllUsage = async (req, res) => {
   try {
@@ -18,7 +18,9 @@ export const resetAllUsage = async (req, res) => {
       await subscription.save();
     }
 
-    logger.info(`✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`);
+    logger.info(
+      `✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`
+    );
 
     // ✅ 2. Expire subscriptions that have reached their expiry date:-
     const expiredSubscriptions = await SubscriptionModel.find({
@@ -66,7 +68,10 @@ export const resetAllUsage = async (req, res) => {
 
     logger.info('✅ Reset daily request limits for all users.');
 
-    if (res) res.status(200).json({ success: true, message: 'All usage reset successfully' });
+    if (res)
+      res
+        .status(200)
+        .json({ success: true, message: 'All usage reset successfully' });
   } catch (error) {
     logger.error('Error resetting all usage:', error);
     if (res) res.status(500).json({ success: false, message: error.message });

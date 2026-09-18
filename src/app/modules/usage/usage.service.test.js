@@ -1,17 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import UserUsageModel from './userUsage.model.js';
-import SubscriptionModel from '../payment/payment.model.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../../../shared/logger.js';
 import { requestContextStore } from '../../../shared/requestContext.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
+import UserUsageModel from './userUsage.model.js';
 
 import {
-  checkUsageLimit,
-  trackUsage,
-  trackAndVerify,
   canMakeApiCall,
   checkImageGenerationLimit,
-  recordImageGeneration,
   checkLimit,
+  checkUsageLimit,
+  recordImageGeneration,
+  trackAndVerify,
+  trackUsage,
   usageService,
 } from './usage.service.js';
 
@@ -23,7 +23,7 @@ vi.mock('./userUsage.model.js', () => ({
   },
 }));
 
-vi.mock('../payment/payment.model.js', () => ({
+vi.mock('../subscription/subscription.model.js', () => ({
   default: {
     findOne: vi.fn(),
     updateOne: vi.fn(),
@@ -59,108 +59,179 @@ describe('usage.service.js', () => {
         req: { user: { _id: 'storeUser', tenantId: 'storeTenant' } },
       });
       UserUsageModel.getTodayRequests.mockResolvedValue(0);
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
 
       await checkUsageLimit(null, 'dailyRequest');
 
-      expect(UserUsageModel.getTodayRequests).toHaveBeenCalledWith('storeUser', 'storeTenant');
+      expect(UserUsageModel.getTodayRequests).toHaveBeenCalledWith(
+        'storeUser',
+        'storeTenant'
+      );
     });
 
     it('should handle requestContextStore throwing an error gracefully', async () => {
       requestContextStore.getStore.mockImplementation(() => {
         throw new Error('No active context');
       });
-      await expect(checkUsageLimit(null, 'dailyRequest')).rejects.toThrow('User context is required to check usage limits.');
+      await expect(checkUsageLimit(null, 'dailyRequest')).rejects.toThrow(
+        'User context is required to check usage limits.'
+      );
     });
   });
 
   describe('checkUsageLimit', () => {
     it('should throw an error if user context is missing', async () => {
-      await expect(checkUsageLimit(null, 'dailyRequest')).rejects.toThrow('User context is required to check usage limits.');
+      await expect(checkUsageLimit(null, 'dailyRequest')).rejects.toThrow(
+        'User context is required to check usage limits.'
+      );
     });
 
     it('should throw an error for an invalid feature', async () => {
-      await expect(checkUsageLimit(mockUserContext, 'invalidFeature')).rejects.toThrow('Invalid feature specified: invalidFeature');
-      expect(logger.warn).toHaveBeenCalledWith('Unknown feature type passed to checkUsageLimit: invalidFeature');
+      await expect(
+        checkUsageLimit(mockUserContext, 'invalidFeature')
+      ).rejects.toThrow('Invalid feature specified: invalidFeature');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Unknown feature type passed to checkUsageLimit: invalidFeature'
+      );
     });
 
     it('should throw a generic error on database failure', async () => {
       const dbError = new Error('DB connection failed');
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.reject(dbError) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.reject(dbError),
+      });
 
-      await expect(checkUsageLimit(mockUserContext, 'image')).rejects.toThrow('Could not verify usage limits. Please try again.');
-      expect(logger.error).toHaveBeenCalledWith('Error in checkUsageLimit for feature "image":', dbError);
+      await expect(checkUsageLimit(mockUserContext, 'image')).rejects.toThrow(
+        'Could not verify usage limits. Please try again.'
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error in checkUsageLimit for feature "image":',
+        dbError
+      );
     });
 
     describe('dailyRequest feature', () => {
       it('should pass if usage is below the default limit', async () => {
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) }); // No subscription
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(null),
+        }); // No subscription
         UserUsageModel.getTodayRequests.mockResolvedValue(5); // 5 requests used, default is 20
 
-        await expect(checkUsageLimit(mockUserContext, 'dailyRequest')).resolves.toBeUndefined();
+        await expect(
+          checkUsageLimit(mockUserContext, 'dailyRequest')
+        ).resolves.toBeUndefined();
       });
 
       it('should throw LimitExceededError if usage meets the default limit', async () => {
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(null),
+        });
         UserUsageModel.getTodayRequests.mockResolvedValue(20);
 
-        await expect(checkUsageLimit(mockUserContext, 'dailyRequest')).rejects.toThrow('Usage limit of 20 for dailyRequest has been reached.');
+        await expect(
+          checkUsageLimit(mockUserContext, 'dailyRequest')
+        ).rejects.toThrow(
+          'Usage limit of 20 for dailyRequest has been reached.'
+        );
       });
 
       it('should pass if usage is below the subscription limit', async () => {
         const subscription = { limits: { dailyRequests: 100 } };
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(subscription) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(subscription),
+        });
         UserUsageModel.getTodayRequests.mockResolvedValue(99);
 
-        await expect(checkUsageLimit(mockTenantContext, 'dailyRequest')).resolves.toBeUndefined();
-        expect(SubscriptionModel.findOne).toHaveBeenCalledWith({ tenantId: mockTenantContext.workspaceId });
+        await expect(
+          checkUsageLimit(mockTenantContext, 'dailyRequest')
+        ).resolves.toBeUndefined();
+        expect(SubscriptionModel.findOne).toHaveBeenCalledWith({
+          tenantId: mockTenantContext.workspaceId,
+        });
       });
-
-
 
       it('should throw LimitExceededError if usage meets the subscription limit', async () => {
         const subscription = { limits: { dailyRequests: 50 } };
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(subscription) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(subscription),
+        });
         UserUsageModel.getTodayRequests.mockResolvedValue(50);
 
-        await expect(checkUsageLimit(mockTenantContext, 'dailyRequest', 1)).rejects.toThrow('Usage limit of 50 for dailyRequest has been reached.');
+        await expect(
+          checkUsageLimit(mockTenantContext, 'dailyRequest', 1)
+        ).rejects.toThrow(
+          'Usage limit of 50 for dailyRequest has been reached.'
+        );
       });
     });
 
     describe('Other features (e.g., image)', () => {
       it('should pass for a user without tenant if usage is below subscription limit', async () => {
-        const subscription = { limits: { images: 10 }, usage: { imagesUsed: 5 } };
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(subscription) });
+        const subscription = {
+          limits: { images: 10 },
+          usage: { imagesUsed: 5 },
+        };
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(subscription),
+        });
 
-        await expect(checkUsageLimit(mockUserContext, 'image')).resolves.toBeUndefined();
-        expect(SubscriptionModel.findOne).toHaveBeenCalledWith({ userId: mockUserContext.userId, tenantId: { $in: [null, undefined] } });
+        await expect(
+          checkUsageLimit(mockUserContext, 'image')
+        ).resolves.toBeUndefined();
+        expect(SubscriptionModel.findOne).toHaveBeenCalledWith({
+          userId: mockUserContext.userId,
+          tenantId: { $in: [null, undefined] },
+        });
       });
 
       it('should throw for a user without tenant if usage meets subscription limit', async () => {
-        const subscription = { limits: { images: 10 }, usage: { imagesUsed: 10 } };
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(subscription) });
+        const subscription = {
+          limits: { images: 10 },
+          usage: { imagesUsed: 10 },
+        };
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(subscription),
+        });
 
-        await expect(checkUsageLimit(mockUserContext, 'image')).rejects.toThrow('Usage limit of 10 for image has been reached.');
+        await expect(checkUsageLimit(mockUserContext, 'image')).rejects.toThrow(
+          'Usage limit of 10 for image has been reached.'
+        );
       });
 
       it('should pass for a tenant if usage is below default limit (no subscription)', async () => {
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(null),
+        });
 
-        await expect(checkUsageLimit(mockTenantContext, 'webSearch')).resolves.toBeUndefined(); // Default is 5, usage is 0
+        await expect(
+          checkUsageLimit(mockTenantContext, 'webSearch')
+        ).resolves.toBeUndefined(); // Default is 5, usage is 0
       });
 
       it('should throw for a tenant if usage meets default limit (no subscription)', async () => {
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(null),
+        });
 
         // Default is 1, so checking for 2 should fail
-        await expect(checkUsageLimit(mockTenantContext, 'deepResearch', 2)).rejects.toThrow('Usage limit of 1 for deepResearch has been reached.');
+        await expect(
+          checkUsageLimit(mockTenantContext, 'deepResearch', 2)
+        ).rejects.toThrow(
+          'Usage limit of 1 for deepResearch has been reached.'
+        );
       });
 
       it('should use 0 for usage if subscription.usage is missing', async () => {
         const subscription = { limits: { images: 10 } }; // No usage property
-        SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(subscription) });
+        SubscriptionModel.findOne.mockReturnValue({
+          lean: () => Promise.resolve(subscription),
+        });
 
-        await expect(checkUsageLimit(mockUserContext, 'image')).resolves.toBeUndefined();
+        await expect(
+          checkUsageLimit(mockUserContext, 'image')
+        ).resolves.toBeUndefined();
       });
     });
   });
@@ -181,20 +252,29 @@ describe('usage.service.js', () => {
 
     it('should log an error and return for an invalid feature', async () => {
       await trackUsage(mockUserContext, 'invalidFeature');
-      expect(logger.error).toHaveBeenCalledWith('Unknown feature type passed to trackUsage: invalidFeature');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Unknown feature type passed to trackUsage: invalidFeature'
+      );
       expect(UserUsageModel.incrementRequest).not.toHaveBeenCalled();
       expect(SubscriptionModel.updateOne).not.toHaveBeenCalled();
     });
 
     it('should call UserUsageModel.incrementRequest for "dailyRequest"', async () => {
       await trackUsage(mockTenantContext, 'dailyRequest', 5);
-      expect(UserUsageModel.incrementRequest).toHaveBeenCalledWith(mockTenantContext.userId, mockTenantContext.workspaceId, 5);
+      expect(UserUsageModel.incrementRequest).toHaveBeenCalledWith(
+        mockTenantContext.userId,
+        mockTenantContext.workspaceId,
+        5
+      );
     });
 
     it('should call SubscriptionModel.updateOne for other features (user context)', async () => {
       await trackUsage(mockUserContext, 'image', 2);
       expect(SubscriptionModel.updateOne).toHaveBeenCalledWith(
-        { userId: mockUserContext.userId, tenantId: { $in: [null, undefined] } },
+        {
+          userId: mockUserContext.userId,
+          tenantId: { $in: [null, undefined] },
+        },
         { $inc: { 'usage.imagesUsed': 2 } }
       );
     });
@@ -211,31 +291,49 @@ describe('usage.service.js', () => {
       const dbError = new Error('DB write failed');
       UserUsageModel.incrementRequest.mockRejectedValue(dbError);
 
-      await expect(trackUsage(mockUserContext, 'dailyRequest')).resolves.toBeUndefined();
-      expect(logger.error).toHaveBeenCalledWith('Error in trackUsage for feature "dailyRequest":', dbError);
+      await expect(
+        trackUsage(mockUserContext, 'dailyRequest')
+      ).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error in trackUsage for feature "dailyRequest":',
+        dbError
+      );
     });
   });
 
   describe('trackAndVerify', () => {
     it('should call trackUsage after checkUsageLimit succeeds', async () => {
       // Mock success for check
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
       UserUsageModel.getTodayRequests.mockResolvedValue(0);
 
       await trackAndVerify(mockUserContext, 'dailyRequest', 1);
 
       // Verify check was performed
-      expect(UserUsageModel.getTodayRequests).toHaveBeenCalledWith(mockUserContext.userId, undefined);
+      expect(UserUsageModel.getTodayRequests).toHaveBeenCalledWith(
+        mockUserContext.userId,
+        undefined
+      );
       // Verify track was performed
-      expect(UserUsageModel.incrementRequest).toHaveBeenCalledWith(mockUserContext.userId, undefined, 1);
+      expect(UserUsageModel.incrementRequest).toHaveBeenCalledWith(
+        mockUserContext.userId,
+        undefined,
+        1
+      );
     });
 
     it('should NOT call trackUsage if checkUsageLimit fails', async () => {
       // Mock failure for check
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
       UserUsageModel.getTodayRequests.mockResolvedValue(20); // At the limit
 
-      await expect(trackAndVerify(mockUserContext, 'dailyRequest', 1)).rejects.toThrow('Usage limit of 20 for dailyRequest has been reached.');
+      await expect(
+        trackAndVerify(mockUserContext, 'dailyRequest', 1)
+      ).rejects.toThrow('Usage limit of 20 for dailyRequest has been reached.');
 
       // Verify track was NOT performed
       expect(UserUsageModel.incrementRequest).not.toHaveBeenCalled();
@@ -244,7 +342,9 @@ describe('usage.service.js', () => {
 
   describe('canMakeApiCall', () => {
     it('should return true if user is within limits', async () => {
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
       UserUsageModel.getTodayRequests.mockResolvedValue(10);
 
       const result = await canMakeApiCall(mockUserContext, 'dailyRequest');
@@ -252,7 +352,9 @@ describe('usage.service.js', () => {
     });
 
     it('should return false if user has exceeded limits', async () => {
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
       UserUsageModel.getTodayRequests.mockResolvedValue(20);
 
       const result = await canMakeApiCall(mockUserContext, 'dailyRequest');
@@ -262,41 +364,63 @@ describe('usage.service.js', () => {
 
     it('should return false and log error for unexpected errors', async () => {
       const dbError = new Error('DB connection failed');
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.reject(dbError) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.reject(dbError),
+      });
 
       const result = await canMakeApiCall(mockUserContext, 'dailyRequest');
       expect(result).toBe(false);
-      expect(logger.error).toHaveBeenCalledWith('Error in canMakeApiCall:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error in canMakeApiCall:',
+        expect.any(Error)
+      );
     });
   });
 
   describe('Wrapper & Alias Functions', () => {
     it('checkImageGenerationLimit should call checkUsageLimit correctly', async () => {
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve({ limits: { images: 10 }, usage: { imagesUsed: 11 } }) });
-      await expect(checkImageGenerationLimit(mockUserContext)).rejects.toThrow('Usage limit of 10 for image has been reached.');
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () =>
+          Promise.resolve({
+            limits: { images: 10 },
+            usage: { imagesUsed: 11 },
+          }),
+      });
+      await expect(checkImageGenerationLimit(mockUserContext)).rejects.toThrow(
+        'Usage limit of 10 for image has been reached.'
+      );
     });
 
     it('recordImageGeneration should call trackUsage correctly', async () => {
       await recordImageGeneration(mockUserContext);
       expect(SubscriptionModel.updateOne).toHaveBeenCalledWith(
-        { userId: mockUserContext.userId, tenantId: { $in: [null, undefined] } },
+        {
+          userId: mockUserContext.userId,
+          tenantId: { $in: [null, undefined] },
+        },
         { $inc: { 'usage.imagesUsed': 1 } }
       );
     });
 
     it('checkLimit should call checkUsageLimit with a tenant context', async () => {
-      SubscriptionModel.findOne.mockReturnValue({ lean: () => Promise.resolve(null) });
+      SubscriptionModel.findOne.mockReturnValue({
+        lean: () => Promise.resolve(null),
+      });
       await checkLimit('tenant789', 'deepResearch', 2);
-      expect(SubscriptionModel.findOne).toHaveBeenCalledWith({ tenantId: 'tenant789' });
+      expect(SubscriptionModel.findOne).toHaveBeenCalledWith({
+        tenantId: 'tenant789',
+      });
     });
 
     it('usageService should export all necessary functions', () => {
-        expect(usageService.checkUsageLimit).toBe(checkUsageLimit);
-        expect(usageService.trackUsage).toBe(trackUsage);
-        expect(usageService.trackAndVerify).toBe(trackAndVerify);
-        expect(usageService.canMakeApiCall).toBe(canMakeApiCall);
-        expect(usageService.checkImageGenerationLimit).toBe(checkImageGenerationLimit);
-        expect(usageService.recordImageGeneration).toBe(recordImageGeneration);
+      expect(usageService.checkUsageLimit).toBe(checkUsageLimit);
+      expect(usageService.trackUsage).toBe(trackUsage);
+      expect(usageService.trackAndVerify).toBe(trackAndVerify);
+      expect(usageService.canMakeApiCall).toBe(canMakeApiCall);
+      expect(usageService.checkImageGenerationLimit).toBe(
+        checkImageGenerationLimit
+      );
+      expect(usageService.recordImageGeneration).toBe(recordImageGeneration);
     });
   });
 });

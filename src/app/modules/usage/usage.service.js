@@ -1,7 +1,7 @@
-import UserUsageModel from './userUsage.model.js';
-import SubscriptionModel from '../payment/payment.model.js';
 import { logger } from '../../../shared/logger.js';
 import { requestContextStore } from '../../../shared/requestContext.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
+import UserUsageModel from './userUsage.model.js';
 
 /**
  * Custom error for limit exceeded exceptions, allowing for specific catch blocks.
@@ -65,7 +65,10 @@ const extractContext = (userContext) => {
 
   if (userContext && typeof userContext === 'object') {
     userId = userContext.userId || userContext._id || userContext.id;
-    tenantId = userContext.workspaceId || userContext.tenantId || userContext.currentTenantId;
+    tenantId =
+      userContext.workspaceId ||
+      userContext.tenantId ||
+      userContext.currentTenantId;
   }
 
   // Fallback to request context store if userContext is not explicitly provided.
@@ -73,8 +76,10 @@ const extractContext = (userContext) => {
     try {
       const store = requestContextStore.getStore();
       if (store?.req?.user) {
-        userId = store.req.user._id || store.req.user.id || store.req.user.userId;
-        tenantId = tenantId || store.req.user.workspaceId || store.req.user.tenantId;
+        userId =
+          store.req.user._id || store.req.user.id || store.req.user.userId;
+        tenantId =
+          tenantId || store.req.user.workspaceId || store.req.user.tenantId;
       }
     } catch (e) {
       // requestContextStore.getStore() can throw if no active context is found.
@@ -105,11 +110,16 @@ export const checkUsageLimit = async (userContext, feature, amount = 1) => {
   }
 
   try {
-    const filter = tenantId ? { tenantId } : { userId, tenantId: { $in: [null, undefined] } };
+    const filter = tenantId
+      ? { tenantId }
+      : { userId, tenantId: { $in: [null, undefined] } };
     const subscription = await SubscriptionModel.findOne(filter).lean();
 
     let currentUsage = 0;
-    const limit = subscription?.limits?.[featureConfig.limitKey] ?? DEFAULT_LIMITS[featureConfig.limitKey] ?? 0;
+    const limit =
+      subscription?.limits?.[featureConfig.limitKey] ??
+      DEFAULT_LIMITS[featureConfig.limitKey] ??
+      0;
 
     if (feature === 'dailyRequest') {
       currentUsage = await UserUsageModel.getTodayRequests(userId, tenantId);
@@ -118,7 +128,9 @@ export const checkUsageLimit = async (userContext, feature, amount = 1) => {
     }
 
     if (currentUsage + amount > limit) {
-      throw new LimitExceededError(`Usage limit of ${limit} for ${feature} has been reached.`);
+      throw new LimitExceededError(
+        `Usage limit of ${limit} for ${feature} has been reached.`
+      );
     }
   } catch (error) {
     if (error instanceof LimitExceededError) {
@@ -152,7 +164,9 @@ export const trackUsage = async (userContext, feature, amount = 1) => {
       // If not, it should be updated to `(userId, tenantId, amount = 1)`.
       await UserUsageModel.incrementRequest(userId, tenantId, amount);
     } else {
-      const filter = tenantId ? { tenantId } : { userId, tenantId: { $in: [null, undefined] } };
+      const filter = tenantId
+        ? { tenantId }
+        : { userId, tenantId: { $in: [null, undefined] } };
       const update = { $inc: { [`usage.${featureConfig.usageKey}`]: amount } };
       await SubscriptionModel.updateOne(filter, update);
     }
@@ -182,7 +196,8 @@ export const trackAndVerify = async (userContext, feature, amount = 1) => {
  * Records a single daily request.
  * @param {object} userContext - The user context.
  */
-export const recordUsage = (userContext) => trackUsage(userContext, 'dailyRequest', 1);
+export const recordUsage = (userContext) =>
+  trackUsage(userContext, 'dailyRequest', 1);
 
 /**
  * Checks all relevant limits for a given feature. Alias for checkUsageLimit.
@@ -193,7 +208,8 @@ export const checkUsageLimits = checkUsageLimit;
  * Checks daily request limits for a user, typically for general API access.
  * @param {object} user - The user object.
  */
-export const checkUsageAndLimits = (user) => checkUsageLimit(user, 'dailyRequest');
+export const checkUsageAndLimits = (user) =>
+  checkUsageLimit(user, 'dailyRequest');
 
 /**
  * Checks if a user can make an API call for a specific feature. Returns a boolean.
@@ -203,7 +219,11 @@ export const checkUsageAndLimits = (user) => checkUsageLimit(user, 'dailyRequest
  * @param {number} [cost=1] - The cost of the call.
  * @returns {Promise<boolean>} - True if the user is within limits, false otherwise.
  */
-export const canMakeApiCall = async (userContext, feature = 'dailyRequest', cost = 1) => {
+export const canMakeApiCall = async (
+  userContext,
+  feature = 'dailyRequest',
+  cost = 1
+) => {
   try {
     await checkUsageLimit(userContext, feature, cost);
     return true;
@@ -220,13 +240,15 @@ export const canMakeApiCall = async (userContext, feature = 'dailyRequest', cost
  * Checks the image generation limit for the user/workspace.
  * @param {object} userContext - The user context.
  */
-export const checkImageGenerationLimit = (userContext) => checkUsageLimit(userContext, 'image', 1);
+export const checkImageGenerationLimit = (userContext) =>
+  checkUsageLimit(userContext, 'image', 1);
 
 /**
  * Records that an image was generated by the user/workspace.
  * @param {object} userContext - The user context.
  */
-export const recordImageGeneration = (userContext) => trackUsage(userContext, 'image', 1);
+export const recordImageGeneration = (userContext) =>
+  trackUsage(userContext, 'image', 1);
 
 /**
  * A generic limit check, primarily for workspace-level limits.

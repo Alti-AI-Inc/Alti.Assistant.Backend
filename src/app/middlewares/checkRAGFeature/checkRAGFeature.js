@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
-import SubscriptionModel from '../../modules/payment/payment.model.js';
 import { logger } from '../../../shared/logger.js';
+import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 
 /**
  * RAG feature tiers and what file types each allows.

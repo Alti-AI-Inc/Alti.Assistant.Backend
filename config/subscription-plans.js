@@ -1,6 +1,6 @@
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,24 +34,33 @@ stripeProducts.plans.forEach((plan) => {
     stripeProductId: plan.productId,
     stripePriceId: plan.priceId,
 
-    // Feature limits
-    limits: {
-      dailyWebSearchLimit: plan.features.dailyWebSearchLimit,
-      dailyDeepResearchLimit: plan.features.dailyDeepResearchLimit,
-      canInviteTeam: plan.features.canInviteTeam,
-      unlimitedSeats: plan.features.unlimitedSeats,
-      researchLimit: plan.features.researchLimit,
-      imageLimit: plan.features.imageLimit,
-      videoLimit: plan.features.videoLimit,
-      taskLimit: plan.features.taskLimit,
-      workflowLimit: plan.features.workflowLimit,
-      searchLimit: plan.features.searchLimit,
-      writeLimit: plan.features.writeLimit,
-      codeLimit: plan.features.codeLimit,
-      projectsLimit: plan.features.projectsLimit,
-      modelsLimit: plan.features.modelsLimit,
-      knowledgeLimit: plan.features.knowledgeLimit,
-    },
+    // Feature limits (support monthly limits and derive daily defaults)
+    limits: (function (f) {
+      const monthlySearch = f.searchLimit || 0;
+      const monthlyResearch = f.researchLimit || 0;
+      const monthlyMonitor = f.monitorLimit || 0;
+      return {
+        dailyWebSearchLimit:
+          f.dailyWebSearchLimit || Math.max(1, Math.ceil(monthlySearch / 30)),
+        dailyDeepResearchLimit:
+          f.dailyDeepResearchLimit ||
+          Math.max(0, Math.ceil(monthlyResearch / 30)),
+        canInviteTeam: f.canInviteTeam || false,
+        unlimitedSeats: f.unlimitedSeats || false,
+        researchLimit: monthlyResearch,
+        monitorLimit: monthlyMonitor,
+        imageLimit: f.imageLimit || 0,
+        videoLimit: f.videoLimit || 0,
+        taskLimit: f.taskLimit || 0,
+        workflowLimit: f.workflowLimit || 0,
+        searchLimit: monthlySearch,
+        writeLimit: f.writeLimit || 0,
+        codeLimit: f.codeLimit || 0,
+        projectsLimit: f.projectsLimit || 0,
+        modelsLimit: f.modelsLimit || 0,
+        knowledgeLimit: f.knowledgeLimit || f.storagePerUser || 0,
+      };
+    })(plan.features || plan.limits || {}),
 
     // Metered overage prices in Stripe
     meteredPrices: plan.meteredPrices || null,

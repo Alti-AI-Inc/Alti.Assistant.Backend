@@ -47,7 +47,18 @@ const productSchema = new mongoose.Schema(
     plan: {
       type: String,
       required: true,
-      enum: ['free', 'explore', 'execute', 'command'],
+      enum: [
+        'free',
+        'explore',
+        'execute',
+        'command',
+        'monthly_5',
+        'monthly_10',
+        'monthly_20',
+        'monthly_50',
+        'monthly_100',
+        'monthly_200',
+      ],
     },
     /**
      * The internal name of the product.

@@ -2106,17 +2106,33 @@ const createBillingPortalSession = async (userId, tenantId, context) => {
  */
 const getLimitsFromPlan = (plan) => {
   const features = plan.features || plan.limits || {};
+
+  // Prefer monthly limits (searchLimit/researchLimit) when present and derive daily equivalents.
+  const monthlySearch = features.searchLimit || 0;
+  const monthlyResearch = features.researchLimit || 0;
+  const monthlyMonitor = features.monitorLimit || 0;
+
+  const dailyWebSearchLimit =
+    features.dailyWebSearchLimit ||
+    Math.max(1, Math.ceil(monthlySearch / 30)) ||
+    10;
+  const dailyDeepResearchLimit =
+    features.dailyDeepResearchLimit ||
+    Math.max(0, Math.ceil(monthlyResearch / 30)) ||
+    0;
+
   return {
-    dailyWebSearchLimit: features.dailyWebSearchLimit || 10,
-    dailyDeepResearchLimit: features.dailyDeepResearchLimit || 0,
+    dailyWebSearchLimit,
+    dailyDeepResearchLimit,
     canInviteTeam: features.canInviteTeam || false,
     unlimitedSeats: features.unlimitedSeats || false,
-    researchLimit: features.researchLimit || 0,
+    researchLimit: monthlyResearch,
+    monitorLimit: monthlyMonitor,
     imageLimit: features.imageLimit || 0,
     videoLimit: features.videoLimit || 0,
     taskLimit: features.taskLimit || 0,
     workflowLimit: features.workflowLimit || 0,
-    searchLimit: features.searchLimit || 0,
+    searchLimit: monthlySearch,
     writeLimit: features.writeLimit || 0,
     codeLimit: features.codeLimit || 0,
     projectsLimit: features.projectsLimit || 0,

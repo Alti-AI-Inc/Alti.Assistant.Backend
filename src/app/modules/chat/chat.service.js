@@ -9,7 +9,7 @@ import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
 import UserModel from '../auth/auth.model.js';
 import Chat from './chat.model.js';
-import { paymentController } from '../payment/payment.controller.js';
+// import { paymentController } from '../payment/payment.controller.js';
 import { GEMINI_RESPONSE_SERVICE_POST } from './chat.constant.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -38,12 +38,12 @@ const geminiService = async (sessionId, prompt, userId) => {
       'No reply generated';
 
     try {
-      const paymentResult =
-        await paymentController.incrementPromptsUsed(userId);
+      // const paymentResult =
+      //   await paymentController.incrementPromptsUsed(userId);
 
-      if (!paymentResult.success) {
-        throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
-      }
+      // if (!paymentResult.success) {
+      //   throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
+      // }
     } catch (error) {
       logger.error('Error in incrementPromptsUsed:', error);
       throw new ApiError(

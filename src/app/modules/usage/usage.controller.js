@@ -1,8 +1,8 @@
-import catchAsync from '../../../shared/catchAsync.js';
-import UserUsageModel from './userUsage.model.js';
-import SubscriptionModel from '../payment/payment.model.js';
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
+import catchAsync from '../../../shared/catchAsync.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
+import UserUsageModel from './userUsage.model.js';
 
 // Improvement: Centralize plan definitions, especially for the fallback "free" plan.
 // This avoids hardcoding magic numbers and strings within the controller logic, making it easier to manage.
@@ -38,7 +38,10 @@ const getUsageStats = catchAsync(async (req, res) => {
   let activePlan;
   const activeSubscriptionStatuses = ['active', 'trialing'];
 
-  if (subscription && activeSubscriptionStatuses.includes(subscription.paymentStatus)) {
+  if (
+    subscription &&
+    activeSubscriptionStatuses.includes(subscription.paymentStatus)
+  ) {
     // If a valid, active subscription exists, use its limits.
     activePlan = {
       name: subscription.plan_name,
@@ -55,11 +58,7 @@ const getUsageStats = catchAsync(async (req, res) => {
     };
   }
 
-  const {
-    name: planName,
-    status: paymentStatus,
-    limits,
-  } = activePlan;
+  const { name: planName, status: paymentStatus, limits } = activePlan;
   // --- End of Improvement ---
 
   // Get daily usage details from UserUsage model
@@ -80,7 +79,7 @@ const getUsageStats = catchAsync(async (req, res) => {
   const storageLimitBytes = limits.storagePerUser || 0;
   const remainingStorageBytes = Math.max(
     0,
-    storageLimitBytes - storageUsedBytes,
+    storageLimitBytes - storageUsedBytes
   );
   const percentageStorageUsed =
     storageLimitBytes > 0 ? (storageUsedBytes / storageLimitBytes) * 100 : 0;

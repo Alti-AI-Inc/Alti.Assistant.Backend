@@ -1,6 +1,7 @@
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
+import { checkDeepResearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
 import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
 import { DeepResearchController } from './exaDeepResearch.controller.js';
 import { DeepResearchValidation } from './exaDeepResearch.validation.js';
@@ -12,6 +13,7 @@ router.post(
   '/create',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   validateRequest(DeepResearchValidation.createDeepResearchZodSchema),
+  checkDeepResearchLimit,
   DeepResearchController.createDeepResearchRecord
 );
 

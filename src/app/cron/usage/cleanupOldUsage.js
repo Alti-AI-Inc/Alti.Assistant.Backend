@@ -1,6 +1,6 @@
 import { logger } from '../../../shared/logger.js';
+import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 import UserUsageModel from '../../modules/usage/userUsage.model.js';
-import SubscriptionModel from '../../modules/payment/payment.model.js';
 
 export const cleanupOldUsage = async (req, res) => {
   logger.info('[Cleanup Cron] Starting daily cleanup job (HTTP trigger)');
@@ -18,7 +18,9 @@ export const cleanupOldUsage = async (req, res) => {
     });
 
     deletedUsage = usageResult.deletedCount;
-    logger.info(`[Cleanup Cron] Deleted ${deletedUsage} UserUsage records older than 90 days`);
+    logger.info(
+      `[Cleanup Cron] Deleted ${deletedUsage} UserUsage records older than 90 days`
+    );
   } catch (err) {
     logger.error('[Cleanup Cron] Error deleting old UserUsage records:', err);
   }
@@ -42,5 +44,13 @@ export const cleanupOldUsage = async (req, res) => {
   }
 
   logger.info('[Cleanup Cron] Daily cleanup job complete');
-  if (res) res.status(200).json({ success: true, message: 'Cleanup complete', deletedUsage, expiredSubs });
+  if (res)
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: 'Cleanup complete',
+        deletedUsage,
+        expiredSubs,
+      });
 };

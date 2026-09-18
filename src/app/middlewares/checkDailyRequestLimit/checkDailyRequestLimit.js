@@ -1,8 +1,8 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
-import SubscriptionModel from '../../modules/payment/payment.model.js';
-import UserUsageModel from '../../modules/usage/userUsage.model.js';
 import { logger } from '../../../shared/logger.js';
+import SubscriptionModel from '../../modules/subscription/subscription.model.js';
+import UserUsageModel from '../../modules/usage/userUsage.model.js';
 
 const FREE_PLAN_DAILY_LIMIT = 10;
 
