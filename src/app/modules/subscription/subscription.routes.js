@@ -4,17 +4,9 @@ import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext, requireTenantAdmin } from '../../middlewares/tenant/tenantContext.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 
-/**
- * @constant {Function} billingLimiter - Rate limiter for billing-related actions.
- * Limits requests to 10 actions per 5 minutes to prevent abuse and ensure system stability.
- * @param {number} maxRequests - The maximum number of requests allowed within the window.
- * @param {number} windowMinutes - The time window in minutes.
- */
+
 const billingLimiter = createRateLimiter(5, 10); // Max 10 billing actions per 5 minutes
 
-/**
- * @constant {express.Router} router - Express router for subscription-related routes.
- */
 const router = express.Router();
 
 router.post('/webhook', subscriptionController.handleStripeWebhook);

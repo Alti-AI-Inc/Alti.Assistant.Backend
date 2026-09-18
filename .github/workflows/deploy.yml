@@ -205,6 +205,988 @@
 #       - name: Clean up SSH key
 #         if: always()
 #         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+
+
+
+
+# ==============================================================================
+#  deploy-agents.yml
+# ==============================================================================
+
+
+# name: Deploy Agents to GCP Cloud Run
+
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'agents/**'
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# env:
+#   PROJECT_ID:   gen-lang-client-0273900650
+#   REGION:       us-central1
+
+# jobs:
+#   deploy-agents:
+#     name: Build & Deploy Agents to Cloud Run
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Authenticate to Google Cloud
+#         id: auth_setup
+#         uses: google-github-actions/auth@v2
+#         with:
+#           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+#       - name: Verify Google Cloud Auth
+#         id: auth
+#         run: |
+#           gcloud auth print-access-token --quiet
+
+#       - name: Deploy Agents
+#         run: |
+#           chmod +x scripts/deploy-agents.sh
+#           # Pass the project ID and region
+#           export GCP_PROJECT_ID=${{ env.PROJECT_ID }}
+#           export GCP_REGION=${{ env.REGION }}
+#           ./scripts/deploy-agents.sh
+
+#       - name: Report Deployment
+#         run: |
+#           echo "✅ Agents deployment successful!"
+#           cat >> $GITHUB_STEP_SUMMARY << EOF
+#           ## ✅ Cloud Run Agents Deployment Complete
+#           The 7 agents have been successfully deployed.
+#           EOF
+
+
+# ==============================================================================
+#  deploy-cloud-run.yml
+# ==============================================================================
+
+
+# name: Deploy to GCP Cloud Run
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# env:
+#   PROJECT_ID:   gen-lang-client-0273900650
+#   REGION:       us-central1
+#   SERVICE_NAME: inso-assistant-backend
+#   REGISTRY:     us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo
+#   IMAGE_NAME:   inso-assistant-backend
+#   MEMORY:       8Gi
+#   CPU:          "4"
+#   MIN_INSTANCES: "1"
+#   MAX_INSTANCES: "4"
+#   TIMEOUT:      "300"
+
+# jobs:
+#   build-and-deploy:
+#     name: Build, Push & Deploy to Cloud Run
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # ── 1. Checkout ─────────────────────────────────────────────────────────
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # ── 2. Version tag ───────────────────────────────────────────────────────
+#       - name: Set version tag
+#         id: vars
+#         run: |
+#           VERSION="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+#           IMAGE_VERSIONED="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+#           IMAGE_LATEST="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+#           echo "version=${VERSION}"             >> $GITHUB_OUTPUT
+#           echo "image_versioned=${IMAGE_VERSIONED}" >> $GITHUB_OUTPUT
+#           echo "image_latest=${IMAGE_LATEST}"   >> $GITHUB_OUTPUT
+#           echo "🏷️  Tag: ${VERSION}"
+
+#       # ── 3. GCP Auth ──────────────────────────────────────────────────────────
+#       - name: Authenticate to Google Cloud
+#         id: auth_setup
+#         uses: google-github-actions/auth@v2
+#         with:
+#           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+#       - name: Verify Google Cloud Auth
+#         id: auth
+#         run: |
+#           gcloud auth print-access-token --quiet
+
+#       # ── 4. Create Artifact Registry repository if needed ───────────────────
+#       - name: Ensure Artifact Registry repository exists
+#         continue-on-error: true
+#         run: |
+#           gcloud artifacts repositories create inso-assistant-core-backend-repo \
+#             --repository-format=docker \
+#             --location=${{ env.REGION }} \
+#             --project=${{ env.PROJECT_ID }} \
+#             --description="Inso AI assistant core backend Docker images" --quiet || true
+
+#       # ── 5. Log in to Google Artifact Registry ───────────────────────────────
+#       - name: Log in to Google Artifact Registry
+#         uses: docker/login-action@v3
+#         with:
+#           registry: ${{ env.REGION }}-docker.pkg.dev
+#           username: _json_key
+#           password: ${{ secrets.GCP_SA_KEY }}
+
+#       # ── 6. Docker Buildx ─────────────────────────────────────────────────────
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+
+#       # ── 7. Build & Push ──────────────────────────────────────────────────────
+#       - name: Build and push Docker image
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           platforms: linux/amd64
+#           push: true
+#           tags: |
+#             ${{ steps.vars.outputs.image_versioned }}
+#             ${{ steps.vars.outputs.image_latest }}
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+
+#       # ── 8. Deploy to Cloud Run ──────────────────────────────────────────────
+#       - name: Deploy to Cloud Run
+#         run: |
+#           # Dynamically check if the VPC Access Connector exists and is active in the project
+#           VPC_FLAG=""
+#           if gcloud compute networks vpc-access connectors describe inso-vpc-connector \
+#             --region="${{ env.REGION }}" \
+#             --project="${{ env.PROJECT_ID }}" >/dev/null 2>&1; then
+#             echo "🟢 Serverless VPC Connector 'inso-vpc-connector' found. Routing traffic privately."
+#             VPC_FLAG="--vpc-connector=inso-vpc-connector"
+#           else
+#             echo "⚠️ Serverless VPC Connector 'inso-vpc-connector' not found. Explicitly clearing VPC association to route publicly."
+#             VPC_FLAG="--clear-vpc-connector"
+#           fi
+
+
+#           gcloud run deploy ${{ env.SERVICE_NAME }} \
+#             --image "${{ steps.vars.outputs.image_latest }}" \
+#             --platform managed \
+#             --region ${{ env.REGION }} \
+#             --project ${{ env.PROJECT_ID }} \
+#             --allow-unauthenticated \
+#             --port 8080 \
+#             --memory ${{ env.MEMORY }} \
+#             --cpu ${{ env.CPU }} \
+#             --timeout ${{ env.TIMEOUT }} \
+#             --min-instances ${{ env.MIN_INSTANCES }} \
+#             --max-instances ${{ env.MAX_INSTANCES }} \
+#             --cpu-boost \
+#             --no-cpu-throttling \
+#             --execution-environment gen2 \
+#             $VPC_FLAG \
+#             --set-env-vars "NODE_ENV=production,CLIENT_URL=https://www.inso.com,GCP_LOCATION=us-central1,VERTEX_AI_LOCATION=us-central1,ENABLE_SMART_ROUTING=true,DEFAULT_MODEL=gemini,SEARCH_USE_OPENMEMORY=true,OM_DEFAULT_K=5,OM_MIN_SCORE=0.2,OM_USE_SECTOR_HINT=true,OM_RERANK_ENABLED=true,OM_RERANK_OVERLAP_WEIGHT=0.6,OM_RERANK_MEMORY_WEIGHT=0.4,OM_RERANK_AB_PCT=100,USE_SIMPLIFIED_COMPOSIO=false,GEMINI_MODEL=gemini-3.5-flash,CLAUDE_MODEL_NAME=claude-sonnet-4-5,CLAUDE_MAX_TOKENS=4096,CLAUDE_TEMPERATURE=0.7,JWT_ACCESS_EXPIRES_IN=7d,JWT_REFRESH_EXPIRES_IN=365d,GOOGLE_SMTP_HOST=smtp.gmail.com,GOOGLE_SMTP_PORT=587,MODEL_ID=imagen-4.0-generate-preview-06-06" \
+#             --set-secrets "GOOGLE_API_KEY=GEMINI_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,DATABASE_LOCAL=DATABASE_LOCAL:latest,JWT_ACCESS_TOKEN=JWT_ACCESS_TOKEN:latest,JWT_REFRESH_REFRESH_TOKEN=JWT_REFRESH_REFRESH_TOKEN:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,DEEPSEEK_API_KEY=DEEPSEEK_API_KEY:latest,GOOGLE_SEARCH_API_KEY=GOOGLE_SEARCH_API_KEY:latest,GOOGLE_CSE_ID=GOOGLE_CSE_ID:latest,YOUTUBE_API_KEY=YOUTUBE_API_KEY:latest,MASSIVE_API_KEY=MASSIVE_API_KEY:latest,PREDICTIONDATA_API_KEY=PREDICTIONDATA_API_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,STRIPE_WEBHOOK_SECRET_THIN=STRIPE_WEBHOOK_SECRET_THIN:latest,GOOGLE_SMTP_PASSWORD=GOOGLE_SMTP_PASSWORD:latest,GOOGLE_SMTP_USER=GOOGLE_SMTP_USER:latest,MAILGUN_DOMAIN=MAILGUN_DOMAIN:latest,MAILGUN_KEY=MAILGUN_KEY:latest,MAILGUN_FROM=MAILGUN_FROM:latest,REDIS_URL=REDIS_URL:latest,CLOUD_STORAGE_SECRET_KEY=CLOUD_STORAGE_SECRET_KEY:latest,CLOUD_STORAGE_ACCESS_KEY=CLOUD_STORAGE_ACCESS_KEY:latest,CLOUD_STORAGE_BUCKET=CLOUD_STORAGE_BUCKET:latest,LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,WEB_SOCKET_URL=WEB_SOCKET_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,FACEBOOK_APP_ID=FACEBOOK_APP_ID:latest,FACEBOOK_APP_SECRET=FACEBOOK_APP_SECRET:latest,DISCORD_CLIENT_ID=DISCORD_CLIENT_ID:latest,DISCORD_CLIENT_SECRET=DISCORD_CLIENT_SECRET:latest,GITHUB_CLIENT_ID=GITHUB_CLIENT_ID:latest,GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET:latest,TWITTER_CLIENT_ID=TWITTER_CLIENT_ID:latest,TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:latest,SLACK_CLIENT_ID=SLACK_CLIENT_ID:latest,SLACK_CLIENT_SECRET=SLACK_CLIENT_SECRET:latest,COMPOSIO_ORG_API_KEY=COMPOSIO_ORG_API_KEY:latest,COMPOSIO_API_KEY=COMPOSIO_API_KEY:latest,COMPOSIO_CLIENT_SECRET=COMPOSIO_CLIENT_SECRET:latest,COMPOSIO_GMAIL_AUTH_CONFIG_ID=COMPOSIO_GMAIL_AUTH_CONFIG_ID:latest,BROWSER_USE_SECRET_KEY=BROWSER_USE_SECRET_KEY:latest,CYBERDESK_API_KEY=CYBERDESK_API_KEY:latest,GCP_PROJECT_ID=GCP_PROJECT_ID:latest,VERTEX_AI_PROJECT_ID=VERTEX_AI_PROJECT_ID:latest,GOOGLE_MCP_TOOLBOX_URL=GOOGLE_MCP_TOOLBOX_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,MAPS_API_KEY=MAPS_API_KEY:latest,GCP_DOCUMENT_AI_PROCESSOR_ID=GCP_DOCUMENT_AI_PROCESSOR_ID:latest,RECAPTCHA_SITE_KEY=RECAPTCHA_SITE_KEY:latest"
+
+
+#       - name: Fetch and print Cloud Run logs on failure
+#         if: failure()
+#         run: |
+#           echo "⚠️ Deployment failed! Fetching recent startup logs..."
+#           gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
+#             --limit=100 \
+#             --project=${{ env.PROJECT_ID }} \
+#             --format="value(textPayload,jsonPayload.message)"
+
+#       # ── 8. Print Service URL + Job Summary ──────────────────────────────────
+#       - name: Report deployment
+#         run: |
+#           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+#             --region=${{ env.REGION }} \
+#             --project=${{ env.PROJECT_ID }} \
+#             --format="value(status.url)")
+
+#           echo ""
+#           echo "✅ Deployment successful!"
+#           echo "🌐 URL  : ${SERVICE_URL}"
+#           echo "🏷️  Image: ${{ steps.vars.outputs.image_versioned }}"
+#           echo "🔀 SHA  : ${GITHUB_SHA::7}"
+#           echo ""
+
+#           # Write to GitHub Actions job summary
+#           cat >> $GITHUB_STEP_SUMMARY << EOF
+#           ## ✅ Cloud Run Deployment Complete
+
+#           | Field | Value |
+#           |-------|-------|
+#           | 🌐 **Service URL** | ${SERVICE_URL} |
+#           | 🏷️ **Image** | \`${{ steps.vars.outputs.image_versioned }}\` |
+#           | 🔀 **Commit** | \`${GITHUB_SHA::7}\` |
+#           | 🕐 **Deployed** | $(date -u '+%Y-%m-%d %H:%M UTC') |
+#           | 📦 **Service** | ${{ env.SERVICE_NAME }} |
+#           | 🌍 **Region** | ${{ env.REGION }} |
+#           | 💾 **Memory** | ${{ env.MEMORY }} |
+#           | ⚙️ **CPU** | ${{ env.CPU }} vCPU |
+#           | 📈 **Instances** | ${{ env.MIN_INSTANCES }}–${{ env.MAX_INSTANCES }} |
+
+#           ### 🔗 Quick Links
+#           - [Cloud Run Console](https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }}/metrics?project=${{ env.PROJECT_ID }})
+#           - [Secret Manager](https://console.cloud.google.com/security/secret-manager?project=${{ env.PROJECT_ID }})
+#           - [Artifact Registry](https://console.cloud.google.com/artifacts/docker/${{ env.PROJECT_ID }}/${{ env.REGION }}/inso-assistant-core-backend-repo?project=${{ env.PROJECT_ID }})
+#           - [Cloud Logging](https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%20resource.labels.service_name%3D%22${{ env.SERVICE_NAME }}%22?project=${{ env.PROJECT_ID }})
+#           EOF
+
+
+
+# ==============================================================================
+#  deploy-vm-direct.yml
+# ==============================================================================
+# name: Deploy Code to VM (Direct)
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       branch:
+#         description: 'Branch to deploy (e.g. main, dev)'
+#         required: true
+#         default: 'dev'
+#   push:
+#     branches:
+#       - dev
+#     paths-ignore:
+#       - 'data/**'
+#       - '*.md'
+
+# env:
+#   VM_HOST: ${{ secrets.VM_HOST }}
+#   VM_USER: ${{ secrets.VM_USER }}
+#   REGISTRY: us-central1-docker.pkg.dev
+#   IMAGE: us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   deploy:
+#     name: Build, Push & Deploy to VM
+#     runs-on: ubuntu-latest
+#     environment: production
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#         with:
+#           ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+#       - name: Authenticate to Google Cloud
+#         uses: google-github-actions/auth@v2
+#         with:
+#           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+#       - name: Log in to Google Artifact Registry
+#         uses: docker/login-action@v3
+#         with:
+#           registry: ${{ env.REGISTRY }}
+#           username: _json_key
+#           password: ${{ secrets.GCP_SA_KEY }}
+
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+
+#       - name: Build and push Docker image
+#         uses: docker/build-push-action@v6
+#         with:
+#           context: .
+#           push: true
+#           tags: ${{ env.IMAGE }}:latest
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+#       - name: Copy docker-compose to VM
+#         run: |
+#           scp -i ~/.ssh/inso-vm-key -o StrictHostKeyChecking=no \
+#             docker-compose.yml ${{ env.VM_USER }}@${{ env.VM_HOST }}:~/docker-compose.yml
+
+#       - name: Deploy to VM
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash -s << 'EOF'
+#             set -e
+
+#             echo "=== Step 1: Stop containers (release image locks) ==="
+#             docker compose -f ~/docker-compose.yml down --remove-orphans 2>/dev/null || true
+
+#             echo "=== Step 2: Aggressive disk cleanup BEFORE pull ==="
+#             sudo systemctl restart docker || sudo service docker restart || true
+#             docker system prune -af 2>/dev/null || true
+#             docker container prune -f 2>/dev/null || true
+#             docker image rm us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend:latest 2>/dev/null || true
+#             docker image prune -af 2>/dev/null || true
+#             docker volume prune -f 2>/dev/null || true
+#             docker builder prune -af 2>/dev/null || true
+#             df -h / | tail -1
+
+#             AVAIL=$(df / | awk 'NR==2 {print $4}')
+#             if [ "$AVAIL" -lt 1048576 ]; then
+#               echo "ERROR: Less than 1GB free after prune ($AVAIL KB). Aborting."
+#               exit 1
+#             fi
+#             echo "Disk OK: ${AVAIL}KB available"
+
+#             echo "=== Step 3: Fix .env CRLF (Docker env_file requires LF) ==="
+#             [ -f ~/.env ] && sed -i 's/\r//' ~/.env && echo ".env CRLF stripped"
+
+#             echo "=== Step 4: Authenticate with Artifact Registry ==="
+#             mkdir -p ~/.docker
+#             echo '{}' > ~/.docker/config.json
+#             echo '${{ secrets.GCP_SA_KEY }}' | docker login -u _json_key --password-stdin https://us-central1-docker.pkg.dev
+
+#             echo "=== Step 5: Pull latest images ==="
+#             docker compose -f ~/docker-compose.yml pull
+
+#             echo "=== Step 6: Start containers ==="
+#             docker compose -f ~/docker-compose.yml up -d
+
+#             echo "=== Step 7: Status + disk ==="
+#             docker compose -f ~/docker-compose.yml ps
+#             df -h /
+
+#             echo "=== Deploy complete! ==="
+#           EOF
+
+#       - name: Health check
+#         run: |
+#           echo "Waiting 30s for backend to start..."
+#           sleep 30
+#           ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+#             "curl -sf http://localhost:5100/health && echo ' ✅ Backend healthy' || echo ' ❌ Health check failed'"
+
+#       - name: Fetch recent logs
+#         if: always()
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} \
+#             "docker logs inso-backend --tail=20 2>&1" || true
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+# ==============================================================================
+#  hotfix-vm.yml
+# ==============================================================================
+
+# name: Full Deploy to VM (Hotfix)
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   deploy:
+#     name: Deploy Full Codebase to Production VM
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+#       - name: Package application code
+#         run: |
+#           tar czf /tmp/app-code.tar.gz \
+#             --exclude='node_modules' \
+#             --exclude='.git' \
+#             --exclude='.env' \
+#             --exclude='env' \
+#             --exclude='env.yaml' \
+#             --exclude='test' \
+#             --exclude='scratch' \
+#             --exclude='data' \
+#             --exclude='db_data' \
+#             --exclude='*.tar.gz' \
+#             --exclude='*.zip' \
+#             -C . \
+#             src/ config/ index.js server.js package.json preload.cjs imagegen.json
+
+#           echo "Archive size: $(du -h /tmp/app-code.tar.gz | cut -f1)"
+
+#       - name: Upload code to VM
+#         run: |
+#           scp -i ~/.ssh/inso-vm-key /tmp/app-code.tar.gz \
+#             inso_deployer@35.239.192.33:/tmp/app-code.tar.gz
+#           scp -i ~/.ssh/inso-vm-key docker-compose.presenton.yml \
+#             inso_deployer@35.239.192.33:~/docker-compose.presenton.yml 2>/dev/null || true
+
+#       - name: Deploy into container and restart
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'DEPLOY'
+#             set -e
+
+#             CONTAINER="inso-backend"
+#             APP_ROOT="/app/inso-core-service"
+
+#             # ── Clean up disk space (safely - don't remove running containers) ──
+#             echo "=== Cleaning disk space ==="
+#             # Only remove dangling images and build cache, NOT containers
+#             docker builder prune -af 2>/dev/null || true
+#             docker image prune -f 2>/dev/null || true
+#             rm -rf /tmp/app-staging /tmp/app-code-old.tar.gz /tmp/npm-sync 2>/dev/null || true
+#             npm cache clean --force 2>/dev/null || true
+#             # Clean old docker logs
+#             truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true
+#             echo "Disk after cleanup:"
+#             df -h / | tail -1
+
+#             echo "=== Extracting code on host ==="
+#             rm -rf /tmp/app-staging
+#             mkdir -p /tmp/app-staging
+#             cd /tmp/app-staging
+#             tar xzf /tmp/app-code.tar.gz
+
+#             # ── Ensure container exists and is usable ──
+#             CONTAINER_STATUS=$(docker inspect $CONTAINER --format '{{.State.Status}}' 2>/dev/null || echo "missing")
+#             echo "Container status: $CONTAINER_STATUS"
+
+#             if [ "$CONTAINER_STATUS" = "missing" ] || ! docker stop $CONTAINER 2>/dev/null; then
+#               echo "=== Container missing or unusable. Force removing and recreating ==="
+#               docker rm -f $CONTAINER 2>/dev/null || true
+#               # Clean up any failed image pulls
+#               docker system prune -f 2>/dev/null || true
+#               echo "Disk space:"
+#               df -h / | tail -1
+#               cd ~
+#               # IMPORTANT: Use presenton compose file (only backend + presenton)
+#               # NOT the full docker-compose.yml which includes ES, kibana, mongo, etc.
+#               docker compose -f docker-compose.presenton.yml up -d inso-backend
+#               sleep 5
+#               echo "Container recreated"
+#               # Stop it so we can update files
+#               docker stop $CONTAINER 2>/dev/null || true
+#               sleep 2
+#             else
+#               echo "=== Container stopped successfully ==="
+#               sleep 2
+#             fi
+
+#             # ── Copy files using docker cp (works on stopped containers) ──
+#             echo "=== Copying files into container ==="
+#             cd /tmp/app-staging
+
+#             # Copy root files
+#             for item in config index.js server.js package.json preload.cjs imagegen.json; do
+#               if [ -e "/tmp/app-staging/$item" ]; then
+#                 docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
+#                 echo "  ✅ $item"
+#               fi
+#             done
+
+#             # Merge src/ directory
+#             docker cp src/. "$CONTAINER:$APP_ROOT/src/"
+#             echo "  ✅ src/ merged"
+
+#             # ── Sync ALL dependencies: npm install on HOST, copy to container ──
+#             echo "=== Syncing dependencies ==="
+#             rm -rf /tmp/npm-sync && mkdir -p /tmp/npm-sync
+#             docker cp "$CONTAINER:$APP_ROOT/node_modules" /tmp/npm-sync/node_modules 2>/dev/null || mkdir -p /tmp/npm-sync/node_modules
+#             cp /tmp/app-staging/package.json /tmp/npm-sync/package.json
+#             cd /tmp/npm-sync && npm install --production --legacy-peer-deps 2>&1 | tail -5
+#             echo "  Installed $(ls node_modules | wc -l) packages"
+#             docker cp /tmp/npm-sync/node_modules/. "$CONTAINER:$APP_ROOT/node_modules/"
+#             echo "  ✅ Dependencies synced"
+#             rm -rf /tmp/npm-sync
+
+#             # ── Start the container (now with all deps) ──
+#             echo "=== Starting container ==="
+#             docker start $CONTAINER
+#             sleep 10
+
+#             echo "=== Verifying key changes ==="
+#             docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
+#             docker exec $CONTAINER grep -c "initSentry" index.js && echo "  ✅ Sentry integration" || echo "  ❌ Sentry"
+#             docker exec $CONTAINER grep -c "allowedOrigins" index.js && echo "  ✅ CORS fix" || echo "  ❌ CORS fix"
+#             docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
+#             docker exec $CONTAINER grep -c "MODULE_REGISTRY" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator v2" || echo "  ❌ Orchestrator v2"
+#             docker exec $CONTAINER grep -c "gemini-2.5-flash" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Model name fixed" || echo "  ❌ Model name"
+#             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
+#             docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
+
+#             echo "=== Restarting container (clean start) ==="
+#             docker restart $CONTAINER
+
+#             echo "=== Waiting for startup (20s) ==="
+#             sleep 20
+
+#             echo "=== Container status ==="
+#             docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+#             echo "=== Post-deploy smoke test ==="
+#             HEALTH=$(docker exec $CONTAINER node -e "fetch('http://localhost:5100/health').then(r=>r.json()).then(d=>console.log(JSON.stringify(d))).catch(e=>console.log('FAIL:'+e.message))" 2>&1) || true
+#             if echo "$HEALTH" | grep -q '"success":true'; then
+#               echo "  ✅ Health check passed: $HEALTH"
+#             else
+#               echo "  ⚠️ Health check response: $HEALTH"
+#             fi
+
+#             echo "=== Phase 3+ verifications ==="
+#             docker exec $CONTAINER grep -c "compression" index.js && echo "  ✅ Compression middleware" || echo "  ❌ Compression"
+#             docker exec $CONTAINER grep -c "requestIdMiddleware" index.js && echo "  ✅ Request ID tracing" || echo "  ❌ Request ID"
+#             docker exec $CONTAINER grep -c "REQUIRED_ENV" index.js && echo "  ✅ Startup env validation" || echo "  ❌ Env validation"
+#             docker exec $CONTAINER grep -c "maxPoolSize" index.js && echo "  ✅ MongoDB pool tuning" || echo "  ❌ Pool tuning"
+#             docker exec $CONTAINER test -f src/app/middlewares/requestId.js && echo "  ✅ requestId.js present" || echo "  ❌ requestId.js missing"
+
+#             echo "=== Startup logs ==="
+#             docker logs --tail=40 $CONTAINER 2>&1
+
+#             echo "=== Cleanup ==="
+#             rm -rf /tmp/app-staging /tmp/app-code.tar.gz
+
+#             echo "=== Full deploy complete! ==="
+#           DEPLOY
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+# ==============================================================================
+#  restart-nginx.yml
+# ==============================================================================
+
+# name: Restart Nginx on VM
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# env:
+#   VM_USER: inso_deployer
+#   VM_HOST: 35.239.192.33
+
+# jobs:
+#   restart-nginx:
+#     name: Restart Nginx
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+#       - name: Deep diagnostics
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
+#             echo "=== Main nginx.conf (proxy_cache settings) ===";
+#             grep -n "proxy_cache\|cache_path\|cache_zone" /etc/nginx/nginx.conf || echo "No proxy_cache in nginx.conf";
+#             echo "";
+#             echo "=== Full nginx.conf ===";
+#             cat /etc/nginx/nginx.conf;
+#             echo "";
+#             echo "=== Full site config ===";
+#             cat /etc/nginx/sites-enabled/inso.frontend.conf;
+#             echo "";
+#             echo "=== Test: curl localhost from VM ===";
+#             curl -sI http://localhost:3000 2>&1 | head -5 || echo "localhost:3000 not responding";
+#             echo "";
+#             echo "=== Test: curl Cloud Run from VM ===";
+#             curl -sI https://inso-assistant-frontend-366561755636.us-central1.run.app 2>&1 | head -10;
+#             echo "";
+#             echo "=== Test: curl inso.com from VM ===";
+#             curl -sI https://inso.com 2>&1 | head -10;
+#             echo "";
+#             echo "=== Purge ALL nginx cache ===";
+#             sudo find /var/cache/nginx -type f -delete 2>/dev/null || echo "No nginx cache dir";
+#             sudo find /tmp -name "nginx*" -delete 2>/dev/null || echo "No nginx temp files";
+#             echo "";
+#             echo "=== Hard restart nginx ===";
+#             sudo systemctl stop nginx;
+#             sleep 2;
+#             sudo systemctl start nginx;
+#             echo "Nginx restarted";
+#             echo "";
+#             echo "=== Final test from VM ===";
+#             sleep 2;
+#             curl -sI https://inso.com 2>&1 | grep -i "server\|cache\|x-cloud\|pragma" || echo "curl failed"'
+
+#       - name: Verify from runner
+#         run: |
+#           sleep 5
+#           echo "=== inso.com CSS ==="
+#           curl -s https://inso.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+#           echo "=== Cloud Run CSS ==="
+#           curl -s https://inso-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+# ==============================================================================
+#  update-env.yml
+# ==============================================================================
+
+
+# name: Update VM Environment Variable
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   update-env:
+#     name: Update GEMINI_API_KEY on Production VM
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+#       - name: Update GEMINI_API_KEY in VM .env
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
+#             set -e
+#             echo "=== Current GEMINI_API_KEY ==="
+#             grep "GEMINI_API_KEY" .env | head -1
+
+#             echo "=== Updating GEMINI_API_KEY ==="
+#             sed -i 's|GEMINI_API_KEY=.*|GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|' .env
+
+#             echo "=== Current GEMINI_MODEL ==="
+#             grep "GEMINI_MODEL" .env || echo "No GEMINI_MODEL"
+
+#             echo "=== Updating GEMINI_MODEL ==="
+#             if grep -q "GEMINI_MODEL=" .env; then
+#               sed -i 's|GEMINI_MODEL=.*|GEMINI_MODEL=gemini-3.5-flash|' .env
+#             else
+#               echo "GEMINI_MODEL=gemini-3.5-flash" >> .env
+#             fi
+
+#             echo "=== Verifying update ==="
+#             grep "GEMINI_API_KEY" .env | head -1
+#             grep "GEMINI_MODEL" .env | head -1
+
+#             echo "=== Restarting containers ==="
+#             docker compose down
+#             docker compose up -d
+
+#             echo "=== Container status ==="
+#             docker compose ps
+
+#             echo "=== Done! ==="
+#           EOF
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+
+
+# ==============================================================================
+#  update-frontend-proxy.yml
+# ==============================================================================
+
+
+# name: Update Frontend Proxy to Cloud Run
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# env:
+#   VM_USER: inso_deployer
+#   VM_HOST: 35.239.192.33
+
+# jobs:
+#   update-proxy:
+#     name: Update Nginx Proxy
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+#       - name: Write nginx config file locally
+#         run: |
+#           cat > /tmp/inso.frontend.conf << 'EOF'
+#           server {
+#               server_name inso.com www.inso.com;
+
+#               location / {
+#                   proxy_pass https://inso-assistant-frontend-366561755636.us-central1.run.app;
+#                   proxy_ssl_server_name on;
+#                   proxy_set_header Host inso-assistant-frontend-366561755636.us-central1.run.app;
+#                   proxy_set_header X-Real-IP $remote_addr;
+#                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#                   proxy_set_header X-Forwarded-Proto $scheme;
+#                   proxy_set_header X-Forwarded-Host $host;
+#                   proxy_http_version 1.1;
+#                   proxy_set_header Connection "";
+#                   proxy_buffering off;
+#               }
+
+#               location /api/v1 {
+#                   proxy_pass http://localhost:5100;
+#                   proxy_http_version 1.1;
+#                   proxy_set_header Upgrade $http_upgrade;
+#                   proxy_set_header Connection 'upgrade';
+#                   proxy_set_header Host $host;
+#                   proxy_set_header X-Real-IP $remote_addr;
+#                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#                   proxy_set_header X-Forwarded-Proto $scheme;
+#                   proxy_cache_bypass $http_upgrade;
+#               }
+
+#               listen 443 ssl; # managed by Certbot
+#               ssl_certificate /etc/letsencrypt/live/inso.com/fullchain.pem; # managed by Certbot
+#               ssl_certificate_key /etc/letsencrypt/live/inso.com/privkey.pem; # managed by Certbot
+#               include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+#               ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+#           }
+
+#           server {
+#               if ($host = www.inso.com) {
+#                   return 301 https://$host$request_uri;
+#               } # managed by Certbot
+
+#               if ($host = inso.com) {
+#                   return 301 https://$host$request_uri;
+#               } # managed by Certbot
+
+#               listen 80;
+#               server_name inso.com www.inso.com;
+#               return 404; # managed by Certbot
+#           }
+#           EOF
+
+#       - name: Upload and apply to BOTH sites-available AND sites-enabled
+#         run: |
+#           scp -i ~/.ssh/inso-vm-key /tmp/inso.frontend.conf ${{ env.VM_USER }}@${{ env.VM_HOST }}:/tmp/inso.frontend.conf.new
+
+#           ssh -i ~/.ssh/inso-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
+#             echo "=== Backing up configs ===";
+#             sudo cp /etc/nginx/sites-available/inso.frontend.conf /etc/nginx/sites-available/inso.frontend.conf.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+#             sudo cp /etc/nginx/sites-enabled/inso.frontend.conf /etc/nginx/sites-enabled/inso.frontend.conf.bak2.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+#             echo "";
+#             echo "=== Installing to sites-available ===";
+#             sudo cp /tmp/inso.frontend.conf.new /etc/nginx/sites-available/inso.frontend.conf;
+#             echo "=== Installing to sites-enabled ===";
+#             sudo cp /tmp/inso.frontend.conf.new /etc/nginx/sites-enabled/inso.frontend.conf;
+#             rm /tmp/inso.frontend.conf.new;
+#             echo "";
+#             echo "=== Verify sites-available config ===";
+#             grep "proxy_pass" /etc/nginx/sites-available/inso.frontend.conf;
+#             echo "=== Verify sites-enabled config ===";
+#             grep "proxy_pass" /etc/nginx/sites-enabled/inso.frontend.conf;
+#             echo "";
+#             echo "=== Testing nginx config ===";
+#             sudo nginx -t;
+#             echo "";
+#             echo "=== Hard restart nginx ===";
+#             sudo systemctl stop nginx;
+#             sleep 2;
+#             sudo systemctl start nginx;
+#             echo "";
+#             echo "=== Nginx status ===";
+#             sudo systemctl status nginx --no-pager;
+#             echo "";
+#             echo "=== DONE ==="'
+
+#       - name: Verify live site serves Cloud Run content
+#         run: |
+#           sleep 5
+#           echo "=== inso.com CSS ==="
+#           curl -s https://inso.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+#           echo "=== Cloud Run CSS ==="
+#           curl -s https://inso-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+#           echo ""
+#           echo "=== inso.com headers ==="
+#           curl -sI https://inso.com | grep -i "server\|cache-control\|pragma\|x-cloud"
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+# ==============================================================================
+#  vm-diagnostics.yml
+# ==============================================================================
+
+
+# name: VM Diagnostics
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   diagnose:
+#     name: Check VM Environment
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+#       - name: Diagnose VM
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
+#             echo "=== Hostname ==="
+#             hostname
+            
+#             echo "=== Nginx sites-enabled ==="
+#             cat /etc/nginx/sites-enabled/* 2>/dev/null || echo "Nginx sites-enabled not readable"
+            
+#             echo "=== Docker containers ==="
+#             docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            
+#             echo "=== Container Inspect (exit code, OOM, restarts) ==="
+#             docker inspect inso-backend --format '{{.State.Status}} | ExitCode={{.State.ExitCode}} | OOMKilled={{.State.OOMKilled}} | RestartCount={{.RestartCount}} | StartedAt={{.State.StartedAt}} | FinishedAt={{.State.FinishedAt}}' 2>/dev/null || echo "Container not found"
+            
+#             echo "=== CRITICAL FIX VERIFICATION ==="
+#             echo "--- notes.model.js line 58 (should NOT have bare JSDoc) ---"
+#             docker exec inso-backend sed -n '55,65p' src/app/modules/notes/notes.model.js 2>/dev/null || echo "FAILED to read file"
+#             echo "--- writer.controller.js (should NOT have app.listen) ---"
+#             docker exec inso-backend grep -c "app.listen" src/app/modules/writing/writer.controller.js 2>/dev/null && echo "  ❌ STILL HAS app.listen!" || echo "  ✅ app.listen removed"
+#             echo "--- index.js EXIT DIAGNOSTIC handler ---"
+#             docker exec inso-backend grep -c "EXIT DIAGNOSTIC" index.js 2>/dev/null && echo "  ✅ EXIT handler present" || echo "  ❌ EXIT handler MISSING"
+            
+#             echo "=== STDERR from container (last 30 lines) ==="
+#             docker logs inso-backend 2>&1 1>/dev/null | tail -30
+            
+#             echo "=== ALL logs from container (last 100 lines) ==="
+#             docker logs inso-backend --tail=100 2>&1
+            
+#             echo "=== Try manual node syntax check ==="
+#             docker exec inso-backend node -e "try { require('./src/app/modules/notes/notes.model.js') } catch(e) { console.log('IMPORT ERROR:', e.message) }" 2>&1 || true
+#             docker exec inso-backend node --check index.js 2>&1 || true
+            
+#             echo "=== Memory usage ==="
+#             free -h
+            
+#             echo "=== Disk space ==="
+#             df -h /
+#           EOF
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+
+
+# ==============================================================================
+#  vm-restore.yml
+# ==============================================================================
+
+
+# name: VM Emergency Restore
+
+# on:
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   restore:
+#     name: Restore Container from Image
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Set up SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/inso-vm-key
+#           chmod 600 ~/.ssh/inso-vm-key
+#           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+#       - name: Restore container
+#         run: |
+#           ssh -i ~/.ssh/inso-vm-key inso_deployer@35.239.192.33 bash <<'EOF'
+#             set -e
+#             echo "=== Recreating container from original image ==="
+#             docker compose down
+#             docker compose up -d
+            
+#             echo "=== Waiting for startup (15s) ==="
+#             sleep 15
+            
+#             echo "=== Container status ==="
+#             docker compose ps
+            
+#             echo "=== Startup logs ==="
+#             docker compose logs --tail=30
+            
+#             echo "=== Restore complete ==="
+#           EOF
+
+#       - name: Clean up SSH key
+#         if: always()
+#         run: rm -f ~/.ssh/inso-vm-key
+
+
+# ==============================================================================
+#  Testcase for Bluetick
+# ==============================================================================
+
 name: Backend CI
 
 on:
