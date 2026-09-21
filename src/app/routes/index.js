@@ -212,4 +212,42 @@ router.get('/logos/:app_name', (req, res) => {
   res.send(svg);
 });
 
+// ── API Discovery Endpoint ────────────────────────────────────────────────
+// Frontend calls this to discover all available modules and their base paths.
+router.get('/api-map', (req, res) => {
+  const map = moduleRoutes.map(r => ({
+    module: r.path.replace('/', ''),
+    basePath: `/api/v1${r.path}`,
+  }));
+
+  res.json({
+    success: true,
+    message: 'API module map',
+    data: {
+      version: 'v1',
+      baseUrl: '/api/v1',
+      modules: map,
+      health: {
+        health: '/health',
+        liveness: '/liveness',
+        readiness: '/readiness',
+      },
+      billing: {
+        plans: '/api/v1/subscriptions/plans',
+        mySubscription: '/api/v1/subscriptions/my-subscription',
+        promptUsage: '/api/v1/subscriptions/prompt-usage',
+        upgrade: '/api/v1/subscriptions/upgrade',
+        billingPortal: '/api/v1/subscriptions/billing-portal',
+      },
+      promptHeaders: [
+        'X-Prompt-Used',
+        'X-Prompt-Limit',
+        'X-Prompt-Remaining',
+        'X-Prompt-Plan',
+      ],
+    },
+  });
+});
+
 export default router;
+
