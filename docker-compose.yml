@@ -1,10 +1,11 @@
-# Inso AI — Docker Compose
+# Alti AI — Docker Compose
+# Sovereign deployment on Liberty Center One
 # Services: Backend + Redis + MongoDB
 
 services:
   redis:
     image: redis/redis-stack:7.4.0-v3
-    container_name: redis-stack
+    container_name: alti-redis
     restart: unless-stopped
     ports:
       - "6379:6379"   # Redis
@@ -14,7 +15,7 @@ services:
     environment:
       - REDIS_ARGS=--save 900 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
-      - inso-network
+      - alti-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -22,40 +23,53 @@ services:
       retries: 5
 
   mongodb:
-    image: mongo:latest
-    container_name: mongodb
+    image: mongo:7
+    container_name: alti-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
-      - inso-network
+      - alti-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend:latest
-    container_name: inso-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alti-backend:latest
+    container_name: alti-backend
     restart: unless-stopped
     ports:
-      - "5100:5100"
+      - "${PORT:-5100}:${PORT:-5100}"
     env_file:
       - .env
     depends_on:
       redis:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     networks:
-      - inso-network
+      - alti-network
     environment:
-      - PORT=5100
+      - NODE_ENV=production
+      - PORT=${PORT:-5100}
+      - REDIS_URL=redis://redis:6379
+      - MONGODB_URL=mongodb://mongodb:27017/alti-ai
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:5100/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:' + (process.env.PORT || 5100) + '/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 15s
       retries: 3
       start_period: 120s
 
 networks:
-  inso-network:
+  alti-network:
     driver: bridge
 
 volumes:

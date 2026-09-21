@@ -28,11 +28,33 @@ const promptLimiter = async (req, res, next) => {
       return res.status(httpStatus.PAYMENT_REQUIRED).json({
         success: false,
         message: 'No active subscription. Please subscribe to a plan.',
+        errorCode: 'NO_SUBSCRIPTION',
         data: {
           promptsUsed: 0,
           promptLimit: 0,
           promptsRemaining: 0,
           plan: null,
+        },
+      });
+    }
+
+    // Block access for non-active subscriptions
+    const blockedStatuses = {
+      past_due: 'Your payment is overdue. Please update your payment method to continue.',
+      suspended: 'Your account has been suspended. Please contact support.',
+      cancelled: 'Your subscription has been cancelled. Please subscribe to a plan.',
+      incomplete: 'Your payment is being processed. Please wait or update your payment method.',
+    };
+
+    if (blockedStatuses[subscription.status]) {
+      return res.status(httpStatus.PAYMENT_REQUIRED).json({
+        success: false,
+        message: blockedStatuses[subscription.status],
+        errorCode: `SUBSCRIPTION_${subscription.status.toUpperCase()}`,
+        data: {
+          status: subscription.status,
+          plan: subscription.plan,
+          billingCycleEnd: subscription.billingCycle?.currentPeriodEnd,
         },
       });
     }

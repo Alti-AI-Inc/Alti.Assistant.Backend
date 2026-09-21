@@ -1483,6 +1483,23 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
       updateData.stripeProductId = plan.stripeProductId;
       updateData.stripeMeteredItems = stripeMeteredItems;
       updateData.limits = limits;
+
+      // Sync prompt limit from our plans config
+      try {
+        const { getPromptLimit } = await import('./plans.config.js');
+        const promptLimit = getPromptLimit(plan.planKey);
+        if (promptLimit) {
+          updateData['limits.promptLimit'] = promptLimit;
+        }
+      } catch (e) {
+        // plans.config.js may not map this plan — use existing limits
+      }
+    }
+
+    // On cancellation, downgrade to free tier prompt limits
+    if (status === 'cancelled') {
+      updateData['limits.promptLimit'] = 25;
+      updateData['usage.promptsMonthlyUsed'] = 0;
     }
 
     if (stripeSubscription.cancel_at) {

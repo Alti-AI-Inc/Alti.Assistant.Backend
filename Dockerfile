@@ -1,7 +1,7 @@
 # Build stage
 FROM node:20-slim AS builder
 
-# Install build dependencies for native modules (toobusy-js, bcrypt, etc.)
+# Install build dependencies for native modules (bcrypt, etc.)
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/alti-backend
