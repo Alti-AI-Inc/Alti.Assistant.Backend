@@ -2,30 +2,37 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import nodemailer from 'nodemailer';
 
+/**
+ * Send email via Liberty Center One OpenStack SMTP.
+ * No third-party email services — sent natively from our infrastructure.
+ */
 export const sendMailWithNodeMailer = async (mailData) => {
   const { sub, message, userEmail } = mailData;
 
-  // Create a transporter object using SMTP transport
   const transporter = nodemailer.createTransport({
-    host: config.mail.google_smtp_host,
-    port: config.mail.google_smtp_port,
-    secure: false, // true for 465, false for other ports
+    host: config.mail.smtp_host,
+    port: parseInt(config.mail.smtp_port || '587'),
+    secure: config.mail.smtp_port === '465',
     auth: {
-      user: config.mail.google_smtp_user,
-      pass: config.mail.google_smtp_password,
+      user: config.mail.smtp_user,
+      pass: config.mail.smtp_password,
+    },
+    // Liberty Center One OpenStack SMTP — allow self-signed certs in dev
+    tls: {
+      rejectUnauthorized: process.env.NODE_ENV === 'production',
     },
   });
 
-  // Send mail with defined transport object
   const info = await transporter.sendMail({
-    from: `"Inso AI" <${config.mail.google_smtp_user}>`, // sender address
-    to: userEmail, // list of receivers
-    subject: sub, // Subject line
-    html: message, // html body
+    from: `"Alti AI" <${config.mail.sender_mail || config.mail.smtp_user}>`,
+    to: userEmail,
+    subject: sub,
+    html: message,
   });
-  logger.info('Message sent: %s', info.messageId);
+
+  logger.info(`Email sent to ${userEmail}: ${info.messageId}`);
   return info;
 };
 
-// Backward-compatible export alias for any legacy modules
+// Backward-compatible export alias
 export const sendMailWithMailGun = sendMailWithNodeMailer;

@@ -1206,6 +1206,57 @@ const sendMailWithMailGunController = async (req, res) => {
     res.status(500).send({ error: error.message });
   }
 };
+// ── Passwordless OTP Auth ─────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/auth/otp/send
+ * Send OTP to email for passwordless login/register.
+ */
+const sendOtp = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const result = await authService.sendLoginOtp(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: { isNewUser: result.isNewUser },
+  });
+});
+
+/**
+ * POST /api/v1/auth/otp/verify
+ * Verify OTP and return JWT tokens. Creates user if new.
+ */
+const verifyOtp = catchAsync(async (req, res) => {
+  const { email, otp, name } = req.body;
+  const result = await authService.verifyLoginOtp(email, otp, name);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.isNewUser ? 'Account created successfully' : 'Login successful',
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      isNewUser: result.isNewUser,
+    },
+  });
+});
+
+/**
+ * POST /api/v1/auth/otp/resend
+ * Resend OTP (rate limited to 1 per 60 seconds).
+ */
+const resendOtp = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const result = await authService.resendLoginOtp(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
 
 /**
  * @description Controller for authentication-related operations.
@@ -1228,4 +1279,8 @@ export const authController = {
   inviteUser: managerController.inviteTeamMember,
   getTeamMembers: managerController.getTeamMembers,
   updateTeamMemberRole: managerController.updateTeamMemberRole,
+  // Passwordless OTP
+  sendOtp,
+  verifyOtp,
+  resendOtp,
 };

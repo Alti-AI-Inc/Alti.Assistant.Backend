@@ -294,6 +294,37 @@ export const roleUpdateNotificationTemplate = (
 };
 
 /**
+ * Creates an HTML email template for passwordless OTP login/register.
+ * Used for both new registrations and returning user logins.
+ *
+ * @param {string} email - The recipient email address.
+ * @param {string} otp - The 6-digit OTP code.
+ * @returns {object} Mail data object { userEmail, sub, message }
+ */
+export const loginOtpTemplate = (email, otp) => {
+  if (!email || typeof email !== 'string') {
+    throw new Error('A valid email string is required for loginOtpTemplate.');
+  }
+  const mailData = {
+    userEmail: email,
+    sub: 'Your Login Code — Alti AI',
+    message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
+      <div style="max-width: 1050px; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin: auto; width: 90%;">
+        <h2 style="color: #111; text-align: center; margin-bottom: 8px;">Your Login Code</h2>
+        <p style="color: #666; font-size: 16px; text-align: center;">Enter this code to sign in to your account</p>
+        <div style="font-size: 36px; font-weight: bold; color: #111; text-align: center; letter-spacing: 8px; margin: 24px 0; background-color: #F5F5F7; padding: 18px; border-radius: 10px; border: 1px solid #E5E5E7;">
+          ${escapeHtml(otp)}
+        </div>
+        <p style="color: #999; font-size: 14px; text-align: center;">This code expires in 5 minutes. Do not share it with anyone.</p>
+        <p style="color: #999; font-size: 14px; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
+      </div>
+      <p style="color: #bbb; margin-top: 16px; text-align: center; font-size: 12px;">Alti AI — Sent from Liberty Center One</p>
+    </div>`,
+  };
+  return mailData;
+};
+
+/**
  * Checks if a user has the required permission to perform an action.
  * This is a crucial utility for enforcing role-based access control (RBAC) throughout the application.
  * Super Admins and Admins are granted universal access and bypass specific permission checks.

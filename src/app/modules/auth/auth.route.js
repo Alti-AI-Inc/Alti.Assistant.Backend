@@ -301,6 +301,109 @@ router
  */
 router.route('/login').post(createRateLimiter(5, 5), authController.login); // login in app
 
+// =================================================================
+//           Passwordless OTP Auth (Liberty Center One SMTP)
+// =================================================================
+
+/**
+ * @swagger
+ * /api/v1/auth/otp/send:
+ *   post:
+ *     summary: Send OTP for passwordless login/register
+ *     description: |
+ *       Send a 6-digit OTP code to the user's email.
+ *       If the user doesn't exist, they'll be created on verification.
+ *       Code expires in 5 minutes. Rate limited to 1 per 60 seconds.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       429:
+ *         description: Rate limited — wait 60 seconds
+ */
+router.post('/otp/send', createRateLimiter(1, 5), authController.sendOtp);
+
+/**
+ * @swagger
+ * /api/v1/auth/otp/verify:
+ *   post:
+ *     summary: Verify OTP and get JWT tokens
+ *     description: |
+ *       Verify the 6-digit OTP code. Returns JWT access + refresh tokens.
+ *       If the user doesn't exist, a new account is created automatically.
+ *       New users get a free subscription with 25 prompts/month.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               otp:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: "482901"
+ *               name:
+ *                 type: string
+ *                 description: Optional name for new user registration
+ *                 example: "John Doe"
+ *     responses:
+ *       200:
+ *         description: Login/register successful. Returns user, accessToken, refreshToken.
+ *       400:
+ *         description: Code expired or not found
+ *       401:
+ *         description: Invalid code
+ */
+router.post('/otp/verify', createRateLimiter(1, 10), authController.verifyOtp);
+
+/**
+ * @swagger
+ * /api/v1/auth/otp/resend:
+ *   post:
+ *     summary: Resend OTP code
+ *     description: Resend the OTP code. Rate limited to 1 per 60 seconds.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: OTP resent
+ *       429:
+ *         description: Rate limited — wait 60 seconds
+ */
+router.post('/otp/resend', createRateLimiter(1, 3), authController.resendOtp);
+
+
 /**
  * @swagger
  * /api/v1/auth/refresh-token:

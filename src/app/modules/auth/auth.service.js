@@ -7,8 +7,9 @@ import { logger } from '../../../shared/logger.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMail.js';
 import UserModel from './auth.model.js';
-import { registrationOtpTemplate } from './auth.utils.js';
+import { registrationOtpTemplate, loginOtpTemplate, generateOTP } from './auth.utils.js';
 import Token from './token.model.js';
+import { RedisClient } from '../../../shared/redis.js';
 import crypto from 'crypto';
 import { createCustomerService } from '../stripe/customer/stripe.service.js';
 import TenantInvitation from '../tenant/tenantInvitation.model.js';
@@ -917,19 +918,184 @@ export const authorizeKnowledgeAccess = async (userId, ownerType, ownerId) => {
     throw new ApiError(httpStatus.BAD_REQUEST, `Invalid ownerType: ${ownerType}`);
   }
 };
+// ── Passwordless OTP Auth (Liberty Center One SMTP) ──────────────────────────
+
+const OTP_PREFIX = 'otp:';
+const OTP_COOLDOWN_PREFIX = 'otp_cooldown:';
+const OTP_TTL_SECONDS = 300; // 5 minutes
+const OTP_COOLDOWN_SECONDS = 60; // 1 resend per minute
 
 /**
- * @typedef {object} AuthService
- * @property {function(string): Promise<object>} deleteUserAccountService - Deletes a user account.
- * @property {function(object): Promise<object>} registerService - Handles user registration.
- * @property {function(string): Promise<object>} confirmEmailService - Confirms a user's email.
- * @property {function(string): Promise<object>} resendEmailConfirmationService - Resends email verification.
- * @property {function(string, string, string?, string?, string?): Promise<object>} loginService - Handles user login.
- * @property {function(string): Promise<object>} refreshToken - Generates new access and refresh tokens.
- * @property {function(string, object): Promise<object>} updateUserService - Updates a user's profile.
- * @property {function(string): Promise<object>} getUserService - Retrieves a user's profile.
- * @property {function(string, string, string): Promise<void>} authorizeKnowledgeAccess - Authorizes access to knowledge base.
+ * Send OTP for passwordless login/register.
+ * If the user doesn't exist, they'll be created on verification.
+ * OTP stored in Redis with 5-minute TTL.
+ *
+ * @param {string} email
+ * @returns {Promise<{ message: string, isNewUser: boolean }>}
  */
+const sendLoginOtp = async (email) => {
+  if (!email) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email is required');
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check cooldown
+  const cooldownKey = `${OTP_COOLDOWN_PREFIX}${normalizedEmail}`;
+  const cooldownActive = await RedisClient.get(cooldownKey);
+  if (cooldownActive) {
+    throw new ApiError(
+      httpStatus.TOO_MANY_REQUESTS,
+      'Please wait 60 seconds before requesting a new code'
+    );
+  }
+
+  // Check if user exists
+  const existingUser = await UserModel.findOne({ email: normalizedEmail }).lean();
+  const isNewUser = !existingUser;
+
+  // Generate OTP
+  const otp = await generateOTP();
+
+  // Store in Redis with TTL
+  const otpKey = `${OTP_PREFIX}${normalizedEmail}`;
+  await RedisClient.set(otpKey, otp, 'EX', OTP_TTL_SECONDS);
+
+  // Set cooldown
+  await RedisClient.set(cooldownKey, '1', 'EX', OTP_COOLDOWN_SECONDS);
+
+  // Send email via Liberty Center One SMTP
+  const mailData = loginOtpTemplate(normalizedEmail, otp);
+  await sendMailWithNodeMailer(mailData);
+
+  logger.info(`OTP sent to ${normalizedEmail} (isNewUser: ${isNewUser})`);
+
+  return {
+    message: 'Verification code sent to your email',
+    isNewUser,
+  };
+};
+
+/**
+ * Verify OTP and return JWT tokens.
+ * Creates user if new. Auto-creates free subscription.
+ *
+ * @param {string} email
+ * @param {string} otp
+ * @param {string} [name] - Optional name for new user registration
+ * @returns {Promise<{ user, accessToken, refreshToken, isNewUser }>}
+ */
+const verifyLoginOtp = async (email, otp, name = null) => {
+  if (!email || !otp) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email and OTP are required');
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const otpKey = `${OTP_PREFIX}${normalizedEmail}`;
+
+  // Get stored OTP from Redis
+  const storedOtp = await RedisClient.get(otpKey);
+
+  if (!storedOtp) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Code expired or not found. Please request a new one.'
+    );
+  }
+
+  if (storedOtp !== otp.trim()) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid code');
+  }
+
+  // OTP verified — delete it (one-time use)
+  await RedisClient.del(otpKey);
+
+  // Find or create user
+  let user = await UserModel.findOne({ email: normalizedEmail });
+  let isNewUser = false;
+
+  if (!user) {
+    // Create new user — passwordless
+    isNewUser = true;
+    user = await UserModel.create({
+      email: normalizedEmail,
+      name: name || normalizedEmail.split('@')[0],
+      role: 'user',
+      isEmailVerified: true,
+    });
+
+    // Create Stripe customer
+    try {
+      await createCustomerService(user._id, normalizedEmail);
+    } catch (err) {
+      logger.warn(`Failed to create Stripe customer for ${normalizedEmail}: ${err.message}`);
+    }
+
+    // Create free subscription
+    try {
+      await subscriptionService.createFreeSubscription(user._id);
+    } catch (err) {
+      logger.warn(`Failed to create free subscription for ${normalizedEmail}: ${err.message}`);
+    }
+
+    logger.info(`New user created via OTP: ${normalizedEmail}`);
+  } else {
+    // Mark email as verified if not already
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      // Upgrade from 'unauthorized' if needed
+      if (user.role === 'unauthorized') {
+        user.role = 'user';
+      }
+      await user.save();
+    }
+  }
+
+  // Generate JWT tokens
+  const accessToken = jwtHelpers.createToken(
+    {
+      userId: user._id,
+      role: user.role,
+      email: user.email,
+    },
+    config.jwt.secret,
+    config.jwt.expires_in || '7d'
+  );
+
+  const refreshToken = jwtHelpers.createToken(
+    { userId: user._id },
+    config.jwt.refresh_secret,
+    config.jwt.refresh_expires_in || '30d'
+  );
+
+  // Clean user object for response
+  const userResponse = {
+    _id: user._id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    isEmailVerified: true,
+    activeTenantId: user.activeTenantId || null,
+  };
+
+  return {
+    user: userResponse,
+    accessToken,
+    refreshToken,
+    isNewUser,
+  };
+};
+
+/**
+ * Resend OTP — rate limited to 1 per 60 seconds.
+ *
+ * @param {string} email
+ * @returns {Promise<{ message: string }>}
+ */
+const resendLoginOtp = async (email) => {
+  // sendLoginOtp already handles cooldown
+  return sendLoginOtp(email);
+};
 
 /**
  * Exported object containing all authentication-related service functions.
@@ -945,4 +1111,7 @@ export const authService = {
   updateUserService,
   getUserService,
   authorizeKnowledgeAccess,
+  sendLoginOtp,
+  verifyLoginOtp,
+  resendLoginOtp,
 };
