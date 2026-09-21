@@ -1,33 +1,22 @@
-import {
-  S3Client,
-  ListBucketsCommand,
-  CreateBucketCommand,
-  ListObjectsV2Command,
-  DeleteObjectCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  GetObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as Minio from 'minio';
 import axios from 'axios';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-// S3-compatible client targeting Liberty Center One / OpenStack Swift object storage
-const s3Client = new S3Client({
-  endpoint: config.objectStorage?.endpoint || 'https://storage.libertycenterone.com',
-  region: config.objectStorage?.region || 'us-east-1',
-  credentials: {
-    accessKeyId: config.objectStorage?.accessKey || 'dev-key',
-    secretAccessKey: config.objectStorage?.secretKey || 'dev-secret',
-  },
-  forcePathStyle: true,
+// MinIO client targeting Liberty Center One OpenStack Swift S3-compatible storage
+// MinIO client is Apache 2.0 — zero AWS dependency
+const minioClient = new Minio.Client({
+  endPoint: (config.objectStorage?.endpoint || 'storage.libertycenterone.com').replace(/^https?:\/\//, ''),
+  port: parseInt(process.env.OBJECT_STORAGE_PORT || '443', 10),
+  useSSL: (config.objectStorage?.endpoint || 'https://').startsWith('https'),
+  accessKey: config.objectStorage?.accessKey || 'dev-key',
+  secretKey: config.objectStorage?.secretKey || 'dev-secret',
+  pathStyle: true,
 });
 
 const OPENSTACK_AUTH_URL = process.env.OPENSTACK_AUTH_URL || 'https://identity.libertycenterone.com/v3';
 const OPENSTACK_NOVA_URL = process.env.OPENSTACK_NOVA_URL || 'https://compute.libertycenterone.com/v2.1';
 const OPENSTACK_CINDER_URL = process.env.OPENSTACK_CINDER_URL || 'https://volume.libertycenterone.com/v3';
-const OPENSTACK_NEUTRON_URL = process.env.OPENSTACK_NEUTRON_URL || 'https://network.libertycenterone.com/v2.0';
 
 /**
  * Retrieves authentication token from OpenStack Keystone
@@ -77,6 +66,7 @@ export const LibertyService = {
       provider: 'Liberty Center One',
       infrastructure: 'OpenStack Enterprise',
       datacenter: 'Troy, Michigan (LCO-1)',
+      storage: 'All-Flash NVMe Vector Storage',
       services: {
         compute_nova: 'online',
         storage_swift_s3: 'online',
@@ -93,13 +83,13 @@ export const LibertyService = {
     };
   },
 
-  // ── 2. Object Storage (S3 / OpenStack Swift) ───────────────────────────
+  // ── 2. Object Storage (MinIO client → OpenStack Swift S3) ──────────────
   async listBuckets() {
     try {
-      const response = await s3Client.send(new ListBucketsCommand({}));
-      return response.Buckets || [];
+      const buckets = await minioClient.listBuckets();
+      return buckets.map((b) => ({ Name: b.name, CreationDate: b.creationDate }));
     } catch (err) {
-      logger.warn('[Liberty] S3 ListBuckets error:', err.message);
+      logger.warn('[Liberty] listBuckets error:', err.message);
       return [
         { Name: config.objectStorage?.uploadsBucket || 'alti-uploads', CreationDate: new Date() },
         { Name: config.objectStorage?.transcriptionBucket || 'alti-transcription', CreationDate: new Date() },
@@ -110,49 +100,62 @@ export const LibertyService = {
 
   async createBucket(bucketName) {
     try {
-      const res = await s3Client.send(new CreateBucketCommand({ Bucket: bucketName }));
-      return { success: true, bucket: bucketName, location: res.Location };
+      await minioClient.makeBucket(bucketName, config.objectStorage?.region || 'us-east-1');
+      return { success: true, bucket: bucketName };
     } catch (err) {
-      logger.warn('[Liberty] S3 CreateBucket error:', err.message);
+      logger.warn('[Liberty] createBucket error:', err.message);
       return { success: true, bucket: bucketName, status: 'simulated-created' };
     }
   },
 
   async listObjects(bucketName, prefix = '') {
     try {
-      const res = await s3Client.send(
-        new ListObjectsV2Command({
-          Bucket: bucketName,
-          Prefix: prefix,
-        })
-      );
-      return {
-        bucket: bucketName,
-        objects: (res.Contents || []).map((o) => ({
-          key: o.Key,
-          size: o.Size,
-          lastModified: o.LastModified,
-          storageClass: o.StorageClass,
-        })),
-      };
+      const objects = [];
+      const stream = minioClient.listObjectsV2(bucketName, prefix, true);
+      await new Promise((resolve, reject) => {
+        stream.on('data', (obj) => {
+          objects.push({
+            key: obj.name,
+            size: obj.size,
+            lastModified: obj.lastModified,
+            etag: obj.etag,
+          });
+        });
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      return { bucket: bucketName, objects };
     } catch (err) {
-      logger.warn('[Liberty] S3 ListObjects error:', err.message);
+      logger.warn('[Liberty] listObjects error:', err.message);
       return { bucket: bucketName, objects: [] };
+    }
+  },
+
+  async uploadObject(bucketName, key, stream, contentType, size) {
+    try {
+      const metadata = { 'Content-Type': contentType };
+      const result = await minioClient.putObject(bucketName, key, stream, size, metadata);
+      return { success: true, bucket: bucketName, key, etag: result.etag };
+    } catch (err) {
+      logger.warn('[Liberty] uploadObject error:', err.message);
+      throw err;
     }
   },
 
   async getPresignedUrl(bucketName, key, action = 'get', expiresIn = 3600) {
     try {
-      const command =
-        action === 'put'
-          ? new PutObjectCommand({ Bucket: bucketName, Key: key })
-          : new GetObjectCommand({ Bucket: bucketName, Key: key });
-      const url = await getSignedUrl(s3Client, command, { expiresIn });
+      let url;
+      if (action === 'put') {
+        url = await minioClient.presignedPutObject(bucketName, key, expiresIn);
+      } else {
+        url = await minioClient.presignedGetObject(bucketName, key, expiresIn);
+      }
       return { url, bucket: bucketName, key, action, expiresIn };
     } catch (err) {
-      logger.warn('[Liberty] S3 Presigned URL error:', err.message);
+      logger.warn('[Liberty] presignedUrl error:', err.message);
+      const endpoint = config.objectStorage?.endpoint || 'https://storage.libertycenterone.com';
       return {
-        url: `${config.objectStorage?.endpoint || 'https://storage.libertycenterone.com'}/${bucketName}/${key}?expires=${expiresIn}`,
+        url: `${endpoint}/${bucketName}/${key}?expires=${expiresIn}`,
         bucket: bucketName,
         key,
         action,
@@ -163,10 +166,10 @@ export const LibertyService = {
 
   async deleteObject(bucketName, key) {
     try {
-      await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+      await minioClient.removeObject(bucketName, key);
       return { success: true, bucket: bucketName, key, deleted: true };
     } catch (err) {
-      logger.warn('[Liberty] S3 DeleteObject error:', err.message);
+      logger.warn('[Liberty] deleteObject error:', err.message);
       return { success: true, bucket: bucketName, key, deleted: true };
     }
   },
@@ -174,7 +177,7 @@ export const LibertyService = {
   async getStorageStats() {
     return {
       provider: 'Liberty Center One Object Storage',
-      storageBackend: 'OpenStack Swift / Ceph RGW',
+      storageBackend: 'All-Flash NVMe / OpenStack Swift / Ceph RGW',
       bucketsCount: 5,
       totalCapacityBytes: 10 * 1024 * 1024 * 1024 * 1024, // 10TB
       usedBytes: 42 * 1024 * 1024 * 1024, // 42GB
@@ -296,6 +299,13 @@ export const LibertyService = {
         shared: true,
       },
     ];
+  },
+
+  /**
+   * Get the MinIO client instance for direct usage in other modules.
+   */
+  getStorageClient() {
+    return minioClient;
   },
 };
 
