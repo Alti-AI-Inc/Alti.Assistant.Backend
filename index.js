@@ -18,7 +18,6 @@ import hpp from 'hpp';
 import httpStatus from 'http-status';
 import { createRequire } from 'module';
 import mongoose from 'mongoose';
-import toobusy from 'toobusy-js';
 import requestIdMiddleware from './src/app/middlewares/requestId.js';
 import tenantGuardrail from './src/shared/tenantGuardrail.js';
 const require = createRequire(import.meta.url);
@@ -204,17 +203,7 @@ app.use(
 );
 app.disable('etag');
 
-// Prevent DOS attacks with toobusy — active in production environments
-app.use((req, res, next) => {
-  if (config.env !== 'development' && config.env !== 'test' && toobusy()) {
-    res.status(503).json({
-      success: false,
-      message: 'Server is under heavy load. Please try again shortly.',
-    });
-  } else {
-    next();
-  }
-});
+// DOS prevention handled by express-rate-limit middleware
 
 // MongoDB connection with retry — the server starts immediately and DB reconnects.
 const connectDB = (retries = 5, delay = 5000) => {

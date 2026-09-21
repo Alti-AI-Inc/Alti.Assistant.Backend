@@ -32,6 +32,11 @@ import { OrchestratorRoutes } from '../modules/orchestrator/orchestrator.route.j
 import { EvaluatorRoutes } from '../modules/evaluator/evaluator.route.js';
 import { PromptForgeRoutes } from '../modules/promptforge/promptforge.route.js';
 import { RagRoutes } from '../modules/rag/rag.route.js';
+import { AgentRoutes } from '../modules/agents/agents.route.js';
+import { WorkflowRoutes } from '../modules/workflows/workflows.route.js';
+import { TriggerRoutes } from '../modules/triggers/triggers.route.js';
+import { TemplateRoutes } from '../modules/templates/templates.route.js';
+import { TraceRoutes } from '../modules/traces/traces.route.js';
 
 const router = express.Router();
 
@@ -147,6 +152,26 @@ const moduleRoutes = [
   {
     path: '/rag',
     route: RagRoutes,
+  },
+  {
+    path: '/agents',
+    route: AgentRoutes,
+  },
+  {
+    path: '/workflows',
+    route: WorkflowRoutes,
+  },
+  {
+    path: '/triggers',
+    route: TriggerRoutes,
+  },
+  {
+    path: '/templates',
+    route: TemplateRoutes,
+  },
+  {
+    path: '/traces',
+    route: TraceRoutes,
   },
 ];
 
