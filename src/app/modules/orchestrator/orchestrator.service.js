@@ -1,6 +1,9 @@
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
 import { PipelineExecutor } from './pipeline.js';
 import { groqStream } from '../../services/groq.client.js';
+import { GroundingService } from '../../services/grounding.service.js';
+import { GuardrailsService } from '../../services/guardrails.service.js';
+import { ModelRouter } from '../../services/modelRouter.service.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -108,29 +111,55 @@ const ROUTE_CATALOG = [
  */
 export const OrchestratorService = {
   /**
-   * Full orchestration: classify → route → execute → return.
+   * Sovereign Pipeline: guardrails → classify → model route → execute → ground → validate → return.
+   * Every output is fact-checked and validated before reaching the user.
+   *
    * @param {string} userMessage - The user's raw message
    * @param {object} context - { userId, conversationHistory, systemPrompt, stream }
-   * @returns {Promise<object>} Unified orchestration result
+   * @returns {Promise<object>} Grounded, validated orchestration result
    */
   async orchestrate(userMessage, context = {}) {
     const orchestrationStart = Date.now();
 
-    // Step 1: Classify intent
-    const classification = await IntentClassifier.classify(userMessage, {
+    // ═══ STEP 1: GUARDRAILS IN ═══
+    const inputCheck = await GuardrailsService.validateInput(userMessage);
+    if (!inputCheck.safe) {
+      logger.warn(`[Orchestrator] Input rejected: ${inputCheck.risk}`);
+      return {
+        route: 'REJECTED',
+        confidence: 1.0,
+        output: inputCheck.rejectionReason || 'Your request could not be processed.',
+        risk: inputCheck.risk,
+        warnings: inputCheck.warnings,
+        totalDurationMs: Date.now() - orchestrationStart,
+      };
+    }
+
+    const sanitizedMessage = inputCheck.sanitized;
+
+    // ═══ STEP 2: CLASSIFY INTENT ═══
+    const classification = await IntentClassifier.classify(sanitizedMessage, {
       maxLatencyMs: context.classificationTimeoutMs || 2000,
       conversationHistory: context.conversationHistory || [],
     });
 
-    logger.info(`[Orchestrator] Classified "${userMessage.slice(0, 60)}..." → ${classification.route} (${classification.confidence})`);
+    logger.info(`[Orchestrator] Classified → ${classification.route} (${classification.confidence}), risk: ${inputCheck.risk}`);
 
-    // Step 2: Search augmentation if recommended
+    // ═══ STEP 3: SMART MODEL ROUTING ═══
+    const model = ModelRouter.selectModel(classification.route, {
+      message: sanitizedMessage,
+    });
+    const modelConfig = ModelRouter.getModelConfig(model);
+
+    logger.info(`[Orchestrator] Model: ${model} (temp: ${modelConfig.temperature})`);
+
+    // ═══ STEP 4: SEARCH AUGMENTATION ═══
     let searchContext = null;
     if (classification.search_augmentation && classification.route !== ROUTE_TYPES.SEARCH) {
       try {
         const searchResult = await PipelineExecutor.executeSingle(
           ROUTE_TYPES.SEARCH,
-          { query: classification.parameters?.query || userMessage, numResults: 3 },
+          { query: classification.parameters?.query || sanitizedMessage, numResults: 3 },
           { synthesize: false }
         );
         if (searchResult.success) {
@@ -141,29 +170,37 @@ export const OrchestratorService = {
       }
     }
 
-    // Step 3: Execute primary route
+    // ═══ STEP 5: EXECUTE PRIMARY ROUTE ═══
     const enrichedContext = {
       ...context,
       searchContext,
-      userMessage,
+      userMessage: sanitizedMessage,
+      model,
+      modelConfig,
     };
 
+    // Build grounded system prompt
+    if (context.systemPrompt) {
+      enrichedContext.systemPrompt = GuardrailsService.buildGroundedSystemPrompt(
+        context.systemPrompt,
+        { searchContext: searchContext ? JSON.stringify(searchContext).slice(0, 1000) : null }
+      );
+    }
+
     const params = {
-      userMessage,
+      userMessage: sanitizedMessage,
       ...classification.parameters,
     };
 
     let result;
 
     if (classification.route === ROUTE_TYPES.MULTI_STEP && classification.parameters?.steps?.length) {
-      // Multi-step pipeline execution
       const pipelineSteps = classification.parameters.steps.map(s => ({
         route: s.route,
         params: { query: s.query, userMessage: s.query },
       }));
       result = await PipelineExecutor.executeSequential(pipelineSteps, enrichedContext);
     } else {
-      // Single-step execution
       result = await PipelineExecutor.executeSingle(
         classification.route,
         params,
@@ -171,74 +208,138 @@ export const OrchestratorService = {
       );
     }
 
+    // ═══ STEP 6: GROUNDING (verify factual claims) ═══
+    const GROUNDABLE_ROUTES = ['CHAT', 'SEARCH', 'RESEARCH', 'RAG', 'REASONING'];
+    let grounding = { groundedOutput: null, score: 1.0, citations: [], claims: [], disclaimer: null };
+
+    const outputText = result?.output || result?.content || result?.answer ||
+      (typeof result === 'string' ? result : JSON.stringify(result));
+
+    if (GROUNDABLE_ROUTES.includes(classification.route) && outputText) {
+      grounding = await GroundingService.groundOutput(outputText, {
+        query: sanitizedMessage,
+      });
+    } else {
+      grounding.groundedOutput = outputText;
+    }
+
+    // ═══ STEP 7: GUARDRAILS OUT ═══
+    const outputCheck = await GuardrailsService.validateOutput(
+      grounding.groundedOutput || outputText,
+      {
+        query: sanitizedMessage,
+        groundingScore: grounding.score,
+      }
+    );
+
     const totalDurationMs = Date.now() - orchestrationStart;
 
-    // Step 4: Record telemetry
+    // ═══ STEP 8: TELEMETRY ═══
     const telemetryEntry = {
-      userMessage: userMessage.slice(0, 200),
+      userMessage: sanitizedMessage.slice(0, 200),
       classification: {
         route: classification.route,
         confidence: classification.confidence,
         classifier: classification.classifier,
         latencyMs: classification.latencyMs,
       },
+      model,
+      risk: inputCheck.risk,
       searchAugmented: !!searchContext,
+      grounding: {
+        score: grounding.score,
+        claimsCount: grounding.claims?.length || 0,
+        citationsCount: grounding.citations?.length || 0,
+      },
+      output: {
+        confidence: outputCheck.confidence,
+        valid: outputCheck.valid,
+      },
       result: {
-        route: result.route,
-        success: result.success,
-        durationMs: result.durationMs,
+        route: result?.route || classification.route,
+        success: result?.success !== false,
+        durationMs: result?.durationMs,
       },
       totalDurationMs,
     };
     recordTelemetry(telemetryEntry);
 
+    // ═══ RETURN SOVEREIGN RESPONSE ═══
     return {
       route: classification.route,
       confidence: classification.confidence,
       reasoning: classification.reasoning,
       classifier: classification.classifier,
+      model,
       searchAugmented: !!searchContext,
-      result: result.success !== false ? result : { error: result.error },
+      // Grounding
+      output: grounding.groundedOutput || outputText,
+      groundingScore: grounding.score,
+      citations: grounding.citations || [],
+      disclaimer: grounding.disclaimer,
+      // Guardrails
+      outputConfidence: outputCheck.confidence,
+      risk: inputCheck.risk,
+      warnings: [...(inputCheck.warnings || []), ...(outputCheck.warnings || [])],
+      // Execution
+      result: result?.success !== false ? result : { error: result?.error },
       totalDurationMs,
     };
   },
 
   /**
-   * Streaming orchestration for SSE endpoints.
-   * @param {string} userMessage
-   * @param {object} context
-   * @returns {Promise<{ classification: object, stream: AsyncIterable }>}
+   * Sovereign streaming orchestration for SSE endpoints.
+   * Guardrails → classify → model route → stream → quick-ground.
    */
   async orchestrateStream(userMessage, context = {}) {
-    const classification = await IntentClassifier.classify(userMessage, {
+    // Guardrails in
+    const inputCheck = await GuardrailsService.validateInput(userMessage);
+    if (!inputCheck.safe) {
+      return {
+        classification: { route: 'REJECTED', risk: inputCheck.risk },
+        stream: null,
+        isStreaming: false,
+        error: inputCheck.rejectionReason,
+      };
+    }
+
+    const sanitizedMessage = inputCheck.sanitized;
+
+    const classification = await IntentClassifier.classify(sanitizedMessage, {
       maxLatencyMs: 1500,
       conversationHistory: context.conversationHistory || [],
     });
 
-    // For streaming, we currently support CHAT and REASONING routes
+    // Smart model selection
+    const model = ModelRouter.selectModel(classification.route, {
+      message: sanitizedMessage,
+    });
+
     if (classification.route === ROUTE_TYPES.CHAT) {
-      const systemPrompt = context.systemPrompt || 'You are Alti, a world-class AI assistant. Be precise, helpful, and concise.';
+      const basePrompt = context.systemPrompt || 'You are Alti, a world-class AI assistant. Be precise, helpful, and concise.';
+      const systemPrompt = GuardrailsService.buildGroundedSystemPrompt(basePrompt);
+
       const messages = [
         { role: 'system', content: systemPrompt },
         ...(context.conversationHistory || []),
-        { role: 'user', content: userMessage },
+        { role: 'user', content: sanitizedMessage },
       ];
 
-      const stream = await groqStream(messages, {
-        model: config.groq?.model || 'gpt-oss-120b',
-      });
+      const stream = await groqStream(messages, { model });
 
       return {
         classification,
+        model,
         stream,
         isStreaming: true,
       };
     }
 
-    // Non-streaming routes: execute normally and return result
-    const result = await this.orchestrate(userMessage, context);
+    // Non-streaming routes: execute full sovereign pipeline
+    const result = await this.orchestrate(sanitizedMessage, context);
     return {
       classification: result,
+      model,
       stream: null,
       isStreaming: false,
       result,

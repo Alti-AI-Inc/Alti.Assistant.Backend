@@ -2,6 +2,9 @@ import crypto from 'crypto';
 import { groqChat, groqStream, groqToolCall } from '../../services/groq.client.js';
 import { logger } from '../../../shared/logger.js';
 import { MemoryService } from '../../services/memory.service.js';
+import { GroundingService } from '../../services/grounding.service.js';
+import { GuardrailsService } from '../../services/guardrails.service.js';
+import { ModelRouter } from '../../services/modelRouter.service.js';
 import Agent from './agents.model.js';
 
 /**
@@ -88,9 +91,11 @@ const executeAgent = async (agentId, input, userId) => {
   const agent = await getAgent(agentId);
   const startTime = Date.now();
 
-  const systemPrompt = agent.instructions;
-  let ragContext = '';
+  // Smart model routing based on agent config
+  const model = agent.model || ModelRouter.selectModel('AGENT', { message: input });
 
+  // Build grounded system prompt
+  let ragContext = '';
   if (agent.knowledgeBases && agent.knowledgeBases.length > 0) {
     try {
       const { RagService } = await import('../rag/rag.service.js');
@@ -109,8 +114,14 @@ const executeAgent = async (agentId, input, userId) => {
     logger.warn(`[AgentService] Memory retrieval failed: ${err.message}`);
   }
 
+  // Build anti-hallucination system prompt
+  const groundedPrompt = GuardrailsService.buildGroundedSystemPrompt(
+    agent.instructions,
+    { ragContext, memoryContext }
+  );
+
   const messages = [
-    { role: 'system', content: `${systemPrompt}\n${ragContext}\n${memoryContext}` },
+    { role: 'system', content: groundedPrompt },
     { role: 'user', content: input }
   ];
 
@@ -123,14 +134,25 @@ const executeAgent = async (agentId, input, userId) => {
       type: 'function',
       function: { name: t, description: `Execute ${t}`, parameters: { type: 'object', properties: {} } }
     }));
-    const toolCallRes = await groqToolCall(messages, toolDefs, { model: agent.model });
+    const toolCallRes = await groqToolCall(messages, toolDefs, { model });
     output = toolCallRes?.choices?.[0]?.message?.content || 'Tool execution result';
     toolCalls = toolCallRes?.choices?.[0]?.message?.tool_calls || [];
     tokensUsed = toolCallRes?.usage?.total_tokens || 0;
   } else {
-    const chatRes = await groqChat(messages, { model: agent.model });
+    const chatRes = await groqChat(messages, { model });
     output = chatRes?.choices?.[0]?.message?.content || 'Chat execution result';
     tokensUsed = chatRes?.usage?.total_tokens || 0;
+  }
+
+  // Ground the output — verify factual claims via Exa
+  let groundingResult = { groundedOutput: output, score: 1.0, citations: [] };
+  if (!agent.tools || agent.tools.length === 0) {
+    // Only ground text outputs, not tool call results
+    try {
+      groundingResult = await GroundingService.groundOutput(output, { query: input });
+    } catch (err) {
+      logger.warn(`[AgentService] Grounding failed: ${err.message}`);
+    }
   }
 
   const durationMs = Date.now() - startTime;
@@ -139,7 +161,7 @@ const executeAgent = async (agentId, input, userId) => {
   try {
     await MemoryService.addMemory(userId, agentId, [
       { role: 'user', content: input },
-      { role: 'assistant', content: output },
+      { role: 'assistant', content: groundingResult.groundedOutput || output },
     ]);
   } catch (err) {
     logger.warn(`[AgentService] Memory storage failed: ${err.message}`);
@@ -151,11 +173,13 @@ const executeAgent = async (agentId, input, userId) => {
 
   return {
     runId: crypto.randomUUID(),
-    output,
-    model: agent.model,
+    output: groundingResult.groundedOutput || output,
+    model,
     tokensUsed,
     durationMs,
     toolCalls,
+    groundingScore: groundingResult.score,
+    citations: groundingResult.citations || [],
   };
 };
 
