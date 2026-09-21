@@ -1,5 +1,7 @@
 import crypto from 'crypto';
+import Handlebars from 'handlebars';
 import { logger } from '../../../shared/logger.js';
+import { SchedulerService } from '../../services/scheduler.service.js';
 import Trigger from './triggers.model.js';
 import httpStatus from 'http-status';
 
@@ -9,6 +11,11 @@ const createTrigger = async (userId, config) => {
   if (config.type === 'cron') {
     if (!config.cronExpression) {
       throw new Error('cronExpression is required for cron type');
+    }
+    // Validate with cron-parser
+    const validation = await SchedulerService.validateCron(config.cronExpression);
+    if (!validation.valid) {
+      throw new Error(`Invalid cron expression: ${validation.error}`);
     }
   } else if (config.type === 'webhook') {
     triggerData.webhookId = crypto.randomUUID();
@@ -20,6 +27,18 @@ const createTrigger = async (userId, config) => {
   }
 
   const trigger = await Trigger.create(triggerData);
+
+  // Register cron job if active
+  if (trigger.type === 'cron' && trigger.status === 'active') {
+    await SchedulerService.scheduleTrigger(
+      trigger._id.toString(),
+      trigger.cronExpression,
+      async (triggerId) => {
+        await fireTrigger(triggerId, { source: 'cron', scheduledAt: new Date().toISOString() });
+      }
+    );
+  }
+
   return trigger;
 };
 
@@ -71,18 +90,15 @@ const fireTrigger = async (triggerId, payload) => {
   if (!trigger) throw new Error('Trigger not found');
   if (trigger.status !== 'active') throw new Error('Trigger is not active');
 
-  // Simple template replacement
+  // Handlebars template rendering (MIT license)
   let transformedPayload = payload;
   if (trigger.inputTemplate) {
     try {
-        let templateString = trigger.inputTemplate;
-        templateString = templateString.replace(/{{(.*?)}}/g, (match, key) => {
-            const trimmedKey = key.trim();
-            return payload[trimmedKey] !== undefined ? payload[trimmedKey] : match;
-        });
-        transformedPayload = JSON.parse(templateString);
+        const template = Handlebars.compile(trigger.inputTemplate);
+        const rendered = template(payload);
+        transformedPayload = JSON.parse(rendered);
     } catch (e) {
-        logger.warn(`Failed to parse transformed template payload: ${e.message}`);
+        logger.warn(`Failed to render Handlebars template: ${e.message}`);
         transformedPayload = payload; // fallback
     }
   }

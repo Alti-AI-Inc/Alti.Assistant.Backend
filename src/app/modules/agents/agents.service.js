@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { groqChat, groqStream, groqToolCall } from '../../services/groq.client.js';
 import { logger } from '../../../shared/logger.js';
+import { MemoryService } from '../../services/memory.service.js';
 import Agent from './agents.model.js';
 
 /**
@@ -91,29 +92,58 @@ const executeAgent = async (agentId, input, userId) => {
   let ragContext = '';
 
   if (agent.knowledgeBases && agent.knowledgeBases.length > 0) {
-    // Assuming a call to a RAG service here
-    // ragContext = await queryRAG(agent.knowledgeBases, input);
-    ragContext = ' [RAG Context Placeholder] ';
+    try {
+      const { RagService } = await import('../rag/rag.service.js');
+      const ragResult = await RagService.query({ query: input, collectionId: agent.knowledgeBases[0] });
+      ragContext = ragResult?.context || '';
+    } catch (err) {
+      logger.warn(`[AgentService] RAG query failed: ${err.message}`);
+    }
+  }
+
+  // Retrieve relevant memories from Mem0
+  let memoryContext = '';
+  try {
+    memoryContext = await MemoryService.buildMemoryContext(userId, agentId, input);
+  } catch (err) {
+    logger.warn(`[AgentService] Memory retrieval failed: ${err.message}`);
   }
 
   const messages = [
-    { role: 'system', content: `${systemPrompt}\n${ragContext}` },
+    { role: 'system', content: `${systemPrompt}\n${ragContext}\n${memoryContext}` },
     { role: 'user', content: input }
   ];
 
   let output = '';
   let toolCalls = [];
-  let tokensUsed = 0; // Requires true integration tracking
+  let tokensUsed = 0;
 
   if (agent.tools && agent.tools.length > 0) {
-    const toolCallRes = await groqToolCall(messages, agent.model, agent.tools);
-    output = toolCallRes?.content || 'Tool execution result';
+    const toolDefs = agent.tools.map(t => ({
+      type: 'function',
+      function: { name: t, description: `Execute ${t}`, parameters: { type: 'object', properties: {} } }
+    }));
+    const toolCallRes = await groqToolCall(messages, toolDefs, { model: agent.model });
+    output = toolCallRes?.choices?.[0]?.message?.content || 'Tool execution result';
+    toolCalls = toolCallRes?.choices?.[0]?.message?.tool_calls || [];
+    tokensUsed = toolCallRes?.usage?.total_tokens || 0;
   } else {
-    const chatRes = await groqChat(messages, agent.model);
-    output = chatRes?.content || 'Chat execution result';
+    const chatRes = await groqChat(messages, { model: agent.model });
+    output = chatRes?.choices?.[0]?.message?.content || 'Chat execution result';
+    tokensUsed = chatRes?.usage?.total_tokens || 0;
   }
 
   const durationMs = Date.now() - startTime;
+
+  // Store conversation in memory for future context
+  try {
+    await MemoryService.addMemory(userId, agentId, [
+      { role: 'user', content: input },
+      { role: 'assistant', content: output },
+    ]);
+  } catch (err) {
+    logger.warn(`[AgentService] Memory storage failed: ${err.message}`);
+  }
 
   agent.metadata.totalRuns += 1;
   agent.metadata.lastRunAt = new Date();
@@ -149,9 +179,28 @@ const executeAgentStream = async (agentId, input, userId) => {
 };
 
 const spawnSwarm = async (agentId, inputs, userId) => {
+  // Use p-queue for concurrency-limited parallel execution
+  let PQueue;
+  try {
+    const pq = await import('p-queue');
+    PQueue = pq.default;
+  } catch {
+    // Fallback to unbounded if p-queue unavailable
+    const results = await Promise.allSettled(
+      inputs.map(input => executeAgent(agentId, input, userId))
+    );
+    return results.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason.message });
+  }
+
+  const agent = await getAgent(agentId);
+  const concurrency = agent.swarmConfig?.maxClones || 5;
+  const queue = new PQueue({ concurrency });
+
   const results = await Promise.allSettled(
-    inputs.map(input => executeAgent(agentId, input, userId))
+    inputs.map(input => queue.add(() => executeAgent(agentId, input, userId)))
   );
+
+  logger.info(`[AgentService] Swarm completed: ${results.length} tasks, concurrency=${concurrency}`);
   return results.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason.message });
 };
 
