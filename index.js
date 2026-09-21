@@ -42,12 +42,9 @@ mongoose.connect = async function (uri, options) {
 // Enforce tenant isolation boundaries globally on all queries
 mongoose.plugin(tenantGuardrail);
 
-// import config from './config';
 import globalErrorHandler from './src/app/middlewares/globalErrorHandler/globalErrorHandler.js';
 import { MonitorWebhookRoutes } from './src/app/modules/ExaMonitor/monitor.webhook.route.js';
 import router from './src/app/routes/index.js';
-// import { logger } from './src/shared/logger';
-import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import config from './config/index.js';
@@ -147,7 +144,6 @@ app.use((req, res, next) => {
 
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
 
 // NoSQL injection protection — strips $ operators from user input
 app.use(mongoSanitize());
@@ -293,9 +289,9 @@ app.use((req, res, next) => {
           token,
           config.jwt.access_token
         );
-        const userId = verifiedUser?.userId || verifiedUser?._id;
+        req._userId = verifiedUser?.userId || verifiedUser?._id;
       }
-    } catch (e) {
+    } catch {
       // Ignore token validation issues for guest/public routes
     }
     next();

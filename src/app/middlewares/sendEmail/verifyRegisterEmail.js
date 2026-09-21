@@ -12,13 +12,13 @@ export const sendMailForRegisterWithGmail = async (data) => {
     port: parseInt(config.mail.smtp_port || '587'),
     secure: false,
     auth: {
-      user: config.mail.smtp_user || config.sender_mail,
+      user: config.mail.smtp_user || config.mail.sender_mail,
       pass: config.mail.smtp_password,
     },
   });
 
   const mailData = {
-    from: config.sender_mail,
+    from: config.mail.sender_mail,
     to: data.to,
     subject: data.subject,
     html: data.text,
