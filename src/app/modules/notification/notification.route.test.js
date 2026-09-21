@@ -5,13 +5,14 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 // --- Mocks ---
 
-// Mock queue client
-const mockPublishMessage = vi.fn();
-
 const {
+  mockPublishMessage,
+  mockAuthMiddleware,
   mockAuth,
-  mockExtractTenantContext
+  mockExtractTenantContext,
 } = vi.hoisted(() => {
+  const mockPublishMessage = vi.fn();
+  const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
   const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
 
   // Mock tenant context middleware
@@ -21,8 +22,10 @@ const {
   });
 
   return {
+    mockPublishMessage,
+    mockAuthMiddleware,
     mockAuth,
-    mockExtractTenantContext
+    mockExtractTenantContext,
   };
 });
 
@@ -30,8 +33,6 @@ vi.mock('../../../shared/queues.js', () => ({
   publishMessage: mockPublishMessage,
 }));
 
-// Mock auth middleware factory to verify role checks
-const mockAuthMiddleware = vi.fn().mockImplementation((req, res, next) => next());
 vi.mock('../../middlewares/auth/auth.js', () => ({
   default: mockAuth,
 }));

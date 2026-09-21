@@ -9,37 +9,12 @@
  */
 
 // Removed Pub/Sub require
-const express = require('express');
+import express from 'express';
+import * as taskController from './notes.controller.js';
+import validateRequest from '../../middlewares/validateRequest/validateRequest.js';
+import taskValidationSchema from './notes.validation.js';
 
-// Queue system imported dynamically when needed
-
-// GCP_INTEGRATION: Define the Pub/Sub topic for offloading bulk delete operations.
-// Using environment variables for configuration is a best practice.
-const bulkDeleteTopicName =
-  process.env.NOTES_BULK_DELETE_TOPIC || 'note-bulk-delete-topic';
-
-/**
- * Express router to handle note-related API endpoints.
- * @type {express.Router}
- */
 const router = express.Router();
-/**
- * Controller for handling note-related business logic.
- * @type {object}
- */
-const taskController = require('./notes.controller');
-const {
-  /**
-   * Middleware for validating incoming request bodies against a schema.
-   * @function
-   */
-  validateRequest,
-} = require('../../middlewares/validateRequest/validateRequest');
-/**
- * Joi validation schema for note-related operations.
- * @type {object}
- */
-const taskValidationSchema = require('./notes.validation');
 
 /**
  * @swagger
@@ -316,4 +291,5 @@ router
  * @property {string[]} [tags] - The new array of tags for the note.
  */
 
-module.exports = router;
+export { router as NotesRoutes };
+export default router;

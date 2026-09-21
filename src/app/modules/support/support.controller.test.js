@@ -50,7 +50,7 @@ vi.mock('./support.service.js', () => ({ supportService }));
 vi.mock('../../../shared/logger.js', () => ({ logger }));
 
 // Now import the actual controller after mocks are set up
-import { SupportController } from '../support.controller.js';
+import { SupportController } from './support.controller.js';
 
 describe('SupportController', () => {
   let req;

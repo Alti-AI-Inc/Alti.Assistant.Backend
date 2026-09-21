@@ -584,3 +584,14 @@ export const usageLogService = {
   getUsageStats,
   checkUsageLimit,
 };
+
+export {
+  mapEndpointToModule,
+  extractAction,
+  anonymizeIP,
+  getStatusFromCode,
+  getErrorType,
+  createLogAsync,
+};
+
+export default usageLogService;

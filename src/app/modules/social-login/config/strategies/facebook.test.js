@@ -54,7 +54,7 @@ describe('Facebook Passport Strategy', () => {
 
   it('should correctly configure the FacebookStrategy with environment variables', async () => {
     // Dynamically import the strategy to re-trigger the constructor with the mocked env
-    await import('../facebook.js');
+    await import('./facebook.js');
     expect(FacebookStrategy).toHaveBeenCalledWith(
       {
         clientID: 'test_app_id',

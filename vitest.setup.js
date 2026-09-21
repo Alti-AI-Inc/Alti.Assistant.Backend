@@ -4,6 +4,11 @@ import { vi } from 'vitest';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/inso_test';
 process.env.CHAT_ENCRYPTION_KEY = 'test_encryption_key_32_bytes_long_string';
+process.env.STRIPE_SECRET_KEY = 'sk_test_51MockStripeSecretKeyForVitest12345';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock_stripe_webhook_secret';
+process.env.CLOUDFLARE_ACCOUNT_ID = 'mock_cloudflare_account_id';
+process.env.CLOUDFLARE_API_TOKEN = 'mock_cloudflare_api_token';
+process.env.GROQ_API_KEY = 'gsk_mock_groq_api_key';
 
 const mockRedisClient = {
   connect: vi.fn().mockResolvedValue(undefined),

@@ -1,16 +1,16 @@
-const httpStatus = require('http-status');
-const {
+import httpStatus from 'http-status';
+import {
   addTaskServices,
   getTaskServiceById,
   updateTaskService,
   deleteTaskService,
   getAllTaskServiceById,
   bulkDeleteTaskService,
-} = require('./notes.service');
-const { default: mongoose } = require('mongoose');
-const { sendResponse } = require('../../../shared/sendResponse');
-const { catchAsync } = require('../../../shared/catchAsync');
-const { logger } = require('../../../shared/logger');
+} from './notes.service.js';
+import mongoose from 'mongoose';
+import sendResponse from '../../../shared/sendResponse.js';
+import catchAsync from '../../../shared/catchAsync.js';
+import { logger } from '../../../shared/logger.js';
 
 /**
  * @swagger
@@ -114,7 +114,7 @@ const { logger } = require('../../../shared/logger');
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-module.exports.addTask = catchAsync(async (req, res) => {
+export const addTask = catchAsync(async (req, res) => {
   // IDOR vulnerability fix: Ensure the userId comes from the authenticated user, not the request body.
   // Assuming req.user.id is populated by an authentication middleware.
   const userId = req.user.id;
@@ -220,7 +220,7 @@ module.exports.addTask = catchAsync(async (req, res) => {
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-module.exports.getAllTask = catchAsync(async (req, res) => {
+export const getAllTask = catchAsync(async (req, res) => {
   const requestedUserId = req.params.userId;
   const authenticatedUserId = req.user.id; // Assuming req.user.id is populated by auth middleware
 
@@ -336,7 +336,7 @@ module.exports.getAllTask = catchAsync(async (req, res) => {
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-module.exports.getTaskById = catchAsync(async (req, res) => {
+export const getTaskById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id; // Assuming req.user.id is populated by auth middleware
   logger.info(id, 'taskk idddd');
@@ -488,7 +488,7 @@ module.exports.getTaskById = catchAsync(async (req, res) => {
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-exports.updateTask = catchAsync(async (req, res) => {
+export const updateTask = catchAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id; // Assuming req.user.id is populated by auth middleware
 
@@ -571,7 +571,7 @@ exports.updateTask = catchAsync(async (req, res) => {
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
-exports.deleteTask = catchAsync(async (req, res) => {
+export const deleteTask = catchAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id; // Assuming req.user.id is populated by auth middleware
 
@@ -678,7 +678,7 @@ exports.deleteTask = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  * @throws {Error} If invalid IDs are provided.
  */
-exports.bulkDeleteTask = catchAsync(async (req, res) => {
+export const bulkDeleteTask = catchAsync(async (req, res) => {
   const ids = req.body?.ids || [];
   const userId = req.user.id; // Assuming req.user.id is populated by auth middleware
   logger.info(ids, 'controller idddddddddddd');
@@ -688,12 +688,6 @@ exports.bulkDeleteTask = catchAsync(async (req, res) => {
     throw { statusCode: httpStatus.BAD_REQUEST, message: 'Invalid or empty array of IDs provided' };
   }
 
-  // IDOR vulnerability fix: Pass userId to the service.
-  // The service must ensure that only notes belonging to this userId are deleted from the provided 'ids' array.
-  // Optimization Recommendation:
-  // For bulk delete operations filtering by `userId` and an array of `_id`s, a compound index
-  // on `(userId, _id)` in your Note model will significantly improve performance.
-  // Example: `noteSchema.index({ userId: 1, _id: 1 });` in your Note model definition.
   const result = await bulkDeleteTaskService(ids, userId);
 
   sendResponse(res, {
@@ -703,3 +697,12 @@ exports.bulkDeleteTask = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+export default {
+  addTask,
+  getAllTask,
+  getTaskById,
+  updateTask,
+  deleteTask,
+  bulkDeleteTask,
+};

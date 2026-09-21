@@ -69,7 +69,7 @@ describe('Apple Passport Strategy', () => {
 
     // Clear module cache and re-import to ensure it picks up the new env vars
     vi.resetModules();
-    await import('../src/app/modules/social-login/config/strategies/apple.js');
+      await import('./apple.js');
 
     // Assert that AppleStrategy constructor was called
     expect(AppleStrategyConstructorMock).toHaveBeenCalledTimes(1);
@@ -91,7 +91,7 @@ describe('Apple Passport Strategy', () => {
     delete process.env.APPLE_CALLBACK_URL;
 
     vi.resetModules();
-    await import('../src/app/modules/social-login/config/strategies/apple.js');
+      await import('./apple.js');
 
     const options = AppleStrategyConstructorMock.mock.lastCallOptions;
     expect(options.callbackURL).toBe('/api/v1/auth-social/apple/callback');
@@ -106,7 +106,7 @@ describe('Apple Passport Strategy', () => {
       // Ensure the strategy is initialized and we capture its verify callback
       // Use default env vars set in the outer beforeEach
       vi.resetModules(); // Ensure module is re-evaluated with current process.env
-      await import('../src/app/modules/social-login/config/strategies/apple.js');
+        await import('./apple.js');
       verifyCallback = AppleStrategyConstructorMock.mock.lastCallVerifyCallback;
       done = vi.fn(); // Mock the done callback for each test
     });

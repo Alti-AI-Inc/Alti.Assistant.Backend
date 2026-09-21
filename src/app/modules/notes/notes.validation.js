@@ -5,7 +5,7 @@
  * @module notesValidation
  */
 
-const { z } = require('zod');
+import { z } from 'zod';
 
 /**
  * @typedef {object} TaskInput
@@ -137,4 +137,5 @@ const taskValidationSchema = z.object({
  * Exported Zod validation schema for validating task payloads.
  * @type {import('zod').ZodObject}
  */
-module.exports = taskValidationSchema;
+export { taskValidationSchema };
+export default taskValidationSchema;

@@ -16,12 +16,16 @@ const {
       post: vi.fn(),
       put: vi.fn(),
       delete: vi.fn(),
+      patch: vi.fn(),
+      use: vi.fn(),
       route: vi.fn().mockImplementation(path => {
         const routeHandler = {
           get: vi.fn(),
           post: vi.fn(),
           put: vi.fn(),
           delete: vi.fn(),
+          patch: vi.fn(),
+          use: vi.fn(),
         };
         // Store the route handler for later inspection
         router._routes.push({ path, handler: routeHandler });

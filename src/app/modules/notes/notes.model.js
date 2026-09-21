@@ -4,7 +4,7 @@
  * @requires mongoose - Mongoose library for MongoDB object modeling.
  */
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // --- Database Resiliency Configuration ---
 
@@ -113,4 +113,5 @@ const Notes = mongoose.model('Notes', noteSchema);
  * Exports the Mongoose model for Notes.
  * @type {mongoose.Model<Note>}
  */
-module.exports = Notes;
+export { Notes };
+export default Notes;
