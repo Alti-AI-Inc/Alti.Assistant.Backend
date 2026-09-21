@@ -66,16 +66,43 @@ const promptLimiter = async (req, res, next) => {
     req.subscription = subscription;
     req.promptUsage = subscription.getPromptUsageInfo();
 
+    // Set usage headers BEFORE response (pre-increment values)
+    const preUsage = req.promptUsage;
+    res.setHeader('X-Prompt-Used', preUsage.used);
+    res.setHeader('X-Prompt-Limit', preUsage.limit);
+    res.setHeader('X-Prompt-Remaining', preUsage.remaining);
+    res.setHeader('X-Prompt-Plan', subscription.plan);
+
     // Increment AFTER response completes (so failed requests aren't counted)
-    const originalEnd = res.end;
-    res.end = function (...args) {
+    const originalJson = res.json.bind(res);
+    res.json = function (body) {
       // Only count successful prompts (2xx status codes)
       if (res.statusCode >= 200 && res.statusCode < 300) {
+        const postUsed = preUsage.used + 1;
+        const postRemaining = Math.max(0, preUsage.limit - postUsed);
+
+        // Update headers to post-increment values
+        res.setHeader('X-Prompt-Used', postUsed);
+        res.setHeader('X-Prompt-Remaining', postRemaining);
+
+        // Inject usage into response body
+        if (body && typeof body === 'object') {
+          body.usage = {
+            promptsUsed: postUsed,
+            promptLimit: preUsage.limit,
+            promptsRemaining: postRemaining,
+            percentageUsed: Math.round((postUsed / preUsage.limit) * 100),
+            plan: subscription.plan,
+            billingCycleEnd: subscription.billingCycle?.currentPeriodEnd || null,
+          };
+        }
+
+        // Persist increment asynchronously
         subscription.incrementPromptUsage().catch(err => {
           logger.warn(`[PromptLimiter] Failed to increment usage: ${err.message}`);
         });
       }
-      originalEnd.apply(res, args);
+      return originalJson(body);
     };
 
     next();

@@ -123,6 +123,12 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
+    exposedHeaders: [
+      'X-Prompt-Used',
+      'X-Prompt-Limit',
+      'X-Prompt-Remaining',
+      'X-Prompt-Plan',
+    ],
   })
 );
 
