@@ -1279,6 +1279,8 @@ export const authController = {
   inviteUser: managerController.inviteTeamMember,
   getTeamMembers: managerController.getTeamMembers,
   updateTeamMemberRole: managerController.updateTeamMemberRole,
+  updateMemberPlan: managerController.updateMemberPlan,
+  removeMember: managerController.removeMember,
   // Passwordless OTP
   sendOtp,
   verifyOtp,

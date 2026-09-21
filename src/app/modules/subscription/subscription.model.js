@@ -84,6 +84,20 @@ const SubscriptionSchema = new mongoose.Schema(
       index: true,
       sparse: true, // Allow multiple null values
     },
+    /**
+     * If set, this subscription is paid for by another user (the account owner).
+     * The sponsored member cannot see Plans, Members, Billing, or Invoices.
+     * @type {mongoose.Schema.Types.ObjectId}
+     * @ref User
+     * @default null
+     */
+    sponsoredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+      sparse: true,
+    },
 
     // Plan Details
     /**

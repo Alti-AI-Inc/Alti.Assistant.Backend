@@ -868,7 +868,48 @@ const getUserService = async (userId) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
   }
-  return user;
+
+  // Determine if user is an account owner or a sponsored (invited) member
+  const SubscriptionModel = mongoose.model('Subscription');
+  const subscription = await SubscriptionModel.findOne({
+    userId,
+    status: { $in: ['active', 'trialing', 'past_due'] },
+  }).lean();
+
+  const isSponsored = !!subscription?.sponsoredBy;
+  const isAccountOwner = !isSponsored;
+
+  // Navigation permissions — invited members can't see billing/team management
+  const navigation = {
+    canViewPlans: isAccountOwner,
+    canViewMembers: isAccountOwner,
+    canViewBilling: isAccountOwner,
+    canViewInvoices: isAccountOwner,
+    canInviteMembers: isAccountOwner,
+  };
+
+  // Prompt usage info
+  let usage = null;
+  if (subscription) {
+    const used = subscription.usage?.promptsMonthlyUsed || 0;
+    const limit = subscription.limits?.promptLimit || 25;
+    usage = {
+      promptsUsed: used,
+      promptLimit: limit,
+      promptsRemaining: Math.max(0, limit - used),
+      plan: subscription.plan,
+      status: subscription.status,
+    };
+  }
+
+  return {
+    ...user,
+    isAccountOwner,
+    isSponsored,
+    sponsoredBy: subscription?.sponsoredBy || null,
+    navigation,
+    subscription: usage,
+  };
 };
 
 /**

@@ -1042,12 +1042,16 @@ router.route('/delete-account/:id').delete(
  *             type: object
  *             required:
  *               - email
- *               - role
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: "new.teammate@example.com"
+ *               planId:
+ *                 type: string
+ *                 enum: [free, monthly_5, monthly_10, monthly_20, monthly_50, monthly_100, monthly_200, monthly_500]
+ *                 description: Plan to assign to the invited member (paid by you)
+ *                 example: "monthly_10"
  *               role:
  *                 type: string
  *                 enum: [user, manager]
@@ -1161,10 +1165,77 @@ router.patch(
     ENUM_USER_ROLE.MANAGER
   ),
   validateRequest(AuthValidation.updateRoleValidationSchema),
-  // SECURITY: The controller must verify the `userId` is within the manager's workspace.
-  // It must also prevent a manager from assigning a role with higher privileges than their own.
-  // It must prevent a user from changing their own role or the workspace owner's role via this endpoint.
   authController.updateTeamMemberRole
+);
+
+// ── Member Plan Management (Account Owner only) ─────────────────────────────
+
+/**
+ * @swagger
+ * /api/v1/auth/team/members/{memberId}/plan:
+ *   patch:
+ *     summary: Update a team member's plan
+ *     description: Change the subscription plan assigned to an invited member. Only the sponsoring account owner can change plans.
+ *     tags: [Manager Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [planId]
+ *             properties:
+ *               planId:
+ *                 type: string
+ *                 enum: [free, monthly_5, monthly_10, monthly_20, monthly_50, monthly_100, monthly_200, monthly_500]
+ *                 example: "monthly_10"
+ *     responses:
+ *       200:
+ *         description: Member plan updated
+ *       400:
+ *         description: Invalid planId
+ *       404:
+ *         description: Member not found or not sponsored by you
+ */
+router.patch(
+  '/team/members/:memberId/plan',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  authController.updateMemberPlan
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/team/members/{memberId}:
+ *   delete:
+ *     summary: Remove a team member
+ *     description: Remove a sponsored member from your team. Their subscription is downgraded to free tier.
+ *     tags: [Manager Dashboard]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Member removed and downgraded to free
+ *       404:
+ *         description: Member not found or not sponsored by you
+ */
+router.delete(
+  '/team/members/:memberId',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  authController.removeMember
 );
 
 /**
