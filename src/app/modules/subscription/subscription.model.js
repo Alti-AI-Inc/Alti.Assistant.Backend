@@ -107,6 +107,7 @@ const SubscriptionSchema = new mongoose.Schema(
         'monthly_50',
         'monthly_100',
         'monthly_200',
+        'monthly_500',
       ],
       default: 'free',
       index: true,
@@ -294,6 +295,8 @@ const SubscriptionSchema = new mongoose.Schema(
       projectsLimit: { type: Number, default: 0 },
       modelsLimit: { type: Number, default: 0 },
       knowledgeLimit: { type: Number, default: 0 },
+      // Monthly prompt cap (1 prompt = 1 input + 1 output)
+      promptLimit: { type: Number, default: 25 },
     },
 
     // Daily & Monthly Usage Tracking
@@ -352,6 +355,8 @@ const SubscriptionSchema = new mongoose.Schema(
       modelsMonthlyUsed: { type: Number, default: 0, min: 0 },
       knowledgeMonthlyUsed: { type: Number, default: 0, min: 0 },
       cycleStartedAt: { type: Date, default: Date.now },
+      // Prompt usage tracking (1 prompt = 1 input + 1 output)
+      promptsMonthlyUsed: { type: Number, default: 0, min: 0 },
 
       // Legacy fields (from old payment model)
       promptsUsed: {
@@ -554,6 +559,55 @@ SubscriptionSchema.methods.resetDailyUsage = async function () {
   this.usage.deepResearchUsedToday = 0;
   this.usage.lastResetAt = new Date();
   await this.save();
+};
+
+/**
+ * Checks if the user has reached their monthly prompt limit.
+ * Auto-resets at billing cycle boundary.
+ * @returns {boolean}
+ */
+SubscriptionSchema.methods.hasReachedPromptLimit = function () {
+  // Check if billing cycle has rolled over → reset counter
+  const now = new Date();
+  const cycleEnd = this.billingCycle?.currentPeriodEnd;
+  if (cycleEnd && now > new Date(cycleEnd)) {
+    this.usage.promptsMonthlyUsed = 0;
+  }
+
+  return this.usage.promptsMonthlyUsed >= (this.limits.promptLimit || 25);
+};
+
+/**
+ * Increments the prompt usage counter by 1.
+ * @returns {Promise<void>}
+ */
+SubscriptionSchema.methods.incrementPromptUsage = async function () {
+  // Check billing cycle reset
+  const now = new Date();
+  const cycleEnd = this.billingCycle?.currentPeriodEnd;
+  if (cycleEnd && now > new Date(cycleEnd)) {
+    this.usage.promptsMonthlyUsed = 0;
+  }
+
+  this.usage.promptsMonthlyUsed += 1;
+  this.usage.promptsUsed = (this.usage.promptsUsed || 0) + 1; // legacy counter
+  await this.save();
+};
+
+/**
+ * Returns prompt usage info for API responses.
+ * @returns {{ used: number, limit: number, remaining: number, percentage: number }}
+ */
+SubscriptionSchema.methods.getPromptUsageInfo = function () {
+  const used = this.usage.promptsMonthlyUsed || 0;
+  const limit = this.limits.promptLimit || 25;
+  const remaining = Math.max(0, limit - used);
+  return {
+    used,
+    limit,
+    remaining,
+    percentage: Math.round((used / limit) * 100),
+  };
 };
 
 /**

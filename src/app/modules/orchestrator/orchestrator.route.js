@@ -1,5 +1,6 @@
 import express from 'express';
 import auth from '../../middlewares/auth/auth.js';
+import promptLimiter from '../../middlewares/promptLimiter.js';
 import { OrchestratorController } from './orchestrator.controller.js';
 
 const router = express.Router();
@@ -10,11 +11,11 @@ router.get('/routes', OrchestratorController.listRoutes);
 // Authenticated endpoints
 router.use(auth());
 
-// Core orchestration
-router.post('/orchestrate', OrchestratorController.orchestrate);
-router.post('/stream', OrchestratorController.streamOrchestrate);
+// Core orchestration — prompt-limited (1 prompt = 1 input + 1 output)
+router.post('/orchestrate', promptLimiter, OrchestratorController.orchestrate);
+router.post('/stream', promptLimiter, OrchestratorController.streamOrchestrate);
 router.post('/classify', OrchestratorController.classify);
-router.post('/execute', OrchestratorController.executeRoute);
+router.post('/execute', promptLimiter, OrchestratorController.executeRoute);
 
 // Observability
 router.get('/telemetry', OrchestratorController.getTelemetry);

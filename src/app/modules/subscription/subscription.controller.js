@@ -715,6 +715,18 @@ const createBillingPortalSession = catchAsync(async (req, res) => {
   });
 });
 
+const getPromptUsage = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const usage = await subscriptionService.getPromptUsage(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Prompt usage retrieved',
+    data: usage,
+  });
+});
+
 export default {
   getAvailablePlans,
   getMySubscription,
@@ -731,4 +743,5 @@ export default {
   getUsageStats,
   handleStripeWebhook,
   createBillingPortalSession,
+  getPromptUsage,
 };

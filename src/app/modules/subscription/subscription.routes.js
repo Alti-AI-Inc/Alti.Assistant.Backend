@@ -68,4 +68,7 @@ router.get('/usage-stats', subscriptionController.getUsageStats);
 
 router.get('/usage', subscriptionController.getUsageStats);
 
+// ── Prompt Usage ──────────────────────────────────────────────────────────
+router.get('/prompt-usage', subscriptionController.getPromptUsage);
+
 export default router;

@@ -2369,6 +2369,63 @@ const checkMonthlyUsageLimit = async (userId, tenantId, resourceType) => {
   }
 };
 
+// ── Prompt Usage Methods (1 prompt = 1 input + 1 output) ────────────────────
+
+/**
+ * Get prompt usage for a user.
+ * @param {string} userId
+ * @returns {Promise<{ used, limit, remaining, percentage, plan }>}
+ */
+const getPromptUsage = async (userId) => {
+  const sub = await SubscriptionModel.findByUser(userId);
+  if (!sub) {
+    return { used: 0, limit: 0, remaining: 0, percentage: 0, plan: null };
+  }
+
+  // Auto-sync limit from plan config
+  const { getPromptLimit } = await import('./plans.config.js');
+  const planLimit = getPromptLimit(sub.plan);
+  if (sub.limits.promptLimit !== planLimit) {
+    sub.limits.promptLimit = planLimit;
+    await sub.save();
+  }
+
+  const info = sub.getPromptUsageInfo();
+  return { ...info, plan: sub.plan };
+};
+
+/**
+ * Check if user has reached prompt limit. Returns true = blocked.
+ * @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+const checkPromptLimit = async (userId) => {
+  const sub = await SubscriptionModel.findByUser(userId);
+  if (!sub) return true; // No subscription → blocked
+
+  // Auto-sync limit from plan config
+  const { getPromptLimit } = await import('./plans.config.js');
+  const planLimit = getPromptLimit(sub.plan);
+  if (sub.limits.promptLimit !== planLimit) {
+    sub.limits.promptLimit = planLimit;
+  }
+
+  return sub.hasReachedPromptLimit();
+};
+
+/**
+ * Record a prompt usage (atomic increment).
+ * @param {string} userId
+ * @returns {Promise<{ used, limit, remaining }>}
+ */
+const recordPromptUsage = async (userId) => {
+  const sub = await SubscriptionModel.findByUser(userId);
+  if (!sub) return null;
+
+  await sub.incrementPromptUsage();
+  return sub.getPromptUsageInfo();
+};
+
 export default {
   createFreeSubscription,
   upgradeSubscription,
@@ -2395,4 +2452,7 @@ export default {
   trackAndIncrementMonthlyUsage,
   checkMonthlyUsageLimit,
   reportOverageToStripe,
+  getPromptUsage,
+  checkPromptLimit,
+  recordPromptUsage,
 };
