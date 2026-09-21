@@ -37,6 +37,7 @@ import { WorkflowRoutes } from '../modules/workflows/workflows.route.js';
 import { TriggerRoutes } from '../modules/triggers/triggers.route.js';
 import { TemplateRoutes } from '../modules/templates/templates.route.js';
 import { TraceRoutes } from '../modules/traces/traces.route.js';
+import { invoiceRoutes } from '../modules/invoice/invoice.route.js';
 
 const router = express.Router();
 
@@ -172,6 +173,10 @@ const moduleRoutes = [
   {
     path: '/traces',
     route: TraceRoutes,
+  },
+  {
+    path: '/invoices',
+    route: invoiceRoutes,
   },
 ];
 

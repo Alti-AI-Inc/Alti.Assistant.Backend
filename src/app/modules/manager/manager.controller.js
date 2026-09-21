@@ -7,6 +7,7 @@ import { PLANS, getPromptLimit } from '../subscription/plans.config.js';
 import { tenantService } from '../tenant/tenant.service.js';
 import { tenantInvitationService } from '../tenant/tenantInvitation.service.js';
 import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMail.js';
+import { createSponsoredInvoice } from '../invoice/invoice.service.js';
 
 // ── Invite Member with Plan ──────────────────────────────────────────────────
 
@@ -72,6 +73,18 @@ export const inviteMember = catchAsync(async (req, res) => {
       existingSub.limits.promptLimit = promptLimit;
       existingSub.usage.promptsMonthlyUsed = 0;
       await existingSub.save();
+
+      // Create sponsored invoice
+      try {
+        await createSponsoredInvoice({
+          userId: invitedUser._id,
+          sponsorId: inviterId,
+          planId: selectedPlan,
+          memberEmail: email,
+        });
+      } catch (invoiceErr) {
+        logger.warn(`Sponsored invoice creation failed: ${invoiceErr.message}`);
+      }
     } else {
       // Create new sponsored subscription
       await SubscriptionModel.create({
@@ -83,6 +96,18 @@ export const inviteMember = catchAsync(async (req, res) => {
         limits: { promptLimit },
         usage: { promptsMonthlyUsed: 0, promptsUsed: 0 },
       });
+
+      // Create sponsored invoice
+      try {
+        await createSponsoredInvoice({
+          userId: invitedUser._id,
+          sponsorId: inviterId,
+          planId: selectedPlan,
+          memberEmail: email,
+        });
+      } catch (invoiceErr) {
+        logger.warn(`Sponsored invoice creation failed: ${invoiceErr.message}`);
+      }
     }
   }
 

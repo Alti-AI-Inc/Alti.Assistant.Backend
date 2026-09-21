@@ -13,6 +13,7 @@ import ProductModel from '../stripe/products/products.model.js';
 import TenantModel from '../tenant/tenant.model.js';
 import BillingAuditLog from './billingAuditLog.model.js';
 import SubscriptionModel from './subscription.model.js';
+import { createInvoiceFromStripe, createFailedInvoiceFromStripe } from '../invoice/invoice.service.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
@@ -1817,6 +1818,13 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
         `Created new subscription ${subscription._id} from invoice.payment_succeeded`
       );
 
+      // Create invoice record for the frontend Invoices page
+      try {
+        await createInvoiceFromStripe(invoice, userId);
+      } catch (invoiceErr) {
+        logger.warn(`Invoice record creation failed (non-blocking): ${invoiceErr.message}`);
+      }
+
       return subscription;
     }
 
@@ -1869,6 +1877,13 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
         subscription.tenantId,
         updatedSubscription
       );
+    }
+
+    // Create invoice record for the frontend Invoices page
+    try {
+      await createInvoiceFromStripe(invoice, updatedSubscription.userId);
+    } catch (invoiceErr) {
+      logger.warn(`Invoice record creation failed (non-blocking): ${invoiceErr.message}`);
     }
 
     return updatedSubscription;
@@ -1927,6 +1942,13 @@ const handleInvoicePaymentFailed = async (invoice) => {
         subscription.tenantId,
         updatedSubscription
       );
+    }
+
+    // Create failed invoice record
+    try {
+      await createFailedInvoiceFromStripe(invoice, subscription.userId);
+    } catch (invoiceErr) {
+      logger.warn(`Failed invoice record creation failed (non-blocking): ${invoiceErr.message}`);
     }
 
     return updatedSubscription;
