@@ -136,10 +136,7 @@ describe('Package Integration', () => {
     expect(typeof limit).toBe('function');
   });
 
-  it('should have sharp available', async () => {
-    const sharp = await import('sharp');
-    expect(sharp.default || sharp).toBeDefined();
-  });
+  // sharp removed — @img/sharp-libvips is LGPL-3.0, violates Apache-2.0/MIT-only policy
 
   it('should have cron-parser available', async () => {
     const parser = await import('cron-parser');
