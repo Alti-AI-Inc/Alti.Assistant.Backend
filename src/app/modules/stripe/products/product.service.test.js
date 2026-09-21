@@ -19,27 +19,14 @@ vi.mock('stripe', () => {
   return { default: Stripe };
 });
 
-vi.mock('@google-cloud/tasks', () => {
-  const mockTasksClientInstance = {
-    queuePath: vi.fn(),
-    createTask: vi.fn(),
-  };
-  return {
-    CloudTasksClient: vi.fn().mockImplementation(() => mockTasksClientInstance),
-  };
-});
+vi.mock('../../../../shared/queues.js', () => ({
+  scheduleTask: vi.fn(),
+}));
 
 vi.mock('../../../../../config/index.js', () => ({
   default: {
     stripe: {
       stripe_secret_key: 'sk_test_mock',
-    },
-    gcp: {
-      project_id: 'test-project',
-      location: 'us-central1',
-      tasks_queue: 'test-queue',
-      tasks_worker_url: 'https://test-worker.url/sync',
-      tasks_service_account_email: 'test-sa@test-project.iam.gserviceaccount.com',
     },
   },
 }));
@@ -62,12 +49,11 @@ const {
 
 // Import the mocked modules to get handles to the mock instances
 import Stripe from 'stripe';
-import { CloudTasksClient } from '@google-cloud/tasks';
+import { scheduleTask } from '../../../../shared/queues.js';
 import Product from './products.model.js';
 import config from '../../../../../config/index.js';
 
 const mockStripe = new Stripe();
-const mockTasksClient = new CloudTasksClient();
 
 describe('Stripe Product Service', () => {
   beforeEach(() => {
@@ -135,34 +121,18 @@ describe('Stripe Product Service', () => {
   });
 
   describe('createProductService', () => {
-    it('should successfully create a Cloud Task', async () => {
-      mockTasksClient.queuePath.mockReturnValue('projects/test-project/locations/us-central1/queues/test-queue');
-      mockTasksClient.createTask.mockResolvedValue([{ name: 'task_123' }]);
+    it('should successfully schedule a task', async () => {
+      scheduleTask.mockResolvedValue();
 
       const taskName = await createProductService({});
 
-      expect(taskName).toBe('task_123');
-      expect(mockTasksClient.queuePath).toHaveBeenCalledWith('test-project', 'us-central1', 'test-queue');
-      expect(mockTasksClient.createTask).toHaveBeenCalledTimes(1);
-
-      const taskPayload = mockTasksClient.createTask.mock.calls[0][0].task;
-      expect(taskPayload.httpRequest.url).toBe(config.gcp.tasks_worker_url);
-      expect(taskPayload.httpRequest.oidcToken.serviceAccountEmail).toBe(config.gcp.tasks_service_account_email);
-      expect(taskPayload.httpRequest.body).toBe(Buffer.from(JSON.stringify({})).toString('base64'));
+      expect(taskName).toBe('queued');
+      expect(scheduleTask).toHaveBeenCalledWith('test-queue', {}, 0);
     });
 
-    it('should throw an error if GCP config is missing', async () => {
-      const originalGcpConfig = config.gcp;
-      config.gcp = { ...originalGcpConfig, project_id: null };
-
-      await expect(createProductService({})).rejects.toThrow('GCP configuration for Cloud Tasks is missing.');
-
-      config.gcp = originalGcpConfig;
-    });
-
-    it('should throw a generic error if Cloud Task creation fails', async () => {
-      const error = new Error('GCP API Error');
-      mockTasksClient.createTask.mockRejectedValue(error);
+    it('should throw a generic error if queueing fails', async () => {
+      const error = new Error('Queue Error');
+      scheduleTask.mockRejectedValue(error);
 
       await expect(createProductService({})).rejects.toThrow('Failed to queue product creation job.');
     });

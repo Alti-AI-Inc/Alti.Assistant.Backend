@@ -5,7 +5,6 @@ env
 env.yaml
 app_data/
 output/
-inso_gcp.json
 db_data/
 *.log
 data/
@@ -17,14 +16,9 @@ storage/
 .env.*
 .env.local
 .env.production
-gcp-sa-key.json
 *.pem
 *.key
 set-all-secrets.ps1
 scratch/
 scripts/*-local*
-*.env.local
-*.env.production
-
-# Local GCP service account credentials
-alti_gcp.json
+uploads/

@@ -5,17 +5,13 @@ import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 
 // --- Mocks ---
 
-// Mock GCP Pub/Sub client
+// Mock queue client
 const mockPublishMessage = vi.fn();
 
 const {
-  mockTopic,
   mockAuth,
   mockExtractTenantContext
 } = vi.hoisted(() => {
-  const mockTopic = vi.fn().mockImplementation(() => ({
-    publishMessage: mockPublishMessage,
-  }));
   const mockAuth = vi.fn().mockImplementation(() => mockAuthMiddleware);
 
   // Mock tenant context middleware
@@ -25,16 +21,13 @@ const {
   });
 
   return {
-    mockTopic,
     mockAuth,
     mockExtractTenantContext
   };
 });
 
-vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: vi.fn().mockImplementation(() => ({
-    topic: mockTopic,
-  })),
+vi.mock('../../../shared/queues.js', () => ({
+  publishMessage: mockPublishMessage,
 }));
 
 // Mock auth middleware factory to verify role checks
@@ -120,14 +113,14 @@ describe('Notification Routes', () => {
       );
       expect(mockAuthMiddleware).toHaveBeenCalled();
       expect(mockExtractTenantContext).toHaveBeenCalled();
-      expect(mockTopic).toHaveBeenCalledWith('send-notification-to-user');
-      expect(mockPublishMessage).toHaveBeenCalledWith({
-        json: {
+      expect(mockPublishMessage).toHaveBeenCalledWith(
+        'send-notification-to-user',
+        {
           tenantId: 'mock-tenant-id',
           userId,
           notification: notificationData,
-        },
-      });
+        }
+      );
     });
 
     it('should handle errors from Pub/Sub and pass to the error handler', async () => {
@@ -191,12 +184,12 @@ describe('Notification Routes', () => {
       );
       expect(mockAuthMiddleware).toHaveBeenCalled();
       expect(mockExtractTenantContext).toHaveBeenCalled();
-      expect(mockTopic).toHaveBeenCalledWith('delete-all-notifications');
-      expect(mockPublishMessage).toHaveBeenCalledWith({
-        json: {
+      expect(mockPublishMessage).toHaveBeenCalledWith(
+        'delete-all-notifications',
+        {
           tenantId: 'mock-tenant-id',
-        },
-      });
+        }
+      );
     });
 
     it('should handle errors from Pub/Sub and pass to the error handler', async () => {
@@ -229,13 +222,13 @@ describe('Notification Routes', () => {
       );
       expect(mockAuthMiddleware).toHaveBeenCalled();
       expect(mockExtractTenantContext).toHaveBeenCalled();
-      expect(mockTopic).toHaveBeenCalledWith('broadcast-notification');
-      expect(mockPublishMessage).toHaveBeenCalledWith({
-        json: {
+      expect(mockPublishMessage).toHaveBeenCalledWith(
+        'broadcast-notification',
+        {
           tenantId: 'mock-tenant-id',
           notification: notificationData,
-        },
-      });
+        }
+      );
     });
 
     it('should handle errors from Pub/Sub and pass to the error handler', async () => {

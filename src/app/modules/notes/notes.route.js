@@ -2,20 +2,16 @@
  * @file This file defines the API routes for managing notes in the Inso.Assistant application.
  * @module app/modules/notes/notes.route
  * @requires express
- * @requires @google-cloud/pubsub
+ * @requires ../../shared/queues
  * @requires ../../middlewares/validateRequest/validateRequest
  * @requires ./notes.controller
  * @requires ./notes.validation
  */
 
-// GCP_INTEGRATION: Importing the Google Cloud Pub/Sub client for asynchronous task offloading.
-const { PubSub } = require('@google-cloud/pubsub');
+// Removed Pub/Sub require
 const express = require('express');
 
-// GCP_INTEGRATION: Initialize the Pub/Sub client.
-// This should be done once per application instance and the client should be reused.
-// Ensure your environment is authenticated (e.g., by setting GOOGLE_APPLICATION_CREDENTIALS).
-const pubSubClient = new PubSub();
+// Queue system imported dynamically when needed
 
 // GCP_INTEGRATION: Define the Pub/Sub topic for offloading bulk delete operations.
 // Using environment variables for configuration is a best practice.
@@ -138,13 +134,10 @@ router.route('/bulk-delete').delete(
           .json({ message: 'Invalid request: "ids" must be a non-empty array.' });
       }
 
-      // The message payload for Pub/Sub must be a Buffer.
-      const dataBuffer = Buffer.from(JSON.stringify({ ids }));
-
-      // Publishes the message to the designated Pub/Sub topic.
-      const messageId = await pubSubClient
-        .topic(bulkDeleteTopicName)
-        .publishMessage({ data: dataBuffer });
+      // Publishes the message to the designated topic.
+      const { publishMessage } = await import('../../../shared/queues.js');
+      await publishMessage(bulkDeleteTopicName, { ids });
+      const messageId = 'queued';
 
       // It's good practice to log the successful publishing of a message for traceability.
       console.log(

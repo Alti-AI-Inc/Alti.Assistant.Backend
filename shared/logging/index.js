@@ -10,7 +10,7 @@
  */
 
 import winston, { format } from 'winston';
-import { LoggingWinston } from '@google-cloud/logging-winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 
 const { combine, timestamp, label, printf, json } = format;
 
@@ -77,14 +77,17 @@ export function createLogger(serviceName = 'inso-agent') {
 
   if (isProduction) {
     try {
-      const gcpTransport = new LoggingWinston({
-        logName: serviceName,
-        // Will automatically detect GCP project config when running on GCP
+      const fileTransport = new DailyRotateFile({
+        filename: `logs/${serviceName}-%DATE%.log`,
+        datePattern: 'YYYY-MM-DD',
+        maxSize: '50m',
+        maxFiles: '14d',
+        format: cloudFormat,
       });
-      loggerTransports.push(gcpTransport);
-      errorTransports.push(gcpTransport);
+      loggerTransports.push(fileTransport);
+      errorTransports.push(fileTransport);
     } catch (err) {
-      console.warn(`Failed to initialize LoggingWinston for ${serviceName}:`, err.message);
+      console.warn(`Failed to initialize file logging for ${serviceName}:`, err.message);
     }
   }
 

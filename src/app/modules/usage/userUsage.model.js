@@ -1,9 +1,7 @@
-import { PubSub } from '@google-cloud/pubsub';
 import mongoose from 'mongoose';
+import { publishMessage } from '../../../shared/queues.js';
 
-// Initialize the Google Cloud Pub/Sub client.
-// In a production application, this would be initialized once in a shared module.
-const pubSubClient = new PubSub();
+// Queue system initialized via shared/queues.js
 
 // Topic names should be managed via environment variables for different environments.
 const USAGE_REQUEST_INCREMENT_TOPIC = process.env.USAGE_REQUEST_INCREMENT_TOPIC || 'usage-request-increment';
@@ -143,15 +141,10 @@ UserUsageSchema.statics.incrementRequest = async function (
     userId: userId.toString(),
     tenantId: tenantId ? tenantId.toString() : null,
   };
-  const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-  // Publish the message to the Pub/Sub topic.
-  // A separate subscriber service will consume this message and execute the atomic database update.
-  // The original database logic (including finding the previous day's storage for initialization)
-  // must be implemented in that subscriber.
-  const messageId = await pubSubClient
-    .topic(USAGE_REQUEST_INCREMENT_TOPIC)
-    .publishMessage({ data: dataBuffer });
+  // Publish the message to the queue topic.
+  await publishMessage(USAGE_REQUEST_INCREMENT_TOPIC, payload);
+  const messageId = 'queued';
 
   return messageId;
 };
@@ -205,15 +198,10 @@ UserUsageSchema.statics.updateStorage = async function (
     tenantId: tenantId ? tenantId.toString() : null,
     bytes,
   };
-  const dataBuffer = Buffer.from(JSON.stringify(payload));
 
-  // Publish the message to the Pub/Sub topic.
-  // A separate subscriber service will consume this message and execute the atomic database update.
-  // The original database logic (using an aggregation pipeline for atomic clamping)
-  // must be implemented in that subscriber.
-  const messageId = await pubSubClient
-    .topic(USAGE_STORAGE_UPDATE_TOPIC)
-    .publishMessage({ data: dataBuffer });
+  // Publish the message to the queue topic.
+  await publishMessage(USAGE_STORAGE_UPDATE_TOPIC, payload);
+  const messageId = 'queued';
 
   return messageId;
 };

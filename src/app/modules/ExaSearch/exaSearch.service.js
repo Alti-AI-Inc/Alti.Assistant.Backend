@@ -322,6 +322,51 @@ const deleteSearchRecord = async (spaceId, recordId, userId) => {
   return record;
 };
 
+const findSimilar = async (url, options = {}) => {
+  const request = { url, ...options };
+  const response = await fetch(`${EXA_BASE_URL}/findSimilar`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa findSimilar failed');
+  return data;
+};
+
+const contextSearch = async (query, options = {}) => {
+  const request = { query, ...options };
+  const response = await fetch(`${EXA_BASE_URL}/context`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa context search failed');
+  return data;
+};
+
+const searchDirectly = async (query, options = {}) => {
+  const request = buildExaRequestBody({ query, ...options });
+  const response = await fetch(`${EXA_BASE_URL}/search`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa search failed');
+  return data;
+};
+
 export const ExaSearchService = {
   createSearchRecord: runSearch,
   runSearch,
@@ -332,6 +377,9 @@ export const ExaSearchService = {
   normalizeExaResult,
   buildExaRequestBody,
   resolveSearchSession,
+  findSimilar,
+  contextSearch,
+  searchDirectly,
 };
 
 export default ExaSearchService;

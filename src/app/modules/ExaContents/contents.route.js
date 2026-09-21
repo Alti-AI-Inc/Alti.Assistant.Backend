@@ -41,5 +41,11 @@ router.delete(
   ContentController.deleteContentRecord
 );
 
+router.post(
+  '/fetch',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ContentController.fetchContentsDirectly
+);
+
 export const ContentRoutes = router;
 export default router;

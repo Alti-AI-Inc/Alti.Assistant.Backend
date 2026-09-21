@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Transcription API - Gemini Audio Understanding",
-    "description": "Complete API collection for the Transcription module using Gemini's audio understanding capabilities",
+    "name": "Transcription API - Groq Whisper Speech-to-Text",
+    "description": "Complete API collection for the Transcription module using Groq Whisper Large V3 Turbo capabilities",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

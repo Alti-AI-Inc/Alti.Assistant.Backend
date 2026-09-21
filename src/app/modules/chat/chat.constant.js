@@ -1,2 +1,2 @@
-export const GEMINI_RESPONSE_SERVICE_POST ="gemini.response.service.post";
-export const GEMINI_RESPONSE_SERVICE_GET = "gemini.response.service.get";
+export const CHAT_RESPONSE_SERVICE_POST = "chat.response.service.post";
+export const CHAT_RESPONSE_SERVICE_GET = "chat.response.service.get";

@@ -1,17 +1,32 @@
 import multer from 'multer';
 import path from 'path';
-import { GCSStorageEngine } from './uploder.js';
+import fs from 'fs';
+
+const tempDir = path.join(process.cwd(), 'uploads', 'audio_temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, tempDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `${uniqueSuffix}-${file.originalname}`);
+  },
+});
 
 const audioUploader = multer({
-  storage: new GCSStorageEngine({ folder: 'audio_uploads' }),
+  storage,
   fileFilter: (req, file, cb) => {
     const allowed = /\.(mp3|m4a|wav|webm|flac|ogg|mpga|mp4|mpeg)$/i;
     if (!allowed.test(file.originalname)) {
-      return cb(new Error('Unsupported file format'), false);
+      return cb(new Error('Unsupported audio format. Allowed: mp3, m4a, wav, webm, flac, ogg'), false);
     }
     cb(null, true);
   },
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max (matches Groq Whisper file limit)
 });
 
 export default audioUploader;

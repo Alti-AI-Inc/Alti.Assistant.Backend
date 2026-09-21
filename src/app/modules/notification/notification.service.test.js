@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PubSub } from '@google-cloud/pubsub';
+import { publishMessage } from '../../../shared/queues.js';
 import UserModel from '../auth/auth.model.js';
 import Notification from './notification.model.js';
 import { logger } from '../../../shared/logger.js';
@@ -10,12 +10,9 @@ import {
 import { NotificationService } from './notification.service.js';
 
 // Mock dependencies
-vi.mock('@google-cloud/pubsub', () => {
-  const publishMessage = vi.fn();
-  const topic = vi.fn().mockImplementation(() => ({ publishMessage }));
-  const PubSub = vi.fn().mockImplementation(() => ({ topic }));
-  return { PubSub, publishMessage, topic };
-});
+vi.mock('../../../shared/queues.js', () => ({
+  publishMessage: vi.fn(),
+}));
 
 vi.mock('../auth/auth.model.js', () => ({
   default: {
@@ -57,7 +54,7 @@ vi.mock('../../helpers/tenantQuery.js', () => ({
 }));
 
 // Get mock instances for manipulation in tests
-const { publishMessage, topic } = await import('@google-cloud/pubsub');
+const { publishMessage } = await import('../../../shared/queues.js');
 
 describe('NotificationService', () => {
   const mockTenantId = 'tenant-123';
@@ -84,10 +81,10 @@ describe('NotificationService', () => {
 
       expect(withTenantContext).toHaveBeenCalledWith(mockReq, mockNotificationData);
       expect(Notification.create).toHaveBeenCalledWith({ ...mockNotificationData, tenantId: mockTenantId });
-      expect(topic).toHaveBeenCalledWith(process.env.NOTIFICATION_FANOUT_TOPIC || 'notification-fanout');
-      expect(publishMessage).toHaveBeenCalled();
-      const publishedData = JSON.parse(Buffer.from(publishMessage.mock.calls[0][0].data).toString());
-      expect(publishedData).toEqual({ notificationId: mockNotificationId, tenantId: mockTenantId });
+      expect(publishMessage).toHaveBeenCalledWith(
+        process.env.NOTIFICATION_FANOUT_TOPIC || 'notification-fanout',
+        { notificationId: mockNotificationId, tenantId: mockTenantId }
+      );
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Fan-out task for notification'));
       expect(result).toEqual(mockNotification);
     });
@@ -213,10 +210,10 @@ describe('NotificationService', () => {
 
       const result = await NotificationService.deleteAllNotificationService(mockReq);
 
-      expect(topic).toHaveBeenCalledWith(process.env.NOTIFICATION_DELETE_ALL_TOPIC || 'notification-delete-all');
-      expect(publishMessage).toHaveBeenCalled();
-      const publishedData = JSON.parse(Buffer.from(publishMessage.mock.calls[0][0].data).toString());
-      expect(publishedData).toEqual({ tenantId: mockTenantId });
+      expect(publishMessage).toHaveBeenCalledWith(
+        process.env.NOTIFICATION_DELETE_ALL_TOPIC || 'notification-delete-all',
+        { tenantId: mockTenantId }
+      );
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(`'Delete All Notifications' job for tenant ${mockTenantId}`));
       expect(result).toEqual({
         message: 'Job to delete all notifications has been queued.',

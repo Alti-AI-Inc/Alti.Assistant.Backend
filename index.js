@@ -69,7 +69,7 @@ import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 const REQUIRED_ENV = ['DATABASE_LOCAL'];
 const RECOMMENDED_ENV = [
-  'GEMINI_API_KEY',
+  'GROQ_API_KEY',
   'JWT_ACCESS_TOKEN',
   'JWT_REFRESH_REFRESH_TOKEN',
 ];
@@ -79,7 +79,6 @@ for (const key of REQUIRED_ENV) {
     logger.error(
       `❌ FATAL: Required environment variable ${key} is not set. Server cannot start reliably.`
     );
-    // Don't exit — let Cloud Run accept the revision, but log loudly
   }
 }
 for (const key of RECOMMENDED_ENV) {
@@ -175,7 +174,7 @@ if (trustProxyEnv !== undefined) {
     app.set('trust proxy', 1);
   }
 } else {
-  // Cloud Run / ingress default: trust the first proxy hop only.
+  // Ingress default: trust the first proxy hop only.
   app.set('trust proxy', config.env === 'production' ? 1 : false);
 }
 
@@ -217,8 +216,7 @@ app.use((req, res, next) => {
   }
 });
 
-// MongoDB connection with retry — do NOT exit on failure so Cloud Run
-// accepts the revision. The server starts immediately and DB reconnects.
+// MongoDB connection with retry — the server starts immediately and DB reconnects.
 const connectDB = (retries = 5, delay = 5000) => {
   const dbUri = config.database_local;
 
@@ -323,7 +321,7 @@ app.get('/api/user', (req, res) => {
 // API routes
 app.use('/api/v1', router);
 
-// Health check endpoint for Cloud Run
+// Health check endpoint
 app.get('/health', async (req, res) => {
   const checks = {
     server: 'ok',

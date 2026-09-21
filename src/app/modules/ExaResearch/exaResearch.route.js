@@ -48,5 +48,37 @@ router.delete(
   ResearchController.deleteSearchRecord
 );
 
+router.post(
+  '/answer',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.answer
+);
+
+// Batches API
+router.post(
+  '/batches',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.createBatch
+);
+
+router.get(
+  '/batches/:id',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.getBatch
+);
+
+// Team & Usage API
+router.get(
+  '/team/me',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.getTeamUsage
+);
+
+router.get(
+  '/team/api-keys',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  ResearchController.listTeamApiKeys
+);
+
 export const ResearchRoutes = router;
 export default router;

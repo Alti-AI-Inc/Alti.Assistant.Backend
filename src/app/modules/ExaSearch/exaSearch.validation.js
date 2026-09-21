@@ -55,7 +55,21 @@ const updateSearchZodSchema = z.object({
     }),
 });
 
+const findSimilarZodSchema = z.object({
+  body: z.object({
+    url: z.string({ required_error: 'URL is required' }).url(),
+  }).passthrough(),
+});
+
+const contextZodSchema = z.object({
+  body: z.object({
+    query: z.string({ required_error: 'Query is required' }).min(1),
+  }).passthrough(),
+});
+
 export const SearchValidation = {
   createSearchZodSchema,
   updateSearchZodSchema,
+  findSimilarZodSchema,
+  contextZodSchema,
 };

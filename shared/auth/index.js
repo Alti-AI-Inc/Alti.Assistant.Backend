@@ -4,7 +4,7 @@
  *
  * Two auth modes:
  * 1. Internal Service Secret: Shared HMAC secret between gateway and agents
- * 2. GCP IAM Token: Google Cloud Run's native service-to-service auth (production)
+ * 2. Gateway Proxy Auth (production)
  *
  * The gateway forwards the original user context (userId, email, plan) in
  * the X-User-Context header as a base64-encoded JSON object.
@@ -57,9 +57,8 @@ export function internalAuth(req, res, next) {
   const isProduction = config.env === 'production';
 
   if (isProduction) {
-    // In production, Cloud Run IAM handles service-to-service auth.
-    // The gateway's identity token is validated by Cloud Run before
-    // the request reaches this middleware. We just extract user context.
+    // In production, the gateway validates service-to-service auth before
+    // the request reaches this middleware. We extract user context.
     const userContext = extractUserContext(req);
     if (!userContext) {
       return res.status(401).json({

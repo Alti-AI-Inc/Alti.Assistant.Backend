@@ -111,6 +111,59 @@ const deleteSearchRecord = catchAsync(async (req, res) => {
   });
 });
 
+const answer = catchAsync(async (req, res) => {
+  const { query, ...options } = req.body;
+  if (!query) throw new ApiError(httpStatus.BAD_REQUEST, 'Query is required for answer');
+  const result = await ExaResearchService.answer(query, options);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Answer retrieved successfully',
+    data: result,
+  });
+});
+
+const createBatch = catchAsync(async (req, res) => {
+  const result = await ExaResearchService.createBatch(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Batch research job created.',
+    data: result,
+  });
+});
+
+const getBatch = catchAsync(async (req, res) => {
+  const result = await ExaResearchService.getBatch(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Batch research job retrieved.',
+    data: result,
+  });
+});
+
+const getTeamUsage = catchAsync(async (req, res) => {
+  const result = await ExaResearchService.getTeamUsage();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Team usage retrieved.',
+    data: result,
+  });
+});
+
+const listTeamApiKeys = catchAsync(async (req, res) => {
+  const result = await ExaResearchService.listTeamApiKeys();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Team API keys retrieved.',
+    data: result,
+  });
+});
+
 export const ResearchController = {
   createSearchRecord,
   getAllSearchRecords,
@@ -118,4 +171,9 @@ export const ResearchController = {
   syncSearchRecord,
   updateSearchRecord,
   deleteSearchRecord,
+  answer,
+  createBatch,
+  getBatch,
+  getTeamUsage,
+  listTeamApiKeys,
 };

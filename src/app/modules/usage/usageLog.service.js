@@ -7,30 +7,18 @@ import UsageLog from './usageLog.model.js'; // Consider adding indexes to UsageL
 // 4. { module: 1, timestamp: -1 } for module-specific time-based queries.
 // For read operations in getTenantUsageSummary/getUserUsageSummary, ensure .lean() is used if they return Mongoose documents
 // to avoid the overhead of Mongoose document instantiation.
-import { PubSub } from '@google-cloud/pubsub';
+import { publishMessage } from '../../../shared/queues.js';
 import crypto from 'crypto';
 import path from 'path';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-/**
- * Google Cloud Pub/Sub client instance.
- * Used for asynchronously publishing usage log messages to a topic.
- * @type {PubSub}
- */
-const pubSubOptions = {};
-if (config.gcp?.projectId) pubSubOptions.projectId = config.gcp.projectId;
-if (config.gcp?.saKeyPath) {
-  pubSubOptions.keyFilename = path.isAbsolute(config.gcp.saKeyPath)
-    ? config.gcp.saKeyPath
-    : path.join(process.cwd(), config.gcp.saKeyPath);
-}
-const pubsub = new PubSub(pubSubOptions);
+// Queue system initialized via shared/queues.js
 const PUBSUB_ENABLED =
   process.env.PUBSUB_ENABLED !== 'false' && process.env.PUBSUB_ENABLED !== '0';
 
 /**
- * The name of the GCP Pub/Sub topic where usage logs are sent.
+ * The name of the queue topic where usage logs are sent.
  * Configured via the `USAGE_LOG_TOPIC` environment variable, with a default fallback.
  * @type {string}
  */
@@ -232,7 +220,7 @@ const getErrorType = (statusCode) => {
 };
 
 /**
- * Asynchronously publishes a usage log entry to GCP Pub/Sub.
+ * Asynchronously publishes a usage log entry to the queue topic.
  * This ensures that database writes are offloaded from the main application process,
  * allowing for stateless, container-friendly scaling.
  *
@@ -240,10 +228,8 @@ const getErrorType = (statusCode) => {
  * @returns {void}
  */
 const createLogAsync = (logData) => {
-  const dataBuffer = Buffer.from(JSON.stringify(logData));
-
   if (!PUBSUB_ENABLED || pubSubPublishDisabled) {
-    logger.warn('Pub/Sub disabled for usage logging; skipping publish.', {
+    logger.warn('Queue disabled for usage logging; skipping publish.', {
       logContext: {
         userId: logData.userId,
         tenantId: logData.tenantId,
@@ -253,49 +239,30 @@ const createLogAsync = (logData) => {
     return;
   }
 
-  pubsub
-    .topic(TOPIC_NAME)
-    .publishMessage({ data: dataBuffer })
-    .catch((error) => {
-      const isTopicMissing =
-        error?.code === 5 &&
-        String(error?.details || '').includes('Resource not found');
-      if (isTopicMissing) {
-        pubSubPublishDisabled = true;
+  publishMessage(TOPIC_NAME, logData).catch((error) => {
+    logger.error(
+      'Failed to publish usage log to queue. Falling back to direct DB write.',
+      {
+        error,
+        logContext: {
+          userId: logData.userId,
+          tenantId: logData.tenantId,
+          requestId: logData.requestId,
+        },
       }
+    );
 
+    // Fallback to direct DB write to prevent data loss
+    UsageLog.create(logData).catch((dbError) => {
       logger.error(
-        'Failed to publish usage log to Pub/Sub. Falling back to direct DB write.',
+        'Fallback database write for usage log also failed. Data loss occurred.',
         {
-          error, // Log the full error for better debugging
-          logContext: {
-            userId: logData.userId,
-            tenantId: logData.tenantId,
-            requestId: logData.requestId,
-          },
+          error: dbError,
+          originalLogRequestId: logData.requestId,
         }
       );
-
-      if (isTopicMissing) {
-        logger.warn(
-          'Disabling Pub/Sub usage log publishing for this process because topic is missing.',
-          {
-            topic: TOPIC_NAME,
-          }
-        );
-      }
-
-      // Fallback to direct DB write to prevent data loss if Pub/Sub is unavailable
-      UsageLog.create(logData).catch((dbError) => {
-        logger.error(
-          'Fallback database write for usage log also failed. Data loss occurred.',
-          {
-            error: dbError,
-            originalLogRequestId: logData.requestId, // Correlate the failed log
-          }
-        );
-      });
     });
+  });
 };
 
 /**

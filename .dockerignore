@@ -32,4 +32,3 @@ env.yaml
 # Security — never include in Docker build context
 set-all-secrets.ps1
 scripts/
-inso_gcp.json

@@ -1,14 +1,10 @@
 import express from 'express';
-// GCP Pub/Sub client for asynchronous task offloading.
-import { PubSub } from '@google-cloud/pubsub';
+// Redis-backed queue for asynchronous task offloading.
+import { publishMessage } from '../../../shared/queues.js';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { NotificationController } from './notification.controller.js';
-
-// Instantiate the GCP Pub/Sub client.
-// In a production environment, projectId should be configured externally.
-const pubSubClient = new PubSub();
 
 /**
  * Express router for notification-related endpoints.
@@ -87,8 +83,8 @@ router
           notification: notificationData,
         };
 
-        // Publish a message to the Pub/Sub topic.
-        await pubSubClient.topic(topicName).publishMessage({ json: messagePayload });
+        // Publish a message to the queue topic.
+        await publishMessage(topicName, messagePayload);
 
         res.status(202).json({
           message:
@@ -267,10 +263,8 @@ router
         const topicName = 'delete-all-notifications';
         const messagePayload = { tenantId };
 
-        // Publish a message to the Pub/Sub topic.
-        await pubSubClient
-          .topic(topicName)
-          .publishMessage({ json: messagePayload });
+        // Publish a message to the queue topic.
+        await publishMessage(topicName, messagePayload);
 
         res.status(202).json({
           message:
@@ -346,10 +340,8 @@ router
           notification: notificationData,
         };
 
-        // Publish a message to the Pub/Sub topic.
-        await pubSubClient
-          .topic(topicName)
-          .publishMessage({ json: messagePayload });
+        // Publish a message to the queue topic.
+        await publishMessage(topicName, messagePayload);
 
         res.status(202).json({
           message:

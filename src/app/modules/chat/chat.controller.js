@@ -1,15 +1,14 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
-// import { ConversationChain } from 'langchain/chains';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
-import { GeminiAiService } from './chat.service.js';
+import { ChatAiService } from './chat.service.js';
 
-const GeminiAiGetResponse = catchAsync(async (req, res) => {
+const ChatAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
 
-  const result = await GeminiAiService.geminiService(sessionId, prompt, userId);
+  const result = await ChatAiService.chatService(sessionId, prompt, userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -19,6 +18,11 @@ const GeminiAiGetResponse = catchAsync(async (req, res) => {
   });
 });
 
-export const GeminiAiController = {
-  GeminiAiGetResponse,
+export const ChatAiController = {
+  ChatAiGetResponse,
+  GeminiAiGetResponse: ChatAiGetResponse, // alias
 };
+
+export const GeminiAiController = ChatAiController; // alias
+
+export default ChatAiController;

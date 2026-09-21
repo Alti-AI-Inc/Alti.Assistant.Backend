@@ -18,6 +18,20 @@ import { chatAiRoutes } from '../modules/chat/chat.route.js';
 import { MonitorRoutes } from '../modules/ExaMonitor/monitor.route.js';
 import { SpaceRoutes } from '../modules/Space/space.route.js';
 import { usageRoutes } from '../modules/usage/usage.route.js';
+import { ComposioRoutes } from '../modules/composio/composio.route.js';
+import { SearchRoutes } from '../modules/ExaSearch/exa.search.route.js';
+import { ContentRoutes } from '../modules/ExaContents/contents.route.js';
+import { LibertyRoutes } from '../modules/liberty/liberty.route.js';
+import { GroqRoutes } from '../modules/groq/groq.route.js';
+import { CloudflareRoutes } from '../modules/cloudflare/cloudflare.route.js';
+import { CodexRoutes } from '../modules/codex/codex.route.js';
+import { OpenClawRoutes } from '../modules/openclaw/openclaw.route.js';
+import { TemporalRoutes } from '../modules/temporal/temporal.route.js';
+import { LangChainRoutes } from '../modules/langchain/langchain.route.js';
+import { OrchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
+import { EvaluatorRoutes } from '../modules/evaluator/evaluator.route.js';
+import { PromptForgeRoutes } from '../modules/promptforge/promptforge.route.js';
+import { RagRoutes } from '../modules/rag/rag.route.js';
 
 const router = express.Router();
 
@@ -77,6 +91,62 @@ const moduleRoutes = [
   {
     path: '/chat',
     route: chatAiRoutes,
+  },
+  {
+    path: '/composio',
+    route: ComposioRoutes,
+  },
+  {
+    path: '/search',
+    route: SearchRoutes,
+  },
+  {
+    path: '/contents',
+    route: ContentRoutes,
+  },
+  {
+    path: '/liberty',
+    route: LibertyRoutes,
+  },
+  {
+    path: '/groq',
+    route: GroqRoutes,
+  },
+  {
+    path: '/cloudflare',
+    route: CloudflareRoutes,
+  },
+  {
+    path: '/codex',
+    route: CodexRoutes,
+  },
+  {
+    path: '/openclaw',
+    route: OpenClawRoutes,
+  },
+  {
+    path: '/temporal',
+    route: TemporalRoutes,
+  },
+  {
+    path: '/langchain',
+    route: LangChainRoutes,
+  },
+  {
+    path: '/orchestrator',
+    route: OrchestratorRoutes,
+  },
+  {
+    path: '/evaluator',
+    route: EvaluatorRoutes,
+  },
+  {
+    path: '/promptforge',
+    route: PromptForgeRoutes,
+  },
+  {
+    path: '/rag',
+    route: RagRoutes,
   },
 ];
 

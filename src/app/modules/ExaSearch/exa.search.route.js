@@ -42,5 +42,25 @@ router.delete(
   SearchController.deleteSearchRecord
 );
 
+router.post(
+  '/find-similar',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SearchValidation.findSimilarZodSchema),
+  SearchController.findSimilar
+);
+
+router.post(
+  '/context',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(SearchValidation.contextZodSchema),
+  SearchController.contextSearch
+);
+
+router.post(
+  '/query',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  SearchController.searchDirectly
+);
+
 export const SearchRoutes = router;
 export default router;

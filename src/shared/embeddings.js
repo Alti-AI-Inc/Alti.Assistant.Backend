@@ -1,4 +1,5 @@
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { Embeddings } from '@langchain/core/embeddings';
+import axios from 'axios';
 
 // Helper function to L2 normalize a vector
 function L2Normalize(vector) {
@@ -9,26 +10,26 @@ function L2Normalize(vector) {
 }
 
 /**
- * A safe wrapper around GoogleGenerativeAIEmbeddings that handles api restrictions,
- * enforces gemini-embedding-001 as the working model, and applies L2 normalization
- * to sliced vectors for Matryoshka learning matching target database dimensions.
+ * A safe wrapper around a generic embeddings endpoint that handles api restrictions,
+ * and applies L2 normalization to sliced vectors for Matryoshka learning matching target database dimensions.
  */
-export class SafeGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
+export class SafeGoogleGenerativeAIEmbeddings extends Embeddings {
   constructor(fields) {
-    const targetModel = 'gemini-embedding-001';
-    
-    super({
-      ...fields,
-      model: targetModel,
-      modelName: targetModel,
-    });
-    
-    // Default to 768 dimensions (gemini-embedding-001 defaults to 3072, but we can slice to 768 or 1536)
-    this.targetDimension = fields.targetDimension || 768;
+    super(fields || {});
+    // Default to 768 dimensions
+    this.targetDimension = fields?.targetDimension || 768;
+    this.endpoint = fields?.endpoint || 'http://localhost:8080/embed'; // Configurable endpoint
   }
 
   async embedDocuments(documents) {
-    const rawEmbeddings = await super.embedDocuments(documents);
+    let rawEmbeddings = [];
+    try {
+      const response = await axios.post(this.endpoint, { inputs: documents });
+      rawEmbeddings = response.data.embeddings || response.data;
+    } catch (e) {
+      console.warn('Embedding endpoint failed, using zeroes', e.message);
+      rawEmbeddings = documents.map(() => new Array(this.targetDimension).fill(0));
+    }
     
     return rawEmbeddings.map(emb => {
       if (!emb || emb.length === 0) {
@@ -47,18 +48,7 @@ export class SafeGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddin
   }
 
   async embedQuery(document) {
-    const rawEmbedding = await super.embedQuery(document);
-    
-    if (!rawEmbedding || rawEmbedding.length === 0) {
-      return new Array(this.targetDimension).fill(0);
-    }
-    
-    const sliced = rawEmbedding.slice(0, this.targetDimension);
-    const normalized = L2Normalize(sliced);
-    
-    if (normalized.length < this.targetDimension) {
-      return [...normalized, ...new Array(this.targetDimension - normalized.length).fill(0)];
-    }
-    return normalized;
+    const rawEmbeddings = await this.embedDocuments([document]);
+    return rawEmbeddings[0] || new Array(this.targetDimension).fill(0);
   }
 }

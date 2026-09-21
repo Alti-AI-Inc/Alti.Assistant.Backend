@@ -548,6 +548,71 @@ const deleteSearchRecord = async (spaceId, recordId, userId) => {
   return record;
 };
 
+const answer = async (query, options = {}) => {
+  const request = { query, ...options };
+  const response = await fetch('https://api.exa.ai/answer', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.exa_api_key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa answer failed');
+  return data;
+};
+
+const createBatch = async (batchPayload) => {
+  const response = await fetch('https://api.exa.ai/batches', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.exa_api_key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(batchPayload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa createBatch failed');
+  return data;
+};
+
+const getBatch = async (batchId) => {
+  const response = await fetch(`https://api.exa.ai/batches/${batchId}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${config.exa_api_key}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa getBatch failed');
+  return data;
+};
+
+const getTeamUsage = async () => {
+  const response = await fetch('https://api.exa.ai/v0/teams/me', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${config.exa_api_key}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa getTeamUsage failed');
+  return data;
+};
+
+const listTeamApiKeys = async () => {
+  const response = await fetch('https://api.exa.ai/v0/api-keys', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${config.exa_api_key}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa listTeamApiKeys failed');
+  return data;
+};
+
 export const ExaResearchService = {
   createSearchRecord: runSearch,
   runSearch,
@@ -562,6 +627,11 @@ export const ExaResearchService = {
   normalizeWebsetSearch,
   buildCreateWebsetRequestBody,
   resolveSearchSession,
+  answer,
+  createBatch,
+  getBatch,
+  getTeamUsage,
+  listTeamApiKeys,
 };
 
 export default ExaResearchService;

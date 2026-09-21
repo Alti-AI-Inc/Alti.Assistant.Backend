@@ -289,10 +289,34 @@ const deleteContentRecord = async (spaceId, contentId, userId) => {
   return record;
 };
 
+const fetchContentsDirectly = async (payload = {}) => {
+  const requestOptions = buildExaContentsRequestBody(payload);
+
+  const response = await fetch(`${EXA_BASE_URL}/contents`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestOptions),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      errorBody.message || 'Exa API request failed'
+    );
+  }
+
+  return await response.json();
+};
+
 export const ContentService = {
   createContentRecord,
   getAllContentRecords,
   getSingleContentRecord,
   updateContentRecord,
   deleteContentRecord,
+  fetchContentsDirectly,
 };

@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 
-// Define the Job Schema for tracking long-running asynchronous GCP/Temporal jobs
+// Define the Job Schema for tracking long-running asynchronous jobs
 const JobSchema = new mongoose.Schema(
   {
-    gcpOperationName: {
+    operationName: {
       type: String,
       unique: true,
-      sparse: true, // Allow null/undefined for non-GCP jobs, but enforce uniqueness for values that exist
+      sparse: true,
     },
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,30 +57,34 @@ export const JobTrackingService = {
   },
 
   /**
-   * Retrieves a job by its GCP operation name
-   * @param {string} gcpOperationName
+   * Retrieves a job by its operation name
+   * @param {string} operationName
    * @returns {Promise<object|null>} The job document
    */
-  getJobByOperationName: async (gcpOperationName) => {
-    return await Job.findOne({ gcpOperationName });
+  getJobByOperationName: async (operationName) => {
+    return await Job.findOne({
+      $or: [{ operationName }, { gcpOperationName: operationName }],
+    });
   },
 
   /**
    * Updates the status of a job
-   * @param {string} gcpOperationName
+   * @param {string} operationName
    * @param {string} status
    * @param {string} [errorMessage]
    * @returns {Promise<object|null>} The updated job document
    */
-  updateJobStatus: async (gcpOperationName, status, errorMessage = null) => {
+  updateJobStatus: async (operationName, status, errorMessage = null) => {
     const update = { status };
     if (errorMessage) {
       update.error = errorMessage;
     }
     return await Job.findOneAndUpdate(
-      { gcpOperationName },
+      { $or: [{ operationName }, { gcpOperationName: operationName }] },
       { $set: update },
       { new: true }
     );
   },
 };
+
+export default JobTrackingService;

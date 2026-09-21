@@ -23,6 +23,11 @@ import {
   listPricesController,
   handleWebhook,
   testWebhook,
+  createCheckoutSessionController,
+  createBillingPortalController,
+  listInvoicesController,
+  getInvoiceController,
+  createRefundController,
 } from './stripe.controller.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 
@@ -128,6 +133,45 @@ router.delete(
   auth(),
   extractTenantContext,
   cancelSubscriptionController
+);
+
+// Checkout Sessions
+router.post(
+  '/checkout-session',
+  auth(),
+  extractTenantContext,
+  createCheckoutSessionController
+);
+
+// Customer Billing Portal
+router.post(
+  '/billing-portal',
+  auth(),
+  extractTenantContext,
+  createBillingPortalController
+);
+
+// Invoices
+router.get(
+  '/invoices',
+  auth(),
+  extractTenantContext,
+  listInvoicesController
+);
+
+router.get(
+  '/invoices/:invoiceId',
+  auth(),
+  extractTenantContext,
+  getInvoiceController
+);
+
+// Refunds
+router.post(
+  '/refunds',
+  auth(),
+  extractTenantContext,
+  createRefundController
 );
 
 /**

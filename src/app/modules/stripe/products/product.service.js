@@ -5,23 +5,11 @@
  */
 
 import Stripe from 'stripe';
-import { CloudTasksClient } from '@google-cloud/tasks'; // GCP Agent AI: Added Cloud Tasks client
+import { scheduleTask } from '../../../../shared/queues.js';
 import config from '../../../../../config/index.js';
 import Product from './products.model.js';
 
-/*
- * GCP Agent AI Note:
- * The following properties must be added to your configuration file (config/index.js)
- * to support offloading tasks to Google Cloud Tasks.
- *
- * gcp: {
- *   project_id: 'your-gcp-project-id',
- *   location: 'your-gcp-region', // e.g., 'us-central1'
- *   tasks_queue: 'stripe-processing-queue', // The name of your Cloud Tasks queue
- *   tasks_worker_url: 'https://your-backend-service-url/api/v1/tasks/sync-stripe-products', // The HTTPS endpoint that will execute the task
- *   tasks_service_account_email: 'your-invoker-sa@your-gcp-project-id.iam.gserviceaccount.com' // Service account with roles/run.invoker permission
- * }
- */
+
 
 /**
  * Stripe API client instance initialized with the secret key and API version.
@@ -31,8 +19,7 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
-// GCP Agent AI: Instantiate the Cloud Tasks client.
-const tasksClient = new CloudTasksClient();
+// Queue system initialized via shared/queues.js
 
 /**
  * [WORKER LOGIC] Creates predefined Stripe products and their associated prices, then stores them in the local database.
@@ -190,51 +177,22 @@ const handleProductCreationJob = async () => {
 
 /**
  * Asynchronously triggers the creation of predefined Stripe products and prices via a background job.
- * This function offloads the long-running task to Google Cloud Tasks to avoid blocking the main thread
+ * This function offloads the long-running task to the background queue to avoid blocking the main thread
  * and to ensure resilience. It immediately returns after queueing the task.
  *
  * @param {object} productData - This parameter is currently not used.
- * @returns {Promise<string>} A promise that resolves to the name of the created Cloud Task.
+ * @returns {Promise<string>} A promise that resolves to the status of the task.
  * @throws {Error} If there is an error queueing the task.
  */
 const createProductService = async (productData) => {
-  // GCP Agent AI: Configuration for the Cloud Task
-  const project = config.gcp.project_id;
-  const queue = config.gcp.tasks_queue;
-  const location = config.gcp.location;
-  const url = config.gcp.tasks_worker_url; // The URL of the worker endpoint that will execute the task
-  const serviceAccountEmail = config.gcp.tasks_service_account_email; // For authenticating the worker call
-
-  if (!project || !queue || !location || !url || !serviceAccountEmail) {
-    throw new Error('GCP configuration for Cloud Tasks is missing.');
-  }
-
-  const parent = tasksClient.queuePath(project, location, queue);
-
-  const task = {
-    httpRequest: {
-      httpMethod: 'POST',
-      url,
-      // OIDC tokens are the recommended way to secure invocations for Cloud Run/Functions.
-      oidcToken: {
-        serviceAccountEmail,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // The body can be used to pass data to the worker.
-      // In this case, the worker logic is self-contained, so we send an empty body.
-      body: Buffer.from(JSON.stringify({})).toString('base64'),
-    },
-  };
-
+  const queue = 'stripe-processing-queue';
   try {
-    console.log('Offloading product creation to Cloud Tasks...');
-    const [response] = await tasksClient.createTask({ parent, task });
-    console.log(`Created task ${response.name}`);
-    return response.name;
+    console.log('Offloading product creation to queue...');
+    await scheduleTask(queue, {}, 0);
+    console.log(`Created task in queue ${queue}`);
+    return 'queued';
   } catch (error) {
-    console.error('Error creating Cloud Task for product creation:', error);
+    console.error('Error creating queue task for product creation:', error);
     throw new Error('Failed to queue product creation job.');
   }
 };
@@ -297,5 +255,5 @@ export {
   updateProductService,
   deleteProductService,
   retrieveAllPricesService,
-  handleProductCreationJob, // GCP Agent AI: Exported the worker logic
+  handleProductCreationJob,
 };

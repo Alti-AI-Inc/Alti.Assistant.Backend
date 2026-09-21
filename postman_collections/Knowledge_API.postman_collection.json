@@ -234,7 +234,7 @@
                 }
               ]
             },
-            "description": "Delete a file from the knowledge system. This will also remove it from the RAG vector database and GCS storage."
+            "description": "Delete a file from the knowledge system. This will also remove it from the RAG vector database and object storage."
           },
           "response": []
         },

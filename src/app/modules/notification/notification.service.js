@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { PubSub } from '@google-cloud/pubsub';
+import { publishMessage } from '../../../shared/queues.js';
 import UserModel from '../auth/auth.model.js';
 import Notification from './notification.model.js';
 import { logger } from '../../../shared/logger.js';
@@ -8,9 +8,7 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 
-// Initialize GCP Pub/Sub client
-// Ensure your environment is authenticated, e.g., via GOOGLE_APPLICATION_CREDENTIALS
-const pubSubClient = new PubSub();
+// Queue system initialized via shared/queues.js
 
 // It's best practice to use environment variables for topic names
 const NOTIFICATION_FANOUT_TOPIC = process.env.NOTIFICATION_FANOUT_TOPIC || 'notification-fanout';
@@ -22,19 +20,17 @@ const sendNotificationService = async (data, req = null) => {
     req ? withTenantContext(req, data) : data
   );
 
-  // 2. Offload the fan-out operation to a background worker via Pub/Sub.
+  // 2. Offload the fan-out operation to a background worker via the message queue.
   // This avoids blocking the request while updating potentially millions of user documents.
-  // A separate worker (e.g., Cloud Function) will subscribe to this topic
-  // and perform the UserModel.updateMany operation.
+  // A separate worker will subscribe to this topic and perform the UserModel.updateMany operation.
   if (req && req.tenantId) {
     const message = {
       notificationId: newNotification._id.toString(),
       tenantId: req.tenantId.toString(),
     };
-    const dataBuffer = Buffer.from(JSON.stringify(message));
 
     try {
-      await pubSubClient.topic(NOTIFICATION_FANOUT_TOPIC).publishMessage({ data: dataBuffer });
+      await publishMessage(NOTIFICATION_FANOUT_TOPIC, message);
       logger.info(`Fan-out task for notification ${newNotification._id} published to topic ${NOTIFICATION_FANOUT_TOPIC}.`);
     } catch (error) {
       logger.error(`Failed to publish fan-out task for notification ${newNotification._id}:`, error);
@@ -127,10 +123,10 @@ const deleteAllNotificationService = async (req = null) => {
     const message = {
       tenantId: req.tenantId.toString(),
     };
-    const dataBuffer = Buffer.from(JSON.stringify(message));
 
     try {
-      const messageId = await pubSubClient.topic(NOTIFICATION_DELETE_ALL_TOPIC).publishMessage({ data: dataBuffer });
+      await publishMessage(NOTIFICATION_DELETE_ALL_TOPIC, message);
+      const messageId = 'queued';
       logger.info(`'Delete All Notifications' job for tenant ${req.tenantId} published with messageId ${messageId}.`);
       // The function can return a job ID or a simple success message to the controller.
       return {

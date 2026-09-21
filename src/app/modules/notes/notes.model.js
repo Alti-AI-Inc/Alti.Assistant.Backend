@@ -6,10 +6,7 @@
 
 const mongoose = require('mongoose');
 
-// --- GCP Database Resiliency Configuration ---
-// This configuration block establishes a resilient connection to the MongoDB database,
-// optimized for Google Cloud Platform environments. It should be centralized in a single
-// file (e.g., db.js or app.js) in a real-world application.
+// --- Database Resiliency Configuration ---
 
 /**
  * The MongoDB connection URI.
@@ -19,24 +16,13 @@ const mongoose = require('mongoose');
 const dbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/insodb';
 
 /**
- * Mongoose connection options optimized for resilient connections, especially in cloud environments like GCP.
+ * Mongoose connection options optimized for resilient connections.
  * @type {mongoose.ConnectOptions}
- * @property {number} maxPoolSize - Limits the number of open connections to the database for this application instance. A value of 10 is a safe starting point for many applications running in a containerized environment.
- * @property {number} serverSelectionTimeoutMS - How long the driver waits to find a suitable server before erroring. Increased to 30 seconds to tolerate temporary network partitions or leader elections.
- * @property {number} socketTimeoutMS - How long a socket can be inactive before closing. Prevents hung operations. Aligned with typical load balancer idle timeouts.
- * @property {boolean} keepAlive - Essential for connections that pass through NATs, firewalls, or proxies. It prevents the network infrastructure from silently dropping idle connections.
- * @property {number} keepAliveInitialDelay - Delay in milliseconds before sending the first keepAlive probe on an idle socket.
- * @property {number} family - Forces IPv4, which can resolve connection issues in certain containerized or VPC network configurations.
  */
 const mongooseOptions = {
-  // --- Connection Pooling ---
   maxPoolSize: 10,
-
-  // --- Timeout Settings for GCP ---
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
-
-  // --- KeepAlive for Long-Lived Connections ---
 
 
 

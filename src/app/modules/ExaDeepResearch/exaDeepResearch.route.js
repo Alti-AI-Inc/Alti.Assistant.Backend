@@ -42,5 +42,23 @@ router.delete(
   DeepResearchController.deleteDeepResearchRecord
 );
 
+router.post(
+  '/agent-runs',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.createAgentRun
+);
+
+router.get(
+  '/agent-runs/:runId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.getAgentRun
+);
+
+router.post(
+  '/agent-runs/:runId/cancel',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.cancelAgentRun
+);
+
 export const DeepResearchRoutes = router;
 export default router;

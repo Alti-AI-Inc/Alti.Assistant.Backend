@@ -1,42 +1,15 @@
 import mongoose from 'mongoose';
 
 // =================================================================
-// GCP DATABASE RESILIENCY CONFIGURATION
+// DATABASE RESILIENCY CONFIGURATION
 // =================================================================
-// NOTE: This connection logic is typically placed in a central application
-// entry point (e.g., server.js, app.js) or a dedicated database module
-// (e.g., config/db.js), not in a model file. It is included here to
-// demonstrate a resilient configuration for a GCP environment.
 
 const dbUri = process.env.MONGO_URI || 'mongodb://localhost:27017/insodatabase';
 
 const connectionOptions = {
-  // --- Connection Pooling ---
-  // The maximum number of sockets the MongoDB driver will keep open for this connection.
-  // A pool size of 10 is a good starting point for many applications.
-  // This helps manage concurrent database operations efficiently.
   maxPoolSize: 10,
-
-  // --- Timeout Settings for GCP ---
-  // How long the driver will wait for a server to respond before throwing an error.
-  // A higher value like 30s is safer in cloud environments where network latency can vary.
   serverSelectionTimeoutMS: 30000,
-
-  // How long a socket can be idle before being closed by the driver.
-  // Set to a value like 45s to be less than the typical 60s idle timeout of
-  // GCP network components (like NATs or Load Balancers), preventing them
-  // from silently dropping connections.
   socketTimeoutMS: 45000,
-
-  // --- KeepAlive Settings for GCP ---
-  // This is critical for long-running applications on GCP. It enables TCP KeepAlive
-  // packets to be sent, preventing network infrastructure from considering the
-  // connection idle and terminating it. This is especially important when using
-  // services like the Cloud SQL Auth Proxy or VPC peering.
-
-  // The number of milliseconds to wait before initiating keepAlive on the socket.
-  // A 30s delay is a common and effective setting.
-
 };
 
 // Original Model Definition

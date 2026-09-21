@@ -4,7 +4,7 @@ import path from 'path';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 // ── Strip BOM (\uFEFF) from all environment variables ───────────────────────
-// GCP Secret Manager injected via PowerShell pipes can prepend a BOM.
+// Some secret injection pipelines can prepend a BOM.
 // This runs once at startup and sanitizes every env var before any code reads them.
 const BOM = '\uFEFF';
 for (const key of Object.keys(process.env)) {
@@ -23,8 +23,6 @@ export default {
   port: process.env.PORT,
   client_url: process.env.CLIENT_URL,
   youtube_api_key: process.env.YOUTUBE_API_KEY,
-  google_search_api_key: process.env.GOOGLE_SEARCH_API_KEY,
-  google_engine_id: process.env.GOOGLE_CSE_ID,
   jwt: {
     access_token: process.env.JWT_ACCESS_TOKEN,
     access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
@@ -53,12 +51,12 @@ export default {
   },
   // Top-level alias for backwards-compat with modules using config.redis_url
   redis_url: process.env.REDIS_URL,
-  alloydb: {
-    host: process.env.ALLOYDB_HOST || '34.135.175.69',
-    port: parseInt(process.env.ALLOYDB_PORT || '5432'),
-    database: process.env.ALLOYDB_DATABASE || 'rag_database',
-    user: process.env.ALLOYDB_USER || 'postgres',
-    password: process.env.ALLOYDB_PASSWORD || 'Em0nd4r0ck@2',
+  postgres: {
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    database: process.env.POSTGRES_DATABASE || 'rag_database',
+    user: process.env.POSTGRES_USER || 'postgres',
+    password: process.env.POSTGRES_PASSWORD,
   },
   temporal: {
     address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
@@ -74,22 +72,20 @@ export default {
     timeoutMs: Number(process.env.OPENMEMORY_TIMEOUT_MS || 8000),
   },
 
-  gemini_secret_key: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
-  google_api_key: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
-
-  // ── Gemini Model Config (single source of truth — update here only) ──────
-  // Flash: fastest & cheapest — use for 90% of requests
-  // Pro:   deep reasoning, complex tasks, document review, agentic workflows
-  gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
-  gemini: {
-    model_name: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-    pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
-    temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
+  // ── Groq Config (single source of truth) ──────────────────────────────────
+  // gpt-oss-120b: 120B MoE, 500 tok/s, 128k context, tool calling — heavy reasoning & code
+  // gpt-oss-20b:  20B dense, 1200 tok/s, 128k context — fast classification, evaluation, simple tasks
+  // whisper-large-v3-turbo: Speech-to-text
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || 'gpt-oss-120b',
+    lightModel: process.env.GROQ_LIGHT_MODEL || 'gpt-oss-20b',
+    sttModel: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',
+    temperature: parseFloat(process.env.GROQ_TEMPERATURE) || 0.2,
   },
   realestate_api_key: process.env.REALESTATE_API_KEY,
 
-  llmProvider: 'gcp', // Enforced GCP provider for exclusive Google Cloud architecture
+  llmProvider: 'groq',
 
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,
   cyberdesk_api_key: process.env.CYBERDESK_API_KEY,
@@ -105,52 +101,42 @@ export default {
     codeQueryThreshold:
       parseFloat(process.env.CODE_QUERY_CONFIDENCE_THRESHOLD) || 0.7,
   },
-  google: {
-    google_application_credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    gcp_project_id: process.env.GCP_PROJECT_ID,
-    gcp_location: process.env.GCP_LOCATION,
-    vertex_ai_endpoint: process.env.VERTEX_AI_ENDPOINT,
-    vertex_ai_region: process.env.VERTEX_AI_LOCATION,
-    model_id: process.env.MODEL_ID,
+
+  // ── Object Storage (S3-compatible / OpenStack Swift) ──────────────────────
+  objectStorage: {
+    endpoint: process.env.OBJECT_STORAGE_ENDPOINT,
+    accessKey: process.env.OBJECT_STORAGE_ACCESS_KEY,
+    secretKey: process.env.OBJECT_STORAGE_SECRET_KEY,
+    region: process.env.OBJECT_STORAGE_REGION || 'us-east-1',
+    uploadsBucket: process.env.UPLOADS_BUCKET || 'alti-uploads',
+    transcriptionBucket: process.env.TRANSCRIPTION_BUCKET || 'alti-transcription',
+    knowledgeBankBucket: process.env.KNOWLEDGE_BANK_BUCKET || 'alti-knowledge-bank',
+    knowledgebotBucket: process.env.KNOWLEDGEBOT_BUCKET || 'alti-knowledgebot',
+    presentationBucket: process.env.PRESENTATION_BUCKET || 'alti-presentations',
   },
-  gcs: {
-    uploads_bucket: process.env.GCS_UPLOADS_BUCKET || 'inso_assistant_uploads',
-    transcription_bucket:
-      process.env.GCS_TRANSCRIPTION_BUCKET || 'inso_assistant_transcription',
-    knowledge_bank_bucket:
-      process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'inso_knowledge_bank_files',
-    knowledgebot_bucket:
-      process.env.GCS_KNOWLEDGEBOT_BUCKET ||
-      'inso_assistant_knowledge_bot_files',
-    presentation_bucket:
-      process.env.GCS_PRESENTATION_BUCKET || 'inso_assistant_presentation',
-    datasetStorageClass: process.env.GCS_DATASET_STORAGE_CLASS || 'ARCHIVE',
-  },
+
   shelfHfRagIndexing: process.env.SHELF_HF_RAG_INDEXING === 'true',
   mail: {
-    google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,
-    google_smtp_user: process.env.GOOGLE_SMTP_USER,
-    google_smtp_host: process.env.GOOGLE_SMTP_HOST,
-    google_smtp_port: process.env.GOOGLE_SMTP_PORT,
+    smtp_password: process.env.SMTP_PASSWORD,
+    smtp_user: process.env.SMTP_USER,
+    smtp_host: process.env.SMTP_HOST,
+    smtp_port: process.env.SMTP_PORT,
   },
-  gcp: {
-    projectId: process.env.GCP_PROJECT_ID,
-    project_id: process.env.GCP_PROJECT_ID,
-    location: process.env.GCP_LOCATION || 'us-central1',
-    saKeyPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './inso_gcp.json',
-    pubsub: {
-      subscriptionTopic:
-        process.env.GCP_PUBSUB_SUBSCRIPTION_TOPIC ||
-        'stripe-subscription-updates',
-      stripe_webhook_topic:
-        process.env.STRIPE_WEBHOOK_TOPIC || 'stripe-webhook-events',
-    },
-    tasks_queue: process.env.GCP_TASKS_QUEUE || 'stripe-tasks-queue',
-    tasks_worker_url:
-      process.env.GCP_TASKS_WORKER_URL ||
-      'https://inso-backend.onrender.com/api/v1/stripe/tasks-worker',
-    tasks_service_account_email: process.env.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
+
+  // ── Cloudflare ────────────────────────────────────────────────────────────
+  cloudflare: {
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+    zoneId: process.env.CLOUDFLARE_ZONE_ID,
   },
+
+  // ── Composio (Agentic Tool Execution & Auth) ─────────────────────────────
+  composio: {
+    apiKey: process.env.COMPOSIO_API_KEY,
+    baseUrl: process.env.COMPOSIO_BASE_URL || 'https://backend.composio.dev',
+    mcpUrl: process.env.COMPOSIO_MCP_URL || 'https://connect.composio.dev/mcp',
+  },
+
   privacy: {
     neverCollectData: true,
     neverTrainOnUserData: true,

@@ -1,34 +1,25 @@
-import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
-import config from '../../../../config';
-import { logger } from '../../../shared/logger';
-// import config from '../../../../config';
+import config from '../../../../config/index.js';
+import { logger } from '../../../shared/logger.js';
 
-const oAuth2Client = new google.auth.OAuth2(
-  config.client_id,
-  config.client_secret,
-  'https://developers.google.com/oauthplayground'
-);
-oAuth2Client.setCredentials({ refresh_token: config.refresh_token });
-
+/**
+ * Send email using standard SMTP (provider-agnostic).
+ * Replaces the previous googleapis OAuth2 approach.
+ */
 export const sendMailForRegisterWithGmail = async (data) => {
-  const accessToken = await oAuth2Client.getAccessToken();
-
   let transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: config.mail.smtp_host || 'smtp.gmail.com',
+    port: parseInt(config.mail.smtp_port || '587'),
+    secure: false,
     auth: {
-      type: 'OAuth2',
-      user: config.sender_mail,
-      clientId: config.client_id,
-      clientSecret: config.client_secret,
-      refreshToken: config.refresh_token,
-      accessToken: accessToken,
+      user: config.mail.smtp_user || config.sender_mail,
+      pass: config.mail.smtp_password,
     },
   });
 
   const mailData = {
-    from: config.sender_mail, // sender address
-    to: data.to, // list of receivers
+    from: config.sender_mail,
+    to: data.to,
     subject: data.subject,
     html: data.text,
   };
@@ -36,8 +27,6 @@ export const sendMailForRegisterWithGmail = async (data) => {
   let info = await transporter.sendMail(mailData);
 
   logger.info('Message sent: %s', info.messageId);
-
-  logger.info('Preview URL: %s', nodemailer.getTestMessageUrl(info));
 
   return info.messageId;
 };

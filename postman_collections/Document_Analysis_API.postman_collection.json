@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Document Analysis API",
-    "description": "AI-powered document and text analysis using Gemini 3.5 Flash. Analyze text or files with intelligent insights.",
+    "description": "AI-powered document and text analysis using Groq gpt-oss-120b. Analyze text or files with intelligent insights.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

@@ -59,7 +59,7 @@ const localFormat = combine(
   prettyPrint()
 );
 
-// Structured JSON format for Google Cloud Logging (production)
+// Structured JSON format for production
 const cloudFormat = combine(
   label({ label: 'Inso AI Core Service' }),
   timestamp(),
@@ -115,9 +115,7 @@ if (!isProduction) {
   );
 }
 
-// In production on Cloud Run, console output is automatically captured
-// by Google Cloud Logging. Structured JSON format enables severity
-// levels, trace correlation, and Error Reporting integration.
+// In production, console output is structured JSON enabling severity levels and trace correlation.
 
 // Success logger
 export const logger = winston.createLogger({

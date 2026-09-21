@@ -35,24 +35,15 @@ vi.mock('redis', () => ({
 }));
 
 const mockPublishMessage = vi.fn().mockResolvedValue('msg-id-123');
-const mockTopic = vi.fn(() => ({
-  publishMessage: mockPublishMessage,
-  publish: mockPublishMessage,
-}));
-const mockPubSubClientInstance = {
-  topic: mockTopic,
-  createTopic: vi.fn().mockResolvedValue([{ name: 'topic' }]),
-  subscription: vi.fn(() => ({
-    on: vi.fn(),
-    exists: vi.fn().mockResolvedValue([true]),
-  })),
-};
 
-vi.mock('@google-cloud/pubsub', () => ({
-  PubSub: class {
-    constructor() {
-      return mockPubSubClientInstance;
-    }
+vi.mock('./src/shared/queues.js', () => ({
+  publishMessage: mockPublishMessage,
+  subscribe: vi.fn().mockResolvedValue(undefined),
+  scheduleTask: vi.fn().mockResolvedValue('task-id-123'),
+  default: {
+    publishMessage: mockPublishMessage,
+    subscribe: vi.fn().mockResolvedValue(undefined),
+    scheduleTask: vi.fn().mockResolvedValue('task-id-123'),
   }
 }));
 
@@ -104,17 +95,17 @@ vi.mock('./shared/logging/index.js', () => {
   };
 });
 
-vi.mock('google-auth-library', () => {
+vi.mock('groq-sdk', () => {
   return {
-    GoogleAuth: class {
-      getClient() {
-        return {
-          request: vi.fn().mockResolvedValue({
-            data: {
-              content: [{ text: 'Mocked writing text' }],
-              usage: { input_tokens: 10, output_tokens: 20 }
-            }
-          })
+    default: class {
+      constructor() {
+        this.chat = {
+          completions: {
+            create: vi.fn().mockResolvedValue({
+              choices: [{ message: { content: 'Mocked writing text' } }],
+              usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+            })
+          }
         };
       }
     }

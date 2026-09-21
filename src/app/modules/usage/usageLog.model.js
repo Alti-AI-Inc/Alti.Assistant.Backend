@@ -1,9 +1,9 @@
-import { PubSub } from '@google-cloud/pubsub';
+import { publishMessage } from '../../../shared/queues.js';
 import mongoose from 'mongoose';
 
-// --- Resilient Database Connection for GCP ---
+// --- Resilient Database Connection ---
 // This function establishes a connection to MongoDB with settings optimized for
-// resiliency and performance in a Google Cloud Platform environment.
+// resiliency and performance.
 // It should ideally be in a dedicated file (e.g., /config/db.js or /src/db.js)
 // and called once when your application initializes.
 export const connectDB = async () => {
@@ -19,27 +19,23 @@ export const connectDB = async () => {
   const options = {
     // --- Connection Pooling ---
     // Set the maximum number of connections in the connection pool.
-    // A value of 10-20 is a good starting point for stateful applications (GKE, GCE).
-    // For serverless (Cloud Run/Functions), a smaller pool (e.g., 5) is often better
-    // to prevent overwhelming the database with connections from many concurrent instances.
+    // A value of 10-20 is a good starting point for containerized applications.
     // This should be tuned based on application load and monitoring.
     poolSize: parseInt(process.env.MONGO_POOL_SIZE || '10', 10),
 
-    // --- Timeouts for GCP Networking ---
+    // --- Networking Timeouts ---
     // How long the driver will wait for a connection to be established before timing out.
     // 30000ms (30 seconds) is a robust value for cloud environments where initial
     // connection latency can be variable.
     connectTimeoutMS: 30000,
 
     // How long a socket can remain idle before being closed. This is critical for
-    // environments with firewalls or load balancers (like GCP, or the Cloud SQL Auth Proxy)
-    // that may silently drop idle TCP connections. This helps proactively manage stale sockets.
+    // environments with firewalls or load balancers that may silently drop idle TCP connections.
     socketTimeoutMS: 60000,
 
     // --- TCP KeepAlive for Resiliency ---
     // Enable TCP KeepAlive to send probes on idle sockets. This prevents network
     // infrastructure from considering the connection stale and dropping it.
-    // This is highly recommended for long-running applications and resilient connections in GCP.
 
     // Delay in milliseconds between when the socket becomes idle and when the first
     // keep-alive probe is sent. 30000ms (30 seconds) is a good starting point.
@@ -71,22 +67,16 @@ export const connectDB = async () => {
   } catch (err) {
     console.error(`[FATAL] Initial database connection failed: ${err.message}`);
     // If the initial connection fails, the application cannot run.
-    // In a containerized environment (like GKE or Cloud Run), the orchestrator
+    // In a containerized environment, the orchestrator
     // will restart the container, which will automatically retry the connection.
     process.exit(1);
   }
 };
 
-// It's a best practice to create one client and reuse it across the application.
-// Ensure GOOGLE_APPLICATION_CREDENTIALS environment variable is set or you are
-// running in a GCP environment with appropriate service account permissions.
-const pubSubClient = new PubSub();
-
-// The name of the Pub/Sub topic to which usage logs will be published.
-// It's recommended to configure this via environment variables.
+// The name of the queue topic to which usage logs will be published.
 const usageLogTopicName = process.env.USAGE_LOG_TOPIC || 'usage-log-events';
 
-// Allows disabling Pub/Sub for local development or specific environments.
+// Allows disabling the queue for local development or specific environments.
 const pubSubEnabled = process.env.PUBSUB_ENABLED === 'true';
 
 /**
@@ -229,7 +219,7 @@ const UsageLogSchema = new mongoose.Schema(
     modelUsed: {
       type: String,
       default: null,
-      // Example: 'gpt-4-turbo', 'claude-3-opus', 'gemini-3.1-pro'
+      // Example: 'gpt-oss-120b', 'whisper-large-v3-turbo'
     },
     cost: {
       type: Number,
@@ -307,11 +297,10 @@ UsageLogSchema.index(
 );
 
 /**
- * Asynchronously logs usage data by publishing it to a Google Cloud Pub/Sub topic.
+ * Asynchronously logs usage data by publishing it to a queue topic.
  * This offloads the database write from the request-response cycle, improving API performance and resilience.
- * A separate worker service (e.g., a Cloud Function) subscribes to the topic to handle database insertion.
  *
- * If Pub/Sub is disabled via `PUBSUB_ENABLED` env var, it will log to the console in non-production environments
+ * If queue publishing is disabled via `PUBSUB_ENABLED` env var, it will log to the console in non-production environments
  * for development visibility and do nothing in production.
  *
  * @param {object} logData The usage data to log.
@@ -328,16 +317,10 @@ UsageLogSchema.statics.logAsync = async function (logData) {
   }
 
   try {
-    const dataBuffer = Buffer.from(JSON.stringify(logData));
-    await pubSubClient.topic(usageLogTopicName).publishMessage({
-      data: dataBuffer,
-    });
+    await publishMessage(usageLogTopicName, logData);
   } catch (error) {
-    // If publishing fails, it's a critical issue that needs to be logged and monitored.
-    // This indicates a problem with Pub/Sub configuration, permissions, or connectivity.
-    // In a production environment, this should trigger an alert.
     console.error(
-      `[FATAL] Failed to publish usage log to Pub/Sub topic ${usageLogTopicName}:`,
+      `[FATAL] Failed to publish usage log to topic ${usageLogTopicName}:`,
       error
     );
   }

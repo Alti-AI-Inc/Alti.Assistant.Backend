@@ -340,6 +340,46 @@ const deleteDeepResearchRecord = async (spaceId, recordId, userId) => {
   return record;
 };
 
+const createAgentRun = async (query, options = {}) => {
+  const request = { query, ...options };
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to create agent run');
+  return data;
+};
+
+const getAgentRun = async (runId) => {
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs/${runId}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to get agent run');
+  return data;
+};
+
+const cancelAgentRun = async (runId) => {
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs/${runId}/cancel`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to cancel agent run');
+  return data;
+};
+
 export const ExaDeepResearchService = {
   createDeepResearchRecord: runSearch,
   runSearch,
@@ -350,6 +390,9 @@ export const ExaDeepResearchService = {
   normalizeExaResult,
   buildExaRequestBody,
   resolveSearchSession,
+  createAgentRun,
+  getAgentRun,
+  cancelAgentRun,
 };
 
 export default ExaDeepResearchService;

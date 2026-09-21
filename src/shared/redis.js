@@ -4,8 +4,7 @@ import { logger } from './logger.js';
 const { createClient } = redis;
 
 // ── Validate REDIS_URL before attempting to create a client ─────────────────
-// Cloud Run Secret Manager may inject a leading '?' or the URL may be absent.
-// Rather than crashing the whole container, we disable Redis gracefully.
+// If the URL is absent or invalid, we disable Redis gracefully.
 const rawRedisUrl = (config.redis?.url || '').replace(/^\?+/, '').trim();
 const redisEnabled = (() => {
   if (!rawRedisUrl) return false;
@@ -302,5 +301,5 @@ export const RedisClient = {
   delAccessToken,
 };
 
-export { redisClient };
+export { redisClient, redisPubClient, redisSubClient };
 export default redisClient;

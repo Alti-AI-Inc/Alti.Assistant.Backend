@@ -1,6 +1,5 @@
 // preload.cjs — runs before ANY ES module is evaluated
-// Strips Unicode BOM (\uFEFF) from all process.env values injected by
-// GCP Secret Manager via PowerShell pipes, which prepend a BOM character.
+// Strips Unicode BOM (\uFEFF) from process.env values that may contain leading BOM characters.
 const BOM = '\uFEFF';
 let stripped = 0;
 for (const key of Object.keys(process.env)) {
@@ -15,11 +14,11 @@ if (stripped > 0) {
 
 // ── Configure DNS Servers Synchronously for MongoDB Atlas ───────────────────
 // In some networks or ISP environments, resolving MongoDB SRV records fails.
-// We configure Google DNS servers synchronously before any mongoose connections are initiated.
+// We configure Cloudflare DNS servers synchronously before any mongoose connections are initiated.
 const dns = require('dns');
 try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-  console.log('[preload] Configured Google DNS servers synchronously for MongoDB resolution.');
+  dns.setServers(['1.1.1.1', '1.0.0.1']);
+  console.log('[preload] Configured Cloudflare DNS servers synchronously for MongoDB resolution.');
 } catch (dnsErr) {
   console.error('[preload] Failed to set fallback DNS servers:', dnsErr.message);
 }

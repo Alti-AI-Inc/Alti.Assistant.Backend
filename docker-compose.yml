@@ -1,10 +1,5 @@
-# Inso AI — Production Docker Compose
-# Lean 2-service stack: Backend + Redis only
-# MongoDB: Atlas (cloud-hosted, no local container needed)
-# Everything else: managed GCP services (Vertex AI, Cloud Storage, Pub/Sub)
-#
-# Cost: ~$0 extra (Redis is already required, backend is the product)
-# Disk: ~800MB total vs 8GB+ with the old full-stack
+# Inso AI — Docker Compose
+# Services: Backend + Redis + MongoDB
 
 services:
   redis:
@@ -25,6 +20,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - inso-network
 
   backend:
     image: us-central1-docker.pkg.dev/gen-lang-client-0273900650/inso-assistant-core-backend-repo/inso-assistant-backend:latest
@@ -54,4 +60,6 @@ networks:
 
 volumes:
   redis_data:
+    driver: local
+  mongodb_data:
     driver: local

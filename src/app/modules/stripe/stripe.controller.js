@@ -1402,6 +1402,94 @@ const handleWebhook = webhookController.handleStripeWebhook;
  */
 const testWebhook = webhookController.testWebhook;
 
+const stripeClient = new Stripe(config.stripe?.stripe_secret_key || process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2022-11-15',
+});
+
+const createCheckoutSessionController = catchAsync(async (req, res) => {
+  const { priceId, successUrl, cancelUrl, mode = 'subscription' } = req.body;
+  const user = await UserModel.findById(req.user.id);
+  const session = await stripeClient.checkout.sessions.create({
+    customer: user?.stripeCustomerId,
+    customer_email: user?.stripeCustomerId ? undefined : user?.email,
+    mode,
+    payment_method_types: ['card'],
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl || `${config.app?.frontend_url || 'http://localhost:3000'}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl || `${config.app?.frontend_url || 'http://localhost:3000'}/pricing`,
+    metadata: { userId: req.user.id, tenantId: req.tenant?.tenantId },
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Checkout session created successfully.',
+    data: { url: session.url, sessionId: session.id },
+  });
+});
+
+const createBillingPortalController = catchAsync(async (req, res) => {
+  const user = await UserModel.findById(req.user.id);
+  if (!user?.stripeCustomerId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User does not have an active Stripe customer account.');
+  }
+
+  const portalSession = await stripeClient.billingPortal.sessions.create({
+    customer: user.stripeCustomerId,
+    return_url: req.body.returnUrl || `${config.app?.frontend_url || 'http://localhost:3000'}/dashboard/billing`,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Billing portal session created successfully.',
+    data: { url: portalSession.url },
+  });
+});
+
+const listInvoicesController = catchAsync(async (req, res) => {
+  const user = await UserModel.findById(req.user.id);
+  const invoices = await stripeClient.invoices.list({
+    customer: user?.stripeCustomerId,
+    limit: parseInt(req.query.limit || '10', 10),
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Invoices fetched successfully.',
+    data: invoices.data,
+  });
+});
+
+const getInvoiceController = catchAsync(async (req, res) => {
+  const { invoiceId } = req.params;
+  const invoice = await stripeClient.invoices.retrieve(invoiceId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Invoice fetched successfully.',
+    data: invoice,
+  });
+});
+
+const createRefundController = catchAsync(async (req, res) => {
+  const { paymentIntentId, amount, reason } = req.body;
+  const refund = await stripeClient.refunds.create({
+    payment_intent: paymentIntentId,
+    amount,
+    reason,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Refund processed successfully.',
+    data: refund,
+  });
+});
+
 export {
   addPaymentMethodController,
   cancelSubscriptionController,
@@ -1424,4 +1512,9 @@ export {
   retrieveProductController,
   testWebhook,
   updateCustomerController,
+  createCheckoutSessionController,
+  createBillingPortalController,
+  listInvoicesController,
+  getInvoiceController,
+  createRefundController,
 };

@@ -56,8 +56,7 @@ function sendTokenResponse(user, res) {
       _id: user._id,
     };
 
-    // GCP AUDIT: Prioritize JWT secret from environment variables (injected by Cloud Run from Secret Manager).
-    // This prevents reading secrets from local files in production environments.
+    // Prioritize JWT secret from environment variables.
     const secret = process.env.JWT_ACCESS_TOKEN_SECRET || config.jwt.access_token;
     if (!secret) {
       console.error(

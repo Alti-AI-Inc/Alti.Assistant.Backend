@@ -5,7 +5,6 @@
  *
  * Usage:
  *   import config from '@inso/shared/config';
- *   console.log(config.gcp.projectId);
  */
 
 import path from 'path';
@@ -21,7 +20,7 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-// ── Strip BOM (\\uFEFF) from all environment variables ───────────────────────
+// ── Strip BOM (\uFEFF) from all environment variables ───────────────────────
 const BOM = '\uFEFF';
 for (const key of Object.keys(process.env)) {
   if (typeof process.env[key] === 'string') {
@@ -35,7 +34,7 @@ for (const key of Object.keys(process.env)) {
 
 const config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '8080', 10),
+  port: parseInt(process.env.PORT || '5100', 10),
   serviceName: process.env.SERVICE_NAME || 'inso-agent',
 
   // ── Database ────────────────────────────────────────────────────────────────
@@ -56,43 +55,16 @@ const config = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
   },
 
-  // ── GCP ─────────────────────────────────────────────────────────────────────
-  gcp: {
-    projectId: process.env.GCP_PROJECT_ID,
-    location: process.env.GCP_LOCATION || 'us-central1',
-    credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    vertexAiEndpoint: process.env.VERTEX_AI_ENDPOINT,
-    vertexAiRegion: process.env.VERTEX_AI_LOCATION || 'us-central1',
-  },
-
-  // ── GCS Buckets ─────────────────────────────────────────────────────────────
-  gcs: {
-    uploadsBucket: process.env.GCS_UPLOADS_BUCKET || 'inso_assistant_uploads',
-    transcriptionBucket: process.env.GCS_TRANSCRIPTION_BUCKET || 'inso_assistant_transcription',
-    knowledgeBankBucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'inso_knowledge_bank_files',
-    presentationBucket: process.env.GCS_PRESENTATION_BUCKET || 'inso_assistant_presentation',
-  },
-
-  // ── Model Defaults ──────────────────────────────────────────────────────────
-  models: {
-    flash: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-    pro: process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro',
-    claudeSonnet: 'claude-4-5-sonnet@20250219',
-    imagen: 'gemini-3.1-flash-image',
-    tts: 'gemini-3.1-flash-tts-preview',
-    lyria: 'lyria-3-pro-preview',
-    veo: 'veo-3.1-fast-generate-preview',
-  },
-
-  // ── Gemini API ──────────────────────────────────────────────────────────────
-  gemini: {
-    apiKey: process.env.GEMINI_API_KEY,
-    temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.2,
+  // ── Groq Inference ──────────────────────────────────────────────────────────
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || 'gpt-oss-120b',
+    sttModel: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',
+    temperature: parseFloat(process.env.GROQ_TEMPERATURE) || 0.2,
   },
 
   // ── Internal Service Auth ───────────────────────────────────────────────────
   internal: {
-    // Shared secret for gateway ↔ agent service-to-service auth
     serviceSecret: process.env.INTERNAL_SERVICE_SECRET || 'inso-internal-dev-secret',
   },
 
@@ -105,7 +77,7 @@ const config = {
 };
 
 /**
- * Dynamically loads missing critical secrets from GCP Secret Manager.
+ * Dynamically loads missing critical secrets from environment variables.
  * Should be called at application startup before relying on these secrets.
  */
 export async function loadMissingSecrets() {
@@ -120,10 +92,10 @@ export async function loadMissingSecrets() {
         config.internal.serviceSecret = secret;
       }
     }
-    if (!config.gemini.apiKey) {
-      const key = await getSecret('GEMINI_API_KEY');
+    if (!config.groq.apiKey) {
+      const key = await getSecret('GROQ_API_KEY');
       if (key) {
-        config.gemini.apiKey = key;
+        config.groq.apiKey = key;
       }
     }
     if (!config.jwt.accessToken) {

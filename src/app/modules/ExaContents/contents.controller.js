@@ -94,10 +94,22 @@ const deleteContentRecord = catchAsync(async (req, res) => {
   });
 });
 
+const fetchContentsDirectly = catchAsync(async (req, res) => {
+  const result = await ContentService.fetchContentsDirectly(req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Contents fetched successfully from Exa',
+    data: result,
+  });
+});
+
 export const ContentController = {
   createContentRecord,
   getAllContentRecords,
   getSingleContentRecord,
   updateContentRecord,
   deleteContentRecord,
+  fetchContentsDirectly,
 };

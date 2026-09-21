@@ -1,4 +1,4 @@
-import { PubSub } from '@google-cloud/pubsub';
+import { publishMessage } from '../../../shared/queues.js';
 import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import config from '../../../../config/index.js';
@@ -14,19 +14,10 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
 });
 
 /**
- * @constant {PubSub} pubSubClient
- * @description The Google Cloud Pub/Sub client for publishing messages to topics.
- * Used for offloading background tasks like updating Stripe.
+ * @constant {string} SUBSCRIPTION_TOPIC
+ * @description Topic name for subscription-related background tasks.
  */
-const pubSubClient = new PubSub({ projectId: config.gcp.projectId });
-
-/**
- * @constant {Topic} subscriptionTopic
- * @description The Pub/Sub topic for subscription-related background tasks.
- */
-const subscriptionTopic = pubSubClient.topic(
-  config.gcp.pubsub.subscriptionTopic
-);
+const SUBSCRIPTION_TOPIC = 'stripe-subscription-updates';
 
 /**
  * @class Subscription
@@ -578,7 +569,7 @@ SubscriptionSchema.methods.canInviteTeam = function () {
 /**
  * Adds a seat to the subscription.
  * This method performs an optimistic update on the local database for immediate UI feedback,
- * then offloads the actual Stripe API call to a background worker via Google Cloud Pub/Sub.
+ * then offloads the actual Stripe API call to a background worker via the message queue.
  * @memberof Subscription
  * @instance
  * @throws {Error} If the plan is 'free' or if Stripe subscription details are missing.
@@ -608,7 +599,7 @@ SubscriptionSchema.methods.addSeat = async function () {
       tenantId: this.tenantId ? this.tenantId.toString() : null,
       action: 'ADD_SEAT',
     };
-    await subscriptionTopic.publishMessage({ json: payload });
+    await publishMessage(SUBSCRIPTION_TOPIC, payload);
 
     logger.info(
       `Added seat to subscription ${this._id} locally. New quantity: ${this.seats.used}. Offloaded Stripe update to background worker.`
@@ -625,7 +616,7 @@ SubscriptionSchema.methods.addSeat = async function () {
 /**
  * Removes a seat from the subscription.
  * This method performs an optimistic update on the local database and offloads
- * the Stripe API call to a background worker via Google Cloud Pub/Sub.
+ * the Stripe API call to a background worker via the message queue.
  * @memberof Subscription
  * @instance
  * @throws {Error} If the plan is 'free', if trying to remove the last seat, or if Stripe details are missing.
@@ -659,7 +650,7 @@ SubscriptionSchema.methods.removeSeat = async function () {
       tenantId: this.tenantId ? this.tenantId.toString() : null,
       action: 'REMOVE_SEAT',
     };
-    await subscriptionTopic.publishMessage({ json: payload });
+    await publishMessage(SUBSCRIPTION_TOPIC, payload);
 
     logger.info(
       `Removed seat from subscription ${this._id} locally. New quantity: ${this.seats.used}. Offloaded Stripe/Tenant update to background worker.`

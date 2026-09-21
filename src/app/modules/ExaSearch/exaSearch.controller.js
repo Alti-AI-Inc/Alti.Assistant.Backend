@@ -94,10 +94,49 @@ const deleteSearchRecord = catchAsync(async (req, res) => {
   });
 });
 
+const findSimilar = catchAsync(async (req, res) => {
+  const { url, ...options } = req.body;
+  const result = await ExaSearchService.findSimilar(url, options);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Similar results retrieved successfully',
+    data: result,
+  });
+});
+
+const contextSearch = catchAsync(async (req, res) => {
+  const { query, ...options } = req.body;
+  const result = await ExaSearchService.contextSearch(query, options);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Context search completed successfully',
+    data: result,
+  });
+});
+
+const searchDirectly = catchAsync(async (req, res) => {
+  const { query, ...options } = req.body;
+  const result = await ExaSearchService.searchDirectly(query, options);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Search completed successfully',
+    data: result,
+  });
+});
+
 export const SearchController = {
   createSearchRecord,
   getAllSearchRecords,
   getSingleSearchRecord,
   updateSearchRecord,
   deleteSearchRecord,
+  findSimilar,
+  contextSearch,
+  searchDirectly,
 };

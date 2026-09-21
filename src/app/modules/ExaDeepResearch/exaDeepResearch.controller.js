@@ -94,10 +94,48 @@ const deleteDeepResearchRecord = catchAsync(async (req, res) => {
   });
 });
 
+const createAgentRun = catchAsync(async (req, res) => {
+  const { query, ...options } = req.body;
+  if (!query) throw new ApiError(httpStatus.BAD_REQUEST, 'Query is required');
+  const result = await ExaDeepResearchService.createAgentRun(query, options);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Agent run created successfully',
+    data: result,
+  });
+});
+
+const getAgentRun = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.getAgentRun(req.params.runId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Agent run retrieved successfully',
+    data: result,
+  });
+});
+
+const cancelAgentRun = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.cancelAgentRun(req.params.runId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Agent run cancelled successfully',
+    data: result,
+  });
+});
+
 export const DeepResearchController = {
   createDeepResearchRecord,
   getAllDeepResearchRecords,
   getSingleDeepResearchRecord,
   updateDeepResearchRecord,
   deleteDeepResearchRecord,
+  createAgentRun,
+  getAgentRun,
+  cancelAgentRun,
 };
