@@ -63,25 +63,42 @@ import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // STARTUP ENV VALIDATION — fail fast if critical config is missing
 // ═══════════════════════════════════════════════════════════════════════════════
-const REQUIRED_ENV = ['DATABASE_LOCAL'];
-const RECOMMENDED_ENV = [
-  'GROQ_API_KEY',
-  'JWT_ACCESS_TOKEN',
-  'JWT_REFRESH_REFRESH_TOKEN',
-];
+const REQUIRED_ENV = {
+  // Core
+  DATABASE_LOCAL: 'MongoDB connection string',
+  JWT_ACCESS_TOKEN: 'JWT access token secret',
+  JWT_REFRESH_REFRESH_TOKEN: 'JWT refresh token secret',
+  REDIS_URL: 'Redis connection URL',
+  GROQ_API_KEY: 'Groq AI API key',
+};
 
-for (const key of REQUIRED_ENV) {
+const RECOMMENDED_ENV = {
+  // Billing
+  STRIPE_SECRET_KEY: 'Stripe payments',
+  STRIPE_WEBHOOK_SECRET: 'Stripe webhook verification',
+  // Email (Liberty Center One SMTP)
+  SMTP_HOST: 'OTP email delivery',
+  SMTP_USER: 'OTP email delivery',
+  SMTP_PASSWORD: 'OTP email delivery',
+  // Search
+  EXA_API_KEY: 'Exa search integration',
+};
+
+let missingRequired = false;
+for (const [key, desc] of Object.entries(REQUIRED_ENV)) {
   if (!process.env[key]) {
-    logger.error(
-      `❌ FATAL: Required environment variable ${key} is not set. Server cannot start reliably.`
-    );
+    logger.error(`❌ FATAL: ${key} is not set (${desc}). Server cannot start.`);
+    missingRequired = true;
   }
 }
-for (const key of RECOMMENDED_ENV) {
+if (missingRequired) {
+  logger.error('Missing required environment variables. Exiting.');
+  process.exit(1);
+}
+
+for (const [key, desc] of Object.entries(RECOMMENDED_ENV)) {
   if (!process.env[key]) {
-    logger.warn(
-      `⚠️ Recommended environment variable ${key} is not set. Some features may not work.`
-    );
+    logger.warn(`⚠️  ${key} not set — ${desc} will not work.`);
   }
 }
 
@@ -101,11 +118,15 @@ app.use(
 );
 
 const allowedOrigins = [
-  'https://insohq.com',
-  'https://www.insohq.com',
-  'https://insoassistant.com',
-  'https://www.insoassistant.com',
+  'https://altihq.com',
+  'https://www.altihq.com',
+  'https://app.altihq.com',
 ];
+
+// Add CLIENT_URL from env if set
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
 
 // Only allow localhost origins in non-production environments
 if (process.env.NODE_ENV !== 'production') {
@@ -186,17 +207,17 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", 'cdnjs.cloudflare.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com', 'cdnjs.cloudflare.com'],
         fontSrc: ["'self'", 'fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+        connectSrc: ["'self'", 'https://altihq.com'],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
         blockAllMixedContent: [],
         frameAncestors: ["'none'"],
       },
     },
-    referrerPolicy: { policy: 'same-origin' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     frameguard: { action: 'deny' },
     xssFilter: true,
     noSniff: true,
@@ -311,6 +332,41 @@ app.get('/api/user', (req, res) => {
 
 // API routes
 app.use('/api/v1', router);
+
+// ── Swagger API Documentation ────────────────────────────────────────────────
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Alti AI API',
+      version: '2.0.0',
+      description: 'Sovereign AI platform API — passwordless OTP auth, prompt-limited billing, AI orchestration',
+    },
+    servers: [
+      { url: '/api/v1', description: 'API v1' },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./src/app/modules/**/**.route.js', './src/app/modules/**/**.routes.js'],
+});
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Alti AI API Docs',
+}));
+app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
