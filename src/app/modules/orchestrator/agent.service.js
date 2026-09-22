@@ -15,6 +15,7 @@ import { ApiSportsService } from '../apisports/apisports.service.js';
 import { PredictionDataService } from '../predictiondata/predictiondata.service.js';
 import { NewsApiService } from '../newsapi/newsapi.service.js';
 import realEstateApiService from '../realestateapi/realestateapi.service.js';
+import fredService from '../fred/fred.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -115,6 +116,15 @@ const tools = [
       parameters: { type: 'object', properties: { address: { type: 'string', description: 'Full street address including city, state, zip' } }, required: ['address'] }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'get_economic_data',
+      description: 'Get macroeconomic data, inflation, interest rates, GDP, and labor statistics from the Federal Reserve Economic Data (FRED) API.',
+      parameters: { type: 'object', properties: { series_id: { type: 'string', description: 'The FRED series ID, e.g., CPIAUCSL for Inflation, FEDFUNDS for Interest Rates' } }, required: ['series_id'] }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -161,6 +171,38 @@ export const AgentService = {
           };
         }
         
+        
+        case 'get_economic_data': {
+          try {
+            const seriesInfo = await fredService.getSeriesInfo(args.series_id);
+            const obsInfo = await fredService.getSeriesObservations(args.series_id, { limit: 12, sort_order: 'desc' });
+            
+            const info = seriesInfo?.seriess?.[0] || {};
+            const obs = obsInfo?.observations || [];
+            
+            const customMetadata = {
+              domain: 'finance',
+              financialTicker: args.series_id,
+              fredData: {
+                title: info.title,
+                frequency: info.frequency,
+                units: info.units,
+                recentObservations: obs
+              }
+            };
+
+            return {
+              output: `Successfully fetched FRED data for ${args.series_id} (${info.title || 'Unknown Series'}). Recent value: ${obs[0]?.value || 'N/A'}. The data will be displayed in a custom UI widget.`,
+              references: [{ title: `FRED: ${info.title || args.series_id}`, url: `https://fred.stlouisfed.org/series/${args.series_id}`, snippet: 'Federal Reserve Economic Data', source: 'FRED' }],
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to fetch FRED data: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'get_real_estate_property': {
           // Fallback parsing just in case
           const address = args.address;

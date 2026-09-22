@@ -42,6 +42,7 @@ import { LlamaIndexRoutes } from '../modules/llamaindex/llamaindex.route.js';
 import { ResearchWebhookRoutes } from '../modules/ExaResearch/exaResearch.webhook.route.js';
 import { MonitorWebhookRoutes } from '../modules/ExaMonitor/monitor.webhook.route.js';
 import { realEstateApiRoutes } from '../modules/realestateapi/realestateapi.route.js';
+import { fredRoutes } from '../modules/fred/fred.route.js';
 
 const router = express.Router();
 
@@ -53,6 +54,10 @@ const moduleRoutes = [
   {
     path: '/realestateapi',
     route: realEstateApiRoutes,
+  },
+  {
+    path: '/fred',
+    route: fredRoutes,
   },
   {
     path: '/admin',

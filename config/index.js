@@ -129,7 +129,12 @@ export default {
 
   realestateapi: {
     key: process.env.REALESTATE_API_KEY || 'dummy_realestate_key',
-    baseUrl: process.env.REALESTATE_API_URL || 'https://api.realestateapi.com/v2',
+    baseUrl: process.env.REALESTATE_API_URL || 'https://api.realestateapi.com',
+  },
+
+  fred: {
+    key: process.env.FRED_API_KEY || 'dummy_fred_key',
+    baseUrl: 'https://api.stlouisfed.org/fred',
   },
 
   // ── Smart Routing ─────────────────────────────────────────────────────────
