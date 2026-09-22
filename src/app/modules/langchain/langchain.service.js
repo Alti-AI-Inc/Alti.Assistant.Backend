@@ -508,10 +508,11 @@ Categories:
   },
 };
 
-// ─── Re-export LangGraph Service ─────────────────────────────────────────────
+// ─── Re-export All LangChain Sub-Services ────────────────────────────────────
 export { LangGraphService } from './langchain.langgraph.service.js';
 export { LangSmithService } from './langsmith.service.js';
 export { SSECallbackHandler, createStreamingCallback } from './langchain.callbacks.service.js';
+export { LCELService } from './langchain.lcel.service.js';
+export { CommunityIntegrationsService } from './langchain.community.service.js';
 
 export default LangChainService;
-

@@ -51,6 +51,7 @@ import togetherCliRoutes from '../modules/together-cli/together-cli.route.js';
 import togetherAdminRoutes from '../modules/together-admin/together-admin.route.js';
 import togetherRealtimeRoutes from '../modules/together-realtime/together-realtime.route.js';
 import langSmithRoutes from '../modules/langchain/langsmith.route.js';
+import langChainExtendedRoutes from '../modules/langchain/langchain.extended.route.js';
 
 const router = express.Router();
 
@@ -281,6 +282,10 @@ const moduleRoutes = [
   {
     path: '/langsmith',
     route: langSmithRoutes,
+  },
+  {
+    path: '/langchain-ext',
+    route: langChainExtendedRoutes,
   },
 ];
 
