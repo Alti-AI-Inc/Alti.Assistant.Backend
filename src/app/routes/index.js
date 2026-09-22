@@ -48,6 +48,8 @@ import { congressRoutes } from '../modules/congress/congress.route.js';
 import { openfdaRoutes } from '../modules/openfda/openfda.route.js';
 import { censusRoutes } from '../modules/census/census.route.js';
 import togetherCliRoutes from '../modules/together-cli/together-cli.route.js';
+import togetherAdminRoutes from '../modules/together-admin/together-admin.route.js';
+import togetherRealtimeRoutes from '../modules/together-realtime/together-realtime.route.js';
 
 const router = express.Router();
 
@@ -266,6 +268,14 @@ const moduleRoutes = [
   {
     path: '/together-cli',
     route: togetherCliRoutes,
+  },
+  {
+    path: '/together-admin',
+    route: togetherAdminRoutes,
+  },
+  {
+    path: '/together-realtime',
+    route: togetherRealtimeRoutes,
   },
 ];
 
