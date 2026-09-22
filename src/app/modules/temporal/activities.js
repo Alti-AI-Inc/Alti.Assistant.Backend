@@ -215,3 +215,48 @@ export async function analyzeRepositoryActivity(collectionId, repoUrl, query) {
     referencedFiles: [...new Set(result.sources.map(s => s.metadata?.source).filter(Boolean))]
   };
 }
+
+import { CodexService } from '../codex/codex.service.js';
+
+export async function generateDataAnalysisCodeActivity(prompt) {
+  logger.info(`[Temporal] Generating data analysis script for: ${prompt}`);
+  
+  const systemPrompt = `You are an expert JavaScript data scientist. Write a Node.js script to solve the user's prompt. 
+Print the final answer using console.log().
+Return ONLY raw JavaScript code, no markdown wrappers, no explanations.`;
+  
+  const res = await groqChat([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: prompt }
+  ], { model: 'gpt-oss-20b' });
+  
+  let code = res.choices?.[0]?.message?.content || '';
+  code = code.replace(/^```javascript\n/, '').replace(/^```js\n/, '').replace(/```$/, '');
+  
+  return { prompt, code: code.trim() };
+}
+
+export async function executeSandboxedCodeActivity(code) {
+  logger.info(`[Temporal] Executing generated code in Codex sandbox...`);
+  const result = await CodexService.executeCode({ code });
+  return result;
+}
+
+export async function synthesizeDataAnalysisActivity(prompt, code, executionResult) {
+  logger.info(`[Temporal] Synthesizing data analysis results...`);
+  
+  const synthesisPrompt = `The user asked: "${prompt}"
+I wrote and executed this code:
+\`\`\`javascript
+${code}
+\`\`\`
+
+The sandbox output was:
+${executionResult.output}
+${executionResult.error ? `Error: ${executionResult.error}` : ''}
+
+Synthesize a direct, helpful answer based on this execution output.`;
+  
+  const res = await groqChat([{ role: 'user', content: synthesisPrompt }], { model: 'gpt-oss-20b' });
+  return res.choices?.[0]?.message?.content || 'Synthesis failed.';
+}

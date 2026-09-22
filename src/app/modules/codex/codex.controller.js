@@ -100,6 +100,27 @@ const generateCodeStream = async (req, res) => {
   }
 };
 
+const analyzeData = catchAsync(async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: 'Prompt is required' });
+  }
+
+  const { TemporalService } = await import('../temporal/temporal.service.js');
+  
+  const { workflowId, status } = await TemporalService.startWorkflow({
+    workflowType: 'dataAnalysisWorkflow',
+    args: [prompt]
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.ACCEPTED,
+    success: true,
+    message: 'Autonomous Data Analysis agent started.',
+    data: { workflowId, status, prompt },
+  });
+});
+
 export const CodexController = {
   generateCode,
   explainCode,
@@ -112,6 +133,7 @@ export const CodexController = {
   generateDocs,
   debugCode,
   generateCodeStream,
+  analyzeData,
 };
 
 export default CodexController;

@@ -101,3 +101,35 @@ export async function repositoryIntelligenceWorkflow(repoUrl, query, collectionI
   
   return analysisReport;
 }
+
+const dataActivities = proxyActivities({
+  startToCloseTimeout: '2 minutes',
+  retry: {
+    initialInterval: '2s',
+    backoffCoefficient: 2,
+    maximumAttempts: 2,
+  }
+});
+
+/**
+ * Autonomous Data Analysis Workflow
+ * Generates code to solve a prompt, executes it natively in a sandbox, and synthesizes the output.
+ */
+export async function dataAnalysisWorkflow(prompt) {
+  // Step 1: Generate the script
+  const scriptData = await dataActivities.generateDataAnalysisCodeActivity(prompt);
+  
+  // Step 2: Execute in VM sandbox
+  const execution = await dataActivities.executeSandboxedCodeActivity(scriptData.code);
+  
+  // Step 3: Synthesize output
+  const finalAnswer = await dataActivities.synthesizeDataAnalysisActivity(prompt, scriptData.code, execution);
+  
+  return {
+    prompt,
+    code_executed: scriptData.code,
+    raw_output: execution.output,
+    final_answer: finalAnswer,
+    error: execution.error || null
+  };
+}

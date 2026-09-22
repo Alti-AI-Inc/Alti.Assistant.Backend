@@ -21,5 +21,8 @@ router.post('/tests', CodexController.generateTests);
 router.post('/docs', CodexController.generateDocs);
 router.post('/debug', CodexController.debugCode);
 
+// Autonomous Code Agent
+router.post('/analyze', CodexController.analyzeData);
+
 export const CodexRoutes = router;
 export default CodexRoutes;
