@@ -168,6 +168,183 @@ Audit the provided ${language} code for:
       };
     }
   },
+
+  // ── Code Completion (autocomplete) ─────────────────────────────────────────
+
+  /**
+   * Completes partial code (autocomplete-style).
+   */
+  async completeCode({ code, language = 'javascript', cursor_position, context = '' }) {
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Open Codex Autocomplete. Complete the partial ${language} code below.
+Return ONLY the completed code. Do not repeat the existing code prefix — only output the continuation.
+If cursor_position is provided, complete from that character offset.`,
+      },
+      ...(context ? [{ role: 'user', content: `File context:\n${context}` }] : []),
+      { role: 'user', content: `Complete this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
+    ];
+
+    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.0, max_tokens: 4096 });
+    const content = response.choices?.[0]?.message?.content || '';
+    const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
+    return {
+      language,
+      completion: codeMatch ? codeMatch[1].trim() : content.trim(),
+      model: 'gpt-oss-120b',
+    };
+  },
+
+  // ── Code Translation ───────────────────────────────────────────────────────
+
+  /**
+   * Translates code from one language to another.
+   */
+  async translateCode({ code, from_language = 'python', to_language = 'javascript', preserve_comments = true }) {
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Open Codex Code Translator. Translate the provided ${from_language} code to idiomatic ${to_language}.
+${preserve_comments ? 'Preserve comments, translating them into the target language conventions.' : 'Strip all comments.'}
+Return the translated code in a markdown code block. Include a brief migration notes section after.`,
+      },
+      { role: 'user', content: `Translate this code:\n\`\`\`${from_language}\n${code}\n\`\`\`` },
+    ];
+
+    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const content = response.choices?.[0]?.message?.content || '';
+    const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
+
+    return {
+      from_language,
+      to_language,
+      translated_code: codeMatch ? codeMatch[1].trim() : content,
+      fullResponse: content,
+      model: 'gpt-oss-120b',
+    };
+  },
+
+  // ── Test Generation ────────────────────────────────────────────────────────
+
+  /**
+   * Generates unit tests for the provided code.
+   */
+  async generateTests({ code, language = 'javascript', test_framework = 'vitest', coverage_target = 'full' }) {
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Open Codex Test Generator. Generate comprehensive unit tests for the provided ${language} code.
+Use the ${test_framework} testing framework.
+Coverage target: ${coverage_target}.
+Include:
+1. Happy path tests
+2. Edge cases (null, undefined, empty, boundary values)
+3. Error/exception handling tests
+4. Mock setup where needed
+Return the test file in a markdown code block.`,
+      },
+      { role: 'user', content: `Generate tests for:\n\`\`\`${language}\n${code}\n\`\`\`` },
+    ];
+
+    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const content = response.choices?.[0]?.message?.content || '';
+    const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
+
+    return {
+      language,
+      test_framework,
+      tests: codeMatch ? codeMatch[1].trim() : content,
+      fullResponse: content,
+      model: 'gpt-oss-120b',
+    };
+  },
+
+  // ── Documentation Generation ───────────────────────────────────────────────
+
+  /**
+   * Generates documentation (JSDoc, TSDoc, docstrings) for code.
+   */
+  async generateDocs({ code, language = 'javascript', style = 'jsdoc' }) {
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Open Codex Documentation Generator. Add ${style} documentation to every function, class, and method in the provided ${language} code.
+Include:
+- @param with types and descriptions
+- @returns with type and description
+- @throws where applicable
+- @example with usage examples
+Return the fully documented code in a markdown code block.`,
+      },
+      { role: 'user', content: `Document this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
+    ];
+
+    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const content = response.choices?.[0]?.message?.content || '';
+    const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
+
+    return {
+      language,
+      style,
+      documented_code: codeMatch ? codeMatch[1].trim() : content,
+      fullResponse: content,
+      model: 'gpt-oss-120b',
+    };
+  },
+
+  // ── Debug / Error Analysis ─────────────────────────────────────────────────
+
+  /**
+   * Analyzes code with an error message and suggests fixes.
+   */
+  async debugCode({ code, error_message, language = 'javascript', stack_trace = '' }) {
+    const messages = [
+      {
+        role: 'system',
+        content: `You are Open Codex Debugger. Analyze the provided ${language} code and the error it produces.
+Provide:
+1. Root cause analysis
+2. Exact fix with corrected code
+3. Explanation of why the fix works
+4. Prevention tips to avoid this error in future`,
+      },
+      {
+        role: 'user',
+        content: `Code:\n\`\`\`${language}\n${code}\n\`\`\`\n\nError: ${error_message}${stack_trace ? `\n\nStack trace:\n${stack_trace}` : ''}`,
+      },
+    ];
+
+    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+
+    return {
+      language,
+      error_message,
+      analysis: response.choices?.[0]?.message?.content || '',
+      model: 'gpt-oss-120b',
+    };
+  },
+
+  // ── Streaming Code Generation (SSE) ────────────────────────────────────────
+
+  /**
+   * Streaming code generation with SSE.
+   */
+  async generateCodeStream({ prompt, language = 'javascript', framework = 'none', context = '' }) {
+    const { groqStream: groqStreamFn } = await import('../../services/groq.client.js');
+
+    const systemPrompt = `You are Open Codex, an elite AI code generation engine powered by open-source models.
+Generate production-ready, clean, well-commented ${language} code${framework !== 'none' ? ` using ${framework}` : ''}.
+Return the code enclosed in standard markdown code blocks with language specifier.`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(context ? [{ role: 'user', content: `Context:\n${context}` }] : []),
+      { role: 'user', content: prompt },
+    ];
+
+    return await groqStreamFn(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+  },
 };
 
 export default CodexService;
