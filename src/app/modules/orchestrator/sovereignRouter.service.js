@@ -4,6 +4,7 @@ import { groqChat, groqStream, groqLightChat } from '../../services/groq.client.
 import Chat from '../chat/chat.model.js';
 import UserModel from '../auth/auth.model.js';
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
+import AgentService from './agent.service.js';
 
 // ─── Telemetry ─────────────────────────────────────────────────────────────────
 const TELEMETRY_BUFFER_SIZE = 500;
@@ -594,7 +595,7 @@ Directives for World-Class Output:
 
   /**
    * Main unified prompt handler for SSE streaming (primary frontend prompt box target).
-   * Now with hybrid classification, fan-out, context-awareness, and search augmentation.
+   * Upgraded to use the ultimate Agentic ReAct Tool Calling Loop.
    */
   async handlePromptStream({ prompt, sessionId, userId, userContext, res }) {
     const pipelineStart = Date.now();
@@ -607,99 +608,70 @@ Directives for World-Class Output:
 
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // 1. Send connected event immediately
     res.write(`data: ${JSON.stringify({ type: 'connected', conversationId: convId })}\n\n`);
 
-    // 2. Load conversation context for context-aware routing (non-blocking)
     const conversationHistory = await this.loadConversationContext(userId, convId);
-
-    // 3. Hybrid intent classification
-    const classification = await this.classifyIntentHybrid(prompt, { conversationHistory });
-    const route = classification.route;
-
-    logger.info(`[SovereignRouter] Stream: "${prompt.slice(0, 60)}" → ${route} (${classification.classifier}, ${classification.confidence})`);
-
-    // 4. Fetch data — either fan-out for compound prompts or single subsystem
-    let dataContext, references;
-
-    if (route === 'MULTI_STEP' && classification.parameters?.steps?.length > 1) {
-      // Multi-route fan-out
-      const fanOutResult = await this.fetchFanOut(classification.parameters.steps);
-      dataContext = fanOutResult.dataContext;
-      references = fanOutResult.references;
-    } else if (classification.search_augmentation && route !== 'SEARCH' && route !== 'RESEARCH' && route !== 'CHITCHAT') {
-      // Parallel: subsystem fetch + search augmentation
-      const [subsystemResult, augmentationRefs] = await Promise.all([
-        this.fetchSubsystemData(route, prompt),
-        this.fetchSearchAugmentation(prompt),
-      ]);
-      dataContext = subsystemResult.dataContext;
-      references = [...subsystemResult.references, ...augmentationRefs];
-    } else {
-      // Standard single subsystem fetch
-      const subsystemResult = await this.fetchSubsystemData(route, prompt);
-      dataContext = subsystemResult.dataContext;
-      references = subsystemResult.references;
-    }
-
-    // 5. Send metadata with citations & classification info
-    res.write(`data: ${JSON.stringify({
-      type: 'metadata',
-      route,
-      classifier: classification.classifier,
-      confidence: classification.confidence,
-      reference: references,
-      citations: references,
-      conversationId: convId
-    })}\n\n`);
-
-    // 6. Stream LLM tokens from Groq 120B
-    const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
+    
+    // Use the generic AGENT route for the system prompt
+    const systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
+      "\n\nYou are operating in Agentic ReAct mode. You have access to tools (web_search, trigger_app_action, get_weather, get_flights). If the user asks you to search or trigger an action, USE THE TOOLS. DO NOT GUESS.";
+    
     const messages = [
       { role: 'system', content: systemPrompt },
+      ...conversationHistory,
       { role: 'user', content: prompt }
     ];
 
     let fullReply = '';
+    const allReferences = [];
     const streamStart = Date.now();
 
     try {
-      const stream = await groqStream(messages, {
+      const stream = AgentService.runAgentStream(messages, {
         model: config.groq?.model || 'gpt-oss-120b',
         temperature: 0.2,
       });
 
       for await (const chunk of stream) {
-        const text = chunk.choices?.[0]?.delta?.content;
-        if (text) {
-          fullReply += text;
-          res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
+        if (chunk.type === 'text') {
+          fullReply += chunk.content;
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+        } else if (chunk.type === 'metadata') {
+          allReferences.push(...(chunk.references || []));
+          res.write(`data: ${JSON.stringify({
+            type: 'metadata',
+            route: 'AGENTIC_LOOP',
+            classifier: 'react_agent',
+            confidence: 1.0,
+            reference: allReferences,
+            citations: allReferences,
+            conversationId: convId
+          })}\n\n`);
         }
       }
 
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     } catch (err) {
-      logger.error(`[SovereignRouter] Groq stream error: ${err.message}`);
-      res.write(`data: ${JSON.stringify({ type: 'text', content: `\n\n*Error generating live response: ${err.message}*` })}\n\n`);
+      logger.error(`[SovereignRouter] Agent stream error: ${err.message}`);
+      res.write(`data: ${JSON.stringify({ type: 'text', content: '\n\n*Error generating live response: ' + err.message + '*' })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     } finally {
       res.end();
     }
 
-    // 7. Record telemetry + persist to MongoDB asynchronously
     const totalTime = ((Date.now() - pipelineStart) / 1000).toFixed(2);
     recordTelemetry({
       type: 'prompt',
-      route,
-      classifier: classification.classifier,
-      confidence: classification.confidence,
-      referenceCount: references.length,
+      route: 'AGENTIC_LOOP',
+      classifier: 'react_agent',
+      confidence: 1.0,
+      referenceCount: allReferences.length,
       totalTimeMs: Date.now() - pipelineStart,
       streamTimeMs: Date.now() - streamStart,
       prompt: prompt.slice(0, 80),
     });
 
-    this.persistChat(userId, convId, prompt, fullReply, references, totalTime).catch(err => {
+    this.persistChat(userId, convId, prompt, fullReply, allReferences, totalTime).catch(err => {
       logger.warn(`[SovereignRouter] Chat persistence error: ${err.message}`);
     });
   },
