@@ -14,6 +14,7 @@ import { MassiveService } from '../massive/massive.service.js';
 import { ApiSportsService } from '../apisports/apisports.service.js';
 import { PredictionDataService } from '../predictiondata/predictiondata.service.js';
 import { NewsApiService } from '../newsapi/newsapi.service.js';
+import realEstateApiService from '../realestateapi/realestateapi.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -105,6 +106,15 @@ const tools = [
       parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'get_real_estate_property',
+      description: 'Get comprehensive details about a real estate property including valuation and comps. This triggers a custom Real Estate UI for the user.',
+      parameters: { type: 'object', properties: { address: { type: 'string', description: 'Full street address including city, state, zip' } }, required: ['address'] }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -150,6 +160,47 @@ export const AgentService = {
             }))
           };
         }
+        
+        case 'get_real_estate_property': {
+          // Fallback parsing just in case
+          const address = args.address;
+          try {
+            // First run PropertyDetail
+            const detailRes = await realEstateApiService.getPropertyDetail({ address });
+            
+            // Try to get comps
+            const compsRes = await realEstateApiService.getPropertyComps({ address }).catch(() => null);
+
+            const detail = detailRes?.data?.[0] || {};
+            const comps = compsRes?.data || [];
+            
+            // Build the frontend UI metadata
+            const customMetadata = {
+              domain: 'real_estate',
+              address: address,
+              valuation: detail.avm?.amount || detail.assessedValue || 'N/A',
+              lowRange: detail.avm?.low || 'N/A',
+              highRange: detail.avm?.high || 'N/A',
+              comps: comps.slice(0, 5).map(c => ({
+                address: c.address,
+                price: c.price || c.assessedValue || 'N/A',
+                date: c.saleDate || 'N/A',
+                size: c.squareFeet ? `${c.squareFeet} sqft` : 'N/A'
+              }))
+            };
+
+            return {
+              output: `Successfully fetched real estate data for ${address}. Valuation: ${customMetadata.valuation}. The data will be displayed in a custom Real Estate UI widget. Tell the user you have displayed the property details.`,
+              references: [{ title: `Real Estate Data: ${address}`, url: 'https://realestateapi.com', snippet: 'Property details and AVM', source: 'RealEstateAPI' }],
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to fetch real estate data: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'trigger_app_action': {
           const res = await ComposioService.executeTool(args.tool_slug, args.params, 'system-session');
           return { output: JSON.stringify(res), references: [] };
@@ -179,14 +230,16 @@ export const AgentService = {
           const res = await CoinApiService.getExchangeRate(args.base_asset, args.quote_asset);
           return {
             output: JSON.stringify(res),
-            references: [{ title: `${args.base_asset}/${args.quote_asset} Rate`, url: 'https://coinapi.io', snippet: 'Live Crypto Price', source: 'CoinAPI' }]
+            references: [{ title: `${args.base_asset}/${args.quote_asset} Rate`, url: 'https://coinapi.io', snippet: 'Live Crypto Price', source: 'CoinAPI' }],
+            customMetadata: { financialTicker: args.base_asset, currentPrice: res.rate || res.price }
           };
         }
         case 'get_stock_aggregates': {
           const res = await MassiveService.getStockAggregates(args.ticker, args.multiplier, args.timespan, args.from, args.to);
           return {
             output: JSON.stringify(res),
-            references: [{ title: `${args.ticker} Stock Data`, url: 'https://massive.com', snippet: 'Live Market Data', source: 'Massive' }]
+            references: [{ title: `${args.ticker} Stock Data`, url: 'https://massive.com', snippet: 'Live Market Data', source: 'Massive' }],
+            customMetadata: { financialTicker: args.ticker, stockData: res }
           };
         }
         case 'get_sports_fixtures': {
@@ -261,7 +314,12 @@ export const AgentService = {
           // Let the frontend know what tool we're running
           yield { type: 'metadata', status: `running ${functionName.replace(/_/g, ' ')}...` };
 
-          const { output, references } = await this.executeTool(functionName, functionArgs);
+          const { output, references, customMetadata } = await this.executeTool(functionName, functionArgs);
+          
+          if (customMetadata) {
+             // Yield custom metadata to trigger Generative UI
+             yield { type: 'metadata', ...customMetadata };
+          }
           
           if (references && references.length > 0) {
             allReferences.push(...references);
