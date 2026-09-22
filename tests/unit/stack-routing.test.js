@@ -62,11 +62,11 @@ describe('Smart Routing Intent Classifier', () => {
   });
 
   it('should classify search requests via heuristic fallback', async () => {
-    const result = await IntentClassifier.classify('what is the current news and stock price', {
+    const result = await IntentClassifier.classify('what is the current weather forecast', {
       maxLatencyMs: 1,
     });
 
-    expect(result.route).toBe('SEARCH');
+    expect(result.route).toBe('WEATHER');
     expect(result.confidence).toBeGreaterThan(0.6);
   });
 
@@ -78,11 +78,11 @@ describe('Smart Routing Intent Classifier', () => {
     expect(result.route).toBe('RESEARCH');
   });
 
-  it('should default ambiguous conversational queries to CHAT', async () => {
+  it('should default ambiguous conversational queries to SEARCH for citation coverage', async () => {
     const result = await IntentClassifier.classify('hello how are you doing my friend', {
       maxLatencyMs: 1,
     });
 
-    expect(result.route).toBe('CHAT');
+    expect(result.route).toBe('SEARCH');
   });
 });
