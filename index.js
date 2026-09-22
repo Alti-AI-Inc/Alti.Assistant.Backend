@@ -463,10 +463,17 @@ app.use((req, res) => {
   });
 });
 
+// Import and initialize Temporal Worker daemon
+import { runTemporalWorker } from './src/app/modules/temporal/worker.js';
+
 // Start server
 const port = process.env.PORT || config.port || 5100;
 const server = app.listen(port, '0.0.0.0', () => {
   logger.info(`🚀 Server is running on port ${port} in ${config.env} mode`);
+  // Start the Temporal background worker
+  runTemporalWorker().catch(err => {
+    logger.warn(`Failed to initialize Temporal background worker: ${err.message}`);
+  });
 });
 
 // Graceful shutdown handlers
