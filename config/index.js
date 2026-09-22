@@ -127,6 +127,11 @@ export default {
     namespace: process.env.TEMPORAL_NAMESPACE || 'default',
   },
 
+  realestateapi: {
+    key: process.env.REALESTATE_API_KEY || 'dummy_realestate_key',
+    baseUrl: process.env.REALESTATE_API_URL || 'https://api.realestateapi.com/v2',
+  },
+
   // ── Smart Routing ─────────────────────────────────────────────────────────
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',
