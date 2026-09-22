@@ -209,6 +209,10 @@ const moduleRoutes = [
     path: '/sports',
     route: (await import('../modules/apisports/apisports.route.js')).default,
   },
+  {
+    path: '/predictions',
+    route: (await import('../modules/predictiondata/predictiondata.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 8 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 9 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -274,6 +274,7 @@ You must break the user's prompt into a sequence of execution steps across our 8
 6. MASSIVE_FINANCE (Real-time and historical financial data: stocks, crypto, forex, options, indices, futures)
 7. NEWSAPI_INTELLIGENCE (Global news search, event detection, NER annotation, sentiment analysis, breaking events)
 8. API_SPORTS (Real-time sports scores across 12 sports: football, basketball, baseball, hockey, handball, rugby, volleyball, AFL, F1, MMA, NBA, NFL)
+9. PREDICTION_MARKETS (Betting odds from 200+ sportsbooks + prediction markets: Polymarket, Kalshi, DraftKings, FanDuel, Pinnacle. Moneylines, spreads, totals, props, futures)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -369,6 +370,26 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const leaguesResult = await ApiSportsService.getLeagues(detectedSport, {});
         return { status: 'completed', result: leaguesResult };
+      }
+
+    case 'PREDICTION_MARKETS':
+      const { PredictionDataService } = await import('../predictiondata/predictiondata.service.js');
+      const pdAction = step.action.toLowerCase();
+      if (pdAction.includes('odds') || pdAction.includes('moneyline') || pdAction.includes('spread') || pdAction.includes('total')) {
+        const marketsResult = await PredictionDataService.getMarkets({ league: step.league || '' });
+        return { status: 'completed', result: marketsResult };
+      } else if (pdAction.includes('live') || pdAction.includes('in-play')) {
+        const liveResult = await PredictionDataService.getLiveMarkets({});
+        return { status: 'completed', result: liveResult };
+      } else if (pdAction.includes('prop')) {
+        const propsResult = await PredictionDataService.getProps({});
+        return { status: 'completed', result: propsResult };
+      } else if (pdAction.includes('future')) {
+        const futuresResult = await PredictionDataService.getFutures({});
+        return { status: 'completed', result: futuresResult };
+      } else {
+        const defaultResult = await PredictionDataService.getMarkets({});
+        return { status: 'completed', result: defaultResult };
       }
       
     case 'CODEX':
