@@ -294,6 +294,65 @@ export const AgentService = {
     if (loopCount >= maxLoops) {
       yield { type: 'text', content: '\n\n*Error: Agent reached maximum recursion depth.*' };
     }
+  },
+
+  /**
+   * Main ReAct Agent Loop (Non-Streaming/JSON Mode)
+   */
+  async runAgentJson(initialMessages, options = {}) {
+    const maxSteps = options.maxSteps || 5;
+    const model = options.model || 'gpt-oss-120b';
+    const temperature = options.temperature || 0.1;
+    let messages = [...initialMessages];
+    let stepCount = 0;
+    const allReferences = [];
+
+    try {
+      while (stepCount < maxSteps) {
+        stepCount++;
+        const response = await groqToolCall(messages, tools, { model, temperature });
+        const toolCalls = response.choices?.[0]?.message?.tool_calls;
+        
+        if (!toolCalls || toolCalls.length === 0) break;
+
+        const messageWithTools = response.choices[0].message;
+        messages.push(messageWithTools);
+
+        for (const toolCall of toolCalls) {
+          const name = toolCall.function.name;
+          let functionArgs = {};
+          try {
+            functionArgs = JSON.parse(toolCall.function.arguments);
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+
+          const result = await this.executeTool(name, functionArgs);
+          
+          if (result.references?.length > 0) {
+            allReferences.push(...result.references);
+          }
+
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: 'tool',
+            name: name,
+            content: result.output,
+          });
+        }
+      }
+
+      // Final generation (non-streaming)
+      const finalRes = await groqToolCall(messages, undefined, { model, temperature });
+      return {
+        reply: finalRes.choices?.[0]?.message?.content || '',
+        references: allReferences,
+        steps: stepCount
+      };
+    } catch (err) {
+      logger.error(`[AgentService] Fatal error: ${err.message}`);
+      throw err;
+    }
   }
 };
 

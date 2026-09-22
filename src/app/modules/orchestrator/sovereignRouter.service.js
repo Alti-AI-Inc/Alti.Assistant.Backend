@@ -38,441 +38,8 @@ const loadService = async (loader) => {
  */
 export const SovereignRouterService = {
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 1. HYBRID INTENT CLASSIFICATION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Hybrid classifier: fast heuristic path → LLM escalation when ambiguous.
-   *
-   * @param {string} prompt - User prompt
-   * @param {object} options - { conversationHistory: [] }
-   * @returns {Promise<{ route: string, confidence: number, classifier: string, search_augmentation: boolean, parameters: object, reasoning: string, steps?: Array }>}
-   */
-  async classifyIntentHybrid(prompt, options = {}) {
-    const { conversationHistory = [] } = options;
-    const startTime = Date.now();
-
-    // Fast path: heuristic classification
-    const heuristic = IntentClassifier.classifyFast(prompt);
-    const heuristicMs = Date.now() - startTime;
-
-    // If heuristic confidence is high enough (≥ 0.85), skip LLM entirely
-    if (heuristic.confidence >= 0.85) {
-      const result = { ...heuristic, classifier: 'heuristic_fast', latencyMs: heuristicMs };
-      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: heuristicMs, prompt: prompt.slice(0, 80) });
-      logger.info(`[SovereignRouter] Fast classify: ${result.route} (${result.confidence}) in ${heuristicMs}ms`);
-      return result;
-    }
-
-    // LLM escalation: heuristic confidence is ambiguous (< 0.85)
-    try {
-      const llmResult = await IntentClassifier.classify(prompt, {
-        maxLatencyMs: 1500,
-        conversationHistory,
-      });
-
-      const totalMs = Date.now() - startTime;
-      const result = { ...llmResult, latencyMs: totalMs };
-
-      // If LLM also has low confidence (< 0.5), default to SEARCH for max citations
-      if (result.confidence < 0.5) {
-        result.route = ROUTE_TYPES.SEARCH;
-        result.search_augmentation = true;
-        result.reasoning = `Both heuristic (${heuristic.confidence}) and LLM (${llmResult.confidence}) low confidence → SEARCH fallback for max citations`;
-        result.classifier = 'fallback_search';
-      } else {
-        result.classifier = `hybrid_llm`;
-      }
-
-      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: totalMs, heuristicRoute: heuristic.route, heuristicConfidence: heuristic.confidence, prompt: prompt.slice(0, 80) });
-      logger.info(`[SovereignRouter] Hybrid classify: heuristic=${heuristic.route}(${heuristic.confidence}) → LLM=${result.route}(${result.confidence}) in ${totalMs}ms`);
-
-      return result;
-    } catch (err) {
-      // LLM failed — use heuristic result
-      logger.warn(`[SovereignRouter] LLM escalation failed: ${err.message}. Using heuristic.`);
-      const result = { ...heuristic, classifier: 'heuristic_fallback', latencyMs: Date.now() - startTime };
-      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: result.latencyMs, error: err.message, prompt: prompt.slice(0, 80) });
-      return result;
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 2. SUBSYSTEM DATA FETCHERS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Fetch live, grounded data from a single subsystem.
-   */
-  async fetchSubsystemData(route, prompt, historyContext = '') {
-    const startTime = Date.now();
-    let dataContext = '';
-    const references = [];
-
-    try {
-      switch (route) {
-        case 'WEATHER': {
-          const { VisualCrossingService } = await import('../visualcrossing/visualcrossing.service.js');
-          const locMatch = prompt.match(/\b(?:in|at|for|near)\s+([A-Za-z\s,]+)/i);
-          const location = locMatch ? locMatch[1].trim() : prompt.replace(/weather|temperature|forecast/gi, '').trim() || 'New York';
-          const wx = await VisualCrossingService.getForecast(location);
-          if (wx) {
-            const current = wx.currentConditions || {};
-            const days = (wx.days || []).slice(0, 5);
-            const daysTable = days.map(d => `| ${d.datetime} | ${d.conditions} | ${d.temp}°C (${Math.round((d.temp * 9/5) + 32)}°F) | ${d.tempmax || 'N/A'}°C / ${d.tempmin || 'N/A'}°C | ${d.precipprob || 0}% | ${d.windspeed} km/h | ${d.humidity}% |`).join('\n');
-            dataContext = `### Live Weather for ${wx.resolvedAddress || location}\n` +
-              `- **Current Temperature**: ${current.temp}°C (${Math.round((current.temp * 9/5) + 32)}°F)\n` +
-              `- **Conditions**: ${current.conditions || 'Clear'}\n` +
-              `- **Humidity**: ${current.humidity}%\n` +
-              `- **Wind Speed**: ${current.windspeed} km/h\n` +
-              `- **UV Index**: ${current.uvindex ?? 'N/A'}\n\n` +
-              `| Date | Conditions | Avg Temp | High / Low | Precip Prob | Wind | Humidity |\n` +
-              `| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n` +
-              daysTable;
-
-            references.push({
-              title: `Live Weather & 5-Day Forecast for ${wx.resolvedAddress || location}`,
-              url: `https://www.visualcrossing.com/weather-forecast/${encodeURIComponent(location)}`,
-              snippet: `${current.conditions || 'Clear'}, ${current.temp}°C, Humidity: ${current.humidity}%, Wind: ${current.windspeed} km/h`,
-              source: 'Visual Crossing Timeline Weather API'
-            });
-          }
-          break;
-        }
-
-        case 'AVIATION': {
-          const { AviationStackService } = await import('../aviationstack/aviationstack.service.js');
-          const flightMatch = prompt.match(/\b([A-Z0-9]{2}\s?\d{1,4})\b/i);
-          const flightNumber = flightMatch ? flightMatch[1].replace(/\s/g, '').toUpperCase() : null;
-          let flightsData;
-          if (flightNumber) {
-            flightsData = await AviationStackService.getFlightByNumber(flightNumber);
-          } else {
-            flightsData = await AviationStackService.getLiveFlights();
-          }
-          const flights = flightsData?.data?.slice(0, 5) || [];
-          if (flights.length > 0) {
-            const flightRows = flights.map(f => `| ${f.flight?.iata || f.flight?.icao || 'N/A'} | ${f.departure?.airport || 'Dep'} (${f.departure?.iata}) -> ${f.arrival?.airport || 'Arr'} (${f.arrival?.iata}) | **${(f.flight_status || 'active').toUpperCase()}** | ${f.departure?.estimated || f.departure?.scheduled || 'N/A'} | ${f.arrival?.estimated || f.arrival?.scheduled || 'N/A'} | ${f.airline?.name || 'Airline'} |`).join('\n');
-            dataContext = `### Live Aviation Radar Data\n` +
-              `| Flight | Route | Status | Estimated Departure | Estimated Arrival | Airline |\n` +
-              `| :--- | :--- | :--- | :--- | :--- | :--- |\n` +
-              flightRows;
-
-            references.push({
-              title: `Global Flight Tracking: ${flightNumber || 'Live Flight Radar'}`,
-              url: 'https://aviationstack.com',
-              snippet: `Real-time radar status for ${flights.length} active flights`,
-              source: 'AviationStack Global Aviation Engine'
-            });
-          }
-          break;
-        }
-
-        case 'SPORTS': {
-          const { ApiSportsService } = await import('../apisports/apisports.service.js');
-          const liveScores = await ApiSportsService.getAllCachedLiveScores();
-          const sportsEntries = Object.entries(liveScores || {});
-          if (sportsEntries.length > 0) {
-            const sportsRows = sportsEntries.slice(0, 6).map(([sport, games]) => `| ${sport.toUpperCase()} | ${Array.isArray(games) ? games.length : 0} Live Matches | Real-time Stream Active |`).join('\n');
-            dataContext = `### API-Sports Real-Time Streaming Radar (12 Sports)\n` +
-              `| Sport | Active Live Fixtures | Radar Status |\n` +
-              `| :--- | :--- | :--- |\n` +
-              sportsRows;
-          } else {
-            dataContext = `Real-time sports streaming engine connected across 12 sports (Football, Basketball, Baseball, Hockey, F1, MMA, NFL, NBA, etc.).`;
-          }
-          references.push({
-            title: 'API-Sports Live Streaming Scores & Intelligence (12 Sports)',
-            url: 'https://api-sports.io',
-            snippet: dataContext,
-            source: 'API-Sports.io Enterprise Multi-Sport Feed'
-          });
-          break;
-        }
-
-        case 'PREDICTIONS': {
-          const { PredictionDataService } = await import('../predictiondata/predictiondata.service.js');
-          const mkts = await PredictionDataService.getMarkets({ limit: 5 });
-          const mList = Array.isArray(mkts?.data) ? mkts.data.slice(0, 5) : [];
-          if (mList.length > 0) {
-            const mktRows = mList.map(m => `| ${m.title || m.name || 'Prediction Market'} | ${m.book || 'Polymarket/Kalshi'} | ${m.bet_type || 'Prediction'} | **${m.odds || m.price || 'Active'}** |`).join('\n');
-            dataContext = `### Live Prediction Markets & Betting Odds\n` +
-              `| Event / Market | Sportsbook / Platform | Market Type | Implied Probability / Odds |\n` +
-              `| :--- | :--- | :--- | :--- |\n` +
-              mktRows;
-          } else {
-            dataContext = `Prediction markets connected across Polymarket, Kalshi, DraftKings, FanDuel, and Pinnacle.`;
-          }
-          references.push({
-            title: 'PredictionData.io Betting Odds & Prediction Markets',
-            url: 'https://www.predictiondata.io',
-            snippet: dataContext,
-            source: 'PredictionData.io Institutional Feed'
-          });
-          break;
-        }
-
-        case 'CRYPTO': {
-          const { CoinApiService } = await import('../coinapi/coinapi.service.js');
-          const symMatch = prompt.match(/\b(BTC|ETH|SOL|BNB|XRP|DOGE|ADA|AVAX|DOT)\b/i);
-          const assetId = symMatch ? symMatch[1].toUpperCase() : 'BTC';
-          const rate = await CoinApiService.getExchangeRate(assetId, 'USD');
-          if (rate) {
-            const formattedPrice = Number(rate.rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            dataContext = `### Real-Time Cryptocurrency Market Data\n` +
-              `| Asset | Base Pair | Real-Time Price (USD) | Quote Timestamp | Exchange Source |\n` +
-              `| :--- | :--- | :--- | :--- | :--- |\n` +
-              `| **${assetId}** | USD | **$${formattedPrice}** | ${rate.time || new Date().toISOString()} | CoinAPI Multi-Exchange Consolidated |\n`;
-
-            references.push({
-              title: `${assetId}/USD Real-Time Price & Exchange Rate`,
-              url: `https://www.coinapi.io/pricing/${assetId}`,
-              snippet: `1 ${assetId} = $${formattedPrice} USD as of ${rate.time || new Date().toISOString()}`,
-              source: 'CoinAPI.io Institutional Crypto Engine'
-            });
-          }
-          break;
-        }
-
-        case 'FINANCE': {
-          const { MassiveService } = await import('../massive/massive.service.js');
-          const tMatch = prompt.match(/\b(NVDA|AAPL|TSLA|MSFT|AMZN|GOOGL|META|SPY|QQQ|AMD|INTC|NFLX|DIS|BA|JPM|GS|V|MA|WMT|COST)\b/i);
-          const ticker = tMatch ? tMatch[1].toUpperCase() : 'SPY';
-          const quote = await MassiveService.getQuote(ticker);
-          if (quote) {
-            dataContext = `### Massive.com Institutional Market Quote\n` +
-              `| Ticker | Price | Change | Day High | Day Low | Volume |\n` +
-              `| :--- | :--- | :--- | :--- | :--- | :--- |\n` +
-              `| **${ticker}** | **$${quote.price || quote.c || quote.last || 'N/A'}** | ${quote.change || quote.d || '0'}% | $${quote.high || quote.h || 'N/A'} | $${quote.low || quote.l || 'N/A'} | ${quote.volume || quote.v || 'N/A'} |\n`;
-
-            references.push({
-              title: `${ticker} Real-time Market Quote & Financials`,
-              url: `https://massive.com/stocks/${ticker}`,
-              snippet: `${ticker} current price: $${quote.price || quote.c || quote.last || 'N/A'} (${quote.change || quote.d || '0'}%)`,
-              source: 'Massive.com Real-time Market Feed'
-            });
-          }
-          break;
-        }
-
-        case 'NEWS': {
-          const { NewsApiService } = await import('../newsapi/newsapi.service.js');
-          const news = await NewsApiService.searchArticles({ keyword: prompt.slice(0, 100), maxItems: 5 });
-          const articles = news?.articles?.results || news?.articles || [];
-          if (articles.length > 0) {
-            dataContext = `### Verified Breaking News & World Events\n` +
-              articles.slice(0, 4).map((a, i) => `**[${i + 1}] ${a.title}**\n- *Publisher*: ${a.source?.title || 'Global News'} (${a.date || 'Recent'})\n- *Summary*: ${a.body?.slice(0, 180) || a.description || ''}...\n- *URL*: ${a.url || 'https://newsapi.ai'}`).join('\n\n');
-            articles.slice(0, 4).forEach((a, i) => {
-              references.push({
-                title: a.title || 'Breaking News Article',
-                url: a.url || 'https://newsapi.ai',
-                snippet: a.body?.slice(0, 200) || a.description || '',
-                source: a.source?.title || 'NewsAPI.ai Event Registry'
-              });
-            });
-          }
-          break;
-        }
-
-        case 'LOCATION': {
-          const { MapboxService } = await import('../mapbox/mapbox.service.js');
-          const places = await MapboxService.searchSuggest(prompt.slice(0, 100));
-          const suggestions = places?.suggestions?.slice(0, 4) || [];
-          if (suggestions.length > 0) {
-            dataContext = `### Mapbox Geospatial Intelligence\n` +
-              suggestions.map((s, i) => `**[${i + 1}] ${s.name}**\n- *Address*: ${s.place_formatted || s.full_address || 'Verified Address'}\n- *Mapbox ID*: \`${s.mapbox_id || 'POI'}\``).join('\n\n');
-            references.push({
-              title: `Mapbox Geospatial Search: ${prompt.slice(0, 40)}`,
-              url: 'https://www.mapbox.com',
-              snippet: dataContext,
-              source: 'Mapbox Navigation & POI Engine'
-            });
-          }
-          break;
-        }
-
-        case 'B2B': {
-          const { ExploriumService } = await import('../explorium/explorium.service.js');
-          const companyMatch = prompt.match(/\b(?:about|for|company|startup|firm)\s+([A-Za-z0-9\s]+)/i);
-          const companyName = companyMatch ? companyMatch[1].trim() : prompt.replace(/b2b|leads|firmographics/gi, '').trim() || 'Tech';
-          const matchResult = await ExploriumService.matchBusinesses({ name: companyName });
-          dataContext = `### Explorium B2B Firmographic Intelligence\n- Company: **${companyName}**\n- Entity Resolution: ${JSON.stringify(matchResult).slice(0, 350)}`;
-          references.push({
-            title: `B2B Intelligence: ${companyName}`,
-            url: 'https://www.explorium.ai',
-            snippet: dataContext,
-            source: 'Explorium AgentSource v2'
-          });
-          break;
-        }
-
-        case 'CHITCHAT': {
-          dataContext = '';
-          break;
-        }
-
-        case 'CODE': {
-          try {
-            const { CodexService } = await import('../codex/codex.service.js');
-            const codeRes = await CodexService.generateCode({ prompt, context: historyContext });
-            dataContext = `### Open Codex (Sovereign Code Engine)\n` + codeRes;
-            references.push({
-              title: 'Open Codex Execution',
-              url: 'local://open-codex',
-              snippet: 'Locally generated and verified sovereign code execution',
-              source: 'Open Codex Sandboxed AI'
-            });
-          } catch (e) {
-            dataContext = `Open Codex sovereign sandbox ready for Python / Node.js logic and math verification.\n`;
-          }
-          break;
-        }
-
-        case 'MULTI_STEP': {
-          try {
-            const { LangChainService } = await import('../langchain/langchain.service.js');
-            const planRes = await LangChainService.runReasoningGraph({ goal: prompt, context: historyContext });
-            dataContext = `### LangGraph Sovereign Reasoning Engine\n` + 
-              `**Strategic Plan:**\n` + planRes.plan?.map(p => '- ' + p).join('\n') + 
-              `\n\n**Proposed Solution:**\n` + planRes.solution;
-            references.push({
-              title: 'LangGraph Reasoning Trace',
-              url: 'local://langgraph',
-              snippet: 'Multi-step strategic planning and reasoning',
-              source: 'LangChain Sovereign Agent'
-            });
-          } catch (e) {
-            logger.warn(`[SovereignRouter] MULTI_STEP failed: ${e.message}`);
-          }
-          break;
-        }
-
-        case 'TOOL_CALL': {
-          try {
-            const { ComposioService } = await import('../composio/composio.service.js');
-            const { OpenClawService } = await import('../openclaw/openclaw.service.js');
-            
-            if (prompt.toLowerCase().includes('device') || prompt.toLowerCase().includes('machine') || prompt.toLowerCase().includes('vm')) {
-              const queued = await OpenClawService.queueEdgeCommand('vm-sovereign-01', 'execute', { prompt });
-              dataContext = `### OpenClaw Edge Execution\nTask queued to secure edge node (ID: ${queued.commandId}). Awaiting results...`;
-              references.push({ title: 'OpenClaw Edge Command', url: 'local://openclaw', snippet: 'Sandboxed execution', source: 'OpenClaw' });
-            } else {
-              const toolRes = await ComposioService.searchTools(null, prompt);
-              dataContext = `### Composio Global App Integration\nMatched tools for this action: \n` + 
-                (toolRes?.tools || []).slice(0,3).map(t => `- **${t.name}**: ${t.description}`).join('\n') +
-                '\n\n*Preparing to execute via Composio secure tunnel...*';
-              references.push({ title: 'Composio App Actions', url: 'https://composio.dev', snippet: 'Connecting to 1,500+ apps', source: 'Composio Engine' });
-            }
-          } catch (e) {
-            logger.warn(`[SovereignRouter] TOOL_CALL failed: ${e.message}`);
-          }
-          break;
-        }
-
-        case 'RESEARCH': {
-          try {
-            const { LlamaIndexService } = await import('../../services/llamaindex.service.js');
-            const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
-            
-            const searchRes = await ExaSearchService.searchDirectly(prompt, { numResults: 3 });
-            const results = searchRes?.results || [];
-            
-            dataContext = `### Temporal Deep Research & LlamaIndex Vector RAG\n` +
-              `Initiated distributed neural search across Exa, indexing results via LlamaIndex for RAG synthesis.\n\n`;
-            
-            if (results.length > 0) {
-              dataContext += results.map((r, i) => `**[${i + 1}] "${r.title}"**\n- *URL*: ${r.url}\n- *Excerpt*: ${r.summary || r.text?.slice(0, 250) || ''}`).join('\n\n');
-              results.forEach(r => {
-                references.push({
-                  title: r.title || 'Web Source',
-                  url: r.url || 'https://exa.ai',
-                  snippet: r.summary || r.text?.slice(0, 200) || '',
-                  source: 'Exa + LlamaIndex RAG Pipeline'
-                });
-              });
-            }
-          } catch (e) {
-            logger.warn(`[SovereignRouter] RESEARCH failed: ${e.message}`);
-          }
-          break;
-        }
-
-        case 'SEARCH':
-        default: {
-          const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
-          const searchRes = await ExaSearchService.searchDirectly(prompt, { numResults: 5 });
-          const results = searchRes?.results || [];
-          if (results.length > 0) {
-            dataContext = `### Third-Party Web Intelligence\n` +
-              results.map((r, i) => `**[${i + 1}] "${r.title}"**\n- *URL*: ${r.url}\n- *Excerpt*: ${r.summary || r.text?.slice(0, 250) || ''}`).join('\n\n');
-            results.forEach(r => {
-              references.push({
-                title: r.title || 'Web Source',
-                url: r.url || 'https://exa.ai',
-                snippet: r.summary || r.text?.slice(0, 200) || '',
-                source: 'Exa Neural Search Engine'
-              });
-            });
-          }
-          break;
-        }
-      }
-    } catch (err) {
-      logger.warn(`[SovereignRouter] Subsystem fetch error (${route}): ${err.message}`);
-    }
-
-    const elapsed = Date.now() - startTime;
-    logger.info(`[SovereignRouter] Subsystem ${route} returned in ${elapsed}ms (${references.length} references)`);
-
-    return { dataContext, references, elapsed };
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 3. MULTI-ROUTE FAN-OUT
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Execute parallel subsystem fetches for compound prompts.
-   * Merges data contexts and references from all routes.
-   *
-   * @param {Array<{ route: string, query: string }>} steps - Sub-routes to fan out
-   * @returns {Promise<{ dataContext: string, references: Array, elapsed: number, routes: string[] }>}
-   */
-  async fetchFanOut(steps) {
-    const startTime = Date.now();
-
-    // Cap at 3 concurrent fan-out routes
-    const cappedSteps = steps.slice(0, 3);
-    logger.info(`[SovereignRouter] Fan-out: ${cappedSteps.map(s => s.route).join(' + ')}`);
-
-    const results = await Promise.allSettled(
-      cappedSteps.map(step => this.fetchSubsystemData(step.route, step.query))
-    );
-
-    let mergedContext = '';
-    const mergedReferences = [];
-    const routes = [];
-
-    results.forEach((result, i) => {
-      if (result.status === 'fulfilled') {
-        const { dataContext, references } = result.value;
-        if (dataContext) {
-          mergedContext += (mergedContext ? '\n\n---\n\n' : '') + dataContext;
-        }
-        mergedReferences.push(...references);
-        routes.push(cappedSteps[i].route);
-      } else {
-        logger.warn(`[SovereignRouter] Fan-out step ${cappedSteps[i].route} failed: ${result.reason?.message}`);
-      }
-    });
-
-    const elapsed = Date.now() - startTime;
-    logger.info(`[SovereignRouter] Fan-out completed in ${elapsed}ms: ${routes.join(', ')} (${mergedReferences.length} total references)`);
-    recordTelemetry({ type: 'fanout', routes, elapsed, referenceCount: mergedReferences.length });
-
-    return { dataContext: mergedContext, references: mergedReferences, elapsed, routes };
-  },
+  // Legacy intent classification and fan-out code deleted.
+  // AgentService now natively handles all tools dynamically.
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 4. SEARCH AUGMENTATION (PARALLEL EXA ENRICHMENT)
@@ -705,7 +272,6 @@ Directives for World-Class Output:
 
   /**
    * Main unified prompt handler for JSON response (non-streaming fallback).
-   * Same hybrid classification + fan-out + search augmentation pipeline.
    */
   async handlePromptJson({ prompt, sessionId, userId, userContext }) {
     const pipelineStart = Date.now();
@@ -714,52 +280,46 @@ Directives for World-Class Output:
     // Load conversation context
     const conversationHistory = await this.loadConversationContext(userId, convId);
 
-    // Hybrid classification
-    const classification = await this.classifyIntentHybrid(prompt, { conversationHistory });
-    const route = classification.route;
-
-    // Fetch data — fan-out or single + augmentation
-    let dataContext, references;
-
-    if (route === 'MULTI_STEP' && classification.parameters?.steps?.length > 1) {
-      const fanOutResult = await this.fetchFanOut(classification.parameters.steps);
-      dataContext = fanOutResult.dataContext;
-      references = fanOutResult.references;
-    } else if (classification.search_augmentation && route !== 'SEARCH' && route !== 'RESEARCH' && route !== 'CHITCHAT') {
-      const [subsystemResult, augmentationRefs] = await Promise.all([
-        this.fetchSubsystemData(route, prompt),
-        this.fetchSearchAugmentation(prompt),
-      ]);
-      dataContext = subsystemResult.dataContext;
-      references = [...subsystemResult.references, ...augmentationRefs];
-    } else {
-      const subsystemResult = await this.fetchSubsystemData(route, prompt);
-      dataContext = subsystemResult.dataContext;
-      references = subsystemResult.references;
+    // Fetch Long-Term Memory (Mem0)
+    let memoryContext = '';
+    if (userId) {
+      try {
+        const memories = await MemoryService.searchMemories(userId, 'agentic_loop', prompt, 5);
+        if (memories && memories.length > 0) {
+          memoryContext = '\n\nLONG-TERM MEMORY RECALL:\n' + memories.map(m => `- ${m.memory}`).join('\n');
+        }
+      } catch (err) {
+        logger.warn(`[SovereignRouter] Memory fetch failed: ${err.message}`);
+      }
     }
 
-    // Build prompt + call LLM
-    const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
+    let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
+      "\n\nYou are operating in Agentic ReAct mode. You have access to tools for web search, triggering apps, weather, flights, code sandbox, edge VMs, company research, crypto, stocks, sports, prediction markets, and news. If the user asks for ANY of these domains, USE THE CORRESPONDING TOOL. DO NOT GUESS.";
+    
+    if (memoryContext) {
+      systemPrompt += memoryContext;
+    }
+    
     const messages = [
       { role: 'system', content: systemPrompt },
+      ...conversationHistory,
       { role: 'user', content: prompt }
     ];
 
     const llmStart = Date.now();
-    const result = await groqChat(messages, {
+    const result = await AgentService.runAgentJson(messages, {
       model: config.groq?.model || 'gpt-oss-120b',
       temperature: 0.2,
     });
 
-    const reply = result.choices?.[0]?.message?.content || '';
+    const reply = result.reply;
+    const references = result.references || [];
     const totalTime = ((Date.now() - pipelineStart) / 1000).toFixed(2);
 
     // Telemetry
     recordTelemetry({
       type: 'prompt_json',
-      route,
-      classifier: classification.classifier,
-      confidence: classification.confidence,
+      route: 'AGENTIC_LOOP',
       referenceCount: references.length,
       totalTimeMs: Date.now() - pipelineStart,
       llmTimeMs: Date.now() - llmStart,
@@ -768,17 +328,26 @@ Directives for World-Class Output:
 
     await this.persistChat(userId, convId, prompt, reply, references, totalTime);
 
+    if (userId && reply) {
+      MemoryService.addMemory(userId, 'agentic_loop', [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: reply }
+      ]).catch(err => {
+        logger.warn(`[SovereignRouter] Memory saving error: ${err.message}`);
+      });
+    }
+
     return {
       prompt,
       sessionId: convId,
       conversationId: convId,
-      route,
+      route: 'AGENTIC_LOOP',
       classification: {
-        route,
-        confidence: classification.confidence,
-        classifier: classification.classifier,
-        reasoning: classification.reasoning,
-        search_augmentation: classification.search_augmentation,
+        route: 'AGENTIC_LOOP',
+        confidence: 1,
+        classifier: 'Agentic_ReAct',
+        reasoning: 'Unified agent loop',
+        search_augmentation: false,
       },
       reply,
       responseMessage: {
