@@ -1,20 +1,22 @@
 import crypto from 'crypto';
 import { Connection, Client } from '@temporalio/client';
+import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-
-const TEMPORAL_ADDRESS = process.env.TEMPORAL_ADDRESS || 'localhost:7233';
-const TEMPORAL_NAMESPACE = process.env.TEMPORAL_NAMESPACE || 'default';
 
 let temporalClient = null;
 
 async function getTemporalClient() {
   if (temporalClient) return temporalClient;
+  
+  const address = config.temporal?.address || 'localhost:7233';
+  const namespace = config.temporal?.namespace || 'default';
+  
   try {
-    const connection = await Connection.connect({ address: TEMPORAL_ADDRESS });
-    temporalClient = new Client({ connection, namespace: TEMPORAL_NAMESPACE });
+    const connection = await Connection.connect({ address });
+    temporalClient = new Client({ connection, namespace });
     return temporalClient;
   } catch (err) {
-    logger.warn(`[Temporal] Could not connect to Temporal cluster at ${TEMPORAL_ADDRESS}: ${err.message}. Using simulated client.`);
+    logger.warn(`[Temporal] Could not connect to Temporal cluster at ${address}: ${err.message}. Using simulated client.`);
     return null;
   }
 }
