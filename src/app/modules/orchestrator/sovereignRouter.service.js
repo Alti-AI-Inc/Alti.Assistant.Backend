@@ -5,6 +5,7 @@ import Chat from '../chat/chat.model.js';
 import UserModel from '../auth/auth.model.js';
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
 import AgentService from './agent.service.js';
+import { MemoryService } from '../../services/memory.service.js';
 
 // ─── Telemetry ─────────────────────────────────────────────────────────────────
 const TELEMETRY_BUFFER_SIZE = 500;
@@ -612,9 +613,26 @@ Directives for World-Class Output:
 
     const conversationHistory = await this.loadConversationContext(userId, convId);
     
+    // Fetch Long-Term Memory (Mem0)
+    let memoryContext = '';
+    if (userId) {
+      try {
+        const memories = await MemoryService.searchMemories(userId, 'agentic_loop', prompt, 5);
+        if (memories && memories.length > 0) {
+          memoryContext = '\n\nLONG-TERM MEMORY RECALL:\n' + memories.map(m => `- ${m.memory}`).join('\n');
+        }
+      } catch (err) {
+        logger.warn(`[SovereignRouter] Memory fetch failed: ${err.message}`);
+      }
+    }
+    
     // Use the generic AGENT route for the system prompt
-    const systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
+    let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
       "\n\nYou are operating in Agentic ReAct mode. You have access to tools (web_search, trigger_app_action, get_weather, get_flights, execute_code_sandbox). If the user asks you to search, trigger an action, or calculate complex math/logic, USE THE TOOLS. DO NOT GUESS.";
+    
+    if (memoryContext) {
+      systemPrompt += memoryContext;
+    }
     
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -674,6 +692,15 @@ Directives for World-Class Output:
     this.persistChat(userId, convId, prompt, fullReply, allReferences, totalTime).catch(err => {
       logger.warn(`[SovereignRouter] Chat persistence error: ${err.message}`);
     });
+
+    if (userId && fullReply) {
+      MemoryService.addMemory(userId, 'agentic_loop', [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: fullReply }
+      ]).catch(err => {
+        logger.warn(`[SovereignRouter] Memory saving error: ${err.message}`);
+      });
+    }
   },
 
   /**
