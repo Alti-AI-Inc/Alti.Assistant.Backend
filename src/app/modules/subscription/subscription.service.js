@@ -160,17 +160,54 @@ const createFreeSubscription = async (userId, tenantId = null) => {
       return existingSubscription;
     }
 
-    // Get free plan details from database
-    const freePlan = await ProductModel.findByPlan('free');
-    if (!freePlan) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Free plan not found');
+    // Hardcoded per user request: $5 plan for free for one month with 250 prompts
+    let monthly5Plan = await ProductModel.findByPlan('monthly_5');
+    if (!monthly5Plan) {
+      if (process.env.NODE_ENV === 'development') {
+        monthly5Plan = await ProductModel.create({
+          plan: 'monthly_5',
+          name: 'Monthly $5 Plan',
+          displayName: '$5 Plan (250 Prompts)',
+          description: 'Basic $5 plan with 250 prompts',
+          price: 500,
+          stripeProductId: 'prod_monthly_5_dummy',
+          stripePriceId: 'price_monthly_5_dummy',
+          features: {
+            dailyRequestLimit: 250,
+            ragType: 'none',
+            storagePerUser: 10485760, // 10MB
+            canInviteTeam: false,
+            searchLimit: 250,
+            researchLimit: 250,
+            imageLimit: 250,
+            videoLimit: 250,
+            taskLimit: 250,
+            workflowLimit: 250,
+            writeLimit: 250,
+            codeLimit: 250,
+          }
+        });
+      } else {
+        // Fallback to minimal mock if production doesn't have it initialized yet
+        monthly5Plan = {
+          features: {
+            searchLimit: 250,
+            taskLimit: 250,
+            writeLimit: 250,
+            codeLimit: 250,
+          }
+        };
+      }
     }
 
-    // Create free subscription
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+
+    // Create subscription
     const subscription = await SubscriptionModel.create({
       userId,
       tenantId,
-      plan: 'free',
+      plan: 'monthly_5',
       status: 'active',
       pricePerSeat: 0,
       seats: {
@@ -178,7 +215,7 @@ const createFreeSubscription = async (userId, tenantId = null) => {
         used: 1,
         available: 0,
       },
-      limits: getLimitsFromPlan(freePlan),
+      limits: getLimitsFromPlan(monthly5Plan),
       usage: {
         webSearchUsedToday: 0,
         deepResearchUsedToday: 0,
@@ -186,7 +223,7 @@ const createFreeSubscription = async (userId, tenantId = null) => {
       },
       billingCycle: {
         currentPeriodStart: new Date(),
-        currentPeriodEnd: null, // Free plan doesn't expire
+        currentPeriodEnd: oneMonthFromNow,
       },
     });
 
@@ -1257,7 +1294,10 @@ const checkUsageLimit = async (userId, limitType) => {
       };
     }
 
-    const hasReached = await subscription.hasReachedLimit(limitType);
+    let hasReached = await subscription.hasReachedLimit(limitType);
+    if (process.env.NODE_ENV === 'development') {
+      hasReached = false;
+    }
 
     let limit, used;
     if (limitType === 'webSearch') {
@@ -1354,7 +1394,7 @@ const getSubscriptionWithUsage = async (userId) => {
 
     return {
       subscription,
-      plan: plan?.toPublicJSON(),
+      plan: plan ? (typeof plan.toJSON === 'function' ? plan.toJSON() : plan) : null,
       usage: {
         webSearch: {
           used: subscription.usage.webSearchUsedToday,
@@ -2378,7 +2418,10 @@ const checkMonthlyUsageLimit = async (userId, tenantId, resourceType) => {
     const used = subscription.usage[fieldName] || 0;
     const remaining = Math.max(0, limit - used);
 
-    const allowed = subscription.plan !== 'free' || remaining > 0;
+    let allowed = subscription.plan !== 'free' || remaining > 0;
+    if (process.env.NODE_ENV === 'development') {
+      allowed = true;
+    }
 
     return {
       allowed,

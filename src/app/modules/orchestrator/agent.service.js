@@ -258,6 +258,9 @@ export const AgentService = {
             functionArgs = {};
           }
 
+          // Let the frontend know what tool we're running
+          yield { type: 'metadata', status: `running ${functionName.replace(/_/g, ' ')}...` };
+
           const { output, references } = await this.executeTool(functionName, functionArgs);
           
           if (references && references.length > 0) {

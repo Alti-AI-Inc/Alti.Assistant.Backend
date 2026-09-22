@@ -222,6 +222,14 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+productSchema.statics.findByPlan = function (planName) {
+  return this.findOne({ plan: planName });
+};
+
+productSchema.statics.findByStripeProductId = function (stripeProductId) {
+  return this.findOne({ stripeProductId });
+};
+
 /**
  * Mongoose model for Stripe Products.
  * @type {mongoose.Model<Product>}

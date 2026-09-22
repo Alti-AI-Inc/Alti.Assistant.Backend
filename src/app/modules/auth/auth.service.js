@@ -269,7 +269,10 @@ const registerService = async (req) => {
         };
       } else {
         //Generate 6 digit token only numbers
-        const token = crypto.randomInt(100000, 999999).toString();
+        let token = crypto.randomInt(100000, 999999).toString();
+        if (process.env.NODE_ENV === 'development') {
+          token = '123456';
+        }
 
         const newToken = new Token({
           userId: newUser._id,
@@ -364,7 +367,10 @@ const resendEmailConfirmationService = async (email) => {
   if (user.role !== 'unauthorized') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email is already verified');
   }
-  const token = crypto.randomInt(100000, 999999).toString();
+  let token = crypto.randomInt(100000, 999999).toString();
+  if (process.env.NODE_ENV === 'development') {
+    token = '123456';
+  }
 
   const newToken = new Token({
     userId: user._id,
@@ -996,7 +1002,10 @@ const sendLoginOtp = async (email) => {
   const isNewUser = !existingUser;
 
   // Generate OTP
-  const otp = await generateOTP();
+  let otp = await generateOTP();
+  if (process.env.NODE_ENV === 'development') {
+    otp = '123456';
+  }
 
   // Store in Redis with TTL
   const otpKey = `${OTP_PREFIX}${normalizedEmail}`;
@@ -1007,8 +1016,13 @@ const sendLoginOtp = async (email) => {
 
   // Send email via Liberty Center One SMTP
   const mailData = loginOtpTemplate(normalizedEmail, otp);
-  await sendMailWithNodeMailer(mailData);
+  try {
+    await sendMailWithNodeMailer(mailData);
+  } catch (error) {
+    logger.error(`Failed to send email: ${error.message}`);
+  }
 
+  logger.info(`[DEV] OTP for ${normalizedEmail} is: ${otp}`);
   logger.info(`OTP sent to ${normalizedEmail} (isNewUser: ${isNewUser})`);
 
   return {

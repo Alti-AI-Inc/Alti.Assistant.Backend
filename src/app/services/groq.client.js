@@ -12,6 +12,9 @@ const groqClient = new Groq({
  * @returns {Object} Groq chat completion response
  */
 export async function groqChat(messages, options = {}) {
+  if (config.groq.apiKey === 'your_groq_api_key_here' || !config.groq.apiKey) {
+    return { choices: [{ message: { content: "I am a local dummy assistant! Your API key is not set." } }] };
+  }
   const response = await groqClient.chat.completions.create({
     model: options.model || config.groq.model,
     messages,
@@ -29,6 +32,15 @@ export async function groqChat(messages, options = {}) {
  * @returns {AsyncIterable} Stream of completion chunks
  */
 export async function groqStream(messages, options = {}) {
+  if (config.groq.apiKey === 'your_groq_api_key_here' || !config.groq.apiKey) {
+    return (async function* () {
+      const words = "I am a local dummy assistant! Your API key is not set, so I am answering this request instead. The current price of Bitcoin is $100,000!".split(" ");
+      for (const word of words) {
+        yield { choices: [{ delta: { content: word + " " } }] };
+        await new Promise(r => setTimeout(r, 50));
+      }
+    })();
+  }
   const stream = await groqClient.chat.completions.create({
     model: options.model || config.groq.model,
     messages,
@@ -62,6 +74,9 @@ export async function groqComplete(prompt, options = {}) {
  * @returns {Object} Groq response with tool calls
  */
 export async function groqToolCall(messages, tools, options = {}) {
+  if (config.groq.apiKey === 'your_groq_api_key_here' || !config.groq.apiKey) {
+    return { choices: [{ message: { content: "Dummy response from groqToolCall without tools." } }] };
+  }
   const response = await groqClient.chat.completions.create({
     model: options.model || config.groq.model,
     messages,

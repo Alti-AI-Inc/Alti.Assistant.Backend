@@ -24,8 +24,8 @@ const require = createRequire(import.meta.url);
 require('buffer').SlowBuffer = require('buffer').Buffer;
 const originalConnect = mongoose.connect.bind(mongoose);
 mongoose.connect = async function (uri, options) {
-  if (uri && uri.includes('localhost')) {
-    console.warn(`[Mongoose Patch] Blocked rogue connection to ${uri}`);
+  if (uri && uri.includes('localhost') && process.env.NODE_ENV === 'production') {
+    console.warn(`[Mongoose Patch] Blocked rogue connection to ${uri} in production`);
     return mongoose;
   }
   if (
