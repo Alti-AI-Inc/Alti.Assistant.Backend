@@ -45,6 +45,7 @@ import { realEstateApiRoutes } from '../modules/realestateapi/realestateapi.rout
 import { fredRoutes } from '../modules/fred/fred.route.js';
 import { arxivRoutes } from '../modules/arxiv/arxiv.route.js';
 import { congressRoutes } from '../modules/congress/congress.route.js';
+import { openfdaRoutes } from '../modules/openfda/openfda.route.js';
 
 const router = express.Router();
 
@@ -68,6 +69,10 @@ const moduleRoutes = [
   {
     path: '/congress',
     route: congressRoutes,
+  },
+  {
+    path: '/openfda',
+    route: openfdaRoutes,
   },
   {
     path: '/admin',

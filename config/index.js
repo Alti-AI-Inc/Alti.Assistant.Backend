@@ -146,6 +146,11 @@ export default {
     baseUrl: 'https://api.congress.gov/v3',
   },
 
+  openfda: {
+    key: process.env.OPENFDA_API_KEY || 'dummy_openfda_key',
+    baseUrl: 'https://api.fda.gov',
+  },
+
   // ── Smart Routing ─────────────────────────────────────────────────────────
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',

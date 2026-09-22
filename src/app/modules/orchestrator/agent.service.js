@@ -18,6 +18,7 @@ import realEstateApiService from '../realestateapi/realestateapi.service.js';
 import fredService from '../fred/fred.service.js';
 import arxivService from '../arxiv/arxiv.service.js';
 import congressService from '../congress/congress.service.js';
+import openfdaService from '../openfda/openfda.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -145,6 +146,15 @@ const tools = [
       parameters: { type: 'object', properties: { congress: { type: 'string', description: 'Congress number (e.g. 118)' }, billType: { type: 'string', description: 'Bill type (e.g. hr, s)' }, billNumber: { type: 'string' } } }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'search_fda_drugs',
+      description: 'Search the FDA database for drug labels, warnings, and adverse events using the official OpenFDA API.',
+      parameters: { type: 'object', properties: { search: { type: 'string', description: 'Drug name or query' } }, required: ['search'] }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -194,6 +204,31 @@ export const AgentService = {
         
         
         
+        
+        case 'search_fda_drugs': {
+          try {
+            const data = await openfdaService.searchDrugs(args.search, { limit: 5 });
+            const drugs = data?.results || [];
+            
+            const customMetadata = {
+              domain: 'medical',
+              drugs: drugs
+            };
+
+            const outputText = drugs.map(d => `Brand Name: ${d.openfda?.brand_name?.[0]}\nGeneric Name: ${d.openfda?.generic_name?.[0]}\nManufacturer: ${d.openfda?.manufacturer_name?.[0]}\nPurpose: ${d.purpose?.[0] || 'Unknown'}\nWarnings: ${d.warnings?.[0] || 'None'}`).join('\n\n') || 'No drugs found.';
+
+            return {
+              output: outputText,
+              references: drugs.map(d => ({ title: d.openfda?.brand_name?.[0] || 'Drug Label', url: 'https://open.fda.gov', snippet: d.purpose?.[0]?.slice(0,100), source: 'OpenFDA' })),
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to search OpenFDA: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'get_legislative_bills': {
           try {
             let data;
