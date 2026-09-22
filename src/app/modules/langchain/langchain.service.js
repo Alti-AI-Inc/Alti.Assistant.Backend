@@ -230,6 +230,288 @@ export const LangChainService = {
       { id: 'durable-temporal-pipeline', name: 'Temporal Durable Agent Graph', description: 'LangGraph inside Temporal workflows', stateNodes: ['workflow_init', 'tool_dispatch'], license: 'Apache 2.0' },
     ];
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  NEW CORE LANGCHAIN FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── 9. QA Chain with Citations ────────────────────────────────────────────
+  async runQAChain({ query, documents = [], returnSources = true }) {
+    const llm = getTogetherLLM(0.0);
+    const contextText = documents.map((doc, i) => `[Source ${i + 1}]: ${doc}`).join('\n\n');
+
+    const response = await llm.invoke([
+      new SystemMessage(`You are a precise question-answering assistant. Answer ONLY based on the provided sources. 
+For every claim, cite the source number in brackets like [Source 1]. 
+If the answer cannot be found in the sources, say "I don't have enough information from the provided sources."`),
+      new HumanMessage(`Sources:\n${contextText}\n\nQuestion: ${query}`),
+    ]);
+
+    return {
+      query,
+      answer: response.content,
+      sourcesUsed: documents.length,
+      model: 'gpt-oss-120b',
+      framework: 'LangChain QA Chain',
+    };
+  },
+
+  // ── 10. Conversational RAG (Multi-turn with History) ──────────────────────
+  async runConversationalRAG({ query, documents = [], chatHistory = [] }) {
+    const llm = getTogetherLLM(0.1);
+
+    // Step 1: Reformulate the question considering chat history
+    let standaloneQuery = query;
+    if (chatHistory.length > 0) {
+      const historyText = chatHistory.map(m => `${m.role}: ${m.content}`).join('\n');
+      const reformulation = await llm.invoke([
+        new SystemMessage('Given the following conversation history and follow-up question, rephrase the follow-up question to be a standalone question. Return only the rephrased question.'),
+        new HumanMessage(`Chat History:\n${historyText}\n\nFollow-up Question: ${query}`),
+      ]);
+      standaloneQuery = reformulation.content;
+    }
+
+    // Step 2: Answer with documents
+    const contextText = documents.map((doc, i) => `[Doc ${i + 1}]: ${doc}`).join('\n\n');
+    const response = await llm.invoke([
+      new SystemMessage('You are a grounded RAG assistant. Answer based on the provided documents. Cite doc numbers.'),
+      new HumanMessage(`Documents:\n${contextText}\n\nQuestion: ${standaloneQuery}`),
+    ]);
+
+    return {
+      originalQuery: query,
+      standaloneQuery,
+      answer: response.content,
+      documentsCount: documents.length,
+      historyTurns: chatHistory.length,
+      model: 'gpt-oss-120b',
+      framework: 'LangChain Conversational RAG',
+    };
+  },
+
+  // ── 11. Map-Reduce Summarization ──────────────────────────────────────────
+  async runMapReduceSummarize({ texts, style = 'executive-summary' }) {
+    const llm = getTogetherLLM(0.2);
+    const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 3000, chunkOverlap: 200 });
+
+    // Map: summarize each chunk
+    const allChunks = [];
+    for (const text of texts) {
+      const docs = await splitter.createDocuments([text]);
+      allChunks.push(...docs);
+    }
+
+    const chunkSummaries = await Promise.all(
+      allChunks.map(async (doc) => {
+        const response = await llm.invoke([
+          new SystemMessage('Summarize the following text concisely, preserving key facts and figures.'),
+          new HumanMessage(doc.pageContent),
+        ]);
+        return response.content;
+      })
+    );
+
+    // Reduce: combine chunk summaries
+    const combined = chunkSummaries.join('\n\n---\n\n');
+    const finalResponse = await llm.invoke([
+      new SystemMessage(`You are an expert summarizer. Combine these partial summaries into a single cohesive ${style}. Remove redundancy and highlight the most important points.`),
+      new HumanMessage(combined),
+    ]);
+
+    return {
+      summary: finalResponse.content,
+      chunksProcessed: allChunks.length,
+      originalTexts: texts.length,
+      style,
+      framework: 'LangChain Map-Reduce Summarization',
+    };
+  },
+
+  // ── 12. Refine Chain ──────────────────────────────────────────────────────
+  async runRefineChain({ text, question }) {
+    const llm = getTogetherLLM(0.1);
+    const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 2000, chunkOverlap: 200 });
+    const docs = await splitter.createDocuments([text]);
+
+    let currentAnswer = '';
+    for (let i = 0; i < docs.length; i++) {
+      if (i === 0) {
+        const response = await llm.invoke([
+          new SystemMessage('Answer the question based on the provided context.'),
+          new HumanMessage(`Context: ${docs[i].pageContent}\n\nQuestion: ${question}`),
+        ]);
+        currentAnswer = response.content;
+      } else {
+        const response = await llm.invoke([
+          new SystemMessage('You have an existing answer and new context. Refine the existing answer with the new context if needed. Only update if the new context is relevant.'),
+          new HumanMessage(`Existing Answer: ${currentAnswer}\n\nNew Context: ${docs[i].pageContent}\n\nQuestion: ${question}`),
+        ]);
+        currentAnswer = response.content;
+      }
+    }
+
+    return {
+      answer: currentAnswer,
+      chunksProcessed: docs.length,
+      question,
+      framework: 'LangChain Refine Chain',
+    };
+  },
+
+  // ── 13. PDF Document Loader ───────────────────────────────────────────────
+  async loadPDF(filePath) {
+    try {
+      const { PDFLoader } = await import('@langchain/community/document_loaders/fs/pdf');
+      const loader = new PDFLoader(filePath);
+      const docs = await loader.load();
+      return {
+        filePath,
+        documentCount: docs.length,
+        pages: docs.map((d, i) => ({
+          page: i + 1,
+          content: d.pageContent.substring(0, 2000),
+          metadata: d.metadata,
+        })),
+        framework: 'LangChain PDFLoader',
+      };
+    } catch (error) {
+      return { error: `PDF loading failed: ${error.message}`, filePath };
+    }
+  },
+
+  // ── 14. CSV Document Loader ───────────────────────────────────────────────
+  async loadCSV(filePath, { column } = {}) {
+    try {
+      const { CSVLoader } = await import('@langchain/community/document_loaders/fs/csv');
+      const loader = new CSVLoader(filePath, { column });
+      const docs = await loader.load();
+      return {
+        filePath,
+        documentCount: docs.length,
+        rows: docs.slice(0, 100).map(d => ({
+          content: d.pageContent,
+          metadata: d.metadata,
+        })),
+        framework: 'LangChain CSVLoader',
+      };
+    } catch (error) {
+      return { error: `CSV loading failed: ${error.message}`, filePath };
+    }
+  },
+
+  // ── 15. JSON Document Loader ──────────────────────────────────────────────
+  async loadJSON(filePath, { jsonPointer } = {}) {
+    try {
+      const { JSONLoader } = await import('langchain/document_loaders/fs/json');
+      const loader = new JSONLoader(filePath, jsonPointer);
+      const docs = await loader.load();
+      return {
+        filePath,
+        documentCount: docs.length,
+        entries: docs.slice(0, 100).map(d => ({
+          content: d.pageContent,
+          metadata: d.metadata,
+        })),
+        framework: 'LangChain JSONLoader',
+      };
+    } catch (error) {
+      return { error: `JSON loading failed: ${error.message}`, filePath };
+    }
+  },
+
+  // ── 16. GitHub Repo Loader ────────────────────────────────────────────────
+  async loadGitHubRepo({ url, branch = 'main', recursive = true }) {
+    try {
+      const { GithubRepoLoader } = await import('@langchain/community/document_loaders/web/github');
+      const loader = new GithubRepoLoader(url, {
+        branch,
+        recursive,
+        unknown: 'warn',
+        maxConcurrency: 5,
+      });
+      const docs = await loader.load();
+      return {
+        url,
+        branch,
+        documentCount: docs.length,
+        files: docs.slice(0, 50).map(d => ({
+          path: d.metadata?.source,
+          contentPreview: d.pageContent.substring(0, 500),
+        })),
+        framework: 'LangChain GithubRepoLoader',
+      };
+    } catch (error) {
+      return { error: `GitHub loading failed: ${error.message}`, url };
+    }
+  },
+
+  // ── 17. Notion Page Loader ────────────────────────────────────────────────
+  async loadNotionPage({ pageId }) {
+    try {
+      const { NotionAPILoader } = await import('@langchain/community/document_loaders/web/notionapi');
+      const loader = new NotionAPILoader({
+        clientId: process.env.NOTION_CLIENT_ID,
+        clientSecret: process.env.NOTION_CLIENT_SECRET,
+        type: 'page',
+        id: pageId,
+      });
+      const docs = await loader.load();
+      return {
+        pageId,
+        documentCount: docs.length,
+        content: docs.map(d => d.pageContent).join('\n'),
+        framework: 'LangChain NotionAPILoader',
+      };
+    } catch (error) {
+      return { error: `Notion loading failed: ${error.message}`, pageId };
+    }
+  },
+
+  // ── 18. Router Chain (Intent-Based Routing) ───────────────────────────────
+  async runRouterChain({ input }) {
+    const llm = getTogetherLLM(0.0);
+
+    // Classify the intent
+    const classification = await llm.invoke([
+      new SystemMessage(`Classify the following user input into exactly one category. Respond with only the category name.
+Categories:
+- code: Programming, debugging, code generation
+- research: Information lookup, fact-finding, analysis
+- creative: Writing, storytelling, brainstorming
+- math: Calculations, equations, data analysis
+- general: Casual conversation, greetings, other`),
+      new HumanMessage(input),
+    ]);
+
+    const category = classification.content.trim().toLowerCase();
+
+    // Route to specialized prompt
+    const routePrompts = {
+      code: 'You are an elite software engineer. Write clean, well-documented code with best practices.',
+      research: 'You are a thorough researcher. Provide detailed, well-sourced, and comprehensive answers.',
+      creative: 'You are a creative genius. Produce original, engaging, and imaginative content.',
+      math: 'You are a mathematician. Show step-by-step work and verify your calculations.',
+      general: 'You are a helpful, friendly assistant.',
+    };
+
+    const response = await llm.invoke([
+      new SystemMessage(routePrompts[category] || routePrompts.general),
+      new HumanMessage(input),
+    ]);
+
+    return {
+      input,
+      detectedCategory: category,
+      response: response.content,
+      framework: 'LangChain Router Chain',
+    };
+  },
 };
 
+// ─── Re-export LangGraph Service ─────────────────────────────────────────────
+export { LangGraphService } from './langchain.langgraph.service.js';
+export { LangSmithService } from './langsmith.service.js';
+export { SSECallbackHandler, createStreamingCallback } from './langchain.callbacks.service.js';
+
 export default LangChainService;
+

@@ -50,6 +50,7 @@ import { censusRoutes } from '../modules/census/census.route.js';
 import togetherCliRoutes from '../modules/together-cli/together-cli.route.js';
 import togetherAdminRoutes from '../modules/together-admin/together-admin.route.js';
 import togetherRealtimeRoutes from '../modules/together-realtime/together-realtime.route.js';
+import langSmithRoutes from '../modules/langchain/langsmith.route.js';
 
 const router = express.Router();
 
@@ -276,6 +277,10 @@ const moduleRoutes = [
   {
     path: '/together-realtime',
     route: togetherRealtimeRoutes,
+  },
+  {
+    path: '/langsmith',
+    route: langSmithRoutes,
   },
 ];
 
