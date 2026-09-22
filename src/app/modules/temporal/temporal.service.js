@@ -142,6 +142,35 @@ export const TemporalService = {
   },
 
   /**
+   * Schedule the Exa Monitor Poll Workflow as a Cron Job
+   */
+  async startMonitorCron() {
+    const client = await getTemporalClient();
+    if (client) {
+      try {
+        await client.schedule.create({
+          scheduleId: 'sched-exa-monitor-poll',
+          spec: {
+            intervals: [{ every: '1h' }]
+          },
+          action: {
+            type: 'startWorkflow',
+            workflowType: 'pollExaMonitorsWorkflow',
+            taskQueue: 'inso-tasks',
+          }
+        });
+        logger.info('[Temporal] Started Monitor Polling Cron on Cluster');
+      } catch (err) {
+        if (err.name === 'ScheduleAlreadyRunning') {
+          logger.info('[Temporal] Monitor Polling Cron already running.');
+        } else {
+          logger.warn(`[Temporal] Could not start Monitor Cron: ${err.message}`);
+        }
+      }
+    }
+  },
+
+  /**
    * List scheduled workflows
    */
   async listSchedules() {

@@ -12,8 +12,28 @@ export async function syncStripeProductsActivity() {
 
 export async function pollExaMonitorsActivity() {
   logger.info('[Temporal] Polling Exa search monitors');
-  // Mock logic - would import ExaMonitorService
-  return { newResultsFound: 5, activeMonitors: 3 };
+  
+  // Dynamic import to avoid circular dependencies in workers
+  const { Monitor } = await import('../ExaMonitor/Monitor.model.js');
+  const { MonitorService } = await import('../ExaMonitor/monitor.service.js');
+  
+  // Find all active monitors
+  const activeMonitors = await Monitor.find({ status: 'active' });
+  let totalNewResults = 0;
+  
+  for (const monitor of activeMonitors) {
+    try {
+      logger.info(`[Temporal] Triggering run for monitor ${monitor._id}`);
+      const runResult = await MonitorService.triggerMonitor(monitor.space, monitor._id, monitor.user);
+      if (runResult && runResult.newResults) {
+        totalNewResults += runResult.newResults.length;
+      }
+    } catch (err) {
+      logger.error(`[Temporal] Monitor ${monitor._id} run failed: ${err.message}`);
+    }
+  }
+
+  return { activeMonitors: activeMonitors.length, newResultsFound: totalNewResults };
 }
 
 export async function cleanupTempUploadsActivity() {
