@@ -7,6 +7,7 @@ import { ComposioService } from '../composio/composio.service.js';
 import { VisualCrossingService } from '../visualcrossing/visualcrossing.service.js';
 import { AviationStackService } from '../aviationstack/aviationstack.service.js';
 import { CodexService } from '../codex/codex.service.js';
+import { OpenClawService } from '../openclaw/openclaw.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -36,6 +37,22 @@ const tools = [
           code: { type: 'string', description: 'The JavaScript code to execute. Must be self-contained. Use console.log() to print the result.' }
         },
         required: ['code']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'execute_edge_command',
+      description: 'Queue a bash script, docker command, or system command to a remote OpenClaw Edge VM (e.g. vm-sovereign-01).',
+      parameters: {
+        type: 'object',
+        properties: {
+          machineId: { type: 'string', description: 'The ID of the edge machine, e.g. "vm-sovereign-01"' },
+          command: { type: 'string', description: 'The type of action (e.g. "execute", "bash", "docker")' },
+          payload: { type: 'object', description: 'A JSON object with the payload or script to run' }
+        },
+        required: ['machineId', 'command', 'payload']
       }
     }
   },
@@ -92,6 +109,13 @@ export const AgentService = {
     try {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       switch (name) {
+        case 'execute_edge_command': {
+          const res = await OpenClawService.queueEdgeCommand(args.machineId, args.command, args.payload);
+          return {
+            output: `Command successfully queued to edge node ${args.machineId}. Command ID: ${res.commandId}. Status: ${res.status}. Note: Execution is async, awaiting results via polling.`,
+            references: [{ title: `Edge Command: ${res.commandId}`, url: 'local://openclaw', snippet: `Queued ${args.command} to ${args.machineId}`, source: 'OpenClaw Edge Fleet' }]
+          };
+        }
         case 'execute_code_sandbox': {
           const res = await CodexService.executeCode({ code: args.code });
           return {
