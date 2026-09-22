@@ -116,19 +116,19 @@ export const inviteMember = catchAsync(async (req, res) => {
     const planName = PLANS[selectedPlan]?.name || 'Free';
     await sendMailWithMailGun({
       to: email,
-      subject: 'You\'ve been invited to Alti AI',
+      subject: 'You\'ve been invited to Aphura AI',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto;">
-          <h2 style="color: #111;">You've been invited to Alti AI</h2>
-          <p>Someone has invited you to join their team on Alti AI and assigned you the <strong>${planName}</strong> plan.</p>
+          <h2 style="color: #111;">You've been invited to Aphura AI</h2>
+          <p>Someone has invited you to join their team on Aphura AI and assigned you the <strong>${planName}</strong> plan.</p>
           <p>Your subscription is fully covered — no payment required on your end.</p>
           <p style="margin-top: 24px;">
-            <a href="https://altihq.com" style="background: #111; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+            <a href="https://aphurahq.com" style="background: #111; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
               Get Started
             </a>
           </p>
           <hr style="margin-top: 32px;">
-          <p style="color: #999; font-size: 12px;">Alti AI — Sovereign Infrastructure</p>
+          <p style="color: #999; font-size: 12px;">Aphura AI — Sovereign Infrastructure</p>
         </div>
       `,
     });

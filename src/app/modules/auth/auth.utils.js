@@ -307,7 +307,7 @@ export const loginOtpTemplate = (email, otp) => {
   }
   const mailData = {
     userEmail: email,
-    sub: 'Your Login Code — Alti AI',
+    sub: 'Your Login Code — Aphura AI',
     message: `<div style="font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 60%;">
       <div style="max-width: 1050px; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin: auto; width: 90%;">
         <h2 style="color: #111; text-align: center; margin-bottom: 8px;">Your Login Code</h2>
@@ -318,7 +318,7 @@ export const loginOtpTemplate = (email, otp) => {
         <p style="color: #999; font-size: 14px; text-align: center;">This code expires in 5 minutes. Do not share it with anyone.</p>
         <p style="color: #999; font-size: 14px; text-align: center;">If you didn't request this code, you can safely ignore this email.</p>
       </div>
-      <p style="color: #bbb; margin-top: 16px; text-align: center; font-size: 12px;">Alti AI — Sent from Liberty Center One</p>
+      <p style="color: #bbb; margin-top: 16px; text-align: center; font-size: 12px;">Aphura AI — Sent from Liberty Center One</p>
     </div>`,
   };
   return mailData;

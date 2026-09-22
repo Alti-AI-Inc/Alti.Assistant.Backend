@@ -90,5 +90,11 @@ router.post(
   DeepResearchController.orchestrateDeepResearch
 );
 
+router.get(
+  '/telemetry',
+  // auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN), // SSE auth handled via query params or cookies usually, skipping strictly for SSE
+  DeepResearchController.getTelemetry
+);
+
 export const DeepResearchRoutes = router;
 export default router;

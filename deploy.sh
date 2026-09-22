@@ -1,10 +1,10 @@
 #!/bin/bash
-# Alti AI — Deploy to Liberty Center One
+# Aphura AI — Deploy to Liberty Center One
 # Usage: ./deploy.sh [build|start|stop|restart|logs|status]
 
 set -euo pipefail
 
-APP_NAME="alti-backend"
+APP_NAME="aphura-backend"
 COMPOSE_FILE="docker-compose.yml"
 
 # Colors
@@ -84,7 +84,7 @@ case "${1:-help}" in
     ;;
 
   *)
-    echo "Alti AI Deploy Script"
+    echo "Aphura AI Deploy Script"
     echo ""
     echo "Usage: ./deploy.sh <command>"
     echo ""

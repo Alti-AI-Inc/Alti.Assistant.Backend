@@ -95,11 +95,11 @@ export default {
     accessKey: process.env.OBJECT_STORAGE_ACCESS_KEY,
     secretKey: process.env.OBJECT_STORAGE_SECRET_KEY,
     region: process.env.OBJECT_STORAGE_REGION || 'us-east-1',
-    uploadsBucket: process.env.UPLOADS_BUCKET || 'alti-uploads',
-    transcriptionBucket: process.env.TRANSCRIPTION_BUCKET || 'alti-transcription',
-    knowledgeBankBucket: process.env.KNOWLEDGE_BANK_BUCKET || 'alti-knowledge-bank',
-    knowledgebotBucket: process.env.KNOWLEDGEBOT_BUCKET || 'alti-knowledgebot',
-    presentationBucket: process.env.PRESENTATION_BUCKET || 'alti-presentations',
+    uploadsBucket: process.env.UPLOADS_BUCKET || 'aphura-uploads',
+    transcriptionBucket: process.env.TRANSCRIPTION_BUCKET || 'aphura-transcription',
+    knowledgeBankBucket: process.env.KNOWLEDGE_BANK_BUCKET || 'aphura-knowledge-bank',
+    knowledgebotBucket: process.env.KNOWLEDGEBOT_BUCKET || 'aphura-knowledgebot',
+    presentationBucket: process.env.PRESENTATION_BUCKET || 'aphura-presentations',
   },
 
   // ── Liberty Center One / OpenStack Native Resources ───────────────────────

@@ -24,7 +24,7 @@ export const sendMailWithNodeMailer = async (mailData) => {
   });
 
   const info = await transporter.sendMail({
-    from: `"Alti AI" <${config.mail.sender_mail || config.mail.smtp_user}>`,
+    from: `"Aphura AI" <${config.mail.sender_mail || config.mail.smtp_user}>`,
     to: userEmail,
     subject: sub,
     html: message,

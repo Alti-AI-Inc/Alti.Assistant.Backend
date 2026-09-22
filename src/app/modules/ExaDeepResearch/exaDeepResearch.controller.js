@@ -187,6 +187,24 @@ const orchestrateDeepResearch = catchAsync(async (req, res) => {
   });
 });
 
+const getTelemetry = catchAsync(async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  // Send an initial connected message
+  res.write(`data: ${JSON.stringify({ percentage: 0, message: 'Connected to telemetry' })}\n\n`);
+
+  // Keep connection alive (dummy implementation until Temporal queries are fully wired)
+  const intervalId = setInterval(() => {
+    res.write(`data: ${JSON.stringify({ message: 'Processing...', type: 'info' })}\n\n`);
+  }, 5000);
+
+  req.on('close', () => {
+    clearInterval(intervalId);
+  });
+});
+
 export const DeepResearchController = {
   createDeepResearchRecord,
   getAllDeepResearchRecords,
@@ -201,4 +219,5 @@ export const DeepResearchController = {
   listAgentRuns,
   listAgentRunEvents,
   orchestrateDeepResearch,
+  getTelemetry,
 };

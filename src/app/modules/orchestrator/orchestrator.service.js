@@ -316,7 +316,7 @@ export const OrchestratorService = {
     });
 
     if (classification.route === ROUTE_TYPES.CHAT) {
-      const basePrompt = context.systemPrompt || 'You are Alti, a world-class AI assistant. Be precise, helpful, and concise.';
+      const basePrompt = context.systemPrompt || 'You are Aphura, a world-class AI assistant. Be precise, helpful, and concise.';
       const systemPrompt = GuardrailsService.buildGroundedSystemPrompt(basePrompt);
 
       const messages = [

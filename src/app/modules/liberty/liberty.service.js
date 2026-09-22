@@ -97,9 +97,9 @@ export const LibertyService = {
     } catch (err) {
       logger.warn('[Liberty] listBuckets error:', err.message);
       return [
-        { Name: config.objectStorage?.uploadsBucket || 'alti-uploads', CreationDate: new Date() },
-        { Name: config.objectStorage?.transcriptionBucket || 'alti-transcription', CreationDate: new Date() },
-        { Name: config.objectStorage?.knowledgeBankBucket || 'alti-knowledge-bank', CreationDate: new Date() },
+        { Name: config.objectStorage?.uploadsBucket || 'aphura-uploads', CreationDate: new Date() },
+        { Name: config.objectStorage?.transcriptionBucket || 'aphura-transcription', CreationDate: new Date() },
+        { Name: config.objectStorage?.knowledgeBankBucket || 'aphura-knowledge-bank', CreationDate: new Date() },
       ];
     }
   },
@@ -204,7 +204,7 @@ export const LibertyService = {
       return [
         {
           id: 'inst-lco-prod-01',
-          name: 'alti-backend-prod',
+          name: 'aphura-backend-prod',
           status: 'ACTIVE',
           flavor: { vcpus: 16, ram: 65536, disk: 500 },
           ip_addresses: ['198.51.100.24'],
@@ -212,7 +212,7 @@ export const LibertyService = {
         },
         {
           id: 'inst-lco-prod-02',
-          name: 'alti-redis-prod',
+          name: 'aphura-redis-prod',
           status: 'ACTIVE',
           flavor: { vcpus: 8, ram: 32768, disk: 200 },
           ip_addresses: ['198.51.100.25'],
@@ -233,7 +233,7 @@ export const LibertyService = {
     } catch (err) {
       return {
         id: instanceId,
-        name: 'alti-instance',
+        name: 'aphura-instance',
         status: 'ACTIVE',
         host: 'lco-compute-node-12',
         updated: new Date().toISOString(),
@@ -267,7 +267,7 @@ export const LibertyService = {
       return [
         {
           id: 'vol-lco-nvme-01',
-          name: 'alti-db-nvme',
+          name: 'aphura-db-nvme',
           size: 500,
           volume_type: 'NVMe-Direct',
           status: 'in-use',
@@ -300,7 +300,7 @@ export const LibertyService = {
       return [
         {
           id: 'net-lco-internal-01',
-          name: 'alti-internal-vpc',
+          name: 'aphura-internal-vpc',
           status: 'ACTIVE',
           subnets: ['10.0.0.0/24'],
           shared: false,
@@ -328,7 +328,7 @@ export const LibertyService = {
       return [
         {
           id: 'sg-lco-default',
-          name: 'alti-default-sg',
+          name: 'aphura-default-sg',
           description: 'Default security group',
           rules: [
             { direction: 'ingress', port_range_min: 443, port_range_max: 443, protocol: 'tcp' },
@@ -373,7 +373,7 @@ export const LibertyService = {
       return [
         {
           secret_ref: `${OPENSTACK_BARBICAN_URL}/secrets/sec-lco-tls-01`,
-          name: 'alti-tls-cert',
+          name: 'aphura-tls-cert',
           secret_type: 'certificate',
           status: 'ACTIVE',
           algorithm: 'RSA',
@@ -382,7 +382,7 @@ export const LibertyService = {
         },
         {
           secret_ref: `${OPENSTACK_BARBICAN_URL}/secrets/sec-lco-api-key`,
-          name: 'alti-api-encryption-key',
+          name: 'aphura-api-encryption-key',
           secret_type: 'symmetric',
           status: 'ACTIVE',
           algorithm: 'AES',
@@ -466,8 +466,8 @@ export const LibertyService = {
           visibility: 'public',
         },
         {
-          id: 'img-lco-alti-custom',
-          name: 'Alti AI Backend Runtime',
+          id: 'img-lco-aphura-custom',
+          name: 'Aphura AI Backend Runtime',
           status: 'active',
           disk_format: 'qcow2',
           container_format: 'bare',
@@ -507,7 +507,7 @@ export const LibertyService = {
       return [
         {
           id: 'lb-lco-prod-01',
-          name: 'alti-api-lb',
+          name: 'aphura-api-lb',
           description: 'Production API load balancer',
           provisioning_status: 'ACTIVE',
           operating_status: 'ONLINE',
@@ -591,13 +591,13 @@ export const LibertyService = {
     } catch {
       return [
         {
-          id: 'stack-lco-alti-prod',
-          stack_name: 'alti-production-stack',
+          id: 'stack-lco-aphura-prod',
+          stack_name: 'aphura-production-stack',
           stack_status: 'CREATE_COMPLETE',
-          description: 'Full Alti AI production infrastructure',
+          description: 'Full Aphura AI production infrastructure',
           creation_time: new Date().toISOString(),
           outputs: [
-            { output_key: 'api_endpoint', output_value: 'https://api.alti.ai' },
+            { output_key: 'api_endpoint', output_value: 'https://api.aphura.ai' },
             { output_key: 'lb_vip', output_value: '198.51.100.100' },
           ],
         },

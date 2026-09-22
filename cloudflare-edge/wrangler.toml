@@ -1,0 +1,11 @@
+name = "aphura-edge-distribution"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+BACKEND_URL = "https://api.aphurahq.com"
+FRONTEND_URL = "https://app.aphurahq.com"
+
+[[routes]]
+pattern = "*aphurahq.com/*"
+custom_domain = true

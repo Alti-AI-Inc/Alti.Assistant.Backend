@@ -118,9 +118,9 @@ app.use(
 );
 
 const allowedOrigins = [
-  'https://altihq.com',
-  'https://www.altihq.com',
-  'https://app.altihq.com',
+  'https://aphurahq.com',
+  'https://www.aphurahq.com',
+  'https://app.aphurahq.com',
 ];
 
 // Add CLIENT_URL from env if set
@@ -210,7 +210,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com', 'cdnjs.cloudflare.com'],
         fontSrc: ["'self'", 'fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
-        connectSrc: ["'self'", 'https://altihq.com'],
+        connectSrc: ["'self'", 'https://aphurahq.com'],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
         blockAllMixedContent: [],
@@ -341,7 +341,7 @@ const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Alti AI API',
+      title: 'Aphura AI API',
       version: '2.0.0',
       description: 'Sovereign AI platform API — passwordless OTP auth, prompt-limited billing, AI orchestration',
     },
@@ -364,7 +364,7 @@ const swaggerSpec = swaggerJsdoc({
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Alti AI API Docs',
+  customSiteTitle: 'Aphura AI API Docs',
 }));
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
@@ -490,6 +490,18 @@ const server = app.listen(port, '0.0.0.0', () => {
   }).catch(err => {
     logger.warn(`Failed to initialize Temporal background worker: ${err.message}`);
   });
+
+  // Initialize Liberty Center One buckets
+  import('./src/app/modules/liberty/liberty.service.js').then(({ default: LibertyService }) => {
+    const buckets = [
+      process.env.UPLOADS_BUCKET || 'aphura-uploads',
+      process.env.TRANSCRIPTION_BUCKET || 'aphura-transcription',
+      process.env.KNOWLEDGE_BANK_BUCKET || 'aphura-knowledge-bank'
+    ];
+    Promise.all(buckets.map(b => LibertyService.createBucket(b).catch(() => {})))
+      .then(() => logger.info('🚀 Liberty Center One buckets checked/initialized.'))
+      .catch(err => logger.warn(`Failed to init buckets: ${err.message}`));
+  }).catch(() => {});
 });
 
 // Graceful shutdown handlers

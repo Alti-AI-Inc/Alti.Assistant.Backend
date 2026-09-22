@@ -60,9 +60,9 @@ try {
 console.log('2/3 Sending test email...');
 try {
   const info = await transporter.sendMail({
-    from: `"Alti AI Test" <${SENDER_MAIL || SMTP_USER}>`,
+    from: `"Aphura AI Test" <${SENDER_MAIL || SMTP_USER}>`,
     to: recipient,
-    subject: '✅ Alti AI SMTP Test — Liberty Center One',
+    subject: '✅ Aphura AI SMTP Test — Liberty Center One',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto;">
         <h2 style="color: #111;">SMTP Test Successful</h2>
@@ -72,7 +72,7 @@ try {
           Sent at: ${new Date().toISOString()}
         </p>
         <hr>
-        <p style="color: #999; font-size: 12px;">Alti AI — Sovereign Infrastructure</p>
+        <p style="color: #999; font-size: 12px;">Aphura AI — Sovereign Infrastructure</p>
       </div>
     `,
   });
@@ -84,10 +84,10 @@ try {
 
 console.log('3/3 DNS record recommendations:');
 console.log('');
-console.log('    Add these DNS records for altihq.com to avoid spam folders:');
+console.log('    Add these DNS records for aphurahq.com to avoid spam folders:');
 console.log('');
 console.log('    SPF  (TXT):  v=spf1 a mx include:[your-smtp-host] ~all');
 console.log('    DKIM (TXT):  Generate via your SMTP provider dashboard');
-console.log('    DMARC (TXT): v=DMARC1; p=quarantine; rua=mailto:dmarc@altihq.com');
+console.log('    DMARC (TXT): v=DMARC1; p=quarantine; rua=mailto:dmarc@aphurahq.com');
 console.log('');
 console.log('    ✅ SMTP verification complete');

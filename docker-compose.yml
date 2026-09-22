@@ -1,11 +1,11 @@
-# Alti AI — Docker Compose
+# Aphura AI — Docker Compose
 # Sovereign deployment on Liberty Center One
 # Services: Backend + Redis + MongoDB
 
 services:
   redis:
     image: redis/redis-stack:7.4.0-v3
-    container_name: alti-redis
+    container_name: aphura-redis
     restart: unless-stopped
     ports:
       - "6379:6379"   # Redis
@@ -15,7 +15,7 @@ services:
     environment:
       - REDIS_ARGS=--save 900 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
     networks:
-      - alti-network
+      - aphura-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -24,14 +24,14 @@ services:
 
   mongodb:
     image: mongo:7
-    container_name: alti-mongodb
+    container_name: aphura-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
-      - alti-network
+      - aphura-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -42,8 +42,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: alti-backend:latest
-    container_name: alti-backend
+    image: aphura-backend:latest
+    container_name: aphura-backend
     restart: unless-stopped
     ports:
       - "${PORT:-5100}:${PORT:-5100}"
@@ -55,12 +55,12 @@ services:
       mongodb:
         condition: service_healthy
     networks:
-      - alti-network
+      - aphura-network
     environment:
       - NODE_ENV=production
       - PORT=${PORT:-5100}
       - REDIS_URL=redis://redis:6379
-      - MONGODB_URL=mongodb://mongodb:27017/alti-ai
+      - MONGODB_URL=mongodb://mongodb:27017/aphura-ai
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:' + (process.env.PORT || 5100) + '/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -68,12 +68,47 @@ services:
       retries: 3
       start_period: 120s
 
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: aphura-temporal
+    restart: unless-stopped
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    networks:
+      - aphura-network
+    depends_on:
+      - postgres
+    
+  postgres:
+    image: postgres:14
+    container_name: aphura-postgres-temporal
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+    ports:
+      - "5432:5432"
+    networks:
+      - aphura-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 networks:
-  alti-network:
+  aphura-network:
     driver: bridge
 
 volumes:
   redis_data:
     driver: local
   mongodb_data:
+    driver: local
+  postgres_data:
     driver: local

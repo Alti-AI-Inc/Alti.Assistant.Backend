@@ -70,7 +70,7 @@ resource "openstack_compute_instance_v2" "aphura_engine" {
               systemctl enable docker
               systemctl start docker
               # Pull and run the Aphura Sovereign Docker container
-              docker run -d --name aphura-backend -p 443:443 -p 80:80 alti/aphura-backend:latest
+              docker run -d --name aphura-backend -p 443:443 -p 80:80 aphura/aphura-backend:latest
               EOF
 }
 

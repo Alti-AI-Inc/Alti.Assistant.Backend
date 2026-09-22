@@ -14,7 +14,7 @@ const minioClient = new Minio.Client({
   pathStyle: true,
 });
 
-const bucketName = config.objectStorage?.uploadsBucket || 'alti-uploads';
+const bucketName = config.objectStorage?.uploadsBucket || 'aphura-uploads';
 
 /**
  * Custom Multer storage engine for S3-compatible object storage via MinIO client.

@@ -9,7 +9,7 @@ import { logger } from '../../../../shared/logger.js';
  */
 export async function execute({ messages, userMessage, conversationHistory = [] }, context = {}) {
   try {
-    const systemPrompt = context.systemPrompt || 'You are Alti, a world-class AI assistant. Be precise, helpful, and concise.';
+    const systemPrompt = context.systemPrompt || 'You are Aphura, a world-class AI assistant. Be precise, helpful, and concise.';
     const allMessages = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory,
