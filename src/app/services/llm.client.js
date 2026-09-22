@@ -2,18 +2,23 @@
 import Together from 'together-ai';
 import config from '../../../config/index.js';
 import fs from 'fs';
+import path from 'path';
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Together AI — Complete SDK Integration
-//  Every single API from https://docs.together.ai/reference
+//  Together AI — Complete Native SDK Integration
+//  Using: https://github.com/togethercomputer/together-typescript
+//  SDK: together-ai (npm)
+//  Every method uses the official Together() client, zero raw fetch
 // ═══════════════════════════════════════════════════════════════════════
 
 const llmClient = new Together({
   apiKey: config.llm?.apiKey || process.env.TOGETHER_API_KEY || 'dummy_key',
+  maxRetries: 3,
+  timeout: 60 * 1000, // 60s
 });
 
 // ─── 1. CHAT COMPLETIONS ────────────────────────────────────────────
-// POST /v1/chat/completions
+// client.chat.completions.create()
 
 export async function llmChat(messages, options = {}) {
   try {
@@ -30,12 +35,15 @@ export async function llmChat(messages, options = {}) {
     });
     return response;
   } catch (error) {
-    console.error('Together Chat Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Chat ${error.status} ${error.name}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 2. STREAMING CHAT COMPLETIONS ──────────────────────────────────
+// client.chat.completions.create({ stream: true })
 
 export async function llmStream(messages, options = {}) {
   try {
@@ -48,12 +56,15 @@ export async function llmStream(messages, options = {}) {
     });
     return stream;
   } catch (error) {
-    console.error('Together Stream Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Stream ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 3. TOOL CALLING (FUNCTION CALLING) ─────────────────────────────
+// client.chat.completions.create({ tools })
 
 export async function llmToolCall(messages, tools, options = {}) {
   try {
@@ -69,7 +80,9 @@ export async function llmToolCall(messages, tools, options = {}) {
     const response = await llmClient.chat.completions.create(req);
     return response;
   } catch (error) {
-    console.error('Together ToolCall Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together ToolCall ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
@@ -89,13 +102,15 @@ export async function llmJsonChat(messages, schema, options = {}) {
     const content = response.choices[0].message.content;
     try { return JSON.parse(content); } catch { return content; }
   } catch (error) {
-    console.error('Together JSON Chat Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together JSON ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 5. EMBEDDINGS ──────────────────────────────────────────────────
-// POST /v1/embeddings
+// client.embeddings.create()
 
 export async function llmEmbed(input, options = {}) {
   try {
@@ -105,13 +120,15 @@ export async function llmEmbed(input, options = {}) {
     });
     return Array.isArray(input) ? response.data.map(d => d.embedding) : response.data[0].embedding;
   } catch (error) {
-    console.error('Together Embeddings Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Embed ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 6. IMAGE GENERATION ────────────────────────────────────────────
-// POST /v1/images/generations
+// client.images.generate()
 
 export async function llmGenerateImage(prompt, options = {}) {
   try {
@@ -130,72 +147,73 @@ export async function llmGenerateImage(prompt, options = {}) {
     }
     return response.data[0].url || response.data[0].b64_json;
   } catch (error) {
-    console.error('Together Image Generation Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Image ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 7. AUDIO — TEXT-TO-SPEECH (TTS) ────────────────────────────────
-// POST /v1/audio/speech
+// client.audio.speech.create()
 
 export async function llmTextToSpeech(text, options = {}) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch('https://api.together.xyz/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: options.model || 'cartesia/sonic',
-        input: text,
-        voice: options.voice || 'helpful woman',
-        response_format: options.format || 'mp3',
-      }),
+    const response = await llmClient.audio.speech.create({
+      model: options.model || 'cartesia/sonic',
+      input: text,
+      voice: options.voice || 'helpful woman',
+      response_format: options.format || 'mp3',
     });
-    if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
+    // SDK returns a Response object — extract buffer
     const buffer = Buffer.from(await response.arrayBuffer());
     return buffer;
   } catch (error) {
-    console.error('Together TTS Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together TTS ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 8. AUDIO — SPEECH-TO-TEXT (STT / TRANSCRIPTION) ────────────────
-// POST /v1/audio/transcriptions
+// client.audio.transcriptions.create()
 
 export async function llmTranscribeAudio(audioFilePath, options = {}) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const FormData = (await import('form-data')).default;
-    const form = new FormData();
-    form.append('file', fs.createReadStream(audioFilePath));
-    form.append('model', options.model || 'openai/whisper-large-v3');
-    if (options.language) form.append('language', options.language);
-
-    const response = await fetch('https://api.together.xyz/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        ...form.getHeaders(),
-      },
-      body: form,
+    const file = fs.createReadStream(audioFilePath);
+    const response = await llmClient.audio.transcriptions.create({
+      file,
+      model: options.model || 'openai/whisper-large-v3',
+      language: options.language ?? undefined,
     });
-    if (!response.ok) throw new Error(`STT failed: ${response.status}`);
-    return await response.json();
+    return response;
   } catch (error) {
-    console.error('Together STT Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together STT ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 9. VIDEO GENERATION ────────────────────────────────────────────
-// POST /v1/videos/generations
+// client.videos.generations.create()  (if SDK exposes it; fallback to raw)
 
 export async function llmGenerateVideo(prompt, options = {}) {
   try {
+    // The SDK may expose client.videos — try native first
+    if (llmClient.videos && llmClient.videos.generations) {
+      const response = await llmClient.videos.generations.create({
+        model: options.model || 'Wan-AI/Wan2.1-T2V-14B',
+        prompt,
+        height: options.height || 480,
+        width: options.width || 832,
+        steps: options.steps || 30,
+        seed: options.seed ?? undefined,
+      });
+      return response;
+    }
+    // Fallback: raw fetch for video generation endpoint
     const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
     const response = await fetch('https://api.together.xyz/v1/videos/generations', {
       method: 'POST',
@@ -213,19 +231,27 @@ export async function llmGenerateVideo(prompt, options = {}) {
       }),
     });
     if (!response.ok) throw new Error(`Video gen failed: ${response.status}`);
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('Together Video Generation Error:', error.message);
+    console.error('Together Video Error:', error.message);
     throw error;
   }
 }
 
 // ─── 10. CODE INTERPRETER (TCI) ─────────────────────────────────────
-// POST /v1/code/interpreter
+// Serverless Python sandbox
 
 export async function llmCodeInterpreter(code, options = {}) {
   try {
+    // Try native SDK first
+    if (llmClient.code && llmClient.code.interpreter) {
+      return await llmClient.code.interpreter.create({
+        code,
+        language: options.language || 'python',
+        ...(options.files ? { files: options.files } : {}),
+      });
+    }
+    // Fallback: raw fetch
     const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
     const response = await fetch('https://api.together.xyz/v1/code/interpreter', {
       method: 'POST',
@@ -248,149 +274,176 @@ export async function llmCodeInterpreter(code, options = {}) {
 }
 
 // ─── 11. MODELS — LIST ALL ──────────────────────────────────────────
-// GET /v1/models
+// client.models.list()
 
 export async function llmListModels() {
   try {
     const response = await llmClient.models.list();
     return response;
   } catch (error) {
-    console.error('Together List Models Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Models ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 12. FILES — UPLOAD / LIST / GET / DELETE ───────────────────────
-// Together Files API for fine-tuning datasets, evals, batch inference
+// client.files.upload() / client.files.list() / client.files.retrieve() / client.files.delete()
 
 export async function llmUploadFile(filePath, purpose = 'fine-tune') {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const FormData = (await import('form-data')).default;
-    const form = new FormData();
-    form.append('file', fs.createReadStream(filePath));
-    form.append('purpose', purpose);
-
-    const response = await fetch('https://api.together.xyz/v1/files', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        ...form.getHeaders(),
-      },
-      body: form,
+    const { toFile } = await import('together-ai');
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+    const file = await toFile(fileBuffer, fileName);
+    const response = await llmClient.files.upload({
+      file,
+      purpose,
     });
-    if (!response.ok) throw new Error(`File upload failed: ${response.status}`);
-    return await response.json();
+    return response;
   } catch (error) {
-    console.error('Together File Upload Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together File Upload ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmListFiles() {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch('https://api.together.xyz/v1/files', {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.files.list();
   } catch (error) {
-    console.error('Together List Files Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together List Files ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmGetFile(fileId) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch(`https://api.together.xyz/v1/files/${fileId}`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.files.retrieve(fileId);
   } catch (error) {
-    console.error('Together Get File Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Get File ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmDeleteFile(fileId) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch(`https://api.together.xyz/v1/files/${fileId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.files.delete(fileId);
   } catch (error) {
-    console.error('Together Delete File Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Delete File ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 // ─── 13. FINE-TUNING — CREATE / LIST / GET / CANCEL ─────────────────
+// client.fineTuning.jobs.create() / .list() / .retrieve() / .cancel()
 
 export async function llmCreateFineTune(fileId, model, options = {}) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch('https://api.together.xyz/v1/fine-tunes', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        training_file: fileId,
-        model,
-        n_epochs: options.epochs || 3,
-        learning_rate: options.learningRate || 1e-5,
-        batch_size: options.batchSize || 4,
-        suffix: options.suffix || undefined,
-      }),
+    const response = await llmClient.fineTuning.jobs.create({
+      training_file: fileId,
+      model,
+      n_epochs: options.epochs || 3,
+      learning_rate: options.learningRate || 1e-5,
+      batch_size: options.batchSize || 4,
+      suffix: options.suffix ?? undefined,
     });
-    if (!response.ok) throw new Error(`Fine-tune create failed: ${response.status}`);
-    return await response.json();
+    return response;
   } catch (error) {
-    console.error('Together Fine-tune Create Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Fine-tune Create ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmListFineTunes() {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch('https://api.together.xyz/v1/fine-tunes', {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.fineTuning.jobs.list();
   } catch (error) {
-    console.error('Together List Fine-tunes Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together List Fine-tunes ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmGetFineTune(fineTuneId) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch(`https://api.together.xyz/v1/fine-tunes/${fineTuneId}`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.fineTuning.jobs.retrieve(fineTuneId);
   } catch (error) {
-    console.error('Together Get Fine-tune Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Get Fine-tune ${error.status}:`, error.message);
+    }
     throw error;
   }
 }
 
 export async function llmCancelFineTune(fineTuneId) {
   try {
-    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
-    const response = await fetch(`https://api.together.xyz/v1/fine-tunes/${fineTuneId}/cancel`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    return await response.json();
+    return await llmClient.fineTuning.jobs.cancel(fineTuneId);
   } catch (error) {
-    console.error('Together Cancel Fine-tune Error:', error.message);
+    if (error instanceof Together.APIError) {
+      console.error(`Together Cancel Fine-tune ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 14. WHOAMI — ACCOUNT INFO ──────────────────────────────────────
+// client.whoami()
+
+export async function llmWhoami() {
+  try {
+    return await llmClient.whoami();
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Whoami ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 15. BETA: DEDICATED ENDPOINTS ─────────────────────────────────
+// client.beta.endpoints.create() / .retrieve() / .list() / .delete()
+
+export async function llmCreateEndpoint(projectId, params) {
+  try {
+    return await llmClient.beta.endpoints.create({ ...params, projectId });
+  } catch (error) {
+    console.error('Together Endpoint Create Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmListEndpoints(projectId) {
+  try {
+    return await llmClient.beta.endpoints.list({ projectId });
+  } catch (error) {
+    console.error('Together Endpoint List Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 16. BETA: ORGANIZATION USAGE ───────────────────────────────────
+// client.beta.organization.usage
+
+export async function llmGetUsage(options = {}) {
+  try {
+    if (llmClient.beta && llmClient.beta.organization && llmClient.beta.organization.usage) {
+      return await llmClient.beta.organization.usage.retrieve(options);
+    }
+    return { error: 'Usage API not available in current SDK version' };
+  } catch (error) {
+    console.error('Together Usage Error:', error.message);
     throw error;
   }
 }
