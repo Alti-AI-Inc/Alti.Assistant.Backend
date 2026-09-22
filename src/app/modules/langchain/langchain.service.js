@@ -8,6 +8,8 @@ import { StructuredOutputParser } from 'langchain/output_parsers';
 import { BufferMemory } from 'langchain/memory';
 import { ConversationChain } from 'langchain/chains';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
+import { ExaSearchResults } from '@langchain/exa';
+import Exa from 'exa-js';
 import z from 'zod';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
@@ -191,6 +193,33 @@ export const LangChainService = {
       documentCount: docs.length,
       content: docs[0]?.pageContent?.substring(0, 5000), // Cap for safety
       framework: 'LangChain CheerioWebBaseLoader'
+    };
+  },
+
+  // ── 8. Exa Neural Search Integration ────────────────────────────────────────
+  async runExaSearchAgent({ input }) {
+    const llm = getGroqLLM(0.1);
+    
+    // Instantiate Exa tool
+    const client = new Exa(config.exa_api_key);
+    const exaTool = new ExaSearchResults({ client });
+    
+    const prompt = ChatPromptTemplate.fromMessages([
+      ['system', 'You are an elite research assistant. Use the Exa search tool to find accurate and up-to-date information.'],
+      ['placeholder', '{chat_history}'],
+      ['human', '{input}'],
+      ['placeholder', '{agent_scratchpad}'],
+    ]);
+    
+    const agent = createToolCallingAgent({ llm, tools: [exaTool], prompt });
+    const agentExecutor = new AgentExecutor({ agent, tools: [exaTool] });
+    
+    const result = await agentExecutor.invoke({ input });
+    return {
+      input,
+      output: result.output,
+      model: 'gpt-oss-120b',
+      framework: 'LangChain @langchain/exa'
     };
   },
 

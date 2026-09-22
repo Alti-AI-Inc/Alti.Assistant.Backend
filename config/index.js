@@ -131,6 +131,13 @@ export default {
       parseFloat(process.env.CODE_QUERY_CONFIDENCE_THRESHOLD) || 0.7,
   },
 
+  // ── LangSmith (Observability) ─────────────────────────────────────────────
+  langsmith: {
+    tracing: process.env.LANGSMITH_TRACING === 'true',
+    apiKey: process.env.LANGSMITH_API_KEY,
+    project: process.env.LANGSMITH_PROJECT || 'default',
+  },
+
   // ── Privacy Policy ────────────────────────────────────────────────────────
   privacy: {
     neverCollectData: true,

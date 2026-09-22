@@ -17,6 +17,7 @@ router.post('/output-parsers/structured', LangChainController.parseStructuredOut
 router.post('/text-splitters/split', LangChainController.splitText);
 router.post('/memory/chat', LangChainController.runMemoryChain);
 router.post('/document-loaders/web', LangChainController.scrapeWebPage);
+router.post('/agent/exa', LangChainController.runExaSearchAgent);
 
 // Templates Catalog
 router.get('/graphs', LangChainController.listGraphTemplates);

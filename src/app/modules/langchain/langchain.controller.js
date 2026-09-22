@@ -68,6 +68,11 @@ const scrapeWebPage = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Web page scraped.', data: result });
 });
 
+const runExaSearchAgent = catchAsync(async (req, res) => {
+  const result = await LangChainService.runExaSearchAgent(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Exa search agent executed.', data: result });
+});
+
 export const LangChainController = {
   runReasoningGraph,
   runRagChain,
@@ -78,6 +83,7 @@ export const LangChainController = {
   splitText,
   runMemoryChain,
   scrapeWebPage,
+  runExaSearchAgent,
 };
 
 export default LangChainController;
