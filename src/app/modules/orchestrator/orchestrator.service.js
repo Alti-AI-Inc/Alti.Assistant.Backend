@@ -1,6 +1,6 @@
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
 import { PipelineExecutor } from './pipeline.js';
-import { groqStream } from '../../services/groq.client.js';
+import { llmStream } from '../../services/llm.client.js';
 import { GroundingService } from '../../services/grounding.service.js';
 import { GuardrailsService } from '../../services/guardrails.service.js';
 import { ModelRouter } from '../../services/modelRouter.service.js';
@@ -325,7 +325,7 @@ export const OrchestratorService = {
         { role: 'user', content: sanitizedMessage },
       ];
 
-      const stream = await groqStream(messages, { model });
+      const stream = await llmStream(messages, { model });
 
       return {
         classification,

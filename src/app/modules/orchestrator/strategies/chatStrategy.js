@@ -1,4 +1,4 @@
-import { groqChat, groqStream } from '../../../services/groq.client.js';
+import { llmChat, llmStream } from '../../../services/llm.client.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
@@ -17,15 +17,15 @@ export async function execute({ messages, userMessage, conversationHistory = [] 
     ];
 
     if (context.stream) {
-      return { stream: await groqStream(allMessages, { model: config.groq?.model || 'gpt-oss-120b' }), route: 'CHAT' };
+      return { stream: await llmStream(allMessages, { model: config.llm?.model || 'gpt-oss-120b' }), route: 'CHAT' };
     }
 
-    const response = await groqChat(allMessages, { model: config.groq?.model || 'gpt-oss-120b' });
+    const response = await llmChat(allMessages, { model: config.llm?.model || 'gpt-oss-120b' });
     return {
       route: 'CHAT',
       result: response.choices?.[0]?.message?.content || '',
       usage: response.usage,
-      model: config.groq?.model || 'gpt-oss-120b',
+      model: config.llm?.model || 'gpt-oss-120b',
     };
   } catch (error) {
     logger.error('Error in chatStrategy', error);

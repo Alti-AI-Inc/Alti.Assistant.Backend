@@ -1,6 +1,6 @@
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import { groqChat, groqStream, groqLightChat } from '../../services/groq.client.js';
+import { llmChat, llmStream, llmLightChat } from '../../services/llm.client.js';
 import Chat from '../chat/chat.model.js';
 import UserModel from '../auth/auth.model.js';
 import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
@@ -213,7 +213,7 @@ Directives for World-Class Output:
 
     try {
       const stream = AgentService.runAgentStream(messages, {
-        model: config.groq?.model || 'gpt-oss-120b',
+        model: config.llm?.model || 'gpt-oss-120b',
         temperature: 0.2,
       });
 
@@ -308,7 +308,7 @@ Directives for World-Class Output:
 
     const llmStart = Date.now();
     const result = await AgentService.runAgentJson(messages, {
-      model: config.groq?.model || 'gpt-oss-120b',
+      model: config.llm?.model || 'gpt-oss-120b',
       temperature: 0.2,
     });
 
@@ -379,7 +379,7 @@ Directives for World-Class Output:
 
       const responseRecord = {
         prompt,
-        model: config.groq?.model || 'gpt-oss-120b',
+        model: config.llm?.model || 'gpt-oss-120b',
         reply,
         search_results: searchResults,
         total_time: String(totalTime),

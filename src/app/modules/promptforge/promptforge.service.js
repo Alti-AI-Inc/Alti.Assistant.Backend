@@ -1,4 +1,4 @@
-import { groqLightChat } from '../../services/groq.client.js';
+import { llmLightChat } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 
@@ -98,18 +98,18 @@ Return ONLY a valid JSON object: { "original": "string", "optimized": "string", 
       },
     ];
 
-    const res = await groqLightChat(messages, {
-      model: config.groq?.lightModel || 'gpt-oss-20b',
+    const res = await llmLightChat(messages, {
+      model: config.llm?.lightModel || 'gpt-oss-20b',
       temperature: 0.1,
     });
 
     const content = res.choices?.[0]?.message?.content || '{}';
     try {
       const data = JSON.parse(content);
-      return { ...data, model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { ...data, model: config.llm?.lightModel || 'gpt-oss-20b' };
     } catch (err) {
       logger.error('[PromptForge] Failed to parse optimize response:', err.message);
-      return { original: prompt, optimized: content, improvements: [], model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { original: prompt, optimized: content, improvements: [], model: config.llm?.lightModel || 'gpt-oss-20b' };
     }
   },
 
@@ -132,18 +132,18 @@ Return ONLY a valid JSON object: { "analysis": "string", "score": number, "sugge
       },
     ];
 
-    const res = await groqLightChat(messages, {
-      model: config.groq?.lightModel || 'gpt-oss-20b',
+    const res = await llmLightChat(messages, {
+      model: config.llm?.lightModel || 'gpt-oss-20b',
       temperature: 0.1,
     });
 
     const content = res.choices?.[0]?.message?.content || '{}';
     try {
       const data = JSON.parse(content);
-      return { ...data, model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { ...data, model: config.llm?.lightModel || 'gpt-oss-20b' };
     } catch (err) {
       logger.error('[PromptForge] Failed to parse analyze response:', err.message);
-      return { analysis: content, score: 0, suggestions: [], model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { analysis: content, score: 0, suggestions: [], model: config.llm?.lightModel || 'gpt-oss-20b' };
     }
   },
 };

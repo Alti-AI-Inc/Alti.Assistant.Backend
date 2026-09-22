@@ -1,5 +1,5 @@
 import vm from 'vm';
-import { groqChat } from '../../services/groq.client.js';
+import { llmChat } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 
 export const CodexService = {
@@ -18,7 +18,7 @@ Include brief explanations of architectural decisions.`;
       { role: 'user', content: prompt },
     ];
 
-    const response = await groqChat(messages, {
+    const response = await llmChat(messages, {
       model: 'gpt-oss-120b',
       temperature: 0.1,
     });
@@ -53,7 +53,7 @@ Provide:
       { role: 'user', content: `Analyze this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, {
+    const response = await llmChat(messages, {
       model: 'gpt-oss-120b',
       temperature: 0.2,
     });
@@ -79,7 +79,7 @@ Provide the improved code along with a bullet-point diff of changes.`,
       { role: 'user', content: `Refactor this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, {
+    const response = await llmChat(messages, {
       model: 'gpt-oss-120b',
       temperature: 0.1,
     });
@@ -109,7 +109,7 @@ Audit the provided ${language} code for:
       { role: 'user', content: `Audit this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, {
+    const response = await llmChat(messages, {
       model: 'gpt-oss-120b',
       temperature: 0.1,
     });
@@ -186,7 +186,7 @@ If cursor_position is provided, complete from that character offset.`,
       { role: 'user', content: `Complete this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.0, max_tokens: 4096 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.0, max_tokens: 4096 });
     const content = response.choices?.[0]?.message?.content || '';
     const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
     return {
@@ -212,7 +212,7 @@ Return the translated code in a markdown code block. Include a brief migration n
       { role: 'user', content: `Translate this code:\n\`\`\`${from_language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
     const content = response.choices?.[0]?.message?.content || '';
     const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
 
@@ -247,7 +247,7 @@ Return the test file in a markdown code block.`,
       { role: 'user', content: `Generate tests for:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
     const content = response.choices?.[0]?.message?.content || '';
     const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
 
@@ -280,7 +280,7 @@ Return the fully documented code in a markdown code block.`,
       { role: 'user', content: `Document this code:\n\`\`\`${language}\n${code}\n\`\`\`` },
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
     const content = response.choices?.[0]?.message?.content || '';
     const codeMatch = content.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
 
@@ -315,7 +315,7 @@ Provide:
       },
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
 
     return {
       language,
@@ -331,7 +331,7 @@ Provide:
    * Streaming code generation with SSE.
    */
   async generateCodeStream({ prompt, language = 'javascript', framework = 'none', context = '' }) {
-    const { groqStream: groqStreamFn } = await import('../../services/groq.client.js');
+    const { llmStream: llmStreamFn } = await import('../../services/llm.client.js');
 
     const systemPrompt = `You are Open Codex, an elite AI code generation engine powered by open-source models.
 Generate production-ready, clean, well-commented ${language} code${framework !== 'none' ? ` using ${framework}` : ''}.
@@ -343,7 +343,7 @@ Return the code enclosed in standard markdown code blocks with language specifie
       { role: 'user', content: prompt },
     ];
 
-    return await groqStreamFn(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
+    return await llmStreamFn(messages, { model: 'gpt-oss-120b', temperature: 0.1 });
   },
 };
 

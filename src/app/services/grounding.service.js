@@ -24,8 +24,8 @@ export const GroundingService = {
     if (!text || text.length < 20) return [];
 
     try {
-      const { groqLightChat } = await import('./groq.client.js');
-      const response = await groqLightChat([
+      const { llmLightChat } = await import('./llm.client.js');
+      const response = await llmLightChat([
         { role: 'system', content: CLAIM_EXTRACTION_PROMPT },
         { role: 'user', content: text.slice(0, 4000) },
       ]);

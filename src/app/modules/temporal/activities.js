@@ -41,7 +41,7 @@ export async function cleanupTempUploadsActivity() {
   return { filesDeleted: 45, spaceFreedMB: 120.4 };
 }
 
-import { groqChat } from '../../services/groq.client.js';
+import { llmChat } from '../../services/llm.client.js';
 import { LlamaIndexService } from '../../services/llamaindex.service.js';
 import { OpenClawService } from '../openclaw/openclaw.service.js';
 import axios from 'axios';
@@ -50,7 +50,7 @@ export async function generateSearchQueriesActivity(topic) {
   logger.info(`[Temporal] Generating deep research queries for: ${topic}`);
   const prompt = `Break down this research topic into 3 distinct, highly targeted search queries to get comprehensive facts and different angles. Return ONLY a JSON array of strings: "${topic}"`;
   
-  const res = await groqChat([{ role: 'user', content: prompt }], { model: 'gpt-oss-20b' });
+  const res = await llmChat([{ role: 'user', content: prompt }], { model: 'gpt-oss-20b' });
   const content = res.choices?.[0]?.message?.content || '[]';
   
   try {
@@ -225,7 +225,7 @@ export async function generateDataAnalysisCodeActivity(prompt) {
 Print the final answer using console.log().
 Return ONLY raw JavaScript code, no markdown wrappers, no explanations.`;
   
-  const res = await groqChat([
+  const res = await llmChat([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: prompt }
   ], { model: 'gpt-oss-20b' });
@@ -257,7 +257,7 @@ ${executionResult.error ? `Error: ${executionResult.error}` : ''}
 
 Synthesize a direct, helpful answer based on this execution output.`;
   
-  const res = await groqChat([{ role: 'user', content: synthesisPrompt }], { model: 'gpt-oss-20b' });
+  const res = await llmChat([{ role: 'user', content: synthesisPrompt }], { model: 'gpt-oss-20b' });
   return res.choices?.[0]?.message?.content || 'Synthesis failed.';
 }
 
@@ -288,7 +288,7 @@ Format:
   { "id": "step_2", "system": "CODEX", "action": "Calculate percentage change", "dependsOn": ["step_1"] }
 ]`;
 
-  const res = await groqChat([
+  const res = await llmChat([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: prompt }
   ], { model: 'gpt-oss-120b', response_format: { type: 'json_object' } });
@@ -300,7 +300,7 @@ Format:
     const parsed = JSON.parse(content);
     plan = Array.isArray(parsed) ? parsed : (parsed.steps || parsed.plan || []);
   } catch (e) {
-    logger.error('[AGI] Failed to parse Groq DAG plan:', content);
+    logger.error('[AGI] Failed to parse LLM DAG plan:', content);
   }
   return plan;
 }

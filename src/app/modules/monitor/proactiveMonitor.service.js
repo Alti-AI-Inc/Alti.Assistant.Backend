@@ -1,12 +1,12 @@
 import { logger } from '../../../shared/logger.js';
-import { groqLightChat } from '../../services/groq.client.js';
+import { llmLightChat } from '../../services/llm.client.js';
 
 /**
  * World-Class Proactive Intelligence Monitor
  * 
  * Capabilities:
  * 1. Continuous Web Crawling (Exa Neural Search)
- * 2. State-Diff Analysis (Groq 20b detects anomalies/changes)
+ * 2. State-Diff Analysis (LLM 20b detects anomalies/changes)
  * 3. Alert Dispatch (via Composio to Slack/Email)
  * 4. Sovereign Memory (MongoDB snapshotting)
  */
@@ -38,7 +38,7 @@ export const ProactiveMonitorService = {
       // 2. Load previous state
       const previousData = this.snapshots.get(monitorId) || '';
       
-      // 3. Compute semantic diff using Groq 20b
+      // 3. Compute semantic diff using LLM 20b
       const diffPrompt = `You are a proactive intelligence monitor. Compare the NEW data against the PREVIOUS data.
 If there is a critical breaking change, new event, or significant update, summarize it concisely.
 If there are no meaningful updates, reply with exactly: "NO_CHANGE".
@@ -49,7 +49,7 @@ ${previousData || 'None (First run)'}
 NEW DATA:
 ${currentData}`;
 
-      const res = await groqLightChat([{ role: 'system', content: diffPrompt }], { temperature: 0.1 });
+      const res = await llmLightChat([{ role: 'system', content: diffPrompt }], { temperature: 0.1 });
       const analysis = res.choices[0].message.content.trim();
 
       // 4. Update snapshot

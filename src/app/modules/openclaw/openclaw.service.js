@@ -4,7 +4,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { groqChat } from '../../services/groq.client.js';
+import { llmChat } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 import { OpenClawAgent, OpenClawMemory, OpenClawTask, EdgeCommand } from './openclaw.model.js';
 
@@ -82,7 +82,7 @@ Maintain your persistent identity and utilize your memory.`;
       ...contextMessages,
     ];
 
-    const response = await groqChat(messages, { model: 'gpt-oss-120b', temperature: 0.3 });
+    const response = await llmChat(messages, { model: 'gpt-oss-120b', temperature: 0.3 });
     const reply = response.choices?.[0]?.message?.content || 'Acknowledged.';
 
     // Store agent response
@@ -179,11 +179,11 @@ Maintain your persistent identity and utilize your memory.`;
   },
 
   /**
-   * Skill 3: RepoTriage (Real Groq LLM analysis)
+   * Skill 3: RepoTriage (Real LLM LLM analysis)
    */
   async triageCode(codeText) {
     if (!codeText) throw new Error('Code snippet required');
-    const response = await groqChat([
+    const response = await llmChat([
       { role: 'system', content: 'You are an elite code reviewer. Analyze this code for bugs, security, and style. Return JSON output.' },
       { role: 'user', content: codeText }
     ], { model: 'gpt-oss-20b', temperature: 0.1 });

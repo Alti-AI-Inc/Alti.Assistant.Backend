@@ -13,8 +13,8 @@ import { logger } from '../../shared/logger.js';
 
 // Model definitions
 export const MODELS = {
-  LIGHT: 'gpt-oss-20b',    // Fast, cheap — classification, extraction, simple Q&A
-  HEAVY: 'gpt-oss-120b',   // Powerful — reasoning, code, agents, complex tasks
+  LIGHT: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',    // Fast, cheap — classification, extraction, simple Q&A
+  HEAVY: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',   // Powerful — reasoning, code, agents, complex tasks
 };
 
 // Route → default model mapping

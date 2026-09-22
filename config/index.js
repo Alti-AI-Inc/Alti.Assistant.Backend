@@ -57,8 +57,8 @@ export default {
   // gpt-oss-120b: 120B MoE, 500 tok/s, 128k context — heavy reasoning & code
   // gpt-oss-20b:  20B dense, 1200 tok/s, 128k context — fast classification
   // whisper-large-v3-turbo: Speech-to-text
-  groq: {
-    apiKey: process.env.GROQ_API_KEY,
+  llm: {
+    apiKey: process.env.LLM_API_KEY,
     model: process.env.GROQ_MODEL || 'gpt-oss-120b',
     lightModel: process.env.GROQ_LIGHT_MODEL || 'gpt-oss-20b',
     sttModel: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',

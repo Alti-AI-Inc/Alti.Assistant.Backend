@@ -1,12 +1,12 @@
 import { logger } from '../../../shared/logger.js';
-import { groqChat } from '../../services/groq.client.js';
+import { llmChat } from '../../services/llm.client.js';
 
 /**
  * World-Class Deep Research Engine
  * 
  * Capabilities:
  * 1. Multi-Hop Recursive Exa Neural Searching
- * 2. Parallel Fact Extraction & Synthesis (Groq 120B)
+ * 2. Parallel Fact Extraction & Synthesis (LLM 120B)
  * 3. 100% Citation Grounding in Markdown
  * 4. Temporal-Ready for Durable Overnight Runs
  */
@@ -18,7 +18,7 @@ export const DeepResearchService = {
   async generateSubQueries(mainTopic, depth = 3) {
     const prompt = `You are a world-class research planner. Break down the topic "${mainTopic}" into ${depth} distinct, highly specific search queries that will yield comprehensive data. Return ONLY a JSON array of strings.`;
     
-    const res = await groqChat([{ role: 'user', content: prompt }], { temperature: 0.2 });
+    const res = await llmChat([{ role: 'user', content: prompt }], { temperature: 0.2 });
     try {
       const jsonStr = res.choices[0].message.content.match(/\[.*\]/s)[0];
       return JSON.parse(jsonStr);
@@ -73,7 +73,7 @@ Directives:
 4. Do not include any fluff or preamble.
 5. End with a complete "### Bibliography" listing all cited sources.`;
 
-    const res = await groqChat([{ role: 'system', content: prompt }], { model: 'gpt-oss-120b', temperature: 0.1, max_tokens: 8000 });
+    const res = await llmChat([{ role: 'system', content: prompt }], { model: 'gpt-oss-120b', temperature: 0.1, max_tokens: 8000 });
     return res.choices[0].message.content;
   },
 

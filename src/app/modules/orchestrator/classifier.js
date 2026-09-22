@@ -1,4 +1,4 @@
-import { groqLightToolCall } from '../../services/groq.client.js';
+import { llmLightToolCall } from '../../services/llm.client.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -27,7 +27,7 @@ export const ROUTE_TYPES = {
 };
 
 /**
- * Tool-calling schema for Groq gpt-oss-20b intent classification.
+ * Tool-calling schema for LLM gpt-oss-20b intent classification.
  * Uses structured function output to guarantee parseable routing decisions.
  */
 const CLASSIFICATION_TOOLS = [
@@ -248,7 +248,7 @@ function heuristicClassify(message) {
 
 /**
  * Intent Classifier Engine.
- * Primary: Groq gpt-oss-20b tool-calling for fast structured classification (~100ms).
+ * Primary: LLM gpt-oss-20b tool-calling for fast structured classification (~100ms).
  * Fallback: Keyword heuristic when LLM is unavailable or slow.
  */
 export const IntentClassifier = {
@@ -276,8 +276,8 @@ export const IntentClassifier = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), maxLatencyMs);
 
-      const response = await groqLightToolCall(messages, CLASSIFICATION_TOOLS, {
-        model: config.groq?.lightModel || 'gpt-oss-20b',
+      const response = await llmLightToolCall(messages, CLASSIFICATION_TOOLS, {
+        model: config.llm?.lightModel || 'gpt-oss-20b',
         temperature: 0.0,
         max_tokens: 512,
         tool_choice: { type: 'function', function: { name: 'classify_intent' } },

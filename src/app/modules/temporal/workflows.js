@@ -70,7 +70,7 @@ export async function deepResearchWorkflow(topic, collectionId) {
     await scrapeAndIndexActivity(urls, collectionId);
   }
   
-  // Step 4: Synthesize the findings via Groq LLM against the LlamaIndex vector store
+  // Step 4: Synthesize the findings via LLM LLM against the LlamaIndex vector store
   const finalReport = await synthesizeReportActivity(collectionId, topic);
   
   return finalReport;
@@ -87,7 +87,7 @@ const repoActivities = proxyActivities({
 
 /**
  * Autonomous Private Repository Intelligence Workflow
- * Clones, Indexes, and Analyzes complex codebases using OpenClaw + LlamaIndex + Groq
+ * Clones, Indexes, and Analyzes complex codebases using OpenClaw + LlamaIndex + LLM
  */
 export async function repositoryIntelligenceWorkflow(repoUrl, query, collectionId) {
   // Step 1: Clone and extract repo map (OpenClaw native)
@@ -96,7 +96,7 @@ export async function repositoryIntelligenceWorkflow(repoUrl, query, collectionI
   // Step 2: Ingest the source files into local vector storage (LlamaIndex)
   await repoActivities.indexRepositoryActivity(repoData.repoPath, collectionId);
   
-  // Step 3: Analyze the codebase with high-context reasoning (Groq RAG)
+  // Step 3: Analyze the codebase with high-context reasoning (LLM RAG)
   const analysisReport = await repoActivities.analyzeRepositoryActivity(collectionId, repoUrl, query);
   
   return analysisReport;

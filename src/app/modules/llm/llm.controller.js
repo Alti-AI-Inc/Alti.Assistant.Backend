@@ -1,11 +1,11 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { GroqService } from './groq.service.js';
+import { LlmService } from './llm.service.js';
 
 const chat = catchAsync(async (req, res) => {
   const { messages, model, temperature, max_tokens } = req.body;
-  const result = await GroqService.chat(messages, { model, temperature, max_tokens });
+  const result = await LlmService.chat(messages, { model, temperature, max_tokens });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -22,7 +22,7 @@ const streamChat = async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
 
   try {
-    const stream = await GroqService.stream(messages, { model, temperature, max_tokens });
+    const stream = await LlmService.stream(messages, { model, temperature, max_tokens });
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
@@ -39,7 +39,7 @@ const streamChat = async (req, res) => {
 
 const toolCall = catchAsync(async (req, res) => {
   const { messages, tools, model, temperature } = req.body;
-  const result = await GroqService.toolCall(messages, tools, { model, temperature });
+  const result = await LlmService.toolCall(messages, tools, { model, temperature });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -57,7 +57,7 @@ const transcribeAudio = catchAsync(async (req, res) => {
   }
 
   const { language, prompt } = req.body;
-  const result = await GroqService.transcribeAudio(req.file.path, { language, prompt });
+  const result = await LlmService.transcribeAudio(req.file.path, { language, prompt });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -75,7 +75,7 @@ const translateAudio = catchAsync(async (req, res) => {
   }
 
   const { prompt } = req.body;
-  const result = await GroqService.translateAudio(req.file.path, { prompt });
+  const result = await LlmService.translateAudio(req.file.path, { prompt });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -85,18 +85,18 @@ const translateAudio = catchAsync(async (req, res) => {
 });
 
 const listModels = catchAsync(async (req, res) => {
-  const result = await GroqService.listModels();
+  const result = await LlmService.listModels();
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Groq models listed.',
+    message: 'Llm models listed.',
     data: result,
   });
 });
 
 const lightChat = catchAsync(async (req, res) => {
   const { messages, temperature, max_tokens } = req.body;
-  const result = await GroqService.lightChat(messages, { temperature, max_tokens });
+  const result = await LlmService.lightChat(messages, { temperature, max_tokens });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -113,7 +113,7 @@ const lightStream = async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
 
   try {
-    const stream = await GroqService.lightStream(messages, { temperature, max_tokens });
+    const stream = await LlmService.lightStream(messages, { temperature, max_tokens });
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
@@ -131,7 +131,7 @@ const lightStream = async (req, res) => {
 // ── Get single model ─────────────────────────────────────────────────────────
 
 const getModel = catchAsync(async (req, res) => {
-  const result = await GroqService.getModel(req.params.modelId);
+  const result = await LlmService.getModel(req.params.modelId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Model retrieved.', data: result });
 });
 
@@ -139,14 +139,14 @@ const getModel = catchAsync(async (req, res) => {
 
 const textToSpeech = catchAsync(async (req, res) => {
   const { input, voice, model, response_format, speed } = req.body;
-  const audioResponse = await GroqService.textToSpeech(input, { voice, model, response_format, speed });
+  const audioResponse = await LlmService.textToSpeech(input, { voice, model, response_format, speed });
 
   // Stream the audio binary back to the client
   const format = response_format || 'wav';
   res.setHeader('Content-Type', `audio/${format}`);
   res.setHeader('Content-Disposition', `attachment; filename="speech.${format}"`);
 
-  // groq-sdk returns a Response-like object with arrayBuffer()
+  // llm-sdk returns a Response-like object with arrayBuffer()
   const buffer = Buffer.from(await audioResponse.arrayBuffer());
   res.end(buffer);
 });
@@ -155,29 +155,29 @@ const textToSpeech = catchAsync(async (req, res) => {
 
 const createEmbedding = catchAsync(async (req, res) => {
   const { input, model, encoding_format } = req.body;
-  const result = await GroqService.createEmbedding(input, { model, encoding_format });
+  const result = await LlmService.createEmbedding(input, { model, encoding_format });
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Embeddings generated.', data: result });
 });
 
 // ── Batches ──────────────────────────────────────────────────────────────────
 
 const createBatch = catchAsync(async (req, res) => {
-  const result = await GroqService.createBatch(req.body);
+  const result = await LlmService.createBatch(req.body);
   sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Batch created.', data: result });
 });
 
 const listBatches = catchAsync(async (req, res) => {
-  const result = await GroqService.listBatches();
+  const result = await LlmService.listBatches();
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batches listed.', data: result });
 });
 
 const getBatch = catchAsync(async (req, res) => {
-  const result = await GroqService.getBatch(req.params.batchId);
+  const result = await LlmService.getBatch(req.params.batchId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batch retrieved.', data: result });
 });
 
 const cancelBatch = catchAsync(async (req, res) => {
-  const result = await GroqService.cancelBatch(req.params.batchId);
+  const result = await LlmService.cancelBatch(req.params.batchId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batch cancelled.', data: result });
 });
 
@@ -187,31 +187,31 @@ const uploadFile = catchAsync(async (req, res) => {
   if (!req.file) {
     return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: 'File is required.' });
   }
-  const result = await GroqService.uploadFile(req.file.path, req.body.purpose || 'batch');
+  const result = await LlmService.uploadFile(req.file.path, req.body.purpose || 'batch');
   sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'File uploaded.', data: result });
 });
 
 const listFiles = catchAsync(async (req, res) => {
-  const result = await GroqService.listFiles();
+  const result = await LlmService.listFiles();
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Files listed.', data: result });
 });
 
 const getFile = catchAsync(async (req, res) => {
-  const result = await GroqService.getFile(req.params.fileId);
+  const result = await LlmService.getFile(req.params.fileId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File retrieved.', data: result });
 });
 
 const deleteFile = catchAsync(async (req, res) => {
-  const result = await GroqService.deleteFile(req.params.fileId);
+  const result = await LlmService.deleteFile(req.params.fileId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File deleted.', data: result });
 });
 
 const getFileContent = catchAsync(async (req, res) => {
-  const result = await GroqService.getFileContent(req.params.fileId);
+  const result = await LlmService.getFileContent(req.params.fileId);
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File content retrieved.', data: result });
 });
 
-export const GroqController = {
+export const LlmController = {
   chat,
   streamChat,
   toolCall,
@@ -234,4 +234,4 @@ export const GroqController = {
   getFileContent,
 };
 
-export default GroqController;
+export default LlmController;

@@ -1,6 +1,6 @@
 import express from 'express';
 import congressController from './congress.controller.js';
-import auth from '../../middlewares/auth.js';
+import auth from '../../middlewares/auth/auth.js';
 
 const router = express.Router();
 

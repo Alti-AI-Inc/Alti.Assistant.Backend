@@ -4,7 +4,7 @@ import * as mammothLib from 'mammoth';
 import { EmbeddingService } from './embedding.service.js';
 import { ChunkerService } from './chunker.service.js';
 import { VectorStoreService } from './vectorstore.service.js';
-import { groqChat, groqLightChat, groqStream } from '../../services/groq.client.js';
+import { llmChat, llmLightChat, llmStream } from '../../services/llm.client.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -19,7 +19,7 @@ const DEFAULT_COLLECTION = 'default';
  * - Embeddings: Cloudflare Workers AI (bge-base-en-v1.5, 768-dim, FREE)
  * - Vector DB:  pgvector in PostgreSQL (HNSW index, self-hosted)
  * - Chunking:   Recursive character splitting with overlap
- * - Generation: Groq gpt-oss-120b (heavy) / gpt-oss-20b (light)
+ * - Generation: LLM gpt-oss-120b (heavy) / gpt-oss-20b (light)
  * - Parsing:    pdf-parse, mammoth, Exa content extraction
  */
 export const RagService = {
@@ -252,8 +252,8 @@ Rules:
 4. Be concise and directly answer the question`;
 
     const useHeavy = (model === 'gpt-oss-120b') || (!model && query.length > 200);
-    const chatFn = useHeavy ? groqChat : groqLightChat;
-    const selectedModel = model || (useHeavy ? 'gpt-oss-120b' : config.groq?.lightModel || 'gpt-oss-20b');
+    const chatFn = useHeavy ? llmChat : llmLightChat;
+    const selectedModel = model || (useHeavy ? 'gpt-oss-120b' : config.llm?.lightModel || 'gpt-oss-20b');
 
     const messages = [
       { role: 'system', content: sysPrompt },
@@ -310,8 +310,8 @@ Rules:
       },
     ];
 
-    const stream = await groqStream(messages, {
-      model: config.groq?.model || 'gpt-oss-120b',
+    const stream = await llmStream(messages, {
+      model: config.llm?.model || 'gpt-oss-120b',
       temperature: 0.0,
     });
 

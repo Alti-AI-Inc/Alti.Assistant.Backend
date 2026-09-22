@@ -26,7 +26,7 @@ const audioUploader = multer({
     }
     cb(null, true);
   },
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max (matches Groq Whisper file limit)
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max (matches LLM Whisper file limit)
 });
 
 export default audioUploader;

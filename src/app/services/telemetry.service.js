@@ -83,7 +83,7 @@ export const TelemetryService = {
   async traceLLMCall(model, fn) {
     const spanHelper = await this.startSpan('llm.call', {
       'llm.model': model,
-      'llm.provider': 'groq',
+      'llm.provider': 'llm',
     });
 
     const startTime = Date.now();

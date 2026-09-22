@@ -1,4 +1,4 @@
-import { ChatGroq } from '@langchain/groq';
+import { ChatTogetherAI } from '@langchain/together-ai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StateGraph, END, START } from '@langchain/langgraph';
 import { createToolCallingAgent, AgentExecutor } from 'langchain/agents';
@@ -14,10 +14,10 @@ import z from 'zod';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-function getGroqLLM(temperature = 0.2) {
-  return new ChatGroq({
-    apiKey: config.groq?.apiKey || process.env.GROQ_API_KEY,
-    model: config.groq?.model || 'gpt-oss-120b',
+function getTogetherLLM(temperature = 0.2) {
+  return new ChatTogetherAI({
+    apiKey: config.llm?.apiKey || process.env.LLM_API_KEY,
+    model: config.llm?.model || 'gpt-oss-120b',
     temperature,
   });
 }
@@ -25,7 +25,7 @@ function getGroqLLM(temperature = 0.2) {
 export const LangChainService = {
   // ── 1. LangGraph Reasoning ─────────────────────────────────────────────────
   async runReasoningGraph({ goal, context = '' }) {
-    const llm = getGroqLLM(0.1);
+    const llm = getTogetherLLM(0.1);
     const graphState = {
       goal: { value: (x, y) => y ?? x, default: () => goal },
       context: { value: (x, y) => y ?? x, default: () => context },
@@ -80,7 +80,7 @@ export const LangChainService = {
 
   // ── 2. Vanilla RAG Chain ───────────────────────────────────────────────────
   async runRagChain({ query, documents = [] }) {
-    const llm = getGroqLLM(0.0);
+    const llm = getTogetherLLM(0.0);
     const contextText = documents.map((doc, i) => `[Doc ${i + 1}]: ${doc}`).join('\n\n');
 
     const response = await llm.invoke([
@@ -92,7 +92,7 @@ export const LangChainService = {
   },
 
   async runSummarizeChain({ text, style = 'bullet-points' }) {
-    const llm = getGroqLLM(0.2);
+    const llm = getTogetherLLM(0.2);
     const response = await llm.invoke([
       new SystemMessage(`You are an expert executive summarizer. Produce a clear, concise summary in ${style} format. Highlight key takeaways and action items.`),
       new HumanMessage(text),
@@ -102,7 +102,7 @@ export const LangChainService = {
 
   // ── 3. Tool Calling Agent Executor ─────────────────────────────────────────
   async runToolAgent({ input, tools = [] }) {
-    const llm = getGroqLLM(0.1);
+    const llm = getTogetherLLM(0.1);
     
     // Default system template for OpenAI-style tool calling agents
     const prompt = ChatPromptTemplate.fromMessages([
@@ -126,7 +126,7 @@ export const LangChainService = {
 
   // ── 4. Structured Output Parsers ───────────────────────────────────────────
   async parseStructuredOutput({ input, schemaDefinition }) {
-    const llm = getGroqLLM(0.0);
+    const llm = getTogetherLLM(0.0);
     
     // We expect a Zod-compatible schema definition structure passed in (mocked for this service)
     const parser = StructuredOutputParser.fromZodSchema(
@@ -172,7 +172,7 @@ export const LangChainService = {
 
   // ── 6. Conversation Memory ─────────────────────────────────────────────────
   async runMemoryChain({ input, sessionId }) {
-    const llm = getGroqLLM(0.3);
+    const llm = getTogetherLLM(0.3);
     // In production, this would be tied to Redis/MongoDB buffer memory mapped by sessionId
     const memory = new BufferMemory();
     const chain = new ConversationChain({ llm, memory });
@@ -198,7 +198,7 @@ export const LangChainService = {
 
   // ── 8. Exa Neural Search Integration ────────────────────────────────────────
   async runExaSearchAgent({ input }) {
-    const llm = getGroqLLM(0.1);
+    const llm = getTogetherLLM(0.1);
     
     // Instantiate Exa tool
     const client = new Exa(config.exa_api_key);

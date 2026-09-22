@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { groqChat, groqStream, groqToolCall } from '../../services/groq.client.js';
+import { llmChat, llmStream, llmToolCall } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 import { MemoryService } from '../../services/memory.service.js';
 import { GroundingService } from '../../services/grounding.service.js';
@@ -134,12 +134,12 @@ const executeAgent = async (agentId, input, userId) => {
       type: 'function',
       function: { name: t, description: `Execute ${t}`, parameters: { type: 'object', properties: {} } }
     }));
-    const toolCallRes = await groqToolCall(messages, toolDefs, { model });
+    const toolCallRes = await llmToolCall(messages, toolDefs, { model });
     output = toolCallRes?.choices?.[0]?.message?.content || 'Tool execution result';
     toolCalls = toolCallRes?.choices?.[0]?.message?.tool_calls || [];
     tokensUsed = toolCallRes?.usage?.total_tokens || 0;
   } else {
-    const chatRes = await groqChat(messages, { model });
+    const chatRes = await llmChat(messages, { model });
     output = chatRes?.choices?.[0]?.message?.content || 'Chat execution result';
     tokensUsed = chatRes?.usage?.total_tokens || 0;
   }
@@ -198,7 +198,7 @@ const executeAgentStream = async (agentId, input, userId) => {
     { role: 'user', content: input }
   ];
 
-  const stream = await groqStream(messages, { model: agent.model });
+  const stream = await llmStream(messages, { model: agent.model });
   return stream;
 };
 

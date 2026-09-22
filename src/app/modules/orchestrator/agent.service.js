@@ -1,4 +1,4 @@
-import { groqToolCall, groqStream } from '../../services/groq.client.js';
+import { llmToolCall, llmStream, llmGenerateImage } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 
 // Import backend services
@@ -216,6 +216,48 @@ export const AgentService = {
         
         
         
+                case 'generate_image':
+          console.log('Generating image with Together AI for prompt:', args.prompt);
+          const imageUrl = await llmGenerateImage(args.prompt);
+          
+          customMetadata = {
+            domain: 'image_generation',
+            prompt: args.prompt,
+            imageUrl: imageUrl
+          };
+
+          return {
+            output: "Generated an image based on the prompt: " + args.prompt,
+            references: [{ type: 'image', url: imageUrl }]
+          };
+
+        case 'search_sec_filings':
+          console.log('Fetching SEC data for:', args.ticker);
+          const secData = await searchSECFillings(args.ticker);
+          
+          let secSummary = "SEC Filings found for " + secData.title + ".";
+          if (secData.recentFilings) {
+            secSummary += "\nRecent forms: " + secData.recentFilings.form.slice(0, 5).join(', ');
+          }
+
+          customMetadata = {
+            domain: 'sec_edgar',
+            ticker: args.ticker,
+            companyName: secData.title,
+            cik: secData.cik,
+            filings: secData.recentFilings ? secData.recentFilings.form.map((form, i) => ({
+              form,
+              accessionNumber: secData.recentFilings.accessionNumber[i],
+              filingDate: secData.recentFilings.filingDate[i],
+              primaryDocument: secData.recentFilings.primaryDocument[i]
+            })).slice(0, 10) : []
+          };
+
+          return {
+            output: secSummary,
+            references: [{ type: 'sec', url: `https://www.sec.gov/edgar/browse/?CIK=${secData.cik}` }]
+          };
+
         case 'get_census_data': {
           try {
             let data;
@@ -491,7 +533,7 @@ export const AgentService = {
       logger.info(`[AgentService] Starting loop ${loopCount}...`);
       
       // Call LLM
-      const response = await groqToolCall(messages, tools, options);
+      const response = await llmToolCall(messages, tools, options);
       const responseMessage = response.choices[0]?.message;
 
       if (!responseMessage) {
@@ -539,10 +581,10 @@ export const AgentService = {
         // No tool calls means the agent is ready to stream the final answer.
         // We will discard the text it just generated and re-run as a stream for UI UX.
         // Or we can just yield the text if we don't care about streaming character-by-character.
-        // But users love the typewriter effect. We'll run groqStream to generate the final response.
+        // But users love the typewriter effect. We'll run llmStream to generate the final response.
         
         logger.info(`[AgentService] Loop finished, streaming final answer...`);
-        const stream = await groqStream(messages, options);
+        const stream = await llmStream(messages, options);
         for await (const chunk of stream) {
           const text = chunk.choices?.[0]?.delta?.content;
           if (text) {
@@ -572,7 +614,7 @@ export const AgentService = {
     try {
       while (stepCount < maxSteps) {
         stepCount++;
-        const response = await groqToolCall(messages, tools, { model, temperature });
+        const response = await llmToolCall(messages, tools, { model, temperature });
         const toolCalls = response.choices?.[0]?.message?.tool_calls;
         
         if (!toolCalls || toolCalls.length === 0) break;
@@ -605,7 +647,7 @@ export const AgentService = {
       }
 
       // Final generation (non-streaming)
-      const finalRes = await groqToolCall(messages, undefined, { model, temperature });
+      const finalRes = await llmToolCall(messages, undefined, { model, temperature });
       return {
         reply: finalRes.choices?.[0]?.message?.content || '',
         references: allReferences,

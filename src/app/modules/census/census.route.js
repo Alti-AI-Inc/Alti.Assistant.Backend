@@ -1,6 +1,6 @@
 import express from 'express';
 import censusController from './census.controller.js';
-import auth from '../../middlewares/auth.js';
+import auth from '../../middlewares/auth/auth.js';
 
 const router = express.Router();
 

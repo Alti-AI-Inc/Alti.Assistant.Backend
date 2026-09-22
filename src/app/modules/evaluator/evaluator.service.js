@@ -1,4 +1,4 @@
-import { groqLightChat } from '../../services/groq.client.js';
+import { llmLightChat } from '../../services/llm.client.js';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 
@@ -24,18 +24,18 @@ Return ONLY a valid JSON object: { "scores": { "criterion": number }, "overall":
       },
     ];
 
-    const res = await groqLightChat(messages, {
-      model: config.groq?.lightModel || 'gpt-oss-20b',
+    const res = await llmLightChat(messages, {
+      model: config.llm?.lightModel || 'gpt-oss-20b',
       temperature: 0.0,
     });
 
     const content = res.choices?.[0]?.message?.content || '{}';
     try {
       const data = JSON.parse(content);
-      return { ...data, model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { ...data, model: config.llm?.lightModel || 'gpt-oss-20b' };
     } catch (err) {
       logger.error('[Evaluator] Failed to parse response:', err.message);
-      return { scores: {}, overall: 0, feedback: content, model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { scores: {}, overall: 0, feedback: content, model: config.llm?.lightModel || 'gpt-oss-20b' };
     }
   },
 
@@ -57,8 +57,8 @@ Return ONLY a valid JSON object: { "rankings": [{ "response": "text", "score": n
       },
     ];
 
-    const res = await groqLightChat(messages, {
-      model: config.groq?.lightModel || 'gpt-oss-20b',
+    const res = await llmLightChat(messages, {
+      model: config.llm?.lightModel || 'gpt-oss-20b',
       temperature: 0.0,
     });
 
@@ -89,15 +89,15 @@ Return ONLY a valid JSON object: { "criteria": [{ "name": "string", "description
       },
     ];
 
-    const res = await groqLightChat(messages, {
-      model: config.groq?.lightModel || 'gpt-oss-20b',
+    const res = await llmLightChat(messages, {
+      model: config.llm?.lightModel || 'gpt-oss-20b',
       temperature: 0.1,
     });
 
     const content = res.choices?.[0]?.message?.content || '{}';
     try {
       const data = JSON.parse(content);
-      return { taskType, criteria: data.criteria || [], model: config.groq?.lightModel || 'gpt-oss-20b' };
+      return { taskType, criteria: data.criteria || [], model: config.llm?.lightModel || 'gpt-oss-20b' };
     } catch (err) {
       logger.error('[Evaluator] Failed to parse rubric response:', err.message);
       return { taskType, criteria: [], raw: content };

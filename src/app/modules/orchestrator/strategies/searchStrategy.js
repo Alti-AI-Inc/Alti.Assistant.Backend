@@ -1,5 +1,5 @@
 import { ExaSearchService } from '../../ExaSearch/exaSearch.service.js';
-import { groqChat } from '../../../services/groq.client.js';
+import { llmChat } from '../../../services/llm.client.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
@@ -18,7 +18,7 @@ export async function execute({ query, options }, context = {}) {
         { role: 'system', content: 'Synthesize the search results based on the query.' },
         { role: 'user', content: `Query: ${query}\nResults: ${JSON.stringify(results)}` }
       ];
-      const response = await groqChat(allMessages, { model: config.groq?.model || 'gpt-oss-120b' });
+      const response = await llmChat(allMessages, { model: config.llm?.model || 'gpt-oss-120b' });
       synthesis = response.choices?.[0]?.message?.content || '';
     }
 

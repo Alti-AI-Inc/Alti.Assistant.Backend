@@ -22,7 +22,7 @@ import { ComposioRoutes } from '../modules/composio/composio.route.js';
 import { SearchRoutes } from '../modules/ExaSearch/exa.search.route.js';
 import { ContentRoutes } from '../modules/ExaContents/contents.route.js';
 import { LibertyRoutes } from '../modules/liberty/liberty.route.js';
-import { GroqRoutes } from '../modules/groq/groq.route.js';
+import { LlmRoutes } from '../modules/llm/llm.route.js';
 import { CloudflareRoutes } from '../modules/cloudflare/cloudflare.route.js';
 import { CodexRoutes } from '../modules/codex/codex.route.js';
 import { OpenClawRoutes } from '../modules/openclaw/openclaw.route.js';
@@ -50,7 +50,10 @@ import { censusRoutes } from '../modules/census/census.route.js';
 
 const router = express.Router();
 
+import { secRoutes } from '../modules/sec/sec.route.js';
+
 const moduleRoutes = [
+  { path: '/sec', route: secRoutes },
   {
     path: '/tenant',
     route: tenantRoutes,
@@ -148,8 +151,8 @@ const moduleRoutes = [
     route: LibertyRoutes,
   },
   {
-    path: '/groq',
-    route: GroqRoutes,
+    path: '/llm',
+    route: LlmRoutes,
   },
   {
     path: '/cloudflare',

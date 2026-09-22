@@ -9,7 +9,7 @@ import { RedisClient } from '../../../shared/redis.js';
 import UserModel from '../auth/auth.model.js';
 import Chat from './chat.model.js';
 import { CHAT_RESPONSE_SERVICE_POST } from './chat.constant.js';
-import { groqChat } from '../../services/groq.client.js';
+import { llmChat } from '../../services/llm.client.js';
 
 import { SovereignRouterService } from '../orchestrator/sovereignRouter.service.js';
 

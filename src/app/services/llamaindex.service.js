@@ -5,55 +5,57 @@ import { LlamaDocument } from '../modules/llamaindex/llamaindex.model.js';
 import config from '../../../config/index.js';
 
 let LlamaIndexModule = null;
-let GroqLlamaModule = null;
+let OpenAILlamaModule = null;
 let LlamaCloudModule = null;
 
 /**
  * Initializes LlamaIndex Settings
  */
 async function loadModules() {
-  if (LlamaIndexModule && GroqLlamaModule) return { LlamaIndexModule, GroqLlamaModule, LlamaCloudModule };
+  if (LlamaIndexModule) return { LlamaIndexModule, LlamaCloudModule };
 
   try {
     LlamaIndexModule = await import('llamaindex');
-    GroqLlamaModule = await import('@llamaindex/groq');
+    
     LlamaCloudModule = await import('@llamaindex/cloud');
 
     const { Settings, BaseEmbedding } = LlamaIndexModule;
-    const { Groq } = GroqLlamaModule;
+    const { OpenAI } = LlamaIndexModule;
 
-    // 1. Configure Groq as the global LLM
-    Settings.llm = new Groq({
-      apiKey: config.groq?.apiKey || process.env.GROQ_API_KEY,
+    // 1. Configure OpenAI as the global LLM
+    Settings.llm = new OpenAI({
+      apiKey: config.llm?.apiKey || process.env.LLM_API_KEY,
       model: 'gpt-oss-120b',
     });
 
-    // 2. Configure Custom Cloudflare AI Embedding Model
-    class CloudflareEmbedding extends BaseEmbedding {
+    // 2. Configure Custom Together AI Embedding Model
+    class TogetherEmbedding extends BaseEmbedding {
       constructor() {
         super();
-        this.accountId = config.cloudflare?.accountId || process.env.CLOUDFLARE_ACCOUNT_ID;
-        this.apiToken = config.cloudflare?.apiToken || process.env.CLOUDFLARE_API_TOKEN;
-        this.model = '@cf/baai/bge-base-en-v1.5';
+        this.apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+        this.model = 'togethercomputer/m2-bert-80M-8k-retrieval';
       }
 
       async getTextEmbedding(text) {
-        if (!this.accountId || !this.apiToken) {
+        if (!this.apiKey) {
            return new Array(768).fill(0.01); // Mock fallback if keys missing
         }
         const res = await fetch(
-          `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${this.model}`,
+          `https://api.together.xyz/v1/embeddings`,
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${this.apiToken}`,
+              Authorization: `Bearer ${this.apiKey}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: [text] }),
+            body: JSON.stringify({ 
+              model: this.model,
+              input: text 
+            }),
           }
         );
         const data = await res.json();
-        return data.result.data[0]; // Returns 768-dim float array
+        return data.data[0].embedding; 
       }
 
       async getQueryEmbedding(query) {
@@ -61,12 +63,12 @@ async function loadModules() {
       }
     }
 
-    Settings.embedModel = new CloudflareEmbedding();
+    Settings.embedModel = new TogetherEmbedding();
 
   } catch (err) {
     logger.error(`[LlamaIndex] Failed to initialize modules: ${err.message}`);
   }
-  return { LlamaIndexModule, GroqLlamaModule, LlamaCloudModule };
+  return { LlamaIndexModule, LlamaCloudModule };
 }
 
 export const LlamaIndexService = {
