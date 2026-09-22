@@ -43,11 +43,41 @@ const listGraphTemplates = catchAsync(async (req, res) => {
   });
 });
 
+const runToolAgent = catchAsync(async (req, res) => {
+  const result = await LangChainService.runToolAgent(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Tool agent executed.', data: result });
+});
+
+const parseStructuredOutput = catchAsync(async (req, res) => {
+  const result = await LangChainService.parseStructuredOutput(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Output parsed.', data: result });
+});
+
+const splitText = catchAsync(async (req, res) => {
+  const result = await LangChainService.splitText(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Text split into chunks.', data: result });
+});
+
+const runMemoryChain = catchAsync(async (req, res) => {
+  const result = await LangChainService.runMemoryChain(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Memory chain executed.', data: result });
+});
+
+const scrapeWebPage = catchAsync(async (req, res) => {
+  const result = await LangChainService.scrapeWebPage(req.body.url);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Web page scraped.', data: result });
+});
+
 export const LangChainController = {
   runReasoningGraph,
   runRagChain,
   runSummarizeChain,
   listGraphTemplates,
+  runToolAgent,
+  parseStructuredOutput,
+  splitText,
+  runMemoryChain,
+  scrapeWebPage,
 };
 
 export default LangChainController;

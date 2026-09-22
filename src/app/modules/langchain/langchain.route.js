@@ -11,6 +11,13 @@ router.post('/graph/run', LangChainController.runReasoningGraph);
 router.post('/chains/rag', LangChainController.runRagChain);
 router.post('/chains/summarize', LangChainController.runSummarizeChain);
 
+// Advanced LangChain Capabilities
+router.post('/agent/tool', LangChainController.runToolAgent);
+router.post('/output-parsers/structured', LangChainController.parseStructuredOutput);
+router.post('/text-splitters/split', LangChainController.splitText);
+router.post('/memory/chat', LangChainController.runMemoryChain);
+router.post('/document-loaders/web', LangChainController.scrapeWebPage);
+
 // Templates Catalog
 router.get('/graphs', LangChainController.listGraphTemplates);
 

@@ -21,9 +21,11 @@
   "author": "Shohidul-Jaman-Anik",
   "license": "ISC",
   "dependencies": {
+    "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.2.1",
     "@langchain/groq": "^0.2.0",
     "@langchain/langgraph": "^1.4.5",
+    "@langchain/textsplitters": "^1.0.1",
     "@llamaindex/groq": "^0.0.94",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",
