@@ -217,6 +217,10 @@ const moduleRoutes = [
     path: '/coinapi',
     route: (await import('../modules/coinapi/coinapi.route.js')).default,
   },
+  {
+    path: '/mapbox',
+    route: (await import('../modules/mapbox/mapbox.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

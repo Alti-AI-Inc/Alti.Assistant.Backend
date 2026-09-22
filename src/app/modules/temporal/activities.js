@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 10 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 11 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -276,6 +276,7 @@ You must break the user's prompt into a sequence of execution steps across our 1
 8. API_SPORTS (Real-time sports scores across 12 sports: football, basketball, baseball, hockey, handball, rugby, volleyball, AFL, F1, MMA, NBA, NFL)
 9. PREDICTION_MARKETS (Betting odds from 200+ sportsbooks + prediction markets: Polymarket, Kalshi, DraftKings, FanDuel, Pinnacle. Moneylines, spreads, totals, props, futures)
 10. COINAPI (Crypto market data: exchange rates, OHLCV, trades, quotes, order books, indexes, metrics across all crypto exchanges via CoinAPI.io)
+11. MAPBOX_LOCATION (Geospatial intelligence: geocoding, directions, matrix, optimization, isochrone, map matching, tilequery, static maps, POI search, datasets via Mapbox)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -413,7 +414,26 @@ export async function dispatchAgiStepActivity(step, context) {
         const assetsResult = await CoinApiService.getAssets({});
         return { status: 'completed', result: assetsResult };
       }
-      
+
+    case 'MAPBOX_LOCATION':
+      const { MapboxService } = await import('../mapbox/mapbox.service.js');
+      const mbAction = step.action.toLowerCase();
+      if (mbAction.includes('geocode') || mbAction.includes('address') || mbAction.includes('coordinate')) {
+        const geoResult = await MapboxService.geocodeForward(step.query || step.action);
+        return { status: 'completed', result: geoResult };
+      } else if (mbAction.includes('direction') || mbAction.includes('route') || mbAction.includes('navigate')) {
+        const dirResult = await MapboxService.getDrivingDirections(step.coordinates || '');
+        return { status: 'completed', result: dirResult };
+      } else if (mbAction.includes('isochrone') || mbAction.includes('reachab')) {
+        const isoResult = await MapboxService.getIsochrone('driving', step.lng || 0, step.lat || 0, { contours_minutes: '15,30' });
+        return { status: 'completed', result: isoResult };
+      } else if (mbAction.includes('search') || mbAction.includes('place') || mbAction.includes('poi') || mbAction.includes('find')) {
+        const searchResult = await MapboxService.searchSuggest(step.query || step.action);
+        return { status: 'completed', result: searchResult };
+      } else {
+        const defaultGeo = await MapboxService.geocodeForward(step.query || step.action);
+        return { status: 'completed', result: defaultGeo };
+      }
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);
       const execution = await executeSandboxedCodeActivity(scriptData.code);
