@@ -111,6 +111,141 @@ const executeProxy = async (proxyParams) => {
   return response.data;
 };
 
+// ── Tools: get single, input schema, required scopes ─────────────────────────
+
+const getTool = async (toolSlug, options = {}) => {
+  const response = await composioApi.get(`/api/v3.1/tools/${toolSlug}`, { params: options });
+  return response.data;
+};
+
+const getToolInputSchema = async (toolSlug, body = {}) => {
+  const response = await composioApi.post(`/api/v3.1/tools/execute/${toolSlug}/input`, body);
+  return response.data;
+};
+
+const getRequiredScopes = async (body) => {
+  const response = await composioApi.post('/api/v3.1/tools/scopes/required', body);
+  return response.data;
+};
+
+// ── Connected Accounts: refresh ──────────────────────────────────────────────
+
+const refreshConnection = async (nanoid) => {
+  const response = await composioApi.post(`/api/v3.1/connected_accounts/${nanoid}/refresh`);
+  return response.data;
+};
+
+// ── Auth Configs: create, update, delete ─────────────────────────────────────
+
+const createAuthConfig = async (payload) => {
+  const response = await composioApi.post('/api/v3.1/auth_configs', payload);
+  return response.data;
+};
+
+const updateAuthConfig = async (nanoid, payload) => {
+  const response = await composioApi.patch(`/api/v3.1/auth_configs/${nanoid}`, payload);
+  return response.data;
+};
+
+const deleteAuthConfig = async (nanoid) => {
+  const response = await composioApi.delete(`/api/v3.1/auth_configs/${nanoid}`);
+  return response.data;
+};
+
+// ── Triggers: get single, update ─────────────────────────────────────────────
+
+const getTrigger = async (triggerId) => {
+  const response = await composioApi.get(`/api/v3.1/trigger_instances/${triggerId}`);
+  return response.data;
+};
+
+const updateTrigger = async (triggerId, payload) => {
+  const response = await composioApi.patch(`/api/v3.1/trigger_instances/${triggerId}`, payload);
+  return response.data;
+};
+
+// ── Files: upload, download ──────────────────────────────────────────────────
+
+const uploadFile = async (formData) => {
+  const response = await composioApi.post('/api/v3.1/files', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+const downloadFile = async (fileId) => {
+  const response = await composioApi.get(`/api/v3.1/files/${fileId}`);
+  return response.data;
+};
+
+// ── Logs ─────────────────────────────────────────────────────────────────────
+
+const listLogs = async (params = {}) => {
+  const response = await composioApi.get('/api/v3.1/logs', { params });
+  return response.data;
+};
+
+// ── Webhook Endpoints ────────────────────────────────────────────────────────
+
+const createWebhookEndpoint = async (payload) => {
+  const response = await composioApi.post('/api/v3.1/webhook_endpoints', payload);
+  return response.data;
+};
+
+const listWebhookEndpoints = async () => {
+  const response = await composioApi.get('/api/v3.1/webhook_endpoints');
+  return response.data;
+};
+
+const getWebhookEndpoint = async (endpointId) => {
+  const response = await composioApi.get(`/api/v3.1/webhook_endpoints/${endpointId}`);
+  return response.data;
+};
+
+const updateWebhookEndpoint = async (endpointId, payload) => {
+  const response = await composioApi.patch(`/api/v3.1/webhook_endpoints/${endpointId}`, payload);
+  return response.data;
+};
+
+const deleteWebhookEndpoint = async (endpointId) => {
+  const response = await composioApi.delete(`/api/v3.1/webhook_endpoints/${endpointId}`);
+  return response.data;
+};
+
+// ── Webhook Subscriptions ────────────────────────────────────────────────────
+
+const createWebhookSubscription = async (payload) => {
+  const response = await composioApi.post('/api/v3.1/webhook_subscriptions', payload);
+  return response.data;
+};
+
+const listWebhookSubscriptions = async () => {
+  const response = await composioApi.get('/api/v3.1/webhook_subscriptions');
+  return response.data;
+};
+
+const getWebhookSubscription = async (subscriptionId) => {
+  const response = await composioApi.get(`/api/v3.1/webhook_subscriptions/${subscriptionId}`);
+  return response.data;
+};
+
+const updateWebhookSubscription = async (subscriptionId, payload) => {
+  const response = await composioApi.patch(`/api/v3.1/webhook_subscriptions/${subscriptionId}`, payload);
+  return response.data;
+};
+
+const deleteWebhookSubscription = async (subscriptionId) => {
+  const response = await composioApi.delete(`/api/v3.1/webhook_subscriptions/${subscriptionId}`);
+  return response.data;
+};
+
+// ── Webhook Events ───────────────────────────────────────────────────────────
+
+const listWebhookEvents = async (params = {}) => {
+  const response = await composioApi.get('/api/v3.1/webhook_events', { params });
+  return response.data;
+};
+
 export const ComposioService = {
   createSession,
   getSession,
@@ -118,21 +253,44 @@ export const ComposioService = {
   listToolkits,
   getToolkit,
   listTools,
+  getTool,
+  getToolInputSchema,
+  getRequiredScopes,
   executeTool,
   searchTools,
   listConnectedAccounts,
   initiateConnection,
   getConnectionStatus,
   revokeConnection,
+  refreshConnection,
   listTriggerTypes,
   subscribeTrigger,
   listActiveTriggers,
+  getTrigger,
+  updateTrigger,
   deleteTrigger,
   getMCPUrl,
   listMCPServers,
   listAuthConfigs,
   getAuthConfig,
+  createAuthConfig,
+  updateAuthConfig,
+  deleteAuthConfig,
   executeProxy,
+  uploadFile,
+  downloadFile,
+  listLogs,
+  createWebhookEndpoint,
+  listWebhookEndpoints,
+  getWebhookEndpoint,
+  updateWebhookEndpoint,
+  deleteWebhookEndpoint,
+  createWebhookSubscription,
+  listWebhookSubscriptions,
+  getWebhookSubscription,
+  updateWebhookSubscription,
+  deleteWebhookSubscription,
+  listWebhookEvents,
 };
 
 export default ComposioService;

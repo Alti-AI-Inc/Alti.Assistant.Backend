@@ -217,6 +217,139 @@ const executeProxy = catchAsync(async (req, res) => {
   });
 });
 
+// ── Tools: get, input schema, required scopes ────────────────────────────────
+
+const getTool = catchAsync(async (req, res) => {
+  const result = await ComposioService.getTool(req.params.toolSlug, req.query);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Tool retrieved', data: result });
+});
+
+const getToolInputSchema = catchAsync(async (req, res) => {
+  const result = await ComposioService.getToolInputSchema(req.params.toolSlug, req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Tool input schema retrieved', data: result });
+});
+
+const getRequiredScopes = catchAsync(async (req, res) => {
+  const result = await ComposioService.getRequiredScopes(req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Required scopes retrieved', data: result });
+});
+
+// ── Connected Accounts: refresh ──────────────────────────────────────────────
+
+const refreshConnection = catchAsync(async (req, res) => {
+  const result = await ComposioService.refreshConnection(req.params.nanoid);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Connection refreshed', data: result });
+});
+
+// ── Auth Configs: create, update, delete ─────────────────────────────────────
+
+const createAuthConfig = catchAsync(async (req, res) => {
+  const result = await ComposioService.createAuthConfig(req.body);
+  sendResponse(res, { statusCode: 201, success: true, message: 'Auth config created', data: result });
+});
+
+const updateAuthConfig = catchAsync(async (req, res) => {
+  const result = await ComposioService.updateAuthConfig(req.params.nanoid, req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Auth config updated', data: result });
+});
+
+const deleteAuthConfig = catchAsync(async (req, res) => {
+  const result = await ComposioService.deleteAuthConfig(req.params.nanoid);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Auth config deleted', data: result });
+});
+
+// ── Triggers: get, update ────────────────────────────────────────────────────
+
+const getTrigger = catchAsync(async (req, res) => {
+  const result = await ComposioService.getTrigger(req.params.triggerId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Trigger retrieved', data: result });
+});
+
+const updateTrigger = catchAsync(async (req, res) => {
+  const result = await ComposioService.updateTrigger(req.params.triggerId, req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Trigger updated', data: result });
+});
+
+// ── Files ────────────────────────────────────────────────────────────────────
+
+const uploadFile = catchAsync(async (req, res) => {
+  const result = await ComposioService.uploadFile(req.body);
+  sendResponse(res, { statusCode: 201, success: true, message: 'File uploaded', data: result });
+});
+
+const downloadFile = catchAsync(async (req, res) => {
+  const result = await ComposioService.downloadFile(req.params.fileId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'File downloaded', data: result });
+});
+
+// ── Logs ─────────────────────────────────────────────────────────────────────
+
+const listLogs = catchAsync(async (req, res) => {
+  const result = await ComposioService.listLogs(req.query);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Logs retrieved', data: result });
+});
+
+// ── Webhook Endpoints ────────────────────────────────────────────────────────
+
+const createWebhookEndpoint = catchAsync(async (req, res) => {
+  const result = await ComposioService.createWebhookEndpoint(req.body);
+  sendResponse(res, { statusCode: 201, success: true, message: 'Webhook endpoint created', data: result });
+});
+
+const listWebhookEndpoints = catchAsync(async (req, res) => {
+  const result = await ComposioService.listWebhookEndpoints();
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook endpoints listed', data: result });
+});
+
+const getWebhookEndpoint = catchAsync(async (req, res) => {
+  const result = await ComposioService.getWebhookEndpoint(req.params.endpointId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook endpoint retrieved', data: result });
+});
+
+const updateWebhookEndpoint = catchAsync(async (req, res) => {
+  const result = await ComposioService.updateWebhookEndpoint(req.params.endpointId, req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook endpoint updated', data: result });
+});
+
+const deleteWebhookEndpoint = catchAsync(async (req, res) => {
+  const result = await ComposioService.deleteWebhookEndpoint(req.params.endpointId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook endpoint deleted', data: result });
+});
+
+// ── Webhook Subscriptions ────────────────────────────────────────────────────
+
+const createWebhookSubscription = catchAsync(async (req, res) => {
+  const result = await ComposioService.createWebhookSubscription(req.body);
+  sendResponse(res, { statusCode: 201, success: true, message: 'Webhook subscription created', data: result });
+});
+
+const listWebhookSubscriptions = catchAsync(async (req, res) => {
+  const result = await ComposioService.listWebhookSubscriptions();
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook subscriptions listed', data: result });
+});
+
+const getWebhookSubscription = catchAsync(async (req, res) => {
+  const result = await ComposioService.getWebhookSubscription(req.params.subscriptionId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook subscription retrieved', data: result });
+});
+
+const updateWebhookSubscription = catchAsync(async (req, res) => {
+  const result = await ComposioService.updateWebhookSubscription(req.params.subscriptionId, req.body);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook subscription updated', data: result });
+});
+
+const deleteWebhookSubscription = catchAsync(async (req, res) => {
+  const result = await ComposioService.deleteWebhookSubscription(req.params.subscriptionId);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook subscription deleted', data: result });
+});
+
+// ── Webhook Events ───────────────────────────────────────────────────────────
+
+const listWebhookEvents = catchAsync(async (req, res) => {
+  const result = await ComposioService.listWebhookEvents(req.query);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Webhook events listed', data: result });
+});
+
 export const ComposioController = {
   createSession,
   getSession,
@@ -224,19 +357,42 @@ export const ComposioController = {
   listToolkits,
   getToolkit,
   listTools,
+  getTool,
+  getToolInputSchema,
+  getRequiredScopes,
   executeTool,
   searchTools,
   listConnectedAccounts,
   initiateConnection,
   getConnectionStatus,
   revokeConnection,
+  refreshConnection,
   listTriggerTypes,
   subscribeTrigger,
   listActiveTriggers,
+  getTrigger,
+  updateTrigger,
   deleteTrigger,
   getMCPUrl,
   listMCPServers,
   listAuthConfigs,
   getAuthConfig,
+  createAuthConfig,
+  updateAuthConfig,
+  deleteAuthConfig,
   executeProxy,
+  uploadFile,
+  downloadFile,
+  listLogs,
+  createWebhookEndpoint,
+  listWebhookEndpoints,
+  getWebhookEndpoint,
+  updateWebhookEndpoint,
+  deleteWebhookEndpoint,
+  createWebhookSubscription,
+  listWebhookSubscriptions,
+  getWebhookSubscription,
+  updateWebhookSubscription,
+  deleteWebhookSubscription,
+  listWebhookEvents,
 };
