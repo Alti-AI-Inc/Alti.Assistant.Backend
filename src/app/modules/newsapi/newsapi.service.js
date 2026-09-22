@@ -263,6 +263,146 @@ export const NewsApiService = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════
+  // ARTICLE MAPPER
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Map article URL to Event Registry article URI */
+  async articleMapper(articleUrl, opts = {}) {
+    const { data } = await newsApi.get('/articleMapper', { params: { articleUrl, ...opts } });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MENTIONS (event type mentions)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Query mentions of event types in articles */
+  async getMentions(query = {}) {
+    const { data } = await newsApi.post('/eventType/mention', query);
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // STORIES (clustered story groups)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Query story clusters */
+  async getStory(storyUri, opts = {}) {
+    const { data } = await newsApi.get('/story', { params: { storyUri, ...opts } });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TRENDS — trending topics over time
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async getTrends(query = {}) {
+    const { data } = await newsApi.post('/trends', query);
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // COUNTERS — article/event counts over time
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async getCounters(query = {}) {
+    const { data } = await newsApi.post('/counters', query);
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // EVENT TYPES — SASB, SDG, industries
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** SASB materiality event types */
+  async getSasbItems(opts = {}) {
+    const { data } = await newsApi.get('/eventType/sasb/getItems', { params: opts });
+    return data;
+  },
+
+  /** UN Sustainable Development Goal event types */
+  async getSdgItems(opts = {}) {
+    const { data } = await newsApi.get('/eventType/sdg/getItems', { params: opts });
+    return data;
+  },
+
+  async suggestEventTypes(prefix, opts = {}) {
+    const { data } = await newsApi.get('/eventType/suggestEventTypes', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  async suggestIndustries(prefix, opts = {}) {
+    const { data } = await newsApi.get('/eventType/suggestIndustries', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SOURCE GROUPS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async getSourceGroups(opts = {}) {
+    const { data } = await newsApi.get('/sourceGroup/getSourceGroups', { params: opts });
+    return data;
+  },
+
+  async getSourceGroupInfo(uri, opts = {}) {
+    const { data } = await newsApi.get('/sourceGroup/getSourceGroupInfo', { params: { uri, ...opts } });
+    return data;
+  },
+
+  async suggestSourceGroups(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestSourceGroups', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FAST SUGGEST VARIANTS (lower latency, fewer fields)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async suggestAuthorsFast(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestAuthorsFast', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  async suggestCategoriesFast(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestCategoriesFast', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  async suggestConceptClasses(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestConceptClasses', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  async suggestLocationsFast(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestLocationsFast', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  async suggestSourcesFast(prefix, opts = {}) {
+    const { data } = await newsApi.get('/suggestSourcesFast', { params: { prefix, ...opts } });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MINUTE STREAMS (real-time polling feeds)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async getMinuteStreamEvents(opts = {}) {
+    const { data } = await newsApi.get('/minuteStreamEvents', { params: opts });
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SERVICE STATUS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async getServiceStatus() {
+    const { data } = await newsApi.get('/getServiceStatus');
+    return data;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
   // GENERIC PROXY
   // ═══════════════════════════════════════════════════════════════════════
 

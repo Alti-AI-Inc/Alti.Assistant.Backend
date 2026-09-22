@@ -54,6 +54,59 @@ router.get('/correlations', NewsApiController.getTopCorrelations);
 router.get('/counts', NewsApiController.getCounts);
 
 // ═══════════════════════════════════════════════════════════════════════
+// ARTICLE MAPPER
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/article-mapper', NewsApiController.articleMapper);
+
+// ═══════════════════════════════════════════════════════════════════════
+// MENTIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.post('/mentions', NewsApiController.getMentions);
+
+// ═══════════════════════════════════════════════════════════════════════
+// STORIES
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/stories/:storyUri', NewsApiController.getStory);
+
+// ═══════════════════════════════════════════════════════════════════════
+// TRENDS & COUNTERS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.post('/trends', NewsApiController.getTrends);
+router.post('/counters', NewsApiController.getCounters);
+
+// ═══════════════════════════════════════════════════════════════════════
+// EVENT TYPES (SASB, SDG, Industries)
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/event-types/sasb', NewsApiController.getSasbItems);
+router.get('/event-types/sdg', NewsApiController.getSdgItems);
+router.get('/suggest/event-types', NewsApiController.suggestEventTypes);
+router.get('/suggest/industries', NewsApiController.suggestIndustries);
+
+// ═══════════════════════════════════════════════════════════════════════
+// SOURCE GROUPS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/source-groups', NewsApiController.getSourceGroups);
+router.get('/source-groups/:uri', NewsApiController.getSourceGroupInfo);
+
+// ═══════════════════════════════════════════════════════════════════════
+// MINUTE STREAM EVENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/stream/events', NewsApiController.getMinuteStreamEvents);
+
+// ═══════════════════════════════════════════════════════════════════════
+// SERVICE STATUS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/status', NewsApiController.getServiceStatus);
+
+// ═══════════════════════════════════════════════════════════════════════
 // RAW PROXY — catch-all for any unmapped Event Registry endpoint
 // ═══════════════════════════════════════════════════════════════════════
 

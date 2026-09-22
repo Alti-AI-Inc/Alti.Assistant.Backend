@@ -138,6 +138,92 @@ const getCounts = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Article/event counts', data: result });
 });
 
+// ── Article Mapper ────────────────────────────────────────────────────
+
+const articleMapper = catchAsync(async (req, res) => {
+  const { articleUrl } = req.query;
+  const result = await NewsApiService.articleMapper(articleUrl, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Article mapped', data: result });
+});
+
+// ── Mentions ──────────────────────────────────────────────────────────
+
+const getMentions = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getMentions(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Mentions', data: result });
+});
+
+// ── Stories ───────────────────────────────────────────────────────────
+
+const getStory = catchAsync(async (req, res) => {
+  const { storyUri } = req.params;
+  const result = await NewsApiService.getStory(storyUri, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Story details', data: result });
+});
+
+// ── Trends & Counters ─────────────────────────────────────────────────
+
+const getTrends = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getTrends(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Trends', data: result });
+});
+
+const getCounters = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getCounters(req.body);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Counters', data: result });
+});
+
+// ── Event Types (SASB, SDG, Industries) ───────────────────────────────
+
+const getSasbItems = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getSasbItems(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'SASB items', data: result });
+});
+
+const getSdgItems = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getSdgItems(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'SDG items', data: result });
+});
+
+const suggestEventTypes = catchAsync(async (req, res) => {
+  const { prefix } = req.query;
+  const result = await NewsApiService.suggestEventTypes(prefix, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Event type suggestions', data: result });
+});
+
+const suggestIndustries = catchAsync(async (req, res) => {
+  const { prefix } = req.query;
+  const result = await NewsApiService.suggestIndustries(prefix, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Industry suggestions', data: result });
+});
+
+// ── Source Groups ─────────────────────────────────────────────────────
+
+const getSourceGroups = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getSourceGroups(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Source groups', data: result });
+});
+
+const getSourceGroupInfo = catchAsync(async (req, res) => {
+  const { uri } = req.params;
+  const result = await NewsApiService.getSourceGroupInfo(uri, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Source group info', data: result });
+});
+
+// ── Minute Stream Events ──────────────────────────────────────────────
+
+const getMinuteStreamEvents = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getMinuteStreamEvents(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Minute stream events', data: result });
+});
+
+// ── Service Status ────────────────────────────────────────────────────
+
+const getServiceStatus = catchAsync(async (req, res) => {
+  const result = await NewsApiService.getServiceStatus();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Service status', data: result });
+});
+
 // ── Generic proxy ─────────────────────────────────────────────────────
 
 const rawProxy = catchAsync(async (req, res) => {
@@ -158,6 +244,10 @@ export const NewsApiController = {
   suggestConcepts, suggestCategories, suggestSources, suggestAuthors, suggestLocations,
   getConceptInfo, getSourceInfo,
   getMinuteStream, getRecentActivity, getUsage, getTopCorrelations, getCounts,
+  articleMapper, getMentions, getStory, getTrends, getCounters,
+  getSasbItems, getSdgItems, suggestEventTypes, suggestIndustries,
+  getSourceGroups, getSourceGroupInfo,
+  getMinuteStreamEvents, getServiceStatus,
   rawProxy,
 };
 
