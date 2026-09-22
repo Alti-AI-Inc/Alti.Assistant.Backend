@@ -213,6 +213,10 @@ const moduleRoutes = [
     path: '/predictions',
     route: (await import('../modules/predictiondata/predictiondata.route.js')).default,
   },
+  {
+    path: '/coinapi',
+    route: (await import('../modules/coinapi/coinapi.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

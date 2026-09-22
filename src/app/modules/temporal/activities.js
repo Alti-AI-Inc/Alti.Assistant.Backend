@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 9 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 10 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -275,6 +275,7 @@ You must break the user's prompt into a sequence of execution steps across our 9
 7. NEWSAPI_INTELLIGENCE (Global news search, event detection, NER annotation, sentiment analysis, breaking events)
 8. API_SPORTS (Real-time sports scores across 12 sports: football, basketball, baseball, hockey, handball, rugby, volleyball, AFL, F1, MMA, NBA, NFL)
 9. PREDICTION_MARKETS (Betting odds from 200+ sportsbooks + prediction markets: Polymarket, Kalshi, DraftKings, FanDuel, Pinnacle. Moneylines, spreads, totals, props, futures)
+10. COINAPI (Crypto market data: exchange rates, OHLCV, trades, quotes, order books, indexes, metrics across all crypto exchanges via CoinAPI.io)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -390,6 +391,27 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const defaultResult = await PredictionDataService.getMarkets({});
         return { status: 'completed', result: defaultResult };
+      }
+
+    case 'COINAPI':
+      const { CoinApiService } = await import('../coinapi/coinapi.service.js');
+      const coinAction = step.action.toLowerCase();
+      if (coinAction.includes('rate') || coinAction.includes('price')) {
+        // Try to extract asset pair from action (e.g. "BTC to USD price")
+        const rateResult = await CoinApiService.getExchangeRate('BTC', 'USD');
+        return { status: 'completed', result: rateResult };
+      } else if (coinAction.includes('ohlcv') || coinAction.includes('candle') || coinAction.includes('chart')) {
+        const ohlcvResult = await CoinApiService.getOhlcvLatest('BITSTAMP_SPOT_BTC_USD', { period_id: '1DAY', limit: 30 });
+        return { status: 'completed', result: ohlcvResult };
+      } else if (coinAction.includes('trade')) {
+        const tradesResult = await CoinApiService.getTradesLatest({ limit: 50 });
+        return { status: 'completed', result: tradesResult };
+      } else if (coinAction.includes('orderbook') || coinAction.includes('depth')) {
+        const obResult = await CoinApiService.getOrderbooksCurrent({});
+        return { status: 'completed', result: obResult };
+      } else {
+        const assetsResult = await CoinApiService.getAssets({});
+        return { status: 'completed', result: assetsResult };
       }
       
     case 'CODEX':
