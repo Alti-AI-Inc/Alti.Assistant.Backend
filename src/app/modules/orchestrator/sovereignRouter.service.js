@@ -3,8 +3,18 @@ import { logger } from '../../../shared/logger.js';
 import { groqChat, groqStream, groqLightChat } from '../../services/groq.client.js';
 import Chat from '../chat/chat.model.js';
 import UserModel from '../auth/auth.model.js';
+import { IntentClassifier, ROUTE_TYPES } from './classifier.js';
 
-// Lazy loaders for subsystems
+// ─── Telemetry ─────────────────────────────────────────────────────────────────
+const TELEMETRY_BUFFER_SIZE = 500;
+const telemetryBuffer = [];
+
+function recordTelemetry(entry) {
+  telemetryBuffer.push({ ...entry, timestamp: new Date().toISOString() });
+  if (telemetryBuffer.length > TELEMETRY_BUFFER_SIZE) telemetryBuffer.shift();
+}
+
+// ─── Lazy Service Loader ───────────────────────────────────────────────────────
 const loadService = async (loader) => {
   try {
     return await loader();
@@ -15,93 +25,83 @@ const loadService = async (loader) => {
 };
 
 /**
- * Sovereign Router — Central Intelligence Engine
- * Unifies all 14 data intelligence subsystems into one prompt-driven platform.
+ * Sovereign Router — Central Intelligence Engine v2
+ *
+ * Upgrades over v1:
+ *  1. Hybrid LLM + heuristic classification (fast path + LLM escalation)
+ *  2. Multi-route fan-out for compound prompts
+ *  3. Context-aware routing from conversation history
+ *  4. Search augmentation (parallel Exa enrichment) for all routes
+ *  5. Confidence scoring + telemetry on every routing decision
  */
 export const SovereignRouterService = {
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. HYBRID INTENT CLASSIFICATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
   /**
-   * Fast rule-based + NLP Intent Classifier across all 14 subsystems
+   * Hybrid classifier: fast heuristic path → LLM escalation when ambiguous.
+   *
+   * @param {string} prompt - User prompt
+   * @param {object} options - { conversationHistory: [] }
+   * @returns {Promise<{ route: string, confidence: number, classifier: string, search_augmentation: boolean, parameters: object, reasoning: string, steps?: Array }>}
    */
-  classifyIntent(prompt) {
-    const p = (prompt || '').trim().toLowerCase();
+  async classifyIntentHybrid(prompt, options = {}) {
+    const { conversationHistory = [] } = options;
+    const startTime = Date.now();
 
-    // 1. Weather
-    if (/\b(weather|temperature|forecast|rain|snow|humidity|storm|windspeed|celsius|fahrenheit|degrees|precipitation|radar|uv index)\b/i.test(p)) {
-      return 'WEATHER';
+    // Fast path: heuristic classification
+    const heuristic = IntentClassifier.classifyFast(prompt);
+    const heuristicMs = Date.now() - startTime;
+
+    // If heuristic confidence is high enough (≥ 0.85), skip LLM entirely
+    if (heuristic.confidence >= 0.85) {
+      const result = { ...heuristic, classifier: 'heuristic_fast', latencyMs: heuristicMs };
+      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: heuristicMs, prompt: prompt.slice(0, 80) });
+      logger.info(`[SovereignRouter] Fast classify: ${result.route} (${result.confidence}) in ${heuristicMs}ms`);
+      return result;
     }
 
-    // 2. Aviation / Flights
-    if (/\b(flight|fly|airline|airport|airplane|aircraft|boarding|takeoff|departure|arrival|terminal|gate|delayed flight|aviation|iata|icao)\b/i.test(p)) {
-      return 'AVIATION';
-    }
+    // LLM escalation: heuristic confidence is ambiguous (< 0.85)
+    try {
+      const llmResult = await IntentClassifier.classify(prompt, {
+        maxLatencyMs: 1500,
+        conversationHistory,
+      });
 
-    // 3. Sports
-    if (/\b(score|game|match|fixture|standings|premier league|nba|nfl|f1|formula 1|uefa|champions league|bundesliga|laliga|serie a|mls|nhl|mlb|mma|ufc|boxing|lakers|warriors|celtics|arsenal|chelsea|real madrid|barcelona|manchester)\b/i.test(p)) {
-      return 'SPORTS';
-    }
+      const totalMs = Date.now() - startTime;
+      const result = { ...llmResult, latencyMs: totalMs };
 
-    // 4. Prediction Markets & Odds
-    if (/\b(polymarket|kalshi|prediction market|odds|spread|moneyline|over\/under|betting line|implied probability|bet_type|sportsbook|draftkings|fanduel|pinnacle)\b/i.test(p)) {
-      return 'PREDICTIONS';
-    }
+      // If LLM also has low confidence (< 0.5), default to SEARCH for max citations
+      if (result.confidence < 0.5) {
+        result.route = ROUTE_TYPES.SEARCH;
+        result.search_augmentation = true;
+        result.reasoning = `Both heuristic (${heuristic.confidence}) and LLM (${llmResult.confidence}) low confidence → SEARCH fallback for max citations`;
+        result.classifier = 'fallback_search';
+      } else {
+        result.classifier = `hybrid_llm`;
+      }
 
-    // 5. Crypto
-    if (/\b(bitcoin|btc|ethereum|eth|solana|sol|crypto|cryptocurrency|altcoin|memecoin|token|orderbook|coinapi|binance|coinbase|kraken|satoshi|halving|onchain|dex)\b/i.test(p)) {
-      return 'CRYPTO';
-    }
+      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: totalMs, heuristicRoute: heuristic.route, heuristicConfidence: heuristic.confidence, prompt: prompt.slice(0, 80) });
+      logger.info(`[SovereignRouter] Hybrid classify: heuristic=${heuristic.route}(${heuristic.confidence}) → LLM=${result.route}(${result.confidence}) in ${totalMs}ms`);
 
-    // 6. Stocks / Traditional Finance
-    if (/\b(stock|ticker|nasdaq|s&p|sp500|dow|nyse|options chain|put\/call|call option|put option|forex|fx|dividend|earnings|pe ratio|market cap|etf|futures|massive\.com|nvda|aapl|tsla|msft|amzn|googl|meta)\b/i.test(p)) {
-      return 'FINANCE';
+      return result;
+    } catch (err) {
+      // LLM failed — use heuristic result
+      logger.warn(`[SovereignRouter] LLM escalation failed: ${err.message}. Using heuristic.`);
+      const result = { ...heuristic, classifier: 'heuristic_fallback', latencyMs: Date.now() - startTime };
+      recordTelemetry({ type: 'classification', route: result.route, confidence: result.confidence, classifier: result.classifier, latencyMs: result.latencyMs, error: err.message, prompt: prompt.slice(0, 80) });
+      return result;
     }
-
-    // 7. Breaking News & World Events
-    if (/\b(breaking news|headline|latest news|press release|current events|geopolitics|election news|world news|newsapi|event registry|scandal)\b/i.test(p)) {
-      return 'NEWS';
-    }
-
-    // 8. Geospatial & Maps
-    if (/\b(directions|navigate|route to|how far|distance to|isochrone|commute|coffee shop near|restaurants in|find places|poi|mapbox|geocode|address lookup)\b/i.test(p)) {
-      return 'LOCATION';
-    }
-
-    // 9. B2B Intelligence & Leads
-    if (/\b(b2b|firmographics|company employees|headcount|ceo of|cto of|funding round|series [a-z]|explorium|prospect|lead list|technographics|company revenue)\b/i.test(p)) {
-      return 'B2B';
-    }
-
-    // 10. Code & Data Execution
-    if (/\b(code|python|javascript|typescript|function|regex|sql|debug|algorithm|syntax|compile|execute code|run script|open codex|data analysis|plot|chart)\b/i.test(p)) {
-      return 'CODE';
-    }
-
-    // 11. SaaS App Actions
-    if (/\b(send email|post to slack|slack message|create ticket|jira|github issue|google calendar|schedule meeting|composio|crm|hubspot|salesforce)\b/i.test(p)) {
-      return 'TOOL_CALL';
-    }
-
-    // 12. Deep Research
-    if (/\b(deep research|comprehensive report|in-depth analysis|white paper|literature review|market landscape)\b/i.test(p)) {
-      return 'RESEARCH';
-    }
-
-    // 13. Search (real-time facts, lookups)
-    if (/\b(who is|what is|when did|where is|latest|current|recent|facts|search|find|source)\b/i.test(p)) {
-      return 'SEARCH';
-    }
-
-    // 14. Pure brief conversational greeting / pleasantry (the only case without external data)
-    if (/^(hi|hello|hey|greetings|thanks|thank you|good morning|good afternoon|good evening|bye|goodbye|who are you)\b/i.test(p) && p.split(/\s+/).length <= 4) {
-      return 'CHITCHAT';
-    }
-
-    // Default all knowledge, conceptual, and general queries to SEARCH so every answer has third-party verifiable citations!
-    return 'SEARCH';
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. SUBSYSTEM DATA FETCHERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
   /**
-   * Fetch live, grounded data across the detected subsystem
+   * Fetch live, grounded data from a single subsystem.
    */
   async fetchSubsystemData(route, prompt) {
     const startTime = Date.now();
@@ -235,7 +235,7 @@ export const SovereignRouterService = {
 
         case 'FINANCE': {
           const { MassiveService } = await import('../massive/massive.service.js');
-          const tMatch = prompt.match(/\b(NVDA|AAPL|TSLA|MSFT|AMZN|GOOGL|META|SPY|QQQ)\b/i);
+          const tMatch = prompt.match(/\b(NVDA|AAPL|TSLA|MSFT|AMZN|GOOGL|META|SPY|QQQ|AMD|INTC|NFLX|DIS|BA|JPM|GS|V|MA|WMT|COST)\b/i);
           const ticker = tMatch ? tMatch[1].toUpperCase() : 'SPY';
           const quote = await MassiveService.getQuote(ticker);
           if (quote) {
@@ -311,10 +311,9 @@ export const SovereignRouterService = {
         }
 
         case 'CODE': {
-          const { OpenCodexService } = await import('../codex/codex.service.js');
-          const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
           dataContext = `Open Codex sovereign sandbox ready for Python / Node.js logic and math verification.\n`;
           try {
+            const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
             const searchRes = await ExaSearchService.searchDirectly(prompt, { numResults: 3 });
             const results = searchRes?.results || [];
             if (results.length > 0) {
@@ -338,7 +337,6 @@ export const SovereignRouterService = {
         case 'RESEARCH':
         case 'SEARCH':
         default: {
-          // Neural search via Exa
           const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
           const searchRes = await ExaSearchService.searchDirectly(prompt, { numResults: 5 });
           const results = searchRes?.results || [];
@@ -367,6 +365,108 @@ export const SovereignRouterService = {
     return { dataContext, references, elapsed };
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. MULTI-ROUTE FAN-OUT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Execute parallel subsystem fetches for compound prompts.
+   * Merges data contexts and references from all routes.
+   *
+   * @param {Array<{ route: string, query: string }>} steps - Sub-routes to fan out
+   * @returns {Promise<{ dataContext: string, references: Array, elapsed: number, routes: string[] }>}
+   */
+  async fetchFanOut(steps) {
+    const startTime = Date.now();
+
+    // Cap at 3 concurrent fan-out routes
+    const cappedSteps = steps.slice(0, 3);
+    logger.info(`[SovereignRouter] Fan-out: ${cappedSteps.map(s => s.route).join(' + ')}`);
+
+    const results = await Promise.allSettled(
+      cappedSteps.map(step => this.fetchSubsystemData(step.route, step.query))
+    );
+
+    let mergedContext = '';
+    const mergedReferences = [];
+    const routes = [];
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        const { dataContext, references } = result.value;
+        if (dataContext) {
+          mergedContext += (mergedContext ? '\n\n---\n\n' : '') + dataContext;
+        }
+        mergedReferences.push(...references);
+        routes.push(cappedSteps[i].route);
+      } else {
+        logger.warn(`[SovereignRouter] Fan-out step ${cappedSteps[i].route} failed: ${result.reason?.message}`);
+      }
+    });
+
+    const elapsed = Date.now() - startTime;
+    logger.info(`[SovereignRouter] Fan-out completed in ${elapsed}ms: ${routes.join(', ')} (${mergedReferences.length} total references)`);
+    recordTelemetry({ type: 'fanout', routes, elapsed, referenceCount: mergedReferences.length });
+
+    return { dataContext: mergedContext, references: mergedReferences, elapsed, routes };
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. SEARCH AUGMENTATION (PARALLEL EXA ENRICHMENT)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Enrich any route's response with parallel Exa web search.
+   * Returns additional references without blocking the primary subsystem fetch.
+   */
+  async fetchSearchAugmentation(prompt) {
+    try {
+      const { ExaSearchService } = await import('../ExaSearch/exaSearch.service.js');
+      const searchRes = await ExaSearchService.searchDirectly(prompt, { numResults: 3 });
+      const results = searchRes?.results || [];
+      return results.map(r => ({
+        title: r.title || 'Web Source',
+        url: r.url || 'https://exa.ai',
+        snippet: r.summary || r.text?.slice(0, 200) || '',
+        source: 'Exa Neural Search (Augmentation)'
+      }));
+    } catch (err) {
+      logger.warn(`[SovereignRouter] Search augmentation failed: ${err.message}`);
+      return [];
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. CONTEXT-AWARE ROUTING (CONVERSATION HISTORY)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Load recent conversation history from MongoDB for context-aware routing.
+   * Returns the last 3 exchanges as [{role, content}] for the classifier.
+   */
+  async loadConversationContext(userId, sessionId) {
+    if (!userId || !sessionId) return [];
+    try {
+      const chatSession = await Chat.findOne({ user: userId, sessionId }).lean();
+      if (!chatSession?.responses?.length) return [];
+
+      const recent = chatSession.responses.slice(-3);
+      const history = [];
+      for (const r of recent) {
+        if (r.prompt) history.push({ role: 'user', content: r.prompt });
+        if (r.reply) history.push({ role: 'assistant', content: r.reply.slice(0, 200) }); // Truncate to save tokens
+      }
+      return history.slice(-6); // Max 6 messages (3 exchanges)
+    } catch (err) {
+      logger.warn(`[SovereignRouter] Context load failed: ${err.message}`);
+      return [];
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SYSTEM PROMPT BUILDER
+  // ═══════════════════════════════════════════════════════════════════════════
+
   /**
    * Build the Perplexity-beating system prompt with live grounded context & mandatory citations
    */
@@ -375,8 +475,15 @@ export const SovereignRouterService = {
 
     let sourcesBlock = '';
     if (references && references.length > 0) {
+      // Deduplicate by URL
+      const seen = new Set();
+      const unique = references.filter(r => {
+        if (seen.has(r.url)) return false;
+        seen.add(r.url);
+        return true;
+      });
       sourcesBlock = `\nTHIRD-PARTY VERIFIED CITATION INDEX:\n` +
-        references.map((r, i) => `[${i + 1}] "${r.title}" (${r.url}) — ${r.source || 'Third-Party Verification'}`).join('\n') + '\n';
+        unique.map((r, i) => `[${i + 1}] "${r.title}" (${r.url}) — ${r.source || 'Third-Party Verification'}`).join('\n') + '\n';
     }
 
     return `You are Aphura (Alti AI), the sovereign data intelligence search & answer engine, engineered to surpass Perplexity in factual accuracy, real-time depth, and verifiable citations.
@@ -420,14 +527,18 @@ Directives for World-Class Output:
 6. Zero Tangents & No Follow-Ups: Do NOT append any 'Related Questions', suggested prompts, next steps, or conversational closing remarks. End cleanly after the ### Sources section.`;
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MAIN HANDLERS (STREAM + JSON)
+  // ═══════════════════════════════════════════════════════════════════════════
+
   /**
-   * Main unified prompt handler for SSE streaming (primary frontend prompt box target)
+   * Main unified prompt handler for SSE streaming (primary frontend prompt box target).
+   * Now with hybrid classification, fan-out, context-awareness, and search augmentation.
    */
   async handlePromptStream({ prompt, sessionId, userId, userContext, res }) {
-    const route = this.classifyIntent(prompt);
-    logger.info(`[SovereignRouter] Stream prompt: "${prompt.slice(0, 60)}" -> Route: ${route}`);
+    const pipelineStart = Date.now();
 
-    // Set up SSE headers
+    // Set up SSE headers immediately
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -435,22 +546,53 @@ Directives for World-Class Output:
 
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // 1. Send connected event with conversationId
+    // 1. Send connected event immediately
     res.write(`data: ${JSON.stringify({ type: 'connected', conversationId: convId })}\n\n`);
 
-    // 2. Fetch live data from subsystem
-    const { dataContext, references } = await this.fetchSubsystemData(route, prompt);
+    // 2. Load conversation context for context-aware routing (non-blocking)
+    const conversationHistory = await this.loadConversationContext(userId, convId);
 
-    // 3. Send metadata with citations & references
+    // 3. Hybrid intent classification
+    const classification = await this.classifyIntentHybrid(prompt, { conversationHistory });
+    const route = classification.route;
+
+    logger.info(`[SovereignRouter] Stream: "${prompt.slice(0, 60)}" → ${route} (${classification.classifier}, ${classification.confidence})`);
+
+    // 4. Fetch data — either fan-out for compound prompts or single subsystem
+    let dataContext, references;
+
+    if (route === 'MULTI_STEP' && classification.parameters?.steps?.length > 1) {
+      // Multi-route fan-out
+      const fanOutResult = await this.fetchFanOut(classification.parameters.steps);
+      dataContext = fanOutResult.dataContext;
+      references = fanOutResult.references;
+    } else if (classification.search_augmentation && route !== 'SEARCH' && route !== 'RESEARCH' && route !== 'CHITCHAT') {
+      // Parallel: subsystem fetch + search augmentation
+      const [subsystemResult, augmentationRefs] = await Promise.all([
+        this.fetchSubsystemData(route, prompt),
+        this.fetchSearchAugmentation(prompt),
+      ]);
+      dataContext = subsystemResult.dataContext;
+      references = [...subsystemResult.references, ...augmentationRefs];
+    } else {
+      // Standard single subsystem fetch
+      const subsystemResult = await this.fetchSubsystemData(route, prompt);
+      dataContext = subsystemResult.dataContext;
+      references = subsystemResult.references;
+    }
+
+    // 5. Send metadata with citations & classification info
     res.write(`data: ${JSON.stringify({
       type: 'metadata',
       route,
+      classifier: classification.classifier,
+      confidence: classification.confidence,
       reference: references,
       citations: references,
       conversationId: convId
     })}\n\n`);
 
-    // 4. Stream LLM tokens from Groq 120B
+    // 6. Stream LLM tokens from Groq 120B
     const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -458,7 +600,7 @@ Directives for World-Class Output:
     ];
 
     let fullReply = '';
-    const startTime = Date.now();
+    const streamStart = Date.now();
 
     try {
       const stream = await groqStream(messages, {
@@ -483,35 +625,86 @@ Directives for World-Class Output:
       res.end();
     }
 
-    // 5. Persist to MongoDB Chat model asynchronously
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    // 7. Record telemetry + persist to MongoDB asynchronously
+    const totalTime = ((Date.now() - pipelineStart) / 1000).toFixed(2);
+    recordTelemetry({
+      type: 'prompt',
+      route,
+      classifier: classification.classifier,
+      confidence: classification.confidence,
+      referenceCount: references.length,
+      totalTimeMs: Date.now() - pipelineStart,
+      streamTimeMs: Date.now() - streamStart,
+      prompt: prompt.slice(0, 80),
+    });
+
     this.persistChat(userId, convId, prompt, fullReply, references, totalTime).catch(err => {
       logger.warn(`[SovereignRouter] Chat persistence error: ${err.message}`);
     });
   },
 
   /**
-   * Main unified prompt handler for JSON response (non-streaming fallback)
+   * Main unified prompt handler for JSON response (non-streaming fallback).
+   * Same hybrid classification + fan-out + search augmentation pipeline.
    */
   async handlePromptJson({ prompt, sessionId, userId, userContext }) {
-    const route = this.classifyIntent(prompt);
+    const pipelineStart = Date.now();
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    const { dataContext, references } = await this.fetchSubsystemData(route, prompt);
+    // Load conversation context
+    const conversationHistory = await this.loadConversationContext(userId, convId);
+
+    // Hybrid classification
+    const classification = await this.classifyIntentHybrid(prompt, { conversationHistory });
+    const route = classification.route;
+
+    // Fetch data — fan-out or single + augmentation
+    let dataContext, references;
+
+    if (route === 'MULTI_STEP' && classification.parameters?.steps?.length > 1) {
+      const fanOutResult = await this.fetchFanOut(classification.parameters.steps);
+      dataContext = fanOutResult.dataContext;
+      references = fanOutResult.references;
+    } else if (classification.search_augmentation && route !== 'SEARCH' && route !== 'RESEARCH' && route !== 'CHITCHAT') {
+      const [subsystemResult, augmentationRefs] = await Promise.all([
+        this.fetchSubsystemData(route, prompt),
+        this.fetchSearchAugmentation(prompt),
+      ]);
+      dataContext = subsystemResult.dataContext;
+      references = [...subsystemResult.references, ...augmentationRefs];
+    } else {
+      const subsystemResult = await this.fetchSubsystemData(route, prompt);
+      dataContext = subsystemResult.dataContext;
+      references = subsystemResult.references;
+    }
+
+    // Build prompt + call LLM
     const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
     const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt }
     ];
 
-    const startTime = Date.now();
+    const llmStart = Date.now();
     const result = await groqChat(messages, {
       model: config.groq?.model || 'gpt-oss-120b',
       temperature: 0.2,
     });
 
     const reply = result.choices?.[0]?.message?.content || '';
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const totalTime = ((Date.now() - pipelineStart) / 1000).toFixed(2);
+
+    // Telemetry
+    recordTelemetry({
+      type: 'prompt_json',
+      route,
+      classifier: classification.classifier,
+      confidence: classification.confidence,
+      referenceCount: references.length,
+      totalTimeMs: Date.now() - pipelineStart,
+      llmTimeMs: Date.now() - llmStart,
+      prompt: prompt.slice(0, 80),
+    });
 
     await this.persistChat(userId, convId, prompt, reply, references, totalTime);
 
@@ -520,6 +713,13 @@ Directives for World-Class Output:
       sessionId: convId,
       conversationId: convId,
       route,
+      classification: {
+        route,
+        confidence: classification.confidence,
+        classifier: classification.classifier,
+        reasoning: classification.reasoning,
+        search_augmentation: classification.search_augmentation,
+      },
       reply,
       responseMessage: {
         answer: reply,
@@ -530,6 +730,10 @@ Directives for World-Class Output:
       total_time: totalTime,
     };
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PERSISTENCE + TELEMETRY
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /**
    * Asynchronously persists Q&A into MongoDB Chat model
@@ -569,6 +773,25 @@ Directives for World-Class Output:
     } catch (err) {
       logger.warn(`[SovereignRouter] persistChat error: ${err.message}`);
     }
+  },
+
+  /**
+   * Get telemetry data for monitoring dashboard.
+   */
+  getTelemetry() {
+    return {
+      total: telemetryBuffer.length,
+      recent: telemetryBuffer.slice(-20),
+      routeDistribution: telemetryBuffer.reduce((acc, t) => {
+        if (t.route) acc[t.route] = (acc[t.route] || 0) + 1;
+        return acc;
+      }, {}),
+      classifierDistribution: telemetryBuffer.reduce((acc, t) => {
+        if (t.classifier) acc[t.classifier] = (acc[t.classifier] || 0) + 1;
+        return acc;
+      }, {}),
+      avgConfidence: telemetryBuffer.filter(t => t.confidence).reduce((sum, t, _, arr) => sum + t.confidence / arr.length, 0).toFixed(3),
+    };
   },
 };
 
