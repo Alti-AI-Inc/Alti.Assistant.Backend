@@ -47,6 +47,7 @@ import { arxivRoutes } from '../modules/arxiv/arxiv.route.js';
 import { congressRoutes } from '../modules/congress/congress.route.js';
 import { openfdaRoutes } from '../modules/openfda/openfda.route.js';
 import { censusRoutes } from '../modules/census/census.route.js';
+import togetherCliRoutes from '../modules/together-cli/together-cli.route.js';
 
 const router = express.Router();
 
@@ -261,6 +262,10 @@ const moduleRoutes = [
   {
     path: '/aviation',
     route: (await import('../modules/aviationstack/aviationstack.route.js')).default,
+  },
+  {
+    path: '/together-cli',
+    route: togetherCliRoutes,
   },
 ];
 
