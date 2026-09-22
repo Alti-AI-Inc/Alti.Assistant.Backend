@@ -16,6 +16,7 @@ import { PredictionDataService } from '../predictiondata/predictiondata.service.
 import { NewsApiService } from '../newsapi/newsapi.service.js';
 import realEstateApiService from '../realestateapi/realestateapi.service.js';
 import fredService from '../fred/fred.service.js';
+import arxivService from '../arxiv/arxiv.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -125,6 +126,15 @@ const tools = [
       parameters: { type: 'object', properties: { series_id: { type: 'string', description: 'The FRED series ID, e.g., CPIAUCSL for Inflation, FEDFUNDS for Interest Rates' } }, required: ['series_id'] }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'search_academic_papers',
+      description: 'Search for peer-reviewed academic papers, scientific research, and preprints from the arXiv API. Use this for deep scientific, mathematical, or medical research.',
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'The search query (e.g. quantum computing, transformers, mRNA)' }, max_results: { type: 'number', description: 'Number of results to return (max 10)' } }, required: ['query'] }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -172,6 +182,42 @@ export const AgentService = {
         }
         
         
+        
+        case 'search_academic_papers': {
+          try {
+            const data = await arxivService.searchPapers(args.query, { max_results: args.max_results || 5 });
+            
+            // extract the feed entries
+            let entries = data?.feed?.entry || [];
+            if (!Array.isArray(entries)) entries = [entries];
+            
+            const results = entries.map(e => ({
+              title: e.title?.replace(/\s+/g, ' ').trim(),
+              summary: e.summary?.replace(/\s+/g, ' ').trim(),
+              authors: Array.isArray(e.author) ? e.author.map(a => a.name).join(', ') : e.author?.name || 'Unknown',
+              published: e.published,
+              url: e.id
+            }));
+
+            const customMetadata = {
+              domain: 'academic',
+              papers: results
+            };
+
+            const outputText = results.map(r => `Title: ${r.title}\nAuthors: ${r.authors}\nPublished: ${r.published}\nSummary: ${r.summary}\nURL: ${r.url}`).join('\n\n') || 'No papers found.';
+
+            return {
+              output: outputText,
+              references: results.map(r => ({ title: r.title.slice(0, 50) + '...', url: r.url, snippet: r.summary.slice(0, 150), source: 'arXiv' })),
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to search arXiv: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'get_economic_data': {
           try {
             const seriesInfo = await fredService.getSeriesInfo(args.series_id);

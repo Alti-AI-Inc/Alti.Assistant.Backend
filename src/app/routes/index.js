@@ -43,6 +43,7 @@ import { ResearchWebhookRoutes } from '../modules/ExaResearch/exaResearch.webhoo
 import { MonitorWebhookRoutes } from '../modules/ExaMonitor/monitor.webhook.route.js';
 import { realEstateApiRoutes } from '../modules/realestateapi/realestateapi.route.js';
 import { fredRoutes } from '../modules/fred/fred.route.js';
+import { arxivRoutes } from '../modules/arxiv/arxiv.route.js';
 
 const router = express.Router();
 
@@ -58,6 +59,10 @@ const moduleRoutes = [
   {
     path: '/fred',
     route: fredRoutes,
+  },
+  {
+    path: '/arxiv',
+    route: arxivRoutes,
   },
   {
     path: '/admin',

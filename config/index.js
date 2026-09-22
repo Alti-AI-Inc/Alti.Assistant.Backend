@@ -137,6 +137,10 @@ export default {
     baseUrl: 'https://api.stlouisfed.org/fred',
   },
 
+  arxiv: {
+    baseUrl: 'http://export.arxiv.org/api',
+  },
+
   // ── Smart Routing ─────────────────────────────────────────────────────────
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',
