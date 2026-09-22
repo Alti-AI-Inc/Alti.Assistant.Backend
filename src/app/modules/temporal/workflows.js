@@ -75,3 +75,29 @@ export async function deepResearchWorkflow(topic, collectionId) {
   
   return finalReport;
 }
+
+const repoActivities = proxyActivities({
+  startToCloseTimeout: '10 minutes',
+  retry: {
+    initialInterval: '5s',
+    backoffCoefficient: 2,
+    maximumAttempts: 2,
+  }
+});
+
+/**
+ * Autonomous Private Repository Intelligence Workflow
+ * Clones, Indexes, and Analyzes complex codebases using OpenClaw + LlamaIndex + Groq
+ */
+export async function repositoryIntelligenceWorkflow(repoUrl, query, collectionId) {
+  // Step 1: Clone and extract repo map (OpenClaw native)
+  const repoData = await repoActivities.fetchRepositoryFilesActivity(repoUrl);
+  
+  // Step 2: Ingest the source files into local vector storage (LlamaIndex)
+  await repoActivities.indexRepositoryActivity(repoData.repoPath, collectionId);
+  
+  // Step 3: Analyze the codebase with high-context reasoning (Groq RAG)
+  const analysisReport = await repoActivities.analyzeRepositoryActivity(collectionId, repoUrl, query);
+  
+  return analysisReport;
+}

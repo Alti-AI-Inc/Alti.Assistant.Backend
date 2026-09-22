@@ -66,6 +66,28 @@ const crawlUrl = catchAsync(async (req, res) => {
   });
 });
 
+const analyzeRepository = catchAsync(async (req, res) => {
+  const { repoUrl, query } = req.body;
+  
+  // Delegate orchestration to Temporal Service natively
+  const { TemporalService } = await import('../temporal/temporal.service.js');
+  
+  // collectionId isolates vector data for this specific intelligence run
+  const collectionId = `repo-${Date.now()}`;
+  
+  const { workflowId, status } = await TemporalService.startWorkflow({
+    workflowType: 'repositoryIntelligenceWorkflow',
+    args: [repoUrl, query, collectionId]
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.ACCEPTED,
+    success: true,
+    message: 'Private Repository Intelligence engine started.',
+    data: { workflowId, status, collectionId, repoUrl },
+  });
+});
+
 export const OpenClawController = {
   createAgent,
   getAgent,
@@ -73,6 +95,7 @@ export const OpenClawController = {
   listSkills,
   executeSkill,
   crawlUrl,
+  analyzeRepository,
 };
 
 export default OpenClawController;

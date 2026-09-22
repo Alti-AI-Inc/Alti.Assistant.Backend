@@ -121,3 +121,97 @@ export async function synthesizeReportActivity(collectionId, topic) {
     collectionId
   };
 }
+
+import { exec } from 'child_process';
+import util from 'util';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+
+const execPromise = util.promisify(exec);
+
+export async function fetchRepositoryFilesActivity(repoUrl) {
+  logger.info(`[Temporal] Fetching repository: ${repoUrl}`);
+  
+  // Clone to a temporary scratch directory
+  const cloneId = crypto.randomUUID().slice(0, 8);
+  const scratchDir = path.join(process.cwd(), 'scratch', cloneId);
+  
+  if (!fs.existsSync(scratchDir)) {
+    fs.mkdirSync(scratchDir, { recursive: true });
+  }
+
+  // Safe clone command
+  try {
+    await execPromise(`git clone --depth 1 ${repoUrl} ${scratchDir}`);
+    logger.info(`[Temporal] Cloned repo to ${scratchDir}`);
+    
+    // Use OpenClaw gitcrawl to extract the repo map
+    const crawlData = await OpenClawService.executeSkill('gitcrawl', { repoPath: scratchDir });
+    return {
+      repoPath: scratchDir,
+      repoMap: crawlData.contentPreview,
+      fileTree: crawlData.fileTree || []
+    };
+  } catch (err) {
+    logger.error(`[Temporal] Repo fetch failed: ${err.message}`);
+    throw err;
+  }
+}
+
+export async function indexRepositoryActivity(repoPath, collectionId) {
+  logger.info(`[Temporal] Indexing repository files into LlamaIndex: ${collectionId}`);
+  
+  // Find all code files (ignoring node_modules, .git, etc.)
+  const findCmd = `find ${repoPath} -type f -not -path "*/\\.git/*" -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/build/*"`;
+  
+  try {
+    const { stdout } = await execPromise(findCmd);
+    const files = stdout.split('\n').filter(Boolean);
+    
+    let indexed = 0;
+    for (const file of files) {
+      try {
+        const ext = path.extname(file);
+        if (['.png', '.jpg', '.jpeg', '.gif', '.mp4', '.pdf'].includes(ext)) continue;
+        
+        const content = fs.readFileSync(file, 'utf-8');
+        if (content.trim().length === 0) continue;
+
+        await LlamaIndexService.ingestDocument(collectionId, {
+          content,
+          metadata: {
+            source: file.replace(repoPath, ''), // Relative path
+            type: 'repository_code',
+            language: ext.replace('.', '') || 'text'
+          }
+        });
+        indexed++;
+      } catch (err) {
+        // Skip unreadable files
+      }
+    }
+    
+    logger.info(`[Temporal] Successfully indexed ${indexed} files from repository`);
+    return { indexedFiles: indexed };
+  } catch (err) {
+    logger.error(`[Temporal] Indexing failed: ${err.message}`);
+    throw err;
+  }
+}
+
+export async function analyzeRepositoryActivity(collectionId, repoUrl, query) {
+  logger.info(`[Temporal] Analyzing repository with query: ${query}`);
+  
+  // RAG Query against the codebase vector index
+  const ragPrompt = `You are a Principal Software Engineer. Based on the provided codebase files from ${repoUrl}, answer the following architectural or implementation query comprehensively with code snippets if relevant: "${query}"`;
+  
+  const result = await LlamaIndexService.query(collectionId, ragPrompt, { topK: 15 });
+  
+  return {
+    repoUrl,
+    query,
+    analysis: result.answer,
+    referencedFiles: [...new Set(result.sources.map(s => s.metadata?.source).filter(Boolean))]
+  };
+}

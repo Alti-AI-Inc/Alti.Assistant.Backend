@@ -18,5 +18,8 @@ router.post('/skills/execute', OpenClawController.executeSkill);
 // Local-First Web Crawl
 router.post('/crawl', OpenClawController.crawlUrl);
 
+// Repository Intelligence Orchestration
+router.post('/intelligence/repository', OpenClawController.analyzeRepository);
+
 export const OpenClawRoutes = router;
 export default OpenClawRoutes;
