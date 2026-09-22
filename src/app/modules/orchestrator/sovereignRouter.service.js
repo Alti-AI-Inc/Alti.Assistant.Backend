@@ -334,11 +334,7 @@ Directives:
 2. Ground your answer with the live facts, numbers, scores, and statistics provided above.
 3. Cite sources with in-line markdown links or brackets like [1], [2] matching the provided references.
 4. Format complex data into clean markdown tables, bold key metrics, and bulleted breakdowns.
-5. End every response with:
-### Related Questions
-- [Follow-up question 1]
-- [Follow-up question 2]
-- [Follow-up question 3]`;
+5. Do NOT include any follow-up questions, suggested prompts, or 'Related Questions' sections. Finish cleanly with the direct answer.`;
   },
 
   /**
