@@ -60,5 +60,29 @@ router.post(
   DeepResearchController.cancelAgentRun
 );
 
+router.post(
+  '/agent-runs/:runId/stop',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.stopAgentRun
+);
+
+router.delete(
+  '/agent-runs/:runId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.deleteAgentRun
+);
+
+router.get(
+  '/agent-runs',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.listAgentRuns
+);
+
+router.get(
+  '/agent-runs/:runId/events',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.listAgentRunEvents
+);
+
 export const DeepResearchRoutes = router;
 export default router;

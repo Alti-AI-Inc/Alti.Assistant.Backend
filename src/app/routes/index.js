@@ -40,6 +40,7 @@ import { TraceRoutes } from '../modules/traces/traces.route.js';
 import { invoiceRoutes } from '../modules/invoice/invoice.route.js';
 import { LlamaIndexRoutes } from '../modules/llamaindex/llamaindex.route.js';
 import { ResearchWebhookRoutes } from '../modules/ExaResearch/exaResearch.webhook.route.js';
+import { MonitorWebhookRoutes } from '../modules/ExaMonitor/monitor.webhook.route.js';
 
 const router = express.Router();
 
@@ -187,6 +188,10 @@ const moduleRoutes = [
   {
     path: '/webhooks/exa-research',
     route: ResearchWebhookRoutes,
+  },
+  {
+    path: '/webhooks/exa-monitors',
+    route: MonitorWebhookRoutes,
   },
 ];
 

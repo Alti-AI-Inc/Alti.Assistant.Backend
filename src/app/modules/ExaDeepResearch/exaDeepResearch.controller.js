@@ -129,6 +129,52 @@ const cancelAgentRun = catchAsync(async (req, res) => {
   });
 });
 
+const stopAgentRun = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.stopAgentRun(req.params.runId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Agent run stopped (partial results kept)',
+    data: result,
+  });
+});
+
+const deleteAgentRun = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.deleteAgentRun(req.params.runId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Agent run deleted',
+    data: result,
+  });
+});
+
+const listAgentRuns = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.listAgentRuns({
+    cursor: req.query.cursor,
+    limit: req.query.limit ? parseInt(req.query.limit) : undefined,
+  });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Agent runs listed',
+    data: result,
+  });
+});
+
+const listAgentRunEvents = catchAsync(async (req, res) => {
+  const result = await ExaDeepResearchService.listAgentRunEvents(req.params.runId, {
+    cursor: req.query.cursor,
+    limit: req.query.limit ? parseInt(req.query.limit) : undefined,
+  });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Agent run events listed',
+    data: result,
+  });
+});
+
 export const DeepResearchController = {
   createDeepResearchRecord,
   getAllDeepResearchRecords,
@@ -138,4 +184,8 @@ export const DeepResearchController = {
   createAgentRun,
   getAgentRun,
   cancelAgentRun,
+  stopAgentRun,
+  deleteAgentRun,
+  listAgentRuns,
+  listAgentRunEvents,
 };

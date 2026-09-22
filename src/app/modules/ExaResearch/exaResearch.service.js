@@ -613,6 +613,143 @@ const listTeamApiKeys = async () => {
   return data;
 };
 
+// ── Batch API: list, cancel, delete ──────────────────────────────────────────
+
+const listBatches = async ({ cursor, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  const response = await fetch(`https://api.exa.ai/v1/batches${qs ? '?' + qs : ''}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${config.exa_api_key}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa listBatches failed');
+  return data;
+};
+
+const cancelBatch = async (batchId) => {
+  const response = await fetch(`https://api.exa.ai/v1/batches/${batchId}/cancel`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${config.exa_api_key}`, 'Content-Type': 'application/json' },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa cancelBatch failed');
+  return data;
+};
+
+const deleteBatch = async (batchId) => {
+  const response = await fetch(`https://api.exa.ai/v1/batches/${batchId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${config.exa_api_key}` },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Exa deleteBatch failed');
+  }
+  return { deleted: true };
+};
+
+// ── Websets Sub-Resources ────────────────────────────────────────────────────
+
+// Websets > Searches
+const createWebsetSearch = async (websetId, searchPayload) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/searches`, searchPayload);
+};
+
+const getWebsetSearch = async (websetId, searchId) => {
+  return exaWebsetsRequest('GET', `/websets/${websetId}/searches/${searchId}`);
+};
+
+const cancelWebsetSearch = async (websetId, searchId) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/searches/${searchId}/cancel`);
+};
+
+// Websets > Enrichments
+const createWebsetEnrichment = async (websetId, enrichmentPayload) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/enrichments`, enrichmentPayload);
+};
+
+const getWebsetEnrichment = async (websetId, enrichmentId) => {
+  return exaWebsetsRequest('GET', `/websets/${websetId}/enrichments/${enrichmentId}`);
+};
+
+const updateWebsetEnrichment = async (websetId, enrichmentId, payload) => {
+  return exaWebsetsRequest('PATCH', `/websets/${websetId}/enrichments/${enrichmentId}`, payload);
+};
+
+const deleteWebsetEnrichment = async (websetId, enrichmentId) => {
+  return exaWebsetsRequest('DELETE', `/websets/${websetId}/enrichments/${enrichmentId}`);
+};
+
+const cancelWebsetEnrichment = async (websetId, enrichmentId) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/enrichments/${enrichmentId}/cancel`);
+};
+
+// Websets > Imports
+const createWebsetImport = async (websetId, importPayload) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/imports`, importPayload);
+};
+
+const getWebsetImport = async (websetId, importId) => {
+  return exaWebsetsRequest('GET', `/websets/${websetId}/imports/${importId}`);
+};
+
+const updateWebsetImport = async (websetId, importId, payload) => {
+  return exaWebsetsRequest('PATCH', `/websets/${websetId}/imports/${importId}`, payload);
+};
+
+const deleteWebsetImport = async (websetId, importId) => {
+  return exaWebsetsRequest('DELETE', `/websets/${websetId}/imports/${importId}`);
+};
+
+const listWebsetImports = async (websetId) => {
+  return exaWebsetsRequest('GET', `/websets/${websetId}/imports`);
+};
+
+// Websets > Items
+const getWebsetItem = async (websetId, itemId) => {
+  return exaWebsetsRequest('GET', `/websets/${websetId}/items/${itemId}`);
+};
+
+const deleteWebsetItem = async (websetId, itemId) => {
+  return exaWebsetsRequest('DELETE', `/websets/${websetId}/items/${itemId}`);
+};
+
+const listWebsetItems = async (websetId, { cursor, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  return exaWebsetsRequest('GET', `/websets/${websetId}/items${qs ? '?' + qs : ''}`);
+};
+
+// Websets > Cancel / Preview / List / Update / Delete
+const cancelWebset = async (websetId) => {
+  return exaWebsetsRequest('POST', `/websets/${websetId}/cancel`);
+};
+
+const previewWebset = async (previewPayload) => {
+  return exaWebsetsRequest('POST', '/websets/preview', previewPayload);
+};
+
+const listWebsets = async ({ cursor, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  return exaWebsetsRequest('GET', `/websets${qs ? '?' + qs : ''}`);
+};
+
+const updateWebset = async (websetId, payload) => {
+  return exaWebsetsRequest('PATCH', `/websets/${websetId}`, payload);
+};
+
+const deleteWebset = async (websetId) => {
+  return exaWebsetsRequest('DELETE', `/websets/${websetId}`);
+};
+
 export const ExaResearchService = {
   createSearchRecord: runSearch,
   runSearch,
@@ -630,8 +767,33 @@ export const ExaResearchService = {
   answer,
   createBatch,
   getBatch,
+  listBatches,
+  cancelBatch,
+  deleteBatch,
   getTeamUsage,
   listTeamApiKeys,
+  // Websets sub-resources
+  createWebsetSearch,
+  getWebsetSearch,
+  cancelWebsetSearch,
+  createWebsetEnrichment,
+  getWebsetEnrichment,
+  updateWebsetEnrichment,
+  deleteWebsetEnrichment,
+  cancelWebsetEnrichment,
+  createWebsetImport,
+  getWebsetImport,
+  updateWebsetImport,
+  deleteWebsetImport,
+  listWebsetImports,
+  getWebsetItem,
+  deleteWebsetItem,
+  listWebsetItems,
+  cancelWebset,
+  previewWebset,
+  listWebsets,
+  updateWebset,
+  deleteWebset,
 };
 
 export default ExaResearchService;

@@ -380,6 +380,67 @@ const cancelAgentRun = async (runId) => {
   return data;
 };
 
+const stopAgentRun = async (runId) => {
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs/${runId}/stop`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to stop agent run');
+  return data;
+};
+
+const deleteAgentRun = async (runId) => {
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs/${runId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+    },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to delete agent run');
+  }
+  return { deleted: true };
+};
+
+const listAgentRuns = async ({ cursor, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs${qs ? '?' + qs : ''}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to list agent runs');
+  return data;
+};
+
+const listAgentRunEvents = async (runId, { cursor, limit } = {}) => {
+  const params = new URLSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+
+  const response = await fetch(`${EXA_BASE_URL}/agent/runs/${runId}/events${qs ? '?' + qs : ''}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${getExaApiKey()}`,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(httpStatus.BAD_REQUEST, data?.message || 'Failed to list run events');
+  return data;
+};
+
 export const ExaDeepResearchService = {
   createDeepResearchRecord: runSearch,
   runSearch,
@@ -393,6 +454,10 @@ export const ExaDeepResearchService = {
   createAgentRun,
   getAgentRun,
   cancelAgentRun,
+  stopAgentRun,
+  deleteAgentRun,
+  listAgentRuns,
+  listAgentRunEvents,
 };
 
 export default ExaDeepResearchService;
