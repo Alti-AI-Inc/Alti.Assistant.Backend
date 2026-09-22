@@ -57,6 +57,8 @@ const newsApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+import CacheService from '../../../shared/cache.service.js';
+
 // Inject apiKey into every request
 newsApi.interceptors.request.use((cfg) => {
   if (cfg.method === 'get') {
@@ -66,6 +68,20 @@ newsApi.interceptors.request.use((cfg) => {
   }
   return cfg;
 });
+
+async function cachedGet(path, config = {}) {
+  return CacheService.getOrSet('newsapi', { path, params: config.params }, async () => {
+    const { data } = await newsApi.get(path, config);
+    return data;
+  }, 300); // 5 min cache
+}
+
+async function cachedPost(path, body = {}) {
+  return CacheService.getOrSet('newsapi', { path, body }, async () => {
+    const { data } = await newsApi.post(path, body);
+    return data;
+  }, 300); // 5 min cache
+}
 
 export const NewsApiService = {
 
@@ -80,7 +96,7 @@ export const NewsApiService = {
    *         articlesSortBy, articlesSortByAsc, articlesCount, articlesPage, ... }
    */
   async searchArticles(query = {}) {
-    const { data } = await newsApi.post('/article/getArticles', query);
+    const data = await cachedPost('/article/getArticles', query);
     return data;
   },
 
@@ -89,7 +105,7 @@ export const NewsApiService = {
    * Params: { articleUri, resultType, includeArticleConcepts, ... }
    */
   async getArticle(articleUri, opts = {}) {
-    const { data } = await newsApi.get('/article/getArticle', { params: { articleUri, ...opts } });
+    const data = await cachedGet('/article/getArticle', { params: { articleUri, ...opts } });
     return data;
   },
 
@@ -98,7 +114,7 @@ export const NewsApiService = {
    * Body: { uri, resultType, articlesCount, articlesPage, ... }
    */
   async getArticlesForTopicPage(topicUri, opts = {}) {
-    const { data } = await newsApi.post('/article/getArticlesForTopicPage', { uri: topicUri, ...opts });
+    const data = await cachedPost('/article/getArticlesForTopicPage', { uri: topicUri, ...opts });
     return data;
   },
 
@@ -112,7 +128,7 @@ export const NewsApiService = {
    *         minArticlesInEvent, resultType, eventsSortBy, eventsSortByAsc, eventsCount, eventsPage, ... }
    */
   async searchEvents(query = {}) {
-    const { data } = await newsApi.post('/event/getEvents', query);
+    const data = await cachedPost('/event/getEvents', query);
     return data;
   },
 
@@ -121,7 +137,7 @@ export const NewsApiService = {
    * Params: { eventUri, resultType, includeEventConcepts, ... }
    */
   async getEvent(eventUri, opts = {}) {
-    const { data } = await newsApi.get('/event/getEvent', { params: { eventUri, ...opts } });
+    const data = await cachedGet('/event/getEvent', { params: { eventUri, ...opts } });
     return data;
   },
 
@@ -130,7 +146,7 @@ export const NewsApiService = {
    * Params: { minArticlesInEvent, lang, ... }
    */
   async getBreakingEvents(opts = {}) {
-    const { data } = await newsApi.get('/event/getBreakingEvents', { params: opts });
+    const data = await cachedGet('/event/getBreakingEvents', { params: opts });
     return data;
   },
 
@@ -143,7 +159,7 @@ export const NewsApiService = {
    * Body: { text, lang }
    */
   async annotate(text, lang = 'eng') {
-    const { data } = await newsApi.post('/annotate', { text, lang });
+    const data = await cachedPost('/annotate', { text, lang });
     return data;
   },
 
@@ -152,7 +168,7 @@ export const NewsApiService = {
    * Body: { text, taxonomy }  — taxonomy: 'dmoz' | 'iab-qag' | 'news' | 'iptc'
    */
   async categorize(text, taxonomy = 'news') {
-    const { data } = await newsApi.post('/categorize', { text, taxonomy });
+    const data = await cachedPost('/categorize', { text, taxonomy });
     return data;
   },
 
@@ -161,7 +177,7 @@ export const NewsApiService = {
    * Body: { text, lang }
    */
   async sentiment(text, lang = 'eng') {
-    const { data } = await newsApi.post('/sentiment', { text, lang });
+    const data = await cachedPost('/sentiment', { text, lang });
     return data;
   },
 
@@ -170,7 +186,7 @@ export const NewsApiService = {
    * Body: { url, ... }
    */
   async extractArticleInfo(url) {
-    const { data } = await newsApi.post('/extractArticleInfo', { url });
+    const data = await cachedPost('/extractArticleInfo', { url });
     return data;
   },
 
@@ -179,37 +195,37 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async suggestConcepts(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestConcepts', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestConcepts', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestConceptsFast(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestConceptsFast', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestConceptsFast', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestCategories(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestCategories', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestCategories', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestSources(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestSources', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestSources', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestAuthors(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestAuthors', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestAuthors', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestLocations(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestLocations', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestLocations', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestEventTypes(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestEventTypes', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestEventTypes', { params: { prefix, ...opts } });
     return data;
   },
 
@@ -218,47 +234,47 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getConceptInfo(conceptUri, opts = {}) {
-    const { data } = await newsApi.get('/concept/getConceptInfo', { params: { uri: conceptUri, ...opts } });
+    const data = await cachedGet('/concept/getConceptInfo', { params: { uri: conceptUri, ...opts } });
     return data;
   },
 
   async getSourceInfo(sourceUri, opts = {}) {
-    const { data } = await newsApi.get('/source/getSourceInfo', { params: { uri: sourceUri, ...opts } });
+    const data = await cachedGet('/source/getSourceInfo', { params: { uri: sourceUri, ...opts } });
     return data;
   },
 
   async getCategoryInfo(categoryUri, opts = {}) {
-    const { data } = await newsApi.get('/category/getCategoryInfo', { params: { uri: categoryUri, ...opts } });
+    const data = await cachedGet('/category/getCategoryInfo', { params: { uri: categoryUri, ...opts } });
     return data;
   },
 
   async getDailyShares(opts = {}) {
-    const { data } = await newsApi.get('/dailyShares', { params: opts });
+    const data = await cachedGet('/dailyShares', { params: opts });
     return data;
   },
 
   async getMinuteStreamArticles(opts = {}) {
-    const { data } = await newsApi.get('/minuteStreamArticles', { params: opts });
+    const data = await cachedGet('/minuteStreamArticles', { params: opts });
     return data;
   },
 
   async getRecentActivityArticles(opts = {}) {
-    const { data } = await newsApi.get('/recentActivityArticles', { params: opts });
+    const data = await cachedGet('/recentActivityArticles', { params: opts });
     return data;
   },
 
   async getUsage() {
-    const { data } = await newsApi.get('/usage');
+    const data = await cachedGet('/usage');
     return data;
   },
 
   async getTopCorrelations(conceptUri, opts = {}) {
-    const { data } = await newsApi.get('/topCorrelations', { params: { conceptUri, ...opts } });
+    const data = await cachedGet('/topCorrelations', { params: { conceptUri, ...opts } });
     return data;
   },
 
   async getCounts(opts = {}) {
-    const { data } = await newsApi.get('/counts', { params: opts });
+    const data = await cachedGet('/counts', { params: opts });
     return data;
   },
 
@@ -268,7 +284,7 @@ export const NewsApiService = {
 
   /** Map article URL to Event Registry article URI */
   async articleMapper(articleUrl, opts = {}) {
-    const { data } = await newsApi.get('/articleMapper', { params: { articleUrl, ...opts } });
+    const data = await cachedGet('/articleMapper', { params: { articleUrl, ...opts } });
     return data;
   },
 
@@ -278,7 +294,7 @@ export const NewsApiService = {
 
   /** Query mentions of event types in articles */
   async getMentions(query = {}) {
-    const { data } = await newsApi.post('/eventType/mention', query);
+    const data = await cachedPost('/eventType/mention', query);
     return data;
   },
 
@@ -288,7 +304,7 @@ export const NewsApiService = {
 
   /** Query story clusters */
   async getStory(storyUri, opts = {}) {
-    const { data } = await newsApi.get('/story', { params: { storyUri, ...opts } });
+    const data = await cachedGet('/story', { params: { storyUri, ...opts } });
     return data;
   },
 
@@ -297,7 +313,7 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getTrends(query = {}) {
-    const { data } = await newsApi.post('/trends', query);
+    const data = await cachedPost('/trends', query);
     return data;
   },
 
@@ -306,7 +322,7 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getCounters(query = {}) {
-    const { data } = await newsApi.post('/counters', query);
+    const data = await cachedPost('/counters', query);
     return data;
   },
 
@@ -316,23 +332,23 @@ export const NewsApiService = {
 
   /** SASB materiality event types */
   async getSasbItems(opts = {}) {
-    const { data } = await newsApi.get('/eventType/sasb/getItems', { params: opts });
+    const data = await cachedGet('/eventType/sasb/getItems', { params: opts });
     return data;
   },
 
   /** UN Sustainable Development Goal event types */
   async getSdgItems(opts = {}) {
-    const { data } = await newsApi.get('/eventType/sdg/getItems', { params: opts });
+    const data = await cachedGet('/eventType/sdg/getItems', { params: opts });
     return data;
   },
 
   async suggestEventTypeTaxonomies(prefix, opts = {}) {
-    const { data } = await newsApi.get('/eventType/suggestEventTypes', { params: { prefix, ...opts } });
+    const data = await cachedGet('/eventType/suggestEventTypes', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestIndustries(prefix, opts = {}) {
-    const { data } = await newsApi.get('/eventType/suggestIndustries', { params: { prefix, ...opts } });
+    const data = await cachedGet('/eventType/suggestIndustries', { params: { prefix, ...opts } });
     return data;
   },
 
@@ -341,17 +357,17 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getSourceGroups(opts = {}) {
-    const { data } = await newsApi.get('/sourceGroup/getSourceGroups', { params: opts });
+    const data = await cachedGet('/sourceGroup/getSourceGroups', { params: opts });
     return data;
   },
 
   async getSourceGroupInfo(uri, opts = {}) {
-    const { data } = await newsApi.get('/sourceGroup/getSourceGroupInfo', { params: { uri, ...opts } });
+    const data = await cachedGet('/sourceGroup/getSourceGroupInfo', { params: { uri, ...opts } });
     return data;
   },
 
   async suggestSourceGroups(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestSourceGroups', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestSourceGroups', { params: { prefix, ...opts } });
     return data;
   },
 
@@ -360,27 +376,27 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async suggestAuthorsFast(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestAuthorsFast', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestAuthorsFast', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestCategoriesFast(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestCategoriesFast', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestCategoriesFast', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestConceptClasses(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestConceptClasses', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestConceptClasses', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestLocationsFast(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestLocationsFast', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestLocationsFast', { params: { prefix, ...opts } });
     return data;
   },
 
   async suggestSourcesFast(prefix, opts = {}) {
-    const { data } = await newsApi.get('/suggestSourcesFast', { params: { prefix, ...opts } });
+    const data = await cachedGet('/suggestSourcesFast', { params: { prefix, ...opts } });
     return data;
   },
 
@@ -389,7 +405,7 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getMinuteStreamEvents(opts = {}) {
-    const { data } = await newsApi.get('/minuteStreamEvents', { params: opts });
+    const data = await cachedGet('/minuteStreamEvents', { params: opts });
     return data;
   },
 
@@ -398,7 +414,7 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async getServiceStatus() {
-    const { data } = await newsApi.get('/getServiceStatus');
+    const data = await cachedGet('/getServiceStatus');
     return data;
   },
 
@@ -407,12 +423,12 @@ export const NewsApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async rawGet(path, params = {}) {
-    const { data } = await newsApi.get(path, { params });
+    const data = await cachedGet(path, { params });
     return data;
   },
 
   async rawPost(path, body = {}) {
-    const { data } = await newsApi.post(path, body);
+    const data = await cachedPost(path, body);
     return data;
   },
 };

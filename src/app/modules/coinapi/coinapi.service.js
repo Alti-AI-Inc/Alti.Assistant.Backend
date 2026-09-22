@@ -2,6 +2,7 @@ import axios from 'axios';
 import WebSocket from 'ws';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
+import { CacheService } from '../../../shared/cache.service.js';
 
 /**
  * CoinAPI.io — Complete REST + WebSocket Client
@@ -37,6 +38,13 @@ const coinApi = axios.create({
   headers: { 'X-CoinAPI-Key': API_KEY },
 });
 
+async function cachedGet(path, config = {}) {
+  return CacheService.getOrSet('coinapi', { path, params: config.params }, async () => {
+    const { data } = await coinApi.get(path, config);
+    return data;
+  }, 300); // 5 min cache
+}
+
 export const CoinApiService = {
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -45,49 +53,49 @@ export const CoinApiService = {
 
   /** GET /v1/exchanges — list all supported exchanges */
   async getExchanges(params = {}) {
-    const { data } = await coinApi.get('/v1/exchanges', { params });
+    const data = await cachedGet('/v1/exchanges', { params });
     return data;
   },
 
   /** GET /v1/exchanges/{exchange_id} — specific exchange info */
   async getExchange(exchangeId) {
-    const { data } = await coinApi.get(`/v1/exchanges/${exchangeId}`);
+    const data = await cachedGet(`/v1/exchanges/${exchangeId}`);
     return data;
   },
 
   /** GET /v1/exchanges/icons/{size} — exchange icons */
   async getExchangeIcons(size = 32) {
-    const { data } = await coinApi.get(`/v1/exchanges/icons/${size}`);
+    const data = await cachedGet(`/v1/exchanges/icons/${size}`);
     return data;
   },
 
   /** GET /v1/assets — list all supported assets */
   async getAssets(params = {}) {
-    const { data } = await coinApi.get('/v1/assets', { params });
+    const data = await cachedGet('/v1/assets', { params });
     return data;
   },
 
   /** GET /v1/assets/{asset_id} — specific asset info */
   async getAsset(assetId) {
-    const { data } = await coinApi.get(`/v1/assets/${assetId}`);
+    const data = await cachedGet(`/v1/assets/${assetId}`);
     return data;
   },
 
   /** GET /v1/assets/icons/{size} — asset icons */
   async getAssetIcons(size = 32) {
-    const { data } = await coinApi.get(`/v1/assets/icons/${size}`);
+    const data = await cachedGet(`/v1/assets/icons/${size}`);
     return data;
   },
 
   /** GET /v1/symbols — list all supported symbols */
   async getSymbols(params = {}) {
-    const { data } = await coinApi.get('/v1/symbols', { params });
+    const data = await cachedGet('/v1/symbols', { params });
     return data;
   },
 
   /** GET /v1/symbols/map/{exchange_id} — symbol mapping for exchange */
   async getSymbolMap(exchangeId, params = {}) {
-    const { data } = await coinApi.get(`/v1/symbols/map/${exchangeId}`, { params });
+    const data = await cachedGet(`/v1/symbols/map/${exchangeId}`, { params });
     return data;
   },
 
@@ -97,25 +105,25 @@ export const CoinApiService = {
 
   /** GET /v1/exchangerate/{asset_id_base}/{asset_id_quote} — current rate */
   async getExchangeRate(base, quote) {
-    const { data } = await coinApi.get(`/v1/exchangerate/${base}/${quote}`);
+    const data = await cachedGet(`/v1/exchangerate/${base}/${quote}`);
     return data;
   },
 
   /** GET /v1/exchangerate/{base}/{quote}?time={time} — historical rate at specific time */
   async getExchangeRateAt(base, quote, time) {
-    const { data } = await coinApi.get(`/v1/exchangerate/${base}/${quote}`, { params: { time } });
+    const data = await cachedGet(`/v1/exchangerate/${base}/${quote}`, { params: { time } });
     return data;
   },
 
   /** GET /v1/exchangerate/{base} — all current rates for a base asset */
   async getAllExchangeRates(base, params = {}) {
-    const { data } = await coinApi.get(`/v1/exchangerate/${base}`, { params });
+    const data = await cachedGet(`/v1/exchangerate/${base}`, { params });
     return data;
   },
 
   /** GET /v1/exchangerate/{base}/{quote}/history — time series of exchange rates */
   async getExchangeRateHistory(base, quote, params = {}) {
-    const { data } = await coinApi.get(`/v1/exchangerate/${base}/${quote}/history`, { params });
+    const data = await cachedGet(`/v1/exchangerate/${base}/${quote}/history`, { params });
     return data;
   },
 
@@ -125,19 +133,19 @@ export const CoinApiService = {
 
   /** GET /v1/ohlcv/periods — list available time periods (1SEC, 1MIN, 1HRS, 1DAY, etc.) */
   async getOhlcvPeriods() {
-    const { data } = await coinApi.get('/v1/ohlcv/periods');
+    const data = await cachedGet('/v1/ohlcv/periods');
     return data;
   },
 
   /** GET /v1/ohlcv/{symbol_id}/latest — latest OHLCV candles */
   async getOhlcvLatest(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/ohlcv/${symbolId}/latest`, { params });
+    const data = await cachedGet(`/v1/ohlcv/${symbolId}/latest`, { params });
     return data;
   },
 
   /** GET /v1/ohlcv/{symbol_id}/history — historical OHLCV candles */
   async getOhlcvHistory(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/ohlcv/${symbolId}/history`, { params });
+    const data = await cachedGet(`/v1/ohlcv/${symbolId}/history`, { params });
     return data;
   },
 
@@ -147,19 +155,19 @@ export const CoinApiService = {
 
   /** GET /v1/trades/latest — latest trades across all symbols */
   async getTradesLatest(params = {}) {
-    const { data } = await coinApi.get('/v1/trades/latest', { params });
+    const data = await cachedGet('/v1/trades/latest', { params });
     return data;
   },
 
   /** GET /v1/trades/{symbol_id}/latest — latest trades for symbol */
   async getTradesLatestBySymbol(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/trades/${symbolId}/latest`, { params });
+    const data = await cachedGet(`/v1/trades/${symbolId}/latest`, { params });
     return data;
   },
 
   /** GET /v1/trades/{symbol_id}/history — historical trades */
   async getTradesHistory(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/trades/${symbolId}/history`, { params });
+    const data = await cachedGet(`/v1/trades/${symbolId}/history`, { params });
     return data;
   },
 
@@ -169,31 +177,31 @@ export const CoinApiService = {
 
   /** GET /v1/quotes/current — current best bid/ask across all symbols */
   async getQuotesCurrent(params = {}) {
-    const { data } = await coinApi.get('/v1/quotes/current', { params });
+    const data = await cachedGet('/v1/quotes/current', { params });
     return data;
   },
 
   /** GET /v1/quotes/{symbol_id}/current — current quote for symbol */
   async getQuoteCurrentBySymbol(symbolId) {
-    const { data } = await coinApi.get(`/v1/quotes/${symbolId}/current`);
+    const data = await cachedGet(`/v1/quotes/${symbolId}/current`);
     return data;
   },
 
   /** GET /v1/quotes/latest — latest quotes across all symbols */
   async getQuotesLatest(params = {}) {
-    const { data } = await coinApi.get('/v1/quotes/latest', { params });
+    const data = await cachedGet('/v1/quotes/latest', { params });
     return data;
   },
 
   /** GET /v1/quotes/{symbol_id}/latest — latest quotes for symbol */
   async getQuotesLatestBySymbol(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/quotes/${symbolId}/latest`, { params });
+    const data = await cachedGet(`/v1/quotes/${symbolId}/latest`, { params });
     return data;
   },
 
   /** GET /v1/quotes/{symbol_id}/history — historical quotes */
   async getQuotesHistory(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/quotes/${symbolId}/history`, { params });
+    const data = await cachedGet(`/v1/quotes/${symbolId}/history`, { params });
     return data;
   },
 
@@ -203,25 +211,25 @@ export const CoinApiService = {
 
   /** GET /v1/orderbooks/current — current order books across all symbols */
   async getOrderbooksCurrent(params = {}) {
-    const { data } = await coinApi.get('/v1/orderbooks/current', { params });
+    const data = await cachedGet('/v1/orderbooks/current', { params });
     return data;
   },
 
   /** GET /v1/orderbooks/{symbol_id}/current — current order book for symbol */
   async getOrderbookCurrentBySymbol(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/orderbooks/${symbolId}/current`, { params });
+    const data = await cachedGet(`/v1/orderbooks/${symbolId}/current`, { params });
     return data;
   },
 
   /** GET /v1/orderbooks/{symbol_id}/latest — latest order book snapshots */
   async getOrderbooksLatestBySymbol(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/orderbooks/${symbolId}/latest`, { params });
+    const data = await cachedGet(`/v1/orderbooks/${symbolId}/latest`, { params });
     return data;
   },
 
   /** GET /v1/orderbooks/{symbol_id}/history — historical order book snapshots */
   async getOrderbooksHistory(symbolId, params = {}) {
-    const { data } = await coinApi.get(`/v1/orderbooks/${symbolId}/history`, { params });
+    const data = await cachedGet(`/v1/orderbooks/${symbolId}/history`, { params });
     return data;
   },
 
@@ -231,25 +239,25 @@ export const CoinApiService = {
 
   /** GET /v1/indexes — list all indexes */
   async getIndexes(params = {}) {
-    const { data } = await coinApi.get('/v1/indexes', { params });
+    const data = await cachedGet('/v1/indexes', { params });
     return data;
   },
 
   /** GET /v1/indexes/{index_id} — specific index info */
   async getIndex(indexId) {
-    const { data } = await coinApi.get(`/v1/indexes/${indexId}`);
+    const data = await cachedGet(`/v1/indexes/${indexId}`);
     return data;
   },
 
   /** GET /v1/indexes/{index_id}/history — index history */
   async getIndexHistory(indexId, params = {}) {
-    const { data } = await coinApi.get(`/v1/indexes/${indexId}/history`, { params });
+    const data = await cachedGet(`/v1/indexes/${indexId}/history`, { params });
     return data;
   },
 
   /** GET /v1/indexes/{index_id}/timeseries — index time series */
   async getIndexTimeseries(indexId, params = {}) {
-    const { data } = await coinApi.get(`/v1/indexes/${indexId}/timeseries`, { params });
+    const data = await cachedGet(`/v1/indexes/${indexId}/timeseries`, { params });
     return data;
   },
 
@@ -259,49 +267,49 @@ export const CoinApiService = {
 
   /** GET /v1/metrics/listing — list available metrics */
   async getMetricsListing() {
-    const { data } = await coinApi.get('/v1/metrics/listing');
+    const data = await cachedGet('/v1/metrics/listing');
     return data;
   },
 
   /** GET /v1/metrics/exchange/listing — exchange metrics listing */
   async getExchangeMetricsListing() {
-    const { data } = await coinApi.get('/v1/metrics/exchange/listing');
+    const data = await cachedGet('/v1/metrics/exchange/listing');
     return data;
   },
 
   /** GET /v1/metrics/exchange/current — current exchange metrics */
   async getExchangeMetricsCurrent(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/exchange/current', { params });
+    const data = await cachedGet('/v1/metrics/exchange/current', { params });
     return data;
   },
 
   /** GET /v1/metrics/exchange/history — historical exchange metrics */
   async getExchangeMetricsHistory(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/exchange/history', { params });
+    const data = await cachedGet('/v1/metrics/exchange/history', { params });
     return data;
   },
 
   /** GET /v1/metrics/symbol/current — current symbol metrics */
   async getSymbolMetricsCurrent(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/symbol/current', { params });
+    const data = await cachedGet('/v1/metrics/symbol/current', { params });
     return data;
   },
 
   /** GET /v1/metrics/symbol/history — historical symbol metrics */
   async getSymbolMetricsHistory(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/symbol/history', { params });
+    const data = await cachedGet('/v1/metrics/symbol/history', { params });
     return data;
   },
 
   /** GET /v1/metrics/asset/current — current asset metrics */
   async getAssetMetricsCurrent(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/asset/current', { params });
+    const data = await cachedGet('/v1/metrics/asset/current', { params });
     return data;
   },
 
   /** GET /v1/metrics/asset/history — historical asset metrics */
   async getAssetMetricsHistory(params = {}) {
-    const { data } = await coinApi.get('/v1/metrics/asset/history', { params });
+    const data = await cachedGet('/v1/metrics/asset/history', { params });
     return data;
   },
 
@@ -405,7 +413,7 @@ export const CoinApiService = {
   // ═══════════════════════════════════════════════════════════════════════
 
   async rawGet(path, params = {}) {
-    const { data } = await coinApi.get(path, { params });
+    const data = await cachedGet(path, { params });
     return data;
   },
 };

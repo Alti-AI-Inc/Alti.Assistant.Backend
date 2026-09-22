@@ -61,12 +61,16 @@ for (const [sport, baseURL] of Object.entries(SPORT_HOSTS)) {
   });
 }
 
+import CacheService from '../../../shared/cache.service.js';
+
 // Generic GET helper — all API-Sports endpoints are GET-only
 async function sportGet(sport, path, params = {}) {
-  const client = clients[sport];
-  if (!client) throw new Error(`Unknown sport: ${sport}. Valid: ${Object.keys(SPORT_HOSTS).join(', ')}`);
-  const { data } = await client.get(path, { params });
-  return data;
+  return CacheService.getOrSet('apisports', { sport, path, params }, async () => {
+    const client = clients[sport];
+    if (!client) throw new Error(`Unknown sport: ${sport}. Valid: ${Object.keys(SPORT_HOSTS).join(', ')}`);
+    const { data } = await client.get(path, { params });
+    return data;
+  }, 300); // 5 min cache
 }
 
 export const ApiSportsService = {
