@@ -448,6 +448,366 @@ export async function llmGetUsage(options = {}) {
   }
 }
 
+// ─── 17. LEGACY TEXT COMPLETIONS ────────────────────────────────────
+// POST /v1/completions (non-chat, raw text completion)
+
+export async function llmLegacyComplete(prompt, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+        prompt,
+        max_tokens: options.maxTokens || 512,
+        temperature: options.temperature ?? 0.7,
+        top_p: options.topP ?? undefined,
+        top_k: options.topK ?? undefined,
+        repetition_penalty: options.repetitionPenalty ?? undefined,
+        stop: options.stop ?? undefined,
+        stream: options.stream ?? false,
+        logprobs: options.logprobs ?? undefined,
+        echo: options.echo ?? undefined,
+      }),
+    });
+    if (!response.ok) throw new Error(`Completions failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Legacy Completions Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 18. RERANK ─────────────────────────────────────────────────────
+// POST /v1/rerank — reorder documents by relevance to a query
+
+export async function llmRerank(query, documents, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/rerank', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model || 'Salesforce/Llama-Rank-V1',
+        query,
+        documents,
+        top_n: options.topN ?? undefined,
+        return_documents: options.returnDocuments ?? true,
+      }),
+    });
+    if (!response.ok) throw new Error(`Rerank failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Rerank Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 19. AUDIO — TRANSLATION (any language → English) ───────────────
+// POST /v1/audio/translations
+
+export async function llmTranslateAudio(audioFilePath, options = {}) {
+  try {
+    const file = fs.createReadStream(audioFilePath);
+    const response = await llmClient.audio.translations.create({
+      file,
+      model: options.model || 'openai/whisper-large-v3',
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Audio Translation ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 20. BATCH JOBS — CREATE / LIST / GET / CANCEL ──────────────────
+// Async batch inference at 50% lower cost
+
+export async function llmCreateBatch(inputFileId, endpoint, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/batches', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input_file_id: inputFileId,
+        endpoint,
+        completion_window: options.completionWindow || '24h',
+      }),
+    });
+    if (!response.ok) throw new Error(`Batch create failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Batch Create Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmListBatches() {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/batches', {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together List Batches Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmGetBatch(batchId) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/batches/${batchId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Get Batch Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmCancelBatch(batchId) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/batches/${batchId}/cancel`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Cancel Batch Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 21. VIDEO METADATA ─────────────────────────────────────────────
+// GET /v1/videos/{id}
+
+export async function llmGetVideoMetadata(videoId) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/videos/${videoId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Video metadata failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Video Metadata Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 22. CODE INTERPRETER — SESSIONS ────────────────────────────────
+// GET /v1/code/sessions — list active sessions
+// POST /v1/code/interpreter with session_id for persistent sessions
+
+export async function llmListCodeSessions() {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/code/sessions', {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Code sessions list failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Code Sessions Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmCodeInterpreterWithSession(code, sessionId, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/code/interpreter', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        language: options.language || 'python',
+        session_id: sessionId,
+        ...(options.files ? { files: options.files } : {}),
+      }),
+    });
+    if (!response.ok) throw new Error(`Code interpreter session failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Code Session Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 23. FINE-TUNE — ESTIMATE PRICE ─────────────────────────────────
+// POST /v1/fine-tunes/estimate-price
+
+export async function llmEstimateFineTunePrice(fileId, model, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/fine-tunes/estimate-price', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        training_file: fileId,
+        model,
+        n_epochs: options.epochs || 3,
+        learning_rate: options.learningRate || 1e-5,
+        batch_size: options.batchSize || 4,
+      }),
+    });
+    if (!response.ok) throw new Error(`Fine-tune estimate failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Fine-tune Estimate Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 24. FINE-TUNE — METRICS ────────────────────────────────────────
+// GET /v1/fine-tunes/{id}/metrics
+
+export async function llmGetFineTuneMetrics(fineTuneId, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    let url = `https://api.together.xyz/v1/fine-tunes/${fineTuneId}/metrics`;
+    const params = new URLSearchParams();
+    if (options.type) params.set('type', options.type);
+    if (options.minStep) params.set('min_step', options.minStep);
+    if (options.maxStep) params.set('max_step', options.maxStep);
+    if (params.toString()) url += `?${params}`;
+
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Fine-tune metrics failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Fine-tune Metrics Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 25. FINE-TUNE — DOWNLOAD TOKENIZED DATASET ────────────────────
+// GET /v1/fine-tunes/{id}/download-tokenized-dataset
+
+export async function llmDownloadTokenizedDataset(fineTuneId) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/fine-tunes/${fineTuneId}/download-tokenized-dataset`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Download tokenized dataset failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Tokenized Dataset Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 26. FINE-TUNE — MODEL LIMITS ───────────────────────────────────
+// GET /v1/fine-tunes/models/limits
+
+export async function llmGetModelLimits(model) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/fine-tunes/models/limits?model=${encodeURIComponent(model)}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Model limits failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Model Limits Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 27. VISION — IMAGE INPUT WITH CHAT ─────────────────────────────
+// Uses chat completions with image_url content parts
+
+export async function llmVisionChat(textPrompt, imageUrls, options = {}) {
+  try {
+    const content = [{ type: 'text', text: textPrompt }];
+    const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+    for (const url of urls) {
+      content.push({ type: 'image_url', image_url: { url } });
+    }
+    const response = await llmClient.chat.completions.create({
+      model: options.model || 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
+      messages: [{ role: 'user', content }],
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens || 4096,
+      response_format: options.responseFormat ?? undefined,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Vision ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 28. REASONING MODELS ───────────────────────────────────────────
+// Chat completions with reasoning models (think step-by-step)
+
+export async function llmReasoningChat(messages, options = {}) {
+  try {
+    const response = await llmClient.chat.completions.create({
+      model: options.model || 'Qwen/QwQ-32B',
+      messages,
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens || 16384,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Reasoning ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 29. LOG PROBABILITIES ──────────────────────────────────────────
+// Chat completions with logprobs enabled
+
+export async function llmChatWithLogprobs(messages, options = {}) {
+  try {
+    const response = await llmClient.chat.completions.create({
+      model: options.model || config.llm?.model || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      messages,
+      temperature: options.temperature ?? 0.7,
+      logprobs: true,
+      top_logprobs: options.topLogprobs || 5,
+      max_tokens: options.maxTokens ?? undefined,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Logprobs ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════
 //  CONVENIENCE WRAPPERS
@@ -477,3 +837,4 @@ export function getLlmClient() {
 
 export { llmClient };
 export default llmClient;
+

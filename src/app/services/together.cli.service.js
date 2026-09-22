@@ -187,15 +187,121 @@ export async function cliEvalStatus(evalId) {
   return run(`evals status ${evalId}`);
 }
 
+// ─── BATCHES ────────────────────────────────────────────────────────
+// together batches create / list / get / cancel / download
+
+export async function cliCreateBatch(inputFile, endpoint, options = {}) {
+  let cmd = `beta batches create --input-file ${inputFile} --endpoint ${endpoint}`;
+  if (options.completionWindow) cmd += ` --completion-window ${options.completionWindow}`;
+  return run(cmd);
+}
+
+export async function cliListBatches() {
+  return run('beta batches list');
+}
+
+export async function cliGetBatch(batchId) {
+  return run(`beta batches get ${batchId}`);
+}
+
+export async function cliCancelBatch(batchId) {
+  return run(`beta batches cancel ${batchId}`);
+}
+
+export async function cliDownloadBatch(batchId, options = {}) {
+  let cmd = `beta batches download ${batchId}`;
+  if (options.output) cmd += ` --output "${options.output}"`;
+  return run(cmd);
+}
+
+// ─── WHOAMI ─────────────────────────────────────────────────────────
+
+export async function cliWhoami() {
+  return run('whoami');
+}
+
+// ─── TELEMETRY ──────────────────────────────────────────────────────
+
+export async function cliTelemetryStatus() {
+  return run('telemetry status');
+}
+
+export async function cliTelemetryEnable() {
+  return run('telemetry enable');
+}
+
+export async function cliTelemetryDisable() {
+  return run('telemetry disable');
+}
+
+// ─── BETA: MODELS (DMI) ─────────────────────────────────────────────
+
+export async function cliBetaModelsList(projectId) {
+  let cmd = 'beta models list';
+  if (projectId) cmd += ` --project-id ${projectId}`;
+  return run(cmd);
+}
+
+export async function cliBetaModelsCreate(options = {}) {
+  let cmd = 'beta models create';
+  if (options.name) cmd += ` --name "${options.name}"`;
+  if (options.source) cmd += ` --source ${options.source}`;
+  return run(cmd);
+}
+
+export async function cliBetaModelsGet(modelId) {
+  return run(`beta models get ${modelId}`);
+}
+
+// ─── BETA: ENDPOINTS (DMI v2) ───────────────────────────────────────
+
+export async function cliBetaEndpointsList(projectId) {
+  let cmd = 'beta endpoints list';
+  if (projectId) cmd += ` --project-id ${projectId}`;
+  return run(cmd);
+}
+
+export async function cliBetaEndpointsCreate(options = {}) {
+  let cmd = 'beta endpoints create';
+  if (options.model) cmd += ` --model ${options.model}`;
+  if (options.name) cmd += ` --name "${options.name}"`;
+  if (options.hardware) cmd += ` --hardware ${options.hardware}`;
+  return run(cmd);
+}
+
+export async function cliBetaEndpointsGet(endpointId) {
+  return run(`beta endpoints get ${endpointId}`);
+}
+
+export async function cliBetaEndpointsDelete(endpointId) {
+  return run(`beta endpoints delete ${endpointId}`);
+}
+
+// ─── CLUSTERS ───────────────────────────────────────────────────────
+
+export async function cliClustersList() {
+  return run('beta clusters list');
+}
+
+export async function cliClustersGet(clusterId) {
+  return run(`beta clusters get ${clusterId}`);
+}
+
+export async function cliClustersCreate(options = {}) {
+  let cmd = 'beta clusters create';
+  if (options.name) cmd += ` --name "${options.name}"`;
+  if (options.gpuType) cmd += ` --gpu-type ${options.gpuType}`;
+  if (options.numNodes) cmd += ` --num-nodes ${options.numNodes}`;
+  return run(cmd);
+}
+
+export async function cliClustersDelete(clusterId) {
+  return run(`beta clusters delete ${clusterId}`);
+}
+
 // ─── UTILITY ────────────────────────────────────────────────────────
 
 export async function cliVersion() {
-  return run('--version');
-}
-
-export async function cliWhoami() {
-  // No built-in whoami in CLI, but we can use SDK's whoami via the API
-  // or just return the version/key info
   return run('--version');
 }
 
@@ -234,6 +340,31 @@ export default {
   cliListEvals,
   cliRetrieveEval,
   cliEvalStatus,
+  // Batches
+  cliCreateBatch,
+  cliListBatches,
+  cliGetBatch,
+  cliCancelBatch,
+  cliDownloadBatch,
+  // Beta: Models (DMI)
+  cliBetaModelsList,
+  cliBetaModelsCreate,
+  cliBetaModelsGet,
+  // Beta: Endpoints (DMI v2)
+  cliBetaEndpointsList,
+  cliBetaEndpointsCreate,
+  cliBetaEndpointsGet,
+  cliBetaEndpointsDelete,
+  // Clusters
+  cliClustersList,
+  cliClustersGet,
+  cliClustersCreate,
+  cliClustersDelete,
   // Utility
   cliVersion,
+  cliWhoami,
+  cliTelemetryStatus,
+  cliTelemetryEnable,
+  cliTelemetryDisable,
 };
+
