@@ -80,6 +80,61 @@ router.get('/mma/fighters', ApiSportsController.getFighters);
 router.get('/mma/fights', ApiSportsController.getFights);
 
 // ═══════════════════════════════════════════════════════════════════════
+// ADDITIONAL FOOTBALL ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/football/trophies', ApiSportsController.getTrophies);
+router.get('/football/sidelined', ApiSportsController.getSidelined);
+router.get('/football/teams/seasons', ApiSportsController.getTeamSeasons);
+router.get('/football/teams/countries', ApiSportsController.getTeamCountries);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADDITIONAL PLAYER ENDPOINTS (all sports)
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/:sport/players/statistics', ApiSportsController.getPlayerStatistics);
+router.get('/:sport/players/topassists', ApiSportsController.getTopAssists);
+router.get('/:sport/players/topyellowcards', ApiSportsController.getTopYellowCards);
+router.get('/:sport/players/topredcards', ApiSportsController.getTopRedCards);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADDITIONAL FIXTURE ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/:sport/fixtures/rounds', ApiSportsController.getFixtureRounds);
+router.get('/:sport/fixtures/players', ApiSportsController.getFixturePlayers);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADDITIONAL ODDS ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/:sport/odds/mapping', ApiSportsController.getOddsMapping);
+router.get('/:sport/odds/bets', ApiSportsController.getBetTypes);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADDITIONAL FORMULA 1 ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════
+
+router.get('/formula1/rankings/teams', ApiSportsController.getTeamRankings);
+router.get('/formula1/rankings/races', ApiSportsController.getRaceRankings);
+router.get('/formula1/pit-stops', ApiSportsController.getPitStops);
+
+// ═══════════════════════════════════════════════════════════════════════
+// REAL-TIME LIVE SCORE STREAMING CONTROLS
+// ═══════════════════════════════════════════════════════════════════════
+
+// Start/stop live polling per sport
+router.post('/:sport/live/start', ApiSportsController.startLivePolling);
+router.post('/:sport/live/stop', ApiSportsController.stopLivePolling);
+
+// Start live polling for ALL 12 sports
+router.post('/live/start-all', ApiSportsController.startAllLivePolling);
+
+// Get cached live scores (instant, no API call)
+router.get('/:sport/live/cached', ApiSportsController.getCachedLiveScores);
+router.get('/live/all', ApiSportsController.getAllCachedLiveScores);
+
+// ═══════════════════════════════════════════════════════════════════════
 // RAW PROXY — catch-all for any sport + any path
 //   e.g. GET /api/v1/sports/football/proxy/trophies?player=276
 // ═══════════════════════════════════════════════════════════════════════

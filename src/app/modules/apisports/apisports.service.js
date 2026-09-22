@@ -326,6 +326,176 @@ export const ApiSportsService = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════
+  // ADDITIONAL FOOTBALL ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** GET /teams/seasons */
+  async getTeamSeasons(params = {}) {
+    return sportGet('football', '/teams/seasons', params);
+  },
+
+  /** GET /teams/countries */
+  async getTeamCountries(params = {}) {
+    return sportGet('football', '/teams/countries', params);
+  },
+
+  /** GET /trophies */
+  async getTrophies(params = {}) {
+    return sportGet('football', '/trophies', params);
+  },
+
+  /** GET /sidelined */
+  async getSidelined(params = {}) {
+    return sportGet('football', '/sidelined', params);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADDITIONAL PLAYER ENDPOINTS (all sports)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** GET /players/statistics — per-player stats */
+  async getPlayerStatistics(sport, params = {}) {
+    return sportGet(sport, '/players/statistics', params);
+  },
+
+  /** GET /players/topassists */
+  async getTopAssists(sport, params = {}) {
+    return sportGet(sport, '/players/topassists', params);
+  },
+
+  /** GET /players/topyellowcards */
+  async getTopYellowCards(sport, params = {}) {
+    return sportGet(sport, '/players/topyellowcards', params);
+  },
+
+  /** GET /players/topredcards */
+  async getTopRedCards(sport, params = {}) {
+    return sportGet(sport, '/players/topredcards', params);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADDITIONAL FIXTURE ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** GET /fixtures/rounds */
+  async getFixtureRounds(sport, params = {}) {
+    const path = sport === 'football' ? '/fixtures/rounds' : '/games/rounds';
+    return sportGet(sport, path, params);
+  },
+
+  /** GET /fixtures/players — per-player stats per fixture */
+  async getFixturePlayers(sport, params = {}) {
+    const path = sport === 'football' ? '/fixtures/players' : '/games/players';
+    return sportGet(sport, path, params);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADDITIONAL ODDS ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** GET /odds/mapping — map fixtures to odds */
+  async getOddsMapping(sport, params = {}) {
+    return sportGet(sport, '/odds/mapping', params);
+  },
+
+  /** GET /odds/bets — available bet types */
+  async getBetTypes(sport, params = {}) {
+    return sportGet(sport, '/odds/bets', params);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADDITIONAL FORMULA 1 ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** GET /rankings/teams */
+  async getTeamRankings(params = {}) {
+    return sportGet('formula1', '/rankings/teams', params);
+  },
+
+  /** GET /rankings/races — race results per race */
+  async getRaceRankings(params = {}) {
+    return sportGet('formula1', '/rankings/races', params);
+  },
+
+  /** GET /pit-stops */
+  async getPitStops(params = {}) {
+    return sportGet('formula1', '/pit-stops', params);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // REAL-TIME LIVE SCORE POLLING ENGINE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  _livePollers: {},
+  _liveCache: {},
+
+  /**
+   * Start polling live scores for a sport every N seconds.
+   * Stores results in _liveCache[sport] for instant access.
+   * @param {string} sport - one of the 12 sports
+   * @param {number} intervalMs - polling interval (default 30s)
+   */
+  startLivePolling(sport, intervalMs = 30000) {
+    if (this._livePollers[sport]) {
+      logger.warn(`[API-Sports] Live poller already running for ${sport}`);
+      return;
+    }
+    logger.info(`[API-Sports] Starting live score poller for ${sport} every ${intervalMs}ms`);
+
+    const poll = async () => {
+      try {
+        const path = sport === 'football' ? '/fixtures' : '/games';
+        const result = await sportGet(sport, path, { live: 'all' });
+        this._liveCache[sport] = {
+          data: result,
+          lastUpdated: new Date().toISOString(),
+          count: result?.response?.length || 0,
+        };
+      } catch (err) {
+        logger.error(`[API-Sports] Live poll error for ${sport}: ${err.message}`);
+      }
+    };
+
+    // Immediate first poll
+    poll();
+    this._livePollers[sport] = setInterval(poll, intervalMs);
+  },
+
+  /**
+   * Stop live polling for a sport.
+   */
+  stopLivePolling(sport) {
+    if (this._livePollers[sport]) {
+      clearInterval(this._livePollers[sport]);
+      delete this._livePollers[sport];
+      logger.info(`[API-Sports] Stopped live poller for ${sport}`);
+    }
+  },
+
+  /**
+   * Start live polling for ALL 12 sports simultaneously.
+   */
+  startAllLivePolling(intervalMs = 30000) {
+    for (const sport of Object.keys(SPORT_HOSTS)) {
+      this.startLivePolling(sport, intervalMs);
+    }
+  },
+
+  /**
+   * Get cached live scores (instant, no API call).
+   */
+  getCachedLiveScores(sport) {
+    return this._liveCache[sport] || { data: null, lastUpdated: null, count: 0 };
+  },
+
+  /**
+   * Get cached live scores across ALL sports.
+   */
+  getAllCachedLiveScores() {
+    return this._liveCache;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
   // GENERIC PASSTHROUGH — for any endpoint on any sport
   // ═══════════════════════════════════════════════════════════════════════
 

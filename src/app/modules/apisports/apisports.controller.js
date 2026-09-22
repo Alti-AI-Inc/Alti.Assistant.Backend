@@ -200,6 +200,131 @@ const getFights = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Fights', data: result });
 });
 
+// ── Additional Football ───────────────────────────────────────────────
+
+const getTrophies = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getTrophies(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Trophies', data: result });
+});
+
+const getSidelined = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getSidelined(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Sidelined', data: result });
+});
+
+const getTeamSeasons = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getTeamSeasons(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Team seasons', data: result });
+});
+
+const getTeamCountries = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getTeamCountries(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Team countries', data: result });
+});
+
+// ── Additional Players ────────────────────────────────────────────────
+
+const getPlayerStatistics = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getPlayerStatistics(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Player statistics', data: result });
+});
+
+const getTopAssists = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getTopAssists(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Top assists', data: result });
+});
+
+const getTopYellowCards = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getTopYellowCards(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Top yellow cards', data: result });
+});
+
+const getTopRedCards = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getTopRedCards(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Top red cards', data: result });
+});
+
+// ── Additional Fixtures ───────────────────────────────────────────────
+
+const getFixtureRounds = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getFixtureRounds(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Fixture rounds', data: result });
+});
+
+const getFixturePlayers = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getFixturePlayers(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Fixture players', data: result });
+});
+
+// ── Additional Odds ───────────────────────────────────────────────────
+
+const getOddsMapping = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getOddsMapping(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Odds mapping', data: result });
+});
+
+const getBetTypes = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = await ApiSportsService.getBetTypes(sport, req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Bet types', data: result });
+});
+
+// ── Additional F1 ─────────────────────────────────────────────────────
+
+const getTeamRankings = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getTeamRankings(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'F1 team rankings', data: result });
+});
+
+const getRaceRankings = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getRaceRankings(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'F1 race rankings', data: result });
+});
+
+const getPitStops = catchAsync(async (req, res) => {
+  const result = await ApiSportsService.getPitStops(req.query);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'F1 pit stops', data: result });
+});
+
+// ── Live Score Streaming Controls ─────────────────────────────────────
+
+const startLivePolling = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const intervalMs = parseInt(req.query.interval) || 30000;
+  ApiSportsService.startLivePolling(sport, intervalMs);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: `Live polling started for ${sport}`, data: { sport, intervalMs } });
+});
+
+const stopLivePolling = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  ApiSportsService.stopLivePolling(sport);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: `Live polling stopped for ${sport}`, data: { sport } });
+});
+
+const startAllLivePolling = catchAsync(async (req, res) => {
+  const intervalMs = parseInt(req.query.interval) || 30000;
+  ApiSportsService.startAllLivePolling(intervalMs);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Live polling started for ALL sports', data: { intervalMs } });
+});
+
+const getCachedLiveScores = catchAsync(async (req, res) => {
+  const { sport } = req.params;
+  const result = ApiSportsService.getCachedLiveScores(sport);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: `Cached live scores: ${sport}`, data: result });
+});
+
+const getAllCachedLiveScores = catchAsync(async (req, res) => {
+  const result = ApiSportsService.getAllCachedLiveScores();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'All cached live scores', data: result });
+});
+
 // ── Generic Proxy ─────────────────────────────────────────────────────
 
 const rawProxy = catchAsync(async (req, res) => {
@@ -218,6 +343,13 @@ export const ApiSportsController = {
   getCoaches, getTransfers, getInjuries, getVenues,
   getCircuits, getDrivers, getRaces, getDriverRankings,
   getFighters, getFights,
+  getTrophies, getSidelined, getTeamSeasons, getTeamCountries,
+  getPlayerStatistics, getTopAssists, getTopYellowCards, getTopRedCards,
+  getFixtureRounds, getFixturePlayers,
+  getOddsMapping, getBetTypes,
+  getTeamRankings, getRaceRankings, getPitStops,
+  startLivePolling, stopLivePolling, startAllLivePolling,
+  getCachedLiveScores, getAllCachedLiveScores,
   rawProxy,
 };
 
