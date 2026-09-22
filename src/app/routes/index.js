@@ -46,6 +46,7 @@ import { fredRoutes } from '../modules/fred/fred.route.js';
 import { arxivRoutes } from '../modules/arxiv/arxiv.route.js';
 import { congressRoutes } from '../modules/congress/congress.route.js';
 import { openfdaRoutes } from '../modules/openfda/openfda.route.js';
+import { censusRoutes } from '../modules/census/census.route.js';
 
 const router = express.Router();
 
@@ -73,6 +74,10 @@ const moduleRoutes = [
   {
     path: '/openfda',
     route: openfdaRoutes,
+  },
+  {
+    path: '/census',
+    route: censusRoutes,
   },
   {
     path: '/admin',

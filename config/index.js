@@ -151,6 +151,11 @@ export default {
     baseUrl: 'https://api.fda.gov',
   },
 
+  census: {
+    key: process.env.CENSUS_API_KEY || 'dummy_census_key',
+    baseUrl: 'https://api.census.gov/data',
+  },
+
   // ── Smart Routing ─────────────────────────────────────────────────────────
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',

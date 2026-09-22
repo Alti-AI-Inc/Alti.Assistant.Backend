@@ -19,6 +19,7 @@ import fredService from '../fred/fred.service.js';
 import arxivService from '../arxiv/arxiv.service.js';
 import congressService from '../congress/congress.service.js';
 import openfdaService from '../openfda/openfda.service.js';
+import censusService from '../census/census.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -155,6 +156,15 @@ const tools = [
       parameters: { type: 'object', properties: { search: { type: 'string', description: 'Drug name or query' } }, required: ['search'] }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'get_census_data',
+      description: 'Get demographic, housing, or economic data from the US Census Bureau.',
+      parameters: { type: 'object', properties: { year: { type: 'string', description: 'Year, e.g. 2021' }, state: { type: 'string', description: 'State FIPS code (e.g. 06 for CA) or *' }, type: { type: 'string', description: 'Type of data: population or economy' } } }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -205,6 +215,33 @@ export const AgentService = {
         
         
         
+        
+        case 'get_census_data': {
+          try {
+            let data;
+            if (args.type === 'economy') {
+               data = await censusService.getEconomicData(args.year, args.state);
+            } else {
+               data = await censusService.getPopulationData(args.year, args.state);
+            }
+            
+            const customMetadata = {
+              domain: 'census_bps',
+              censusData: data
+            };
+
+            return {
+              output: `Successfully fetched Census data: ${JSON.stringify(data?.[1] || data)}. Tell the user the data will be shown in a UI widget.`,
+              references: [{ title: `US Census ${args.type || 'Data'}`, url: 'https://census.gov', snippet: 'Demographic and economic data', source: 'US Census Bureau' }],
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to search Census: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'search_fda_drugs': {
           try {
             const data = await openfdaService.searchDrugs(args.search, { limit: 5 });
