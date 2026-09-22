@@ -205,6 +205,10 @@ const moduleRoutes = [
     path: '/newsapi',
     route: (await import('../modules/newsapi/newsapi.route.js')).default,
   },
+  {
+    path: '/sports',
+    route: (await import('../modules/apisports/apisports.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

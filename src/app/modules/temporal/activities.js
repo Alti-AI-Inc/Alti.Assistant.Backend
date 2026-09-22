@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 7 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 8 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -273,6 +273,7 @@ You must break the user's prompt into a sequence of execution steps across our 7
 5. CODEX (Sandboxed Math, Logic, Data Analysis, Python/Node execution)
 6. MASSIVE_FINANCE (Real-time and historical financial data: stocks, crypto, forex, options, indices, futures)
 7. NEWSAPI_INTELLIGENCE (Global news search, event detection, NER annotation, sentiment analysis, breaking events)
+8. API_SPORTS (Real-time sports scores across 12 sports: football, basketball, baseball, hockey, handball, rugby, volleyball, AFL, F1, MMA, NBA, NFL)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -334,6 +335,40 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const newsResult = await NewsApiService.searchArticles({ keyword: step.action, articlesCount: 10 });
         return { status: 'completed', result: newsResult };
+      }
+      
+    case 'API_SPORTS':
+      const { ApiSportsService } = await import('../apisports/apisports.service.js');
+      // Detect which sport from the action text
+      const actionLower = step.action.toLowerCase();
+      let detectedSport = 'football'; // default
+      const sportKeywords = {
+        basketball: ['basketball', 'nba', 'ncaa basketball'],
+        baseball: ['baseball', 'mlb'],
+        hockey: ['hockey', 'nhl', 'ice hockey'],
+        handball: ['handball'],
+        rugby: ['rugby'],
+        volleyball: ['volleyball'],
+        afl: ['afl', 'australian football'],
+        formula1: ['formula 1', 'f1', 'formula1', 'grand prix'],
+        mma: ['mma', 'ufc', 'mixed martial arts'],
+        nba: ['nba'],
+        nfl: ['nfl', 'american football', 'super bowl'],
+        football: ['football', 'soccer', 'premier league', 'la liga', 'champions league', 'world cup'],
+      };
+      for (const [sport, keywords] of Object.entries(sportKeywords)) {
+        if (keywords.some(kw => actionLower.includes(kw))) { detectedSport = sport; break; }
+      }
+      // Try live fixtures first, fall back to leagues
+      if (actionLower.includes('live') || actionLower.includes('score') || actionLower.includes('match')) {
+        const liveResult = await ApiSportsService.getLiveFixtures(detectedSport);
+        return { status: 'completed', result: liveResult };
+      } else if (actionLower.includes('standing') || actionLower.includes('ranking')) {
+        const standingsResult = await ApiSportsService.getStandings(detectedSport, {});
+        return { status: 'completed', result: standingsResult };
+      } else {
+        const leaguesResult = await ApiSportsService.getLeagues(detectedSport, {});
+        return { status: 'completed', result: leaguesResult };
       }
       
     case 'CODEX':
