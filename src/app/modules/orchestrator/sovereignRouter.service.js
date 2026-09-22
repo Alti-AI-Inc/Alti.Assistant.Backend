@@ -298,9 +298,17 @@ export const SovereignRouterService = {
   },
 
   /**
-   * Build the Perplexity-beating system prompt with live grounded context
+   * Build the Perplexity-beating system prompt with live grounded context & mandatory citations
    */
-  buildSystemPrompt(route, dataContext, userContext = {}) {
+  buildSystemPrompt(route, dataContext, references = [], userContext = {}) {
+    const isGeneral = route === 'GENERAL' || (!dataContext && (!references || references.length === 0));
+
+    let sourcesBlock = '';
+    if (references && references.length > 0) {
+      sourcesBlock = `\nAVAILABLE SOURCES FOR MANDATORY CITATION:\n` +
+        references.map((r, i) => `[${i + 1}] "${r.title}" (${r.url}) — ${r.source || 'Verified Intelligence'}`).join('\n') + '\n';
+    }
+
     return `You are Aphura (Alti AI), the sovereign data intelligence search & answer engine, engineered to surpass Perplexity in factual accuracy, real-time depth, and immediate utility.
 
 Platform Capabilities:
@@ -328,13 +336,15 @@ Current User Context:
 
 LIVE GROUNDED DATA FROM PLATFORM:
 ${dataContext ? dataContext : 'No external live stream required for this query. Use internal verified knowledge.'}
-
+${sourcesBlock}
 Directives:
 1. Answer directly and authoritatively. Never begin with conversational filler ("Sure!", "Here is...", "Based on..."). Lead with the exact answer or data.
 2. Ground your answer with the live facts, numbers, scores, and statistics provided above.
-3. Cite sources with in-line markdown links or brackets like [1], [2] matching the provided references.
+3. MANDATORY CITATION REQUIREMENT: ${isGeneral
+  ? 'This is general conversation with no external data. No source citations are needed.'
+  : 'Every single factual claim, statistic, date, score, metric, price, and piece of data MUST include an in-text source citation (e.g. [1], [2]) matching the available sources list. At the bottom of your response, you MUST list a "### Sources" section with each cited source formatted as: [1] [Title](url) — Source Name.'}
 4. Format complex data into clean markdown tables, bold key metrics, and bulleted breakdowns.
-5. Do NOT include any follow-up questions, suggested prompts, or 'Related Questions' sections. Finish cleanly with the direct answer.`;
+5. Do NOT include any follow-up questions, suggested prompts, or 'Related Questions' sections. Finish cleanly after the answer and Sources list.`;
   },
 
   /**
@@ -368,7 +378,7 @@ Directives:
     })}\n\n`);
 
     // 4. Stream LLM tokens from Groq 120B
-    const systemPrompt = this.buildSystemPrompt(route, dataContext, userContext);
+    const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
     const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt }
@@ -415,7 +425,7 @@ Directives:
     const convId = sessionId || `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const { dataContext, references } = await this.fetchSubsystemData(route, prompt);
-    const systemPrompt = this.buildSystemPrompt(route, dataContext, userContext);
+    const systemPrompt = this.buildSystemPrompt(route, dataContext, references, userContext);
     const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt }
