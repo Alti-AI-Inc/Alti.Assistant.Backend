@@ -18,31 +18,13 @@ export const CloudflareService = {
    */
   async getZoneDetails(zoneId) {
     const targetZone = zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
-    if (!targetZone) {
-      return {
-        zoneId: 'mock-zone-id',
-        name: 'alti.assistant',
-        status: 'active',
-        paused: false,
-        type: 'full',
-        plan: { name: 'Pro Plan' },
-      };
-    }
+    if (!targetZone) throw new Error('Cloudflare Zone ID is required');
 
-    try {
-      const res = await axios.get(`${CF_API_BASE}/zones/${targetZone}`, {
-        headers: getHeaders(),
-        timeout: 5000,
-      });
-      return res.data.result;
-    } catch (err) {
-      logger.warn('[Cloudflare] getZoneDetails fallback:', err.message);
-      return {
-        zoneId: targetZone,
-        status: 'active',
-        name: 'alti.assistant',
-      };
-    }
+    const res = await axios.get(`${CF_API_BASE}/zones/${targetZone}`, {
+      headers: getHeaders(),
+      timeout: 5000,
+    });
+    return res.data.result;
   },
 
   /**
@@ -50,20 +32,17 @@ export const CloudflareService = {
    */
   async purgeCache(options = {}) {
     const zoneId = options.zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
+    if (!zoneId) throw new Error('Cloudflare Zone ID is required');
+
     const body = options.purgeEverything
       ? { purge_everything: true }
       : { files: options.files || [], tags: options.tags || [] };
 
-    try {
-      const res = await axios.post(`${CF_API_BASE}/zones/${zoneId}/purge_cache`, body, {
-        headers: getHeaders(),
-        timeout: 5000,
-      });
-      return res.data;
-    } catch (err) {
-      logger.warn('[Cloudflare] purgeCache simulated:', err.message);
-      return { success: true, result: { id: zoneId }, message: 'Simulated cache purge' };
-    }
+    const res = await axios.post(`${CF_API_BASE}/zones/${zoneId}/purge_cache`, body, {
+      headers: getHeaders(),
+      timeout: 5000,
+    });
+    return res.data;
   },
 
   /**
@@ -71,16 +50,9 @@ export const CloudflareService = {
    */
   async listDnsRecords(zoneId, type = '') {
     const targetZone = zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
-    try {
-      const url = `${CF_API_BASE}/zones/${targetZone}/dns_records${type ? `?type=${type}` : ''}`;
-      const res = await axios.get(url, { headers: getHeaders(), timeout: 5000 });
-      return res.data.result || [];
-    } catch (err) {
-      return [
-        { id: 'rec-01', type: 'A', name: 'api.alti.assistant', content: '198.51.100.24', proxied: true, ttl: 1 },
-        { id: 'rec-02', type: 'CNAME', name: 'app.alti.assistant', content: 'alti-front.pages.dev', proxied: true, ttl: 1 },
-      ];
-    }
+    const url = `${CF_API_BASE}/zones/${targetZone}/dns_records${type ? `?type=${type}` : ''}`;
+    const res = await axios.get(url, { headers: getHeaders(), timeout: 5000 });
+    return res.data.result;
   },
 
   /**
@@ -88,15 +60,11 @@ export const CloudflareService = {
    */
   async createDnsRecord(record) {
     const targetZone = record.zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
-    try {
-      const res = await axios.post(`${CF_API_BASE}/zones/${targetZone}/dns_records`, record, {
-        headers: getHeaders(),
-        timeout: 5000,
-      });
-      return res.data.result;
-    } catch (err) {
-      return { id: `rec-${Date.now()}`, ...record, success: true };
-    }
+    const res = await axios.post(`${CF_API_BASE}/zones/${targetZone}/dns_records`, record, {
+      headers: getHeaders(),
+      timeout: 5000,
+    });
+    return res.data.result;
   },
 
   /**
@@ -104,15 +72,11 @@ export const CloudflareService = {
    */
   async deleteDnsRecord(recordId, zoneId) {
     const targetZone = zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
-    try {
-      const res = await axios.delete(`${CF_API_BASE}/zones/${targetZone}/dns_records/${recordId}`, {
-        headers: getHeaders(),
-        timeout: 5000,
-      });
-      return res.data.result;
-    } catch (err) {
-      return { id: recordId, success: true, deleted: true };
-    }
+    const res = await axios.delete(`${CF_API_BASE}/zones/${targetZone}/dns_records/${recordId}`, {
+      headers: getHeaders(),
+      timeout: 5000,
+    });
+    return res.data.result;
   },
 
   /**
@@ -120,33 +84,43 @@ export const CloudflareService = {
    */
   async verifyTurnstile(token, remoteIp = '') {
     const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
-    if (!secretKey) {
-      return { success: true, message: 'Turnstile verification bypassed (no secret key configured)' };
-    }
+    if (!secretKey) throw new Error('CLOUDFLARE_TURNSTILE_SECRET_KEY is missing');
 
-    try {
-      const res = await axios.post(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        new URLSearchParams({ secret: secretKey, response: token, remoteip: remoteIp }),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 5000 }
-      );
-      return res.data;
-    } catch (err) {
-      logger.error('[Cloudflare Turnstile] Verification error:', err.message);
-      return { success: false, error: err.message };
-    }
+    const res = await axios.post(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      new URLSearchParams({ secret: secretKey, response: token, remoteip: remoteIp }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 5000 }
+    );
+    return res.data;
   },
 
   /**
    * Get WAF / Firewall Rules
    */
   async listWafRules(zoneId) {
-    return [
-      { id: 'waf-rule-01', description: 'Block SQLi and XSS payloads', action: 'block', enabled: true },
-      { id: 'waf-rule-02', description: 'Rate limit auth routes to 60 req/min', action: 'rate_limit', enabled: true },
-      { id: 'waf-rule-03', description: 'DDoS mitigation - High sensitivity', action: 'challenge', enabled: true },
-    ];
+    const targetZone = zoneId || config.cloudflare?.zoneId || process.env.CLOUDFLARE_ZONE_ID;
+    // Call the actual CF Rulesets API for WAF
+    const res = await axios.get(`${CF_API_BASE}/zones/${targetZone}/rulesets`, {
+      headers: getHeaders(),
+      timeout: 5000,
+    });
+    return res.data.result;
   },
+
+  /**
+   * Workers AI: Run inference models directly
+   */
+  async runAiModel(model, input) {
+    const accountId = config.cloudflare?.accountId || process.env.CLOUDFLARE_ACCOUNT_ID;
+    if (!accountId) throw new Error('Cloudflare Account ID is required for Workers AI');
+
+    const res = await axios.post(
+      `${CF_API_BASE}/accounts/${accountId}/ai/run/${model}`,
+      input,
+      { headers: getHeaders(), timeout: 15000 }
+    );
+    return res.data.result;
+  }
 };
 
 export default CloudflareService;

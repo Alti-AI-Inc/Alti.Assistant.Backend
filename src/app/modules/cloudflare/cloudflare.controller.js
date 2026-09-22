@@ -81,6 +81,17 @@ const listWafRules = catchAsync(async (req, res) => {
   });
 });
 
+const runAiModel = catchAsync(async (req, res) => {
+  const { model, input } = req.body;
+  const result = await CloudflareService.runAiModel(model, input);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Cloudflare AI model executed.',
+    data: result,
+  });
+});
+
 export const CloudflareController = {
   getZoneDetails,
   purgeCache,
@@ -89,6 +100,7 @@ export const CloudflareController = {
   deleteDnsRecord,
   verifyTurnstile,
   listWafRules,
+  runAiModel,
 };
 
 export default CloudflareController;

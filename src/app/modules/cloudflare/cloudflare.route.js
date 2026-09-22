@@ -22,5 +22,8 @@ router.delete('/dns/:recordId', CloudflareController.deleteDnsRecord);
 // WAF & Security Rules
 router.get('/waf/rules', CloudflareController.listWafRules);
 
+// Workers AI
+router.post('/ai/run', CloudflareController.runAiModel);
+
 export const CloudflareRoutes = router;
 export default CloudflareRoutes;
