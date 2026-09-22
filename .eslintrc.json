@@ -10,18 +10,16 @@
     "jest": true,
     "es2022": true
   },
-  "ignorePatterns": [".eslintrc.js"],
+  "ignorePatterns": [
+    ".eslintrc.js",
+    "Vemata/**",
+    "frontend-workspace/**",
+    "output/**",
+    "uploads/**",
+    "node_modules/**",
+    "storage/**"
+  ],
   "rules": {
     "no-unused-vars": "off"
   }
 }
-
-//     'prettier/prettier': [
-//       'error',
-//       {
-//         endOfLine: 'auto',
-//       },
-//     ],
-//     '@typescript-eslint/no-unused-vars': 'off',
-//   },
-// }

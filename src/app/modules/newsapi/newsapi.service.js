@@ -326,7 +326,7 @@ export const NewsApiService = {
     return data;
   },
 
-  async suggestEventTypes(prefix, opts = {}) {
+  async suggestEventTypeTaxonomies(prefix, opts = {}) {
     const { data } = await newsApi.get('/eventType/suggestEventTypes', { params: { prefix, ...opts } });
     return data;
   },

@@ -103,7 +103,7 @@ export const SovereignRouterService = {
   /**
    * Fetch live, grounded data from a single subsystem.
    */
-  async fetchSubsystemData(route, prompt) {
+  async fetchSubsystemData(route, prompt, historyContext = '') {
     const startTime = Date.now();
     let dataContext = '';
     const references = [];
@@ -340,7 +340,9 @@ export const SovereignRouterService = {
               snippet: 'Multi-step strategic planning and reasoning',
               source: 'LangChain Sovereign Agent'
             });
-          } catch (e) {}
+          } catch (e) {
+            logger.warn(`[SovereignRouter] MULTI_STEP failed: ${e.message}`);
+          }
           break;
         }
 
@@ -360,7 +362,9 @@ export const SovereignRouterService = {
                 '\n\n*Preparing to execute via Composio secure tunnel...*';
               references.push({ title: 'Composio App Actions', url: 'https://composio.dev', snippet: 'Connecting to 1,500+ apps', source: 'Composio Engine' });
             }
-          } catch (e) {}
+          } catch (e) {
+            logger.warn(`[SovereignRouter] TOOL_CALL failed: ${e.message}`);
+          }
           break;
         }
 
@@ -386,7 +390,9 @@ export const SovereignRouterService = {
                 });
               });
             }
-          } catch (e) {}
+          } catch (e) {
+            logger.warn(`[SovereignRouter] RESEARCH failed: ${e.message}`);
+          }
           break;
         }
 

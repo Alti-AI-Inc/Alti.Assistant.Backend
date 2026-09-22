@@ -194,10 +194,6 @@ const moduleRoutes = [
     route: MonitorWebhookRoutes,
   },
   {
-    path: '/codex',
-    route: (await import('../modules/codex/codex.route.js')).default,
-  },
-  {
     path: '/massive',
     route: (await import('../modules/massive/massive.route.js')).default,
   },

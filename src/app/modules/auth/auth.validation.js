@@ -39,7 +39,7 @@ const UserValidationSchema = z.object({
         .min(8, 'Password must be at least 8 characters')
         .max(128, 'Password must be at most 128 characters')
         .regex(
-          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/,
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~])/,
           'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
         ),
       confirmPassword: z.string({
@@ -93,7 +93,7 @@ const AdminCreateUserValidationSchema = z.object({
         .min(8, 'Password must be at least 8 characters')
         .max(128, 'Password must be at most 128 characters')
         .regex(
-          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/,
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~])/,
           'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character',
         ),
       confirmPassword: z.string({

@@ -13,6 +13,8 @@ import { groqChat } from '../../services/groq.client.js';
 
 import { SovereignRouterService } from '../orchestrator/sovereignRouter.service.js';
 
+const sessionMemoryStore = {};
+
 const chatService = async (sessionId, prompt, userId, userContext = {}) => {
   let memory = sessionMemoryStore[sessionId];
   if (!memory) {

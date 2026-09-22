@@ -48,6 +48,10 @@ import router from './src/app/routes/index.js';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import config from './config/index.js';
+import {
+  globalApiLimiter,
+  aiRateLimiter,
+} from './src/app/middlewares/rateLimit/apiLimiter.js';
 
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
@@ -84,8 +88,20 @@ const RECOMMENDED_ENV = {
   EXA_API_KEY: 'Exa search integration',
 };
 
+const hasDbUrl = Boolean(
+  process.env.DATABASE_LOCAL ||
+  process.env.MONGODB_URI ||
+  process.env.MONGODB_URL
+);
+
 let missingRequired = false;
+if (!hasDbUrl) {
+  logger.error('❌ FATAL: DATABASE_LOCAL, MONGODB_URI, or MONGODB_URL must be set (MongoDB connection string). Server cannot start.');
+  missingRequired = true;
+}
+
 for (const [key, desc] of Object.entries(REQUIRED_ENV)) {
+  if (key === 'DATABASE_LOCAL') continue; // already checked above
   if (!process.env[key]) {
     logger.error(`❌ FATAL: ${key} is not set (${desc}). Server cannot start.`);
     missingRequired = true;
@@ -126,6 +142,15 @@ const allowedOrigins = [
 // Add CLIENT_URL from env if set
 if (process.env.CLIENT_URL) {
   allowedOrigins.push(process.env.CLIENT_URL);
+}
+
+// Add custom comma-separated ALLOWED_ORIGINS if set
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(',')
+    .map((o) => o.trim())
+    .forEach((o) => {
+      if (o && !allowedOrigins.includes(o)) allowedOrigins.push(o);
+    });
 }
 
 // Only allow localhost origins in non-production environments
@@ -298,6 +323,17 @@ const connectDB = (retries = 5, delay = 5000) => {
 };
 connectDB();
 
+// Log Mongoose connection lifecycle events for operational visibility
+mongoose.connection.on('connected', () => {
+  logger.info('✅ Mongoose connection established');
+});
+mongoose.connection.on('error', (err) => {
+  logger.error(`❌ Mongoose connection error: ${err.message}`);
+});
+mongoose.connection.on('disconnected', () => {
+  logger.warn('⚠️ Mongoose disconnected from MongoDB');
+});
+
 // Initialize passport (no session)
 passportConfig(passport);
 app.use(passport.initialize());
@@ -329,6 +365,15 @@ app.get('/api/user', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.json(req.user || null);
 });
+
+// Global API rate limiting for DDoS and abuse protection
+app.use('/api/', globalApiLimiter);
+
+// Specialized rate limiting for high-cost AI inference routes
+app.use(
+  ['/api/v1/gemini', '/api/v1/prompt', '/api/v1/chat'],
+  aiRateLimiter
+);
 
 // API routes
 app.use('/api/v1', router);
@@ -509,6 +554,11 @@ const SHUTDOWN_TIMEOUT_MS = 10000; // Force exit after 10s if graceful shutdown 
 
 const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}, shutting down gracefully`);
+
+  // Close idle keep-alive sockets immediately so server drains promptly
+  if (typeof server.closeIdleConnections === 'function') {
+    server.closeIdleConnections();
+  }
 
   // Safety net: force exit if graceful shutdown takes too long
   const forceExitTimer = setTimeout(() => {

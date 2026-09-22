@@ -326,7 +326,7 @@ export async function dispatchAgiStepActivity(step, context) {
       // But for native routing, let's just trigger a Codex scrape of the MassiveService!
       return { status: 'delegated', result: `Requested Massive Finance API for: ${step.action}` };
       
-    case 'NEWSAPI_INTELLIGENCE':
+    case 'NEWSAPI_INTELLIGENCE': {
       const { NewsApiService } = await import('../newsapi/newsapi.service.js');
       // Use searchArticles for news queries, annotate for NER, sentiment for sentiment
       if (step.action.toLowerCase().includes('sentiment')) {
@@ -342,8 +342,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const newsResult = await NewsApiService.searchArticles({ keyword: step.action, articlesCount: 10 });
         return { status: 'completed', result: newsResult };
       }
+    }
       
-    case 'API_SPORTS':
+    case 'API_SPORTS': {
       const { ApiSportsService } = await import('../apisports/apisports.service.js');
       // Detect which sport from the action text
       const actionLower = step.action.toLowerCase();
@@ -376,8 +377,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const leaguesResult = await ApiSportsService.getLeagues(detectedSport, {});
         return { status: 'completed', result: leaguesResult };
       }
+    }
 
-    case 'PREDICTION_MARKETS':
+    case 'PREDICTION_MARKETS': {
       const { PredictionDataService } = await import('../predictiondata/predictiondata.service.js');
       const pdAction = step.action.toLowerCase();
       if (pdAction.includes('odds') || pdAction.includes('moneyline') || pdAction.includes('spread') || pdAction.includes('total')) {
@@ -396,8 +398,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const defaultResult = await PredictionDataService.getMarkets({});
         return { status: 'completed', result: defaultResult };
       }
+    }
 
-    case 'COINAPI':
+    case 'COINAPI': {
       const { CoinApiService } = await import('../coinapi/coinapi.service.js');
       const coinAction = step.action.toLowerCase();
       if (coinAction.includes('rate') || coinAction.includes('price')) {
@@ -417,8 +420,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const assetsResult = await CoinApiService.getAssets({});
         return { status: 'completed', result: assetsResult };
       }
+    }
 
-    case 'MAPBOX_LOCATION':
+    case 'MAPBOX_LOCATION': {
       const { MapboxService } = await import('../mapbox/mapbox.service.js');
       const mbAction = step.action.toLowerCase();
       if (mbAction.includes('geocode') || mbAction.includes('address') || mbAction.includes('coordinate')) {
@@ -437,8 +441,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const defaultGeo = await MapboxService.geocodeForward(step.query || step.action);
         return { status: 'completed', result: defaultGeo };
       }
+    }
 
-    case 'EXPLORIUM_B2B':
+    case 'EXPLORIUM_B2B': {
       const { ExploriumService } = await import('../explorium/explorium.service.js');
       const expAction = step.action.toLowerCase();
       if (expAction.includes('enrich') && expAction.includes('business')) {
@@ -457,8 +462,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const matchResult = await ExploriumService.matchBusinesses({ name: step.query || step.action });
         return { status: 'completed', result: matchResult };
       }
+    }
 
-    case 'WEATHER_DATA':
+    case 'WEATHER_DATA': {
       const { VisualCrossingService } = await import('../visualcrossing/visualcrossing.service.js');
       const wxAction = step.action.toLowerCase();
       if (wxAction.includes('alert') || wxAction.includes('warning') || wxAction.includes('severe')) {
@@ -477,8 +483,9 @@ export async function dispatchAgiStepActivity(step, context) {
         const forecastResult = await VisualCrossingService.getForecast(step.location || step.query || step.action);
         return { status: 'completed', result: forecastResult };
       }
+    }
 
-    case 'AVIATION':
+    case 'AVIATION': {
       const { AviationStackService } = await import('../aviationstack/aviationstack.service.js');
       const avAction = step.action.toLowerCase();
       if (avAction.includes('flight') || avAction.includes('track')) {
@@ -500,19 +507,24 @@ export async function dispatchAgiStepActivity(step, context) {
         const defaultFlights = await AviationStackService.getLiveFlights();
         return { status: 'completed', result: defaultFlights };
       }
-    case 'CODEX':
+    }
+
+    case 'CODEX': {
       const scriptData = await generateDataAnalysisCodeActivity(step.action);
       const execution = await executeSandboxedCodeActivity(scriptData.code);
       return { status: 'completed', result: execution.output || execution.error };
+    }
       
-    case 'EDGE_DESKTOP':
+    case 'EDGE_DESKTOP': {
       const desktopCmd = await OpenClawService.queueEdgeCommand(context.machineId || 'local-desktop', 'agi_execute', { action: step.action });
       return { status: 'queued', commandId: desktopCmd.commandId, message: 'Queued to local desktop app. Awaiting edge polling.' };
+    }
       
-    case 'LIBERTY_VM':
+    case 'LIBERTY_VM': {
       const vm = await OpenStackService.provisionVirtualComputer({ name: `agi-worker-${step.id}` });
       const cloudCmd = await OpenClawService.queueEdgeCommand(vm.instanceId, 'agi_execute', { action: step.action });
       return { status: 'queued', vm, commandId: cloudCmd.commandId, message: 'Booted Liberty VM and queued action.' };
+    }
       
     default:
       return { status: 'failed', error: `Unknown system: ${step.system}` };

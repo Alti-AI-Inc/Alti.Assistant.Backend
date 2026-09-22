@@ -55,7 +55,7 @@ export const SchedulerService = {
     }
 
     // Fallback: basic regex validation
-    const cronRegex = /^(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)$/;
+    const cronRegex = /^(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)$/;
     const valid = cronRegex.test(expression.trim());
     return { valid, error: valid ? null : 'Invalid cron expression format' };
   },

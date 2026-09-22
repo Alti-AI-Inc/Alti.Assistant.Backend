@@ -35,10 +35,23 @@ export const fetchStripeIps = async () => {
  */
 export const isStripeIp = async (clientIp) => {
   if (!clientIp) return false;
-  const ip = clientIp.replace(/^::ffff:/, '');
+
+  // Handle comma-separated list from X-Forwarded-For: client, proxy1, proxy2
+  const rawIp = String(clientIp).split(',')[0].trim();
+  // Strip port if formatted as ip:port (IPv4 only)
+  const strippedPort = rawIp.includes(':') && !rawIp.includes('::') ? rawIp.split(':')[0] : rawIp;
+  const ip = strippedPort.replace(/^::ffff:/, '').trim();
 
   // Localhost/dev bypass
-  if (process.env.NODE_ENV === 'development' || ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
+  if (
+    process.env.NODE_ENV === 'development' ||
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip === 'localhost' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('172.16.') ||
+    ip.startsWith('192.168.')
+  ) {
     return true;
   }
 

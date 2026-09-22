@@ -20,7 +20,10 @@ for (const key of Object.keys(process.env)) {
 
 export default {
   env: process.env.NODE_ENV,
-  database_local: process.env.DATABASE_LOCAL,
+  database_local:
+    process.env.DATABASE_LOCAL ||
+    process.env.MONGODB_URI ||
+    process.env.MONGODB_URL,
   port: process.env.PORT,
   client_url: process.env.CLIENT_URL,
 

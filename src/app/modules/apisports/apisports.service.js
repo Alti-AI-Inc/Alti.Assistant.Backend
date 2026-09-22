@@ -339,16 +339,6 @@ export const ApiSportsService = {
     return sportGet('football', '/teams/countries', params);
   },
 
-  /** GET /trophies */
-  async getTrophies(params = {}) {
-    return sportGet('football', '/trophies', params);
-  },
-
-  /** GET /sidelined */
-  async getSidelined(params = {}) {
-    return sportGet('football', '/sidelined', params);
-  },
-
   // ═══════════════════════════════════════════════════════════════════════
   // ADDITIONAL PLAYER ENDPOINTS (all sports)
   // ═══════════════════════════════════════════════════════════════════════
@@ -356,70 +346,6 @@ export const ApiSportsService = {
   /** GET /players/statistics — per-player stats */
   async getPlayerStatistics(sport, params = {}) {
     return sportGet(sport, '/players/statistics', params);
-  },
-
-  /** GET /players/topassists */
-  async getTopAssists(sport, params = {}) {
-    return sportGet(sport, '/players/topassists', params);
-  },
-
-  /** GET /players/topyellowcards */
-  async getTopYellowCards(sport, params = {}) {
-    return sportGet(sport, '/players/topyellowcards', params);
-  },
-
-  /** GET /players/topredcards */
-  async getTopRedCards(sport, params = {}) {
-    return sportGet(sport, '/players/topredcards', params);
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // ADDITIONAL FIXTURE ENDPOINTS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /** GET /fixtures/rounds */
-  async getFixtureRounds(sport, params = {}) {
-    const path = sport === 'football' ? '/fixtures/rounds' : '/games/rounds';
-    return sportGet(sport, path, params);
-  },
-
-  /** GET /fixtures/players — per-player stats per fixture */
-  async getFixturePlayers(sport, params = {}) {
-    const path = sport === 'football' ? '/fixtures/players' : '/games/players';
-    return sportGet(sport, path, params);
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // ADDITIONAL ODDS ENDPOINTS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /** GET /odds/mapping — map fixtures to odds */
-  async getOddsMapping(sport, params = {}) {
-    return sportGet(sport, '/odds/mapping', params);
-  },
-
-  /** GET /odds/bets — available bet types */
-  async getBetTypes(sport, params = {}) {
-    return sportGet(sport, '/odds/bets', params);
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // ADDITIONAL FORMULA 1 ENDPOINTS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /** GET /rankings/teams */
-  async getTeamRankings(params = {}) {
-    return sportGet('formula1', '/rankings/teams', params);
-  },
-
-  /** GET /rankings/races — race results per race */
-  async getRaceRankings(params = {}) {
-    return sportGet('formula1', '/rankings/races', params);
-  },
-
-  /** GET /pit-stops */
-  async getPitStops(params = {}) {
-    return sportGet('formula1', '/pit-stops', params);
   },
 
   // ═══════════════════════════════════════════════════════════════════════

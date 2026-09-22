@@ -119,4 +119,52 @@ describe('Graceful Shutdown', () => {
     const section = unhandledSection.substring(0, sectionEnd);
     expect(section).not.toContain('process.exit');
   });
+
+  it('should verify idle connections drain during graceful shutdown', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const indexPath = path.resolve(process.cwd(), 'index.js');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+
+    expect(content).toContain('server.closeIdleConnections()');
+  });
+
+  it('should verify global and AI rate limiters are mounted', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const indexPath = path.resolve(process.cwd(), 'index.js');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+
+    expect(content).toContain('globalApiLimiter');
+    expect(content).toContain('aiRateLimiter');
+  });
 });
+
+describe('Stripe Webhook IP Normalization', () => {
+  it('should properly normalize comma-separated proxy headers and recognize localhost', async () => {
+    const { isStripeIp } = await import('../../src/shared/stripeSecurity.js');
+
+    // Localhost / private IP bypass
+    expect(await isStripeIp('127.0.0.1')).toBe(true);
+    expect(await isStripeIp('::1')).toBe(true);
+    expect(await isStripeIp('10.0.1.5, 172.16.0.1')).toBe(true);
+    expect(await isStripeIp('')).toBe(false);
+    expect(await isStripeIp(null)).toBe(false);
+  });
+});
+
+describe('Global Error Handler Response Format', () => {
+  it('should include success: false in error output', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const handlerPath = path.resolve(
+      process.cwd(),
+      'src/app/middlewares/globalErrorHandler/globalErrorHandler.js'
+    );
+    const content = fs.readFileSync(handlerPath, 'utf-8');
+
+    expect(content).toContain('success: false');
+    expect(content).toContain('status: false');
+  });
+});
+

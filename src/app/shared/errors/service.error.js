@@ -7,4 +7,3 @@ export class ServiceError extends AppError {
 }
 
 export default ServiceError;
-export { ServiceError };

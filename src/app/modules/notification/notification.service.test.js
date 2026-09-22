@@ -53,9 +53,7 @@ vi.mock('../../helpers/tenantQuery.js', () => ({
   withTenantFilter: vi.fn().mockImplementation((req, query) => ({ ...query, tenantId: req.tenantId })),
 }));
 
-// Get mock instances for manipulation in tests
-const { publishMessage } = await import('../../../shared/queues.js');
-
+// Test suite
 describe('NotificationService', () => {
   const mockTenantId = 'tenant-123';
   const mockUserId = 'user-456';

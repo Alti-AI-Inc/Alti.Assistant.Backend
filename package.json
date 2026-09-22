@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --fix --max-warnings=0",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.json index.js config/ src/ tests/ --fix --max-warnings=0",
     "format": "prettier . --write",
     "seed:stripe": "node scripts/seed-stripe-products.js",
     "deploy": "./deploy.sh start",
