@@ -265,13 +265,14 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 6 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 7 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
 4. LIBERTY_VM (Heavy Cloud Compute on OpenStack)
 5. CODEX (Sandboxed Math, Logic, Data Analysis, Python/Node execution)
 6. MASSIVE_FINANCE (Real-time and historical financial data: stocks, crypto, forex, options, indices, futures)
+7. NEWSAPI_INTELLIGENCE (Global news search, event detection, NER annotation, sentiment analysis, breaking events)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -317,6 +318,23 @@ export async function dispatchAgiStepActivity(step, context) {
       // OR we can pass it to Codex natively injected with Massive configs.
       // But for native routing, let's just trigger a Codex scrape of the MassiveService!
       return { status: 'delegated', result: `Requested Massive Finance API for: ${step.action}` };
+      
+    case 'NEWSAPI_INTELLIGENCE':
+      const { NewsApiService } = await import('../newsapi/newsapi.service.js');
+      // Use searchArticles for news queries, annotate for NER, sentiment for sentiment
+      if (step.action.toLowerCase().includes('sentiment')) {
+        const sentimentResult = await NewsApiService.sentiment(step.action);
+        return { status: 'completed', result: sentimentResult };
+      } else if (step.action.toLowerCase().includes('annotate') || step.action.toLowerCase().includes('entities')) {
+        const annotateResult = await NewsApiService.annotate(step.action);
+        return { status: 'completed', result: annotateResult };
+      } else if (step.action.toLowerCase().includes('breaking')) {
+        const breakingResult = await NewsApiService.getBreakingEvents({});
+        return { status: 'completed', result: breakingResult };
+      } else {
+        const newsResult = await NewsApiService.searchArticles({ keyword: step.action, articlesCount: 10 });
+        return { status: 'completed', result: newsResult };
+      }
       
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);

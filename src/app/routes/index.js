@@ -201,6 +201,10 @@ const moduleRoutes = [
     path: '/massive',
     route: (await import('../modules/massive/massive.route.js')).default,
   },
+  {
+    path: '/newsapi',
+    route: (await import('../modules/newsapi/newsapi.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {
