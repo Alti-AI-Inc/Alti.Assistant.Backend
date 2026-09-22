@@ -14,8 +14,8 @@ export async function execute(params, context = {}) {
     if (agentId) {
       reply = await OpenClawService.sendMessage(agentId, params.message);
     } else {
-      const agent = await OpenClawService.createAgent(params.agentConfig);
-      agentId = agent.id;
+      const agent = await OpenClawService.createAgent(params.agentConfig || {});
+      agentId = agent.agentId;
       reply = agent.initialReply || 'Agent created';
     }
 

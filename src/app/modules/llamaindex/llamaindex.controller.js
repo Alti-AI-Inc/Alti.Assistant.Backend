@@ -49,7 +49,7 @@ const queryCollection = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await LlamaIndexService.queryCollection(collectionId, query, {
+  const result = await LlamaIndexService.query(collectionId, query, {
     topK: topK || 5,
   });
 
