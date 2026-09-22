@@ -23,3 +23,13 @@ router.post('/intelligence/repository', OpenClawController.analyzeRepository);
 
 export const OpenClawRoutes = router;
 export default OpenClawRoutes;
+
+// ── Edge Computer (Desktop App) Endpoints ──
+router.post('/edge/command', OpenClawController.queueEdgeCommand);
+router.get('/edge/:machineId/poll', OpenClawController.pollEdgeCommands);
+router.post('/edge/command/:commandId/result', OpenClawController.submitEdgeResult);
+
+export const OpenClawEdgeRoutes = router;
+
+// ── AGI Master Orchestrator ──
+router.post('/agi', OpenClawController.orchestrateAgi);

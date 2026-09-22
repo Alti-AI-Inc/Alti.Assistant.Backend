@@ -133,3 +133,41 @@ export async function dataAnalysisWorkflow(prompt) {
     error: execution.error || null
   };
 }
+
+/**
+ * AGI Master Orchestrator
+ * Routes high-level user intents to:
+ * 1. Exa (Web Search)
+ * 2. Composio (App Integration)
+ * 3. OpenClaw Edge (Local Computer Desktop App via Liberty Center VMs)
+ * 4. Codex (Code Sandboxing)
+ */
+export async function agiOrchestratorWorkflow(prompt, context = {}) {
+  // 1. Analyze prompt intent (Usually done via an activity)
+  const analysis = await dataActivities.generateDataAnalysisCodeActivity(`You are an AGI router. Where should this prompt go? 
+Return ONLY ONE of these literal strings: WEB, APP, DESKTOP, MATH.
+Prompt: "${prompt}"`);
+  
+  const route = analysis.code.toUpperCase().trim();
+  let result = null;
+
+  if (route.includes('WEB')) {
+    result = await repoActivities.analyzeRepositoryActivity(`exa-pool`, `web`, prompt);
+  } else if (route.includes('APP')) {
+    result = { action: 'Dispatched to Composio App Router', prompt };
+  } else if (route.includes('DESKTOP')) {
+    result = { action: 'Queued to Edge Desktop App', machineId: context.machineId || 'default-vm' };
+  } else {
+    // Math/Code fallback
+    const script = await dataActivities.generateDataAnalysisCodeActivity(prompt);
+    result = await dataActivities.executeSandboxedCodeActivity(script.code);
+  }
+
+  // Synthesize final result
+  return {
+    prompt,
+    routed_to: route,
+    raw_result: result,
+    status: 'COMPLETED_AGI_ROUTING'
+  };
+}

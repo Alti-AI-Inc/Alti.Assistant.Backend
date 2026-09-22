@@ -99,3 +99,46 @@ export const OpenClawController = {
 };
 
 export default OpenClawController;
+
+const queueEdgeCommand = catchAsync(async (req, res) => {
+  const { machineId, command, payload } = req.body;
+  const result = await OpenClawService.queueEdgeCommand(machineId, command, payload);
+  sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Edge command queued', data: result });
+});
+
+const pollEdgeCommands = catchAsync(async (req, res) => {
+  const { machineId } = req.params;
+  const result = await OpenClawService.pollEdgeCommands(machineId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: result ? 'Command found' : 'No commands in queue', data: result });
+});
+
+const submitEdgeResult = catchAsync(async (req, res) => {
+  const { commandId } = req.params;
+  const { result, error } = req.body;
+  const commandRecord = await OpenClawService.submitEdgeResult(commandId, result, error);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Edge result recorded', data: commandRecord });
+});
+
+OpenClawController.queueEdgeCommand = queueEdgeCommand;
+OpenClawController.pollEdgeCommands = pollEdgeCommands;
+OpenClawController.submitEdgeResult = submitEdgeResult;
+
+const orchestrateAgi = catchAsync(async (req, res) => {
+  const { prompt, machineId } = req.body;
+  
+  const { TemporalService } = await import('../temporal/temporal.service.js');
+  
+  const { workflowId, status } = await TemporalService.startWorkflow({
+    workflowType: 'agiOrchestratorWorkflow',
+    args: [prompt, { machineId }]
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.ACCEPTED,
+    success: true,
+    message: 'AGI Master Orchestrator engaged.',
+    data: { workflowId, status, prompt },
+  });
+});
+
+OpenClawController.orchestrateAgi = orchestrateAgi;

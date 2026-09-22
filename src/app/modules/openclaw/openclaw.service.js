@@ -6,7 +6,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { groqChat } from '../../services/groq.client.js';
 import { logger } from '../../../shared/logger.js';
-import { OpenClawAgent, OpenClawMemory, OpenClawTask } from './openclaw.model.js';
+import { OpenClawAgent, OpenClawMemory, OpenClawTask, EdgeCommand } from './openclaw.model.js';
 
 const SKILLS = [
   { id: 'gitcrawl', name: 'GitCrawl', description: 'Index and extract files from local Git repositories', category: 'developer_tools' },
@@ -159,14 +159,23 @@ Maintain your persistent identity and utilize your memory.`;
    * Skill 2: GitCrawl (Real file tree traversal)
    */
   async crawlRepo(repoPath) {
+    if (!fs.existsSync(repoPath)) throw new Error(`Path does not exist: ${repoPath}`);
+    
+    // Natively execute local git parsing without external APIs
+    const logs = execSync(`git -C "${repoPath}" log -n 10 --oneline`).toString();
+    let tree = '';
     try {
-      if (!fs.existsSync(repoPath)) throw new Error('Path does not exist');
-      const gitLog = execSync(`git -C "${repoPath}" log -3 --oneline`).toString().trim();
-      const files = execSync(`git -C "${repoPath}" ls-tree -r main --name-only`).toString().trim().split('\\n').slice(0, 20);
-      return { repoPath, latestCommits: gitLog.split('\\n'), sampleFiles: files, status: 'indexed' };
-    } catch (err) {
-      return { error: err.message, fallback: 'Could not run native git commands' };
+      tree = execSync(`git -C "${repoPath}" ls-tree -r HEAD --name-only`).toString();
+    } catch (e) {
+      tree = 'No git tree available (not a git repo?)';
     }
+
+    return {
+      success: true,
+      repoPath,
+      contentPreview: `Recent Commits:\n${logs}\n\nFiles:\n${tree.slice(0, 1000)}...`,
+      fileTree: tree.split('\n').filter(Boolean),
+    };
   },
 
   /**
@@ -184,3 +193,44 @@ Maintain your persistent identity and utilize your memory.`;
 };
 
 export default OpenClawService;
+
+  // ── Edge Computer (Desktop App) Orchestration ────────────────────────────
+
+  /**
+   * Queue a command to be executed by a local desktop app or Liberty VM.
+   */
+  OpenClawService.queueEdgeCommand = async function(machineId, command, payload = {}) {
+    const commandId = `cmd-${crypto.randomUUID().slice(0, 8)}`;
+    const edgeCmd = await EdgeCommand.create({
+      commandId,
+      machineId,
+      command,
+      payload,
+    });
+    return edgeCmd;
+  };
+
+  /**
+   * Called by the Desktop App / VM via long-polling to fetch tasks
+   */
+  OpenClawService.pollEdgeCommands = async function(machineId) {
+    const command = await EdgeCommand.findOneAndUpdate(
+      { machineId, status: 'queued' },
+      { status: 'processing' },
+      { new: true, sort: { createdAt: 1 } }
+    );
+    return command;
+  };
+
+  /**
+   * Called by the Desktop App / VM when the task completes
+   */
+  OpenClawService.submitEdgeResult = async function(commandId, result, errorMessage = null) {
+    const status = errorMessage ? 'failed' : 'completed';
+    const command = await EdgeCommand.findOneAndUpdate(
+      { commandId },
+      { status, result: errorMessage ? errorMessage : result },
+      { new: true }
+    );
+    return command;
+  };

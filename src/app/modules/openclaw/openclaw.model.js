@@ -36,6 +36,20 @@ const OpenClawTaskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Queue for the Desktop/Electron/Rust App to poll and execute locally
+const EdgeCommandSchema = new mongoose.Schema(
+  {
+    commandId: { type: String, required: true, unique: true, index: true },
+    machineId: { type: String, required: true, index: true }, // The ID of the desktop app or VM
+    command: { type: String, required: true }, // e.g., 'bash', 'screenshot', 'composio_proxy'
+    payload: { type: mongoose.Schema.Types.Mixed, default: {} },
+    status: { type: String, enum: ['queued', 'processing', 'completed', 'failed'], default: 'queued' },
+    result: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
+  { timestamps: true }
+);
+
 export const OpenClawAgent = mongoose.model('OpenClawAgent', OpenClawAgentSchema);
 export const OpenClawMemory = mongoose.model('OpenClawMemory', OpenClawMemorySchema);
 export const OpenClawTask = mongoose.model('OpenClawTask', OpenClawTaskSchema);
+export const EdgeCommand = mongoose.model('EdgeCommand', EdgeCommandSchema);
