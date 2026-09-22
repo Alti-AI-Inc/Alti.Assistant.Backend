@@ -229,6 +229,10 @@ const moduleRoutes = [
     path: '/weather',
     route: (await import('../modules/visualcrossing/visualcrossing.route.js')).default,
   },
+  {
+    path: '/aviation',
+    route: (await import('../modules/aviationstack/aviationstack.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 13 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 14 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -279,6 +279,7 @@ You must break the user's prompt into a sequence of execution steps across our 1
 11. MAPBOX_LOCATION (Geospatial intelligence: geocoding, directions, matrix, optimization, isochrone, map matching, tilequery, static maps, POI search, datasets via Mapbox)
 12. EXPLORIUM_B2B (B2B data intelligence: business match/enrich/search/research, prospect match/enrich/search, events/signals, audience stats via Explorium AgentSource v2)
 13. WEATHER_DATA (Global weather: forecast, historical, current conditions, hourly, alerts, severe events, weather maps via Visual Crossing Timeline API)
+14. AVIATION (Global aviation: real-time flight tracking, future flights, timetables, airports, airlines, airplanes, aircraft types, cities, countries, routes, aviation taxes via AviationStack)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -475,6 +476,29 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const forecastResult = await VisualCrossingService.getForecast(step.location || step.query || step.action);
         return { status: 'completed', result: forecastResult };
+      }
+
+    case 'AVIATION':
+      const { AviationStackService } = await import('../aviationstack/aviationstack.service.js');
+      const avAction = step.action.toLowerCase();
+      if (avAction.includes('flight') || avAction.includes('track')) {
+        const flightResult = await AviationStackService.getFlights({ flight_iata: step.flight_iata, dep_iata: step.dep_iata, arr_iata: step.arr_iata, ...step.params });
+        return { status: 'completed', result: flightResult };
+      } else if (avAction.includes('airport')) {
+        const airportResult = await AviationStackService.getAirports({ search: step.query || step.action });
+        return { status: 'completed', result: airportResult };
+      } else if (avAction.includes('airline')) {
+        const airlineResult = await AviationStackService.getAirlines({ search: step.query || step.action });
+        return { status: 'completed', result: airlineResult };
+      } else if (avAction.includes('route')) {
+        const routeResult = await AviationStackService.getRoutes(step.params || {});
+        return { status: 'completed', result: routeResult };
+      } else if (avAction.includes('timetable') || avAction.includes('schedule')) {
+        const ttResult = await AviationStackService.getTimetable(step.params || {});
+        return { status: 'completed', result: ttResult };
+      } else {
+        const defaultFlights = await AviationStackService.getLiveFlights();
+        return { status: 'completed', result: defaultFlights };
       }
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);
