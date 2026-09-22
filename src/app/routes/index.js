@@ -38,6 +38,8 @@ import { TriggerRoutes } from '../modules/triggers/triggers.route.js';
 import { TemplateRoutes } from '../modules/templates/templates.route.js';
 import { TraceRoutes } from '../modules/traces/traces.route.js';
 import { invoiceRoutes } from '../modules/invoice/invoice.route.js';
+import { LlamaIndexRoutes } from '../modules/llamaindex/llamaindex.route.js';
+import { ResearchWebhookRoutes } from '../modules/ExaResearch/exaResearch.webhook.route.js';
 
 const router = express.Router();
 
@@ -177,6 +179,14 @@ const moduleRoutes = [
   {
     path: '/invoices',
     route: invoiceRoutes,
+  },
+  {
+    path: '/llamaindex',
+    route: LlamaIndexRoutes,
+  },
+  {
+    path: '/webhooks/exa-research',
+    route: ResearchWebhookRoutes,
   },
 ];
 
