@@ -6,6 +6,7 @@ import { ExaSearchService } from '../ExaSearch/exaSearch.service.js';
 import { ComposioService } from '../composio/composio.service.js';
 import { VisualCrossingService } from '../visualcrossing/visualcrossing.service.js';
 import { AviationStackService } from '../aviationstack/aviationstack.service.js';
+import { CodexService } from '../codex/codex.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -21,6 +22,20 @@ const tools = [
           numResults: { type: 'number', description: 'Number of results to fetch (default: 3)' }
         },
         required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'execute_code_sandbox',
+      description: 'Write and execute JavaScript code in a secure V8 sandbox to solve math, process data, or verify logic.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'The JavaScript code to execute. Must be self-contained. Use console.log() to print the result.' }
+        },
+        required: ['code']
       }
     }
   },
@@ -77,6 +92,13 @@ export const AgentService = {
     try {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       switch (name) {
+        case 'execute_code_sandbox': {
+          const res = await CodexService.executeCode({ code: args.code });
+          return {
+            output: `Logs:\n${res.logs.join('\n')}\nReturn:\n${res.result}\nError:\n${res.error || 'None'}`,
+            references: [{ title: 'Code Execution', url: 'local://open-codex', snippet: 'Sandboxed Open Codex Execution', source: 'Open Codex Sandbox' }]
+          };
+        }
         case 'web_search': {
           const res = await ExaSearchService.searchDirectly(args.query, { numResults: args.numResults || 3 });
           const results = res?.results || [];
