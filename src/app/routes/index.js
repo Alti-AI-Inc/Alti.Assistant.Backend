@@ -221,6 +221,10 @@ const moduleRoutes = [
     path: '/mapbox',
     route: (await import('../modules/mapbox/mapbox.route.js')).default,
   },
+  {
+    path: '/explorium',
+    route: (await import('../modules/explorium/explorium.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {

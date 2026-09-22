@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 11 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 12 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -277,6 +277,7 @@ You must break the user's prompt into a sequence of execution steps across our 1
 9. PREDICTION_MARKETS (Betting odds from 200+ sportsbooks + prediction markets: Polymarket, Kalshi, DraftKings, FanDuel, Pinnacle. Moneylines, spreads, totals, props, futures)
 10. COINAPI (Crypto market data: exchange rates, OHLCV, trades, quotes, order books, indexes, metrics across all crypto exchanges via CoinAPI.io)
 11. MAPBOX_LOCATION (Geospatial intelligence: geocoding, directions, matrix, optimization, isochrone, map matching, tilequery, static maps, POI search, datasets via Mapbox)
+12. EXPLORIUM_B2B (B2B data intelligence: business match/enrich/search/research, prospect match/enrich/search, events/signals, audience stats via Explorium AgentSource v2)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -433,6 +434,26 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const defaultGeo = await MapboxService.geocodeForward(step.query || step.action);
         return { status: 'completed', result: defaultGeo };
+      }
+
+    case 'EXPLORIUM_B2B':
+      const { ExploriumService } = await import('../explorium/explorium.service.js');
+      const expAction = step.action.toLowerCase();
+      if (expAction.includes('enrich') && expAction.includes('business')) {
+        const enrichResult = await ExploriumService.enrichBusinesses({ name: step.query || step.action });
+        return { status: 'completed', result: enrichResult };
+      } else if (expAction.includes('search') && expAction.includes('business')) {
+        const searchResult = await ExploriumService.searchBusinesses(step.filters || {});
+        return { status: 'completed', result: searchResult };
+      } else if (expAction.includes('prospect') || expAction.includes('contact') || expAction.includes('lead')) {
+        const prospectResult = await ExploriumService.searchProspects(step.filters || {});
+        return { status: 'completed', result: prospectResult };
+      } else if (expAction.includes('event') || expAction.includes('signal') || expAction.includes('funding')) {
+        const eventsResult = await ExploriumService.getEvents(step.filters || {});
+        return { status: 'completed', result: eventsResult };
+      } else {
+        const matchResult = await ExploriumService.matchBusinesses({ name: step.query || step.action });
+        return { status: 'completed', result: matchResult };
       }
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);
