@@ -163,14 +163,26 @@ const listAgentRuns = catchAsync(async (req, res) => {
 });
 
 const listAgentRunEvents = catchAsync(async (req, res) => {
-  const result = await ExaDeepResearchService.listAgentRunEvents(req.params.runId, {
-    cursor: req.query.cursor,
-    limit: req.query.limit ? parseInt(req.query.limit) : undefined,
-  });
+  const result = await ExaDeepResearchService.listAgentRunEvents(req.params.runId);
+
   sendResponse(res, {
-    statusCode: httpStatus.OK,
     success: true,
-    message: 'Agent run events listed',
+    statusCode: httpStatus.OK,
+    message: 'Agent run events retrieved successfully',
+    data: result,
+  });
+});
+
+const orchestrateDeepResearch = catchAsync(async (req, res) => {
+  const { topic } = req.body;
+  if (!topic) throw new ApiError(httpStatus.BAD_REQUEST, 'Topic is required');
+  
+  const result = await ExaDeepResearchService.orchestrateDeepResearch(topic);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.ACCEPTED,
+    message: 'Temporal Deep Research Workflow started successfully',
     data: result,
   });
 });
@@ -188,4 +200,5 @@ export const DeepResearchController = {
   deleteAgentRun,
   listAgentRuns,
   listAgentRunEvents,
+  orchestrateDeepResearch,
 };

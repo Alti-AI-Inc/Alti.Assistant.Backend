@@ -84,5 +84,11 @@ router.get(
   DeepResearchController.listAgentRunEvents
 );
 
+router.post(
+  '/orchestrate',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  DeepResearchController.orchestrateDeepResearch
+);
+
 export const DeepResearchRoutes = router;
 export default router;

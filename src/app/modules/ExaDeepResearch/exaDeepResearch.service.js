@@ -441,6 +441,26 @@ const listAgentRunEvents = async (runId, { cursor, limit } = {}) => {
   return data;
 };
 
+const orchestrateDeepResearch = async (topic) => {
+  const { TemporalService } = await import('../temporal/temporal.service.js');
+  
+  // collectionId allows us to isolate this topic's vectors in LlamaIndex
+  const collectionId = `research-${Date.now()}`;
+  
+  // Trigger the Temporal workflow defined in workflows.js
+  const { workflowId, status } = await TemporalService.startWorkflow({
+    workflowType: 'deepResearchWorkflow',
+    args: [topic, collectionId]
+  });
+  
+  return {
+    workflowId,
+    status,
+    collectionId,
+    topic
+  };
+};
+
 export const ExaDeepResearchService = {
   createDeepResearchRecord: runSearch,
   runSearch,
@@ -458,6 +478,7 @@ export const ExaDeepResearchService = {
   deleteAgentRun,
   listAgentRuns,
   listAgentRunEvents,
+  orchestrateDeepResearch,
 };
 
 export default ExaDeepResearchService;
