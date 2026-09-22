@@ -17,6 +17,7 @@ import { NewsApiService } from '../newsapi/newsapi.service.js';
 import realEstateApiService from '../realestateapi/realestateapi.service.js';
 import fredService from '../fred/fred.service.js';
 import arxivService from '../arxiv/arxiv.service.js';
+import congressService from '../congress/congress.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -135,6 +136,15 @@ const tools = [
       parameters: { type: 'object', properties: { query: { type: 'string', description: 'The search query (e.g. quantum computing, transformers, mRNA)' }, max_results: { type: 'number', description: 'Number of results to return (max 10)' } }, required: ['query'] }
     }
   },
+  
+  {
+    type: 'function',
+    function: {
+      name: 'get_legislative_bills',
+      description: 'Search and retrieve details about US congressional bills, legislation, and federal registers from the official Congress.gov API.',
+      parameters: { type: 'object', properties: { congress: { type: 'string', description: 'Congress number (e.g. 118)' }, billType: { type: 'string', description: 'Bill type (e.g. hr, s)' }, billNumber: { type: 'string' } } }
+    }
+  },
   {
     type: 'function',
     function: {
@@ -183,6 +193,37 @@ export const AgentService = {
         
         
         
+        
+        case 'get_legislative_bills': {
+          try {
+            let data;
+            if (args.congress && args.billType && args.billNumber) {
+               data = await congressService.getBill(args.congress, args.billType, args.billNumber);
+            } else {
+               data = await congressService.getRecentBills({ limit: 10 });
+            }
+            
+            const bills = data?.bills || (data?.bill ? [data.bill] : []);
+            
+            const customMetadata = {
+              domain: 'legal',
+              legislation: bills
+            };
+
+            const outputText = bills.map(b => `Bill: ${b.type}${b.number} (${b.congress} Congress)\nTitle: ${b.title}\nLatest Action: ${b.latestAction?.text} (${b.latestAction?.actionDate})\nURL: ${b.url}`).join('\n\n') || 'No bills found.';
+
+            return {
+              output: outputText,
+              references: bills.map(b => ({ title: `${b.type}${b.number} (${b.congress})`, url: b.url, snippet: b.title, source: 'Congress.gov' })),
+              customMetadata
+            };
+          } catch (error) {
+            return {
+              output: `Failed to search Congress API: ${error.message}`,
+              references: []
+            };
+          }
+        }
         case 'search_academic_papers': {
           try {
             const data = await arxivService.searchPapers(args.query, { max_results: args.max_results || 5 });

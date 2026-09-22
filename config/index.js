@@ -141,6 +141,11 @@ export default {
     baseUrl: 'http://export.arxiv.org/api',
   },
 
+  congress: {
+    key: process.env.CONGRESS_API_KEY || 'dummy_congress_key',
+    baseUrl: 'https://api.congress.gov/v3',
+  },
+
   // ── Smart Routing ─────────────────────────────────────────────────────────
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',

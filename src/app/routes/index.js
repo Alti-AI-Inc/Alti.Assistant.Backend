@@ -44,6 +44,7 @@ import { MonitorWebhookRoutes } from '../modules/ExaMonitor/monitor.webhook.rout
 import { realEstateApiRoutes } from '../modules/realestateapi/realestateapi.route.js';
 import { fredRoutes } from '../modules/fred/fred.route.js';
 import { arxivRoutes } from '../modules/arxiv/arxiv.route.js';
+import { congressRoutes } from '../modules/congress/congress.route.js';
 
 const router = express.Router();
 
@@ -63,6 +64,10 @@ const moduleRoutes = [
   {
     path: '/arxiv',
     route: arxivRoutes,
+  },
+  {
+    path: '/congress',
+    route: congressRoutes,
   },
   {
     path: '/admin',
