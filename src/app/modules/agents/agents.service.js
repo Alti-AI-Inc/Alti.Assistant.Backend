@@ -198,7 +198,7 @@ const executeAgentStream = async (agentId, input, userId) => {
     { role: 'user', content: input }
   ];
 
-  const stream = await groqStream(messages, agent.model);
+  const stream = await groqStream(messages, { model: agent.model });
   return stream;
 };
 

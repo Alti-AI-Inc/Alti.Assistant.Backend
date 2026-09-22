@@ -13,19 +13,19 @@ export async function execute(params, context = {}) {
 
     switch (subIntent) {
       case 'generate':
-        result = await CodexService.generate(rest);
+        result = await CodexService.generateCode(rest);
         break;
       case 'explain':
-        result = await CodexService.explain(rest);
+        result = await CodexService.explainCode(rest);
         break;
       case 'refactor':
-        result = await CodexService.refactor(rest);
+        result = await CodexService.refactorCode(rest);
         break;
       case 'review':
-        result = await CodexService.review(rest);
+        result = await CodexService.reviewCode(rest);
         break;
       case 'execute':
-        result = await CodexService.execute(rest);
+        result = await CodexService.executeCode(rest);
         break;
       default:
         throw new Error('Unknown subIntent for code strategy');

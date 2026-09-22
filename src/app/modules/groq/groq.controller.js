@@ -128,6 +128,89 @@ const lightStream = async (req, res) => {
   }
 };
 
+// ── Get single model ─────────────────────────────────────────────────────────
+
+const getModel = catchAsync(async (req, res) => {
+  const result = await GroqService.getModel(req.params.modelId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Model retrieved.', data: result });
+});
+
+// ── Text-to-Speech (TTS) ────────────────────────────────────────────────────
+
+const textToSpeech = catchAsync(async (req, res) => {
+  const { input, voice, model, response_format, speed } = req.body;
+  const audioResponse = await GroqService.textToSpeech(input, { voice, model, response_format, speed });
+
+  // Stream the audio binary back to the client
+  const format = response_format || 'wav';
+  res.setHeader('Content-Type', `audio/${format}`);
+  res.setHeader('Content-Disposition', `attachment; filename="speech.${format}"`);
+
+  // groq-sdk returns a Response-like object with arrayBuffer()
+  const buffer = Buffer.from(await audioResponse.arrayBuffer());
+  res.end(buffer);
+});
+
+// ── Embeddings ───────────────────────────────────────────────────────────────
+
+const createEmbedding = catchAsync(async (req, res) => {
+  const { input, model, encoding_format } = req.body;
+  const result = await GroqService.createEmbedding(input, { model, encoding_format });
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Embeddings generated.', data: result });
+});
+
+// ── Batches ──────────────────────────────────────────────────────────────────
+
+const createBatch = catchAsync(async (req, res) => {
+  const result = await GroqService.createBatch(req.body);
+  sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'Batch created.', data: result });
+});
+
+const listBatches = catchAsync(async (req, res) => {
+  const result = await GroqService.listBatches();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batches listed.', data: result });
+});
+
+const getBatch = catchAsync(async (req, res) => {
+  const result = await GroqService.getBatch(req.params.batchId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batch retrieved.', data: result });
+});
+
+const cancelBatch = catchAsync(async (req, res) => {
+  const result = await GroqService.cancelBatch(req.params.batchId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Batch cancelled.', data: result });
+});
+
+// ── Files ────────────────────────────────────────────────────────────────────
+
+const uploadFile = catchAsync(async (req, res) => {
+  if (!req.file) {
+    return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: 'File is required.' });
+  }
+  const result = await GroqService.uploadFile(req.file.path, req.body.purpose || 'batch');
+  sendResponse(res, { statusCode: httpStatus.CREATED, success: true, message: 'File uploaded.', data: result });
+});
+
+const listFiles = catchAsync(async (req, res) => {
+  const result = await GroqService.listFiles();
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'Files listed.', data: result });
+});
+
+const getFile = catchAsync(async (req, res) => {
+  const result = await GroqService.getFile(req.params.fileId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File retrieved.', data: result });
+});
+
+const deleteFile = catchAsync(async (req, res) => {
+  const result = await GroqService.deleteFile(req.params.fileId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File deleted.', data: result });
+});
+
+const getFileContent = catchAsync(async (req, res) => {
+  const result = await GroqService.getFileContent(req.params.fileId);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: 'File content retrieved.', data: result });
+});
+
 export const GroqController = {
   chat,
   streamChat,
@@ -135,8 +218,20 @@ export const GroqController = {
   transcribeAudio,
   translateAudio,
   listModels,
+  getModel,
   lightChat,
   lightStream,
+  textToSpeech,
+  createEmbedding,
+  createBatch,
+  listBatches,
+  getBatch,
+  cancelBatch,
+  uploadFile,
+  listFiles,
+  getFile,
+  deleteFile,
+  getFileContent,
 };
 
 export default GroqController;

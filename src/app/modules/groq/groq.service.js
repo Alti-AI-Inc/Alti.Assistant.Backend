@@ -159,6 +159,153 @@ export const GroqService = {
       ];
     }
   },
+
+  /**
+   * Get a single model by ID
+   */
+  async getModel(modelId) {
+    const client = getGroqClient();
+    const res = await client.models.retrieve(modelId);
+    return res;
+  },
+
+  // ── Audio Speech (TTS) — Orpheus ───────────────────────────────────────────
+
+  /**
+   * Text-to-Speech using Groq Orpheus TTS
+   * @param {string} input - Text to convert to speech
+   * @param {Object} options - voice, model, response_format, speed
+   * @returns {ReadableStream} Audio stream
+   */
+  async textToSpeech(input, options = {}) {
+    const client = getGroqClient();
+    try {
+      const response = await client.audio.speech.create({
+        model: options.model || 'playai-tts',
+        input,
+        voice: options.voice || 'Fritz-PlayAI',
+        response_format: options.response_format || 'wav',
+        speed: options.speed || 1.0,
+      });
+      return response;
+    } catch (err) {
+      logger.error('[Groq TTS] Speech generation failed:', err.message);
+      throw err;
+    }
+  },
+
+  // ── Embeddings ─────────────────────────────────────────────────────────────
+
+  /**
+   * Generate embeddings for text input
+   * @param {string|Array<string>} input - Text(s) to embed
+   * @param {Object} options - model, encoding_format
+   * @returns {Object} Embedding response
+   */
+  async createEmbedding(input, options = {}) {
+    const client = getGroqClient();
+    try {
+      const response = await client.embeddings.create({
+        model: options.model || 'llama3-embedding-large',
+        input,
+        encoding_format: options.encoding_format,
+      });
+      return response;
+    } catch (err) {
+      logger.error('[Groq Embeddings] Failed:', err.message);
+      throw err;
+    }
+  },
+
+  // ── Batches ────────────────────────────────────────────────────────────────
+
+  /**
+   * Create an async batch job
+   */
+  async createBatch(payload) {
+    const client = getGroqClient();
+    const response = await client.batches.create(payload);
+    return response;
+  },
+
+  /**
+   * List all batch jobs
+   */
+  async listBatches() {
+    const client = getGroqClient();
+    const response = await client.batches.list();
+    return response;
+  },
+
+  /**
+   * Get a batch job by ID
+   */
+  async getBatch(batchId) {
+    const client = getGroqClient();
+    const response = await client.batches.retrieve(batchId);
+    return response;
+  },
+
+  /**
+   * Cancel a batch job
+   */
+  async cancelBatch(batchId) {
+    const client = getGroqClient();
+    const response = await client.batches.cancel(batchId);
+    return response;
+  },
+
+  // ── Files ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Upload a file for batch processing
+   */
+  async uploadFile(file, purpose = 'batch') {
+    const client = getGroqClient();
+    const fileStream =
+      typeof file === 'string' ? fs.createReadStream(file) : file;
+    const response = await client.files.create({
+      file: fileStream,
+      purpose,
+    });
+    return response;
+  },
+
+  /**
+   * List all uploaded files
+   */
+  async listFiles() {
+    const client = getGroqClient();
+    const response = await client.files.list();
+    return response;
+  },
+
+  /**
+   * Get file metadata by ID
+   */
+  async getFile(fileId) {
+    const client = getGroqClient();
+    const response = await client.files.retrieve(fileId);
+    return response;
+  },
+
+  /**
+   * Delete a file
+   */
+  async deleteFile(fileId) {
+    const client = getGroqClient();
+    const response = await client.files.del(fileId);
+    return response;
+  },
+
+  /**
+   * Get file content
+   */
+  async getFileContent(fileId) {
+    const client = getGroqClient();
+    const response = await client.files.content(fileId);
+    return response;
+  },
 };
 
 export default GroqService;
