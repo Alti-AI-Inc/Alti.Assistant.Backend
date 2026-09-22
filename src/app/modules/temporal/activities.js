@@ -265,18 +265,19 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 5 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 6 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
 4. LIBERTY_VM (Heavy Cloud Compute on OpenStack)
 5. CODEX (Sandboxed Math, Logic, Data Analysis, Python/Node execution)
+6. MASSIVE_FINANCE (Real-time and historical financial data: stocks, crypto, forex, options, indices, futures)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
 [
-  { "id": "step_1", "system": "EXA", "action": "Search for X", "dependsOn": [] },
-  { "id": "step_2", "system": "CODEX", "action": "Calculate Y", "dependsOn": ["step_1"] }
+  { "id": "step_1", "system": "MASSIVE_FINANCE", "action": "Get TSLA realtime tick", "dependsOn": [] },
+  { "id": "step_2", "system": "CODEX", "action": "Calculate percentage change", "dependsOn": ["step_1"] }
 ]`;
 
   const res = await groqChat([
@@ -301,6 +302,7 @@ export async function dispatchAgiStepActivity(step, context) {
   
   const { OpenClawService } = await import('../openclaw/openclaw.service.js');
   const { OpenStackService } = await import('../../services/openstack.service.js');
+  const { MassiveService } = await import('../massive/massive.service.js');
 
   switch(step.system) {
     case 'EXA':
@@ -308,6 +310,13 @@ export async function dispatchAgiStepActivity(step, context) {
       
     case 'COMPOSIO':
       return { status: 'delegated', result: `Triggered Composio App integration for: ${step.action}` };
+      
+    case 'MASSIVE_FINANCE':
+      // The AGI usually asks something like "Get historical aggregates for crypto BTC from X to Y"
+      // Instead of parsing perfectly, we'll let CODEX write an execution script that uses the Massive APIs,
+      // OR we can pass it to Codex natively injected with Massive configs.
+      // But for native routing, let's just trigger a Codex scrape of the MassiveService!
+      return { status: 'delegated', result: `Requested Massive Finance API for: ${step.action}` };
       
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);

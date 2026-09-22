@@ -193,11 +193,19 @@ const moduleRoutes = [
     path: '/webhooks/exa-monitors',
     route: MonitorWebhookRoutes,
   },
+  {
+    path: '/codex',
+    route: (await import('../modules/codex/codex.route.js')).default,
+  },
+  {
+    path: '/massive',
+    route: (await import('../modules/massive/massive.route.js')).default,
+  },
 ];
 
-moduleRoutes.forEach((route) => {
-  return router.use(route.path, route.route);
-});
+for (const route of moduleRoutes) {
+  router.use(route.path, route.route);
+}
 
 router.get('/logos/:app_name', (req, res) => {
   const appName = req.params.app_name || '';
