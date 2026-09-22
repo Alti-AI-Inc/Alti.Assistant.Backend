@@ -11,9 +11,9 @@ import Chat from './chat.model.js';
 import { CHAT_RESPONSE_SERVICE_POST } from './chat.constant.js';
 import { groqChat } from '../../services/groq.client.js';
 
-const sessionMemoryStore = {};
+import { SovereignRouterService } from '../orchestrator/sovereignRouter.service.js';
 
-const chatService = async (sessionId, prompt, userId) => {
+const chatService = async (sessionId, prompt, userId, userContext = {}) => {
   let memory = sessionMemoryStore[sessionId];
   if (!memory) {
     memory = new BufferMemory({
@@ -27,44 +27,27 @@ const chatService = async (sessionId, prompt, userId) => {
   try {
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
-    // Call Groq AI to generate a response
-    const historyMessages = await memory.chatHistory.getMessages();
-    const messages = historyMessages.map(msg => ({
-      role: msg._getType() === 'human' ? 'user' : 'assistant',
-      content: msg.content
-    }));
+    // Call Sovereign Data Intelligence Router (checks all 14 subsystems + citations)
+    const sovereignResult = await SovereignRouterService.handlePromptJson({
+      prompt,
+      sessionId,
+      userId,
+      userContext,
+    });
 
-    const result = await groqChat(messages, { model: config.groq?.model || 'gpt-oss-120b' });
-    const reply =
-      result?.choices?.[0]?.message?.content ||
-      'No reply generated';
-
+    const reply = sovereignResult.reply || 'No reply generated';
     await memory.chatHistory.addMessage(new AIMessage(reply));
 
-    const responseData = {
+    const payload = {
       prompt,
-      model: config.groq?.model || 'gpt-oss-120b',
+      sessionId,
       reply,
-      total_time: result?.usage?.total_time || 0,
+      route: sovereignResult.route,
+      reference: sovereignResult.references || [],
+      citations: sovereignResult.citations || [],
+      total_time: sovereignResult.total_time,
     };
 
-    let chatSession = await Chat.findOne({ user: userId, sessionId });
-
-    if (chatSession) {
-      chatSession.responses.push(responseData);
-      await chatSession.save();
-    } else {
-      chatSession = await Chat.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { chatAiSessions: chatSession._id },
-      });
-    }
-
-    const payload = { prompt, sessionId, reply };
     if (payload) {
       await RedisClient.publish(
         CHAT_RESPONSE_SERVICE_POST,

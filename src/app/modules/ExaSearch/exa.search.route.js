@@ -62,5 +62,12 @@ router.post(
   SearchController.searchDirectly
 );
 
+// Unified Sovereign Stream Endpoint for ChatInput SEARCH option
+router.post(
+  '/stream',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  (await import('../orchestrator/sovereignRouter.controller.js')).default.routePrompt
+);
+
 export const SearchRoutes = router;
 export default router;

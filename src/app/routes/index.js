@@ -239,6 +239,11 @@ for (const route of moduleRoutes) {
   router.use(route.path, route.route);
 }
 
+// ── Universal Sovereign Prompt Endpoints (One Prompt Box Engine) ───────────
+const sovereignController = (await import('../modules/orchestrator/sovereignRouter.controller.js')).default;
+router.post('/gemini/4nano/get-response', sovereignController.routePrompt);
+router.post('/prompt', sovereignController.routePrompt);
+
 router.get('/logos/:app_name', (req, res) => {
   const appName = req.params.app_name || '';
   const cleanName = appName.replace(/[^a-zA-Z0-9]/g, '');

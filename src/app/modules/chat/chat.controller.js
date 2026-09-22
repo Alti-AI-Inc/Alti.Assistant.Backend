@@ -5,12 +5,33 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 import { ChatAiService } from './chat.service.js';
 import Chat from './chat.model.js';
 
+import { SovereignRouterService } from '../orchestrator/sovereignRouter.service.js';
+
 // ── Send Chat Message (existing) ─────────────────────────────────────────────
 const ChatAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } =
     await validatePromptRequest(req);
 
-  const result = await ChatAiService.chatService(sessionId, prompt, userId);
+  const userContext = {
+    timezone: req.body.timezone || 'America/New_York',
+    localDate: req.body.localDate,
+    localTime: req.body.localTime,
+    category: req.body.category,
+    metadata: req.body.metadata,
+  };
+
+  // If client requested stream or sent text/event-stream accept header
+  if (req.body.stream === true || req.headers.accept?.includes('text/event-stream')) {
+    return SovereignRouterService.handlePromptStream({
+      prompt,
+      sessionId,
+      userId,
+      userContext,
+      res,
+    });
+  }
+
+  const result = await ChatAiService.chatService(sessionId, prompt, userId, userContext);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
