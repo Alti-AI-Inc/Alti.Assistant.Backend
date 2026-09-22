@@ -265,7 +265,7 @@ Synthesize a direct, helpful answer based on this execution output.`;
 export async function generateAgiPlanActivity(prompt) {
   logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
   const systemPrompt = `You are a Tier-1 AGI Task Planner. 
-You must break the user's prompt into a sequence of execution steps across our 12 subsystems:
+You must break the user's prompt into a sequence of execution steps across our 13 subsystems:
 1. EXA (Web Search / Research)
 2. COMPOSIO (SaaS App Integrations)
 3. EDGE_DESKTOP (Local Computer execution via desktop app)
@@ -278,6 +278,7 @@ You must break the user's prompt into a sequence of execution steps across our 1
 10. COINAPI (Crypto market data: exchange rates, OHLCV, trades, quotes, order books, indexes, metrics across all crypto exchanges via CoinAPI.io)
 11. MAPBOX_LOCATION (Geospatial intelligence: geocoding, directions, matrix, optimization, isochrone, map matching, tilequery, static maps, POI search, datasets via Mapbox)
 12. EXPLORIUM_B2B (B2B data intelligence: business match/enrich/search/research, prospect match/enrich/search, events/signals, audience stats via Explorium AgentSource v2)
+13. WEATHER_DATA (Global weather: forecast, historical, current conditions, hourly, alerts, severe events, weather maps via Visual Crossing Timeline API)
 
 Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
 Format: 
@@ -454,6 +455,26 @@ export async function dispatchAgiStepActivity(step, context) {
       } else {
         const matchResult = await ExploriumService.matchBusinesses({ name: step.query || step.action });
         return { status: 'completed', result: matchResult };
+      }
+
+    case 'WEATHER_DATA':
+      const { VisualCrossingService } = await import('../visualcrossing/visualcrossing.service.js');
+      const wxAction = step.action.toLowerCase();
+      if (wxAction.includes('alert') || wxAction.includes('warning') || wxAction.includes('severe')) {
+        const alertResult = await VisualCrossingService.getAlerts(step.location || step.query || step.action);
+        return { status: 'completed', result: alertResult };
+      } else if (wxAction.includes('current') || wxAction.includes('now') || wxAction.includes('right now')) {
+        const currentResult = await VisualCrossingService.getCurrentConditions(step.location || step.query || step.action);
+        return { status: 'completed', result: currentResult };
+      } else if (wxAction.includes('hourly') || wxAction.includes('hour')) {
+        const hourlyResult = await VisualCrossingService.getHourly(step.location || step.query || step.action);
+        return { status: 'completed', result: hourlyResult };
+      } else if (wxAction.includes('histor') || wxAction.includes('past') || wxAction.includes('yesterday')) {
+        const histResult = await VisualCrossingService.getDynamic(step.location || step.query || step.action, 'yesterday');
+        return { status: 'completed', result: histResult };
+      } else {
+        const forecastResult = await VisualCrossingService.getForecast(step.location || step.query || step.action);
+        return { status: 'completed', result: forecastResult };
       }
     case 'CODEX':
       const scriptData = await generateDataAnalysisCodeActivity(step.action);

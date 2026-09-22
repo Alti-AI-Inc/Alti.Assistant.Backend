@@ -225,6 +225,10 @@ const moduleRoutes = [
     path: '/explorium',
     route: (await import('../modules/explorium/explorium.route.js')).default,
   },
+  {
+    path: '/weather',
+    route: (await import('../modules/visualcrossing/visualcrossing.route.js')).default,
+  },
 ];
 
 for (const route of moduleRoutes) {
