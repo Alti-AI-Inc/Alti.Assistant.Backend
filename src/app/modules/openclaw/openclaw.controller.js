@@ -129,14 +129,14 @@ const orchestrateAgi = catchAsync(async (req, res) => {
   const { TemporalService } = await import('../temporal/temporal.service.js');
   
   const { workflowId, status } = await TemporalService.startWorkflow({
-    workflowType: 'agiOrchestratorWorkflow',
+    workflowType: 'advancedAgiWorkflow',
     args: [prompt, { machineId }]
   });
 
   sendResponse(res, {
     statusCode: httpStatus.ACCEPTED,
     success: true,
-    message: 'AGI Master Orchestrator engaged.',
+    message: 'Advanced AGI Master Orchestrator (World Best) engaged.',
     data: { workflowId, status, prompt },
   });
 });

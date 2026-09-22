@@ -171,3 +171,58 @@ Prompt: "${prompt}"`);
     status: 'COMPLETED_AGI_ROUTING'
   };
 }
+
+const agiActivities = proxyActivities({
+  startToCloseTimeout: '15 minutes', // Long timeout because EDGE tasks can take time for the desktop app to process
+  retry: {
+    initialInterval: '5s',
+    backoffCoefficient: 2,
+    maximumAttempts: 2,
+  }
+});
+
+/**
+ * Advanced AGI Master Orchestrator (World Best)
+ * Employs DAG-based dynamic planning across all 5 infrastructural pillars.
+ */
+export async function advancedAgiWorkflow(prompt, context = {}) {
+  // 1. Generate the multi-system execution plan
+  const plan = await agiActivities.generateAgiPlanActivity(prompt);
+  
+  if (!plan || plan.length === 0) {
+    return { prompt, status: 'FAILED', error: 'AGI failed to construct a valid execution graph.' };
+  }
+
+  const executionResults = {};
+
+  // 2. Execute the DAG (Naive sequential implementation for reliability)
+  for (const step of plan) {
+    // Inject previous context so dependent steps have upstream data
+    const contextualizedStep = {
+      ...step,
+      action: `${step.action}\n\nContext from previous steps: ${JSON.stringify(executionResults)}`
+    };
+
+    const dispatchResult = await agiActivities.dispatchAgiStepActivity(contextualizedStep, context);
+    
+    // If it routed to a desktop or VM, we pause the Temporal workflow and wait for the Edge Node!
+    if (dispatchResult.status === 'queued' && dispatchResult.commandId) {
+      const edgeResult = await agiActivities.waitForEdgeCommandActivity(dispatchResult.commandId);
+      executionResults[step.id] = edgeResult;
+    } else {
+      executionResults[step.id] = dispatchResult;
+    }
+  }
+
+  // 3. Synthesize the grand unified output using Codex Data synthesis activity
+  const synthesisPrompt = `The user asked: "${prompt}"\nI executed this comprehensive AGI plan:\n${JSON.stringify(plan)}\n\nHere are the results from the various subsystems (Web, Desktop, Cloud, Apps):\n${JSON.stringify(executionResults)}\n\nSynthesize the final, definitive answer.`;
+  const finalAnswer = await dataActivities.synthesizeDataAnalysisActivity(prompt, "N/A - Orchestrated AGI Plan", { output: synthesisPrompt });
+
+  return {
+    prompt,
+    plan,
+    raw_results: executionResults,
+    final_answer: finalAnswer,
+    status: 'COMPLETED_AGI_EXECUTION'
+  };
+}

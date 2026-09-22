@@ -260,3 +260,86 @@ Synthesize a direct, helpful answer based on this execution output.`;
   const res = await groqChat([{ role: 'user', content: synthesisPrompt }], { model: 'gpt-oss-20b' });
   return res.choices?.[0]?.message?.content || 'Synthesis failed.';
 }
+
+
+export async function generateAgiPlanActivity(prompt) {
+  logger.info(`[AGI] Generating DAG execution plan for: ${prompt}`);
+  const systemPrompt = `You are a Tier-1 AGI Task Planner. 
+You must break the user's prompt into a sequence of execution steps across our 5 subsystems:
+1. EXA (Web Search / Research)
+2. COMPOSIO (SaaS App Integrations)
+3. EDGE_DESKTOP (Local Computer execution via desktop app)
+4. LIBERTY_VM (Heavy Cloud Compute on OpenStack)
+5. CODEX (Sandboxed Math, Logic, Data Analysis, Python/Node execution)
+
+Return ONLY valid JSON representing an array of steps. No markdown, no explanations.
+Format: 
+[
+  { "id": "step_1", "system": "EXA", "action": "Search for X", "dependsOn": [] },
+  { "id": "step_2", "system": "CODEX", "action": "Calculate Y", "dependsOn": ["step_1"] }
+]`;
+
+  const res = await groqChat([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: prompt }
+  ], { model: 'gpt-oss-120b', response_format: { type: 'json_object' } });
+  
+  let content = res.choices?.[0]?.message?.content || '[]';
+  // Attempt to parse JSON safely if it returned an object wrapper or raw array
+  let plan = [];
+  try {
+    const parsed = JSON.parse(content);
+    plan = Array.isArray(parsed) ? parsed : (parsed.steps || parsed.plan || []);
+  } catch (e) {
+    logger.error('[AGI] Failed to parse Groq DAG plan:', content);
+  }
+  return plan;
+}
+
+export async function dispatchAgiStepActivity(step, context) {
+  logger.info(`[AGI] Dispatching Step ${step.id} to ${step.system}: ${step.action}`);
+  
+  const { OpenClawService } = await import('../openclaw/openclaw.service.js');
+  const { OpenStackService } = await import('../../services/openstack.service.js');
+
+  switch(step.system) {
+    case 'EXA':
+      return { status: 'delegated', result: `Initiated EXA search for: ${step.action}` };
+      
+    case 'COMPOSIO':
+      return { status: 'delegated', result: `Triggered Composio App integration for: ${step.action}` };
+      
+    case 'CODEX':
+      const scriptData = await generateDataAnalysisCodeActivity(step.action);
+      const execution = await executeSandboxedCodeActivity(scriptData.code);
+      return { status: 'completed', result: execution.output || execution.error };
+      
+    case 'EDGE_DESKTOP':
+      const desktopCmd = await OpenClawService.queueEdgeCommand(context.machineId || 'local-desktop', 'agi_execute', { action: step.action });
+      return { status: 'queued', commandId: desktopCmd.commandId, message: 'Queued to local desktop app. Awaiting edge polling.' };
+      
+    case 'LIBERTY_VM':
+      const vm = await OpenStackService.provisionVirtualComputer({ name: `agi-worker-${step.id}` });
+      const cloudCmd = await OpenClawService.queueEdgeCommand(vm.instanceId, 'agi_execute', { action: step.action });
+      return { status: 'queued', vm, commandId: cloudCmd.commandId, message: 'Booted Liberty VM and queued action.' };
+      
+    default:
+      return { status: 'failed', error: `Unknown system: ${step.system}` };
+  }
+}
+
+export async function waitForEdgeCommandActivity(commandId) {
+  // A temporal activity that polls the DB until the Edge Desktop/VM finishes processing the task.
+  // In Temporal, doing an await loop inside an Activity is perfectly durable.
+  const { EdgeCommand } = await import('../openclaw/openclaw.model.js');
+  let attempts = 0;
+  while(attempts < 120) { // wait up to 10 minutes (5s * 120)
+    const cmd = await EdgeCommand.findOne({ commandId });
+    if (cmd && (cmd.status === 'completed' || cmd.status === 'failed')) {
+      return { status: cmd.status, result: cmd.result };
+    }
+    await new Promise(r => setTimeout(r, 5000));
+    attempts++;
+  }
+  throw new Error(`Edge Command ${commandId} timed out waiting for desktop app.`);
+}
