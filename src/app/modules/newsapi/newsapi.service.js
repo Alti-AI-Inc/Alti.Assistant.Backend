@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -51,11 +52,11 @@ import { logger } from '../../../shared/logger.js';
 const API_KEY = config.newsapi?.apiKey || process.env.NEWSAPI_AI_KEY || '';
 const BASE_URL = 'https://eventregistry.org/api/v1';
 
-const newsApi = axios.create({
+const newsApi = withRetry(axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
-});
+}), 'newsapi');
 
 import CacheService from '../../../shared/cache.service.js';
 

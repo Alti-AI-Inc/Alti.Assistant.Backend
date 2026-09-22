@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { MassiveWebSocket } from './massive.websocket.js';
 
@@ -14,11 +15,11 @@ import { MassiveWebSocket } from './massive.websocket.js';
 
 const apiKey = config.massive?.apiKey || process.env.MASSIVE_API_KEY || '';
 
-const massiveApi = axios.create({
+const massiveApi = withRetry(axios.create({
   baseURL: 'https://api.massive.com',
   headers: { Authorization: `Bearer ${apiKey}` },
   timeout: 30000,
-});
+}), 'massive');
 
 // Helper: append apiKey to params if not in header
 const withKey = (params = {}) => ({ ...params, apiKey });

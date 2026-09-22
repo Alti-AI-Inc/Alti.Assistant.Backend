@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -34,14 +35,14 @@ import { logger } from '../../../shared/logger.js';
 const API_KEY = config.explorium?.apiKey || process.env.EXPLORIUM_API_KEY || '';
 const BASE_URL = 'https://api.explorium.ai';
 
-const expApi = axios.create({
+const expApi = withRetry(axios.create({
   baseURL: BASE_URL,
   timeout: 60000,
   headers: {
     'api_key': API_KEY,
     'Content-Type': 'application/json',
   },
-});
+}), 'explorium');
 
 export const ExploriumService = {
 

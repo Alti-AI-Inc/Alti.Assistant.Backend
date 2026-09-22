@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import { EventSource } from 'eventsource';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
@@ -27,14 +28,14 @@ import { logger } from '../../../shared/logger.js';
 const API_KEY = config.predictiondata?.apiKey || process.env.PREDICTION_DATA_KEY || '';
 const BASE_URL = 'https://api.predictiondata.io';
 
-const pdApi = axios.create({
+const pdApi = withRetry(axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: {
     'X-API-KEY': API_KEY,
     'Content-Type': 'application/json',
   },
-});
+}), 'predictiondata');
 
 export const PredictionDataService = {
 

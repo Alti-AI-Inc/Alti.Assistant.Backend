@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import WebSocket from 'ws';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
@@ -32,11 +33,11 @@ const API_KEY = config.coinapi?.apiKey || process.env.COINAPI_KEY || '';
 const REST_BASE = 'https://rest.coinapi.io';
 const WS_URL = 'wss://ws.coinapi.io/v1/';
 
-const coinApi = axios.create({
+const coinApi = withRetry(axios.create({
   baseURL: REST_BASE,
   timeout: 30000,
   headers: { 'X-CoinAPI-Key': API_KEY },
-});
+}), 'coinapi');
 
 async function cachedGet(path, config = {}) {
   return CacheService.getOrSet('coinapi', { path, params: config.params }, async () => {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -54,11 +55,11 @@ const SPORT_HOSTS = {
 // Create axios instances per sport, all sharing the same API key header
 const clients = {};
 for (const [sport, baseURL] of Object.entries(SPORT_HOSTS)) {
-  clients[sport] = axios.create({
+  clients[sport] = withRetry(axios.create({
     baseURL,
     headers: { 'x-apisports-key': API_KEY },
     timeout: 20000,
-  });
+  }), 'apisports');
 }
 
 import CacheService from '../../../shared/cache.service.js';

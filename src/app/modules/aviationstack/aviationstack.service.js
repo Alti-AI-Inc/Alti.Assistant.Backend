@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -30,11 +31,11 @@ import { logger } from '../../../shared/logger.js';
 const ACCESS_KEY = config.aviationstack?.apiKey || process.env.AVIATIONSTACK_KEY || '';
 const BASE_URL = 'https://api.aviationstack.com/v1';
 
-const avApi = axios.create({
+const avApi = withRetry(axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   params: { access_key: ACCESS_KEY },
-});
+}), 'aviationstack');
 
 export const AviationStackService = {
 

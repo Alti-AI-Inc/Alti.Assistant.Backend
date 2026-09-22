@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -32,11 +33,11 @@ const API_KEY = config.visualcrossing?.apiKey || process.env.VISUAL_CROSSING_KEY
 const TIMELINE_BASE = 'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline';
 const MAPS_BASE = 'https://maps.visualcrossing.com/VisualCrossingWebServices/rest/api/v1/map';
 
-const vcApi = axios.create({
+const vcApi = withRetry(axios.create({
   baseURL: TIMELINE_BASE,
   timeout: 30000,
   params: { key: API_KEY, contentType: 'json' },
-});
+}), 'visualcrossing');
 
 export const VisualCrossingService = {
 

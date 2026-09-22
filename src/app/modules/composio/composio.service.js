@@ -1,14 +1,15 @@
 import composioClient from './composio.client.js';
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 
-const composioApi = axios.create({
+const composioApi = withRetry(axios.create({
   baseURL: config.composio.baseUrl,
   headers: {
     'x-api-key': config.composio.apiKey,
     'Content-Type': 'application/json',
   },
-});
+}), 'composio');
 
 const createSession = async (userId, options = {}) => {
   const response = await composioApi.post('/api/v3.1/tool_router/session', {

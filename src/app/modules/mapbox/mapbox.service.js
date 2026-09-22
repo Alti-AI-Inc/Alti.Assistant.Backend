@@ -1,4 +1,5 @@
 import axios from 'axios';
+import withRetry from '../../../shared/axiosRetry.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -35,11 +36,11 @@ import { logger } from '../../../shared/logger.js';
 const ACCESS_TOKEN = config.mapbox?.accessToken || process.env.MAPBOX_ACCESS_TOKEN || '';
 const BASE_URL = 'https://api.mapbox.com';
 
-const mbApi = axios.create({
+const mbApi = withRetry(axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   params: { access_token: ACCESS_TOKEN },
-});
+}), 'mapbox');
 
 export const MapboxService = {
 
