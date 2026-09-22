@@ -91,6 +91,7 @@ export default {
   // ── Liberty Center One / Object Storage (MinIO → OpenStack Swift) ─────────
   objectStorage: {
     endpoint: process.env.OBJECT_STORAGE_ENDPOINT,
+    port: parseInt(process.env.OBJECT_STORAGE_PORT, 10) || 443,
     accessKey: process.env.OBJECT_STORAGE_ACCESS_KEY,
     secretKey: process.env.OBJECT_STORAGE_SECRET_KEY,
     region: process.env.OBJECT_STORAGE_REGION || 'us-east-1',
@@ -99,6 +100,22 @@ export default {
     knowledgeBankBucket: process.env.KNOWLEDGE_BANK_BUCKET || 'alti-knowledge-bank',
     knowledgebotBucket: process.env.KNOWLEDGEBOT_BUCKET || 'alti-knowledgebot',
     presentationBucket: process.env.PRESENTATION_BUCKET || 'alti-presentations',
+  },
+
+  // ── Liberty Center One / OpenStack Native Resources ───────────────────────
+  openstack: {
+    authUrl: process.env.OPENSTACK_AUTH_URL || 'https://identity.libertycenterone.com/v3',
+    novaUrl: process.env.OPENSTACK_NOVA_URL || 'https://compute.libertycenterone.com/v2.1',
+    cinderUrl: process.env.OPENSTACK_CINDER_URL || 'https://volume.libertycenterone.com/v3',
+    glanceUrl: process.env.OPENSTACK_GLANCE_URL || 'https://image.libertycenterone.com/v2',
+    barbicanUrl: process.env.OPENSTACK_BARBICAN_URL || 'https://key-manager.libertycenterone.com/v1',
+    octaviaUrl: process.env.OPENSTACK_OCTAVIA_URL || 'https://load-balancer.libertycenterone.com/v2',
+    heatUrl: process.env.OPENSTACK_HEAT_URL || 'https://orchestration.libertycenterone.com/v1',
+    neutronUrl: process.env.OPENSTACK_NEUTRON_URL || 'https://network.libertycenterone.com/v2.0',
+    username: process.env.OPENSTACK_USERNAME,
+    password: process.env.OPENSTACK_PASSWORD,
+    projectName: process.env.OPENSTACK_PROJECT_NAME,
+    userDomainName: process.env.OPENSTACK_USER_DOMAIN_NAME || 'Default',
   },
 
   // ── Temporal (Durable Workflows) ──────────────────────────────────────────

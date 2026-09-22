@@ -7,7 +7,7 @@ import config from '../../../../config/index.js';
 // Apache 2.0 — zero AWS dependency
 const minioClient = new Minio.Client({
   endPoint: (config.objectStorage?.endpoint || 'storage.libertycenterone.com').replace(/^https?:\/\//, ''),
-  port: parseInt(process.env.OBJECT_STORAGE_PORT || '443', 10),
+  port: config.objectStorage?.port || 443,
   useSSL: (config.objectStorage?.endpoint || 'https://').startsWith('https'),
   accessKey: config.objectStorage?.accessKey || 'dev-key',
   secretKey: config.objectStorage?.secretKey || 'dev-secret',

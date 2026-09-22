@@ -7,37 +7,38 @@ import { logger } from '../../../shared/logger.js';
 // MinIO client is Apache 2.0 — zero AWS dependency
 const minioClient = new Minio.Client({
   endPoint: (config.objectStorage?.endpoint || 'storage.libertycenterone.com').replace(/^https?:\/\//, ''),
-  port: parseInt(process.env.OBJECT_STORAGE_PORT || '443', 10),
+  port: config.objectStorage?.port || 443,
   useSSL: (config.objectStorage?.endpoint || 'https://').startsWith('https'),
   accessKey: config.objectStorage?.accessKey || 'dev-key',
   secretKey: config.objectStorage?.secretKey || 'dev-secret',
   pathStyle: true,
 });
 
-const OPENSTACK_AUTH_URL = process.env.OPENSTACK_AUTH_URL || 'https://identity.libertycenterone.com/v3';
-const OPENSTACK_NOVA_URL = process.env.OPENSTACK_NOVA_URL || 'https://compute.libertycenterone.com/v2.1';
-const OPENSTACK_CINDER_URL = process.env.OPENSTACK_CINDER_URL || 'https://volume.libertycenterone.com/v3';
-const OPENSTACK_GLANCE_URL = process.env.OPENSTACK_GLANCE_URL || 'https://image.libertycenterone.com/v2';
-const OPENSTACK_BARBICAN_URL = process.env.OPENSTACK_BARBICAN_URL || 'https://key-manager.libertycenterone.com/v1';
-const OPENSTACK_OCTAVIA_URL = process.env.OPENSTACK_OCTAVIA_URL || 'https://load-balancer.libertycenterone.com/v2';
-const OPENSTACK_HEAT_URL = process.env.OPENSTACK_HEAT_URL || 'https://orchestration.libertycenterone.com/v1';
-const OPENSTACK_NEUTRON_URL = process.env.OPENSTACK_NEUTRON_URL || 'https://network.libertycenterone.com/v2.0';
+const OPENSTACK_AUTH_URL = config.openstack?.authUrl;
+const OPENSTACK_NOVA_URL = config.openstack?.novaUrl;
+const OPENSTACK_CINDER_URL = config.openstack?.cinderUrl;
+const OPENSTACK_GLANCE_URL = config.openstack?.glanceUrl;
+const OPENSTACK_BARBICAN_URL = config.openstack?.barbicanUrl;
+const OPENSTACK_OCTAVIA_URL = config.openstack?.octaviaUrl;
+const OPENSTACK_HEAT_URL = config.openstack?.heatUrl;
+const OPENSTACK_NEUTRON_URL = config.openstack?.neutronUrl;
 
 /**
  * Retrieves authentication token from OpenStack Keystone
  */
 async function getKeystoneToken() {
-  const username = process.env.OPENSTACK_USERNAME;
-  const password = process.env.OPENSTACK_PASSWORD;
-  const project = process.env.OPENSTACK_PROJECT_NAME || 'default';
-  const domain = process.env.OPENSTACK_USER_DOMAIN_NAME || 'Default';
+  const username = config.openstack?.username;
+  const password = config.openstack?.password;
+  const project = config.openstack?.projectName || 'default';
+  const domain = config.openstack?.userDomainName || 'Default';
+  const authUrl = config.openstack?.authUrl;
 
   if (!username || !password) {
     return 'mock-openstack-token';
   }
 
   try {
-    const res = await axios.post(`${OPENSTACK_AUTH_URL}/auth/tokens`, {
+    const res = await axios.post(`${authUrl}/auth/tokens`, {
       auth: {
         identity: {
           methods: ['password'],
