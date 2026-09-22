@@ -1,4 +1,10 @@
-import { llmToolCall, llmStream, llmGenerateImage } from '../../services/llm.client.js';
+import {
+  llmToolCall, llmStream, llmGenerateImage, llmImageToImage,
+  llmGenerateVideo, llmGetVideoMetadata, llmTextToSpeech, llmStreamTTS,
+  llmVisionChat, llmCodeInterpreter, llmReasoningChat, llmRerank,
+  llmTranscribeAudio, llmRealtimeTTSConfig, llmRealtimeSTTConfig
+} from '../../services/llm.client.js';
+import { searchSECFillings } from '../sec/sec.service.js';
 import { logger } from '../../../shared/logger.js';
 
 // Import backend services
@@ -171,6 +177,93 @@ const tools = [
       name: 'get_latest_news',
       description: 'Get breaking news articles for a given topic.',
       parameters: { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] }
+    }
+  },
+  // ─── NEW TOGETHER AI-POWERED TOOLS ──────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'edit_image',
+      description: 'Edit, transform, or create variations of an existing image using AI. Can also generate a new image from scratch. Use FLUX Kontext for editing and FLUX.1-schnell-Free for generation.',
+      parameters: { type: 'object', properties: {
+        prompt: { type: 'string', description: 'Description of what to generate or how to edit the image' },
+        source_image_url: { type: 'string', description: 'URL of the image to edit (optional, omit for text-to-image)' }
+      }, required: ['prompt'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_video',
+      description: 'Generate a short video clip from a text description using AI video generation.',
+      parameters: { type: 'object', properties: {
+        prompt: { type: 'string', description: 'Detailed description of the video to generate' },
+        duration: { type: 'number', description: 'Duration in seconds (default 5)' }
+      }, required: ['prompt'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'text_to_speech',
+      description: 'Convert text into natural-sounding speech audio. Returns an audio file URL.',
+      parameters: { type: 'object', properties: {
+        text: { type: 'string', description: 'The text to convert to speech' },
+        voice: { type: 'string', description: 'Voice style (e.g. helpful woman, friendly man)' }
+      }, required: ['text'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_image',
+      description: 'Analyze, describe, or extract information from an image using AI vision. Can read text, identify objects, describe scenes, solve visual problems.',
+      parameters: { type: 'object', properties: {
+        image_url: { type: 'string', description: 'URL of the image to analyze' },
+        question: { type: 'string', description: 'What to analyze or ask about the image' }
+      }, required: ['image_url', 'question'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_code',
+      description: 'Execute Python code in a secure cloud sandbox. Can install packages, generate plots, process data, and return files. Use for math, data analysis, visualization, or any computation.',
+      parameters: { type: 'object', properties: {
+        code: { type: 'string', description: 'Python code to execute' },
+        language: { type: 'string', description: 'Programming language (default: python)' }
+      }, required: ['code'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deep_reason',
+      description: 'Use a specialized reasoning model for complex problems requiring step-by-step logical thinking, mathematical proofs, code debugging, or multi-step analysis. Much slower but much more accurate than standard chat.',
+      parameters: { type: 'object', properties: {
+        problem: { type: 'string', description: 'The complex problem requiring deep reasoning' }
+      }, required: ['problem'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'rerank_results',
+      description: 'Reorder a list of search results or documents by relevance to a query. Use after web_search to improve result quality.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'The query to rank results against' },
+        documents: { type: 'array', items: { type: 'string' }, description: 'Array of text documents to rerank' }
+      }, required: ['query', 'documents'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'transcribe_audio',
+      description: 'Transcribe spoken audio from a file URL into text. Supports multiple languages.',
+      parameters: { type: 'object', properties: {
+        audio_url: { type: 'string', description: 'URL of the audio file to transcribe' }
+      }, required: ['audio_url'] }
     }
   }
 ];
@@ -505,6 +598,187 @@ export const AgentService = {
             output: JSON.stringify(res),
             references: [{ title: `News: ${args.q}`, url: 'https://newsapi.ai', snippet: 'Breaking News', source: 'NewsAPI' }]
           };
+        }
+
+        // ─── NEW TOGETHER AI TOOL HANDLERS ──────────────────────────────
+        
+        case 'edit_image': {
+          try {
+            let resultUrl;
+            if (args.source_image_url) {
+              resultUrl = await llmImageToImage(args.prompt, args.source_image_url);
+            } else {
+              resultUrl = await llmGenerateImage(args.prompt);
+            }
+            
+            const customMetadata = {
+              domain: 'image_generation',
+              prompt: args.prompt,
+              imageUrl: resultUrl,
+              isEdit: !!args.source_image_url,
+              sourceImageUrl: args.source_image_url || null
+            };
+
+            return {
+              output: `Image ${args.source_image_url ? 'edited' : 'generated'} successfully for prompt: "${args.prompt}"`,
+              references: [{ type: 'image', url: resultUrl }],
+              customMetadata
+            };
+          } catch (error) {
+            return { output: `Image generation failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'generate_video': {
+          try {
+            const videoResult = await llmGenerateVideo(args.prompt, {
+              seconds: args.duration || 5
+            });
+
+            const customMetadata = {
+              domain: 'video_generation',
+              prompt: args.prompt,
+              videoUrl: videoResult?.url || videoResult?.output?.url || null,
+              videoId: videoResult?.id || null,
+              status: videoResult?.status || 'processing'
+            };
+
+            return {
+              output: `Video generation initiated for: "${args.prompt}". ${videoResult?.id ? 'Video ID: ' + videoResult.id : 'Processing...'}`,
+              references: [{ title: 'AI Video', url: customMetadata.videoUrl || 'pending', snippet: args.prompt, source: 'Together AI Video' }],
+              customMetadata
+            };
+          } catch (error) {
+            return { output: `Video generation failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'text_to_speech': {
+          try {
+            const audioResult = await llmTextToSpeech(args.text, {
+              voice: args.voice || 'helpful woman'
+            });
+
+            // The SDK returns an ArrayBuffer — we need to convert to a data URL or store it
+            let audioUrl = null;
+            if (audioResult) {
+              const buffer = Buffer.from(await audioResult.arrayBuffer());
+              audioUrl = `data:audio/mpeg;base64,${buffer.toString('base64')}`;
+            }
+
+            const customMetadata = {
+              domain: 'audio_generation',
+              text: args.text,
+              voice: args.voice || 'helpful woman',
+              audioUrl
+            };
+
+            return {
+              output: `Generated speech audio for: "${args.text.slice(0, 100)}${args.text.length > 100 ? '...' : ''}"`,
+              references: [{ title: 'Text-to-Speech', url: 'together-ai-tts', snippet: args.text.slice(0, 150), source: 'Together AI TTS' }],
+              customMetadata
+            };
+          } catch (error) {
+            return { output: `Text-to-speech failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'analyze_image': {
+          try {
+            const visionResult = await llmVisionChat(args.question, args.image_url);
+            const analysis = visionResult.choices?.[0]?.message?.content || 'No analysis available.';
+
+            const customMetadata = {
+              domain: 'vision_analysis',
+              imageUrl: args.image_url,
+              question: args.question,
+              analysis
+            };
+
+            return {
+              output: analysis,
+              references: [{ title: 'Image Analysis', url: args.image_url, snippet: analysis.slice(0, 150), source: 'Together AI Vision' }],
+              customMetadata
+            };
+          } catch (error) {
+            return { output: `Image analysis failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'run_code': {
+          try {
+            const codeResult = await llmCodeInterpreter(args.code, {
+              language: args.language || 'python'
+            });
+
+            const customMetadata = {
+              domain: 'code_result',
+              code: args.code,
+              language: args.language || 'python',
+              output: codeResult?.output || codeResult?.result || '',
+              error: codeResult?.error || null,
+              files: codeResult?.files || []
+            };
+
+            const outputText = codeResult?.output || codeResult?.result || 'Code executed successfully.';
+            const errorText = codeResult?.error ? `\nError: ${codeResult.error}` : '';
+
+            return {
+              output: `Code execution result:\n${outputText}${errorText}`,
+              references: [{ title: 'Code Execution', url: 'together-ai-code', snippet: `Python sandbox execution`, source: 'Together AI Code Interpreter' }],
+              customMetadata
+            };
+          } catch (error) {
+            return { output: `Code execution failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'deep_reason': {
+          try {
+            const reasonResult = await llmReasoningChat([
+              { role: 'user', content: args.problem }
+            ], { maxTokens: 16384 });
+            
+            const reasoning = reasonResult.choices?.[0]?.message?.content || 'No reasoning output.';
+
+            return {
+              output: reasoning,
+              references: [{ title: 'Deep Reasoning', url: 'together-ai-reasoning', snippet: args.problem.slice(0, 150), source: 'Together AI Reasoning (QwQ-32B)' }]
+            };
+          } catch (error) {
+            return { output: `Reasoning failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'rerank_results': {
+          try {
+            const rerankResult = await llmRerank(args.query, args.documents);
+            const ranked = rerankResult?.results || [];
+            const outputText = ranked.map((r, i) => 
+              `${i + 1}. [Score: ${r.relevance_score?.toFixed(4)}] ${r.document?.text?.slice(0, 200) || args.documents[r.index]?.slice(0, 200)}`
+            ).join('\n');
+
+            return {
+              output: `Reranked ${ranked.length} results for "${args.query}":\n${outputText}`,
+              references: []
+            };
+          } catch (error) {
+            return { output: `Reranking failed: ${error.message}`, references: [] };
+          }
+        }
+
+        case 'transcribe_audio': {
+          try {
+            const transcription = await llmTranscribeAudio(args.audio_url);
+            const text = transcription?.text || transcription || 'No transcription available.';
+
+            return {
+              output: `Transcription: ${text}`,
+              references: [{ title: 'Audio Transcription', url: args.audio_url, snippet: String(text).slice(0, 150), source: 'Together AI Whisper' }]
+            };
+          } catch (error) {
+            return { output: `Transcription failed: ${error.message}`, references: [] };
+          }
         }
         default:
           return { output: `Error: Tool ${name} not recognized.`, references: [] };
