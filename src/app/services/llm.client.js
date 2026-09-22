@@ -808,6 +808,417 @@ export async function llmChatWithLogprobs(messages, options = {}) {
   }
 }
 
+// ─── 30. STREAMING TTS (HTTP) ───────────────────────────────────────
+// POST /v1/audio/speech with streaming response
+
+export async function llmStreamTTS(text, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model || 'cartesia/sonic',
+        input: text,
+        voice: options.voice || 'helpful woman',
+        response_format: options.format || 'raw',
+      }),
+    });
+    if (!response.ok) throw new Error(`Streaming TTS failed: ${response.status}`);
+    return response.body; // Returns a ReadableStream of raw PCM bytes
+  } catch (error) {
+    console.error('Together Streaming TTS Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 31. WEBSOCKET TTS (REALTIME) ───────────────────────────────────
+// wss://api.together.ai/v1/audio/speech/websocket
+// Returns connection config for client to establish WebSocket
+
+export function llmRealtimeTTSConfig(options = {}) {
+  return {
+    url: 'wss://api.together.ai/v1/audio/speech/websocket',
+    headers: {
+      'Authorization': `Bearer ${config.llm?.apiKey || process.env.TOGETHER_API_KEY}`,
+    },
+    params: {
+      model: options.model || 'cartesia/sonic',
+      voice: options.voice || 'helpful woman',
+      response_format: options.format || 'raw',
+      sample_rate: options.sampleRate || 24000,
+    },
+  };
+}
+
+// ─── 32. WEBSOCKET STT (REALTIME TRANSCRIPTION) ─────────────────────
+// wss://api.together.ai/v1/realtime
+// Returns connection config for client to establish WebSocket
+
+export function llmRealtimeSTTConfig(options = {}) {
+  return {
+    url: 'wss://api.together.ai/v1/realtime',
+    headers: {
+      'Authorization': `Bearer ${config.llm?.apiKey || process.env.TOGETHER_API_KEY}`,
+    },
+    params: {
+      model: options.model || 'openai/whisper-large-v3',
+      language: options.language || 'en',
+      interim_results: options.interimResults ?? true,
+      vad_threshold: options.vadThreshold ?? 0.5,
+    },
+  };
+}
+
+// ─── 33. IMAGE-TO-IMAGE (EDIT / TRANSFORM) ──────────────────────────
+// POST /v1/images/generations with image_url or reference_images
+
+export async function llmImageToImage(prompt, sourceImageUrl, options = {}) {
+  try {
+    const params = {
+      model: options.model || 'black-forest-labs/FLUX.1-kontext-max',
+      prompt,
+      steps: options.steps || 20,
+      n: options.n || 1,
+      height: options.height || 1024,
+      width: options.width || 1024,
+    };
+    // Kontext models use image_url
+    if (sourceImageUrl) {
+      params.image_url = sourceImageUrl;
+    }
+    // FLUX.2 / Google models use reference_images
+    if (options.referenceImages) {
+      params.reference_images = options.referenceImages;
+    }
+    const response = await llmClient.images.generate(params);
+    return response.data[0].url || response.data[0].b64_json;
+  } catch (error) {
+    if (error instanceof Together.APIError) {
+      console.error(`Together Image-to-Image ${error.status}:`, error.message);
+    }
+    throw error;
+  }
+}
+
+// ─── 34. QUEUE API (DEDICATED CONTAINERS) ───────────────────────────
+// Async job queue for dedicated container deployments
+
+export async function llmQueueSubmit(model, body, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/queue/submit', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        body,
+        priority: options.priority ?? 0,
+      }),
+    });
+    if (!response.ok) throw new Error(`Queue submit failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Queue Submit Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmQueueStatus(requestId, model) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/queue/status?request_id=${requestId}&model=${encodeURIComponent(model)}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Queue Status Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmQueueCancel(requestId, model) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/queue/cancel', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ request_id: requestId, model }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Queue Cancel Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmQueueClear(model) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/queue/clear', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Queue Clear Error:', error.message);
+    throw error;
+  }
+}
+
+export async function llmQueueMetrics(model) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`https://api.together.xyz/v1/queue/metrics?model=${encodeURIComponent(model)}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Together Queue Metrics Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 35. GPU CLUSTERS API ───────────────────────────────────────────
+// Full CRUD for instant GPU clusters
+
+const API_BASE = 'https://api.together.xyz/v1';
+function authHeaders() {
+  return { 'Authorization': `Bearer ${config.llm?.apiKey || process.env.TOGETHER_API_KEY}`, 'Content-Type': 'application/json' };
+}
+
+export async function llmCreateCluster(params) {
+  const r = await fetch(`${API_BASE}/clusters`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmListClusters() {
+  const r = await fetch(`${API_BASE}/clusters`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetCluster(clusterId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmUpdateCluster(clusterId, params) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmDeleteCluster(clusterId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}`, { method: 'DELETE', headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 36. CLUSTER STORAGE (SHARED VOLUMES) ───────────────────────────
+
+export async function llmCreateClusterVolume(params) {
+  const r = await fetch(`${API_BASE}/clusters/storages`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmListClusterVolumes() {
+  const r = await fetch(`${API_BASE}/clusters/storages`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetClusterVolume(volumeId) {
+  const r = await fetch(`${API_BASE}/clusters/storages/${volumeId}`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmUpdateClusterVolume(volumeId, params) {
+  const r = await fetch(`${API_BASE}/clusters/storages/${volumeId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmDeleteClusterVolume(volumeId) {
+  const r = await fetch(`${API_BASE}/clusters/storages/${volumeId}`, { method: 'DELETE', headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 37. CLUSTER REMEDIATION (NODE REPAIR) ──────────────────────────
+
+export async function llmListRemediations(clusterId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/remediations`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetRemediation(clusterId, instanceId, remediationId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/instances/${instanceId}/remediations/${remediationId}`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmCreateRemediation(clusterId, instanceId, params) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/instances/${instanceId}/remediations`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmApproveRemediation(clusterId, instanceId, remediationId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/instances/${instanceId}/remediations/${remediationId}/approve`, { method: 'POST', headers: authHeaders() });
+  return r.json();
+}
+export async function llmCancelRemediation(clusterId, instanceId, remediationId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/instances/${instanceId}/remediations/${remediationId}/cancel`, { method: 'POST', headers: authHeaders() });
+  return r.json();
+}
+export async function llmRejectRemediation(clusterId, instanceId, remediationId) {
+  const r = await fetch(`${API_BASE}/clusters/${clusterId}/instances/${instanceId}/remediations/${remediationId}/reject`, { method: 'POST', headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 38. DEDICATED CONTAINER DEPLOYMENTS ────────────────────────────
+
+export async function llmListDeployments(projectId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmCreateDeployment(projectId, params) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmGetDeployment(projectId, deploymentId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments/${deploymentId}`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmUpdateDeployment(projectId, deploymentId, params) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments/${deploymentId}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmDeleteDeployment(projectId, deploymentId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments/${deploymentId}`, { method: 'DELETE', headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetDeploymentLogs(projectId, deploymentId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/deployments/${deploymentId}/logs`, { headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 39. DEDICATED CONTAINER SECRETS ────────────────────────────────
+
+export async function llmListSecrets(projectId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/secrets`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmCreateSecret(projectId, params) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/secrets`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmDeleteSecret(projectId, secretId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/secrets/${secretId}`, { method: 'DELETE', headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 40. DEDICATED CONTAINER VOLUMES ────────────────────────────────
+
+export async function llmListProjectVolumes(projectId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/volumes`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmCreateProjectVolume(projectId, params) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/volumes`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmDeleteProjectVolume(projectId, volumeId) {
+  const r = await fetch(`${API_BASE}/projects/${projectId}/volumes/${volumeId}`, { method: 'DELETE', headers: authHeaders() });
+  return r.json();
+}
+
+// ─── 41. CODE SANDBOX ───────────────────────────────────────────────
+// Run generative code in fast secure sandboxes (separate from Code Interpreter)
+
+export async function llmCodeSandbox(code, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch('https://api.together.xyz/v1/code/sandbox', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        language: options.language || 'python',
+        timeout: options.timeout || 30,
+        ...(options.files ? { files: options.files } : {}),
+      }),
+    });
+    if (!response.ok) throw new Error(`Code sandbox failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Code Sandbox Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 42. BILLING USAGE ──────────────────────────────────────────────
+// GET /v1/billing/usage
+
+export async function llmGetBillingUsage(options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const params = new URLSearchParams();
+    if (options.month) params.set('month', options.month);
+    if (options.granularity) params.set('granularity', options.granularity);
+    const url = `${API_BASE}/billing/usage${params.toString() ? '?' + params : ''}`;
+    const r = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    return await r.json();
+  } catch (error) {
+    console.error('Together Billing Usage Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 43. UPLOAD MODEL (FROM HF / S3) ───────────────────────────────
+// POST /v1/models/upload
+
+export async function llmUploadModel(source, options = {}) {
+  try {
+    const apiKey = config.llm?.apiKey || process.env.TOGETHER_API_KEY;
+    const response = await fetch(`${API_BASE}/models/upload`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        model_source: source,
+        model_name: options.name || undefined,
+        hf_token: options.hfToken || undefined,
+      }),
+    });
+    if (!response.ok) throw new Error(`Model upload failed: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Together Model Upload Error:', error.message);
+    throw error;
+  }
+}
+
+// ─── 44. EVALS API (REST) ───────────────────────────────────────────
+
+export async function llmCreateEval(params) {
+  const r = await fetch(`${API_BASE}/evals`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(params) });
+  return r.json();
+}
+export async function llmListEvals() {
+  const r = await fetch(`${API_BASE}/evals`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetEval(evalId) {
+  const r = await fetch(`${API_BASE}/evals/${evalId}`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmGetEvalStatus(evalId) {
+  const r = await fetch(`${API_BASE}/evals/${evalId}/status`, { headers: authHeaders() });
+  return r.json();
+}
+export async function llmListEvalModels() {
+  const r = await fetch(`${API_BASE}/evals/models`, { headers: authHeaders() });
+  return r.json();
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════
 //  CONVENIENCE WRAPPERS
@@ -837,4 +1248,3 @@ export function getLlmClient() {
 
 export { llmClient };
 export default llmClient;
-
