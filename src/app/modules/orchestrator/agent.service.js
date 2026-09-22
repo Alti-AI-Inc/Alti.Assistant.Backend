@@ -8,6 +8,12 @@ import { VisualCrossingService } from '../visualcrossing/visualcrossing.service.
 import { AviationStackService } from '../aviationstack/aviationstack.service.js';
 import { CodexService } from '../codex/codex.service.js';
 import { OpenClawService } from '../openclaw/openclaw.service.js';
+import { ExploriumService } from '../explorium/explorium.service.js';
+import { CoinApiService } from '../coinapi/coinapi.service.js';
+import { MassiveService } from '../massive/massive.service.js';
+import { ApiSportsService } from '../apisports/apisports.service.js';
+import { PredictionDataService } from '../predictiondata/predictiondata.service.js';
+import { NewsApiService } from '../newsapi/newsapi.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -16,14 +22,7 @@ const tools = [
     function: {
       name: 'web_search',
       description: 'Search the live web for real-time information, news, or facts using Exa.',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'The search query' },
-          numResults: { type: 'number', description: 'Number of results to fetch (default: 3)' }
-        },
-        required: ['query']
-      }
+      parameters: { type: 'object', properties: { query: { type: 'string' }, numResults: { type: 'number' } }, required: ['query'] }
     }
   },
   {
@@ -31,29 +30,15 @@ const tools = [
     function: {
       name: 'execute_code_sandbox',
       description: 'Write and execute JavaScript code in a secure V8 sandbox to solve math, process data, or verify logic.',
-      parameters: {
-        type: 'object',
-        properties: {
-          code: { type: 'string', description: 'The JavaScript code to execute. Must be self-contained. Use console.log() to print the result.' }
-        },
-        required: ['code']
-      }
+      parameters: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] }
     }
   },
   {
     type: 'function',
     function: {
       name: 'execute_edge_command',
-      description: 'Queue a bash script, docker command, or system command to a remote OpenClaw Edge VM (e.g. vm-sovereign-01).',
-      parameters: {
-        type: 'object',
-        properties: {
-          machineId: { type: 'string', description: 'The ID of the edge machine, e.g. "vm-sovereign-01"' },
-          command: { type: 'string', description: 'The type of action (e.g. "execute", "bash", "docker")' },
-          payload: { type: 'object', description: 'A JSON object with the payload or script to run' }
-        },
-        required: ['machineId', 'command', 'payload']
-      }
+      description: 'Queue a bash script or system command to a remote OpenClaw Edge VM (e.g. vm-sovereign-01).',
+      parameters: { type: 'object', properties: { machineId: { type: 'string' }, command: { type: 'string' }, payload: { type: 'object' } }, required: ['machineId', 'command', 'payload'] }
     }
   },
   {
@@ -61,14 +46,7 @@ const tools = [
     function: {
       name: 'trigger_app_action',
       description: 'Execute a third-party app action (e.g. GitHub, Slack, Linear) via Composio.',
-      parameters: {
-        type: 'object',
-        properties: {
-          tool_slug: { type: 'string', description: 'The exact slug of the tool to execute' },
-          params: { type: 'object', description: 'A JSON object containing the parameters required for the tool' }
-        },
-        required: ['tool_slug', 'params']
-      }
+      parameters: { type: 'object', properties: { tool_slug: { type: 'string' }, params: { type: 'object' } }, required: ['tool_slug', 'params'] }
     }
   },
   {
@@ -76,13 +54,7 @@ const tools = [
     function: {
       name: 'get_weather',
       description: 'Get real-time weather forecasts for a specific location.',
-      parameters: {
-        type: 'object',
-        properties: {
-          location: { type: 'string', description: 'City, state, or zip code' }
-        },
-        required: ['location']
-      }
+      parameters: { type: 'object', properties: { location: { type: 'string' } }, required: ['location'] }
     }
   },
   {
@@ -90,13 +62,55 @@ const tools = [
     function: {
       name: 'get_flights',
       description: 'Get live flight tracking information by flight number.',
-      parameters: {
-        type: 'object',
-        properties: {
-          flight_number: { type: 'string', description: 'The flight number (e.g. AA123)' }
-        },
-        required: ['flight_number']
-      }
+      parameters: { type: 'object', properties: { flight_number: { type: 'string' } }, required: ['flight_number'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'research_company',
+      description: 'Get B2B intelligence and firmographics for a company using Explorium.',
+      parameters: { type: 'object', properties: { company_name: { type: 'string' } }, required: ['company_name'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_crypto_price',
+      description: 'Get live cryptocurrency prices and exchange rates.',
+      parameters: { type: 'object', properties: { base_asset: { type: 'string', description: 'e.g. BTC' }, quote_asset: { type: 'string', description: 'e.g. USD' } }, required: ['base_asset', 'quote_asset'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_stock_aggregates',
+      description: 'Get stock market aggregates/candles for a ticker symbol via Massive.',
+      parameters: { type: 'object', properties: { ticker: { type: 'string' }, multiplier: { type: 'number' }, timespan: { type: 'string', description: 'day, minute' }, from: { type: 'string', description: 'YYYY-MM-DD' }, to: { type: 'string', description: 'YYYY-MM-DD' } }, required: ['ticker', 'multiplier', 'timespan', 'from', 'to'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_sports_fixtures',
+      description: 'Get live sports fixtures and scores.',
+      parameters: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' } }, required: ['date'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_prediction_markets',
+      description: 'Get live prediction market odds from Polymarket/Kalshi.',
+      parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_latest_news',
+      description: 'Get breaking news articles for a given topic.',
+      parameters: { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] }
     }
   }
 ];
@@ -152,6 +166,48 @@ export const AgentService = {
           return {
             output: JSON.stringify(flight),
             references: [{ title: `Flight ${args.flight_number}`, url: 'https://aviationstack.com', snippet: 'Live flight tracking', source: 'AviationStack' }]
+          };
+        }
+        case 'research_company': {
+          const res = await ExploriumService.researchBusiness({ query: args.company_name });
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `${args.company_name} Intelligence`, url: 'https://explorium.ai', snippet: 'B2B Firmographics', source: 'Explorium AgentSource' }]
+          };
+        }
+        case 'get_crypto_price': {
+          const res = await CoinApiService.getExchangeRate(args.base_asset, args.quote_asset);
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `${args.base_asset}/${args.quote_asset} Rate`, url: 'https://coinapi.io', snippet: 'Live Crypto Price', source: 'CoinAPI' }]
+          };
+        }
+        case 'get_stock_aggregates': {
+          const res = await MassiveService.getStockAggregates(args.ticker, args.multiplier, args.timespan, args.from, args.to);
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `${args.ticker} Stock Data`, url: 'https://massive.com', snippet: 'Live Market Data', source: 'Massive' }]
+          };
+        }
+        case 'get_sports_fixtures': {
+          const res = await ApiSportsService.getFixtures({ date: args.date });
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `Sports Fixtures ${args.date}`, url: 'https://api-sports.io', snippet: 'Live Sports Scores', source: 'API-Sports' }]
+          };
+        }
+        case 'get_prediction_markets': {
+          const res = await PredictionDataService.searchMarkets(args.query);
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `Prediction Markets for ${args.query}`, url: 'https://polymarket.com', snippet: 'Live Odds', source: 'PredictionData' }]
+          };
+        }
+        case 'get_latest_news': {
+          const res = await NewsApiService.getTopHeadlines({ q: args.q });
+          return {
+            output: JSON.stringify(res),
+            references: [{ title: `News: ${args.q}`, url: 'https://newsapi.ai', snippet: 'Breaking News', source: 'NewsAPI' }]
           };
         }
         default:

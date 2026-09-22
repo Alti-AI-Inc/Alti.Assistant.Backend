@@ -628,7 +628,7 @@ Directives for World-Class Output:
     
     // Use the generic AGENT route for the system prompt
     let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
-      "\n\nYou are operating in Agentic ReAct mode. You have access to tools (web_search, trigger_app_action, get_weather, get_flights, execute_code_sandbox, execute_edge_command). If the user asks you to search, trigger an action, calculate complex math/logic, or control edge VMs, USE THE TOOLS. DO NOT GUESS.";
+      "\n\nYou are operating in Agentic ReAct mode. You have access to tools for web search, triggering apps, weather, flights, code sandbox, edge VMs, company research, crypto, stocks, sports, prediction markets, and news. If the user asks for ANY of these domains, USE THE CORRESPONDING TOOL. DO NOT GUESS.";
     
     if (memoryContext) {
       systemPrompt += memoryContext;
