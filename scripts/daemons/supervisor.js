@@ -42,6 +42,7 @@ const DAEMONS = [
   { name: 'Stripe', script: 'daemon-stripe.js', color: '\x1b[38;5;141m' },
   { name: 'Deep Data Moats', script: 'daemon-data-providers.js', color: '\x1b[38;5;45m' },
   { name: 'Sovereign Master Orchestrator', script: 'daemon-orchestrator.js', color: '\x1b[1m\x1b[38;5;196m' },
+  { name: 'Autonomous Overnight Developer', script: 'daemon-autonomous-developer.js', color: '\x1b[1m\x1b[32m' },
 ];
 
 const processes = new Map();
