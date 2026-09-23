@@ -967,6 +967,7 @@ export const AgentService = {
           try {
             const result = await OpenClawService.searchCases(args.query, { jurisdiction: args.jurisdiction });
             const cases = result?.results || result || [];
+            customMetadata = { domain: 'openclaw_legal', query: args.query, cases: Array.isArray(cases) ? cases.slice(0, 10) : [] };
             return {
               output: Array.isArray(cases)
                 ? cases.slice(0, 5).map(c => `Case: ${c.caseName || c.name || 'Unknown'}\nCourt: ${c.court || 'N/A'}\nDate: ${c.dateFiled || c.date || 'N/A'}\nSummary: ${c.snippet || c.summary || 'N/A'}`).join('\n\n')
@@ -996,6 +997,7 @@ export const AgentService = {
               result = await MapboxService.searchPlaces(args.query);
             }
             const data = result?.features || result?.results || result || [];
+            customMetadata = { domain: 'mapbox_location', type, query: args.query, data: Array.isArray(data) ? data.slice(0, 5) : [] };
             return {
               output: Array.isArray(data)
                 ? data.slice(0, 5).map(f => `📍 ${f.place_name || f.text || f.name || JSON.stringify(f).slice(0, 200)}`).join('\n')
@@ -1013,6 +1015,7 @@ export const AgentService = {
             let input = {};
             try { input = JSON.parse(args.input || '{}'); } catch { input = { raw: args.input }; }
             const result = await TemporalService.startWorkflow(args.workflowName, input);
+            customMetadata = { domain: 'temporal_workflow', workflowName: args.workflowName, runId: result?.runId || result?.workflowId || 'pending', status: result?.status || 'running' };
             return {
               output: `Workflow "${args.workflowName}" started successfully.\nRun ID: ${result?.runId || result?.workflowId || 'pending'}\nStatus: ${result?.status || 'running'}`,
               references: [{ title: `Workflow: ${args.workflowName}`, url: 'local://temporal', snippet: `Run ID: ${result?.runId || 'N/A'}`, source: 'Temporal Workflow' }]
@@ -1028,6 +1031,7 @@ export const AgentService = {
             let params = {};
             try { params = JSON.parse(args.params || '{}'); } catch { params = { raw: args.params }; }
             const result = await LibertyService.query(args.action, params);
+            customMetadata = { domain: 'liberty_platform', action: args.action, result: result };
             return {
               output: typeof result === 'string' ? result : JSON.stringify(result, null, 2).slice(0, 3000),
               references: [{ title: `Liberty: ${args.action}`, url: 'local://liberty', snippet: `Action: ${args.action}`, source: 'Liberty Center One' }]
