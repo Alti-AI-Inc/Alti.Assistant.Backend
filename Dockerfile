@@ -30,6 +30,7 @@ COPY package*.json ./
 COPY --from=builder /app/aphura-backend/src ./src
 COPY --from=builder /app/aphura-backend/config ./config
 COPY --from=builder /app/aphura-backend/shared ./shared
+COPY --from=builder /app/aphura-backend/scripts ./scripts
 # test/ intentionally excluded from production image
 COPY --from=builder /app/aphura-backend/index.js ./
 COPY --from=builder /app/aphura-backend/package.json ./
