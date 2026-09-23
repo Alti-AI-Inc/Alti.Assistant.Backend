@@ -14,6 +14,7 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint -c .eslintrc.json index.js config/ src/ tests/ --fix --max-warnings=0",
     "format": "prettier . --write",
     "seed:stripe": "node scripts/seed-stripe-products.js",
+    "daemons": "node scripts/daemons/supervisor.js",
     "deploy": "./deploy.sh start",
     "deploy:update": "./deploy.sh update"
   },
