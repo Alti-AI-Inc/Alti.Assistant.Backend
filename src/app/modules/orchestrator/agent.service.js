@@ -26,6 +26,12 @@ import arxivService from '../arxiv/arxiv.service.js';
 import congressService from '../congress/congress.service.js';
 import openfdaService from '../openfda/openfda.service.js';
 import censusService from '../census/census.service.js';
+import { LangGraphService } from '../langchain/langchain.langgraph.service.js';
+import { LangChainService } from '../langchain/langchain.service.js';
+import { CommunityIntegrationsService } from '../langchain/langchain.community.service.js';
+import { TemporalService } from '../temporal/temporal.service.js';
+import { LibertyService } from '../liberty/liberty.service.js';
+import { MapboxService } from '../mapbox/mapbox.service.js';
 
 // Define schemas for the LLM
 const tools = [
@@ -264,6 +270,99 @@ const tools = [
       parameters: { type: 'object', properties: {
         audio_url: { type: 'string', description: 'URL of the audio file to transcribe' }
       }, required: ['audio_url'] }
+    }
+  },
+  // ── LangChain / LangGraph Tools ──────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'deep_research',
+      description: 'Run a multi-agent research swarm that investigates a topic from multiple perspectives in parallel, then synthesizes findings into a comprehensive report. Use for complex research questions requiring thorough analysis.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'The research question to investigate' },
+        perspectives: { type: 'number', description: 'Number of research perspectives (default: 3)' }
+      }, required: ['query'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'multi_agent_plan',
+      description: 'Use a supervisor-directed multi-agent team (researcher, analyst, writer) to accomplish a complex goal. The supervisor dispatches work to specialists. Use for tasks requiring multiple expert perspectives.',
+      parameters: { type: 'object', properties: {
+        goal: { type: 'string', description: 'The goal for the multi-agent team' },
+        context: { type: 'string', description: 'Additional context or constraints' }
+      }, required: ['goal'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'langchain_qa',
+      description: 'Answer a question using documents and citations. Provides source-attributed answers. Use when the user provides documents or you need to answer with strict source citations.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'The question to answer' },
+        documents: { type: 'array', items: { type: 'string' }, description: 'Array of document texts to search for answers' }
+      }, required: ['query', 'documents'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'semantic_search',
+      description: 'Find the most semantically similar documents to a query using AI embeddings. Returns ranked results by relevance score. Use to find related content or rank document relevance.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'The search query' },
+        documents: { type: 'array', items: { type: 'string' }, description: 'Array of documents to search through' }
+      }, required: ['query', 'documents'] }
+    }
+  },
+  // ── Legal Search (OpenClaw) ──────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'search_legal_cases',
+      description: 'Search for legal cases, court opinions, and legal documents. Use for legal research, finding case law, or understanding legal precedents.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'Legal search query' },
+        jurisdiction: { type: 'string', description: 'Court or jurisdiction filter' }
+      }, required: ['query'] }
+    }
+  },
+  // ── Maps & Location (MapBox) ─────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'get_location_data',
+      description: 'Get geographic data, geocoding, directions, or place information. Use for location queries, address lookups, or mapping requests.',
+      parameters: { type: 'object', properties: {
+        query: { type: 'string', description: 'Location search query or address' },
+        type: { type: 'string', description: 'Type: geocode, directions, places (default: geocode)' }
+      }, required: ['query'] }
+    }
+  },
+  // ── Workflow Automation (Temporal) ────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'run_workflow',
+      description: 'Trigger a durable, fault-tolerant workflow. Use for long-running automations, scheduled tasks, or multi-step processes that need reliability.',
+      parameters: { type: 'object', properties: {
+        workflowName: { type: 'string', description: 'Name of the workflow to run' },
+        input: { type: 'string', description: 'JSON string of workflow input parameters' }
+      }, required: ['workflowName'] }
+    }
+  },
+  // ── Liberty Center One ───────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'liberty_query',
+      description: 'Query Liberty Center One platform services. Use for internal platform operations, tenant management, or enterprise data queries.',
+      parameters: { type: 'object', properties: {
+        action: { type: 'string', description: 'Action to perform: status, query, analytics' },
+        params: { type: 'string', description: 'JSON string of action parameters' }
+      }, required: ['action'] }
     }
   }
 ];
@@ -780,6 +879,164 @@ export const AgentService = {
             return { output: `Transcription failed: ${error.message}`, references: [] };
           }
         }
+
+        // ── LangGraph: Deep Research Swarm ──────────────────────────────────
+        case 'deep_research': {
+          try {
+            const result = await LangGraphService.runResearchSwarm({
+              query: args.query,
+              perspectives: args.perspectives || 3,
+            });
+            customMetadata = { domain: 'deep_research', query: args.query, perspectives: result.perspectives?.length || 0 };
+            return {
+              output: `Research Synthesis:\n${result.synthesis}\n\nPerspectives Investigated: ${result.perspectives?.length || 0}`,
+              references: (result.perspectives || []).map(p => ({
+                title: p.angle,
+                url: 'local://langgraph-swarm',
+                snippet: (p.findings || '').slice(0, 200),
+                source: 'LangGraph Research Swarm'
+              }))
+            };
+          } catch (error) {
+            return { output: `Deep research failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── LangGraph: Supervisor Multi-Agent ───────────────────────────────
+        case 'multi_agent_plan': {
+          try {
+            const result = await LangGraphService.runSupervisorGraph({
+              goal: args.goal,
+              context: args.context || '',
+            });
+            customMetadata = { domain: 'multi_agent', goal: args.goal };
+            return {
+              output: `Multi-Agent Results:\n${Object.entries(result.results || {}).map(([agent, output]) => `[${agent}]: ${output}`).join('\n\n')}`,
+              references: Object.entries(result.results || {}).map(([agent, output]) => ({
+                title: `Agent: ${agent}`,
+                url: 'local://langgraph-supervisor',
+                snippet: String(output).slice(0, 200),
+                source: 'LangGraph Supervisor'
+              }))
+            };
+          } catch (error) {
+            return { output: `Multi-agent plan failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── LangChain: QA with Citations ────────────────────────────────────
+        case 'langchain_qa': {
+          try {
+            const result = await LangChainService.runQAChain({
+              query: args.query,
+              documents: args.documents || [],
+            });
+            return {
+              output: result.answer,
+              references: [{ title: 'QA Chain Result', url: 'local://langchain', snippet: result.answer.slice(0, 200), source: 'LangChain QA Chain' }]
+            };
+          } catch (error) {
+            return { output: `QA chain failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── LangChain: Semantic Similarity Search ───────────────────────────
+        case 'semantic_search': {
+          try {
+            const result = await CommunityIntegrationsService.semanticSimilarity({
+              query: args.query,
+              documents: args.documents || [],
+            });
+            const topResults = (result.results || []).slice(0, 5);
+            return {
+              output: `Semantic Search Results (ranked by relevance):\n${topResults.map((r, i) => `${i + 1}. [Score: ${r.score?.toFixed(3)}] ${r.document}`).join('\n')}`,
+              references: topResults.map(r => ({
+                title: `Relevance: ${r.score?.toFixed(3)}`,
+                url: 'local://langchain-embeddings',
+                snippet: r.document.slice(0, 150),
+                source: 'LangChain Semantic Search'
+              }))
+            };
+          } catch (error) {
+            return { output: `Semantic search failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── OpenClaw: Legal Case Search ─────────────────────────────────────
+        case 'search_legal_cases': {
+          try {
+            const result = await OpenClawService.searchCases(args.query, { jurisdiction: args.jurisdiction });
+            const cases = result?.results || result || [];
+            return {
+              output: Array.isArray(cases)
+                ? cases.slice(0, 5).map(c => `Case: ${c.caseName || c.name || 'Unknown'}\nCourt: ${c.court || 'N/A'}\nDate: ${c.dateFiled || c.date || 'N/A'}\nSummary: ${c.snippet || c.summary || 'N/A'}`).join('\n\n')
+                : JSON.stringify(cases).slice(0, 2000),
+              references: (Array.isArray(cases) ? cases.slice(0, 5) : []).map(c => ({
+                title: c.caseName || c.name || 'Legal Case',
+                url: c.url || 'local://openclaw',
+                snippet: c.snippet || c.summary || '',
+                source: 'OpenClaw Legal Search'
+              }))
+            };
+          } catch (error) {
+            return { output: `Legal search failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── MapBox: Location / Geocoding ────────────────────────────────────
+        case 'get_location_data': {
+          try {
+            const type = args.type || 'geocode';
+            let result;
+            if (type === 'geocode') {
+              result = await MapboxService.geocode(args.query);
+            } else if (type === 'directions') {
+              result = await MapboxService.getDirections(args.query);
+            } else {
+              result = await MapboxService.searchPlaces(args.query);
+            }
+            const data = result?.features || result?.results || result || [];
+            return {
+              output: Array.isArray(data)
+                ? data.slice(0, 5).map(f => `📍 ${f.place_name || f.text || f.name || JSON.stringify(f).slice(0, 200)}`).join('\n')
+                : JSON.stringify(data).slice(0, 2000),
+              references: [{ title: `Location: ${args.query}`, url: 'local://mapbox', snippet: `${type} results for ${args.query}`, source: 'MapBox' }]
+            };
+          } catch (error) {
+            return { output: `Location lookup failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── Temporal: Workflow Automation ────────────────────────────────────
+        case 'run_workflow': {
+          try {
+            let input = {};
+            try { input = JSON.parse(args.input || '{}'); } catch { input = { raw: args.input }; }
+            const result = await TemporalService.startWorkflow(args.workflowName, input);
+            return {
+              output: `Workflow "${args.workflowName}" started successfully.\nRun ID: ${result?.runId || result?.workflowId || 'pending'}\nStatus: ${result?.status || 'running'}`,
+              references: [{ title: `Workflow: ${args.workflowName}`, url: 'local://temporal', snippet: `Run ID: ${result?.runId || 'N/A'}`, source: 'Temporal Workflow' }]
+            };
+          } catch (error) {
+            return { output: `Workflow failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── Liberty Center One ──────────────────────────────────────────────
+        case 'liberty_query': {
+          try {
+            let params = {};
+            try { params = JSON.parse(args.params || '{}'); } catch { params = { raw: args.params }; }
+            const result = await LibertyService.query(args.action, params);
+            return {
+              output: typeof result === 'string' ? result : JSON.stringify(result, null, 2).slice(0, 3000),
+              references: [{ title: `Liberty: ${args.action}`, url: 'local://liberty', snippet: `Action: ${args.action}`, source: 'Liberty Center One' }]
+            };
+          } catch (error) {
+            return { output: `Liberty query failed: ${error.message}`, references: [] };
+          }
+        }
+
         default:
           return { output: `Error: Tool ${name} not recognized.`, references: [] };
       }
