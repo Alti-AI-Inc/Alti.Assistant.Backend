@@ -1,7 +1,7 @@
 {
   "totalDirectSources": 12,
   "activeVerifiedSources": 8,
-  "lastAuditTimestamp": "2026-09-23T05:22:28.917Z",
+  "lastAuditTimestamp": "2026-09-23T05:24:02.902Z",
   "verifiedSources": [
     {
       "id": "noaa-weather",
@@ -13,8 +13,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/geo+json",
-      "latencyMs": 121,
-      "lastProbed": "2026-09-23T05:22:29.038Z",
+      "latencyMs": 103,
+      "lastProbed": "2026-09-23T05:24:03.005Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -28,8 +28,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json; charset=UTF-8",
-      "latencyMs": 265,
-      "lastProbed": "2026-09-23T05:22:29.303Z",
+      "latencyMs": 214,
+      "lastProbed": "2026-09-23T05:24:03.219Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -43,8 +43,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json",
-      "latencyMs": 740,
-      "lastProbed": "2026-09-23T05:22:30.043Z",
+      "latencyMs": 208,
+      "lastProbed": "2026-09-23T05:24:03.427Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -58,8 +58,8 @@
       "status": "HTTP_429",
       "statusCode": 429,
       "contentType": "application/json",
-      "latencyMs": 309,
-      "lastProbed": "2026-09-23T05:22:30.352Z",
+      "latencyMs": 302,
+      "lastProbed": "2026-09-23T05:24:03.729Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -73,8 +73,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "unknown",
-      "latencyMs": 1210,
-      "lastProbed": "2026-09-23T05:22:31.562Z",
+      "latencyMs": 1187,
+      "lastProbed": "2026-09-23T05:24:04.916Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -88,8 +88,8 @@
       "status": "HTTP_406",
       "statusCode": 406,
       "contentType": "text/plain",
-      "latencyMs": 212,
-      "lastProbed": "2026-09-23T05:22:31.774Z",
+      "latencyMs": 209,
+      "lastProbed": "2026-09-23T05:24:05.125Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -103,8 +103,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json;charset=utf-8",
-      "latencyMs": 81,
-      "lastProbed": "2026-09-23T05:22:31.855Z",
+      "latencyMs": 91,
+      "lastProbed": "2026-09-23T05:24:05.216Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -118,8 +118,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "text/html",
-      "latencyMs": 248,
-      "lastProbed": "2026-09-23T05:22:32.103Z",
+      "latencyMs": 233,
+      "lastProbed": "2026-09-23T05:24:05.449Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -133,8 +133,8 @@
       "status": "HTTP_429",
       "statusCode": 429,
       "contentType": "application/json",
-      "latencyMs": 1617,
-      "lastProbed": "2026-09-23T05:22:33.720Z",
+      "latencyMs": 313,
+      "lastProbed": "2026-09-23T05:24:05.762Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -148,8 +148,8 @@
       "status": "HTTP_401",
       "statusCode": 401,
       "contentType": "application/json",
-      "latencyMs": 143,
-      "lastProbed": "2026-09-23T05:22:33.863Z",
+      "latencyMs": 136,
+      "lastProbed": "2026-09-23T05:24:05.898Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -163,8 +163,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json",
-      "latencyMs": 351,
-      "lastProbed": "2026-09-23T05:22:34.214Z",
+      "latencyMs": 393,
+      "lastProbed": "2026-09-23T05:24:06.292Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -178,8 +178,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json; odata.metadata=minimal; odata.streaming=true; charset=utf-8",
-      "latencyMs": 136,
-      "lastProbed": "2026-09-23T05:22:34.350Z",
+      "latencyMs": 129,
+      "lastProbed": "2026-09-23T05:24:06.421Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     }
