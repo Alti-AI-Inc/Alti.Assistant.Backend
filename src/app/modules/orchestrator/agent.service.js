@@ -1055,7 +1055,7 @@ export const AgentService = {
    */
   async *runAgentStream(initialMessages, options = {}) {
     const messages = [...initialMessages];
-    const maxLoops = 5;
+    const maxLoops = 8;
     let loopCount = 0;
     const allReferences = [];
 
@@ -1135,7 +1135,7 @@ export const AgentService = {
    * Main ReAct Agent Loop (Non-Streaming/JSON Mode)
    */
   async runAgentJson(initialMessages, options = {}) {
-    const maxSteps = options.maxSteps || 5;
+    const maxSteps = options.maxSteps || 8;
     const model = options.model || 'gpt-oss-120b';
     const temperature = options.temperature || 0.1;
     let messages = [...initialMessages];
