@@ -1,7 +1,7 @@
 {
   "totalDirectSources": 12,
   "activeVerifiedSources": 8,
-  "lastAuditTimestamp": "2026-09-23T06:36:47.764Z",
+  "lastAuditTimestamp": "2026-09-23T06:37:58.442Z",
   "verifiedSources": [
     {
       "id": "noaa-weather",
@@ -13,8 +13,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/geo+json",
-      "latencyMs": 176,
-      "lastProbed": "2026-09-23T06:36:47.940Z",
+      "latencyMs": 294,
+      "lastProbed": "2026-09-23T06:37:58.736Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -28,8 +28,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json; charset=UTF-8",
-      "latencyMs": 342,
-      "lastProbed": "2026-09-23T06:36:48.282Z",
+      "latencyMs": 398,
+      "lastProbed": "2026-09-23T06:37:59.134Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -43,8 +43,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json",
-      "latencyMs": 437,
-      "lastProbed": "2026-09-23T06:36:48.719Z",
+      "latencyMs": 433,
+      "lastProbed": "2026-09-23T06:37:59.567Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -58,8 +58,8 @@
       "status": "HTTP_429",
       "statusCode": 429,
       "contentType": "application/json",
-      "latencyMs": 462,
-      "lastProbed": "2026-09-23T06:36:49.181Z",
+      "latencyMs": 421,
+      "lastProbed": "2026-09-23T06:37:59.988Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -73,8 +73,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "unknown",
-      "latencyMs": 1520,
-      "lastProbed": "2026-09-23T06:36:50.701Z",
+      "latencyMs": 1692,
+      "lastProbed": "2026-09-23T06:38:01.680Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -85,11 +85,10 @@
       "category": "International Macroeconomics",
       "endpoint": "https://sdmx.oecd.org/public/rest/dataflow/OECD.SDD.NAD/all/latest?format=sdmx-json",
       "docsUrl": "https://data-explorer.oecd.org/",
-      "status": "HTTP_406",
-      "statusCode": 406,
-      "contentType": "text/plain",
-      "latencyMs": 4006,
-      "lastProbed": "2026-09-23T06:36:54.707Z",
+      "status": "PROBE_TIMEOUT_RETRYING",
+      "latencyMs": 6003,
+      "error": "ECONNABORTED",
+      "lastProbed": "2026-09-23T06:38:07.683Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -103,8 +102,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json;charset=utf-8",
-      "latencyMs": 174,
-      "lastProbed": "2026-09-23T06:36:54.881Z",
+      "latencyMs": 153,
+      "lastProbed": "2026-09-23T06:38:07.837Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -118,8 +117,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "text/html",
-      "latencyMs": 453,
-      "lastProbed": "2026-09-23T06:36:55.334Z",
+      "latencyMs": 358,
+      "lastProbed": "2026-09-23T06:38:08.195Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -133,8 +132,8 @@
       "status": "HTTP_429",
       "statusCode": 429,
       "contentType": "application/json",
-      "latencyMs": 410,
-      "lastProbed": "2026-09-23T06:36:55.744Z",
+      "latencyMs": 524,
+      "lastProbed": "2026-09-23T06:38:08.719Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -148,8 +147,8 @@
       "status": "HTTP_401",
       "statusCode": 401,
       "contentType": "application/json",
-      "latencyMs": 294,
-      "lastProbed": "2026-09-23T06:36:56.039Z",
+      "latencyMs": 259,
+      "lastProbed": "2026-09-23T06:38:08.978Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -163,8 +162,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json",
-      "latencyMs": 974,
-      "lastProbed": "2026-09-23T06:36:57.014Z",
+      "latencyMs": 472,
+      "lastProbed": "2026-09-23T06:38:09.450Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     },
@@ -178,8 +177,8 @@
       "status": "VERIFIED_ACTIVE",
       "statusCode": 200,
       "contentType": "application/json; odata.metadata=minimal; odata.streaming=true; charset=utf-8",
-      "latencyMs": 280,
-      "lastProbed": "2026-09-23T06:36:57.294Z",
+      "latencyMs": 191,
+      "lastProbed": "2026-09-23T06:38:09.641Z",
       "directIntegration": true,
       "thirdPartyAggregator": false
     }
