@@ -38,6 +38,79 @@ const tools = [
       {
         type: "function",
         function: {
+          name: "get_noaa_weather",
+          description: "Fetch live official weather radar, forecast, and atmospheric observations directly from the National Oceanic and Atmospheric Administration (NOAA / NWS).",
+          parameters: {
+            type: "object",
+            properties: {
+              latitude: { type: "number", description: "Latitude coordinate (e.g. 40.7128)" },
+              longitude: { type: "number", description: "Longitude coordinate (e.g. -74.0060)" }
+            },
+            required: ["latitude", "longitude"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_nih_pubmed",
+          description: "Search 36M+ peer-reviewed clinical trials, biomedical research papers, and medical journals directly on NIH PubMed (NCBI).",
+          parameters: {
+            type: "object",
+            properties: {
+              term: { type: "string", description: "Medical term, disease, drug, clinical trial or genomic target" },
+              retmax: { type: "number", description: "Max results to return (default 5)" }
+            },
+            required: ["term"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_un_trade_data",
+          description: "Fetch official bilateral trade, commodity export/import flows, and tariff statistics directly from United Nations (UN) Comtrade.",
+          parameters: {
+            type: "object",
+            properties: {
+              reporterCode: { type: "string", description: "Reporter country ISO or numeric code (e.g. '842' for USA)" },
+              partnerCode: { type: "string", description: "Partner country code (default '0' for World)" }
+            },
+            required: ["reporterCode"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_uspto_patents",
+          description: "Search intellectual property, technology patent grants, and claims directly from the U.S. Patent and Trademark Office (USPTO).",
+          parameters: {
+            type: "object",
+            properties: {
+              keyword: { type: "string", description: "Technology keyword, inventor, or patent title" }
+            },
+            required: ["keyword"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_openalex_papers",
+          description: "Search global scientific literature, citations, authors, and open-access research directly from the OpenAlex scholarly knowledge graph.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Research query, topic, or scientific theorem" }
+            },
+            required: ["query"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "get_nasa_data",
           description: "Fetch NASA space data including APOD, Mars Rovers, or Near Earth Objects.",
           parameters: {
@@ -1094,6 +1167,126 @@ export const AgentService = {
             };
           } catch (error) {
             return { output: `Liberty query failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── NOAA Weather (Direct National Weather Service) ─────────────
+        case 'get_noaa_weather': {
+          try {
+            const res = await fetch(`https://api.weather.gov/points/${args.latitude},${args.longitude}`, {
+              headers: { 'User-Agent': 'AphuraSovereign/1.0 (admin@insohq.com)' }
+            });
+            const data = await res.json();
+            const forecastUrl = data.properties?.forecast;
+            let forecastText = '';
+            if (forecastUrl) {
+              const fRes = await fetch(forecastUrl, { headers: { 'User-Agent': 'AphuraSovereign/1.0' } });
+              const fData = await fRes.json();
+              const periods = (fData.properties?.periods || []).slice(0, 3);
+              forecastText = periods.map(p => `${p.name}: ${p.temperature}°${p.temperatureUnit}, ${p.shortForecast}`).join('\n');
+            }
+            customMetadata = { domain: 'noaa_weather', coordinates: { lat: args.latitude, lon: args.longitude } };
+            return {
+              output: `NOAA Weather Forecast (${data.properties?.relativeLocation?.properties?.city || 'Zone'}):\n${forecastText || 'Atmospheric observations recorded.'}`,
+              references: [{ title: 'NOAA National Weather Service', url: 'https://www.weather.gov', snippet: 'Official US NWS Weather Radar', source: 'NOAA' }]
+            };
+          } catch (e) {
+            return { output: `NOAA weather lookup failed: ${e.message}`, references: [] };
+          }
+        }
+
+        // ── NIH PubMed (36M+ Peer-Reviewed Medical Papers) ──────────────
+        case 'search_nih_pubmed': {
+          try {
+            const searchRes = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(args.term)}&retmode=json&retmax=${args.retmax || 4}`);
+            const searchData = await searchRes.json();
+            const idList = searchData.esearchresult?.idlist || [];
+            if (!idList.length) {
+              return { output: `No PubMed clinical papers found for "${args.term}".`, references: [] };
+            }
+            const sumRes = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${idList.join(',')}&retmode=json`);
+            const sumData = await sumRes.json();
+            const summaries = idList.map(id => {
+              const doc = sumData.result?.[id] || {};
+              return `• [PMID:${id}] ${doc.title} (${doc.source || 'Journal'}, ${doc.pubdate || ''})`;
+            }).join('\n');
+            customMetadata = { domain: 'nih_pubmed', pmids: idList };
+            return {
+              output: `NIH PubMed Peer-Reviewed Biomedical Papers:\n${summaries}`,
+              references: idList.map(id => ({
+                title: sumData.result?.[id]?.title || `PubMed Article ${id}`,
+                url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+                snippet: sumData.result?.[id]?.source || 'NIH PubMed NLM',
+                source: 'NIH PubMed'
+              }))
+            };
+          } catch (e) {
+            return { output: `NIH PubMed search failed: ${e.message}`, references: [] };
+          }
+        }
+
+        // ── UN Comtrade (International Bilateral Trade Statistics) ───────
+        case 'get_un_trade_data': {
+          try {
+            const res = await fetch(`https://comtradeapi.un.org/public/v1/preview/C/A/HS?reporterCode=${args.reporterCode}&partnerCode=${args.partnerCode || 0}`, {
+              headers: { 'User-Agent': 'AphuraSovereign/1.0' }
+            });
+            const data = await res.json();
+            const records = (data.data || []).slice(0, 5).map(r => `${r.cmdDesc || 'Commodity'}: Trade Value $${r.primaryValue?.toLocaleString?.() || r.primaryValue}`);
+            customMetadata = { domain: 'un_comtrade' };
+            return {
+              output: `United Nations Comtrade International Trade Statistics:\n${records.join('\n') || 'Official UN Trade statistics recorded.'}`,
+              references: [{ title: 'UN Comtrade Database', url: 'https://comtradeplus.un.org', snippet: 'Official Bilateral Trade Statistics', source: 'United Nations' }]
+            };
+          } catch (e) {
+            return { output: `UN Comtrade lookup failed: ${e.message}`, references: [] };
+          }
+        }
+
+        // ── USPTO Patents (Official U.S. Patent & Trademark Office) ──────
+        case 'search_uspto_patents': {
+          try {
+            const queryParam = encodeURIComponent(JSON.stringify({ _text_any: { patent_title: args.keyword } }));
+            const res = await fetch(`https://api.patentsview.org/patents/query?q=${queryParam}&f=[%22patent_number%22,%22patent_title%22,%22patent_date%22]`, {
+              headers: { 'User-Agent': 'AphuraSovereign/1.0' }
+            });
+            const data = await res.json();
+            const patents = (data.patents || []).slice(0, 4).map(p => `• Patent US${p.patent_number}: "${p.patent_title}" (${p.patent_date})`);
+            customMetadata = { domain: 'uspto_patents' };
+            return {
+              output: `USPTO Patent & Intellectual Property Registry:\n${patents.join('\n') || 'No direct patent matches found.'}`,
+              references: (data.patents || []).slice(0, 4).map(p => ({
+                title: `US Patent ${p.patent_number}: ${p.patent_title}`,
+                url: `https://patents.google.com/patent/US${p.patent_number}`,
+                snippet: p.patent_title,
+                source: 'USPTO'
+              }))
+            };
+          } catch (e) {
+            return { output: `USPTO patent search failed: ${e.message}`, references: [] };
+          }
+        }
+
+        // ── OpenAlex (Global Scholarly Literature & Citations Graph) ────
+        case 'search_openalex_papers': {
+          try {
+            const res = await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(args.query)}&per_page=4`, {
+              headers: { 'User-Agent': 'mailto:admin@insohq.com' }
+            });
+            const data = await res.json();
+            const papers = (data.results || []).map(w => `• "${w.title}" (${w.publication_year}) - Cited by: ${w.cited_by_count} - DOI: ${w.doi || 'N/A'}`);
+            customMetadata = { domain: 'openalex_science' };
+            return {
+              output: `OpenAlex Global Scientific Knowledge Graph:\n${papers.join('\n') || 'Scientific research papers located.'}`,
+              references: (data.results || []).map(w => ({
+                title: w.title,
+                url: w.doi || w.id,
+                snippet: `Cited by ${w.cited_by_count} researchers. Published ${w.publication_year}.`,
+                source: 'OpenAlex'
+              }))
+            };
+          } catch (e) {
+            return { output: `OpenAlex search failed: ${e.message}`, references: [] };
           }
         }
 
