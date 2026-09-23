@@ -58,13 +58,13 @@ export default {
   // gpt-oss-20b:  20B dense, 1200 tok/s, 128k context — fast classification
   // whisper-large-v3-turbo: Speech-to-text
   llm: {
-    apiKey: process.env.LLM_API_KEY,
-    model: process.env.GROQ_MODEL || 'gpt-oss-120b',
-    lightModel: process.env.GROQ_LIGHT_MODEL || 'gpt-oss-20b',
-    sttModel: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',
-    temperature: parseFloat(process.env.GROQ_TEMPERATURE) || 0.2,
+    apiKey: process.env.TOGETHER_API_KEY,
+    model: process.env.TOGETHER_MODEL || 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    lightModel: process.env.TOGETHER_LIGHT_MODEL || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+    sttModel: 'whisper-large-v3-turbo',
+    temperature: parseFloat(process.env.TOGETHER_TEMPERATURE) || 0.2,
   },
-  llmProvider: 'groq',
+  llmProvider: 'together',
 
   // ── Exa (Neural Search + Grounding) ───────────────────────────────────────
   exa_api_key: process.env.EXA_API_KEY,

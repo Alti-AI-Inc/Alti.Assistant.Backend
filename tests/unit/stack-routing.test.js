@@ -4,10 +4,11 @@ import { ChunkerService } from '../../src/app/modules/rag/chunker.service.js';
 import { IntentClassifier } from '../../src/app/modules/orchestrator/classifier.js';
 
 describe('Stack Configuration & Multi-Model Support', () => {
-  it('should have all 3 Groq models configured correctly', () => {
-    expect(config.groq.model).toBe('gpt-oss-120b');
-    expect(config.groq.lightModel).toBe('gpt-oss-20b');
-    expect(config.groq.sttModel).toBe('whisper-large-v3-turbo');
+  it('should have Together AI models configured correctly', () => {
+    expect(config.llm.model).toBe('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo');
+    expect(config.llm.lightModel).toBe('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo');
+    expect(config.llm.sttModel).toBe('whisper-large-v3-turbo');
+    expect(config.llmProvider).toBe('together');
   });
 
   it('should have Cloudflare Workers AI credentials configured', () => {
