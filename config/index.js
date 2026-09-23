@@ -176,4 +176,20 @@ export default {
     neverTrainOnUserData: true,
     dataRetentionDays: 0,
   },
+
+  // ── Production Readiness Auditor ──────────────────────────────────────────
+  validateProductionReadiness() {
+    const missing = [];
+    if (!process.env.TOGETHER_API_KEY || process.env.TOGETHER_API_KEY.includes('dummy')) missing.push('TOGETHER_API_KEY');
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('test') || process.env.STRIPE_SECRET_KEY.includes('dummy')) missing.push('STRIPE_SECRET_KEY (Live)');
+    if (!process.env.DATABASE_LOCAL || process.env.DATABASE_LOCAL.includes('localhost')) missing.push('DATABASE_LOCAL (Production Mongo URI)');
+    if (!process.env.REDIS_URL || process.env.REDIS_URL.includes('localhost')) missing.push('REDIS_URL (Production Redis Cluster)');
+    if (!process.env.EXA_API_KEY || process.env.EXA_API_KEY.includes('dummy')) missing.push('EXA_API_KEY');
+    if (!process.env.COMPOSIO_API_KEY || process.env.COMPOSIO_API_KEY.includes('dummy')) missing.push('COMPOSIO_API_KEY');
+    return {
+      isReady: missing.length === 0,
+      missingCount: missing.length,
+      missingKeys: missing,
+    };
+  },
 };
