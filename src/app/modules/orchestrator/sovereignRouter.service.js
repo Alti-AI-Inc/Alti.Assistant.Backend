@@ -245,7 +245,7 @@ OUTPUT FORMAT DIRECTIVES:
     
     // Use the generic AGENT route for the system prompt
     let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
-      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 36 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, and 15+ live data APIs. If the user asks for ANY factual data, research, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., web_search → rerank_results → deep_reason).";
+      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 40 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, and 15+ live data APIs. If the user asks for ANY factual data, research, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., web_search → rerank_results → deep_reason).";
     
     if (memoryContext) {
       systemPrompt += memoryContext;
@@ -344,7 +344,7 @@ OUTPUT FORMAT DIRECTIVES:
     }
 
     let systemPrompt = this.buildSystemPrompt('AGENTIC_LOOP', '', [], userContext) + 
-      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 36 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, and 15+ live data APIs. If the user asks for ANY factual data, research, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., web_search → rerank_results → deep_reason).";
+      "\n\nYou are operating in Sovereign Agentic ReAct mode. You have 40 tools across Together AI, LangChain, LangGraph, Exa, Composio, Temporal, Codex, Liberty, MapBox, OpenClaw, and 15+ live data APIs. If the user asks for ANY factual data, research, code execution, media generation, workflow automation, legal search, location data, or multi-agent analysis — USE THE CORRESPONDING TOOL. DO NOT GUESS. Chain tools together for maximum accuracy (e.g., web_search → rerank_results → deep_reason).";
     
     if (memoryContext) {
       systemPrompt += memoryContext;

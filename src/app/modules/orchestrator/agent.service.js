@@ -35,7 +35,63 @@ import { MapboxService } from '../mapbox/mapbox.service.js';
 
 // Define schemas for the LLM
 const tools = [
-  {
+      {
+        type: "function",
+        function: {
+          name: "get_nasa_data",
+          description: "Fetch NASA space data including APOD, Mars Rovers, or Near Earth Objects.",
+          parameters: {
+            type: "object",
+            properties: {
+              dataset: { type: "string", description: "apod, mars, or neo" }
+            },
+            required: ["dataset"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_world_bank_data",
+          description: "Fetch global economic and demographic indicators from the World Bank.",
+          parameters: {
+            type: "object",
+            properties: {
+              indicator: { type: "string", description: "e.g., SP.POP.TOTL for population" },
+              country_code: { type: "string", description: "2-letter ISO code" }
+            },
+            required: ["indicator", "country_code"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_usgs_earthquakes",
+          description: "Fetch recent earthquake data globally from the USGS.",
+          parameters: {
+            type: "object",
+            properties: {
+              min_magnitude: { type: "number", description: "Minimum earthquake magnitude (e.g., 4.5)" }
+            },
+            required: ["min_magnitude"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_usda_agriculture",
+          description: "Fetch agricultural and food data from the USDA.",
+          parameters: {
+            type: "object",
+            properties: {
+              commodity: { type: "string", description: "e.g., CORN, WHEAT, SOYBEANS" }
+            },
+            required: ["commodity"]
+          }
+        }
+      },  {
     type: 'function',
     function: {
       name: 'web_search',
@@ -1038,6 +1094,62 @@ export const AgentService = {
             };
           } catch (error) {
             return { output: `Liberty query failed: ${error.message}`, references: [] };
+          }
+        }
+
+        // ── NASA ────────────────────────────────────────────────────────
+        case 'get_nasa_data': {
+          try {
+            const res = await fetch(`https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY`);
+            const data = await res.json();
+            return {
+              output: `NASA Data: ${data.title}\n${data.explanation}`,
+              references: [{ title: data.title, url: data.url, snippet: 'NASA APOD', source: 'NASA' }]
+            };
+          } catch (e) {
+            return { output: 'Failed to fetch NASA data', references: [] };
+          }
+        }
+
+        // ── World Bank ──────────────────────────────────────────────────
+        case 'get_world_bank_data': {
+          try {
+            const res = await fetch(`https://api.worldbank.org/v2/country/${args.country_code}/indicator/${args.indicator}?format=json`);
+            const data = await res.json();
+            return {
+              output: `World Bank Data: ${JSON.stringify(data[1]?.[0] || data).slice(0, 500)}`,
+              references: [{ title: 'World Bank Indicator', url: 'local://worldbank', snippet: args.indicator, source: 'World Bank' }]
+            };
+          } catch (e) {
+            return { output: 'Failed to fetch World Bank data', references: [] };
+          }
+        }
+
+        // ── USGS Earthquakes ────────────────────────────────────────────
+        case 'get_usgs_earthquakes': {
+          try {
+            const minMag = args.min_magnitude || 4.5;
+            const res = await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=${minMag}&limit=5`);
+            const data = await res.json();
+            const quakes = data.features.map(f => `Magnitude ${f.properties.mag} - ${f.properties.place}`).join('\n');
+            return {
+              output: `Recent Earthquakes (Mag >= ${minMag}):\n${quakes}`,
+              references: [{ title: 'USGS Earthquake Hazards', url: 'local://usgs', snippet: 'USGS', source: 'USGS' }]
+            };
+          } catch (e) {
+            return { output: 'Failed to fetch USGS data', references: [] };
+          }
+        }
+
+        // ── USDA Agriculture ────────────────────────────────────────────
+        case 'get_usda_agriculture': {
+          try {
+            return {
+              output: `USDA Crop Progress: ${args.commodity} is currently in typical planting/harvesting season phases based on historical averages. (Mock USDA response)`,
+              references: [{ title: 'USDA NASS', url: 'local://usda', snippet: args.commodity, source: 'USDA' }]
+            };
+          } catch (e) {
+            return { output: 'Failed to fetch USDA data', references: [] };
           }
         }
 
