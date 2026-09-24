@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opendecentralizedgraph_7acn_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedGraph) to Autonomously deploy limitless Decentralized Physical Infrastructure architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorpipeline_2kg5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorPipeline) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpswarm_0kcm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPSwarm) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondbroker_dvwg_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondBroker) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedledger_rqsh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedLedger) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensemanticfabric_t5cg_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSemanticFabric) to Autonomously deploy limitless Semantic Graph Analytics architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -20892,6 +20932,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opendecentralizedgraph_7acn_logic": {
+          try {
+            const { OpenDecentralizedGraphService } = await import("../liberty/opendecentralizedgraph_7acn.service.js");
+            const res = await OpenDecentralizedGraphService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorpipeline_2kg5_logic": {
+          try {
+            const { OpenVectorPipelineService } = await import("../liberty/openvectorpipeline_2kg5.service.js");
+            const res = await OpenVectorPipelineService.execute(args.target || "system");
+            return { output: `### OpenVectorPipeline Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorPipeline failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpswarm_0kcm_logic": {
+          try {
+            const { OpenBGPSwarmService } = await import("../liberty/openbgpswarm_0kcm.service.js");
+            const res = await OpenBGPSwarmService.execute(args.target || "system");
+            return { output: `### OpenBGPSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondbroker_dvwg_logic": {
+          try {
+            const { OpenSubMillisecondBrokerService } = await import("../liberty/opensub-millisecondbroker_dvwg.service.js");
+            const res = await OpenSubMillisecondBrokerService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedledger_rqsh_logic": {
+          try {
+            const { OpenDecentralizedLedgerService } = await import("../liberty/opendecentralizedledger_rqsh.service.js");
+            const res = await OpenDecentralizedLedgerService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedLedger failed: ${err.message}` };
+          }
+        }
         case "execute_opensemanticfabric_t5cg_logic": {
           try {
             const { OpenSemanticFabricService } = await import("../liberty/opensemanticfabric_t5cg.service.js");
