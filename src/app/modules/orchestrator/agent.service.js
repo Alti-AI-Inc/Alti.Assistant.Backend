@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opencloud-nativestream_0us3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeStream) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractvortex_m8ej_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractVortex) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorysync_2tke_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemorySync) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisestream_ti9u_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseStream) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengpugrid_hxfl_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGPUGrid) to Autonomously deploy limitless GPU Resource Virtualization architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openimmutablematrix_3xrt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenImmutableMatrix) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16652,6 +16692,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opencloud-nativestream_0us3_logic": {
+          try {
+            const { OpenCloudNativeStreamService } = await import("../liberty/opencloud-nativestream_0us3.service.js");
+            const res = await OpenCloudNativeStreamService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractvortex_m8ej_logic": {
+          try {
+            const { OpenAbstractVortexService } = await import("../liberty/openabstractvortex_m8ej.service.js");
+            const res = await OpenAbstractVortexService.execute(args.target || "system");
+            return { output: `### OpenAbstractVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorysync_2tke_logic": {
+          try {
+            const { OpenInMemorySyncService } = await import("../liberty/openin-memorysync_2tke.service.js");
+            const res = await OpenInMemorySyncService.execute(args.target || "system");
+            return { output: `### OpenIn-MemorySync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemorySync failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisestream_ti9u_logic": {
+          try {
+            const { OpenEnterpriseStreamService } = await import("../liberty/openenterprisestream_ti9u.service.js");
+            const res = await OpenEnterpriseStreamService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseStream failed: ${err.message}` };
+          }
+        }
+        case "execute_opengpugrid_hxfl_logic": {
+          try {
+            const { OpenGPUGridService } = await import("../liberty/opengpugrid_hxfl.service.js");
+            const res = await OpenGPUGridService.execute(args.target || "system");
+            return { output: `### OpenGPUGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGPUGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openimmutablematrix_3xrt_logic": {
           try {
             const { OpenImmutableMatrixService } = await import("../liberty/openimmutablematrix_3xrt.service.js");
