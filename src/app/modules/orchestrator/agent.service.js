@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhardwarecontroller_swi1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareController) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelnode_o8j0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelNode) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogproxy_bymy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogProxy) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatalayer_k0f2_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLayer) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantumgrid_w8h3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumGrid) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumdaemon_z7th_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumDaemon) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -17332,6 +17372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhardwarecontroller_swi1_logic": {
+          try {
+            const { OpenHardwareControllerService } = await import("../liberty/openhardwarecontroller_swi1.service.js");
+            const res = await OpenHardwareControllerService.execute(args.target || "system");
+            return { output: `### OpenHardwareController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareController failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelnode_o8j0_logic": {
+          try {
+            const { OpenMicroKernelNodeService } = await import("../liberty/openmicro-kernelnode_o8j0.service.js");
+            const res = await OpenMicroKernelNodeService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogproxy_bymy_logic": {
+          try {
+            const { OpenLogProxyService } = await import("../liberty/openlogproxy_bymy.service.js");
+            const res = await OpenLogProxyService.execute(args.target || "system");
+            return { output: `### OpenLogProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatalayer_k0f2_logic": {
+          try {
+            const { OpenDataLayerService } = await import("../liberty/opendatalayer_k0f2.service.js");
+            const res = await OpenDataLayerService.execute(args.target || "system");
+            return { output: `### OpenDataLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantumgrid_w8h3_logic": {
+          try {
+            const { OpenQuantumGridService } = await import("../liberty/openquantumgrid_w8h3.service.js");
+            const res = await OpenQuantumGridService.execute(args.target || "system");
+            return { output: `### OpenQuantumGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumGrid failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumdaemon_z7th_logic": {
           try {
             const { OpenQuantumDaemonService } = await import("../liberty/openquantumdaemon_z7th.service.js");
