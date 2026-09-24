@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openfederatedfabric_zpbj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFederatedFabric) to Autonomously deploy limitless Federated GraphQL architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clusterswarm_q0ua_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterSwarm) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openimmutablecompiler_9kpj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenImmutableCompiler) to Autonomously deploy limitless Immutable State Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataring_xqbr_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataRing) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openquantummesh_qsxp_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenQuantumMesh) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpredictivesync_uvrd_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPredictiveSync) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14332,6 +14372,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openfederatedfabric_zpbj_logic": {
+          try {
+            const { OpenFederatedFabricService } = await import("../liberty/openfederatedfabric_zpbj.service.js");
+            const res = await OpenFederatedFabricService.execute(args.target || "system");
+            return { output: `### OpenFederatedFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFederatedFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clusterswarm_q0ua_logic": {
+          try {
+            const { OpenCrossClusterSwarmService } = await import("../liberty/opencross-clusterswarm_q0ua.service.js");
+            const res = await OpenCrossClusterSwarmService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openimmutablecompiler_9kpj_logic": {
+          try {
+            const { OpenImmutableCompilerService } = await import("../liberty/openimmutablecompiler_9kpj.service.js");
+            const res = await OpenImmutableCompilerService.execute(args.target || "system");
+            return { output: `### OpenImmutableCompiler Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenImmutableCompiler failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataring_xqbr_logic": {
+          try {
+            const { OpenDataRingService } = await import("../liberty/opendataring_xqbr.service.js");
+            const res = await OpenDataRingService.execute(args.target || "system");
+            return { output: `### OpenDataRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataRing failed: ${err.message}` };
+          }
+        }
+        case "execute_openquantummesh_qsxp_logic": {
+          try {
+            const { OpenQuantumMeshService } = await import("../liberty/openquantummesh_qsxp.service.js");
+            const res = await OpenQuantumMeshService.execute(args.target || "system");
+            return { output: `### OpenQuantumMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenQuantumMesh failed: ${err.message}` };
+          }
+        }
         case "execute_openpredictivesync_uvrd_logic": {
           try {
             const { OpenPredictiveSyncService } = await import("../liberty/openpredictivesync_uvrd.service.js");
