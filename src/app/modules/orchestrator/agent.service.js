@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "run_database_migration",
+      description: "Use the Aphura Database Engine (Atlas) to safely diff, inspect, and apply declarative schema changes to live production databases.",
+      parameters: { type: "object", properties: { targetConnectionString: { type: "string" }, desiredSchema: { type: "string" } }, required: ["targetConnectionString", "desiredSchema"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_3d_model",
       description: "Use the Aphura 3D Generation Engine (TripoSR) to create fully textured 3D models (.glb or .obj) from text prompts.",
       parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }
@@ -692,7 +700,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "generate_3d_model": {
+        case "run_database_migration": {
+          try {
+            const { AtlasService } = await import("../database/atlas.service.js");
+            const res = await AtlasService.inspectAndMigrate(args.targetConnectionString, args.desiredSchema);
+            return { output: `### Database Migration Plan\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `Migration failed: ${err.message}` };
+          }
+        }        case "generate_3d_model": {
           try {
             const { TripoSRService } = await import("../3d/triposr.service.js");
             const res = await TripoSRService.generate3DModel(args.prompt);
