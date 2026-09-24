@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_opentime-seriesnode_3k54_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenTime-SeriesNode) to Autonomously deploy limitless Time-Series Analytics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhigh-frequencymatrix_zrmh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHigh-FrequencyMatrix) to Autonomously deploy limitless High-Frequency Trading architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpcontroller_yy93_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPController) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openabstractmesh_x2cy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAbstractMesh) to Autonomously deploy limitless Abstract Syntax Trees architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwareledger_uw2q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareLedger) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialchain_xbxh_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialChain) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -14732,6 +14772,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_opentime-seriesnode_3k54_logic": {
+          try {
+            const { OpenTimeSeriesNodeService } = await import("../liberty/opentime-seriesnode_3k54.service.js");
+            const res = await OpenTimeSeriesNodeService.execute(args.target || "system");
+            return { output: `### OpenTime-SeriesNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenTime-SeriesNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openhigh-frequencymatrix_zrmh_logic": {
+          try {
+            const { OpenHighFrequencyMatrixService } = await import("../liberty/openhigh-frequencymatrix_zrmh.service.js");
+            const res = await OpenHighFrequencyMatrixService.execute(args.target || "system");
+            return { output: `### OpenHigh-FrequencyMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHigh-FrequencyMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpcontroller_yy93_logic": {
+          try {
+            const { OpenBGPControllerService } = await import("../liberty/openbgpcontroller_yy93.service.js");
+            const res = await OpenBGPControllerService.execute(args.target || "system");
+            return { output: `### OpenBGPController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPController failed: ${err.message}` };
+          }
+        }
+        case "execute_openabstractmesh_x2cy_logic": {
+          try {
+            const { OpenAbstractMeshService } = await import("../liberty/openabstractmesh_x2cy.service.js");
+            const res = await OpenAbstractMeshService.execute(args.target || "system");
+            return { output: `### OpenAbstractMesh Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAbstractMesh failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwareledger_uw2q_logic": {
+          try {
+            const { OpenHardwareLedgerService } = await import("../liberty/openhardwareledger_uw2q.service.js");
+            const res = await OpenHardwareLedgerService.execute(args.target || "system");
+            return { output: `### OpenHardwareLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareLedger failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialchain_xbxh_logic": {
           try {
             const { OpenFinancialChainService } = await import("../liberty/openfinancialchain_xbxh.service.js");
