@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicnet_j4yq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicNet) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgeswarm_zxmc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeSwarm) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecontroller_r3qz_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openeventledger_5qg7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEventLedger) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openadvancedring_1qr5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenAdvancedRing) to Autonomously deploy limitless Advanced ASIC Synthesis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openeventproxy_twnj_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEventProxy) to Autonomously deploy limitless Event Streaming architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13252,6 +13292,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicnet_j4yq_logic": {
+          try {
+            const { OpenHomomorphicNetService } = await import("../liberty/openhomomorphicnet_j4yq.service.js");
+            const res = await OpenHomomorphicNetService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgeswarm_zxmc_logic": {
+          try {
+            const { OpenEdgeSwarmService } = await import("../liberty/openedgeswarm_zxmc.service.js");
+            const res = await OpenEdgeSwarmService.execute(args.target || "system");
+            return { output: `### OpenEdgeSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecontroller_r3qz_logic": {
+          try {
+            const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_r3qz.service.js");
+            const res = await OpenEnterpriseControllerService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseController failed: ${err.message}` };
+          }
+        }
+        case "execute_openeventledger_5qg7_logic": {
+          try {
+            const { OpenEventLedgerService } = await import("../liberty/openeventledger_5qg7.service.js");
+            const res = await OpenEventLedgerService.execute(args.target || "system");
+            return { output: `### OpenEventLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEventLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openadvancedring_1qr5_logic": {
+          try {
+            const { OpenAdvancedRingService } = await import("../liberty/openadvancedring_1qr5.service.js");
+            const res = await OpenAdvancedRingService.execute(args.target || "system");
+            return { output: `### OpenAdvancedRing Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenAdvancedRing failed: ${err.message}` };
+          }
+        }
         case "execute_openeventproxy_twnj_logic": {
           try {
             const { OpenEventProxyService } = await import("../liberty/openeventproxy_twnj.service.js");
