@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openserverlesslayer_451f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenServerlessLayer) to Autonomously deploy limitless Serverless Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendecentralizedrouter_ymr5_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDecentralizedRouter) to Autonomously deploy limitless Decentralized Auth architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-knowledgecontroller_nj5z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-KnowledgeController) to Autonomously deploy limitless Zero-Knowledge Rollups architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openlogstream_jtj8_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogStream) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memorycore_04l6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryCore) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openfinancialstream_g247_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenFinancialStream) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -12772,6 +12812,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openserverlesslayer_451f_logic": {
+          try {
+            const { OpenServerlessLayerService } = await import("../liberty/openserverlesslayer_451f.service.js");
+            const res = await OpenServerlessLayerService.execute(args.target || "system");
+            return { output: `### OpenServerlessLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenServerlessLayer failed: ${err.message}` };
+          }
+        }
+        case "execute_opendecentralizedrouter_ymr5_logic": {
+          try {
+            const { OpenDecentralizedRouterService } = await import("../liberty/opendecentralizedrouter_ymr5.service.js");
+            const res = await OpenDecentralizedRouterService.execute(args.target || "system");
+            return { output: `### OpenDecentralizedRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDecentralizedRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-knowledgecontroller_nj5z_logic": {
+          try {
+            const { OpenZeroKnowledgeControllerService } = await import("../liberty/openzero-knowledgecontroller_nj5z.service.js");
+            const res = await OpenZeroKnowledgeControllerService.execute(args.target || "system");
+            return { output: `### OpenZero-KnowledgeController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-KnowledgeController failed: ${err.message}` };
+          }
+        }
+        case "execute_openlogstream_jtj8_logic": {
+          try {
+            const { OpenLogStreamService } = await import("../liberty/openlogstream_jtj8.service.js");
+            const res = await OpenLogStreamService.execute(args.target || "system");
+            return { output: `### OpenLogStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memorycore_04l6_logic": {
+          try {
+            const { OpenInMemoryCoreService } = await import("../liberty/openin-memorycore_04l6.service.js");
+            const res = await OpenInMemoryCoreService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryCore failed: ${err.message}` };
+          }
+        }
         case "execute_openfinancialstream_g247_logic": {
           try {
             const { OpenFinancialStreamService } = await import("../liberty/openfinancialstream_g247.service.js");
