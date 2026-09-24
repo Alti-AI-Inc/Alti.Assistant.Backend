@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openhomomorphicgraph_o2e7_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicGraph) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativenode_7zkc_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeNode) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpbroker_1sz6_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPBroker) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectormatrix_3hmm_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorMatrix) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openchaossync_r8uh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenChaosSync) to Autonomously deploy limitless Chaos Engineering architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opensub-millisecondnexus_03th_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondNexus) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3492,6 +3532,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openhomomorphicgraph_o2e7_logic": {
+          try {
+            const { OpenHomomorphicGraphService } = await import("../liberty/openhomomorphicgraph_o2e7.service.js");
+            const res = await OpenHomomorphicGraphService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativenode_7zkc_logic": {
+          try {
+            const { OpenCloudNativeNodeService } = await import("../liberty/opencloud-nativenode_7zkc.service.js");
+            const res = await OpenCloudNativeNodeService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpbroker_1sz6_logic": {
+          try {
+            const { OpenBGPBrokerService } = await import("../liberty/openbgpbroker_1sz6.service.js");
+            const res = await OpenBGPBrokerService.execute(args.target || "system");
+            return { output: `### OpenBGPBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectormatrix_3hmm_logic": {
+          try {
+            const { OpenVectorMatrixService } = await import("../liberty/openvectormatrix_3hmm.service.js");
+            const res = await OpenVectorMatrixService.execute(args.target || "system");
+            return { output: `### OpenVectorMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_openchaossync_r8uh_logic": {
+          try {
+            const { OpenChaosSyncService } = await import("../liberty/openchaossync_r8uh.service.js");
+            const res = await OpenChaosSyncService.execute(args.target || "system");
+            return { output: `### OpenChaosSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenChaosSync failed: ${err.message}` };
+          }
+        }
         case "execute_opensub-millisecondnexus_03th_logic": {
           try {
             const { OpenSubMillisecondNexusService } = await import("../liberty/opensub-millisecondnexus_03th.service.js");
