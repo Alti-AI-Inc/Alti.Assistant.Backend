@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openheadlessrouter_kcfq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHeadlessRouter) to Autonomously deploy limitless Headless CMS Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openneuromorphicchain_yef0_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenNeuromorphicChain) to Autonomously deploy limitless Neuromorphic Emulation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openedgenet_xxhj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNet) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgrid_z919_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGrid) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhardwarestream_lyrq_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHardwareStream) to Autonomously deploy limitless Hardware Abstract Layers architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openbgpsync_dxg2_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenBGPSync) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10372,6 +10412,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openheadlessrouter_kcfq_logic": {
+          try {
+            const { OpenHeadlessRouterService } = await import("../liberty/openheadlessrouter_kcfq.service.js");
+            const res = await OpenHeadlessRouterService.execute(args.target || "system");
+            return { output: `### OpenHeadlessRouter Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHeadlessRouter failed: ${err.message}` };
+          }
+        }
+        case "execute_openneuromorphicchain_yef0_logic": {
+          try {
+            const { OpenNeuromorphicChainService } = await import("../liberty/openneuromorphicchain_yef0.service.js");
+            const res = await OpenNeuromorphicChainService.execute(args.target || "system");
+            return { output: `### OpenNeuromorphicChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenNeuromorphicChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openedgenet_xxhj_logic": {
+          try {
+            const { OpenEdgeNetService } = await import("../liberty/openedgenet_xxhj.service.js");
+            const res = await OpenEdgeNetService.execute(args.target || "system");
+            return { output: `### OpenEdgeNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNet failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgrid_z919_logic": {
+          try {
+            const { OpenFinancialGridService } = await import("../liberty/openfinancialgrid_z919.service.js");
+            const res = await OpenFinancialGridService.execute(args.target || "system");
+            return { output: `### OpenFinancialGrid Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGrid failed: ${err.message}` };
+          }
+        }
+        case "execute_openhardwarestream_lyrq_logic": {
+          try {
+            const { OpenHardwareStreamService } = await import("../liberty/openhardwarestream_lyrq.service.js");
+            const res = await OpenHardwareStreamService.execute(args.target || "system");
+            return { output: `### OpenHardwareStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHardwareStream failed: ${err.message}` };
+          }
+        }
         case "execute_openbgpsync_dxg2_logic": {
           try {
             const { OpenBGPSyncService } = await import("../liberty/openbgpsync_dxg2.service.js");
