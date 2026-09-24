@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openmulti-partyvortex_y7hh_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyVortex) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetaryfabric_luof_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryFabric) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencloud-nativecore_2v0d_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeCore) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendatagraph_5nkx_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataGraph) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpredictivechain_ylhf_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveChain) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openmulti-partysync_zm27_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartySync) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -3932,6 +3972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openmulti-partyvortex_y7hh_logic": {
+          try {
+            const { OpenMultiPartyVortexService } = await import("../liberty/openmulti-partyvortex_y7hh.service.js");
+            const res = await OpenMultiPartyVortexService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyVortex Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyVortex failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetaryfabric_luof_logic": {
+          try {
+            const { OpenPlanetaryFabricService } = await import("../liberty/openplanetaryfabric_luof.service.js");
+            const res = await OpenPlanetaryFabricService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryFabric failed: ${err.message}` };
+          }
+        }
+        case "execute_opencloud-nativecore_2v0d_logic": {
+          try {
+            const { OpenCloudNativeCoreService } = await import("../liberty/opencloud-nativecore_2v0d.service.js");
+            const res = await OpenCloudNativeCoreService.execute(args.target || "system");
+            return { output: `### OpenCloud-NativeCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCloud-NativeCore failed: ${err.message}` };
+          }
+        }
+        case "execute_opendatagraph_5nkx_logic": {
+          try {
+            const { OpenDataGraphService } = await import("../liberty/opendatagraph_5nkx.service.js");
+            const res = await OpenDataGraphService.execute(args.target || "system");
+            return { output: `### OpenDataGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openpredictivechain_ylhf_logic": {
+          try {
+            const { OpenPredictiveChainService } = await import("../liberty/openpredictivechain_ylhf.service.js");
+            const res = await OpenPredictiveChainService.execute(args.target || "system");
+            return { output: `### OpenPredictiveChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveChain failed: ${err.message}` };
+          }
+        }
         case "execute_openmulti-partysync_zm27_logic": {
           try {
             const { OpenMultiPartySyncService } = await import("../liberty/openmulti-partysync_zm27.service.js");
