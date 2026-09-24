@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openstaticstream_ohq1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticStream) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openbgpvault_uazv_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenBGPVault) to Autonomously deploy limitless BGP Route Reflection architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticnexus_sej3_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticNexus) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openpersistentproxy_jma1_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentProxy) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialfabric_qsud_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialFabric) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openpersistentgraph_9pmv_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenPersistentGraph) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -13452,6 +13492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openstaticstream_ohq1_logic": {
+          try {
+            const { OpenStaticStreamService } = await import("../liberty/openstaticstream_ohq1.service.js");
+            const res = await OpenStaticStreamService.execute(args.target || "system");
+            return { output: `### OpenStaticStream Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticStream failed: ${err.message}` };
+          }
+        }
+        case "execute_openbgpvault_uazv_logic": {
+          try {
+            const { OpenBGPVaultService } = await import("../liberty/openbgpvault_uazv.service.js");
+            const res = await OpenBGPVaultService.execute(args.target || "system");
+            return { output: `### OpenBGPVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenBGPVault failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticnexus_sej3_logic": {
+          try {
+            const { OpenStaticNexusService } = await import("../liberty/openstaticnexus_sej3.service.js");
+            const res = await OpenStaticNexusService.execute(args.target || "system");
+            return { output: `### OpenStaticNexus Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticNexus failed: ${err.message}` };
+          }
+        }
+        case "execute_openpersistentproxy_jma1_logic": {
+          try {
+            const { OpenPersistentProxyService } = await import("../liberty/openpersistentproxy_jma1.service.js");
+            const res = await OpenPersistentProxyService.execute(args.target || "system");
+            return { output: `### OpenPersistentProxy Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentProxy failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialfabric_qsud_logic": {
+          try {
+            const { OpenFinancialFabricService } = await import("../liberty/openfinancialfabric_qsud.service.js");
+            const res = await OpenFinancialFabricService.execute(args.target || "system");
+            return { output: `### OpenFinancialFabric Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialFabric failed: ${err.message}` };
+          }
+        }
         case "execute_openpersistentgraph_9pmv_logic": {
           try {
             const { OpenPersistentGraphService } = await import("../liberty/openpersistentgraph_9pmv.service.js");
