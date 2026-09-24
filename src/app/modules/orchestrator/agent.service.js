@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openedgenode_zwfb_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEdgeNode) to Autonomously deploy limitless Edge Proxy Gateways architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openplanetarynode_mqml_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPlanetaryNode) to Autonomously deploy limitless Planetary Object Storage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openzero-trustgraph_jcgu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenZero-TrustGraph) to Autonomously deploy limitless Zero-Trust Security architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmicro-kernelplane_nd7z_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMicro-KernelPlane) to Autonomously deploy limitless Micro-Kernel Orchestration architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openmulti-partylayer_jt5t_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenMulti-PartyLayer) to Autonomously deploy limitless Multi-Party Computation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_opencloud-nativevortex_2lqq_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenCloud-NativeVortex) to Autonomously deploy limitless Cloud-Native Networking architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -10012,6 +10052,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openedgenode_zwfb_logic": {
+          try {
+            const { OpenEdgeNodeService } = await import("../liberty/openedgenode_zwfb.service.js");
+            const res = await OpenEdgeNodeService.execute(args.target || "system");
+            return { output: `### OpenEdgeNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEdgeNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openplanetarynode_mqml_logic": {
+          try {
+            const { OpenPlanetaryNodeService } = await import("../liberty/openplanetarynode_mqml.service.js");
+            const res = await OpenPlanetaryNodeService.execute(args.target || "system");
+            return { output: `### OpenPlanetaryNode Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPlanetaryNode failed: ${err.message}` };
+          }
+        }
+        case "execute_openzero-trustgraph_jcgu_logic": {
+          try {
+            const { OpenZeroTrustGraphService } = await import("../liberty/openzero-trustgraph_jcgu.service.js");
+            const res = await OpenZeroTrustGraphService.execute(args.target || "system");
+            return { output: `### OpenZero-TrustGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenZero-TrustGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openmicro-kernelplane_nd7z_logic": {
+          try {
+            const { OpenMicroKernelPlaneService } = await import("../liberty/openmicro-kernelplane_nd7z.service.js");
+            const res = await OpenMicroKernelPlaneService.execute(args.target || "system");
+            return { output: `### OpenMicro-KernelPlane Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMicro-KernelPlane failed: ${err.message}` };
+          }
+        }
+        case "execute_openmulti-partylayer_jt5t_logic": {
+          try {
+            const { OpenMultiPartyLayerService } = await import("../liberty/openmulti-partylayer_jt5t.service.js");
+            const res = await OpenMultiPartyLayerService.execute(args.target || "system");
+            return { output: `### OpenMulti-PartyLayer Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenMulti-PartyLayer failed: ${err.message}` };
+          }
+        }
         case "execute_opencloud-nativevortex_2lqq_logic": {
           try {
             const { OpenCloudNativeVortexService } = await import("../liberty/opencloud-nativevortex_2lqq.service.js");
