@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "query_knowledge_graph",
+      description: "Query the Aphura Knowledge Graph (GraphRAG) to synthesize global context and find deep entity relationships across massive amounts of documents.",
+      parameters: { type: "object", properties: { query: { type: "string" }, graphId: { type: "string" } }, required: ["query", "graphId"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "spawn_agent_swarm",
       description: "Spawn a hive-mind of specialized sub-agents (e.g. Researcher, QA, Developer) to collaboratively solve a massive objective.",
       parameters: { type: "object", properties: { objective: { type: "string" }, teamConfig: { type: "array", items: { type: "string" } } }, required: ["objective", "teamConfig"] }
@@ -628,7 +636,15 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "spawn_agent_swarm": {
+        case "query_knowledge_graph": {
+          try {
+            const { GraphRAGService } = await import("../rag/graphrag.service.js");
+            const res = await GraphRAGService.queryGraph(args.query, args.graphId);
+            return { output: `### Knowledge Graph Synthesis\\n\\n${res.answer}` };
+          } catch (err) {
+            return { output: `GraphRAG failed: ${err.message}` };
+          }
+        }        case "spawn_agent_swarm": {
           try {
             const { CrewAIService } = await import("../agents/crewai.service.js");
             const res = await CrewAIService.executeSwarmTask(args.objective, args.teamConfig);
