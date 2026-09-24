@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openlogsync_fp6g_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenLogSync) to Autonomously deploy limitless Log Aggregation architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhomomorphicbroker_sziu_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHomomorphicBroker) to Autonomously deploy limitless Homomorphic Encryption architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openin-memoryengine_8aue_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenIn-MemoryEngine) to Autonomously deploy limitless In-Memory Data Grids architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendataledger_v73q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDataLedger) to Autonomously deploy limitless Data Lineage architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openenterprisecore_cu61_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseCore) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openenterprisecontroller_ggn1_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenEnterpriseController) to Autonomously deploy limitless Enterprise Identity architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -15932,6 +15972,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openlogsync_fp6g_logic": {
+          try {
+            const { OpenLogSyncService } = await import("../liberty/openlogsync_fp6g.service.js");
+            const res = await OpenLogSyncService.execute(args.target || "system");
+            return { output: `### OpenLogSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenLogSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openhomomorphicbroker_sziu_logic": {
+          try {
+            const { OpenHomomorphicBrokerService } = await import("../liberty/openhomomorphicbroker_sziu.service.js");
+            const res = await OpenHomomorphicBrokerService.execute(args.target || "system");
+            return { output: `### OpenHomomorphicBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHomomorphicBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openin-memoryengine_8aue_logic": {
+          try {
+            const { OpenInMemoryEngineService } = await import("../liberty/openin-memoryengine_8aue.service.js");
+            const res = await OpenInMemoryEngineService.execute(args.target || "system");
+            return { output: `### OpenIn-MemoryEngine Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenIn-MemoryEngine failed: ${err.message}` };
+          }
+        }
+        case "execute_opendataledger_v73q_logic": {
+          try {
+            const { OpenDataLedgerService } = await import("../liberty/opendataledger_v73q.service.js");
+            const res = await OpenDataLedgerService.execute(args.target || "system");
+            return { output: `### OpenDataLedger Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDataLedger failed: ${err.message}` };
+          }
+        }
+        case "execute_openenterprisecore_cu61_logic": {
+          try {
+            const { OpenEnterpriseCoreService } = await import("../liberty/openenterprisecore_cu61.service.js");
+            const res = await OpenEnterpriseCoreService.execute(args.target || "system");
+            return { output: `### OpenEnterpriseCore Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenEnterpriseCore failed: ${err.message}` };
+          }
+        }
         case "execute_openenterprisecontroller_ggn1_logic": {
           try {
             const { OpenEnterpriseControllerService } = await import("../liberty/openenterprisecontroller_ggn1.service.js");
