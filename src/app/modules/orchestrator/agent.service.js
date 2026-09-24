@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpersistentsync_9406_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPersistentSync) to Autonomously deploy limitless Persistent Memory architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openfinancialgraph_fd28_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenFinancialGraph) to Autonomously deploy limitless Financial Ledger State architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openstaticbroker_7y4e_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenStaticBroker) to Autonomously deploy limitless Static Code Analysis architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openvectorswarm_bjzy_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenVectorSwarm) to Autonomously deploy limitless Vector Mathematics architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opencross-clustervault_4oov_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenCross-ClusterVault) to Autonomously deploy limitless Cross-Cluster Replication architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openebpfplane_rikt_logic",
       description: "Use the deeply entrenched Aphura Engine (OpeneBPFPlane) to Autonomously deploy limitless eBPF Kernel Tracing architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -4132,6 +4172,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpersistentsync_9406_logic": {
+          try {
+            const { OpenPersistentSyncService } = await import("../liberty/openpersistentsync_9406.service.js");
+            const res = await OpenPersistentSyncService.execute(args.target || "system");
+            return { output: `### OpenPersistentSync Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPersistentSync failed: ${err.message}` };
+          }
+        }
+        case "execute_openfinancialgraph_fd28_logic": {
+          try {
+            const { OpenFinancialGraphService } = await import("../liberty/openfinancialgraph_fd28.service.js");
+            const res = await OpenFinancialGraphService.execute(args.target || "system");
+            return { output: `### OpenFinancialGraph Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenFinancialGraph failed: ${err.message}` };
+          }
+        }
+        case "execute_openstaticbroker_7y4e_logic": {
+          try {
+            const { OpenStaticBrokerService } = await import("../liberty/openstaticbroker_7y4e.service.js");
+            const res = await OpenStaticBrokerService.execute(args.target || "system");
+            return { output: `### OpenStaticBroker Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenStaticBroker failed: ${err.message}` };
+          }
+        }
+        case "execute_openvectorswarm_bjzy_logic": {
+          try {
+            const { OpenVectorSwarmService } = await import("../liberty/openvectorswarm_bjzy.service.js");
+            const res = await OpenVectorSwarmService.execute(args.target || "system");
+            return { output: `### OpenVectorSwarm Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenVectorSwarm failed: ${err.message}` };
+          }
+        }
+        case "execute_opencross-clustervault_4oov_logic": {
+          try {
+            const { OpenCrossClusterVaultService } = await import("../liberty/opencross-clustervault_4oov.service.js");
+            const res = await OpenCrossClusterVaultService.execute(args.target || "system");
+            return { output: `### OpenCross-ClusterVault Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenCross-ClusterVault failed: ${err.message}` };
+          }
+        }
         case "execute_openebpfplane_rikt_logic": {
           try {
             const { OpeneBPFPlaneService } = await import("../liberty/openebpfplane_rikt.service.js");
