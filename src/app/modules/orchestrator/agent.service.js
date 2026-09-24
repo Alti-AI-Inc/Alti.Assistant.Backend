@@ -39,6 +39,46 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "execute_openpredictivematrix_587f_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenPredictiveMatrix) to Autonomously deploy limitless Predictive ML Telemetry architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opendistributedchain_ttjo_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenDistributedChain) to Autonomously deploy limitless Distributed Caching architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_openhyper-dimensionalnet_xrtj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenHyper-DimensionalNet) to Autonomously deploy limitless Hyper-Dimensional Computing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opengraphcontroller_nq5q_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenGraphController) to Autonomously deploy limitless Graph Neural Networks architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_opensub-millisecondoracle_7xdj_logic",
+      description: "Use the deeply entrenched Aphura Engine (OpenSub-MillisecondOracle) to Autonomously deploy limitless Sub-Millisecond Routing architectures across Liberty Center One compute nodes.",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_openquantumring_y25y_logic",
       description: "Use the deeply entrenched Aphura Engine (OpenQuantumRing) to Autonomously deploy limitless Quantum Post-Cryptography architectures across Liberty Center One compute nodes.",
       parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] }
@@ -16452,6 +16492,51 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
+        case "execute_openpredictivematrix_587f_logic": {
+          try {
+            const { OpenPredictiveMatrixService } = await import("../liberty/openpredictivematrix_587f.service.js");
+            const res = await OpenPredictiveMatrixService.execute(args.target || "system");
+            return { output: `### OpenPredictiveMatrix Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenPredictiveMatrix failed: ${err.message}` };
+          }
+        }
+        case "execute_opendistributedchain_ttjo_logic": {
+          try {
+            const { OpenDistributedChainService } = await import("../liberty/opendistributedchain_ttjo.service.js");
+            const res = await OpenDistributedChainService.execute(args.target || "system");
+            return { output: `### OpenDistributedChain Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenDistributedChain failed: ${err.message}` };
+          }
+        }
+        case "execute_openhyper-dimensionalnet_xrtj_logic": {
+          try {
+            const { OpenHyperDimensionalNetService } = await import("../liberty/openhyper-dimensionalnet_xrtj.service.js");
+            const res = await OpenHyperDimensionalNetService.execute(args.target || "system");
+            return { output: `### OpenHyper-DimensionalNet Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenHyper-DimensionalNet failed: ${err.message}` };
+          }
+        }
+        case "execute_opengraphcontroller_nq5q_logic": {
+          try {
+            const { OpenGraphControllerService } = await import("../liberty/opengraphcontroller_nq5q.service.js");
+            const res = await OpenGraphControllerService.execute(args.target || "system");
+            return { output: `### OpenGraphController Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenGraphController failed: ${err.message}` };
+          }
+        }
+        case "execute_opensub-millisecondoracle_7xdj_logic": {
+          try {
+            const { OpenSubMillisecondOracleService } = await import("../liberty/opensub-millisecondoracle_7xdj.service.js");
+            const res = await OpenSubMillisecondOracleService.execute(args.target || "system");
+            return { output: `### OpenSub-MillisecondOracle Deep Execution\\n\\n```text\\n${res.report}\\n```` };
+          } catch (err) {
+            return { output: `OpenSub-MillisecondOracle failed: ${err.message}` };
+          }
+        }
         case "execute_openquantumring_y25y_logic": {
           try {
             const { OpenQuantumRingService } = await import("../liberty/openquantumring_y25y.service.js");
