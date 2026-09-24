@@ -39,6 +39,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "parse_desktop_screen",
+      description: "Use the Aphura OmniParser engine to analyze a screenshot of the user OS. Returns exact XY coordinates of all clickable icons, buttons, and text fields on the screen.",
+      parameters: { type: "object", properties: { base64Image: { type: "string" } }, required: ["base64Image"] }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "execute_python_code",
       description: "Write and execute Python code in a sandboxed Jupyter kernel to perform advanced data analysis, crunch math, or generate visual charts.",
       parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] }
@@ -612,7 +620,16 @@ export const AgentService = {
       logger.info(`[AgentService] Executing tool: ${name} with args:`, args);
       const executeInternal = async () => {
         switch (name) {
-        case "execute_python_code": {
+        case "parse_desktop_screen": {
+          try {
+            const { OmniParserService } = await import("../vision/omniparser.service.js");
+            const res = await OmniParserService.parseScreen(args.base64Image);
+            const formatted = OmniParserService.formatForAgent(res.elements);
+            return { output: `### OmniParser Vision Analysis\\n\\nDetected the following interactive elements on the screen:\\n```text\\n${formatted}\\n```\\n\\nYou can now use the Desktop Bridge to click any of these coordinates.` };
+          } catch (err) {
+            return { output: `OmniParser failed: ${err.message}` };
+          }
+        }        case "execute_python_code": {
           try {
             const { JupyterService } = await import("../compute/jupyter.service.js");
             const res = await JupyterService.executeCode(args.code);
